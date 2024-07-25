@@ -148,7 +148,7 @@ BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
               disc_interface,
               parasite_type,
               nvram_contents,
-              init_flags | (beeblink_handler ? BBCMicroInitFlag_BeebLink : 0),
+              init_flags,
               rtc_time,
               initial_cycle_count)
     , m_beeblink_handler(beeblink_handler) {
@@ -187,11 +187,8 @@ uint32_t BBCMicro::GetCloneImpediments() const {
         }
     }
 
-    if (m_state.init_flags & BBCMicroInitFlag_BeebLink) {
-        ASSERT(m_beeblink_handler);
+    if (!!m_beeblink_handler) {
         result |= BBCMicroCloneImpediment_BeebLink;
-    } else {
-        ASSERT(!m_beeblink_handler);
     }
 
     return result;
@@ -2341,6 +2338,9 @@ void BBCMicro::InitStuff() {
 
     if (m_beeblink_handler) {
         m_beeblink = std::make_unique<BeebLink>(m_beeblink_handler);
+
+        this->SetSIO(0xfe9e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
+        this->SetSIO(0xfe9f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
     }
 
     this->UpdateCPUDataBusFn();
@@ -2789,10 +2789,6 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
     if (!m_host_write_fns.empty()) {
         update_flags |= BBCMicroUpdateFlag_Hacks;
-    }
-
-    if (m_beeblink_handler) {
-        update_flags |= BBCMicroUpdateFlag_HasBeebLink;
     }
 
     if (m_state.type->type_id == BBCMicroTypeID_Master) {

@@ -373,8 +373,8 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
                     ++url_index;
                     ASSERT(url_index <= urls.size());
                     if (url_index == urls.size()) {
-                        server_to_beeb_data = BeebLink::GetErrorResponsePacketData(255,
-                                                                                   "HTTP request failed");
+                        server_to_beeb_data = GetBeebLinkErrorResponsePacketData(255,
+                                                                                 "HTTP request failed");
 
                         if (show_errors) {
                             for (size_t i = 0; i < urls.size(); ++i) {

@@ -8,6 +8,7 @@
 #include "Trace.h"
 
 class R6522;
+union M6502Word;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -44,15 +45,20 @@ class BeebLinkHandler {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::vector<uint8_t> GetBeebLinkErrorResponsePacketData(uint8_t code, const char *message);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BeebLink {
   public:
-    static std::vector<uint8_t> GetErrorResponsePacketData(uint8_t code,
-                                                           const char *message);
-
     explicit BeebLink(BeebLinkHandler *handler);
     ~BeebLink();
 
-    void Update(R6522 *via);
+    static uint8_t ReadControl(void *context, M6502Word addr);
+    static void WriteControl(void *context, M6502Word addr, uint8_t value);
+    static uint8_t ReadData(void *context, M6502Word addr);
+    static void WriteData(void *context, M6502Word addr, uint8_t value);
 
     void SendResponse(std::vector<uint8_t> data);
 
@@ -61,29 +67,17 @@ class BeebLink {
 #endif
   protected:
   private:
-    BeebLinkHandler *m_handler = nullptr;
+    BeebLinkHandler *const m_handler = nullptr;
 
-    BeebLinkState m_state;
-    uint32_t m_state_counter;
+    std::vector<unsigned char> m_recv;
+    uint64_t m_recv_index = 0;
 
-    std::vector<uint8_t> m_data;
-
-    size_t m_index = 0;
-
-    uint8_t m_type_byte = 0;
-    uint8_t m_size_bytes[4] = {};
+    bool m_may_send = false;
+    std::vector<unsigned char> m_send;
 
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
 #endif
-
-    bool WaitForBeebReadyReceive(R6522 *via, BeebLinkState ready_state, uint8_t *value);
-    bool WaitForBeebReadySend(R6522 *via, BeebLinkState ready_state, uint8_t value);
-    bool AckAndCheck(R6522 *via, BeebLinkState ack_state);
-
-    // Return value is first byte of response.
-    void HandleReceivedData();
-    void Stall();
 };
 
 //////////////////////////////////////////////////////////////////////////

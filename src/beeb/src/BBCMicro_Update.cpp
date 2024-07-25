@@ -845,10 +845,6 @@ parasite_update_done:
                 //}
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_HasBeebLink) != 0) {
-                m_beeblink->Update(&m_state.user_via);
-            }
-
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
                 // <pre>
                 //  PB4 PB3 PB2 PB1 PB0
@@ -1010,7 +1006,7 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 #endif
 
     if (flags & BBCMicroUpdateFlag_IsMasterCompact) {
-        flags &= ~(BBCMicroUpdateFlag_HasBeebLink | BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_Parasite);
+        flags &= ~(BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_Parasite);
 
         // (the parasite-specific debug flags are dealt with below)
     }
@@ -1074,14 +1070,14 @@ const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS] = {
     UPDATE4096(0x5 * 4096),
     UPDATE4096(0x6 * 4096),
     UPDATE4096(0x7 * 4096),
-    UPDATE4096(0x8 * 4096),
-    UPDATE4096(0x9 * 4096),
-    UPDATE4096(0xa * 4096),
-    UPDATE4096(0xb * 4096),
-    UPDATE4096(0xc * 4096),
-    UPDATE4096(0xd * 4096),
-    UPDATE4096(0xe * 4096),
-    UPDATE4096(0xf * 4096),
+    //UPDATE4096(0x8 * 4096),
+    //UPDATE4096(0x9 * 4096),
+    //UPDATE4096(0xa * 4096),
+    //UPDATE4096(0xb * 4096),
+    //UPDATE4096(0xc * 4096),
+    //UPDATE4096(0xd * 4096),
+    //UPDATE4096(0xe * 4096),
+    //UPDATE4096(0xf * 4096),
 };
 
 //////////////////////////////////////////////////////////////////////////

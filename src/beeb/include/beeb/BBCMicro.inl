@@ -125,39 +125,38 @@ EEND()
 #define ENAME BBCMicroUpdateFlag
 EBEGIN_DERIVED(uint32_t)
 EPNV(IsMaster128, 1 << 0)
-EPNV(HasBeebLink, 1 << 1)
-EPNV(Hacks, 1 << 2)
-EPNV(Debug, 1 << 3)
-EPNV(Trace, 1 << 4)
-EPNV(Parasite, 1 << 5)
+EPNV(Hacks, 1 << 1)
+EPNV(Debug, 1 << 2)
+EPNV(Trace, 1 << 3)
+EPNV(Parasite, 1 << 4)
 
 // Special mode covers non-default Tube operation modes: any or all of boot
 // mode, host-initiated Tube reset, and parasite reset.
 //
 // Special mode is not efficient.
-EPNV(ParasiteSpecial, 1 << 6)
+EPNV(ParasiteSpecial, 1 << 5)
 
-EPNV(DebugStepParasite, 1 << 7)
-EPNV(DebugStepHost, 1 << 8)
+EPNV(DebugStepParasite, 1 << 6)
+EPNV(DebugStepHost, 1 << 7)
 
 // If clear, parasite (if any) runs at 4 MHz.
 //
 // If set, parasite (if any) runs at an effective 3 MHz, by running for 3 cycles
 // out of every 4.
-EPNV(Parasite3MHzExternal, 1 << 9)
+EPNV(Parasite3MHzExternal, 1 << 8)
 
-EPNV(ParallelPrinter, 1 << 10)
+EPNV(ParallelPrinter, 1 << 9)
 
 // Master Compact gets its own flag, as it implies multiple things:
 //
 // - no BeebLink (user port is used for the digital joystick)
 // - no Tube
 // - has Master Compact EEPROM
-EPNV(IsMasterCompact, 1 << 11)
+EPNV(IsMasterCompact, 1 << 10)
 
-EQPNV(ROMTypeShift, 12)
+EQPNV(ROMTypeShift, 11)
 EQPNV(ROMTypeMask, 15)
-// next free bit is 1<<16
+// next free bit is 1<<15
 
 EEND()
 #undef ENAME
