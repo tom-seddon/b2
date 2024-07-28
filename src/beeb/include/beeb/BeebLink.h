@@ -36,7 +36,7 @@ class BeebLinkHandler {
     BeebLinkHandler() = default;
     virtual ~BeebLinkHandler();
 
-    virtual bool GotRequestPacket(std::vector<uint8_t> data) = 0;
+    virtual bool GotRequestPacket(std::vector<unsigned char> data, bool is_fire_and_forget) = 0;
 
   protected:
   private:
@@ -60,7 +60,7 @@ class BeebLink {
     static uint8_t ReadData(void *context, M6502Word addr);
     static void WriteData(void *context, M6502Word addr, uint8_t value);
 
-    void SendResponse(std::vector<uint8_t> data);
+    void SendResponse(std::vector<unsigned char> data);
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *trace);
@@ -78,6 +78,8 @@ class BeebLink {
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
 #endif
+
+    void ResetReceiveBuffer();
 };
 
 //////////////////////////////////////////////////////////////////////////

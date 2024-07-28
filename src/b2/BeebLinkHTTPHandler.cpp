@@ -43,6 +43,7 @@ struct BeebLinkHTTPHandler::ThreadState {
     bool busy = false;
 
     std::vector<uint8_t> beeb_to_server_data;
+    bool is_fire_and_forget = false;
 
     // Used by the thread once it's running.
 
@@ -171,9 +172,9 @@ bool BeebLinkHTTPHandler::Init(Messages *msg) {
 
     m_ts->sender_id = m_sender_id;
 
-    if (LOG(BEEBLINK).enabled) {
-        std::string prefix = std::string(LOG(BEEBLINK).GetPrefix()) + ": HTTP " + m_sender_id;
-        m_ts->log = std::make_unique<Log>(prefix.c_str(), LOG(BEEBLINK).GetLogPrinter(), true);
+    if (LOG(BEEBLINK_HTTP).enabled) {
+        std::string prefix = std::string(LOG(BEEBLINK_HTTP).GetPrefix()) + ": HTTP " + m_sender_id;
+        m_ts->log = std::make_unique<Log>(prefix.c_str(), LOG(BEEBLINK_HTTP).GetLogPrinter(), true);
 
         curl_easy_setopt(m_ts->curl, CURLOPT_DEBUGFUNCTION, &CurlDebugFunction);
         curl_easy_setopt(m_ts->curl, CURLOPT_DEBUGDATA, m_ts->log.get());
@@ -201,7 +202,7 @@ bool BeebLinkHTTPHandler::Init(Messages *msg) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data) {
+bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data, bool is_fire_and_forget) {
     ASSERT(!data.empty());
 
     {
@@ -209,6 +210,7 @@ bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data) {
 
         m_ts->busy = true;
         m_ts->beeb_to_server_data = std::move(data);
+        m_ts->is_fire_and_forget = is_fire_and_forget;
     }
 
     m_ts->cv.notify_one();
@@ -299,6 +301,11 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
             if (ts->url.empty()) {
                 urls = GetServerURLs();
                 urls.insert(urls.begin(), DEFAULT_URL);
+
+                // Form the V2 URL for each one.
+                for (std::string &url : urls) {
+                    url.append("/2");
+                }
             } else {
                 urls.push_back(ts->url);
             }
@@ -391,7 +398,9 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
 
             ASSERT(!server_to_beeb_data.empty());
             ASSERT(ts->beeb_thread);
-            ts->beeb_thread->Send(std::make_shared<BeebThread::BeebLinkResponseMessage>(std::move(server_to_beeb_data)));
+            if (!ts->is_fire_and_forget) {
+                ts->beeb_thread->Send(std::make_shared<BeebThread::BeebLinkResponseMessage>(std::move(server_to_beeb_data)));
+            }
 
             ts->busy = false;
         }

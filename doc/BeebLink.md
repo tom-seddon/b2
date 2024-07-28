@@ -9,7 +9,8 @@ For the latest release, see here:
 https://github.com/tom-seddon/beeblink/releases/latest
 
 *You will need a BeebLink release dated July 2024 or later* - older
-versions will not have the required ROM for use with b2.
+releases will not have the required ROM for use with b2, and the
+server will not support the new features it requires.
 
 To use BeebLink with b2, add the `--http` option when running the
 server, so that it listens for connections from b2. Run b2 on the same

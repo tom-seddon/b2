@@ -41,18 +41,20 @@ BeebLinkHandler::~BeebLinkHandler() {
 
 std::vector<uint8_t> GetBeebLinkErrorResponsePacketData(uint8_t code,
                                                         const char *message) {
-    std::vector<uint8_t> data;
+    size_t message_len = strlen(message);
+    ASSERT(message_len < UINT32_MAX - 2);
 
-    data.push_back(RESPONSE_ERROR);
+    std::vector<unsigned char> data(1 + 4 + 1 + 1 + message_len + 1);
 
-    data.push_back(0);
-    data.push_back(code);
+    data[0] = RESPONSE_ERROR;
 
-    for (const char *c = message; *c != 0; ++c) {
-        data.push_back((uint8_t)*c);
-    }
+    Store32LE(&data[1], (uint32_t)(1 + 1 + message_len + 1));
 
-    data.push_back(0);
+    data[5] = 0;
+    data[6] = code;
+
+    // +1 to copy the terminating 0 as well.
+    memcpy(&data[7], message, message_len + 1);
 
     return data;
 }
@@ -95,19 +97,29 @@ void BeebLink::WriteControl(void *context, M6502Word addr, uint8_t value) {
 
     switch (value) {
     case 0:
+        LOGF(BEEBLINK, "Presence check.\n");
         // Presence check.
         TRACEF(b->m_trace, "BeebLink: Write Control: presence check");
-        b->SendResponse({0xff, 'B', 'e', 'e', 'b', 'L', 'i', 'n', 'k', 0});
+        b->SendResponse({0xff, 9, 0, 0, 0, 'B', 'e', 'e', 'b', 'L', 'i', 'n', 'k', 0});
         break;
 
     case 1:
         // Send data.
-        TRACEF(b->m_trace, "BeebLink: Write Control: send data");
+        LOGF(BEEBLINK, "Send data (reset FIFO).\n");
+        TRACEF(b->m_trace, "BeebLink: Write Control: send data (reset FIFO)");
+        b->ResetReceiveBuffer();
+
+    begin_send:
+        b->m_send.clear();
         b->m_may_send = true;
 
-        // always book space for the request type
-        b->m_send.clear();
         break;
+
+    case 2:
+        // Send data, keeping input FIFO.
+        LOGF(BEEBLINK, "Send data (retain FIFO).\n");
+        TRACEF(b->m_trace, "BeebLink: Write Control: send data (retain FIFO)");
+        goto begin_send;
     }
 }
 
@@ -144,13 +156,16 @@ void BeebLink::WriteData(void *context, M6502Word addr, uint8_t value) {
 
         ASSERT(b->m_send.size() - 5 <= payload_size);
         if (b->m_send.size() - 5 == payload_size) {
-            b->m_send.erase(b->m_send.begin() + 1, b->m_send.begin() + 5);
+            bool is_fire_and_forget = false;
+            uint8_t c = b->m_send[0] & 0x7f;
+            if (c >= 0x60 && c <= 0x6f) {
+                is_fire_and_forget = true;
+            }
 
-            if (!b->m_handler->GotRequestPacket(std::move(b->m_send))) {
+            LOGF(BEEBLINK, "Request: $%02x (%" PRIu32 ")\n", c, payload_size);
+
+            if (!b->m_handler->GotRequestPacket(std::move(b->m_send), is_fire_and_forget)) {
                 b->SendResponse(GetBeebLinkErrorResponsePacketData(255, "GotRequestPacket failed"));
-            } else {
-                b->m_recv.clear();
-                b->m_recv_index = 0;
             }
         }
     }
@@ -160,14 +175,33 @@ void BeebLink::WriteData(void *context, M6502Word addr, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebLink::SendResponse(std::vector<uint8_t> data) {
-    if (data.size() - 1 > UINT32_MAX) {
-        data = GetBeebLinkErrorResponsePacketData(255, "Response too large");
+    LOGF(BEEBLINK, "%zu response bytes:", data.size());
+    size_t i = 0;
+    const char *sep = " ";
+    while (i < data.size()) {
+        if (i + 5 > data.size()) {
+            LOGF(BEEBLINK, " (header overrun)");
+            data = GetBeebLinkErrorResponsePacketData(255, "Bad response (1)");
+            break;
+        }
+
+        uint8_t c = data[i + 0];
+        uint32_t payload_size = Load32LE(&data[i + 1]);
+        if (i + 5 + payload_size > data.size()) {
+            LOGF(BEEBLINK, " (payload overrun)");
+            data = GetBeebLinkErrorResponsePacketData(255, "Bad response (2)");
+            break;
+        }
+
+        LOGF(BEEBLINK, "%s$%02x (%" PRIu32 ")", sep, c, payload_size);
+
+        i += (size_t)5 + payload_size;
+        sep = "; ";
     }
 
-    m_recv.resize(5);
-    m_recv[0] = data[0];
-    Store32LE(&m_recv[1], (uint32_t)(data.size() - 1));
-    m_recv.insert(m_recv.end(), data.begin() + 1, data.end());
+    LOGF(BEEBLINK, "\n");
+
+    m_recv = std::move(data);
     m_recv_index = 0;
 }
 
@@ -179,3 +213,14 @@ void BeebLink::SetTrace(Trace *trace) {
     m_trace = trace;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebLink::ResetReceiveBuffer() {
+    m_recv.clear();
+    m_recv_index = 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
