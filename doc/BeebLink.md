@@ -30,8 +30,6 @@ Notes:
 * you need to use the specific b2 ROM - the Tube Serial, UPURS and AVR
   ROMs are not supported. (Older versions supported the AVR ROM, but
   this support has been removed)
-* the b2 BeebLink ROM performance is not amazing, but this will
-  improve!
 
 # Configuring BeebLink server
 
