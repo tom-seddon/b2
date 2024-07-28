@@ -30,20 +30,25 @@ const std::string BeebLinkHTTPHandler::DEFAULT_URL = "http://127.0.0.1:48875/req
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct Request {
+    std::vector<uint8_t> data;
+    bool is_fire_and_forget = false;
+
+    Request() = default;
+    Request(const Request &) = delete;
+    Request &operator=(const Request &) = delete;
+    Request(Request &&) = default;
+    Request &operator=(Request &&) = default;
+};
+
 struct BeebLinkHTTPHandler::ThreadState {
     // Shared stuff
 
     Mutex mutex;
     ConditionVariable cv;
 
-    // set if thread should stop after being woken up.
-    bool stop = false;
-
-    // set if thread should send data after being woken up.
-    bool busy = false;
-
-    std::vector<uint8_t> beeb_to_server_data;
-    bool is_fire_and_forget = false;
+    bool stop = false; // set if thread should stop after being woken up.
+    std::vector<Request> request_queue;
 
     // Used by the thread once it's running.
 
@@ -208,9 +213,7 @@ bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data, bool is_fi
     {
         std::lock_guard<Mutex> lock(m_ts->mutex);
 
-        m_ts->busy = true;
-        m_ts->beeb_to_server_data = std::move(data);
-        m_ts->is_fire_and_forget = is_fire_and_forget;
+        m_ts->request_queue.push_back({std::move(data), is_fire_and_forget});
     }
 
     m_ts->cv.notify_one();
@@ -287,122 +290,123 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
             break;
         }
 
-        if (!ts->busy) {
+        if (ts->request_queue.empty()) {
             ts->cv.wait(lock);
         }
 
-        if (ts->busy) {
-            bool done = false;
+        if (!ts->request_queue.empty()) {
+            std::vector<Request> request_queue = std::move(ts->request_queue);
+            lock.unlock();
+
             std::vector<uint8_t> server_to_beeb_data;
 
-            std::vector<std::string> urls;
-            std::vector<CURLcode> results;
+            for (Request &request : request_queue) {
+                std::vector<std::string> urls;
+                std::vector<CURLcode> results;
 
-            if (ts->url.empty()) {
-                urls = GetServerURLs();
-                urls.insert(urls.begin(), DEFAULT_URL);
+                if (ts->url.empty()) {
+                    urls = GetServerURLs();
+                    urls.insert(urls.begin(), DEFAULT_URL);
 
-                // Form the V2 URL for each one.
-                for (std::string &url : urls) {
-                    url.append("/2");
-                }
-            } else {
-                urls.push_back(ts->url);
-            }
-
-            results.resize(urls.size(), CURLE_OK);
-
-            size_t url_index = 0;
-
-            ASSERT(!ts->beeb_to_server_data.empty());
-            std::vector<uint8_t> beeb_to_server_data = std::move(ts->beeb_to_server_data);
-
-            do {
-                curl_easy_setopt(ts->curl, CURLOPT_URL, urls[url_index].c_str());
-
-                curl_easy_setopt(ts->curl, CURLOPT_POST, 1L);
-                curl_easy_setopt(ts->curl, CURLOPT_CUSTOMREQUEST, "POST");
-
-                CurlReadPayloadFunctionState readdata;
-                readdata.payload = &beeb_to_server_data;
-
-                curl_easy_setopt(ts->curl, CURLOPT_READFUNCTION, &CurlReadPayloadFunction);
-                curl_easy_setopt(ts->curl, CURLOPT_READDATA, &readdata);
-
-                ASSERT(!beeb_to_server_data.empty());
-                auto postfieldsize_large = (curl_off_t)beeb_to_server_data.size();
-                //printf("xxx %zu %" PRIu64 " %" PRIu64 "\n",sizeof(curl_off_t),(uint64_t)beeb_to_server_data.size(),(uint64_t)postfieldsize_large);
-                curl_easy_setopt(ts->curl, CURLOPT_POSTFIELDSIZE_LARGE, postfieldsize_large);
-
-                curl_easy_setopt(ts->curl, CURLOPT_WRITEFUNCTION, &CurlWriteCallback);
-                curl_easy_setopt(ts->curl, CURLOPT_WRITEDATA, &server_to_beeb_data);
-
-                // No harm in configuring this every time. Perhaps
-                // there should be somewhere in the UI for the logs to
-                // go, making this possibly a useful runtime toggle?
-                curl_easy_setopt(ts->curl, CURLOPT_VERBOSE, (long)LOG(BEEBLINK_HTTP).enabled);
-
-                curl_easy_setopt(ts->curl, CURLOPT_HTTPHEADER, headers);
-
-                if (ts->log) {
-                    ts->log->f("curl_easy_perform...\n");
-                }
-
-                CURLcode perform_result = curl_easy_perform(ts->curl);
-
-                if (ts->log) {
-                    ts->log->f("curl_easy_perform returned: %d\n", (int)perform_result);
-                }
-
-                if (perform_result == CURLE_OK) {
-                    long status;
-                    curl_easy_getinfo(ts->curl, CURLINFO_RESPONSE_CODE, &status);
-
-                    if (ts->url.empty()) {
-                        ts->url = urls[url_index];
+                    // Form the V2 URL for each one.
+                    for (std::string &url : urls) {
+                        url.append("/2");
                     }
-
-                    done = true;
-
-                    // Now it's working, show any errors that appear
-                    // in future.
-                    show_errors = true;
                 } else {
+                    urls.push_back(ts->url);
+                }
+
+                results.resize(urls.size(), CURLE_OK);
+
+                size_t url_index = 0;
+
+                bool done = false;
+                do {
+                    curl_easy_setopt(ts->curl, CURLOPT_URL, urls[url_index].c_str());
+
+                    curl_easy_setopt(ts->curl, CURLOPT_POST, 1L);
+                    curl_easy_setopt(ts->curl, CURLOPT_CUSTOMREQUEST, "POST");
+
+                    CurlReadPayloadFunctionState readdata;
+                    readdata.payload = &request.data;
+
+                    curl_easy_setopt(ts->curl, CURLOPT_READFUNCTION, &CurlReadPayloadFunction);
+                    curl_easy_setopt(ts->curl, CURLOPT_READDATA, &readdata);
+
+                    ASSERT(!request.data.empty());
+                    auto postfieldsize_large = (curl_off_t)request.data.size();
+                    //printf("xxx %zu %" PRIu64 " %" PRIu64 "\n",sizeof(curl_off_t),(uint64_t)beeb_to_server_data.size(),(uint64_t)postfieldsize_large);
+                    curl_easy_setopt(ts->curl, CURLOPT_POSTFIELDSIZE_LARGE, postfieldsize_large);
+
+                    server_to_beeb_data.clear();
+                    curl_easy_setopt(ts->curl, CURLOPT_WRITEFUNCTION, &CurlWriteCallback);
+                    curl_easy_setopt(ts->curl, CURLOPT_WRITEDATA, &server_to_beeb_data);
+
+                    // No harm in configuring this every time. Perhaps
+                    // there should be somewhere in the UI for the logs to
+                    // go, making this possibly a useful runtime toggle?
+                    curl_easy_setopt(ts->curl, CURLOPT_VERBOSE, (long)LOG(BEEBLINK_HTTP).enabled);
+
+                    curl_easy_setopt(ts->curl, CURLOPT_HTTPHEADER, headers);
+
                     if (ts->log) {
-                        ts->log->f("Request failed: %s: %s\n",
-                                   curl_easy_strerror(perform_result),
-                                   curl_error_buffer);
+                        ts->log->f("curl_easy_perform...\n");
                     }
 
-                    results[url_index] = perform_result;
+                    CURLcode perform_result = curl_easy_perform(ts->curl);
 
-                    // Try next URL in the list...
-                    ++url_index;
-                    ASSERT(url_index <= urls.size());
-                    if (url_index == urls.size()) {
-                        server_to_beeb_data = GetBeebLinkErrorResponsePacketData(255,
-                                                                                 "HTTP request failed");
+                    if (ts->log) {
+                        ts->log->f("curl_easy_perform returned: %d\n", (int)perform_result);
+                    }
 
-                        if (show_errors) {
-                            for (size_t i = 0; i < urls.size(); ++i) {
-                                msg.e.f("BeebLink - failed to connect to %s\n", urls[i].c_str());
-                                msg.i.f("(error: %s)\n", curl_easy_strerror(results[i]));
-                            }
+                    if (perform_result == CURLE_OK) {
+                        long status;
+                        curl_easy_getinfo(ts->curl, CURLINFO_RESPONSE_CODE, &status);
+
+                        if (ts->url.empty()) {
+                            ts->url = urls[url_index];
                         }
 
-                        show_errors = false; //don't spam!
                         done = true;
+
+                        // Now it's working, show any errors that appear
+                        // in future.
+                        show_errors = true;
+                    } else {
+                        if (ts->log) {
+                            ts->log->f("Request failed: %s: %s\n",
+                                       curl_easy_strerror(perform_result),
+                                       curl_error_buffer);
+                        }
+
+                        results[url_index] = perform_result;
+
+                        // Try next URL in the list...
+                        ++url_index;
+                        ASSERT(url_index <= urls.size());
+                        if (url_index == urls.size()) {
+                            server_to_beeb_data = GetBeebLinkErrorResponsePacketData(255,
+                                                                                     "HTTP request failed");
+
+                            if (show_errors) {
+                                for (size_t i = 0; i < urls.size(); ++i) {
+                                    msg.e.f("BeebLink - failed to connect to %s\n", urls[i].c_str());
+                                    msg.i.f("(error: %s)\n", curl_easy_strerror(results[i]));
+                                }
+                            }
+
+                            show_errors = false; //don't spam!
+                            done = true;
+                        }
                     }
+                } while (!done);
+
+                ASSERT(!server_to_beeb_data.empty());
+                ASSERT(ts->beeb_thread);
+                if (!request.is_fire_and_forget) {
+                    ts->beeb_thread->Send(std::make_shared<BeebThread::BeebLinkResponseMessage>(std::move(server_to_beeb_data)));
                 }
-            } while (!done);
-
-            ASSERT(!server_to_beeb_data.empty());
-            ASSERT(ts->beeb_thread);
-            if (!ts->is_fire_and_forget) {
-                ts->beeb_thread->Send(std::make_shared<BeebThread::BeebLinkResponseMessage>(std::move(server_to_beeb_data)));
             }
-
-            ts->busy = false;
         }
     }
 
