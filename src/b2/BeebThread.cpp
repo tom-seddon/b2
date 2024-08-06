@@ -580,6 +580,10 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= (uint8_t)((ts->current_config.config.adji_dip_switches & 3) << BBCMicroInitFlag_ADJIDIPSwitchesShift);
     }
 
+    if (ts->current_config.config.mouse) {
+        init_flags |= BBCMicroInitFlag_Mouse;
+    }
+
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
         rom_types[i] = ts->current_config.config.roms[i].type;
@@ -1706,6 +1710,21 @@ bool BeebThread::ResetPrinterBufferMessage::ThreadPrepare(std::shared_ptr<Messag
     beeb_thread->m_printer_buffer.clear();
     ptr->reset();
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::MouseMessage::MouseMessage(int dx, int dy, uint8_t buttons)
+    : m_dx(dx)
+    , m_dy(dy)
+    , m_buttons(buttons) {
+}
+
+void BeebThread::MouseMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+    (void)beeb_thread;
+
+    ts->beeb->SetMouseState(m_dx, m_dy, m_buttons);
 }
 
 //////////////////////////////////////////////////////////////////////////

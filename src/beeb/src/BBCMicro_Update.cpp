@@ -845,7 +845,13 @@ parasite_update_done:
                 //}
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) != 0) {
+                m_state.user_via.b.p = m_state.mouse_data.value;
+                m_state.user_via.b.c1 = m_state.mouse_signal_x;
+                m_state.user_via.b.c2 = m_state.mouse_signal_y;
+            }
+
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0 && (UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) == 0) {
                 // <pre>
                 //  PB4 PB3 PB2 PB1 PB0
                 // +---+---+---+---+---+
@@ -1070,14 +1076,14 @@ const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS] = {
     UPDATE4096(0x5 * 4096),
     UPDATE4096(0x6 * 4096),
     UPDATE4096(0x7 * 4096),
-    //UPDATE4096(0x8 * 4096),
-    //UPDATE4096(0x9 * 4096),
-    //UPDATE4096(0xa * 4096),
-    //UPDATE4096(0xb * 4096),
-    //UPDATE4096(0xc * 4096),
-    //UPDATE4096(0xd * 4096),
-    //UPDATE4096(0xe * 4096),
-    //UPDATE4096(0xf * 4096),
+    UPDATE4096(0x8 * 4096),
+    UPDATE4096(0x9 * 4096),
+    UPDATE4096(0xa * 4096),
+    UPDATE4096(0xb * 4096),
+    UPDATE4096(0xc * 4096),
+    UPDATE4096(0xd * 4096),
+    UPDATE4096(0xe * 4096),
+    UPDATE4096(0xf * 4096),
 };
 
 //////////////////////////////////////////////////////////////////////////

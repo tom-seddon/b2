@@ -864,6 +864,19 @@ class BeebThread {
       private:
     };
 
+    class MouseMessage : public Message {
+      public:
+        explicit MouseMessage(int dx, int dy, uint8_t buttons);
+
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const int m_dx = 0;
+        const int m_dy = 0;
+        const uint8_t m_buttons = 0;
+    };
+
     struct AudioCallbackRecord {
         uint64_t time = 0;
         uint64_t needed = 0;

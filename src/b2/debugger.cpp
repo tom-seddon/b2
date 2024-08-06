@@ -3561,6 +3561,38 @@ std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class MouseDebugWindow : public DebugUI {
+  public:
+  protected:
+    void DoImGui2() override {
+        if (!(m_beeb_thread->GetUpdateFlags() & BBCMicroUpdateFlag_Mouse)) {
+            ImGui::TextUnformatted("Mouse not enabled");
+        } else {
+            this->MouseDirection("Left", -1, 0);
+            this->MouseDirection("Right", 1, 0);
+            this->MouseDirection("Up", 0, -1);
+            this->MouseDirection("Down", 0, 1);
+            //this->MouseAction("Left Button", 0, 0, BBCMicroMouseButton_Left);
+            //this->MouseAction("Middle Button", 0, 0, BBCMicroMouseButton_Middle);
+            //this->MouseAction("Right Button", 0, 0, BBCMicroMouseButton_Right);
+        }
+    }
+
+  private:
+    void MouseDirection(const char *name, int dx, int dy) {
+        if (ImGui::ButtonEx(name, ImVec2(0, 0), ImGuiButtonFlags_Repeat)) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::MouseMessage>(dx, dy, 0));
+        }
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<MouseDebugWindow>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -3652,6 +3684,10 @@ std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *) {
     return nullptr;
 }
 

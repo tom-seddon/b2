@@ -1202,6 +1202,7 @@ static const char TEXT_UTF8_CONVERT_MODE[] = "text_utf8_convert_mode";
 static const char PRINTER_UTF8_CONVERT_MODE[] = "printer_utf8_convert_mode";
 static const char TEXT_HANDLE_DELETE[] = "text_handle_delete";
 static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
+static const char MOUSE[] = "mouse";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1835,6 +1836,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
         FindBoolMember(&config.beeblink, config_json, BEEBLINK, msg);
         FindBoolMember(&config.adji, config_json, ADJI, msg);
         FindUInt8Member(&config.adji_dip_switches, config_json, ADJI_DIP_SWITCHES, msg);
+        FindBoolMember(&config.mouse, config_json, MOUSE, msg);
 
         if (FindEnumMember(&config.parasite_type, config_json, PARASITE_TYPE, "parasite type", &GetBBCMicroParasiteTypeEnumName, msg)) {
             // ...
@@ -1920,6 +1922,9 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
                 writer->Key(ADJI_DIP_SWITCHES);
                 writer->Uint(config->adji_dip_switches);
             }
+
+            writer->Key(MOUSE);
+            writer->Bool(config->mouse);
 
             writer->Key(PARASITE_TYPE);
             SaveEnum(writer, config->parasite_type, &GetBBCMicroParasiteTypeEnumName);

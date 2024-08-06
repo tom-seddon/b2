@@ -115,6 +115,33 @@ class BBCMicroState {
         Master128AddressableLatchBits m128_bits;
     };
 
+    struct AMXMouseDataBits {
+        uint8_t x : 1;
+        uint8_t _1 : 1;
+        uint8_t y : 1;
+        uint8_t _2 : 2;
+        uint8_t l : 1;
+        uint8_t m : 1;
+        uint8_t r : 1;
+    };
+    CHECK_SIZEOF(AMXMouseDataBits, 1);
+
+    struct CompactMouseDataBits {
+        uint8_t l : 1;
+        uint8_t m : 1;
+        uint8_t r : 1;
+        uint8_t x : 1;
+        uint8_t y : 1;
+    };
+    CHECK_SIZEOF(CompactMouseDataBits, 1);
+
+    union MouseData {
+        uint8_t value;
+        AMXMouseDataBits amx_bits;
+        CompactMouseDataBits compact_bits;
+    };
+    CHECK_SIZEOF(MouseData, 1);
+
     struct DiscDrive {
         bool motor = false;
         uint8_t track = 0;
@@ -172,11 +199,9 @@ class BBCMicroState {
 
     std::shared_ptr<const BBCMicroType> type;
 
-  protected:
-    uint32_t init_flags = 0;
+    const uint32_t init_flags = 0;
 
-  public:
-    BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
+    const BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
     // 6845
     CRTC crtc;
@@ -260,6 +285,9 @@ class BBCMicroState {
 
   public:
     DigitalJoystickInput digital_joystick_state = {};
+    MouseData mouse_data = {};
+    uint8_t mouse_signal_x = 0;
+    uint8_t mouse_signal_y = 0;
 
   protected:
     // Parallel printer

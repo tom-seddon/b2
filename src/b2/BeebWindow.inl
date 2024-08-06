@@ -74,6 +74,7 @@ EPN(DigitalJoystickDebugger)
 EPN(ImGuiDebug)
 EPN(KeyboardDebug)
 EPN(SystemDebug)
+EPN(MouseDebug)
 
 // must be last
 EQPN(MaxValue)

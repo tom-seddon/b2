@@ -2026,6 +2026,55 @@ std::shared_ptr<const BBCMicro::UpdateMFnData> BBCMicro::GetUpdateMFnData() cons
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::SetMouseState(int dx, int dy, uint8_t buttons) {
+    if (!(m_update_flags & BBCMicroUpdateFlag_Mouse)) {
+        return;
+    }
+
+    bool x = false;
+    if (dx != 0) {
+        m_state.mouse_signal_x ^= 1;
+
+        if (dx > 0) {
+            x = !m_state.mouse_signal_x;
+        } else {
+            x = !!m_state.mouse_signal_x;
+        }
+    }
+
+    bool y = false;
+    if (dy != 0) {
+        m_state.mouse_signal_y ^= 1;
+
+        if (dy > 0) {
+            y = !!m_state.mouse_signal_y;
+        } else {
+            y = !m_state.mouse_signal_y;
+        }
+    }
+
+    if (m_update_flags & BBCMicroUpdateFlag_IsMasterCompact) {
+        m_state.mouse_data.compact_bits.x = x;
+        m_state.mouse_data.compact_bits.y = y;
+        m_state.mouse_data.compact_bits.l = !(buttons & BBCMicroMouseButton_Left);
+        m_state.mouse_data.compact_bits.m = !(buttons & BBCMicroMouseButton_Middle);
+        m_state.mouse_data.compact_bits.r = !(buttons & BBCMicroMouseButton_Right);
+    } else {
+        m_state.mouse_data.amx_bits.x = x;
+        m_state.mouse_data.amx_bits.y = y;
+        m_state.mouse_data.amx_bits.l = !(buttons & BBCMicroMouseButton_Left);
+        m_state.mouse_data.amx_bits.m = !(buttons & BBCMicroMouseButton_Middle);
+        m_state.mouse_data.amx_bits.r = !(buttons & BBCMicroMouseButton_Right);
+    }
+
+    //m_state.mouse_any_dx ^= dx != 0;
+    //m_state.mouse_any_dy ^= dy != 0;
+    //printf("Mouse: C1=%d C2=%d P=$%02x (%s)\n", m_state.user_via.b.c1, m_state.user_via.b.c2, m_state.user_via.b.p, BINARY_BYTE_STRINGS[m_state.user_via.b.p]);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer->size());
     m_state.ram_buffer->at(ram_buffer_index) = value;
@@ -2817,6 +2866,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
     if (m_state.printer_enabled) {
         update_flags |= BBCMicroUpdateFlag_ParallelPrinter;
+    }
+
+    if (m_state.init_flags & BBCMicroInitFlag_Mouse) {
+        update_flags |= BBCMicroUpdateFlag_Mouse;
     }
 
 #if BBCMICRO_DEBUGGER

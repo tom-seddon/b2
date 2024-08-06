@@ -149,17 +149,27 @@ EPNV(ParallelPrinter, 1 << 9)
 
 // Master Compact gets its own flag, as it implies multiple things:
 //
-// - no BeebLink (user port is used for the digital joystick)
 // - no Tube
 // - has Master Compact EEPROM
+// - mouse (if present) is Compact type
 EPNV(IsMasterCompact, 1 << 10)
 
 EQPNV(ROMTypeShift, 11)
 EQPNV(ROMTypeMask, 15)
 // next free bit is 1<<15
 
+EPNV(Mouse, 1 << 15)
+
 EEND()
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#define ENAME BBCMicroMouseButton
+EBEGIN_DERIVED(uint8_t)
+EPNV(Left, 1 << 0)
+EPNV(Middle, 1 << 1)
+EPNV(Right, 1 << 2)
+EEND()
+#undef ENAME

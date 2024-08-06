@@ -53,7 +53,7 @@ class BBCMicro : private WD1770Handler {
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *, const ACCCON *);
     typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
 
-    static constexpr size_t NUM_UPDATE_MFNS = 32768;
+    static constexpr size_t NUM_UPDATE_MFNS = 65536;
 
     static std::string GetUpdateFlagExpr(const uint32_t flags_);
 
@@ -485,6 +485,8 @@ class BBCMicro : private WD1770Handler {
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<const UpdateMFnData> GetUpdateMFnData() const;
 #endif
+
+    void SetMouseState(int dx, int dy, uint8_t buttons);
 
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that

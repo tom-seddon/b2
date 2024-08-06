@@ -230,6 +230,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "Imgui debug", &BeebWindow::CreateImGuiDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard debug", &CreateKeyboardDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_system_debug", "System debug", &CreateSystemDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_mouse_debug", "Mouse debug", &CreateMouseDebugWindow);
     return true;
 }
 
@@ -1972,8 +1973,6 @@ void BeebWindow::DoKeyboardMenu() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-static const std::string NULL_JOYSTICK_NAME("(none)");
 
 void BeebWindow::DoJoysticksMenu() {
     if (ImGui::BeginMenu("Joysticks")) {

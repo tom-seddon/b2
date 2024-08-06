@@ -370,6 +370,10 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
+    if (ImGui::Checkbox("Mouse", &config->mouse)) {
+        edited = true;
+    }
+
     if (HasTube(config->type_id)) {
         if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
             edited = true;

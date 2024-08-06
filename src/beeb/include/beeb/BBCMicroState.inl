@@ -57,13 +57,14 @@ EPNV(ExtMem, 1 << 1)
 // (this ended up here because it's convenient, not because it makes sense).
 EPNV(PowerOnTone, 1 << 2)
 
-//EPNV(..., 1 << 3)
+EPNV(Mouse, 1 << 3)
 
 // If set, ADJI inserted, available via IFJ.
 EPNV(ADJI, 1 << 4)
 
 // If ADJI bit set, there's a 2-bit value encoding the base address.
 EQPNV(ADJIDIPSwitchesShift, 5)
+
 EEND()
 #undef ENAME
 

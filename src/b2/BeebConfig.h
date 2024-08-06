@@ -58,6 +58,7 @@ class BeebConfig {
     uint8_t adji_dip_switches = 0;
     BeebConfigNVRAMType nvram_type = BeebConfigNVRAMType_Unknown;
     std::vector<uint8_t> nvram;
+    bool mouse = false;
 
     BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
