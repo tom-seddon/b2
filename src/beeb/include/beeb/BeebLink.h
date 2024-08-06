@@ -15,11 +15,9 @@ union M6502Word;
 //
 // "BeebLink" is not two words.
 //
-// Packets are vectors of 1+ byte(s), roughly following the AVR<->PC format:
-// first byte is the packet type, then the payload, if any.
-//
-// Packet type bit 7 may or may not be set - payload size is never included
-// in either case, as it can be inferred from the size of the vector.
+// Request and response data follows the v2 HTTP API format: 1 byte
+// request/response type (bit 7 ignored), 4 byte little-endian payload size,
+// then payload.
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
