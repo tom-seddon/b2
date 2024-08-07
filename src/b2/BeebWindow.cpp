@@ -659,6 +659,8 @@ void BeebWindow::HandleSDLFocusLostEvent() {
         auto message = std::make_shared<BeebThread::JoystickButtonMessage>(i, false);
         m_beeb_thread->Send(std::move(message));
     }
+
+    this->SetCaptureMouse(false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -695,7 +697,27 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent &event) {
-    if (m_imgui_stuff) {
+    if (m_is_mouse_captured) {
+        uint8_t mask = 0;
+
+        switch (event.button) {
+        case 1:
+            mask = BBCMicroMouseButton_Left;
+            break;
+
+        case 2:
+            mask = BBCMicroMouseButton_Middle;
+            break;
+
+        case 3:
+            mask = BBCMicroMouseButton_Right;
+            break;
+        }
+
+        if (mask != 0) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::MouseButtonsMessage>(mask, event.state == SDL_PRESSED ? mask : (uint8_t)0));
+        }
+    } else if (m_imgui_stuff) {
         m_imgui_stuff->AddMouseButtonEvent(event.button, event.type == SDL_MOUSEBUTTONDOWN);
     }
 }
@@ -820,7 +842,11 @@ void BeebWindow::HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
-    if (m_imgui_stuff) {
+    if (m_is_mouse_captured) {
+        if (event.xrel != 0 || event.yrel != 0) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::MouseMotionMessage>(event.xrel, event.yrel));
+        }
+    } else if (m_imgui_stuff) {
         m_imgui_stuff->AddMouseMotionEvent(event.x, event.y);
     }
 }
@@ -2485,6 +2511,12 @@ bool BeebWindow::DoBeebDisplayUI() {
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
             ImGui::Image(m_tv_texture, size);
 
+            if (ImGui::IsItemClicked()) {
+                if (m_beeb_thread->HasMouse()) {
+                    this->SetCaptureMouse(true);
+                }
+            }
+
 #if VIDEO_TRACK_METADATA
 
             m_got_mouse_pixel_unit = false;
@@ -3425,6 +3457,19 @@ void BeebWindow::SaveConfig() {
     SaveGlobalConfig(&m_msg);
 
     m_msg.i.f("Configuration saved.\n");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::SetCaptureMouse(bool capture_mouse) {
+    if (!capture_mouse && m_is_mouse_captured) {
+        // Buttons up.
+        m_beeb_thread->Send(std::make_shared<BeebThread::MouseButtonsMessage>((uint8_t)(BBCMicroMouseButton_Left | BBCMicroMouseButton_Middle | BBCMicroMouseButton_Right), (uint8_t)0));
+    }
+
+    SDL_SetRelativeMouseMode(capture_mouse ? SDL_TRUE : SDL_FALSE);
+    m_is_mouse_captured = capture_mouse;
 }
 
 //////////////////////////////////////////////////////////////////////////

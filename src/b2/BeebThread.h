@@ -864,9 +864,9 @@ class BeebThread {
       private:
     };
 
-    class MouseMessage : public Message {
+    class MouseMotionMessage : public Message {
       public:
-        explicit MouseMessage(int dx, int dy, uint8_t buttons);
+        explicit MouseMotionMessage(int dx, int dy);
 
         void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
 
@@ -874,7 +874,18 @@ class BeebThread {
       private:
         const int m_dx = 0;
         const int m_dy = 0;
-        const uint8_t m_buttons = 0;
+    };
+
+    class MouseButtonsMessage : public Message {
+      public:
+        explicit MouseButtonsMessage(uint8_t mask, uint8_t value);
+
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const uint8_t m_mask = 0;
+        const uint8_t m_value = 0;
     };
 
     struct AudioCallbackRecord {
@@ -1029,6 +1040,9 @@ class BeebThread {
 #endif
 
     uint32_t GetUpdateFlags() const;
+
+    bool HasMouse() const;
+
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicro::UpdateMFnData> GetUpdateMFnData() const;
 #endif

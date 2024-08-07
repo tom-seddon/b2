@@ -2026,7 +2026,7 @@ std::shared_ptr<const BBCMicro::UpdateMFnData> BBCMicro::GetUpdateMFnData() cons
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetMouseState(int dx, int dy, uint8_t buttons) {
+void BBCMicro::SetMouseMotion(int dx, int dy) {
     if (!(m_update_flags & BBCMicroUpdateFlag_Mouse)) {
         return;
     }
@@ -2056,20 +2056,45 @@ void BBCMicro::SetMouseState(int dx, int dy, uint8_t buttons) {
     if (m_update_flags & BBCMicroUpdateFlag_IsMasterCompact) {
         m_state.mouse_data.compact_bits.x = x;
         m_state.mouse_data.compact_bits.y = y;
-        m_state.mouse_data.compact_bits.l = !(buttons & BBCMicroMouseButton_Left);
-        m_state.mouse_data.compact_bits.m = !(buttons & BBCMicroMouseButton_Middle);
-        m_state.mouse_data.compact_bits.r = !(buttons & BBCMicroMouseButton_Right);
     } else {
         m_state.mouse_data.amx_bits.x = x;
         m_state.mouse_data.amx_bits.y = y;
-        m_state.mouse_data.amx_bits.l = !(buttons & BBCMicroMouseButton_Left);
-        m_state.mouse_data.amx_bits.m = !(buttons & BBCMicroMouseButton_Middle);
-        m_state.mouse_data.amx_bits.r = !(buttons & BBCMicroMouseButton_Right);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetMouseButtons(uint8_t mask, uint8_t value) {
+    if (!(m_update_flags & BBCMicroUpdateFlag_Mouse)) {
+        return;
     }
 
-    //m_state.mouse_any_dx ^= dx != 0;
-    //m_state.mouse_any_dy ^= dy != 0;
-    //printf("Mouse: C1=%d C2=%d P=$%02x (%s)\n", m_state.user_via.b.c1, m_state.user_via.b.c2, m_state.user_via.b.p, BINARY_BYTE_STRINGS[m_state.user_via.b.p]);
+    if (m_update_flags & BBCMicroUpdateFlag_IsMasterCompact) {
+        if (mask & BBCMicroMouseButton_Left) {
+            m_state.mouse_data.compact_bits.l = !(value & BBCMicroMouseButton_Left);
+        }
+
+        if (mask & BBCMicroMouseButton_Middle) {
+            m_state.mouse_data.compact_bits.m = !(value & BBCMicroMouseButton_Middle);
+        }
+
+        if (mask & BBCMicroMouseButton_Right) {
+            m_state.mouse_data.compact_bits.r = !(value & BBCMicroMouseButton_Right);
+        }
+    } else {
+        if (mask & BBCMicroMouseButton_Left) {
+            m_state.mouse_data.amx_bits.l = !(value & BBCMicroMouseButton_Left);
+        }
+
+        if (mask & BBCMicroMouseButton_Middle) {
+            m_state.mouse_data.amx_bits.m = !(value & BBCMicroMouseButton_Middle);
+        }
+
+        if (mask & BBCMicroMouseButton_Right) {
+            m_state.mouse_data.amx_bits.r = !(value & BBCMicroMouseButton_Right);
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

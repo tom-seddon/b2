@@ -1227,4 +1227,8 @@ actually matter?
 A 512 KB table (that's 90% unused) is kind of dumb, but for a modern
 PC it's basically irrelevant.
 
+* Mouse notes
+
+~300 IRQs/sec for my Quest Mouse.
+
 * eof.

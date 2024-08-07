@@ -1715,16 +1715,29 @@ bool BeebThread::ResetPrinterBufferMessage::ThreadPrepare(std::shared_ptr<Messag
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::MouseMessage::MouseMessage(int dx, int dy, uint8_t buttons)
+BeebThread::MouseMotionMessage::MouseMotionMessage(int dx, int dy)
     : m_dx(dx)
-    , m_dy(dy)
-    , m_buttons(buttons) {
+    , m_dy(dy) {
 }
 
-void BeebThread::MouseMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+void BeebThread::MouseMotionMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
     (void)beeb_thread;
 
-    ts->beeb->SetMouseState(m_dx, m_dy, m_buttons);
+    ts->beeb->SetMouseMotion(m_dx, m_dy);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::MouseButtonsMessage::MouseButtonsMessage(uint8_t mask, uint8_t value)
+    : m_mask(mask)
+    , m_value(value) {
+}
+
+void BeebThread::MouseButtonsMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+    (void)beeb_thread;
+
+    ts->beeb->SetMouseButtons(m_mask, m_value);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2301,6 +2314,13 @@ std::vector<uint8_t> BeebThread::GetPrinterData() const {
 
 uint32_t BeebThread::GetUpdateFlags() const {
     return m_update_flags.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::HasMouse() const {
+    return !!(this->GetUpdateFlags() & BBCMicroUpdateFlag_Mouse);
 }
 
 //////////////////////////////////////////////////////////////////////////

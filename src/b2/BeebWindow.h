@@ -377,9 +377,6 @@ class BeebWindow {
 
     BeebWindowSettings m_settings;
 
-    //
-    //bool m_ui=false;
-    //bool m_pushed_window_padding = false;
     ImGuiStuff *m_imgui_stuff = nullptr;
 
 #if ENABLE_IMGUI_DEMO
@@ -457,6 +454,8 @@ class BeebWindow {
 
     CommandStateTable m_cst;
 
+    bool m_is_mouse_captured = false;
+
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
@@ -496,6 +495,8 @@ class BeebWindow {
     void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, const BeebWindowSettings::CopySettings &settings) const;
 
     void SaveConfig();
+
+    void SetCaptureMouse(bool capture_mouse);
 
     SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
 

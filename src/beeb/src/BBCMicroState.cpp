@@ -188,6 +188,35 @@ int BBCMicroState::DebugGetADJIDIPSwitches() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+static uint8_t GetMouseButtons(bool l, bool m, bool r) {
+    return ((l ? 0 : BBCMicroMouseButton_Left) |
+            (m ? 0 : BBCMicroMouseButton_Middle) |
+            (r ? 0 : BBCMicroMouseButton_Right));
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+uint8_t BBCMicroState::DebugGetMouseButtons() const {
+    if (this->init_flags & BBCMicroInitFlag_Mouse) {
+        if (this->type->type_id == BBCMicroTypeID_MasterCompact) {
+            return GetMouseButtons(this->mouse_data.compact_bits.l,
+                                   this->mouse_data.compact_bits.m,
+                                   this->mouse_data.compact_bits.r);
+        } else {
+            return GetMouseButtons(this->mouse_data.amx_bits.l,
+                                   this->mouse_data.amx_bits.m,
+                                   this->mouse_data.amx_bits.r);
+        }
+    } else {
+        return 0;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::shared_ptr<const DiscImage> BBCMicroState::GetDiscImage(int drive) const {
     if (drive >= 0 && drive < NUM_DRIVES) {
         return this->drives[drive].disc_image;

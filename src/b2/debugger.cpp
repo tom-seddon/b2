@@ -3565,13 +3565,22 @@ class MouseDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        if (!(m_beeb_thread->GetUpdateFlags() & BBCMicroUpdateFlag_Mouse)) {
+        if (!m_beeb_thread->HasMouse()) {
             ImGui::TextUnformatted("Mouse not enabled");
         } else {
-            this->MouseDirection("Left", -1, 0);
-            this->MouseDirection("Right", 1, 0);
-            this->MouseDirection("Up", 0, -1);
-            this->MouseDirection("Down", 0, 1);
+            uint8_t buttons = m_beeb_state->DebugGetMouseButtons();
+
+            ImGuiHeader("Mouse State");
+
+            ImGuiCheckboxFlags("Left", &buttons, BBCMicroMouseButton_Left);
+            ImGuiCheckboxFlags("Middle", &buttons, BBCMicroMouseButton_Middle);
+            ImGuiCheckboxFlags("Right", &buttons, BBCMicroMouseButton_Right);
+
+            ImGuiHeader("Debug Mouse \"Control\"");
+            this->MouseMotion("Left", -1, 0);
+            this->MouseMotion("Right", 1, 0);
+            this->MouseMotion("Up", 0, -1);
+            this->MouseMotion("Down", 0, 1);
             //this->MouseAction("Left Button", 0, 0, BBCMicroMouseButton_Left);
             //this->MouseAction("Middle Button", 0, 0, BBCMicroMouseButton_Middle);
             //this->MouseAction("Right Button", 0, 0, BBCMicroMouseButton_Right);
@@ -3579,9 +3588,9 @@ class MouseDebugWindow : public DebugUI {
     }
 
   private:
-    void MouseDirection(const char *name, int dx, int dy) {
+    void MouseMotion(const char *name, int dx, int dy) {
         if (ImGui::ButtonEx(name, ImVec2(0, 0), ImGuiButtonFlags_Repeat)) {
-            m_beeb_thread->Send(std::make_shared<BeebThread::MouseMessage>(dx, dy, 0));
+            m_beeb_thread->Send(std::make_shared<BeebThread::MouseMotionMessage>(dx, dy));
         }
     }
 };

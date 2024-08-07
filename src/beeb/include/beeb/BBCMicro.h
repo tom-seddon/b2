@@ -486,7 +486,8 @@ class BBCMicro : private WD1770Handler {
     std::shared_ptr<const UpdateMFnData> GetUpdateMFnData() const;
 #endif
 
-    void SetMouseState(int dx, int dy, uint8_t buttons);
+    void SetMouseMotion(int dx, int dy);
+    void SetMouseButtons(uint8_t mask, uint8_t value);
 
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that

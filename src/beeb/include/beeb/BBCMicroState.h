@@ -193,6 +193,7 @@ class BBCMicroState {
     const PCD8572 *DebugGetEEPROM() const;
     uint64_t DebugGetCPUCycless(uint32_t dso, CycleCount n) const;
     int DebugGetADJIDIPSwitches() const;
+    uint8_t DebugGetMouseButtons() const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -285,7 +286,7 @@ class BBCMicroState {
 
   public:
     DigitalJoystickInput digital_joystick_state = {};
-    MouseData mouse_data = {};
+    MouseData mouse_data = {0xff};
     uint8_t mouse_signal_x = 0;
     uint8_t mouse_signal_y = 0;
 
