@@ -486,7 +486,7 @@ class BBCMicro : private WD1770Handler {
     std::shared_ptr<const UpdateMFnData> GetUpdateMFnData() const;
 #endif
 
-    void SetMouseMotion(int dx, int dy);
+    void AddMouseMotion(int dx, int dy);
     void SetMouseButtons(uint8_t mask, uint8_t value);
 
   protected:

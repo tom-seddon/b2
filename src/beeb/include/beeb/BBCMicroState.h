@@ -289,6 +289,8 @@ class BBCMicroState {
     MouseData mouse_data = {0xff};
     uint8_t mouse_signal_x = 0;
     uint8_t mouse_signal_y = 0;
+    int mouse_dx = 0;
+    int mouse_dy = 0;
 
   protected:
     // Parallel printer

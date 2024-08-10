@@ -437,7 +437,10 @@ Shows current digital joystick input state, if supported.
 Lists current BBC keys pressed, keyboard scan state, and a diagram of
 the keyborad matrix.
 
-## `Keyboard Debug`
+## `Mouse Debug`
+
+Shows current mouse state. Four buttons permit generation of fake
+mouse motion.
 
 # Other debug-related options #
 

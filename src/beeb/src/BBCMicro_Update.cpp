@@ -18,6 +18,19 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The mouse can interrupt the BBC as fast as you can move it, so strictly
+// speaking there isn't really a clock. But having one ensures that IRQs can't
+// come too rapidly. Also easy to do the mouse update as part of the sound
+// update, so only check every 16th update.
+//
+// Fastest I could get a Quest Mouse to interrupt the BBC was ~700 Hz. So
+// 2e6/2048 = ~975 Hz seems reasonable.
+static constexpr uint64_t SHIFT_CONSTANTS(2MHZ, MOUSE_CLOCK, 11);
+static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, MOUSE_CLOCK, LSHIFT_MOUSE_CLOCK_TO_2MHZ + LSHIFT_2MHZ_TO_CYCLE_COUNT);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 uint64_t Get3MHzCycleCount(CycleCount n) {
     uint64_t n_4mhz = n.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
     uint64_t result = n.n / 4 * 3;
@@ -975,6 +988,55 @@ parasite_update_done:
             sound_unit->disc_drive_sound = this->UpdateDiscDriveSound(&m_state.drives[0]);
             sound_unit->disc_drive_sound += this->UpdateDiscDriveSound(&m_state.drives[1]);
             result |= BBCMicroUpdateResultFlag_AudioUnit;
+
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) != 0) {
+                static_assert(LSHIFT_MOUSE_CLOCK_TO_CYCLE_COUNT > LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT);
+                if ((m_state.cycle_count.n & ((1 << LSHIFT_MOUSE_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
+                    if (m_state.mouse_dx != 0) {
+                        m_state.mouse_signal_x ^= 1;
+
+                        if (m_state.mouse_dx > 0) {
+                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                                m_state.mouse_data.compact_bits.x = !m_state.mouse_signal_x;
+                            } else {
+                                m_state.mouse_data.amx_bits.x = !m_state.mouse_signal_x;
+                            }
+
+                            --m_state.mouse_dx;
+                        } else {
+                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                                m_state.mouse_data.compact_bits.x = m_state.mouse_signal_x;
+                            } else {
+                                m_state.mouse_data.amx_bits.x = m_state.mouse_signal_x;
+                            }
+
+                            ++m_state.mouse_dx;
+                        }
+                    }
+
+                    if (m_state.mouse_dy != 0) {
+                        m_state.mouse_signal_y ^= 1;
+
+                        if (m_state.mouse_dy > 0) {
+                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                                m_state.mouse_data.compact_bits.y = m_state.mouse_signal_y;
+                            } else {
+                                m_state.mouse_data.amx_bits.y = m_state.mouse_signal_y;
+                            }
+
+                            --m_state.mouse_dy;
+                        } else {
+                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                                m_state.mouse_data.compact_bits.y = !m_state.mouse_signal_y;
+                            } else {
+                                m_state.mouse_data.amx_bits.y = !m_state.mouse_signal_y;
+                            }
+
+                            ++m_state.mouse_dy;
+                        }
+                    }
+                }
+            }
         }
     }
 

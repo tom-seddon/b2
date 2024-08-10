@@ -302,10 +302,11 @@ Items of optional hardware are as follows:
   (The external RAM can't be enabled in conjunction with the Opus
   Challenger disc interface, as both devices use page &FD.)
   
-- Tick the `BeebLink` box to add an emulated
-  [BeebLink](https://github.com/tom-seddon/beeblink) widget to the
-  emulated user port. For more details, see the
-  [BeebLink notes](./BeebLink.md).
+- Tick the `Mouse` box to add an emulated AMX mouse to the user port.
+  
+- Tick the `BeebLink` box to enable support for
+  [BeebLink](https://github.com/tom-seddon/beeblink). For more
+  details, see the [BeebLink notes](./BeebLink.md).
   
 - Tick the `Video NuLA` box to add a
   [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150).

@@ -2026,40 +2026,13 @@ std::shared_ptr<const BBCMicro::UpdateMFnData> BBCMicro::GetUpdateMFnData() cons
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetMouseMotion(int dx, int dy) {
+void BBCMicro::AddMouseMotion(int dx, int dy) {
     if (!(m_update_flags & BBCMicroUpdateFlag_Mouse)) {
         return;
     }
 
-    bool x = false;
-    if (dx != 0) {
-        m_state.mouse_signal_x ^= 1;
-
-        if (dx > 0) {
-            x = !m_state.mouse_signal_x;
-        } else {
-            x = !!m_state.mouse_signal_x;
-        }
-    }
-
-    bool y = false;
-    if (dy != 0) {
-        m_state.mouse_signal_y ^= 1;
-
-        if (dy > 0) {
-            y = !!m_state.mouse_signal_y;
-        } else {
-            y = !m_state.mouse_signal_y;
-        }
-    }
-
-    if (m_update_flags & BBCMicroUpdateFlag_IsMasterCompact) {
-        m_state.mouse_data.compact_bits.x = x;
-        m_state.mouse_data.compact_bits.y = y;
-    } else {
-        m_state.mouse_data.amx_bits.x = x;
-        m_state.mouse_data.amx_bits.y = y;
-    }
+    m_state.mouse_dx += dx;
+    m_state.mouse_dy += dy;
 }
 
 //////////////////////////////////////////////////////////////////////////

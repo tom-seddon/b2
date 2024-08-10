@@ -3576,14 +3576,14 @@ class MouseDebugWindow : public DebugUI {
             ImGuiCheckboxFlags("Middle", &buttons, BBCMicroMouseButton_Middle);
             ImGuiCheckboxFlags("Right", &buttons, BBCMicroMouseButton_Right);
 
+            ImGui::Text("X Delta: %d", m_beeb_state->mouse_dx);
+            ImGui::Text("Y Delta: %d", m_beeb_state->mouse_dy);
+
             ImGuiHeader("Debug Mouse \"Control\"");
             this->MouseMotion("Left", -1, 0);
             this->MouseMotion("Right", 1, 0);
             this->MouseMotion("Up", 0, -1);
             this->MouseMotion("Down", 0, 1);
-            //this->MouseAction("Left Button", 0, 0, BBCMicroMouseButton_Left);
-            //this->MouseAction("Middle Button", 0, 0, BBCMicroMouseButton_Middle);
-            //this->MouseAction("Right Button", 0, 0, BBCMicroMouseButton_Right);
         }
     }
 

@@ -162,6 +162,9 @@ struct BeebThread::ThreadState {
 
     std::unique_ptr<BeebLinkHTTPHandler> beeblink_handler;
 
+    int mouse_total_dx = 0;
+    int mouse_total_dy = 0;
+
     Log log{"BEEB  ", LOG(BTHREAD)};
     Messages msgs;
 };
@@ -1723,7 +1726,7 @@ BeebThread::MouseMotionMessage::MouseMotionMessage(int dx, int dy)
 void BeebThread::MouseMotionMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
     (void)beeb_thread;
 
-    ts->beeb->SetMouseMotion(m_dx, m_dy);
+    ts->beeb->AddMouseMotion(m_dx,m_dy);
 }
 
 //////////////////////////////////////////////////////////////////////////

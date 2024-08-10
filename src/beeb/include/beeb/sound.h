@@ -10,6 +10,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// 250,000 Hz
 static constexpr uint64_t SHIFT_CONSTANTS(2MHZ, SOUND_CLOCK, 3);
 static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, SOUND_CLOCK, LSHIFT_SOUND_CLOCK_TO_2MHZ + LSHIFT_2MHZ_TO_CYCLE_COUNT);
 
