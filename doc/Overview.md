@@ -94,12 +94,31 @@ fire button 2 (when supported).
 For Master 128, the digital joystick is connected via a Retro Hardware
 ADJI cartridge (mostly compatible with the Slogger Switched Joystick
 Interface cartridge, designed for the Electron). See the Customize
-Hardware section for how to enable this. This isn't supported by the
+hardware section for how to enable this. This isn't supported by the
 OS, but some Electron games do support it.
 
 For Master Compact, the digital joystick is connected to the 9-pin
 joystick connector on the back of the machine. This is supported by
 the OS in the usual fashion.
+
+## Mouse
+
+If the current setup includes an emulated mouse (see the Customize
+hardware section below), select `Capture mouse` to have mouse input go
+to the emulated BBC. The system mouse cursor will be hidden,
+indicating that mouse input is going to the BBC instead.
+
+To cancel mouse capture, switch away from the b2 window using the
+usual OS keyboard shortcut. You can also assign a keyboard shortcut to
+the `Capture mouse` command - see the Customize keyboard keys section
+below.
+
+(Note that unlike other commands, `Capture mouse` is special, and its
+keyboard shortcut will always be handled even if it would overlap with
+ordinary BBC input.)
+
+If `Capture on click` is ticked, the mouse will be captured
+automatically if you click on the emulator display.
 
 ## Save states
 
@@ -216,15 +235,18 @@ See [the file association section](./File-Association.md).
 `Keyboard` > `Command Keys...` lets you select shortcut keys for many of
 the menu options and window buttons.
 
-By default, BBC keys take priority. If a key is both a shortcut key
+By default, BBC keys take priority, so if a key is both a shortcut key
 and a BBC key, its shortcut will be ignored. Tick `Keyboard` >
 `Prioritize command keys` to change this, so the emulator will process
 shortcut keys before processing BBC keys.
 
-(The results aren't always perfect. For example, suppose you assign
+The results aren't always perfect. For example, suppose you assign
 Shift+F5 to a command, and then use that combination: when you press
 Shift, the emulated BBC will see the Shift press, even though the F5
-will then be ignored when the emulator recognises the combination.)
+will then be ignored when the emulator recognises the combination.
+
+(There's one exception to this rule: `Capture mouse`. If it has a
+shortcut, that shortcut takes priority over any BBC input.)
 
 ## Customize keyboard layout
 
@@ -342,8 +364,7 @@ Tube host code in it, such as the Acorn 1770 DFS.)
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Hard Reset` (if you're editing the current config) or
-select the updated configuration from the `File` > `Configuration`
-submenu.
+select the updated configuration from the `Hardware' menu.
 
 To create a new configuration, click the `New...` button to create one
 based off one of the default configs, or the `Copy...` button to

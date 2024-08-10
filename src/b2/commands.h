@@ -91,6 +91,7 @@ class Command2Data {
     std::vector<uint32_t> m_shortcuts;
     bool m_visible = true;
     size_t m_index = ~(size_t)0;
+    bool m_always_prioritized = false;
 
     Command2Data(const Command2Data &) = default;
     Command2Data(Command2Data &&) = default;
@@ -118,6 +119,7 @@ class Command2 : private Command2Data {
     const std::string &GetName() const;
     const std::string &GetText() const;
     const std::string &GetExtraText() const;
+    bool IsAlwaysPrioritized()const;
 
     // Invisible commands refer to functionality that's compiled out of this
     // build, or otherwise hidden. They remain present, but aren't exposed in
@@ -132,6 +134,7 @@ class Command2 : private Command2Data {
     Command2 &WithShortcut(uint32_t shortcut);
     Command2 &VisibleIf(int flag); //invisible if any such flag is false
     Command2 &WithExtraText(std::string extra_text);
+    Command2 &AlwaysPrioritized();
 
   protected:
   private:
@@ -165,6 +168,9 @@ class CommandStateTable {
     void DoToggleCheckbox(const Command2 &command);
 
     bool WasActioned(const Command2 &command);
+
+    bool ActionCommand(Command2*command);
+    bool ActionCommands(const std::vector<Command2 *> *commands);
 
     bool ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key);
 

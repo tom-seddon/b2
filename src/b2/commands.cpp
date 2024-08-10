@@ -315,6 +315,13 @@ const std::string &Command2::GetExtraText() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool Command2::IsAlwaysPrioritized() const {
+    return m_always_prioritized;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool Command2::IsVisible() const {
     return m_visible;
 }
@@ -366,6 +373,15 @@ Command2 &Command2::VisibleIf(int flag) {
 
 Command2 &Command2::WithExtraText(std::string extra_text) {
     m_extra_text = std::move(extra_text);
+
+    return *this;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+Command2 &Command2::AlwaysPrioritized() {
+    m_always_prioritized = true;
 
     return *this;
 }
@@ -513,21 +529,43 @@ bool CommandStateTable::WasActioned(const Command2 &command) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CommandStateTable::ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key) {
-    const std::vector<Command2 *> *commands = table.GetCommandsForPCKey(pc_key);
+bool CommandStateTable::ActionCommand(Command2 *command) {
+    ASSERT(command->m_index < m_states.size());
+    State *state = &m_states[command->m_index];
+
+    if (state->enabled) {
+        state->actioned = 1;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandStateTable::ActionCommands(const std::vector<Command2 *> *commands) {
     if (!commands) {
         return false;
     }
 
-    for (Command2 *command : *commands) {
-        ASSERT(command->m_index < m_states.size());
-        State *state = &m_states[command->m_index];
-
-        if (state->enabled) {
-            state->actioned = 1;
-        }
+    if (commands->empty()) {
+        return false;
     }
 
+    for (Command2 *command : *commands) {
+        this->ActionCommand(command);
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandStateTable::ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key) {
+    const std::vector<Command2 *> *commands = table.GetCommandsForPCKey(pc_key);
+    this->ActionCommands(commands);
     return true;
 }
 

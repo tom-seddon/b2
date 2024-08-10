@@ -123,6 +123,8 @@ static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_t
 static Command2 g_new_window_command = Command2(&g_beeb_window_command_table, "new_window", "New window");
 static Command2 g_clone_window_command = Command2(&g_beeb_window_command_table, "clone_window", "Clone window");
 static Command2 g_close_window_command = Command2(&g_beeb_window_command_table, "close_window", "Close window");
+static Command2 g_toggle_capture_mouse_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse", "Capture mouse").WithTick().AlwaysPrioritized();
+static Command2 g_toggle_capture_mouse_on_click_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse_on_click", "Capture on click").WithTick();
 
 struct PopupMetadata {
     Command2 command;
@@ -1080,12 +1082,48 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 }
             }
 
+            const std::vector<Command2 *> *beeb_window_commands = nullptr;
+            const std::vector<Command2 *> *active_popup_commands = nullptr;
+            if (keycode != 0) {
+                if (is_valid_shortcut) {
+                    beeb_window_commands = g_beeb_window_command_table.GetCommandsForPCKey(keycode);
+
+                    if (active_popup) {
+                        if (active_popup->command_table) {
+                            active_popup_commands = active_popup->command_table->GetCommandsForPCKey(keycode);
+                        }
+                    }
+                }
+            }
+
             if (beeb_focus) {
+                // 1. Handle always-prioritized shortcuts, or all shortcuts if
+                // all shortcuts prioritized
+                //
+                // 2. Handle Beeb window
+                //
+                // 3. Handle shortcuts, if shortcuts not prioritized
+                //
+                // No need to skip always-prioritized commands in step 3, as
+                // there's no harm in actioning a command twice.
+
                 bool handled = false;
 
-                if (m_settings.prefer_shortcuts) {
-                    if (is_valid_shortcut) {
-                        handled = this->HandleCommandKey(keycode, active_popup);
+                if (beeb_window_commands) {
+                    for (Command2 *command : *beeb_window_commands) {
+                        if (m_settings.prefer_shortcuts || command->IsAlwaysPrioritized()) {
+                            m_cst.ActionCommand(command);
+                            handled = true;
+                        }
+                    }
+                }
+
+                if (active_popup_commands) {
+                    for (Command2 *command : *active_popup_commands) {
+                        if (m_settings.prefer_shortcuts || command->IsAlwaysPrioritized()) {
+                            active_popup->cst->ActionCommand(command);
+                            handled = true;
+                        }
                     }
                 }
 
@@ -1094,15 +1132,16 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 }
 
                 if (!m_settings.prefer_shortcuts) {
-                    if (!handled) {
-                        if (is_valid_shortcut) {
-                            handled = this->HandleCommandKey(keycode, active_popup);
-                        }
+                    m_cst.ActionCommands(beeb_window_commands);
+                    if (active_popup_commands) {
+                        active_popup->cst->ActionCommands(active_popup_commands);
                     }
                 }
             } else {
-                if (is_valid_shortcut) {
-                    this->HandleCommandKey(keycode, active_popup);
+                m_cst.ActionCommands(beeb_window_commands);
+
+                if (active_popup_commands) {
+                    active_popup->cst->ActionCommands(active_popup_commands);
                 }
             }
         }
@@ -1111,25 +1150,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     m_sdl_keyboard_events.clear();
 
     return !close_window; // sigh, inverted logic
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::HandleCommandKey(uint32_t keycode, SettingsUI *active_popup) {
-    if (keycode != 0) {
-        if (m_cst.ActionCommandsForPCKey(g_beeb_window_command_table, keycode)) {
-            return true;
-        }
-
-        if (active_popup) {
-            if (active_popup->ActionCommandsForPCKey(keycode)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1419,6 +1439,18 @@ void BeebWindow::DoCommands(bool *close_window) {
         *close_window = true;
     }
 
+    m_cst.SetEnabled(g_toggle_capture_mouse_command, m_beeb_thread->HasMouse());
+    m_cst.SetTicked(g_toggle_capture_mouse_command, m_is_mouse_captured);
+    if (m_cst.WasActioned(g_toggle_capture_mouse_command)) {
+        this->SetCaptureMouse(!m_is_mouse_captured);
+    }
+
+    m_cst.SetEnabled(g_toggle_capture_mouse_on_click_command, m_beeb_thread->HasMouse());
+    m_cst.SetTicked(g_toggle_capture_mouse_on_click_command, m_settings.capture_mouse_on_click);
+    if (m_cst.WasActioned(g_toggle_capture_mouse_on_click_command)) {
+        m_settings.capture_mouse_on_click = !m_settings.capture_mouse_on_click;
+    }
+
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
         const uint64_t mask = (uint64_t)1 << type;
 
@@ -1441,6 +1473,7 @@ void BeebWindow::DoMenuUI() {
         this->DoHardwareMenu();
         this->DoKeyboardMenu();
         this->DoJoysticksMenu();
+        this->DoMouseMenu();
         this->DoPrinterMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
@@ -2000,6 +2033,17 @@ void BeebWindow::DoKeyboardMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::DoMouseMenu() {
+    if (ImGui::BeginMenu("Mouse")) {
+        m_cst.DoMenuItem(g_toggle_capture_mouse_command);
+        m_cst.DoMenuItem(g_toggle_capture_mouse_on_click_command);
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::DoJoysticksMenu() {
     if (ImGui::BeginMenu("Joysticks")) {
         DoJoysticksMenuImGui(&m_msg);
@@ -2511,8 +2555,8 @@ bool BeebWindow::DoBeebDisplayUI() {
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
             ImGui::Image(m_tv_texture, size);
 
-            if (ImGui::IsItemClicked()) {
-                if (m_beeb_thread->HasMouse()) {
+            if (m_settings.capture_mouse_on_click) {
+                if (ImGui::IsItemClicked()) {
                     this->SetCaptureMouse(true);
                 }
             }
@@ -3075,7 +3119,12 @@ void BeebWindow::UpdateTitle() {
         smoothed_speed = speed;
     }
 
-    snprintf(title, sizeof title, "%s [%.3fx]", m_name.c_str(), smoothed_speed);
+    const char *mouse_capture_state = "";
+    if (m_is_mouse_captured) {
+        mouse_capture_state = " (Mouse Captured)";
+    }
+
+    snprintf(title, sizeof title, "%s [%.3fx]%s", m_name.c_str(), smoothed_speed, mouse_capture_state);
 
     m_last_title_speed = speed;
 
@@ -3463,6 +3512,10 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SetCaptureMouse(bool capture_mouse) {
+    if (!m_beeb_thread->HasMouse()) {
+        return;
+    }
+
     if (!capture_mouse && m_is_mouse_captured) {
         // Buttons up.
         m_beeb_thread->Send(std::make_shared<BeebThread::MouseButtonsMessage>((uint8_t)(BBCMicroMouseButton_Left | BBCMicroMouseButton_Middle | BBCMicroMouseButton_Right), (uint8_t)0));

@@ -143,6 +143,8 @@ class DebugUI : public SettingsUI {
         // ...any more???
     };
 
+    using SettingsUI::SettingsUI;
+
     bool OnClose() override;
 
     void DoImGui() override final;
@@ -928,8 +930,8 @@ std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *beeb_window) {
 
 class M6502DebugWindow : public DebugUI {
   public:
-    bool ActionCommandsForPCKey(uint32_t pc_key) override {
-        return m_cst.ActionCommandsForPCKey(g_6502_table, pc_key);
+    M6502DebugWindow()
+        : DebugUI(&g_6502_table) {
     }
 
   protected:
@@ -1322,16 +1324,16 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
 class DisassemblyDebugWindow : public DebugUI,
                                public RevealTargetUI {
   public:
+    DisassemblyDebugWindow()
+        : DebugUI(&g_disassembly_table) {
+    }
+
     uint32_t GetExtraImGuiWindowFlags() const override {
         // The bottom line of the disassembly should just be clipped
         // if it runs off the bottom... only drawing whole lines just
         // looks weird. But when that happens, dear imgui
         // automatically adds a scroll bar. And that's even weirder.
         return ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
-    }
-
-    bool ActionCommandsForPCKey(uint32_t pc_key) override {
-        return m_cst.ActionCommandsForPCKey(g_disassembly_table, pc_key);
     }
 
     void RevealAddress(M6502Word addr) override {

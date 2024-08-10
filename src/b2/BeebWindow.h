@@ -102,6 +102,8 @@ struct BeebWindowSettings {
 
     CopySettings text_copy_settings;
     CopySettings printer_copy_settings;
+
+    bool capture_mouse_on_click = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -459,7 +461,7 @@ class BeebWindow {
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
-    bool HandleCommandKey(uint32_t keycode, SettingsUI *active_popup);
+    //bool HandleCommandKey(uint32_t keycode, SettingsUI *active_popup, bool only_always_prioritized);
     void DoCommands(bool *close_window);
     void DoCopyModeCommands(BeebWindowSettings::CopySettings *settings, bool enabled, const Command2 &pass_through, const Command2 &only_gbp, const Command2 &SAA5050, const Command2 &toggle_handle_delete);
     void DoMenuUI();
@@ -473,6 +475,7 @@ class BeebWindow {
     void DoHardwareMenu();
     void DoKeyboardMenu();
     void DoJoysticksMenu();
+    void DoMouseMenu();
     void DoPrinterMenu();
     void DoToolsMenu();
     void DoDebugMenu();

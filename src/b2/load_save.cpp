@@ -1203,6 +1203,7 @@ static const char PRINTER_UTF8_CONVERT_MODE[] = "printer_utf8_convert_mode";
 static const char TEXT_HANDLE_DELETE[] = "text_handle_delete";
 static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
 static const char MOUSE[] = "mouse";
+static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2050,6 +2051,7 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.prefer_shortcuts, windows, PREFER_SHORTCUTS, nullptr);
     LoadCopySettings(&BeebWindows::defaults.text_copy_settings, windows, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE, "Text copy mode", msg);
     LoadCopySettings(&BeebWindows::defaults.printer_copy_settings, windows, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE, "Printe copy mode", msg);
+    FindBoolMember(&BeebWindows::defaults.capture_mouse_on_click, windows, CAPTURE_MOUSE_ON_CLICK, nullptr);
 
     {
         std::string keymap_name;
@@ -2148,6 +2150,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         SaveCopySettings(writer, BeebWindows::defaults.text_copy_settings, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE);
         SaveCopySettings(writer, BeebWindows::defaults.printer_copy_settings, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE);
+
+        writer->Key(CAPTURE_MOUSE_ON_CLICK);
+        writer->Bool(BeebWindows::defaults.capture_mouse_on_click);
 
         if (!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);
