@@ -68,6 +68,8 @@ class ConfigsUI : public SettingsUI {
 ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window)
     , m_ofd(RECENT_PATHS_ROMS) {
+    this->SetDefaultSize(ImVec2(650, 450));
+
     m_ofd.AddAllFilesFilter();
 
     const std::string &config_name = m_beeb_window->GetConfigName();

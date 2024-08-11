@@ -7,11 +7,11 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Now a misnomer...
-#include "SettingsUI.h"
 #include <memory>
 #include <beeb/type.h>
 
 class BeebWindow;
+class SettingsUI;
 
 // If the relevant features are compiled out, the Create... function will return
 // nullptr.

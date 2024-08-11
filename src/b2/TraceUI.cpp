@@ -179,6 +179,8 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
 
 TraceUI::TraceUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
+    this->SetDefaultSize(ImVec2(350, 450));
+
     this->ResetTextBoxes();
 }
 

@@ -134,6 +134,7 @@ class DataRateUI : public SettingsUI {
 
 DataRateUI::DataRateUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
+    this->SetDefaultSize(ImVec2(550, 450));
 }
 
 //////////////////////////////////////////////////////////////////////////

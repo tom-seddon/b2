@@ -358,6 +358,7 @@ class BeebWindow::OptionsUI : public SettingsUI {
 
 BeebWindow::OptionsUI::OptionsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
+    this->SetDefaultSize(ImVec2(450, 450));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1514,6 +1515,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
                 extra_flags = (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
             }
 
+            ImGui::SetNextWindowSize(popup->GetDefaultSize(), ImGuiCond_FirstUseEver);
             if (ImGui::Begin(popup_metadata->command.GetText().c_str(), &opened, extra_flags)) {
                 m_settings.popups |= mask;
 

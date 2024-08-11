@@ -3,6 +3,7 @@
 #include "commands.h"
 #include <SDL.h>
 #include "joysticks.h"
+#include "SettingsUI.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -18,8 +19,8 @@ static Command2 g_step_over_command = Command2(&g_disassembly_table, "step_over"
 static Command2 g_step_in_command = Command2(&g_disassembly_table, "step_in", "Step In").WithShortcut(SDLK_F11);
 
 static CommandTable2 g_6502_table("6502 Window", BBCMICRO_DEBUGGER);
-static Command2 g_reset_relative_cycles_command = Command2(&g_6502_table, "reset_relative_cycles", "Reset").WithExtraText("(Relative cycles)");
-static Command2 g_toggle_reset_relative_cycles_on_breakpoint_command = Command2(&g_6502_table, "toggle_reset_relative_cycles_on_breakpoint", "Reset on breakpint").WithExtraText("(Relative cycles)").WithTick();
+static Command2 g_reset_relative_cycles_command = Command2(&g_6502_table, "reset_relative_cycles", "Reset").WithExtraText("Relative cycles");
+static Command2 g_toggle_reset_relative_cycles_on_breakpoint_command = Command2(&g_6502_table, "toggle_reset_relative_cycles_on_breakpoint", "Reset on breakpoint").WithExtraText("Relative cycles").WithTick();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -841,17 +842,22 @@ void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
 //////////////////////////////////////////////////////////////////////////
 
 template <class DerivedType>
-static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window) {
+static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window, ImVec2 default_size = {}) {
     std::unique_ptr<DerivedType> ptr = std::make_unique<DerivedType>();
 
     ptr->SetBeebWindow(beeb_window);
+
+    // Constructor (if any) may already have set the default size.
+    if (default_size.x != 0 && default_size.y != 0) {
+        ptr->SetDefaultSize(default_size);
+    }
 
     return ptr;
 }
 
 template <class DerivedType>
-static std::unique_ptr<DerivedType> CreateParasiteDebugUI(BeebWindow *beeb_window) {
-    std::unique_ptr<DerivedType> ptr = CreateDebugUI<DerivedType>(beeb_window);
+static std::unique_ptr<DerivedType> CreateParasiteDebugUI(BeebWindow *beeb_window, ImVec2 default_size = {}) {
+    std::unique_ptr<DerivedType> ptr = CreateDebugUI<DerivedType>(beeb_window, default_size);
 
     uint32_t dso = ptr->GetDebugStateOverrides();
     dso |= BBCMicroDebugStateOverride_Parasite;
@@ -922,7 +928,7 @@ class SystemDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<SystemDebugWindow>(beeb_window);
+    return CreateDebugUI<SystemDebugWindow>(beeb_window, ImVec2(350, 180));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -932,6 +938,7 @@ class M6502DebugWindow : public DebugUI {
   public:
     M6502DebugWindow()
         : DebugUI(&g_6502_table) {
+        this->SetDefaultSize(ImVec2(427, 258));
     }
 
   protected:
@@ -1034,6 +1041,7 @@ class MemoryDebugWindow : public DebugUI,
     MemoryDebugWindow()
         : m_handler(this)
         , m_hex_editor(&m_handler) {
+        this->SetDefaultSize(ImVec2(600, 450));
     }
 
     void AllowMOSToggle() {
@@ -1259,6 +1267,8 @@ std::unique_ptr<SettingsUI> CreateParasiteMemoryDebugWindow(BeebWindow *beeb_win
 class ExtMemoryDebugWindow : public DebugUI {
   public:
     ExtMemoryDebugWindow() {
+        this->SetDefaultSize(ImVec2(600, 450));
+
         m_memory_editor.ReadFn = &MemoryEditorRead;
         m_memory_editor.WriteFn = &MemoryEditorWrite;
     }
@@ -1326,6 +1336,7 @@ class DisassemblyDebugWindow : public DebugUI,
   public:
     DisassemblyDebugWindow()
         : DebugUI(&g_disassembly_table) {
+        this->SetDefaultSize(ImVec2(450, 500));
     }
 
     uint32_t GetExtraImGuiWindowFlags() const override {
@@ -2123,7 +2134,7 @@ const char *const CRTCDebugWindow::INTERLACE_NAMES[] = {"Normal", "Normal", "Int
 const char *const CRTCDebugWindow::DELAY_NAMES[] = {"0", "1", "2", "Disabled"};
 
 std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<CRTCDebugWindow>(beeb_window);
+    return CreateDebugUI<CRTCDebugWindow>(beeb_window, ImVec2(375, 450));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2294,7 +2305,7 @@ const char *const VideoULADebugWindow::CURSOR_SHAPES[] = {
     "....", ".**.", ".*..", ".***", "*...", "*.**", "**..", "****"};
 
 std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<VideoULADebugWindow>(beeb_window);
+    return CreateDebugUI<VideoULADebugWindow>(beeb_window, ImVec2(356, 400));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2302,6 +2313,10 @@ std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
 
 class R6522DebugWindow : public DebugUI {
   public:
+    R6522DebugWindow() {
+        this->SetDefaultSize(ImVec2(422, 450));
+    }
+
   protected:
     void DoRegisterValuesGui(const R6522 &via, const std::shared_ptr<const BBCMicro::DebugState> &debug_state, R6522::IRQ BBCMicro::HardwareDebugState::*irq_mptr) {
         this->DoPortRegisterValuesGui('A', via.a);
@@ -2579,7 +2594,7 @@ class NVRAMDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<NVRAMDebugWindow>(beeb_window);
+    return CreateDebugUI<NVRAMDebugWindow>(beeb_window, ImVec2(400, 400));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2651,7 +2666,7 @@ class SN76489DebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<SN76489DebugWindow>(beeb_window);
+    return CreateDebugUI<SN76489DebugWindow>(beeb_window, ImVec2(350, 150));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2750,7 +2765,7 @@ class PagingDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<PagingDebugWindow>(beeb_window);
+    return CreateDebugUI<PagingDebugWindow>(beeb_window, ImVec2(475, 400));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2984,7 +2999,7 @@ class BreakpointsDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateBreakpointsDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<BreakpointsDebugWindow>(beeb_window);
+    return CreateDebugUI<BreakpointsDebugWindow>(beeb_window, ImVec2(450, 450));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3051,7 +3066,7 @@ class PixelMetadataUI : public DebugUI {
 
 #if VIDEO_TRACK_METADATA
 std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<PixelMetadataUI>(beeb_window);
+    return CreateDebugUI<PixelMetadataUI>(beeb_window, ImVec2(250, 120));
 }
 #endif
 
@@ -3060,6 +3075,10 @@ std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_wind
 
 class StackDebugWindow : public DebugUI {
   public:
+    StackDebugWindow() {
+        this->SetDefaultSize(ImVec2(430, 475));
+    }
+
   protected:
     void DoImGui2() override {
         if (this->IsStateUnavailableImGui()) {
@@ -3215,6 +3234,8 @@ std::unique_ptr<SettingsUI> CreateParasiteStackDebugWindow(BeebWindow *beeb_wind
 class TubeDebugWindow : public DebugUI {
   public:
     TubeDebugWindow() {
+        this->SetDefaultSize(ImVec2(535, 450));
+
         for (uint8_t i = 0; i < TUBE_FIFO1_SIZE_BYTES; ++i) {
             snprintf(m_fifo1_header + i * 3, 4, "%-3u", i);
         }
@@ -3462,7 +3483,7 @@ class ADCDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<ADCDebugWindow>(beeb_window);
+    return CreateDebugUI<ADCDebugWindow>(beeb_window, ImVec2(225, 315));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3503,7 +3524,7 @@ class DigitalJoystickDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<DigitalJoystickDebugWindow>(beeb_window);
+    return CreateDebugUI<DigitalJoystickDebugWindow>(beeb_window, ImVec2(250, 200));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3557,7 +3578,7 @@ class KeyboardDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<KeyboardDebugWindow>(beeb_window);
+    return CreateDebugUI<KeyboardDebugWindow>(beeb_window, ImVec2(280, 450));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3598,7 +3619,7 @@ class MouseDebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<MouseDebugWindow>(beeb_window);
+    return CreateDebugUI<MouseDebugWindow>(beeb_window, ImVec2(200, 300));
 }
 
 //////////////////////////////////////////////////////////////////////////

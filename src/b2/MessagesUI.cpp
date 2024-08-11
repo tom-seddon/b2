@@ -65,6 +65,7 @@ static Command2 g_clear_command(&g_messages_table, "clear", "Clear");
 MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list)
     : SettingsUI(&g_messages_table)
     , m_message_list(std::move(message_list)) {
+    this->SetDefaultSize(ImVec2(600, 300));
 }
 
 //////////////////////////////////////////////////////////////////////////

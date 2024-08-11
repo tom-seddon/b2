@@ -17,6 +17,8 @@ class CommandKeymapsUI : public SettingsUI {
   public:
     CommandKeymapsUI(ImGuiStuff *imgui_stuff)
         : m_imgui_stuff(imgui_stuff) {
+        this->SetDefaultSize(ImVec2(300, 300));
+
         ForEachCommandTable2([this](CommandTable2 *table) {
             table->ForEachCommand([this](Command2 *command) {
                 std::string text = command->GetText();

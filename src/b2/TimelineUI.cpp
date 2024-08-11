@@ -28,6 +28,7 @@ class TimelineUI : public SettingsUI {
                         SDL_Renderer *renderer)
         : m_beeb_window(beeb_window)
         , m_thumbnails(renderer) {
+        this->SetDefaultSize(ImVec2(350, 400));
     }
 
     void DoImGui() override {

@@ -8,6 +8,7 @@ class CommandStateTable;
 class CommandTable2;
 
 #include <string>
+#include "dear_imgui.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -43,9 +44,13 @@ class SettingsUI {
     // Return true to have the config saved when this UI window is closed.
     virtual bool OnClose() = 0;
 
+    ImVec2 GetDefaultSize() const;
+    void SetDefaultSize(ImVec2 default_size);
+
   protected:
   private:
     std::string m_name;
+    ImVec2 m_default_size = {};
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -154,6 +154,8 @@ std::unique_ptr<SettingsUI> CreateKeymapsUI(BeebWindow *beeb_window, ImGuiStuff 
 KeymapsUI::KeymapsUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff)
     : m_beeb_window(beeb_window)
     , m_imgui_stuff(imgui_stuff) {
+    this->SetDefaultSize(ImVec2(650, 450));
+
     const BeebKeymap *keymap = m_beeb_window->GetCurrentKeymap();
 
     for (size_t i = 0; i < BeebWindows::GetNumBeebKeymaps(); ++i) {
@@ -265,7 +267,7 @@ void KeymapsUI::DoImGui() {
 
     ImGui::NextColumn();
 
-    ImGui::BeginChild("hello");
+    ImGui::BeginChild("hello", ImVec2(0, 0), 0, ImGuiWindowFlags_HorizontalScrollbar);
 
     this->DoEditKeymapGui();
 
