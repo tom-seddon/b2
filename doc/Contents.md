@@ -20,8 +20,8 @@ much the same on all platforms.
 
 BBC Micro games usually come as disk images, typically .ssd (single
 sided, single density) or .dsd (double sided, single density). Game
-disks are usually auto booting, you can run them from b2 using `File`
-\> `Run` > `Disc image...`.
+disks are usually auto booting, and you can run them from b2 using
+`File` \> `Run` \> `Disc image...`.
 
 ![File > Run > Disc image...](./file_run_disc_image.png)
 
@@ -54,7 +54,8 @@ directly to the BBC equivalents.
 Backspace maps to BBC Delete, Scroll Lock maps to BBC Shift Lock, and
 End maps to BBC Copy.
 
-Symbol keys are as follows, assuming a UK layout PC keyboard.
+Symbol keys are as follows, assuming a UK layout PC keyboard. Most of
+these are hopefully unsurprising.
 
 | Key | BBC Key |
 | --- | --- |
@@ -75,11 +76,11 @@ If you have a US layout PC keyboard, some of the keys aren't the same.
 
 | Key | BBC Key |
 | --- | --- |
-| Home | \ |
 | \ | @ |
+| Home | \ |
 
-This layout is intended to keep most keys in about the same works, the
-goal being to have it work reasonably well for games.
+This arrangement is intended to keep most keys in about the same place
+physically, the goal being to have it work reasonably well for games.
  
 # Alternative keyboard layouts
 
@@ -141,19 +142,19 @@ can still enable it later on an ad-hoc basis.)
 
 Mouse over a BBC key to see the PC keys that map to this one.
 
-![Hovering over a BBC key in a key-based keymap in the Keyboard Layouts dialog](./keyboard_layout_hover.png)
+![Hovering over a BBC key in a key-based keymap in the Keyboard Layouts dialog](./keyboard_layouts_hover.png)
 
 If you're looking at a character-based keymap, some keys are split
 into two halves, corresponding to unshifted (lower) and shifted
 (upper).
 
-![Hovering over a BBC key in a character-based keymap in the Keyboard Layouts dialog](./keyboard_layout_hover_half.png)
+![Hovering over a BBC key in a character-based keymap in the Keyboard Layouts dialog](./keyboard_layouts_hover_half.png)
 
 Click on the key to edit the mapping. The PC keys popup will prompt
 you to press a key to add it to the list of PC keys that correspond to
 this BBC key, which you can do.
 
-![Editing the PC keys in a keymap in the Keyboard Layouts dialog](./keyboard_layout_edit_pc_keys.png)
+![Editing the PC keys in a keymap in the Keyboard Layouts dialog](./keyboard_layouts_edit_pc_keys.png)
 
 Alternatively, click the `X` button next to a key to remove it from
 the list, or click outside the popup to cancel the editing for this
