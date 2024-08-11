@@ -232,7 +232,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "Imgui debug", &BeebWindow::CreateImGuiDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard debug", &CreateKeyboardDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_system_debug", "System debug", &CreateSystemDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_mouse_debug", "Mouse debug", &CreateMouseDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MouseDebug, "toggle_mouse_debug", "Mouse debug", &CreateMouseDebugWindow);
     return true;
 }
 
@@ -2206,6 +2206,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TubeDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DigitalJoystickDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_KeyboardDebug].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MouseDebug].command);
 
         ImGui::Separator();
 
