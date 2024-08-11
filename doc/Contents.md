@@ -21,7 +21,7 @@ much the same on all platforms.
 BBC Micro games usually come as disk images, typically .ssd (single
 sided, single density) or .dsd (double sided, single density). Game
 disks are usually auto booting, you can run them from b2 using `File`
-> `Run` > `Disc image...`.
+\> `Run` > `Disc image...`.
 
 ![File > Run > Disc image...](./file_run_disc_image.png)
 
