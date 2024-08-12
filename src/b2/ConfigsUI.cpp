@@ -728,6 +728,9 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         if (ImGui::MenuItem("(empty)")) {
             rom->standard_rom = nullptr;
             rom->file_name.clear();
+            if (type) {
+                *type = ROMType_16KB;
+            }
             edited = true;
         }
 
