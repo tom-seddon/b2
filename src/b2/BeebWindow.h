@@ -501,7 +501,7 @@ class BeebWindow {
 
     void SetCaptureMouse(bool capture_mouse);
 
-    SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
+    SDLUniquePtr<SDL_Surface> CreateScreenshot(SDL_PixelFormatEnum pixel_format) const;
 
 #if ENABLE_SDL_FULL_SCREEN
     bool IsWindowFullScreen() const;

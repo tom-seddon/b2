@@ -1396,7 +1396,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 
         std::string path;
         if (fd.Open(&path)) {
-            SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+            SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24);
             if (!!screenshot) {
                 SaveSDLSurface(screenshot.get(), path, &m_msg);
             }
@@ -1404,7 +1404,13 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_copy_screenshot_command)) {
-        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+#if SYSTEM_WINDOWS
+        //const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_XRGB8888;
+        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_BGR24;
+#else
+        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_RGB24;
+#endif
+        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(ideal_clipboard_format);
         if (!!screenshot) {
             SetClipboardImage(screenshot.get(), &m_msg);
         }
@@ -3533,7 +3539,20 @@ void BeebWindow::SetCaptureMouse(bool capture_mouse) {
 
 // Creates a 24 bpp R8_G8_B8 surface. This format coexists nicely with
 // stbi_image_write, which is a bit inflexible in terms of input format.
-SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
+//
+// Output formats can be:
+//
+// - SDL_PIXELFORMAT_RGB24 = R8G8B8 - for stb_image 3-component RGB writing
+// - SDL_PIXELFORMAT_XRGB8888 = B8G8R8X8 - for Windows clipboard, 32 bpp opaque
+//   bitmap, skipping a final 32 bpp->24 bpp step
+// - SDL_PIXELFORMAT_BGR24 = B8G8R8 - for Windows clipboard, 24 bpp opaque
+//   bitmap. Not very compelling as there's an extra unnecessary 32 bpp->24 bpp
+//   step 
+
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format) const {
+    ASSERT(pixel_format == SDL_PIXELFORMAT_RGB24 ||
+           pixel_format == SDL_PIXELFORMAT_BGR24 ||
+           pixel_format == SDL_PIXELFORMAT_XRGB8888);
     std::unique_lock<Mutex> lock;
     uint32_t *tv_pixels;
     if (m_settings.screenshot_last_vsync) {
@@ -3582,13 +3601,17 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
         src_surface = std::move(surface);
     }
 
-    std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, SDL_PIXELFORMAT_RGB24));
-    if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
-        m_msg.e.f("Failed to copy image: %s\n", SDL_GetError());
-        return nullptr;
-    }
+    if (src_surface->format->format == (Uint32)pixel_format) {
+        return src_surface;
+    } else {
+        std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, pixel_format));
+        if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
+            m_msg.e.f("Failed to copy image: %s\n", SDL_GetError());
+            return nullptr;
+        }
 
-    return surface;
+        return surface;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
