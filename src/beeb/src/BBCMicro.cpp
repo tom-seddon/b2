@@ -1930,7 +1930,7 @@ struct std::hash<BBCMicro::UpdateMFn> {
         SHA1::HashBuffer(digest, nullptr, mfn_data, sizeof mfn_data);
 
         uint64_t result;
-        memcpy(&result, digest, sizeof uint64_t);
+        memcpy(&result, digest, sizeof(uint64_t));
 
         return result;
     }
