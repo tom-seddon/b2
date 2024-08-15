@@ -145,7 +145,7 @@ static_assert(sizeof(CycleCount) == 8, "CycleCount is the wrong size");
 // Generates constanst for shifting between units: one to do a left shift from
 // the smaller unit to the larger, and one to do a right shift in the other
 // direction.
-#define SHIFT_CONSTANTS(LARGER, SMALLER, N) LSHIFT_##SMALLER##_TO_##LARGER = (N), RSHIFT_##LARGER##_TO_##SMALLER = (N)
+#define SHIFT_CONSTANTS(LARGER, SMALLER, N) LSHIFT_##SMALLER##_TO_##LARGER UNUSED = (N), RSHIFT_##LARGER##_TO_##SMALLER UNUSED = (N)
 
 static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 4MHZ, 0);
 static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 2MHZ, 1);
