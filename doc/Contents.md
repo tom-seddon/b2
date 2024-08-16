@@ -58,26 +58,26 @@ Symbol keys are as follows, assuming a UK layout PC keyboard. Most of
 these are hopefully unsurprising.
 
 | Key | BBC Key |
-| --- | --- |
-| , | , |
-| . | . |
-| / | / |
-| ; | ; |
-| ' | : |
-| [ | [ |
-| ] | ] |
-| = | _ |
-| - | - |
-| ` | ^ |
-| # | @ |
-| \ | \ |
+|-----|---------|
+| ,   | ,       |
+| .   | .       |
+| /   | /       |
+| ;   | ;       |
+| '   | :       |
+| [   | [       |
+| ]   | ]       |
+| =   | _       |
+|-----|---------|
+| `   | ^       |
+| #   | @       |
+| \   | \       |
 
 If you have a US layout PC keyboard, some of the keys aren't the same.
 
-| Key | BBC Key |
-| --- | --- |
-| \ | @ |
-| Home | \ |
+| Key  | BBC Key |
+|------|---------|
+| \    | @       |
+| Home | \       |
 
 This arrangement is intended to keep most keys in about the same place
 physically, the goal being to have it work reasonably well for games.
