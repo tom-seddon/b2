@@ -1404,9 +1404,9 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_copy_screenshot_command)) {
+        // TODO this constant should be in platform-specific code.
 #if SYSTEM_WINDOWS
-        //const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_XRGB8888;
-        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_BGR24;
+        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_XRGB8888;
 #else
         const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_RGB24;
 #endif
