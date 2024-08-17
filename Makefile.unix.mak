@@ -126,4 +126,4 @@ travis_ci_before_install_linux:
 github_ci:
 	sudo apt-get -y update
 	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev
-	$(PYTHON) "./etc/release/release.py" --verbose $(shell $(PYTHON) "./etc/release/release2.py" print-suffix)
+	$(PYTHON3) "./etc/release/release.py" --verbose $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
