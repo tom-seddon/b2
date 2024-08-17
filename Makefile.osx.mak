@@ -47,4 +47,7 @@ github_ci_macos:
 	pkg-config --cflags libavcodec
 	pkg-config --libs libavcodec
 	pkg-config --list-all |sort
+	arch
+	machine
+	uname -m
 	$(PYTHON3) "./etc/release/release.py" --verbose --macos-deployment-target=11.0 --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)

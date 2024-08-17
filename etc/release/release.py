@@ -305,7 +305,7 @@ def build_darwin(options,ifolder,rev_hash):
     if not options.skip_debug: build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
-    stem="b2-osx-"
+    stem="b2-macos-"
     if options.macos_deployment_target is not None:
         stem+='%s-'%options.macos_deployment_target
     stem+=options.release_name
@@ -473,5 +473,5 @@ if __name__=="__main__":
     parser.add_argument('--macos-deployment-target',
                         metavar='VERSION',
                         help=macos_deployment_target_help)
-    
+
     main(parser.parse_args(sys.argv[1:]))
