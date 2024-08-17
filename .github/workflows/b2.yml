@@ -28,4 +28,10 @@ jobs:
         with:
           submodules: recursive
       - run: make github_ci_macos
-        
+  build-macos-arm:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_macos
