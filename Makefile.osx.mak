@@ -39,7 +39,7 @@ run_all_tests:
 ##########################################################################
 
 .PHONY:github_ci_macos
-github_ci: export PKG_CONFIG_PATH:=$(PKG_CONFIG_PATH):/usr/local/opt/ffmpeg@4/lib/pkgconfig
+github_ci_macos: export PKG_CONFIG_PATH:=$(PKG_CONFIG_PATH):/usr/local/opt/ffmpeg@4/lib/pkgconfig
 github_ci_macos:
 	brew update
 	brew install ninja
