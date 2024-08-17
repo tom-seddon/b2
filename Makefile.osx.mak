@@ -38,14 +38,12 @@ run_all_tests:
 ##########################################################################
 ##########################################################################
 
-.PHONY:travis_ci_before_install_osx
-travis_ci_before_install_osx:
-	brew install ninja
-	brew install ffmpeg
-
 .PHONY:github_ci
 github_ci:
 	brew update
 	brew install ninja
-	brew install ffmpeg
+	brew install ffmpeg@4
+	pkg-config --cflags libavcodec
+	pkg-config --libs libavcodec
+	pkg-config --list-all |sort
 	$(PYTHON3) "./etc/release/release.py" --verbose --macos-deployment-target=11.0 --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
