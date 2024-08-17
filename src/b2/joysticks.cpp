@@ -132,11 +132,18 @@ static void OpenJoystick(int sdl_joystick_device_index, Messages *msg) {
 
     {
         if (!SDL_IsGameController(sdl_joystick_device_index)) {
-            if (const char *name = SDL_JoystickNameForIndex(sdl_joystick_device_index)) {
-                msg->w.f("Not a supported game controller: %s\n", name);
+            char guid[1000];
+            SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(sdl_joystick_device_index), guid, sizeof guid);
+
+            std::string name;
+            if (const char *p = SDL_JoystickNameForIndex(sdl_joystick_device_index)) {
+                name = p;
             } else {
-                msg->w.f("Not a supported game controller: joystick index %d\n", sdl_joystick_device_index);
+                name = "joystick index " + std::to_string(sdl_joystick_device_index);
             }
+
+            msg->w.f("Not a supported game controller: %s\n", name.c_str());
+            msg->i.f("(%s GUID: %s)\n", name.c_str(), guid);
 
             return;
         }
