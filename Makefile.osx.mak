@@ -40,6 +40,7 @@ run_all_tests:
 
 .PHONY:github_ci
 github_ci:
+github_ci: export PKG_CONFIG_PATH:=$(PKG_CONFIG_PATH):/usr/local/opt/ffmpeg@4/lib/pkgconfig
 	brew update
 	brew install ninja
 	brew install ffmpeg@4
