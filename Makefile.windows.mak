@@ -40,4 +40,4 @@ _run_tests:
 
 .PHONY:github_ci
 github_ci:
-	$(PYTHON3) "./etc/release/release.py" --verbose $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
+	$(PYTHON3) "./etc/release/release.py" --verbose --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
