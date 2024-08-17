@@ -38,14 +38,20 @@ run_all_tests:
 ##########################################################################
 ##########################################################################
 
-.PHONY:_github_ci_macos_setup
-_github_ci_macos_setup:
+.PHONY:github_ci_macos_homebrew
+github_ci_macos_homebrew:
+	brew update
+	brew install ninja
+
+.PHONY:github_ci_macos_howebrew_ffmpeg
+github_ci_macos_howebrew_ffmpeg:
+	brew install ffmpeg@4
+
+.PHONY:_github_ci_macos_common
+_github_ci_macos_common:
 	arch
 	machine
 	uname -m
-	brew update
-	brew install ninja
-	brew install ffmpeg@4
 	pkg-config --cflags libavcodec
 	pkg-config --libs libavcodec
 	pkg-config --list-all |sort
