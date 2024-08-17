@@ -27,17 +27,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run:
-        - make github_ci_macos_homebrew
-        - make github_ci_macos_homebrew_ffmpeg
-        - make github_ci_macos_x64
+      - run: make github_ci_macos_homebrew
+      - run: make github_ci_macos_homebrew_ffmpeg
+      - run: make github_ci_macos_arm
   build-macos-arm:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run:
-        - make github_ci_macos_homebrew
-        - make github_ci_macos_homebrew_ffmpeg
-        - make github_ci_macos_arm
+      - run: make github_ci_macos_homebrew
+      - run: make github_ci_macos_homebrew_ffmpeg
+      - run: make github_ci_macos_arm
