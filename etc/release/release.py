@@ -148,7 +148,7 @@ def get_win32_vs_path(options):
     if options.toolchain=='vs2019': ver=16
     else: fatal('unknown toolchain: %s'%options.toolchain)
 
-    installation_path=subprocess.check_output([vswhere_path,'-version',str(ver)'-property','installationPath']).decode('utf-8').rstrip()
+    installation_path=subprocess.check_output([vswhere_path,'-version',str(ver),'-property','installationPath']).decode('utf-8').rstrip()
     if not os.path.isdir(installation_path):
         fatal('Visual Studio installation path not found at: %s'%installation_path)
 
