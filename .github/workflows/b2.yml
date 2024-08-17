@@ -21,4 +21,11 @@ jobs:
         with:
           submodules: recursive
       - run: make github_ci
+  build-macos-x64:
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci
         
