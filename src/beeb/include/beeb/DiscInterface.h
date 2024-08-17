@@ -10,6 +10,7 @@ class DiscInterface;
 #include "roms.h"
 #include <string>
 #include <functional>
+#include <memory>
 
 #include <shared/enum_decl.h>
 #include "DiscInterface.inl"
