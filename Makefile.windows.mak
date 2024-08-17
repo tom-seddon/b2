@@ -1,4 +1,5 @@
 # -*- mode:makefile-gmake; -*-
+SHELL:=$(windir)\system32\cmd.exe
 
 ##########################################################################
 ##########################################################################
@@ -33,3 +34,10 @@ _run_tests: VS_PATH:=$(shell "C:\Program Files (x86)\Microsoft Visual Studio\Ins
 _run_tests: CTEST:=$(VS_PATH)\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe
 _run_tests:
 	cd "build\vs$(VSYEAR)" && "$(CTEST)" -C $(CONFIG) -j $(NUMBER_OF_PROCESSORS)
+
+##########################################################################
+##########################################################################
+
+.PHONY:github_ci
+github_ci:
+	$(PYTHON3) "./etc/release/release.py" --verbose $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)

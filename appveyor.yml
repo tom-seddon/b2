@@ -63,7 +63,6 @@ install:
         $env:deploy=$true
         $env:OUTPUT_NAME="build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
         $env:SYMBOLS_NAME="build\_Rel\win32\symbols.b2-windows-"+$env:SUFFIX+".7z"
-        $env:TOOLCHAIN="vs2019"
         $env:PYTHON3="py"
         $env:PY_PYTHON="3"
       } elseif ($env:CI_LINUX -eq $true) {
@@ -116,7 +115,7 @@ install:
   
 build_script:
   - ps: |
-      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP --toolchain=$env:TOOLCHAIN --macos-deployment-target=$env:MACOS_VER $env:SUFFIX
+      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP --macos-deployment-target=$env:MACOS_VER $env:SUFFIX
       if($lastexitcode -eq 0) {
         $host.SetShouldExit(0);
       }

@@ -1,0 +1,24 @@
+name: Build b2
+
+on:
+  push:
+    branches:
+      - master
+      - wip/master
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci
+  build-windows:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci
+        

@@ -62,12 +62,16 @@ def fatal(str):
 ##########################################################################
 ##########################################################################
 
-def run(argv,ignore_errors=False):
+def run(argv,ignore_errors=False,**other_popen_kwargs):
+    def quote(x):
+        if not x.startswith('"') and ' ' in x: return '"%s"'%x
+        else: return x
+
     print(80*"-")
-    print(" ".join([shlex.quote(x) for x in argv]))
+    print(" ".join([quote(x) for x in argv]))
     print(80*"-")
 
-    ret=subprocess.call(argv)
+    ret=subprocess.call(argv,**other_popen_kwargs)
 
     if not ignore_errors:
         if ret!=0: fatal("process failed: %s"%argv)
@@ -136,6 +140,28 @@ def get_win32_build_folder(options):
                       FOLDER_PREFIX,
                       options.toolchain)
 
+def get_win32_vs_path(options):
+    vswhere_path=r'''C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'''
+    if not os.path.isfile(vswhere_path):
+        fatal('Visual Studio not installed? vswhere.exe not found at: %s'%vswhere_path)
+
+    if options.toolchain=='vs2019': ver=16
+    else: fatal('unknown toolchain: %s'%options.toolchain)
+
+    installation_path=subprocess.check_output([vswhere_path,'-version',str(ver),'-property','installationPath']).decode('utf-8').rstrip()
+    if not os.path.isdir(installation_path):
+        fatal('Visual Studio installation path not found at: %s'%installation_path)
+
+    return installation_path
+
+def get_win32_vstool_path(vstool_relative_path,options):
+    vstool_path=os.path.join(get_win32_vs_path(options),vstool_relative_path)
+    if not os.path.isfile(vstool_path):
+        fatal('%s not found at: %s'%(os.path.split(vstool_relative_path)[1],
+                                     vstool_path))
+
+    return vstool_path
+
 def build_win32_config(timings,options,config,colour):
     folder=get_win32_build_folder(options)
     
@@ -144,17 +170,31 @@ def build_win32_config(timings,options,config,colour):
          "color","%x"%colour],ignore_errors=True)
     
     if not options.skip_compile:
-        run(["cmd","/c",
-             r"etc\release\build_windows.bat",
+        # env=os.environ is a workaround for the environment possibly
+        # having two environment variables, one called PATH and one
+        # Path. This confuses and enrages msbuild, and they aren't
+        # going to fix it:
+        # https://github.com/dotnet/msbuild/issues/5726
+        #
+        # Not 100% sure why this is happening, but it looks like GNU
+        # Make could be the culprit? As in, it sets PATH, but doesn't
+        # unset Path.
+        #
+        # Python doesn't make this easy to figure out or fix, because
+        # os.environ only contains a value for PATH - but that makes
+        # it perfect as the new environment to use for the subprocess.
+
+        run([get_win32_vstool_path(r'''MSBuild\Current\Bin\MSBuild.exe''',options),
              "/maxcpucount",
              "/property:MultiProcessorCompilation=true", # http://stackoverflow.com/a/17719445/1618406
              "/property:Configuration=%s"%config,
              "/verbosity:minimal",
-             os.path.join(folder,"b2.sln")])
+             os.path.join(folder,"b2.sln")],
+            env=os.environ)
 
     if not options.skip_ctest:
         with ChangeDirectory(folder):
-            run(["ctest",
+            run([get_win32_vstool_path(r'''Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe''',options),
                  "-j",os.getenv("NUMBER_OF_PROCESSORS"),
                  "-C",config])
             
@@ -420,29 +460,11 @@ if __name__=="__main__":
     parser.add_argument('--make-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='run %(metavar)s GNU make jobs at once. Default: %(default)d')
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
-    
+
     if sys.platform=='win32':
-        vsver=os.getenv('VisualStudioVersion')
-        if vsver is not None: vsver=int(float(vsver))
-
-        if vsver==14: toolchain='vs2015'
-        elif vsver==15: toolchain='vs2017'
-        elif vsver==16: toolchain='vs2019'
-        else: toolchain=None
-
-        if toolchain is None: help_suffix=''
-        else: help_suffix="Default: ``%s''"%toolchain
-        
-        parser.add_argument('-t','--toolchain',
-                            metavar='TOOLCHAIN',
-                            default=toolchain,
-                            required=toolchain is None,
-                            help='toolchain to use. One of: vs2015, vs2017, vs2019. '+help_suffix)
-    else:
-        parser.add_argument('-t','--toolchain',
-                            metavar='TOOLCHAIN',
-                            help='placeholder, ignored')
-
+        # TODO: sort this out...
+        parser.set_defaults(toolchain='vs2019')
+    
     if sys.platform=='darwin':
         macos_deployment_target_help='''macOS deployment target. Default is whatever the Makefile defaults to'''
     else:
