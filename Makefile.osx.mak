@@ -47,15 +47,6 @@ github_ci_macos_homebrew:
 github_ci_macos_homebrew_ffmpeg:
 	brew install ffmpeg@4
 
-.PHONY:_github_ci_macos_common
-_github_ci_macos_common:
-	arch
-	machine
-	uname -m
-	pkg-config --cflags libavcodec
-	pkg-config --libs libavcodec
-	pkg-config --list-all |sort
-
 .PHONY:_github_ci_macos_release
 _github_ci_macos_release:
 	$(PYTHON3) "./etc/release/release.py" --verbose $(TARGET_ARGS) --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
@@ -63,11 +54,13 @@ _github_ci_macos_release:
 .PHONY:github_ci_macos_x64
 github_ci_macos_x64: export PKG_CONFIG_PATH:=$(PKG_CONFIG_PATH):/usr/local/opt/ffmpeg@4/lib/pkgconfig
 github_ci_macos_x64:
-	$(MAKE) _github_ci_macos_common
 	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=11.0
+
+.PHONY:github_ci_older_macos_x64
+github_ci_older_macos_x64:
+	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=10.9
 
 .PHONY:github_ci_macos_arm
 github_ci_macos_arm: export PKG_CONFIG_PATH:=$(PKG_CONFIG_PATH):/opt/homebrew/opt/ffmpeg@4/lib/pkgconfig
 github_ci_macos_arm:
-	$(MAKE) _github_ci_macos_common
 	$(MAKE) _github_ci_macos_release

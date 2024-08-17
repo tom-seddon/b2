@@ -30,6 +30,14 @@ jobs:
       - run: make github_ci_macos_homebrew
       - run: make github_ci_macos_homebrew_ffmpeg
       - run: make github_ci_macos_x64
+  build-older-macos-x64:
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_macos_homebrew
+      - run: make github_ci_older_macos_x64
   build-macos-arm:
     runs-on: macos-latest
     steps:
