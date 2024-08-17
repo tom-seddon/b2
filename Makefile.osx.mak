@@ -43,8 +43,8 @@ github_ci_macos_homebrew:
 	brew update
 	brew install ninja
 
-.PHONY:github_ci_macos_howebrew_ffmpeg
-github_ci_macos_howebrew_ffmpeg:
+.PHONY:github_ci_macos_homebrew_ffmpeg
+github_ci_macos_homebrew_ffmpeg:
 	brew install ffmpeg@4
 
 .PHONY:_github_ci_macos_common
