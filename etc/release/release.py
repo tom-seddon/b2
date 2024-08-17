@@ -302,12 +302,18 @@ def copy_darwin_app(config,mount,app_name):
     run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
 
 def build_darwin(options,ifolder,rev_hash):
+    arch=subprocess.check_output(['uname','-m']).decode('utf-8').rstrip()
+    if arch=='x86_64': arch='intel'
+    elif arch=='arm64': arch='applesilicon'
+    else: fatal('unknown architecture from uname -m: %s'%arch)
+    
     if not options.skip_debug: build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
     stem="b2-macos-"
     if options.macos_deployment_target is not None:
         stem+='%s-'%options.macos_deployment_target
+    stem+='%s-'%arch
     stem+=options.release_name
     
     # 
