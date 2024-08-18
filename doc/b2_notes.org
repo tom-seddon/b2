@@ -1167,4 +1167,49 @@ CLOSED: [2024-07-06 Sat 21:56]
 
 Remove all the occurrences of "%x" for this purpose.
 
+* Submodule upstreams
+
+Origin is upstream already:
+
+| Submodule            | Upstream                                        |
+|----------------------+-------------------------------------------------+
+| 6502Timing           | https://github.com/dp111/6502Timing             |
+| Font-Awesome         | https://github.com/FortAwesome/Font-Awesome     |
+| IconFontCppHeaders   | https://github.com/juliettef/IconFontCppHeaders |
+| SDL_GameControllerDB | https://github.com/gabomdq/SDL_GameControllerDB |
+| miniz                | https://github.com/richgel999/miniz             |
+| rcedit               | https://github.com/electron/rcedit              |
+| sanitizers-cmake     | https://github.com/arsenm/sanitizers-cmake      |
+| stb                  | https://github.com/nothings/stb                 |
+| 6502-tests           | https://github.com/tom-seddon/6502-tests        |
+| beeb                 | https://github.com/tom-seddon/beeb              |
+| shellcmd.py          | https://github.com/tom-seddon/shellcmd.py       |
+|                      |                                                 |
+
+Origin is my fork and upstream is elsewhere:
+
+| submoduleh      | Upstream                                   | Origin                                        |
+|-----------------+--------------------------------------------+-----------------------------------------------|
+| Remotery        | https://github.com/Celtoys/Remotery        | https://github.com/tom-seddon/Remotery        |
+| SDL_official    | https://github.com/libsdl-org/SDL          | https://github.com/tom-seddon/SDL-1           |
+| curl            | https://github.com/curl/curl               | https://github.com/tom-seddon/curl            |
+| http-parser     | https://github.com/nodejs/http-parser      | https://github.com/tom-seddon/http-parser     |
+| imgui           | https://github.com/ocornut/imgui           | https://github.com/tom-seddon/imgui           |
+| imgui_club      | https://github.com/tom-seddon/imgui_club   | https://github.com/tom-seddon/imgui_club      |
+| libuv           | https://github.com/libuv/libuv             | https://github.com/tom-seddon/libuv           |
+| macdylibbundler | https://github.com/auriamg/macdylibbundler | https://github.com/tom-seddon/macdylibbundler |
+| perfect6502     | https://github.com/mist64/perfect6502      | https://github.com/tom-seddon/perfect6502     |
+| rapidjson       | https://github.com/Tencent/rapidjson       | https://github.com/tom-seddon/rapidjson       |
+| relacy          | https://github.com/dvyukov/relacy          | https://github.com/tom-seddon/relacy          |
+| salieri         | https://github.com/nemequ/salieri          | https://github.com/tom-seddon/salieri         |
+| visual6502      | https://github.com/trebonian/visual6502    | https://github.com/tom-seddon/visual6502      |
+
+Upstream updates no longer relevant, as HEAD doesn't use this library
+any more:
+
+| Submodule | Origin                            |
+|-----------+-----------------------------------|
+| SDL       | https://github.com/tom-seddon/SDL |
+| noc       | https://github.com/tom-seddon/noc |
+
 * eof.
