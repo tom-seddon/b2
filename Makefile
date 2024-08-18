@@ -37,11 +37,12 @@ CAT:=cat
 UNAME:=$(shell uname -s)
 
 ifeq ($(UNAME),Darwin)
-OSX_DEPLOYMENT_TARGET?=10.9
 OS:=osx
 NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
+ifdef OSX_DEPLOYMENT_TARGET
 CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(OSX_DEPLOYMENT_TARGET)
+endif
 # version number roulette.
 CLANG_FORMAT:=clang-format
 
@@ -54,7 +55,6 @@ ifeq ($(UNAME),Linux)
 OS:=linux
 NPROC:=$(shell nproc)
 INSTALLER:=1
-CMAKE_DEFINES:=$(CMAKE_DEFINES)
 
 # this is what it ends up called on Ubuntu 22, at any rate.
 CLANG_FORMAT:=clang-format-11
