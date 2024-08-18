@@ -144,7 +144,11 @@ def gh_release(release_files,options):
 
     create_argv=['gh','release','create',release_name,'--notes','Release notes to follow.']
     if prerelease: create_argv+=['--prerelease']
-    run(create_argv)
+
+    # Assume any errors from the creation process are due to the
+    # release already existing. Worst case, that's wrong - and gh
+    # release will fail.
+    run(create_argv,ignore_errors=True)
     
     for release_file in release_files: run(['gh','release','upload',release_name,release_file])
 
