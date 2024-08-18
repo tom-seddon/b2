@@ -1252,7 +1252,7 @@ Origin is upstream already:
 
 Origin is my fork and upstream is elsewhere:
 
-| submoduleh      | Upstream                                   | Origin                                        |
+| submodule       | Upstream                                   | Origin                                        |
 |-----------------+--------------------------------------------+-----------------------------------------------|
 | Remotery        | https://github.com/Celtoys/Remotery        | https://github.com/tom-seddon/Remotery        |
 | SDL_official    | https://github.com/libsdl-org/SDL          | https://github.com/tom-seddon/SDL-1           |
