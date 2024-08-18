@@ -80,7 +80,7 @@ def capture(argv):
     v("Run: %s\n"%argv)
     process=subprocess.Popen(args=argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output=process.communicate()
-    if process.returncode!=0: fatal("process failed")
+    if process.returncode!=0: fatal("process failed: %s"%argv)
     return output[0].decode('utf8').splitlines()
 
 def bool_str(x): return "YES" if x else "NO"
@@ -131,6 +131,18 @@ def create_README(options,folder,rev_hash):
         f.write("b2 - a BBC Micro emulator - %s\n\n"%options.release_name)
         f.write("For licence information, please consult LICENCE.txt.\n\n")
         f.write("Documentation can be found here: https://github.com/tom-seddon/b2/blob/%s/README.md\n\n"%rev_hash)
+
+##########################################################################
+##########################################################################
+
+def gh_release(release_files,options):
+    git_branch=capture(['git','branch','--show-current'])[0]
+
+    gh_args=['gh','release','create',options.release_name,'--notes','Release notes to follow.']
+    if git_branch!='master': gh_args+=['--prerelease']
+    run(gh_args)
+    
+    for release_file in release_files: run(['gh','release','upload',options.release_name,release_file])
 
 ##########################################################################
 ##########################################################################
@@ -205,6 +217,7 @@ def build_win32_config(timings,options,config,colour):
 
 def build_win32(options,ifolder,rev_hash):
     timings={}
+    release_files=[]
 
     # path that the ZIP contents will be assembled into.
     zip_folder=os.path.join(ifolder,"b2")
@@ -248,7 +261,9 @@ def build_win32(options,ifolder,rev_hash):
     set_tree_timestamps(options,ifolder)
 
     # The ZipFile module is a bit annoying to use.
-    with ChangeDirectory(ifolder): run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
+    with ChangeDirectory(ifolder):
+        run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
+        release_files.append(os.path.abspath(zip_fname))
 
     set_file_timestamps(options,zip_fname)
 
@@ -266,6 +281,9 @@ def build_win32(options,ifolder,rev_hash):
     with ChangeDirectory(ifolder):
         zip_fname='symbols.b2-windows-%s.7z'%options.release_name
         run(['7z.exe','a','-mx=9',zip_fname,'b2 Debug.pdb','b2.pdb'])
+        release_files.append(os.path.abspath(zip_fname))
+
+    if options.gh_release: gh_release(release_files,options)
     
 ##########################################################################
 ##########################################################################
@@ -302,7 +320,9 @@ def copy_darwin_app(config,mount,app_name):
     run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
 
 def build_darwin(options,ifolder,rev_hash):
-    arch=subprocess.check_output(['uname','-m']).decode('utf-8').rstrip()
+    release_files=[]
+    
+    arch=capture(['uname','-m'])[0]
     if arch=='x86_64': arch='intel'
     elif arch=='arm64': arch='applesilicon'
     else: fatal('unknown architecture from uname -m: %s'%arch)
@@ -355,6 +375,7 @@ def build_darwin(options,ifolder,rev_hash):
     # Convert temp DMG into final DMG.
     run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
     set_file_timestamps(options,final_dmg)
+    release_files.append(os.path.abspath(final_dmg))
 
     # Delete temp DMG.
     rm(temp_dmg)
@@ -376,7 +397,9 @@ def build_darwin(options,ifolder,rev_hash):
         run(['7z','a','-mx=9',symbols_zip,'b2','b2 Debug'])
         shutil.rmtree('b2',ignore_errors=True)
         shutil.rmtree('b2 Debug',ignore_errors=True)
+        release_files.append(os.path.abspath(symbols_zip))
 
+    if options.gh_release: gh_release(release_files,options)
 
 ##########################################################################
 ##########################################################################
@@ -404,6 +427,13 @@ def build_linux(options,ifolder,rev_hash):
 def main(options):
     global g_verbose
     g_verbose=options.verbose
+
+    if options.gh_release:
+        try:
+            subprocess.check_output(['gh','--help'])
+        except: fatal('''couldn't run gh --help. Is gh installed?''')
+
+        if 'GH_TOKEN' not in os.environ: fatal('no GH_TOKEN for gh in environment')
 
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
 
@@ -466,6 +496,7 @@ if __name__=="__main__":
     parser.add_argument('--make-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='run %(metavar)s GNU make jobs at once. Default: %(default)d')
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
+    parser.add_argument('--gh-release',action='store_true',help='''create GitHub release (or prerelease if not on master git branch) and upload artefacts''')
 
     if sys.platform=='win32':
         # TODO: sort this out...
