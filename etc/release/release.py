@@ -136,22 +136,17 @@ def create_README(options,folder,rev_hash):
 ##########################################################################
 
 def gh_release(release_files,options):
-    git_branch=capture(['git','branch','--show-current'])[0]
+    # Is this really the best place for all these policies?
+    prerelease=capture(['git','branch','--show-current'])[0]!='master'
 
-    # Is this really the best place for this policy?
     release_name='b2-'+options.release_name
+    if prerelease: release_name+='-prerelease'
 
-    gh_args=['gh','release','create',options.release_name,'--notes','Release notes to follow.']
+    create_argv=['gh','release','create',release_name,'--notes','Release notes to follow.']
+    if prerelease: create_argv+=['--prerelease']
+    run(create_argv)
     
-    if git_branch!='master':
-        gh_args+=['--prerelease']
-
-        # Is this really the best place for this policy?
-        release_name+='-prerelease'
-        
-    run(gh_args)
-    
-    for release_file in release_files: run(['gh','release','upload',options.release_name,release_file])
+    for release_file in release_files: run(['gh','release','upload',release_name,release_file])
 
 ##########################################################################
 ##########################################################################
