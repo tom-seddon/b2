@@ -38,6 +38,6 @@ _run_tests:
 ##########################################################################
 ##########################################################################
 
-.PHONY:github_ci
-github_ci:
-	$(PYTHON3) "./etc/release/release.py" --verbose $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
+.PHONY:github_ci_windows
+github_ci_windows:
+	$(PYTHON3) "./etc/release/release.py" --verbose --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
