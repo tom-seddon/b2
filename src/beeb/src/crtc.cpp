@@ -221,13 +221,15 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
 
             if (used_char_addr.b.h == m_registers.bits.cursorh &&
                 used_char_addr.b.l == m_registers.bits.cursorl) {
-                if (m_st.raster == 0) {
-                    m_st.cursor = false;
-                }
+                //if (m_st.raster == 0) {
+                //    m_st.cursor = false;
+                //}
 
-                if (m_st.raster == m_registers.bits.ncstart.bits.start) {
-                    m_st.cursor = true;
-                }
+                //if (m_st.raster == m_registers.bits.ncstart.bits.start) {
+                //    m_st.cursor = true;
+                //}
+
+                m_st.cursor = m_st.raster >= m_registers.bits.ncstart.bits.start && m_st.raster <= m_registers.bits.ncend;
 
                 if (m_st.cursor) {
                     switch ((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
@@ -254,9 +256,9 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
                     }
                 }
 
-                if (m_st.raster == m_registers.bits.ncend) {
-                    m_st.cursor = false;
-                }
+                //if (m_st.raster == m_registers.bits.ncend) {
+                //    m_st.cursor = false;
+                //}
             }
         }
 
