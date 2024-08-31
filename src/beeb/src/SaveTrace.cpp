@@ -324,16 +324,16 @@ class TraceSaver {
             break;
         }
 
-        *c++ = codes[0];
-        if (codes[1] != 0) {
-            *c++ = codes[1];
-        }
-        *c++ = ADDRESS_PREFIX_SEPARATOR;
         *c++ = '$';
         *c++ = HEX_CHARS_LC[value >> 12];
         *c++ = HEX_CHARS_LC[value >> 8 & 15];
         *c++ = HEX_CHARS_LC[value >> 4 & 15];
         *c++ = HEX_CHARS_LC[value & 15];
+        *c++ = ADDRESS_SUFFIX_SEPARATOR;
+        *c++ = codes[0];
+        if (codes[1] != 0) {
+            *c++ = codes[1];
+        }
 
         while ((*c = *suffix++) != 0) {
             ++c;

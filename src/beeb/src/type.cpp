@@ -85,7 +85,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Address prefixes:
+// Address suffixes:
 //
 // <pre>
 // 0 - sideways ROM 0
@@ -223,8 +223,8 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
         ASSERT(code0 != 0);
 
         if (code1 == 0) {
-            bp->aligned_codes[0] = ' ';
-            bp->aligned_codes[1] = code0;
+            bp->aligned_codes[0] = code0;
+            bp->aligned_codes[1] = ' ';
 
             bp->minimal_codes[0] = code0;
         } else {
@@ -437,7 +437,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 }
 
 #if BBCMICRO_DEBUGGER
-static bool HandleROMPrefixChar(uint32_t *dso, uint8_t rom) {
+static bool HandleROMSuffixChar(uint32_t *dso, uint8_t rom) {
     ASSERT(rom >= 0 && rom <= 15);
 
     *dso &= ~(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY);
@@ -449,11 +449,11 @@ static bool HandleROMPrefixChar(uint32_t *dso, uint8_t rom) {
 
 #if BBCMICRO_DEBUGGER
 // select ROM
-static bool ParseROMPrefixChar(uint32_t *dso, char c) {
+static bool ParseROMSuffixChar(uint32_t *dso, char c) {
     if (c >= '0' && c <= '9') {
-        return HandleROMPrefixChar(dso, (uint8_t)(c - '0'));
+        return HandleROMSuffixChar(dso, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
-        return HandleROMPrefixChar(dso, (uint8_t)(c - 'a' + 10));
+        return HandleROMSuffixChar(dso, (uint8_t)(c - 'a' + 10));
     } else {
         return false;
     }
@@ -514,8 +514,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB(const ROMType *rom_type
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixCharB(uint32_t *dso, char c) {
-    if (ParseROMPrefixChar(dso, c)) {
+static bool ParseSuffixCharB(uint32_t *dso, char c) {
+    if (ParseROMSuffixChar(dso, c)) {
         // ...
     } else {
         return false;
@@ -668,8 +668,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus(const ROMType *rom_
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixCharBPlus(uint32_t *dso, char c) {
-    if (ParseROMPrefixChar(dso, c)) {
+static bool ParseSuffixCharBPlus(uint32_t *dso, char c) {
+    if (ParseROMSuffixChar(dso, c)) {
         // ...
     } else if (c == 's') {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
@@ -893,8 +893,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixCharMaster(uint32_t *dso, char c) {
-    if (ParseROMPrefixChar(dso, c)) {
+static bool ParseSuffixCharMaster(uint32_t *dso, char c) {
+    if (ParseROMSuffixChar(dso, c)) {
         // ...
     } else if (c == 's') {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
@@ -1011,7 +1011,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                           BBCMicroDebugStateOverride_ROM);
         type->apply_dso_fn = &ApplyDSOB;
         type->get_dso_fn = &GetDSOB;
-        type->parse_prefix_char_fn = &ParsePrefixCharB;
+        type->parse_suffix_char_fn = &ParseSuffixCharB;
         break;
 
     case BBCMicroTypeID_BPlus:
@@ -1023,7 +1023,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                           BBCMicroDebugStateOverride_OverrideShadow);
         type->apply_dso_fn = &ApplyDSOBPlus;
         type->get_dso_fn = &GetDSOBPlus;
-        type->parse_prefix_char_fn = &ParsePrefixCharBPlus;
+        type->parse_suffix_char_fn = &ParseSuffixCharBPlus;
         break;
 
     case BBCMicroTypeID_Master:
@@ -1040,7 +1040,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                           BBCMicroDebugStateOverride_OverrideOS);
         type->apply_dso_fn = &ApplyDSOMaster;
         type->get_dso_fn = &GetDSOMaster;
-        type->parse_prefix_char_fn = &ParsePrefixCharMaster;
+        type->parse_suffix_char_fn = &ParseSuffixCharMaster;
         break;
     }
 
@@ -1197,29 +1197,26 @@ const char *GetModelName(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-bool ParseAddressPrefix(uint32_t *dso_ptr,
+bool ParseAddressSuffix(uint32_t *dso_ptr,
                         const std::shared_ptr<const BBCMicroType> &type,
-                        const char *prefix_begin,
-                        const char *prefix_end,
+                        const char *suffix,
                         Log *log) {
     uint32_t dso = *dso_ptr;
 
-    for (const char *prefix_char = prefix_begin;
-         *prefix_char != 0 && prefix_char != prefix_end;
-         ++prefix_char) {
-        char c = *prefix_char;
+    for (const char *suffix_char = suffix; *suffix_char != 0; ++suffix_char) {
+        char c = *suffix_char;
 
         if (c == 'p') {
             dso |= BBCMicroDebugStateOverride_Parasite;
         } else if (c == 'r') {
             dso |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;
-        } else if ((*type->parse_prefix_char_fn)(&dso, c)) {
+        } else if ((*type->parse_suffix_char_fn)(&dso, c)) {
             // Valid flag for this model.
         } else if (g_all_big_page_codes.find(c) != std::string::npos) {
             // Valid flag - but not for this model, so ignore.
         } else {
             if (log) {
-                log->f("'%c': unknown address prefix", *prefix_char);
+                log->f("'%c': unknown address suffix", *suffix_char);
             }
 
             return false;

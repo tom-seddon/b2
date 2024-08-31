@@ -168,17 +168,19 @@ std::vector<std::string> GetSplitString(const std::string &str, const std::strin
 bool GetBoolFromString(bool *value, const std::string &str);
 bool GetBoolFromString(bool *value, const char *str);
 
-bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix = 0);
-bool GetUInt8FromString(uint8_t *value, const char *str, int radix = 0);
+// If !ep, fail unless parsing reaches a non-space char or end of string. If ep,
+// parse as much as possible and set *ep to point to the problem char.
+bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt8FromString(uint8_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
-bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix = 0);
-bool GetUInt16FromString(uint16_t *value, const char *str, int radix = 0);
+bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt16FromString(uint16_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
-bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix = 0);
-bool GetUInt32FromString(uint32_t *value, const char *str, int radix = 0);
+bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt32FromString(uint32_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
-bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix = 0);
-bool GetUInt64FromString(uint64_t *value, const char *str, int radix = 0);
+bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt64FromString(uint64_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

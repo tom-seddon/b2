@@ -166,7 +166,7 @@ struct BigPageMetadata {
     // Page override char(s) to display in the debugger. (At the moment, only 2
     // are required.)
     //
-    // If only 1 code applies, the first char of aligned_codes is a space.
+    // If only 1 code applies, the second char of aligned_codes is a space.
     char aligned_codes[3] = {};
     char minimal_codes[3] = {};
 
@@ -258,7 +258,7 @@ struct BBCMicroType {
     uint16_t adc_count = 0;
 
 #if BBCMICRO_DEBUGGER
-    bool (*parse_prefix_char_fn)(uint32_t *dso, char c);
+    bool (*parse_suffix_char_fn)(uint32_t *dso, char c);
 #endif
 };
 
@@ -283,17 +283,16 @@ bool HasIndependentMOSView(BBCMicroTypeID type_id);
 const char *GetModelName(BBCMicroTypeID type_id);
 
 #if BBCMICRO_DEBUGGER
-// Parse address prefix and add additional flags to *dso_ptr.
+// Parse address suffix and add additional flags to *dso_ptr.
 //
 // Returns true if OK. Any bits set or cleared in *dso_ptr will have their
 // corresponding DebugStateOverride_OverrideXXX flag set too.
 //
 // Returns false if not ok (*dso_ptr unmodified), and prints error messages on
 // *log if not NULL.
-bool ParseAddressPrefix(uint32_t *dso_ptr,
+bool ParseAddressSuffix(uint32_t *dso_ptr,
                         const std::shared_ptr<const BBCMicroType> &type,
-                        const char *prefix_begin,
-                        const char *prefix_end,
+                        const char *suffix,
                         Log *log);
 #endif
 
