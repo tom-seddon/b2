@@ -1276,4 +1276,24 @@ any more:
 | SDL       | https://github.com/tom-seddon/SDL |
 | noc       | https://github.com/tom-seddon/noc |
 
+* BBCMicro_Update.cpp build times
+** VS2019
+
+Modify =BBCMicro_Update= file, do =Project Only= > =Build= on beeb_lib
+project.
+
+Original: 3 runs: 1'09", 1'09", 1'08"
+
+Split manually into 2 groups: 0'45", 0'44", 0'44"
+
+Add configurable =BBCMICRO_NUM_UPDATE_GROUPS=:
+
+- 4 groups: 0'38", 0'38", 0'37"
+- 2 groups: 0'47"
+- 1 group: 1'09"
+
+** gcc
+
+
+
 * eof.

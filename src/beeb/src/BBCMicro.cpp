@@ -49,6 +49,13 @@ static const std::vector<float> DUMMY_DISC_DRIVE_SOUND(1, 0.f);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS];
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // The key to press to start the paste going.
 const BeebKey BBCMicro::PASTE_START_KEY = BeebKey_Space;
 
@@ -2276,7 +2283,39 @@ void BBCMicro::InitStuff() {
     CHECK_SIZEOF(ROMSEL, 1);
     CHECK_SIZEOF(ACCCON, 1);
     CHECK_SIZEOF(BBCMicroState::SystemVIAPB, 1);
-    for (size_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
+
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+    if (!ms_update_mfns[0]) {
+        for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+            const UpdateMFn *mfns = nullptr; //i % 2 == 0 ? ms_update_mfns0 : ms_update_mfns1;
+            switch (i % BBCMICRO_NUM_UPDATE_GROUPS) {
+            default:
+                ASSERT(false);
+            case 0:
+                mfns = ms_update_mfns0;
+                break;
+
+            case 1:
+                mfns = ms_update_mfns1;
+                break;
+
+#if BBCMICRO_NUM_UPDATE_GROUPS > 2
+            case 2:
+                mfns = ms_update_mfns2;
+                break;
+
+            case 3:
+                mfns = ms_update_mfns3;
+                break;
+#endif
+            }
+
+            ms_update_mfns[i] = mfns[i / BBCMICRO_NUM_UPDATE_GROUPS];
+        }
+    }
+#endif
+
+    for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
         ASSERT(ms_update_mfns[i]);
     }
 

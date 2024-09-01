@@ -29,6 +29,8 @@ class BeebLink;
 #include "BBCMicro.inl"
 #include <shared/enum_end.h>
 
+#define BBCMICRO_NUM_UPDATE_GROUPS (1)
+
 #define BBCMicroLEDFlags_AllDrives (255u * BBCMicroLEDFlag_Drive0)
 
 constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
@@ -719,7 +721,25 @@ class BBCMicro : private WD1770Handler {
     void UpdateMapperRegion(uint8_t region);
 
     static const uint8_t CURSOR_PATTERNS[8];
+
+#if !(BBCMICRO_NUM_UPDATE_GROUPS == 1 || BBCMICRO_NUM_UPDATE_GROUPS == 2 || BBCMICRO_NUM_UPDATE_GROUPS == 4)
+#error unsupported BBCMICRO_NUM_UPDATE_GROUPS value
+#endif
+
+    static_assert(NUM_UPDATE_MFNS%BBCMICRO_NUM_UPDATE_GROUPS==0);
+
+#if BBCMICRO_NUM_UPDATE_GROUPS == 1
     static const UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];
+#endif
+#if BBCMICRO_NUM_UPDATE_GROUPS >= 2
+    static UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS]; //bit wasteful.
+    static const UpdateMFn ms_update_mfns0[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+    static const UpdateMFn ms_update_mfns1[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+#endif
+#if BBCMICRO_NUM_UPDATE_GROUPS == 4
+    static const UpdateMFn ms_update_mfns2[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+    static const UpdateMFn ms_update_mfns3[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
