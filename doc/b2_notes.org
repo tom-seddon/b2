@@ -1288,12 +1288,32 @@ Split manually into 2 groups: 0'45", 0'44", 0'44"
 
 Add configurable =BBCMICRO_NUM_UPDATE_GROUPS=:
 
-- 4 groups: 0'38", 0'38", 0'37"
-- 2 groups: 0'47"
 - 1 group: 1'09"
+- 2 groups: 0'47"
+- 4 groups: 0'38", 0'38", 0'37"
+
+i7-4890HQ (4C 8T)
 
 ** gcc
 
+Modify =BBCMicro_Update= file, and do =time ninja
+./src/beeb/libbeeb_lib.a= from the build folder.
 
+- 1 group: 649.84s user 17.65s system 100% cpu 11:03.00 total
+- 2 groups: 725.01s user 17.84s system 195% cpu 6:20.81 total
+- 4 groups: 808.46s user 21.31s system 282% cpu 4:53.27 total
+
+VirtualBox, 3 cores
+
+** Xcode
+
+Modify =BBCMicro_Update= file, select =beeb_lib= as the target in
+Xcode, build from Xcode.
+
+- 1 group: 139.4 sec
+- 2 groups: 86.8 sec
+- 4 groups: 80.1 sec
+
+i7-5557U (2C 4T)
 
 * eof.
