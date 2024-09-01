@@ -932,7 +932,7 @@ parasite_update_done:
                 m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT)) | (uint8_t)(m_state.eeprom.data_output << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT);
             }
 
-            if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) {
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) != 0) {
                 if (pb.m128_bits.rtc_chip_select &&
                     !pb.m128_bits.rtc_address_strobe) {
                     // AS=0
