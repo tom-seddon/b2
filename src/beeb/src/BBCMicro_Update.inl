@@ -1138,15 +1138,6 @@ uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 #define MEMBER_NAME CONCAT2(ms_update_mfns, BBCMICRO_UPDATE_GROUP)
 #endif
 
-// The compile time can get a bit much. Tried splitting it into 8*64, hopefully
-// getting a bit of parallelism, but this seemed to make very little difference
-// when building with Visual Studio.
-//
-// CPU usage is <100% when building as a single file, though, so there must be
-// some improvement to be had from doing something like this! If 8x is too many,
-// at least for my laptop, maybe some other value would be just right.
-//
-// More experimentation necessary.
 const BBCMicro::UpdateMFn BBCMicro::MEMBER_NAME[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS] = {
     UPDATE4096(0x0 * 4096),
     UPDATE4096(0x1 * 4096),
