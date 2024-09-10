@@ -5,8 +5,6 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <mutex>
-#include <condition_variable>
-#include <string>
 
 #ifndef MUTEX_DEBUGGING
 #define MUTEX_DEBUGGING 1
@@ -23,6 +21,7 @@
 
 #include <atomic>
 #include <vector>
+#include <string>
 
 #include "enum_decl.h"
 #include "mutex.inl"
@@ -187,8 +186,6 @@ class Mutex {
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((MUTEX).SetName((NAME)))
 
-typedef std::condition_variable_any ConditionVariable;
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -198,7 +195,6 @@ typedef std::condition_variable_any ConditionVariable;
 //////////////////////////////////////////////////////////////////////////
 
 typedef std::mutex Mutex;
-typedef std::condition_variable ConditionVariable;
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((void)0)
 

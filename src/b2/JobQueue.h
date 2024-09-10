@@ -6,6 +6,7 @@
 
 #include <thread>
 #include <shared/mutex.h>
+#include <shared/condition_variable.h>
 #include <vector>
 #include <atomic>
 

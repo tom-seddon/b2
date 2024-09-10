@@ -5,6 +5,7 @@
 #include <beeb/type.h>
 #include <6502/6502.h>
 #include <string.h>
+#include <map>
 
 #include <shared/enum_def.h>
 #include <beeb/type.inl>

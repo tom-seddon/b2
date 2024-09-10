@@ -6,11 +6,9 @@
 
 #include <stdarg.h>
 #include <stddef.h>
-#include <thread>
 #include <shared/mutex.h>
 #include <string>
 #include <vector>
-#include <map>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -190,10 +188,8 @@ class LogRegister {
     Log *m_log = nullptr;
 };
 
-const std::map<std::string, std::vector<Log *>> &GetLogListsByTag();
-
-// If the tag doesn't exist, returns a reference to an empty vector.
-const std::vector<Log *> &GetLogListByTag(const std::string &tag);
+std::vector<std::string> GetLogTags();
+std::vector<Log *> GetLogsByTag(const std::string &tag);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

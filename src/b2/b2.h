@@ -7,8 +7,6 @@
 struct BeebWindowInitArguments;
 class Messages;
 
-#include <string>
-#include <vector>
 #include <functional>
 
 //////////////////////////////////////////////////////////////////////////

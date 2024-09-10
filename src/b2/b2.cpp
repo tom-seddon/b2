@@ -610,20 +610,6 @@ struct Options {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetLogList() {
-    std::string list;
-
-    for (auto &&it : GetLogListsByTag()) {
-        if (!list.empty()) {
-            list += " ";
-        }
-
-        list += it.first;
-    }
-
-    return list;
-}
-
 #if SYSTEM_OSX
 static bool IsPSNArgument(const char *arg) {
     if (arg[0] != '-' || arg[1] != 'p' || arg[2] != 's' || arg[3] != 'n' || arg[4] != '_' || !isdigit(arg[5]) || arg[6] != '_') {
@@ -684,8 +670,16 @@ static bool ParseCommandLineOptions(
     p.AddOption("hz").Arg(&options->audio_hz).Meta("HZ").Help("set sound output frequency to HZ").ShowDefault();
     p.AddOption("buffer").Arg(&options->audio_buffer_size).Meta("SAMPLES").Help("set audio buffer size, in samples (must be a power of two <32768: 512, 1024, 2048, etc.)").ShowDefault();
 
-    if (!GetLogListsByTag().empty()) {
-        std::string list = GetLogList();
+    std::vector<std::string> log_tags = GetLogTags();
+    if (!log_tags.empty()) {
+        std::string list;
+        for (const std::string &log_tag : log_tags) {
+            if (!list.empty()) {
+                list += " ";
+            }
+
+            list += log_tag;
+        }
 
         p.AddOption('e', "enable-log").AddArgToList(&options->enable_logs).Meta("LOG").Help("enable additional log LOG. One of: " + list);
         p.AddOption('d', "disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG. One of: " + list);
@@ -951,7 +945,7 @@ static bool InitLogs(const std::vector<std::string> &names_list,
                      void (Log::*mfn)(),
                      Messages *init_messages) {
     for (const std::string &tag : names_list) {
-        const std::vector<Log *> &logs = GetLogListByTag(tag);
+        std::vector<Log *> logs = GetLogsByTag(tag);
 
         if (logs.empty()) {
             init_messages->e.f("Unknown log: %s\n", tag.c_str());

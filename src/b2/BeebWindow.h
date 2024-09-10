@@ -48,6 +48,7 @@ struct JoystickResult;
 //#include "SDL_video.h"
 #include <beeb/video.h>
 #include "misc.h"
+#include <shared/condition_variable.h>
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"

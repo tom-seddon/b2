@@ -12,12 +12,12 @@
 #include <inttypes.h>
 #include <shared/mutex.h>
 #include <algorithm>
+#include <map>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 static std::map<std::string, std::vector<Log *>> *g_log_lists_by_tag;
-static const std::vector<Log *> g_empty_log_list;
 
 static void InitLogList() {
     static std::map<std::string, std::vector<Log *>> s_log_lists_by_tag;
@@ -521,34 +521,30 @@ LogRegister::~LogRegister() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::map<std::string, std::vector<Log *>> &GetLogListsByTag() {
+std::vector<std::string> GetLogTags() {
     InitLogList();
 
-    return *g_log_lists_by_tag;
+    std::vector<std::string> tags;
+    for (auto &&it : *g_log_lists_by_tag) {
+        tags.push_back(it.first);
+    }
+
+    return tags;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::vector<Log *> &GetLogListByTag(const std::string &tag) {
+std::vector<Log *> GetLogsByTag(const std::string &tag) {
     InitLogList();
 
     auto &&it = g_log_lists_by_tag->find(tag);
     if (it == g_log_lists_by_tag->end()) {
-        return g_empty_log_list;
-    } else {
         return it->second;
+    } else {
+        return {};
     }
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//LogSet::LogSet(Log &i_, Log &w_, Log &e_)
-//    : i(i_)
-//    , w(w_)
-//    , e(e_) {
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
