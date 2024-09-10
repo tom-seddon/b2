@@ -1316,4 +1316,28 @@ Xcode, build from Xcode.
 
 i7-5557U (2C 4T)
 
+* More build times
+
+** Initial
+
+| Scenario                | Debug        | Release      |
+|-------------------------+--------------+--------------|
+| Rebuild all             | 2 min 51 sec | 5 min 37 sec |
+| Touch BBCMicro.h, build | 1 min 11 sec |              |
+
+** Include less stuff in test_standard.cpp
+
+| Scenario                | Debug        | Release      |
+|-------------------------+--------------+--------------|
+| Rebuild all             | 2 min 35 sec | 5 min 35 sec |
+| Touch BBCMicro.h, build | 1 min 5 sec  |              |
+
+** Tidy up shared headers a bit
+
+Rebuild all
+
+debug: 2 min 29 sec
+
+Release: 5 min 30 sec
+
 * eof.

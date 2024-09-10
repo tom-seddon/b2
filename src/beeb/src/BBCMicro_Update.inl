@@ -3,6 +3,7 @@
 #include <beeb/BBCMicro.h>
 #include <beeb/BeebLink.h>
 #include <beeb/sound.h>
+#include <beeb/Trace.h>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"

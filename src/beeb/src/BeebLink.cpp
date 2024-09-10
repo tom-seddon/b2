@@ -6,6 +6,7 @@
 #include <shared/load_store.h>
 #include <6502/6502.h>
 #include <inttypes.h>
+#include <beeb/Trace.h>
 
 #include <shared/enum_def.h>
 #include <beeb/BeebLink.inl>
