@@ -22,6 +22,7 @@
 #include <atomic>
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "enum_decl.h"
 #include "mutex.inl"
