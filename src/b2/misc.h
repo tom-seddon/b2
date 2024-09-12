@@ -16,12 +16,12 @@ struct _SDL_GameController;
 class BBCMicro;
 struct ROM;
 class Messages;
+class Log;
 
 #include "conf.h"
 #include <vector>
 #include <string>
 #include <functional>
-#include <shared/log.h>
 #include <memory>
 
 #include <shared/enum_decl.h>

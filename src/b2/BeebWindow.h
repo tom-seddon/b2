@@ -28,24 +28,21 @@ class FileMenuItem;
 struct SDL_ControllerAxisEvent;
 struct SDL_ControllerButtonEvent;
 struct JoystickResult;
+class BeebKeymap;
+class ImGuiStuff;
 
 #include "keys.h"
-#include "dear_imgui.h"
 #include <string>
 #include <SDL.h>
 #include <beeb/TVOutput.h>
 #include "native_ui.h"
 #include <beeb/conf.h>
-#include <shared/log.h>
-#include <functional>
 #include "Messages.h"
 #include <map>
 #include <set>
 #include <limits.h>
 #include "BeebConfig.h"
-#include "BeebKeymap.h"
 #include "commands.h"
-//#include "SDL_video.h"
 #include <beeb/video.h>
 #include "misc.h"
 #include <shared/condition_variable.h>

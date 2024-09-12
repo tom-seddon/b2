@@ -20,7 +20,6 @@ class BeebLink;
 #include <memory>
 #include <vector>
 #include "conf.h"
-#include <time.h>
 #include "keys.h"
 #include "BBCMicroParasiteType.h"
 #include "BBCMicroState.h"

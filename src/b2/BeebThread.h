@@ -7,17 +7,11 @@
 #include "conf.h"
 #include <shared/mutex.h>
 #include <thread>
-#include <beeb/sound.h>
-#include <beeb/video.h>
 #include <beeb/OutputData.h>
-#include <beeb/conf.h>
 #include <memory>
 #include <vector>
-#include <shared/mutex.h>
 #include <beeb/Trace.h>
-#include "misc.h"
 #include "keys.h"
-#include <beeb/DiscImage.h>
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include "BeebConfig.h"
@@ -40,6 +34,9 @@ class MessageList;
 //class BeebEvent;
 class VideoWriter;
 class R6522;
+struct SoundDataUnit;
+struct VideoDataUnit;
+class DiscImage;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

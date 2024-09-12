@@ -12,7 +12,6 @@
 
 #include <memory>
 #include <vector>
-#include <functional>
 #include <beeb/OutputData.h>
 #include <shared/mutex.h>
 
