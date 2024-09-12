@@ -17,17 +17,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::map<std::string, std::vector<Log *>> *g_log_lists_by_tag;
-
-static void InitLogList() {
-    static std::map<std::string, std::vector<Log *>> s_log_lists_by_tag;
-
-    g_log_lists_by_tag = &s_log_lists_by_tag;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 LogPrinter::LogPrinter() {
 }
 
@@ -127,21 +116,10 @@ void LogPrinterString::Print(const char *str, size_t str_len) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Log::Log(const char *prefix, LogPrinter *printer, bool enabled)
-    : Log(nullptr, prefix, printer, enabled) {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-Log::Log(const char *tag, const char *prefix, LogPrinter *printer, bool enabled_) {
+Log::Log(const char *prefix, LogPrinter *printer, bool enabled_) {
     this->SetPrefix(prefix);
 
     this->SetLogPrinter(printer);
-
-    if (tag) {
-        m_tag = tag;
-    }
 
     if (enabled_) {
         m_enable_count = 1;
@@ -430,13 +408,6 @@ void Log::SetPrefix(const char *prefix) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::string &Log::GetTag() const {
-    return m_tag;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void Log::PushIndentInternal(int indent) {
     if (m_indent_stack_depth < MAX_INDENT_STACK_DEPTH) {
         m_indent_stack[m_indent_stack_depth] = m_indent;
@@ -496,54 +467,47 @@ void LogIndenter::PopIndent() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LogRegister::LogRegister(Log *log)
-    : m_log(log) {
-    InitLogList();
+LogWithTag *LogWithTag::ms_first;
 
-    (*g_log_lists_by_tag)[m_log->GetTag()].push_back(log);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const LogWithTag *LogWithTag::GetFirst() {
+    return ms_first;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LogRegister::~LogRegister() {
-    const std::string &tag = m_log->GetTag();
-
-    std::vector<Log *> *logs = &(*g_log_lists_by_tag)[tag];
-    auto &&it = std::find(logs->begin(), logs->end(), m_log);
-    ASSERT(it != logs->end());
-    logs->erase(it);
-    if (logs->empty()) {
-        g_log_lists_by_tag->erase(tag);
-    }
+LogWithTag::LogWithTag(const char *tag_, Log *log_)
+    : tag(tag_)
+    , log(log_)
+    , m_next(ms_first) {
+    ms_first = this;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<std::string> GetLogTags() {
-    InitLogList();
-
-    std::vector<std::string> tags;
-    for (auto &&it : *g_log_lists_by_tag) {
-        tags.push_back(it.first);
+LogWithTag::~LogWithTag() {
+    // Dumb
+    bool found = false;
+    for (LogWithTag **ptr = &ms_first; *ptr; ptr = &(*ptr)->m_next) {
+        if (*ptr == this) {
+            *ptr = m_next;
+            found = true;
+            break;
+        }
     }
 
-    return tags;
+    ASSERT(found);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<Log *> GetLogsByTag(const std::string &tag) {
-    InitLogList();
-
-    auto &&it = g_log_lists_by_tag->find(tag);
-    if (it == g_log_lists_by_tag->end()) {
-        return it->second;
-    } else {
-        return {};
-    }
+const LogWithTag *LogWithTag::GetNext() const {
+    return m_next;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <shared/mutex.h>
 #include <string>
-#include <vector>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -95,7 +94,6 @@ class Log {
     bool enabled = true;
 
     Log(const char *prefix, LogPrinter *printer, bool enabled = true);
-    Log(const char *tag, const char *prefix, LogPrinter *printer, bool enabled = true);
 
     // copies printer and enabled flag.
     Log(const char *prefix, const Log &log);
@@ -134,8 +132,6 @@ class Log {
     const char *GetPrefix() const;
     void SetPrefix(const char *prefix);
 
-    const std::string &GetTag() const;
-
   protected:
   private:
     char m_prefix[MAX_PREFIX_SIZE] = {};
@@ -148,7 +144,6 @@ class Log {
     size_t m_indent_stack_depth = 0;
     size_t m_buffer_size = 0;
     char m_buffer[MAX_BUFFER_SIZE] = {};
-    std::string m_tag;
 
     void RawChar(char c);
     void PushIndentInternal(int indent);
@@ -178,18 +173,23 @@ class LogIndenter {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class LogRegister {
+class LogWithTag {
   public:
-    explicit LogRegister(Log *log);
-    ~LogRegister();
+    const char *const tag = nullptr;
+    Log *const log = nullptr;
+
+    explicit LogWithTag(const char *tag, Log *log);
+    ~LogWithTag();
+
+    static const LogWithTag *GetFirst();
+    const LogWithTag *GetNext() const;
 
   protected:
   private:
-    Log *m_log = nullptr;
-};
+    LogWithTag *m_next = nullptr;
 
-std::vector<std::string> GetLogTags();
-std::vector<Log *> GetLogsByTag(const std::string &tag);
+    static LogWithTag *ms_first;
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -266,8 +266,8 @@ void LogStackTrace(Log *log);
 #define LOG_DEFINE(NAME, ...) Log LOG(NAME)(__VA_ARGS__)
 
 #define LOG_TAGGED_DEFINE(NAME, TAG, ...) \
-    LOG_DEFINE(NAME, TAG, __VA_ARGS__);   \
-    static LogRegister g_log_register_##NAME(&LOG(NAME))
+    LOG_DEFINE(NAME, __VA_ARGS__);   \
+    static LogWithTag g_log_with_tag_##NAME(#TAG, &LOG(NAME))
 
 // The indentation level is popped at the end of the current scope.
 #define LOGI(X) LogIndenter CONCAT2(indenter, __COUNTER__)(&LOG(X))

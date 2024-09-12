@@ -670,17 +670,21 @@ static bool ParseCommandLineOptions(
     p.AddOption("hz").Arg(&options->audio_hz).Meta("HZ").Help("set sound output frequency to HZ").ShowDefault();
     p.AddOption("buffer").Arg(&options->audio_buffer_size).Meta("SAMPLES").Help("set audio buffer size, in samples (must be a power of two <32768: 512, 1024, 2048, etc.)").ShowDefault();
 
-    std::vector<std::string> log_tags = GetLogTags();
-    if (!log_tags.empty()) {
-        std::string list;
-        for (const std::string &log_tag : log_tags) {
-            if (!list.empty()) {
-                list += " ";
-            }
+    std::set<std::string> tags;
+    for (const LogWithTag *tagged_log = LogWithTag::GetFirst(); tagged_log; tagged_log = tagged_log->GetNext()) {
+        tags.insert(tagged_log->tag);
+    }
 
-            list += log_tag;
+    std::string list;
+    for (const std::string &tag : tags) {
+        if (!list.empty()) {
+            list += " ";
         }
 
+        list += tag;
+    }
+
+    if (!list.empty()) {
         p.AddOption('e', "enable-log").AddArgToList(&options->enable_logs).Meta("LOG").Help("enable additional log LOG. One of: " + list);
         p.AddOption('d', "disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG. One of: " + list);
     }
@@ -945,7 +949,12 @@ static bool InitLogs(const std::vector<std::string> &names_list,
                      void (Log::*mfn)(),
                      Messages *init_messages) {
     for (const std::string &tag : names_list) {
-        std::vector<Log *> logs = GetLogsByTag(tag);
+        std::vector<Log *> logs;
+        for (const LogWithTag *tagged_log = LogWithTag::GetFirst(); tagged_log; tagged_log = tagged_log->GetNext()) {
+            if (tagged_log->tag == tag) {
+                logs.push_back(tagged_log->log);
+            }
+        }
 
         if (logs.empty()) {
             init_messages->e.f("Unknown log: %s\n", tag.c_str());
