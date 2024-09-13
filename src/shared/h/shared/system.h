@@ -1,6 +1,5 @@
 #ifndef HEADER_DC000C3A3B824FD5996AAC979C8B4922 // -*- mode:c++ -*-
 #define HEADER_DC000C3A3B824FD5996AAC979C8B4922
-#include "cpp_begin.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -10,7 +9,10 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #ifdef _MSC_VER
-#include <intrin.h>
+// This is the relevant part of intrin.h. Don't #include it; it is somewhat slow
+// to parse (for whatever reason) and it saves a few seconds in a full rebuild
+// not having it included absolutely everywhere.
+extern "C" void __nop(void);
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -378,5 +380,4 @@ double GetSecondsFromTicks(uint64_t ticks);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include "cpp_end.h"
 #endif //HEADER_DC000C3A3B824FD5996AAC979C8B4922
