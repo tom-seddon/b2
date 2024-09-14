@@ -1519,9 +1519,9 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             ImGuiWindowFlags extra_flags = 0;
             if (popup) {
                 extra_flags = (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
+                ImGui::SetNextWindowSize(popup->GetDefaultSize(), ImGuiCond_FirstUseEver);
             }
 
-            ImGui::SetNextWindowSize(popup->GetDefaultSize(), ImGuiCond_FirstUseEver);
             if (ImGui::Begin(popup_metadata->command.GetText().c_str(), &opened, extra_flags)) {
                 m_settings.popups |= mask;
 
