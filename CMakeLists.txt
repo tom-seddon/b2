@@ -75,7 +75,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_FINAL ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO})
 # the build byproducts though :( - 3.07 GB when building absolutely
 # everything with DLL CRT, and 5.50 GB when building absolutely
 # everything with .lib CRT.
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>")
 
 ##########################################################################
 ##########################################################################
