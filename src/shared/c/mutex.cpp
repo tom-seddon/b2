@@ -15,10 +15,33 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct MutexMetadataImpl : public MutexMetadata {
+    MutexStats stats;
+    std::atomic<bool> reset{false};
+
+    // A try_lock needs accounting for even if the mutex ends up not taken.
+    std::atomic<uint64_t> num_try_locks{0};
+
+    std::atomic<uint8_t> interesting_events{0};
+
+    // odd arrangement so the pointer can be retrieved from any thread without
+    // needing a lock for the string access.
+    const char *name = nullptr;
+    std::string name_str;
+
+    void RequestReset() override;
+    const char *GetName() const override;
+    void GetStats(MutexStats *stats) const override;
+    uint8_t GetInterestingEvents() const;
+    void SetInterestingEvents(uint8_t events);
+
+    void Reset();
+};
+
 struct MutexFullMetadata : public std::enable_shared_from_this<MutexFullMetadata> {
     MutexFullMetadata *next = nullptr, *prev = nullptr;
     Mutex *mutex = nullptr;
-    MutexMetadata meta;
+    MutexMetadataImpl meta;
 
     // this is just here to grab an appropriate extra ref to the
     // metadata list mutex. If a global mutex gets created before the
@@ -61,7 +84,13 @@ MutexStats::MutexStats()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MutexMetadata::RequestReset() {
+MutexMetadata::~MutexMetadata() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MutexMetadataImpl::RequestReset() {
     this->stats = {};
     this->reset.store(true, std::memory_order_release);
 }
@@ -69,7 +98,39 @@ void MutexMetadata::RequestReset() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MutexMetadata::Reset() {
+const char *MutexMetadataImpl::GetName() const {
+    return this->name;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MutexMetadataImpl::GetStats(MutexStats *stats_) const {
+    *stats_ = this->stats;
+    stats_->num_try_locks = this->num_try_locks.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t MutexMetadataImpl::GetInterestingEvents() const {
+    return this->interesting_events;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MutexMetadataImpl::SetInterestingEvents(uint8_t events) {
+    // don't generate an unnecessary write
+    if (events != this->interesting_events.load(std::memory_order_relaxed)) {
+        this->interesting_events.store(events, std::memory_order_relaxed);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MutexMetadataImpl::Reset() {
     this->stats = {};
     this->num_try_locks.store(0);
 }
@@ -134,7 +195,10 @@ Mutex::~Mutex() {
 void Mutex::SetName(std::string name) {
     std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
-    m_metadata->meta.name = std::move(name);
+    ASSERT(!m_meta->stats.ever_locked);
+
+    m_meta->name_str = std::move(name);
+    m_meta->name = m_meta->name_str.c_str();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -147,39 +211,92 @@ const MutexMetadata *Mutex::GetMetadata() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//void Mutex::lock() {
-//    uint64_t a_ticks=GetCurrentTickCount();
-//
-//    if(!m_mutex.try_lock()) {
-//        m_mutex.lock();
-//        ++m_meta->num_contended_locks;
-//    }
-//
-//    ++m_meta->num_locks;
-//    m_meta->total_lock_wait_ticks+=GetCurrentTickCount()-a_ticks;
-//}
+void Mutex::lock() {
+#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+    uint64_t lock_start_ticks = GetCurrentTickCount();
+#endif
+    uint64_t lock_wait_ticks = 0;
+
+    uint8_t interesting_events = m_meta->interesting_events.load(std::memory_order_relaxed);
+
+    if (m_mutex.try_lock()) {
+        interesting_events &= ~MutexInterestingEvent_ContendedLock;
+    } else {
+#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+        uint64_t lock_start_ticks = GetCurrentTickCount();
+#endif
+        m_mutex.lock();
+        ++m_meta->stats.num_contended_locks;
+#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+        lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+#endif
+    }
+
+    ++m_meta->stats.num_locks;
+#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+    lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+#endif
+
+    if (m_meta->reset.exchange(false)) {
+        m_meta->Reset();
+    }
+
+    m_meta->stats.ever_locked = true;
+    m_meta->stats.total_lock_wait_ticks += lock_wait_ticks;
+
+    if (lock_wait_ticks < m_meta->stats.min_lock_wait_ticks) {
+        m_meta->stats.min_lock_wait_ticks = lock_wait_ticks;
+    }
+
+    if (lock_wait_ticks > m_meta->stats.max_lock_wait_ticks) {
+        m_meta->stats.max_lock_wait_ticks = lock_wait_ticks;
+    }
+
+#ifdef _DEBUG
+    if (!m_meta->name) {
+        __nop();
+    }
+#endif
+
+    if (interesting_events != 0) {
+        this->OnInterestingEvents(interesting_events);
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//bool Mutex::try_lock() {
-//    bool succeeded=m_mutex.try_lock();
-//
-//    if(succeeded) {
-//        ++m_meta->num_successful_try_locks;
-//    }
-//
-//    ++m_meta->num_try_locks;
-//
-//    return succeeded;
-//}
+bool Mutex::try_lock() {
+    bool succeeded = m_mutex.try_lock();
+
+    if (succeeded) {
+        ++m_meta->stats.num_successful_try_locks;
+
+        // no need so set ever_locked - the successful lock that's blocking this
+        // one already did it
+    }
+
+    ++m_meta->num_try_locks;
+
+    if (m_meta->reset.exchange(false)) {
+        m_meta->Reset();
+    }
+
+#ifdef _DEBUG
+    if (!m_meta->name) {
+        __nop();
+    }
+#endif
+
+    return succeeded;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//void Mutex::unlock() {
-//    m_mutex.unlock();
-//}
+void Mutex::unlock() {
+    m_mutex.unlock();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
