@@ -45,7 +45,7 @@ class ImGuiStuff;
 #include "commands.h"
 #include <beeb/video.h>
 #include "misc.h"
-#include <shared/condition_variable.h>
+#include <condition_variable>
 #include <thread>
 
 #include <shared/enum_decl.h>
@@ -424,10 +424,10 @@ class BeebWindow {
         Mutex mutex;
 
         // signaled by main thread when it wants an update.
-        ConditionVariable update_cv;
+        std::condition_variable_any update_cv;
 
         // signaled by update thread when it's done.
-        ConditionVariable done_cv;
+        std::condition_variable_any done_cv;
 
         // set if main thread wants update thread to stop.
         bool stop = false;

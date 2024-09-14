@@ -122,6 +122,15 @@ class MutexNameSetter {
 
 typedef std::mutex Mutex;
 
+class MutexNameSetter {
+  public:
+    MutexNameSetter(Mutex *, const char *) {
+    }
+
+  protected:
+  private:
+};
+
 #define MUTEX_SET_NAME(MUTEX, NAME) ((void)0)
 
 //////////////////////////////////////////////////////////////////////////

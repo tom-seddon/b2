@@ -23,7 +23,6 @@ set(SRCS
   ${H}/popwarn.h ${H}/pushwarn_bitfields.h ${H}/pushwarn_flexible_struct_member.h ${H}/pushwarn_padded_struct.h
   c/relacy.cpp ${H}/relacy.h
   c/mutex.cpp ${H}/mutex.h ${H}/mutex.inl
-  c/condition_variable.cpp ${H}/condition_variable.h
   ${H}/pshpack1.h ${H}/pshpack4.h ${H}/pshpack8.h ${H}/poppack.h
   )
 

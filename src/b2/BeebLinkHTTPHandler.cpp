@@ -9,6 +9,7 @@
 #include "BeebThread.h"
 #include "BeebWindows.h"
 #include <shared/mutex.h>
+#include <condition_variable>
 #include "Messages.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -45,7 +46,7 @@ struct BeebLinkHTTPHandler::ThreadState {
     // Shared stuff
 
     Mutex mutex;
-    ConditionVariable cv;
+    std::condition_variable_any cv;
 
     bool stop = false; // set if thread should stop after being woken up.
     std::vector<Request> request_queue;

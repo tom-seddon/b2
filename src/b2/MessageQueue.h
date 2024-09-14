@@ -12,7 +12,7 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include <shared/mutex.h>
-#include <shared/condition_variable.h>
+#include <condition_variable>
 #include <vector>
 
 //////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ class MessageQueue {
     };
 
     Mutex m_mutex;
-    ConditionVariable m_cv;
+    std::condition_variable_any m_cv;
     std::vector<Message> m_messages;
     Message m_indexed_messages[64];
     uint64_t m_indexed_messages_pending = 0;
