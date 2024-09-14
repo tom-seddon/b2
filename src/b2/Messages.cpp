@@ -78,7 +78,7 @@ void MessageList::ForEachMessage(std::function<void(Message *)> fun) const {
 
 void MessageList::ForEachMessage(size_t n, std::function<void(Message *)> fun) const {
     if (!!fun) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         this->LockedForEachMessage(n, fun);
     }
@@ -88,7 +88,7 @@ void MessageList::ForEachMessage(size_t n, std::function<void(Message *)> fun) c
 //////////////////////////////////////////////////////////////////////////
 
 void MessageList::ClearMessages() {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     this->LockedClearMessages();
 }
@@ -98,7 +98,7 @@ void MessageList::ClearMessages() {
 
 void MessageList::InsertMessages(const MessageList &src) {
     if (m_print_to_stdio) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         src.ForEachMessage(&PrintMessageToStdio);
     } else {
@@ -154,7 +154,7 @@ void MessageList::InsertMessages(const MessageList &src) {
 //////////////////////////////////////////////////////////////////////////
 
 void MessageList::SetPrintToStdio(bool print_to_stdio) {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     if (!m_print_to_stdio && print_to_stdio) {
         this->LockedFlushMessagesToStdio();
@@ -171,7 +171,7 @@ void MessageList::SetPrintToStdio(bool print_to_stdio) {
 // Print all accumulated messages to stdout/stderr and clear the
 // list.
 void MessageList::FlushMessagesToStdio() {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     this->LockedFlushMessagesToStdio();
 }
@@ -210,7 +210,7 @@ void MessageList::Printer::Print(const char *str, size_t str_len) {
 void MessageList::AddMessage(MessageType type,
                              const char *str,
                              size_t str_len) {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     if (m_messages.size() < m_max_num_messages) {
         ASSERT(m_head == 0);

@@ -79,7 +79,7 @@ static std::vector<std::string> g_server_urls;
 //////////////////////////////////////////////////////////////////////////
 
 void BeebLinkHTTPHandler::SetServerURLs(std::vector<std::string> urls) {
-    std::lock_guard<Mutex> lock(g_mutex);
+    LockGuard<Mutex> lock(g_mutex);
 
     g_server_urls = std::move(urls);
 }
@@ -88,7 +88,7 @@ void BeebLinkHTTPHandler::SetServerURLs(std::vector<std::string> urls) {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<std::string> BeebLinkHTTPHandler::GetServerURLs() {
-    std::lock_guard<Mutex> lock(g_mutex);
+    LockGuard<Mutex> lock(g_mutex);
 
     return g_server_urls;
 }
@@ -111,7 +111,7 @@ BeebLinkHTTPHandler::BeebLinkHTTPHandler(BeebThread *beeb_thread,
 
 BeebLinkHTTPHandler::~BeebLinkHTTPHandler() {
     {
-        std::lock_guard<Mutex> lock(m_ts->mutex);
+        LockGuard<Mutex> lock(m_ts->mutex);
 
         m_ts->stop = true;
         m_ts->cv.notify_one();
@@ -212,7 +212,7 @@ bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data, bool is_fi
     ASSERT(!data.empty());
 
     {
-        std::lock_guard<Mutex> lock(m_ts->mutex);
+        LockGuard<Mutex> lock(m_ts->mutex);
 
         m_ts->request_queue.push_back({std::move(data), is_fire_and_forget});
     }

@@ -18,7 +18,7 @@ class HTTPTestHandler : public HTTPHandler {
     bool ThreadHandleRequest(HTTPResponse *response, HTTPServer *server, HTTPRequest &&request) override {
         (void)server;
 
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         m_requests.push_back(request);
 
@@ -28,7 +28,7 @@ class HTTPTestHandler : public HTTPHandler {
     }
 
     std::vector<HTTPRequest> GetRequests() const {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         return m_requests;
     }

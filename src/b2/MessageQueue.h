@@ -31,7 +31,7 @@ class MessageQueue {
 
     // Pushed messages are retrieved in the order they were submitted.
     void ProducerPush(T message) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         m_messages.push_back(Message(std::move(message)));
 
@@ -55,7 +55,7 @@ class MessageQueue {
 
         uint64_t old_indexed_messages_pending;
         {
-            std::lock_guard<Mutex> lock(m_mutex);
+            LockGuard<Mutex> lock(m_mutex);
 
             old_indexed_messages_pending = m_indexed_messages_pending;
 
@@ -81,7 +81,7 @@ class MessageQueue {
     }
 
     bool ConsumerPollForMessages(std::vector<T> *messages) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         return this->PollLocked(messages);
     }

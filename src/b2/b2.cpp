@@ -311,7 +311,7 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id, void *data) {
 
     bool message_pending;
     {
-        std::lock_guard<Mutex> lock(display->mutex);
+        LockGuard<Mutex> lock(display->mutex);
 
         message_pending = display->message_pending;
         vblank->event = !message_pending;
@@ -1495,7 +1495,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                                     }
 
                                     {
-                                        std::lock_guard<Mutex> lock(dd->mutex);
+                                        LockGuard<Mutex> lock(dd->mutex);
 
                                         dd->message_pending = false;
                                     }

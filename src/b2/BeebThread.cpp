@@ -1832,7 +1832,7 @@ bool BeebThread::Start() {
         // replace this with some kind of unique_lock hand-off.)
         for (;;) {
             {
-                std::lock_guard<Mutex> lock(m_mutex);
+                LockGuard<Mutex> lock(m_mutex);
 
                 if (m_thread_state) {
                     break;
@@ -1946,7 +1946,7 @@ float BeebThread::GetSpeedScale() const {
 //////////////////////////////////////////////////////////////////////////
 
 //bool BeebThread::IsPaused() const {
-//    std::lock_guard<Mutex> lock(m_mutex);
+//    LockGuard<Mutex> lock(m_mutex);
 //
 //    return m_paused;
 //}
@@ -1981,7 +1981,7 @@ bool BeebThread::GetKeyState(BeebKey beeb_key) const {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BeebThread::GetNVRAM() const {
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     std::vector<uint8_t> nvram = m_thread_state->beeb->GetNVRAM();
     return nvram;
@@ -2019,7 +2019,7 @@ void BeebThread::ClearLastTrace() {
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<Trace> BeebThread::GetLastTrace() {
-    std::lock_guard<Mutex> lock(m_last_trace_mutex);
+    LockGuard<Mutex> lock(m_last_trace_mutex);
 
     return m_last_trace;
 }
@@ -2266,7 +2266,7 @@ BeebThread::TimingStats BeebThread::GetTimingStats() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::GetTimelineState(BeebThreadTimelineState *timeline_state) const {
-    std::lock_guard<Mutex> lock(m_timeline_state_mutex);
+    LockGuard<Mutex> lock(m_timeline_state_mutex);
 
     *timeline_state = m_timeline_state;
 }
@@ -2275,7 +2275,7 @@ void BeebThread::GetTimelineState(BeebThreadTimelineState *timeline_state) const
 //////////////////////////////////////////////////////////////////////////
 
 size_t BeebThread::GetNumTimelineBeebStateEvents() const {
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     return m_timeline_beeb_state_events_copy.size();
 }
@@ -2307,7 +2307,7 @@ size_t BeebThread::GetPrinterDataSizeBytes() const {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BeebThread::GetPrinterData() const {
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     return m_printer_buffer;
 }
@@ -2350,7 +2350,7 @@ bool BeebThread::DebugIsHalted() const {
 #if BBCMICRO_DEBUGGER
 void BeebThread::DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr,
                                std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const {
-    std::lock_guard<Mutex> lock(m_beeb_state_mutex);
+    LockGuard<Mutex> lock(m_beeb_state_mutex);
 
     if (state_ptr) {
         *state_ptr = m_beeb_state;
@@ -2372,7 +2372,7 @@ BeebThread::GetTimelineBeebStateEvents(size_t begin_index,
     ASSERT(end_index <= PTRDIFF_MAX);
     ASSERT(end_index >= begin_index);
 
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     begin_index = std::min(begin_index, m_timeline_beeb_state_events_copy.size());
     end_index = std::min(end_index, m_timeline_beeb_state_events_copy.size());
@@ -2904,7 +2904,7 @@ void BeebThread::ThreadMain(void) {
     ThreadState ts;
 
     {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         SetCurrentThreadNamef("BeebThread");
 
@@ -2979,7 +2979,7 @@ void BeebThread::ThreadMain(void) {
 
         //if(!messages.empty())
         {
-            std::lock_guard<Mutex> lock(m_mutex);
+            LockGuard<Mutex> lock(m_mutex);
 
             for (auto &&m : messages) {
                 bool prepared = m.message->ThreadPrepare(&m.message, &m.completion_fun, this, &ts);
@@ -3100,7 +3100,7 @@ void BeebThread::ThreadMain(void) {
             }
 
             {
-                std::lock_guard<Mutex> lock2(m_timeline_state_mutex);
+                LockGuard<Mutex> lock2(m_timeline_state_mutex);
 
                 m_timeline_state.mode = ts.timeline_mode;
 
@@ -3122,7 +3122,7 @@ void BeebThread::ThreadMain(void) {
             }
 
             {
-                std::lock_guard<Mutex> lock2(m_beeb_state_mutex);
+                LockGuard<Mutex> lock2(m_beeb_state_mutex);
 
                 m_beeb_state = ts.beeb->DebugGetState();
 #if BBCMICRO_DEBUGGER
@@ -3246,7 +3246,7 @@ void BeebThread::ThreadMain(void) {
     }
 done:
     {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         m_thread_state = nullptr;
 
@@ -3534,7 +3534,7 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SetLastTrace(std::shared_ptr<Trace> last_trace) {
-    std::lock_guard<Mutex> lock(m_last_trace_mutex);
+    LockGuard<Mutex> lock(m_last_trace_mutex);
 
     m_last_trace = std::move(last_trace);
 }

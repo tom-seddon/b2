@@ -122,6 +122,8 @@ class MutexNameSetter {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include <mutex>
+
 typedef std::mutex Mutex;
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((void)0)
@@ -130,5 +132,100 @@ typedef std::mutex Mutex;
 //////////////////////////////////////////////////////////////////////////
 
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Pound shop equivalent of std::lock_guard, that doesn't need a standard header.
+template <class MutexType>
+class LockGuard {
+  public:
+    explicit LockGuard(MutexType &mutex)
+        : m_mutex(&mutex) {
+        m_mutex->lock();
+    }
+
+    ~LockGuard() {
+        m_mutex->unlock();
+    }
+
+    LockGuard(const LockGuard<MutexType> &) = delete;
+    LockGuard<MutexType> &operator=(const LockGuard<MutexType> &) = delete;
+    LockGuard(LockGuard<MutexType> &&) = delete;
+    LockGuard<MutexType> &operator=(LockGuard<MutexType> &&) = delete;
+
+  protected:
+  private:
+    MutexType *m_mutex = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Janky std::unique_lock knockoff, ditto. Also forward declaration-friendly.
+//
+// (This does enough to work with condition_variable_any, but no more.
+// std::unique_lock may still prove necessary.)
+template <class MutexType>
+class UniqueLock {
+  public:
+    explicit UniqueLock()
+        : m_mutex(nullptr) {
+    }
+
+    explicit UniqueLock(MutexType &mutex)
+        : m_mutex(&mutex) {
+        m_mutex->lock();
+        m_locked = true;
+    }
+
+    ~UniqueLock() {
+        this->unlock();
+    }
+
+    UniqueLock(const UniqueLock<MutexType> &) = delete;
+    UniqueLock<MutexType> &operator=(const UniqueLock<MutexType> &) = delete;
+
+    UniqueLock(UniqueLock<MutexType> &&src)
+        : m_mutex(src.m_mutex)
+        , m_locked(src.m_locked) {
+        src.m_mutex = nullptr;
+        src.m_locked = false;
+    }
+
+    UniqueLock<MutexType> &operator=(UniqueLock<MutexType> &&other) {
+        if (this != &other) {
+            this->unlock();
+            m_mutex = other.m_mutex;
+            other.m_mutex = nullptr;
+        }
+
+        return *this;
+    }
+
+    void lock() {
+        if (m_mutex) {
+            m_mutex->lock();
+            m_locked = true;
+        }
+    }
+
+    void unlock() {
+        if (m_mutex) {
+            if (m_locked) {
+                m_mutex->unlock();
+                m_locked = false;
+            }
+        }
+    }
+
+  protected:
+  private:
+    MutexType *m_mutex = nullptr;
+    bool m_locked = false;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #endif

@@ -7,6 +7,7 @@
 #include <vector>
 #include <set>
 #include <atomic>
+#include <mutex>
 
 #include <shared/enum_def.h>
 #include <shared/mutex.inl>
@@ -161,7 +162,7 @@ Mutex::Mutex()
     m_metadata->mutex = this;
     m_metadata->metadata_list_mutex = g_mutex_metadata_list_mutex;
 
-    std::lock_guard<std::mutex> lock(*g_mutex_metadata_list_mutex);
+    LockGuard<std::mutex> lock(*g_mutex_metadata_list_mutex);
 
     if (!g_mutex_metadata_head) {
         g_mutex_metadata_head = m_metadata.get();
@@ -181,7 +182,7 @@ Mutex::Mutex()
 
 Mutex::~Mutex() {
     {
-        std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
+        LockGuard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
         if (m_metadata.get() == g_mutex_metadata_head) {
             g_mutex_metadata_head = m_metadata->next;
@@ -205,7 +206,7 @@ Mutex::~Mutex() {
 //////////////////////////////////////////////////////////////////////////
 
 void Mutex::SetName(const char *name) {
-    std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
+    LockGuard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
     ASSERT(!m_meta->name);
     if (name) {
@@ -318,7 +319,7 @@ std::vector<std::shared_ptr<MutexMetadata>> Mutex::GetAllMetadata() {
 
     std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag, &InitMutexMetadataListMutex);
 
-    std::lock_guard<std::mutex> lock(*g_mutex_metadata_list_mutex);
+    LockGuard<std::mutex> lock(*g_mutex_metadata_list_mutex);
 
     if (MutexFullMetadata *m = g_mutex_metadata_head) {
         do {

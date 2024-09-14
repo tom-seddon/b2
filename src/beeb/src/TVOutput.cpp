@@ -112,7 +112,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
         case TVOutputState_VerticalRetrace:
             {
-                std::lock_guard<Mutex> lock(m_last_vsync_texture_pixels_mutex);
+                LockGuard<Mutex> lock(m_last_vsync_texture_pixels_mutex);
 
                 ASSERT(m_last_vsync_texture_pixels.size() == m_texture_pixels.size());
                 memcpy(m_last_vsync_texture_pixels.data(),

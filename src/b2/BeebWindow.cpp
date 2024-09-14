@@ -570,7 +570,7 @@ BeebWindow::~BeebWindow() {
 
     if (m_update_tv_texture_thread.joinable()) {
         {
-            std::lock_guard<Mutex> lock(m_update_tv_texture_state.mutex);
+            LockGuard<Mutex> lock(m_update_tv_texture_state.mutex);
 
             m_update_tv_texture_state.stop = true;
         }

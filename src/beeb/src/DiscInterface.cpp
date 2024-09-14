@@ -545,7 +545,7 @@ class DiscInterfaceChallenger : public DiscInterface {
         auto clone = std::make_shared<DiscInterfaceChallengerState>(*(const DiscInterfaceChallengerState *)src.get());
 
         for (ChallengerRAMChunk *chunk : clone->m_chunks) {
-            std::lock_guard<Mutex> lock(chunk->mutex);
+            LockGuard<Mutex> lock(chunk->mutex);
 
             ++chunk->num_refs;
         }

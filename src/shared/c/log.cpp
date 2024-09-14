@@ -347,7 +347,7 @@ void Log::Flush() {
     m_buffer[m_buffer_size] = 0;
 
     if (m_printer) {
-        std::lock_guard<LogPrinter> lock(*m_printer);
+        LockGuard<LogPrinter> lock(*m_printer);
 
         m_printer->Print(m_buffer, m_buffer_size);
     }
