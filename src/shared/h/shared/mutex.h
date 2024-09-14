@@ -48,7 +48,7 @@ struct MutexStats {
 
 struct MutexMetadata {
   public:
-      MutexMetadata();
+    MutexMetadata();
     virtual ~MutexMetadata() = 0;
 
     MutexMetadata(const MutexMetadata &) = delete;
@@ -77,7 +77,7 @@ class Mutex {
     Mutex(Mutex &&) = delete;
     Mutex &operator=(Mutex &&) = delete;
 
-    // May only set the name before the first time the mutex is locked.
+    // May only set the name once.
     void SetName(const char *name);
 
     // the returned value isn't protected by any kind of mutex or
@@ -101,6 +101,15 @@ class Mutex {
     MutexMetadataImpl *m_meta = nullptr;
 
     void OnInterestingEvents(uint8_t interesting_events);
+};
+
+// for use as a global.
+class MutexNameSetter {
+  public:
+    MutexNameSetter(Mutex *mutex, const char *name);
+
+  protected:
+  private:
 };
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((MUTEX).SetName((NAME)))

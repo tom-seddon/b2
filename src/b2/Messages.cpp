@@ -11,7 +11,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::shared_ptr<MessageList> MessageList::stdio(std::make_shared<MessageList>(1, true));
+const std::shared_ptr<MessageList> MessageList::stdio(std::make_shared<MessageList>("stdio", 1, true));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -28,13 +28,17 @@ MessageList::Message::Message(MessageType type_,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-MessageList::MessageList(size_t max_num_messages, bool print_to_stdio)
+MessageList::MessageList(std::string name, size_t max_num_messages, bool print_to_stdio)
     : m_info_printer(this, MessageType_Info, nullptr)
     , m_warning_printer(this, MessageType_Warning, &m_num_errors_and_warnings_printed)
     , m_error_printer(this, MessageType_Error, &m_num_errors_and_warnings_printed)
+    , m_name(std::move(name))
     , m_max_num_messages(max_num_messages)
     , m_print_to_stdio(print_to_stdio) {
-    MUTEX_SET_NAME(m_mutex, "MessageList");
+    MUTEX_SET_NAME(m_mutex, ("MessageList: " + m_name).c_str());
+    m_info_printer.SetMutexName(("MessageList Info: "+m_name).c_str());
+    m_warning_printer.SetMutexName(("MessageList Warning: "+m_name).c_str());
+    m_error_printer.SetMutexName(("MessageList Error: "+m_name).c_str());
 
     this->ClearMessages();
 }

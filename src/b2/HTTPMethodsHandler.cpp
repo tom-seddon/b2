@@ -263,7 +263,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         }
 
         if (!config_name.empty()) {
-            auto message_list = std::make_shared<MessageList>();
+            auto message_list = std::make_shared<MessageList>("HTTP reset");
             Messages messages(message_list);
 
             BeebLoadedConfig loaded_config;
@@ -455,7 +455,7 @@ class HTTPMethodsHandler : public HTTPHandler {
     }
 
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {
-        auto message_list = std::make_shared<MessageList>();
+        auto message_list = std::make_shared<MessageList>("HTTP disc image request");
         Messages messages(message_list);
 
         DiscGeometry geometry;

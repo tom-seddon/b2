@@ -539,7 +539,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments)) {
     m_name = m_init_arguments.name;
 
-    m_message_list = std::make_shared<MessageList>();
+    m_message_list = std::make_shared<MessageList>("BeebWindow");
     m_msg.SetMessageList(m_message_list);
 
     m_beeb_thread = std::make_shared<BeebThread>(m_message_list,

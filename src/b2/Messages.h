@@ -49,7 +49,8 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
         Message(MessageType type, uint64_t ticks, std::string text);
     };
 
-    explicit MessageList(size_t max_num_messages = 500,
+    explicit MessageList(std::string name,
+        size_t max_num_messages = 500,
                          bool print_to_stdio = false);
     ~MessageList();
 
@@ -118,6 +119,7 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     Printer m_warning_printer;
     Printer m_error_printer;
 
+    std::string m_name;
     mutable Mutex m_mutex;
     mutable std::vector<Message> m_messages;
     size_t m_head = 0;

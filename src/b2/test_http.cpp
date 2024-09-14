@@ -49,7 +49,7 @@ static const int PORT = 0xbbcd;
 
 int main() {
 
-    auto message_list = std::make_shared<MessageList>();
+    auto message_list = std::make_shared<MessageList>("test_http");
     message_list->SetPrintToStdio(true);
 
     Messages messages(message_list);

@@ -207,10 +207,10 @@ Mutex::~Mutex() {
 void Mutex::SetName(const char *name) {
     std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
-    ASSERT(!m_meta->stats.ever_locked);
-
-    free(m_meta->name);
-    m_meta->name = strdup(name);
+    ASSERT(!m_meta->name);
+    if (name) {
+        m_meta->name = strdup(name);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -347,6 +347,13 @@ void Mutex::OnInterestingEvents(uint8_t interesting_events) {
         __nop();
 #endif
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+MutexNameSetter::MutexNameSetter(Mutex *mutex, const char *name) {
+    MUTEX_SET_NAME(*mutex, name);
 }
 
 //////////////////////////////////////////////////////////////////////////

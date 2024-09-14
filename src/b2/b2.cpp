@@ -1617,7 +1617,7 @@ int main(int argc, char *argv[]) {
 
     SetCurrentThreadName("Main Thread");
 
-    auto &&messages = std::make_shared<MessageList>();
+    auto &&messages = std::make_shared<MessageList>("b2");
 
     bool good = main2(argc, argv, messages);
 
