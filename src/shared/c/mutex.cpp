@@ -17,6 +17,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 struct MutexMetadataImpl : public MutexMetadata {
+    std::mutex mutex;
+
     MutexStats stats;
     std::atomic<bool> reset{false};
 
@@ -232,13 +234,13 @@ void Mutex::lock() {
 
     uint8_t interesting_events = m_meta->interesting_events.load(std::memory_order_relaxed);
 
-    if (m_mutex.try_lock()) {
+    if (m_meta->mutex.try_lock()) {
         interesting_events &= ~MutexInterestingEvent_ContendedLock;
     } else {
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
         uint64_t lock_start_ticks = GetCurrentTickCount();
 #endif
-        m_mutex.lock();
+        m_meta->mutex.lock();
         ++m_meta->stats.num_contended_locks;
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
         lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
@@ -280,7 +282,7 @@ void Mutex::lock() {
 //////////////////////////////////////////////////////////////////////////
 
 bool Mutex::try_lock() {
-    bool succeeded = m_mutex.try_lock();
+    bool succeeded = m_meta->mutex.try_lock();
 
     if (succeeded) {
         ++m_meta->stats.num_successful_try_locks;
@@ -308,7 +310,7 @@ bool Mutex::try_lock() {
 //////////////////////////////////////////////////////////////////////////
 
 void Mutex::unlock() {
-    m_mutex.unlock();
+    m_meta->mutex.unlock();
 }
 
 //////////////////////////////////////////////////////////////////////////

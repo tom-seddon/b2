@@ -3,6 +3,7 @@
 #include <shared/debug.h>
 //#include <shared/threads.h>
 #include <algorithm>
+#include <mutex>
 
 #include <shared/enum_def.h>
 #include "Messages.inl"

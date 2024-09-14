@@ -12,6 +12,7 @@
 #include "Messages.h"
 #include <inttypes.h>
 #include "native_ui.h"
+#include <mutex>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push

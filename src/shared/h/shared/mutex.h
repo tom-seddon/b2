@@ -4,8 +4,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include <mutex>
-
 #ifndef MUTEX_DEBUGGING
 #define MUTEX_DEBUGGING 1
 #endif
@@ -92,8 +90,6 @@ class Mutex {
 
   protected:
   private:
-    std::mutex m_mutex;
-
     std::shared_ptr<MutexFullMetadata> m_metadata;
 
     // This is just the value of &m_metadata_shared_ptr.get()->meta,

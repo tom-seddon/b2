@@ -9,6 +9,7 @@
 #include <shared/mutex.h>
 #include <vector>
 #include <beeb/roms.h>
+#include <mutex>
 
 #include <shared/enum_def.h>
 #include <beeb/DiscInterface.inl>
