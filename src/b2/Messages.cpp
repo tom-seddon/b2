@@ -3,7 +3,6 @@
 #include <shared/debug.h>
 //#include <shared/threads.h>
 #include <algorithm>
-#include <mutex>
 
 #include <shared/enum_def.h>
 #include "Messages.inl"
@@ -37,9 +36,9 @@ MessageList::MessageList(std::string name, size_t max_num_messages, bool print_t
     , m_max_num_messages(max_num_messages)
     , m_print_to_stdio(print_to_stdio) {
     MUTEX_SET_NAME(m_mutex, ("MessageList: " + m_name).c_str());
-    m_info_printer.SetMutexName(("MessageList Info: "+m_name).c_str());
-    m_warning_printer.SetMutexName(("MessageList Warning: "+m_name).c_str());
-    m_error_printer.SetMutexName(("MessageList Error: "+m_name).c_str());
+    m_info_printer.SetMutexName(("MessageList Info: " + m_name).c_str());
+    m_warning_printer.SetMutexName(("MessageList Warning: " + m_name).c_str());
+    m_error_printer.SetMutexName(("MessageList Error: " + m_name).c_str());
 
     this->ClearMessages();
 }
@@ -103,19 +102,20 @@ void MessageList::InsertMessages(const MessageList &src) {
 
         src.ForEachMessage(&PrintMessageToStdio);
     } else {
-        // Don't know quite what the right thing is to do with the seen
-        // flag exactly...
+        std::vector<Message> src_messages;
+        {
+            LockGuard src_lock(src.m_mutex);
 
-        std::unique_lock<Mutex> this_lock(m_mutex, std::defer_lock);
-        std::unique_lock<Mutex> src_lock(src.m_mutex, std::defer_lock);
+            src_messages = src.m_messages;
+        }
 
-        std::lock(this_lock, src_lock);
+        LockGuard lock(m_mutex);
 
         size_t old_size = m_messages.size();
 
         m_messages.insert(m_messages.end(),
-                          src.m_messages.begin(),
-                          src.m_messages.end());
+                          std::make_move_iterator(src_messages.begin()),
+                          std::make_move_iterator(src_messages.end()));
 
         uint64_t num_errors_and_warnings = 0;
 
@@ -130,7 +130,7 @@ void MessageList::InsertMessages(const MessageList &src) {
             }
         }
 
-        m_num_messages_printed += src.m_messages.size();
+        m_num_messages_printed += src_messages.size();
         m_num_errors_and_warnings_printed += num_errors_and_warnings;
 
         std::stable_sort(m_messages.begin(),

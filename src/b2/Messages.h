@@ -81,6 +81,8 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     // Inserts all messages from src into their appropriate place in
     // the message list (based on their timestamp), respecting the
     // message count limit.
+    //
+    // Not terribly efficient.
     void InsertMessages(const MessageList &src);
 
     // When the print_to_stdio flag is true, messages are printed to
