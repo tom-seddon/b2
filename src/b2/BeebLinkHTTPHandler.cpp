@@ -285,7 +285,7 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
     bool show_errors = true;
 
     for (;;) {
-        std::unique_lock<Mutex> lock(ts->mutex);
+        UniqueLock<Mutex> lock(ts->mutex);
 
         if (ts->stop) {
             break;

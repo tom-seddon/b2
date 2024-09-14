@@ -1954,10 +1954,10 @@ float BeebThread::GetSpeedScale() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const DiscImage> BeebThread::GetDiscImage(std::unique_lock<Mutex> *lock, int drive) const {
+std::shared_ptr<const DiscImage> BeebThread::GetDiscImage(UniqueLock<Mutex> *lock, int drive) const {
     ASSERT(drive >= 0 && drive < NUM_DRIVES);
 
-    *lock = std::unique_lock<Mutex>(m_mutex);
+    *lock = UniqueLock<Mutex>(m_mutex);
 
     return m_disc_images[drive];
 }
@@ -3193,7 +3193,7 @@ void BeebThread::ThreadMain(void) {
                 bool vunits_a = true;
                 size_t num_vunits = 0;
 
-                std::unique_lock<Mutex> lock(m_mutex);
+                UniqueLock<Mutex> lock(m_mutex);
 
                 for (;;) {
 #if BBCMICRO_DEBUGGER

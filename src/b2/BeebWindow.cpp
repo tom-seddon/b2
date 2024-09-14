@@ -1769,7 +1769,7 @@ void BeebWindow::DoFileMenu() {
             char title[100];
             snprintf(title, sizeof title, "Drive %d", drive);
 
-            std::unique_lock<Mutex> d_lock;
+            UniqueLock<Mutex> d_lock;
             std::shared_ptr<const DiscImage> disc_image = m_beeb_thread->GetDiscImage(&d_lock, drive);
 
             if (ImGui::BeginMenu(title)) {
@@ -2284,7 +2284,7 @@ void BeebWindow::DoWindowMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
-    std::unique_lock<Mutex> lock(state->mutex);
+    UniqueLock<Mutex> lock(state->mutex);
 
     while (!state->stop) {
         state->update_cv.wait(lock);
@@ -2409,7 +2409,7 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest
     ASSERT(dest_pitch > 0);
     if (threaded) {
         {
-            std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
+            UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
             m_update_tv_texture_state.done = false;
             m_update_tv_texture_state.update = true;
             m_update_tv_texture_state.update_video_output = m_beeb_thread->GetVideoOutput();
@@ -2431,7 +2431,7 @@ void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, 
     ASSERT(dest_pitch > 0);
 
     if (threaded) {
-        std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
+        UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
 
         while (!m_update_tv_texture_state.done) {
             m_update_tv_texture_state.done_cv.wait(lock);
@@ -3553,7 +3553,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
     ASSERT(pixel_format == SDL_PIXELFORMAT_RGB24 ||
            pixel_format == SDL_PIXELFORMAT_BGR24 ||
            pixel_format == SDL_PIXELFORMAT_XRGB8888);
-    std::unique_lock<Mutex> lock;
+    UniqueLock<Mutex> lock;
     uint32_t *tv_pixels;
     if (m_settings.screenshot_last_vsync) {
         tv_pixels = m_tv.GetLastVSyncTexturePixels(&lock);

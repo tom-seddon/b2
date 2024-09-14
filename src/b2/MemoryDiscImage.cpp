@@ -12,7 +12,6 @@
 #include "Messages.h"
 #include <inttypes.h>
 #include "native_ui.h"
-#include <mutex>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -495,7 +494,7 @@ void MemoryDiscImage::ReleaseData(Data **data_ptr) {
     Data *data = *data_ptr;
     *data_ptr = nullptr;
 
-    std::unique_lock<Mutex> lock(data->mut);
+    UniqueLock<Mutex> lock(data->mut);
 
     ASSERT(data->num_refs > 0);
     --data->num_refs;

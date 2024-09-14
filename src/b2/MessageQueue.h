@@ -69,7 +69,7 @@ class MessageQueue {
     }
 
     void ConsumerWaitForMessages(std::vector<T> *messages) {
-        std::unique_lock<Mutex> lock(m_mutex);
+        UniqueLock<Mutex> lock(m_mutex);
 
         for (;;) {
             if (this->PollLocked(messages)) {

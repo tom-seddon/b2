@@ -161,7 +161,7 @@ void JobQueue::ThreadFunc(ThreadData *td) {
     SetCurrentThreadNamef("JobQueue%zu", td->index);
 
     for (;;) {
-        std::unique_lock<Mutex> lock(m_jobs_mutex);
+        UniqueLock<Mutex> lock(m_jobs_mutex);
 
         td->job = nullptr;
 

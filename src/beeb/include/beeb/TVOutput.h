@@ -14,7 +14,6 @@
 #include <vector>
 #include <beeb/OutputData.h>
 #include <shared/mutex.h>
-#include <mutex>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -73,7 +72,7 @@ class TVOutput {
     // still in use if the Update call is being made on another thread.
     //
     // The pointer is not const. Any modifications will just eventually get overwritten.
-    uint32_t *GetLastVSyncTexturePixels(std::unique_lock<Mutex> *lock) const;
+    uint32_t *GetLastVSyncTexturePixels(UniqueLock<Mutex> *lock) const;
 
     void CopyTexturePixels(void *dest_pixels, size_t dest_pitch) const;
 

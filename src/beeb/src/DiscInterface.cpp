@@ -9,7 +9,6 @@
 #include <shared/mutex.h>
 #include <vector>
 #include <beeb/roms.h>
-#include <mutex>
 
 #include <shared/enum_def.h>
 #include <beeb/DiscInterface.inl>
@@ -359,7 +358,7 @@ class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
 
     ~DiscInterfaceChallengerState() {
         for (size_t i = 0; i < m_chunks.size(); ++i) {
-            this->DecLockedChunkRef(i, std::unique_lock<Mutex>(m_chunks[i]->mutex));
+            this->DecLockedChunkRef(i, UniqueLock<Mutex>(m_chunks[i]->mutex));
         }
     }
 
@@ -368,7 +367,7 @@ class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
     M6502Word m_page = {};
     std::vector<ChallengerRAMChunk *> m_chunks;
 
-    bool GetChallengerRAMPtr(std::unique_lock<Mutex> *lock_ptr, size_t *index_ptr, size_t *offset_ptr, uint8_t addr_lsb) {
+    bool GetChallengerRAMPtr(UniqueLock<Mutex> *lock_ptr, size_t *index_ptr, size_t *offset_ptr, uint8_t addr_lsb) {
         size_t addr = (uint32_t)m_page.w << 8 | addr_lsb;
 
         size_t chunk_index = addr / CHALLENGER_CHUNK_SIZE;
@@ -379,14 +378,14 @@ class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
 
         ChallengerRAMChunk *chunk = m_chunks[chunk_index];
 
-        *lock_ptr = std::unique_lock<Mutex>(chunk->mutex);
+        *lock_ptr = UniqueLock<Mutex>(chunk->mutex);
         *index_ptr = chunk_index;
         *offset_ptr = addr % CHALLENGER_CHUNK_SIZE;
 
         return true;
     }
 
-    void DecLockedChunkRef(size_t index, std::unique_lock<Mutex> lock) {
+    void DecLockedChunkRef(size_t index, UniqueLock<Mutex> lock) {
         ASSERT(index >= 0 && index < m_chunks.size());
 
         ChallengerRAMChunk *chunk = m_chunks[index];
@@ -438,7 +437,7 @@ class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
         auto c = (DiscInterfaceChallengerState *)data;
 
         size_t index, offset;
-        std::unique_lock<Mutex> lock;
+        UniqueLock<Mutex> lock;
         if (c->GetChallengerRAMPtr(&lock, &index, &offset, addr.b.l)) {
             return c->m_chunks[index]->data[offset];
         } else {
@@ -454,7 +453,7 @@ class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
         auto c = (DiscInterfaceChallengerState *)data;
 
         size_t index, offset;
-        std::unique_lock<Mutex> lock;
+        UniqueLock<Mutex> lock;
         if (!c->GetChallengerRAMPtr(&lock, &index, &offset, addr.b.l)) {
             // Ignore out of range addresses.
             return;

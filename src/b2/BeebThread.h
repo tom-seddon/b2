@@ -949,7 +949,7 @@ class BeebThread {
 
     // Get the disc image pointer for the given drive, using the given
     // lock object to take a lock on the disc access mutex.
-    std::shared_ptr<const DiscImage> GetDiscImage(std::unique_lock<Mutex> *lock, int drive) const;
+    std::shared_ptr<const DiscImage> GetDiscImage(UniqueLock<Mutex> *lock, int drive) const;
 
     // Get the current LED flags - a combination of BBCMicroLEDFlag values.
     uint32_t GetLEDs() const;

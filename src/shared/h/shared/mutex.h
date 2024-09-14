@@ -118,7 +118,7 @@ class MutexNameSetter {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include <mutex>
+#include <mutex>//#if !MUTEX_DEBUGGING
 
 typedef std::mutex Mutex;
 
@@ -193,7 +193,9 @@ class UniqueLock {
         if (this != &other) {
             this->unlock();
             m_mutex = other.m_mutex;
+            m_locked = other.m_locked;
             other.m_mutex = nullptr;
+            other.m_locked = false;
         }
 
         return *this;
