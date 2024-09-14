@@ -47,7 +47,14 @@ struct MutexStats {
 };
 
 struct MutexMetadata {
+  public:
+      MutexMetadata();
     virtual ~MutexMetadata() = 0;
+
+    MutexMetadata(const MutexMetadata &) = delete;
+    MutexMetadata &operator=(const MutexMetadata &) = delete;
+    MutexMetadata(MutexMetadata &&) = delete;
+    MutexMetadata &operator=(MutexMetadata &&) = delete;
 
     virtual const char *GetName() const = 0;
     virtual void GetStats(MutexStats *stats) const = 0;
@@ -71,7 +78,7 @@ class Mutex {
     Mutex &operator=(Mutex &&) = delete;
 
     // May only set the name before the first time the mutex is locked.
-    void SetName(std::string name);
+    void SetName(const char *name);
 
     // the returned value isn't protected by any kind of mutex or
     // anything, so...

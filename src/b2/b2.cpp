@@ -280,7 +280,7 @@ void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
 
     auto display = new Display;
 
-    MUTEX_SET_NAME(display->mutex, strprintf("DisplayData for display %" PRIu32, display_id));
+    MUTEX_SET_NAME(display->mutex, strprintf("DisplayData for display %" PRIu32, display_id).c_str());
 
     return display;
 }

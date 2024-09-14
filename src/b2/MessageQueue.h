@@ -24,9 +24,9 @@ class MessageQueue {
   public:
     MessageQueue() = default;
 
-    void SetName(std::string name) {
+    void SetName(const char *name) {
         (void)name;
-        MUTEX_SET_NAME(m_mutex, name + " mutex");
+        MUTEX_SET_NAME(m_mutex, name);
     }
 
     // Pushed messages are retrieved in the order they were submitted.
