@@ -28,7 +28,7 @@ class BeebLink;
 #include "BBCMicro.inl"
 #include <shared/enum_end.h>
 
-// 
+//
 #define BBCMICRO_NUM_UPDATE_GROUPS (4)
 
 #define BBCMicroLEDFlags_AllDrives (255u * BBCMicroLEDFlag_Drive0)
@@ -726,7 +726,7 @@ class BBCMicro : private WD1770Handler {
 #error unsupported BBCMICRO_NUM_UPDATE_GROUPS value
 #endif
 
-    static_assert(NUM_UPDATE_MFNS%BBCMICRO_NUM_UPDATE_GROUPS==0);
+    static_assert(NUM_UPDATE_MFNS % BBCMICRO_NUM_UPDATE_GROUPS == 0);
 
     static void EnsureUpdateMFnsTableIsReady();
 

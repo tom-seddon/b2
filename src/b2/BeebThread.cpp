@@ -1726,7 +1726,7 @@ BeebThread::MouseMotionMessage::MouseMotionMessage(int dx, int dy)
 void BeebThread::MouseMotionMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
     (void)beeb_thread;
 
-    ts->beeb->AddMouseMotion(m_dx,m_dy);
+    ts->beeb->AddMouseMotion(m_dx, m_dy);
 }
 
 //////////////////////////////////////////////////////////////////////////

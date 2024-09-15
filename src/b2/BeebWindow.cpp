@@ -3547,7 +3547,7 @@ void BeebWindow::SetCaptureMouse(bool capture_mouse) {
 //   bitmap, skipping a final 32 bpp->24 bpp step
 // - SDL_PIXELFORMAT_BGR24 = B8G8R8 - for Windows clipboard, 24 bpp opaque
 //   bitmap. Not very compelling as there's an extra unnecessary 32 bpp->24 bpp
-//   step 
+//   step
 
 SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format) const {
     ASSERT(pixel_format == SDL_PIXELFORMAT_RGB24 ||

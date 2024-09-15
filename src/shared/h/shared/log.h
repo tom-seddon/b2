@@ -266,7 +266,7 @@ void LogStackTrace(Log *log);
 #define LOG_DEFINE(NAME, ...) Log LOG(NAME)(__VA_ARGS__)
 
 #define LOG_TAGGED_DEFINE(NAME, TAG, ...) \
-    LOG_DEFINE(NAME, __VA_ARGS__);   \
+    LOG_DEFINE(NAME, __VA_ARGS__);        \
     static LogWithTag g_log_with_tag_##NAME(#TAG, &LOG(NAME))
 
 // The indentation level is popped at the end of the current scope.

@@ -73,7 +73,7 @@ struct BeebLinkHTTPHandler::ThreadState {
 //////////////////////////////////////////////////////////////////////////
 
 static Mutex g_mutex;
-static MutexNameSetter g_mutex_name_setter(&g_mutex,"BeebLink URLs");
+static MutexNameSetter g_mutex_name_setter(&g_mutex, "BeebLink URLs");
 static std::vector<std::string> g_server_urls;
 
 //////////////////////////////////////////////////////////////////////////

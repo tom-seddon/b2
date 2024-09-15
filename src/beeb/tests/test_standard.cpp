@@ -5,7 +5,6 @@
 #include <beeb/BBCMicro.inl>
 #include <shared/enum_end.h>
 
-
 // Runs one of the standard tests.
 //
 // Does a _exit(1) if any of the tests fail.

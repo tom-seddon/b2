@@ -50,7 +50,7 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     };
 
     explicit MessageList(std::string name,
-        size_t max_num_messages = 500,
+                         size_t max_num_messages = 500,
                          bool print_to_stdio = false);
     ~MessageList();
 
