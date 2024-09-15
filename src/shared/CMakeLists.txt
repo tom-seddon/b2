@@ -28,14 +28,14 @@ set(SRCS
 
 if(APPLE)
   set(SRCS ${SRCS}
-    c/system_osx.cpp c/system_posix.c
+    c/system_osx.cpp c/system_posix.cpp
     c/path_posix.cpp
     c/path_osx.cpp
     )
 elseif(UNIX)
   # Of course, Linux is the only possible Unix.
   set(SRCS ${SRCS}
-    c/system_posix.c c/system_linux.cpp
+    c/system_linux.cpp c/system_posix.cpp
     c/path_posix.cpp c/path_linux.cpp
     )    
 elseif(WIN32)

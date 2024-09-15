@@ -8,6 +8,7 @@
 #include <set>
 #include <atomic>
 #include <mutex>
+#include <string.h>
 
 #include <shared/enum_def.h>
 #include <shared/mutex.inl>
@@ -235,7 +236,7 @@ void Mutex::lock() {
     uint8_t interesting_events = m_meta->interesting_events.load(std::memory_order_relaxed);
 
     if (m_meta->mutex.try_lock()) {
-        interesting_events &= ~MutexInterestingEvent_ContendedLock;
+        interesting_events &= (uint8_t)~MutexInterestingEvent_ContendedLock;
     } else {
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
         uint64_t lock_start_ticks = GetCurrentTickCount();
