@@ -12,6 +12,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -21,6 +22,7 @@
 #ifdef _MSC_VER
 #pragma warning(disable : 4244) //OPERATOR: conversion from TYPE to TYPE, possible loss of data
 #endif
+
 #include <stb_image.h>
 
 #ifdef __GNUC__

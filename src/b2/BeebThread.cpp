@@ -2932,7 +2932,6 @@ void BeebThread::ThreadMain(void) {
     }
 
     std::vector<SentMessage> messages;
-    size_t total_num_audio_units_produced = 0;
 
     int handle_messages_reason;
     (void)handle_messages_reason;
@@ -2971,9 +2970,6 @@ void BeebThread::ThreadMain(void) {
             ++m_num_mq_polls;
             what = "polled";
         }
-
-        //printf("%s: %s/%d: %zu message(s), cycles=%" PRIu64 ", stop=%" PRIu64 ", total_num_audio_units_produced=%zu\n",__func__,what,handle_messages_reason,messages.size(),ts.num_executed_2MHz_cycles?*ts.num_executed_2MHz_cycles:0,ts.next_stop_2MHz_cycles,total_num_audio_units_produced);
-        total_num_audio_units_produced = 0;
 
         CycleCount stop_cycles;
 
@@ -3182,8 +3178,6 @@ void BeebThread::ThreadMain(void) {
             SoundDataUnit *sunit_end = sa + num_sa;
             bool sunits_a = true;
 
-            total_num_audio_units_produced += num_sound_units;
-
             if (num_va + num_vb > 0) {
                 PROFILE_SCOPE(PROFILER_COLOUR_BLUE, "Beeb Update");
                 rmt_ScopedCPUSample(BeebUpdate, 0);
@@ -3373,6 +3367,7 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
     }
 
     ASSERT(m_timeline_state.num_events == num_events);
+    (void)num_events;
 }
 
 //////////////////////////////////////////////////////////////////////////

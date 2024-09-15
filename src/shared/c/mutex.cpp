@@ -35,8 +35,8 @@ struct MutexMetadataImpl : public MutexMetadata {
     void RequestReset() override;
     const char *GetName() const override;
     void GetStats(MutexStats *stats) const override;
-    uint8_t GetInterestingEvents() const;
-    void SetInterestingEvents(uint8_t events);
+    uint8_t GetInterestingEvents() const override;
+    void SetInterestingEvents(uint8_t events) override;
 
     void Reset();
 };
