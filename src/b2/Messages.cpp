@@ -30,8 +30,8 @@ MessageList::Message::Message(MessageType type_,
 
 MessageList::MessageList(std::string name, size_t max_num_messages, bool print_to_stdio)
     : m_info_printer(this, MessageType_Info, nullptr)
-    , m_warning_printer(this, MessageType_Warning, &m_num_errors_and_warnings_printed)
-    , m_error_printer(this, MessageType_Error, &m_num_errors_and_warnings_printed)
+    , m_warning_printer(this, MessageType_Warning, nullptr)
+    , m_error_printer(this, MessageType_Error, &m_num_errors_printed)
     , m_name(std::move(name))
     , m_max_num_messages(max_num_messages)
     , m_print_to_stdio(print_to_stdio) {
@@ -62,8 +62,8 @@ uint64_t MessageList::GetNumMessagesPrinted() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint64_t MessageList::GetNumErrorsAndWarningsPrinted() const {
-    return m_num_errors_and_warnings_printed;
+uint64_t MessageList::GetNumErrorsPrinted() const {
+    return m_num_errors_printed;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -117,21 +117,20 @@ void MessageList::InsertMessages(const MessageList &src) {
                           std::make_move_iterator(src_messages.begin()),
                           std::make_move_iterator(src_messages.end()));
 
-        uint64_t num_errors_and_warnings = 0;
+        uint64_t num_errors = 0;
 
         for (size_t j = old_size; j < m_messages.size(); ++j) {
             Message *message = &m_messages[j];
 
             message->seen = false;
 
-            if (message->type == MessageType_Warning ||
-                message->type == MessageType_Error) {
-                ++num_errors_and_warnings;
+            if (message->type == MessageType_Error) {
+                ++num_errors;
             }
         }
 
         m_num_messages_printed += src_messages.size();
-        m_num_errors_and_warnings_printed += num_errors_and_warnings;
+        m_num_errors_printed += num_errors;
 
         std::stable_sort(m_messages.begin(),
                          m_messages.end(),
@@ -238,7 +237,7 @@ void MessageList::LockedClearMessages() {
     m_messages.clear();
     m_head = 0;
 
-    m_num_errors_and_warnings_printed = 0;
+    m_num_errors_printed = 0;
     m_num_messages_printed = 0;
 }
 

@@ -1555,7 +1555,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
         }
     }
 
-    if (ValueChanged(&m_msg_last_num_errors_and_warnings_printed, m_message_list->GetNumErrorsAndWarningsPrinted())) {
+    if (ValueChanged(&m_msg_last_num_errors_printed, m_message_list->GetNumErrorsPrinted())) {
         m_settings.popups |= 1 << BeebWindowPopupType_Messages;
     }
 

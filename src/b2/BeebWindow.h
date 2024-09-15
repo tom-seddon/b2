@@ -407,7 +407,7 @@ class BeebWindow {
     //
     std::shared_ptr<MessageList> m_message_list;
     uint64_t m_msg_last_num_messages_printed = 0;
-    uint64_t m_msg_last_num_errors_and_warnings_printed = 0;
+    uint64_t m_msg_last_num_errors_printed = 0;
 #if VIDEO_TRACK_METADATA
     bool m_got_mouse_pixel_unit = false;
     VideoDataUnit m_mouse_pixel_unit = {};
