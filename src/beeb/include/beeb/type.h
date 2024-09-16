@@ -8,6 +8,7 @@
 #include "roms.h"
 #include <string>
 #include <vector>
+#include <memory>
 
 #include <shared/enum_decl.h>
 #include "type.inl"
