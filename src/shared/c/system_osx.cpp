@@ -401,7 +401,7 @@ uint64_t GetCurrentTickCount(void) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static double GetSecondsPerTick(void) {
+double GetSecondsPerTick(void) {
     if (!g_got_timebase_metrics) {
         /* It doesn't matter if there's a race here; all the threads
          * will (should...) get the same value. */

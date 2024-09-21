@@ -379,6 +379,7 @@ void SleepMS(unsigned ms);
 // shorter-than-milliseconds period.
 uint64_t GetCurrentTickCount(void);
 double GetSecondsFromTicks(uint64_t ticks);
+double GetSecondsPerTick();
 
 #define GetMillisecondsFromTicks(TICKS) (GetSecondsFromTicks(TICKS) * 1000.)
 
