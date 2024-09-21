@@ -39,7 +39,10 @@ struct MutexStats {
     uint64_t num_successful_try_locks = 0;
     uint64_t start_ticks;
     uint64_t num_try_locks = 0;
+
     bool ever_locked = false;
+
+    std::string name;
 
     MutexStats();
 };
@@ -54,7 +57,6 @@ struct MutexMetadata {
     MutexMetadata(MutexMetadata &&) = delete;
     MutexMetadata &operator=(MutexMetadata &&) = delete;
 
-    virtual const char *GetName() const = 0;
     virtual void GetStats(MutexStats *stats) const = 0;
     virtual void RequestReset() = 0;
     virtual uint8_t GetInterestingEvents() const = 0;
@@ -75,14 +77,14 @@ class Mutex {
     Mutex(Mutex &&) = delete;
     Mutex &operator=(Mutex &&) = delete;
 
-    // May only set the name once.
-    void SetName(const char *name);
+    void SetName(std::string name);
 
     // the returned value isn't protected by any kind of mutex or
     // anything, so...
     const MutexMetadata *GetMetadata() const;
 
     static std::vector<std::shared_ptr<MutexMetadata>> GetAllMetadata();
+    static uint64_t GetNameOverheadTicks();
 
     void lock();
     bool try_lock();

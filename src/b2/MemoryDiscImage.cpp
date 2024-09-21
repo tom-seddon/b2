@@ -512,7 +512,7 @@ void MemoryDiscImage::ReleaseData(Data **data_ptr) {
 void MemoryDiscImage::SetName(std::string name) {
     m_name = std::move(name);
 
-    MUTEX_SET_NAME(m_data->mut, ("MemoryDiscImage: " + m_name).c_str());
+    MUTEX_SET_NAME(m_data->mut, ("MemoryDiscImage: " + m_name));
 }
 
 //////////////////////////////////////////////////////////////////////////

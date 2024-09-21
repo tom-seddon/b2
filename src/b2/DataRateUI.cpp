@@ -191,13 +191,7 @@ static void MutexMetadataUI(MutexMetadata *m, const MutexStats *stats) {
     uint64_t num_ticks = GetCurrentTickCount() - stats->start_ticks;
 
     ImGui::Spacing();
-    ImGui::Text("Mutex Name: %s", m->GetName());
-    if (stats->ever_locked) {
-        ImGui::SameLine();
-        if (ImGui::Button("Reset Stats")) {
-            m->RequestReset();
-        }
-    }
+    ImGui::Text("Mutex Name: %s", stats->name.c_str());
 
     ImGui::TextUnformatted("Interesting:");
     {
@@ -232,6 +226,12 @@ static void MutexMetadataUI(MutexMetadata *m, const MutexStats *stats) {
 
     if (stats->num_try_locks > 0) {
         ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64, stats->num_successful_try_locks, stats->num_try_locks);
+    }
+
+    if (stats->ever_locked) {
+        if (ImGui::Button("Reset Stats")) {
+            m->RequestReset();
+        }
     }
 }
 #endif
@@ -319,7 +319,10 @@ void DataRateUI::DoImGui() {
     for (const MutexStats &stats : mutex_stats) {
         total_lock_wait_ticks += stats.total_lock_wait_ticks;
     }
-    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks));
+    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks), total_lock_wait_ticks / (double)runtime_ticks * 100.);
+
+    uint64_t name_overhead_ticks = Mutex::GetNameOverheadTicks();
+    ImGui::Text("Mutex Name Overhead: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(name_overhead_ticks), GetMillisecondsFromTicks(name_overhead_ticks), name_overhead_ticks / (double)runtime_ticks * 100.);
 
     if (ImGui::Button("Reset all stats")) {
         for (const std::shared_ptr<MutexMetadata> &m : metadata) {

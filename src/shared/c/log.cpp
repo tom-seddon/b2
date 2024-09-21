@@ -50,7 +50,7 @@ bool LogPrinter::try_lock() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void LogPrinter::SetMutexName(const char *name) {
+void LogPrinter::SetMutexName(std::string name) {
     (void)name;
     MUTEX_SET_NAME(m_mutex, name);
 }
@@ -62,7 +62,7 @@ LogPrinterStd::LogPrinterStd(bool to_stdout, bool to_stderr, bool debugger)
     : m_stdout(to_stdout)
     , m_stderr(to_stderr)
     , m_debugger(debugger) {
-    this->SetMutexName((std::string("LogPrinterStd (out=") + BOOL_STR(to_stdout) + " err=" + BOOL_STR(to_stderr) + " debug=" + BOOL_STR(debugger) + ")").c_str());
+    this->SetMutexName((std::string("LogPrinterStd (out=") + BOOL_STR(to_stdout) + " err=" + BOOL_STR(to_stderr) + " debug=" + BOOL_STR(debugger) + ")"));
 }
 
 //////////////////////////////////////////////////////////////////////////

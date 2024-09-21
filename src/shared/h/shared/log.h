@@ -27,7 +27,7 @@ class LogPrinter {
     void unlock();
     bool try_lock();
 
-    void SetMutexName(const char *name);
+    void SetMutexName(std::string name);
 
   protected:
   private:

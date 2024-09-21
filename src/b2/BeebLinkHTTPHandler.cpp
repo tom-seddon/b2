@@ -102,7 +102,7 @@ BeebLinkHTTPHandler::BeebLinkHTTPHandler(BeebThread *beeb_thread,
                                          std::shared_ptr<MessageList> message_list)
     : m_ts(std::make_unique<ThreadState>())
     , m_sender_id(std::move(sender_id)) {
-    MUTEX_SET_NAME(m_ts->mutex, ("BeebLinkHTTPHandler " + sender_id).c_str());
+    MUTEX_SET_NAME(m_ts->mutex, ("BeebLinkHTTPHandler " + sender_id));
     m_ts->beeb_thread = beeb_thread;
     m_ts->message_list = std::move(message_list);
 }

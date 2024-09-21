@@ -35,10 +35,10 @@ MessageList::MessageList(std::string name, size_t max_num_messages, bool print_t
     , m_name(std::move(name))
     , m_max_num_messages(max_num_messages)
     , m_print_to_stdio(print_to_stdio) {
-    MUTEX_SET_NAME(m_mutex, ("MessageList: " + m_name).c_str());
-    m_info_printer.SetMutexName(("MessageList Info: " + m_name).c_str());
-    m_warning_printer.SetMutexName(("MessageList Warning: " + m_name).c_str());
-    m_error_printer.SetMutexName(("MessageList Error: " + m_name).c_str());
+    MUTEX_SET_NAME(m_mutex, ("MessageList: " + m_name));
+    m_info_printer.SetMutexName(("MessageList Info: " + m_name));
+    m_warning_printer.SetMutexName(("MessageList Warning: " + m_name));
+    m_error_printer.SetMutexName(("MessageList Error: " + m_name));
 
     this->ClearMessages();
 }

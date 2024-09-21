@@ -9,6 +9,7 @@
 #include <atomic>
 #include <mutex>
 #include <string.h>
+#include <shared_mutex>
 
 #include <shared/enum_def.h>
 #include <shared/mutex.inl>
@@ -20,6 +21,8 @@
 struct MutexMetadataImpl : public MutexMetadata {
     std::mutex mutex;
 
+    // this->stats.name is null, and this->stats.num_try_locks is bogus. They're
+    // filled out when the data is copied by GetStats.
     MutexStats stats;
     std::atomic<bool> reset{false};
 
@@ -28,12 +31,12 @@ struct MutexMetadataImpl : public MutexMetadata {
 
     std::atomic<uint8_t> interesting_events{0};
 
-    char *name = nullptr;
+    mutable std::shared_mutex name_mutex;
+    std::string name;
 
     ~MutexMetadataImpl();
 
     void RequestReset() override;
-    const char *GetName() const override;
     void GetStats(MutexStats *stats) const override;
     uint8_t GetInterestingEvents() const override;
     void SetInterestingEvents(uint8_t events) override;
@@ -55,6 +58,7 @@ struct MutexFullMetadata : public std::enable_shared_from_this<MutexFullMetadata
 
 static std::shared_ptr<std::mutex> g_mutex_metadata_list_mutex;
 static std::once_flag g_mutex_metadata_list_mutex_initialise_once_flag;
+static std::atomic<uint64_t> g_mutex_name_overhead_ticks{0};
 
 static MutexFullMetadata *g_mutex_metadata_head;
 
@@ -100,7 +104,6 @@ MutexMetadata::~MutexMetadata() {
 //////////////////////////////////////////////////////////////////////////
 
 MutexMetadataImpl::~MutexMetadataImpl() {
-    free(this->name), this->name = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -114,16 +117,20 @@ void MutexMetadataImpl::RequestReset() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char *MutexMetadataImpl::GetName() const {
-    return this->name;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void MutexMetadataImpl::GetStats(MutexStats *stats_) const {
     *stats_ = this->stats;
+
     stats_->num_try_locks = this->num_try_locks.load(std::memory_order_acquire);
+
+    {
+        uint64_t start_ticks = GetCurrentTickCount();
+
+        this->name_mutex.lock_shared();
+        stats_->name = this->name;
+        this->name_mutex.unlock_shared();
+
+        g_mutex_name_overhead_ticks.fetch_add(GetCurrentTickCount() - start_ticks, std::memory_order_acq_rel);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -208,13 +215,13 @@ Mutex::~Mutex() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Mutex::SetName(const char *name) {
-    LockGuard<std::mutex> lock(*m_metadata->metadata_list_mutex);
+void Mutex::SetName(std::string name) {
+    uint64_t start_ticks = GetCurrentTickCount();
 
-    ASSERT(!m_meta->name);
-    if (name) {
-        m_meta->name = strdup(name);
-    }
+    LockGuard<std::shared_mutex> lock(m_meta->name_mutex);
+    m_meta->name = std::move(name);
+
+    g_mutex_name_overhead_ticks.fetch_add(GetCurrentTickCount() - start_ticks, std::memory_order_acq_rel);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -268,12 +275,6 @@ void Mutex::lock() {
         m_meta->stats.max_lock_wait_ticks = lock_wait_ticks;
     }
 
-#ifdef _DEBUG
-    if (!m_meta->name) {
-        __nop();
-    }
-#endif
-
     if (interesting_events != 0) {
         this->OnInterestingEvents(interesting_events);
     }
@@ -297,12 +298,6 @@ bool Mutex::try_lock() {
     if (m_meta->reset.exchange(false)) {
         m_meta->Reset();
     }
-
-#ifdef _DEBUG
-    if (!m_meta->name) {
-        __nop();
-    }
-#endif
 
     return succeeded;
 }
@@ -333,6 +328,13 @@ std::vector<std::shared_ptr<MutexMetadata>> Mutex::GetAllMetadata() {
     }
 
     return list;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint64_t Mutex::GetNameOverheadTicks() {
+    return g_mutex_name_overhead_ticks.load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
