@@ -6,6 +6,7 @@
 #include <shared/debug.h>
 #include "SettingsUI.h"
 #include <inttypes.h>
+#include "b2.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -261,6 +262,18 @@ void DataRateUI::DoImGui() {
     if (ImGui::CollapsingHeader("Video Data Availability (mark=50%)")) {
         this->GetVBlankRecords(&vblank_records);
         ImGuiPlotLines("", &GetPercentage, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 200.f, ImVec2(0, 100), ImVec2(0, 50));
+    }
+
+    if (ImGui::CollapsingHeader("Displays")) {
+        std::vector<DisplayData> dds = GetDisplaysData();
+        for (const DisplayData &dd : dds) {
+            char header[100];
+            snprintf(header, sizeof header, "Display ID: %" PRIu32, dd.display_id);
+            ImGuiHeader(header);
+            ImGui::Text("Num messages sent: %" PRIu64, dd.num_messages_sent);
+            ImGui::Text("Num thread vblanks: %" PRIu64, dd.num_thread_vblanks);
+            ImGui::Text("(Num vblanks skipped: %" PRIu64, dd.num_thread_vblanks - dd.num_messages_sent);
+        }
     }
 
     if (ImGui::CollapsingHeader("BeebThread Timing Stats")) {

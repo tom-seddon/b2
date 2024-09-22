@@ -262,27 +262,74 @@ class b2VBlankHandler : public VBlankMonitor::Handler {
         VBlank vblanks[NUM_VBLANK_RECORDS] = {};
         size_t vblank_index = 0;
         bool message_pending = false;
+        uint64_t num_thread_vblanks = 0;
+        uint64_t num_messages_sent = 0;
     };
 
+    b2VBlankHandler();
     void *AllocateDisplayData(uint32_t display_id) override;
     void FreeDisplayData(uint32_t display_id, void *data) override;
     void ThreadVBlank(uint32_t display_id, void *data) override;
 
   protected:
   private:
+    Mutex m_mutex;
+    std::map<uint32_t, std::shared_ptr<Display>> m_data_by_display_id;
+
+    friend std::vector<DisplayData> GetDisplaysData();
 };
+
+static std::unique_ptr<b2VBlankHandler> g_vblank_handler;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<DisplayData> GetDisplaysData() {
+    std::vector<DisplayData> datas;
+    if (!!g_vblank_handler) {
+        std::map<uint32_t, std::shared_ptr<b2VBlankHandler::Display>> data_by_display_id;
+        {
+            LockGuard<Mutex> lock(g_vblank_handler->m_mutex);
+            data_by_display_id = g_vblank_handler->m_data_by_display_id;
+        }
+
+        datas.reserve(data_by_display_id.size());
+        for (const auto &display_id_and_data : data_by_display_id) {
+            DisplayData dd;
+
+            dd.display_id = display_id_and_data.first;
+
+            LockGuard<Mutex> lock(display_id_and_data.second->mutex);
+            dd.num_messages_sent = display_id_and_data.second->num_messages_sent;
+            dd.num_thread_vblanks = display_id_and_data.second->num_thread_vblanks;
+
+            datas.push_back(std::move(dd));
+        }
+    }
+
+    return datas;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+b2VBlankHandler::b2VBlankHandler() {
+    MUTEX_SET_NAME(m_mutex, "b2VBlankHandler");
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
-    (void)display_id;
-
-    auto display = new Display;
+    auto &&display = std::make_shared<Display>();
 
     MUTEX_SET_NAME(display->mutex, strprintf("DisplayData for display %" PRIu32, display_id));
 
-    return display;
+    LockGuard<Mutex> lock(m_mutex);
+
+    m_data_by_display_id[display_id] = display;
+
+    return display.get();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -291,9 +338,11 @@ void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
 void b2VBlankHandler::FreeDisplayData(uint32_t display_id, void *data) {
     (void)display_id;
 
-    auto display = (Display *)data;
+    LockGuard<Mutex> lock(m_mutex);
 
-    delete display;
+    ASSERT(m_data_by_display_id.count(display_id) > 0);
+    ASSERT(m_data_by_display_id[display_id].get() == data);
+    m_data_by_display_id.erase(display_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -306,6 +355,8 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id, void *data) {
     VBlank *vblank = &display->vblanks[display->vblank_index];
     ++display->vblank_index;
     display->vblank_index %= NUM_VBLANK_RECORDS;
+
+    ++display->num_thread_vblanks;
 
     vblank->ticks = GetCurrentTickCount();
 
@@ -324,6 +375,7 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id, void *data) {
             SDL_PushEvent(&event);
 
             display->message_pending = true;
+            ++display->num_messages_sent;
         }
     }
 }
@@ -1256,9 +1308,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             g_option_vsync = false;
         }
 
-        auto &&vblank_handler = std::make_unique<b2VBlankHandler>();
+        g_vblank_handler = std::make_unique<b2VBlankHandler>();
         init_messages.i.f("Timing method: %s\n", g_option_vsync ? "vsync" : "timer");
-        std::unique_ptr<VBlankMonitor> vblank_monitor = CreateVBlankMonitor(vblank_handler.get(),
+        std::unique_ptr<VBlankMonitor> vblank_monitor = CreateVBlankMonitor(g_vblank_handler.get(),
                                                                             !g_option_vsync,
                                                                             &init_messages);
         if (!vblank_monitor) {
@@ -1578,7 +1630,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         StopHTTPServer();
 
         vblank_monitor = nullptr;
-        vblank_handler = nullptr;
+        g_vblank_handler = nullptr;
 
         CloseJoysticks();
     }
