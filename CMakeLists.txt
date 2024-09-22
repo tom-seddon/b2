@@ -361,8 +361,8 @@ endif()
 progress_message("submodules; src; dependencies")
 
 add_subdirectory(submodules)
-add_subdirectory(src)
 add_subdirectory(dependencies)
+add_subdirectory(src)
 
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.cmake)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
