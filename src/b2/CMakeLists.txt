@@ -186,7 +186,7 @@ if(WIN32)
 
 
   # https://devblogs.microsoft.com/pix/winpixeventruntime/
-  set(PIX_FOLDER ${CMAKE_SOURCE_DIR}/etc/WinPixEventRuntime/1.0.220810001)
+  set(PIX_FOLDER ${CMAKE_SOURCE_DIR}/dependencies/WinPixEventRuntime/1.0.220810001)
   set(USE_PIX $<CONFIG:Debug,RelWithDebInfo>)
   
   target_compile_definitions(b2 PRIVATE $<${USE_PIX}:USE_PIX>)
