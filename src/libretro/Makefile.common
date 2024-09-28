@@ -1,0 +1,122 @@
+INCFLAGS := \
+	-I$(CORE_DIR) \
+	-I$(CORE_DIR)/shared/h \
+	-I$(CORE_DIR)/beeb/include \
+	-I$(CORE_DIR)/6502/h
+
+SOURCES_CPP := \
+	$(CORE_DIR)/libretro/adapters.cpp \
+	$(CORE_DIR)/libretro/core.cpp \
+	$(CORE_DIR)/beeb/src/6502.cpp \
+	$(CORE_DIR)/beeb/src/6522.cpp \
+	$(CORE_DIR)/beeb/src/1770.cpp \
+	$(CORE_DIR)/beeb/src/adc.cpp \
+	$(CORE_DIR)/beeb/src/BBCMicro.cpp \
+	$(CORE_DIR)/beeb/src/BBCMicroParasiteType.cpp \
+	$(CORE_DIR)/beeb/src/BBCMicro_Update.cpp \
+	$(CORE_DIR)/beeb/src/BeebLink.cpp \
+	$(CORE_DIR)/beeb/src/conf.cpp \
+	$(CORE_DIR)/beeb/src/crtc.cpp \
+	$(CORE_DIR)/beeb/src/DiscImage.cpp \
+	$(CORE_DIR)/beeb/src/DiscInterface.cpp \
+	$(CORE_DIR)/beeb/src/ExtMem.cpp \
+	$(CORE_DIR)/beeb/src/keys.cpp \
+	$(CORE_DIR)/beeb/src/MC146818.cpp \
+	$(CORE_DIR)/beeb/src/OutputData.cpp \
+	$(CORE_DIR)/beeb/src/PCD8572.cpp \
+	$(CORE_DIR)/beeb/src/roms.cpp \
+	$(CORE_DIR)/beeb/src/SaveTrace.cpp \
+	$(CORE_DIR)/beeb/src/SN76489.cpp \
+	$(CORE_DIR)/beeb/src/sound.cpp \
+	$(CORE_DIR)/beeb/src/teletext.cpp \
+	$(CORE_DIR)/beeb/src/Trace.cpp \
+	$(CORE_DIR)/beeb/src/tube.cpp \
+	$(CORE_DIR)/beeb/src/TVOutput.cpp \
+	$(CORE_DIR)/beeb/src/type.cpp \
+	$(CORE_DIR)/beeb/src/video.cpp \
+	$(CORE_DIR)/beeb/src/VideoULA.cpp \
+	$(CORE_DIR)/shared/c/log.cpp \
+	$(CORE_DIR)/shared/c/system.cpp \
+	$(CORE_DIR)/shared/c/system_linux.cpp \
+	$(CORE_DIR)/shared/c/mutex.cpp \
+	$(CORE_DIR)/shared/c/CommandLineParser.cpp \
+	$(CORE_DIR)/b2/BeebConfig.cpp \
+	$(CORE_DIR)/b2/DiscGeometry.cpp \
+	$(CORE_DIR)/b2/DirectDiscImage.cpp \
+	$(CORE_DIR)/b2/discs.cpp \
+	$(CORE_DIR)/b2/filters.cpp \
+	$(CORE_DIR)/b2/MessageQueue.cpp \
+	$(CORE_DIR)/b2/Messages.cpp \
+	$(CORE_DIR)/b2/BeebThread.cpp \
+	$(CORE_DIR)/b2/BeebState.cpp \
+	$(CORE_DIR)/b2/misc.cpp \
+	$(CORE_DIR)/b2/Remapper.cpp \
+	$(CORE_DIR)/b2/roms.cpp \
+
+SOURCES_C := \
+	$(CORE_DIR)/6502/c/6502.c \
+	$(CORE_DIR)/shared/c/system_posix.c \
+	$(CORE_DIR)/shared/c/path.c \
+		
+#beeb: all included
+#shared:
+#debug.cpp
+#load_store.cpp
+#path.cpp
+#path_linux.cpp
+#path_osx.cpp
+#path_posix.cpp
+#path_windows.cpp
+#relacy.cpp
+#sha1.cpp
+#system_osx.cpp
+#system_windows.cpp
+#testing.cpp
+
+# b2
+#b2.cpp
+#BeebKeymap.cpp
+#BeebLinkHTTPHandler.cpp
+#BeebLinkUI.cpp
+#BeebWindow.cpp
+#BeebWindows.cpp
+#CommandKeymapsUI.cpp
+#commands.cpp
+#conf.cpp
+#ConfigsUI.cpp
+#DataRateUI.cpp
+#dear_imgui.cpp
+#DearImguiTestUI.cpp
+#debugger.cpp
+#GenerateThumbnailJob.cpp
+#HTTPMethodsHandler.cpp
+#HTTPServer.cpp
+#JobQueue.cpp
+#joysticks.cpp
+#keymap.cpp
+#KeymapsUI.cpp
+#keys.cpp
+#MessagesUI.cpp
+#native_ui.cpp
+#native_ui_gtk.cpp
+#native_ui_windows.cpp
+#profiler.cpp
+#SavedStatesUI.cpp
+#SettingsUI.cpp
+#test_http.cpp
+#test_JobQueue.cpp
+#ThumbnailsUI.cpp
+#TimelineUI.cpp
+#TraceUI.cpp
+#VBlankMonitor.cpp
+#VBlankMonitorDefault.cpp
+#VBlankMonitorOSX.cpp
+#VBlankMonitorWindows.cpp
+#VideoWriter.cpp
+#VideoWriterFFmpeg.cpp
+#VideoWriterMF.cpp
+#WriteVideoJob.cpp
+
+#	$(CORE_DIR)/b2/load_save.cpp \
+#	$(CORE_DIR)/b2/DiscImage.cpp \
+#	$(CORE_DIR)/b2/MemoryDiscImage.cpp \ -- "miniz" requirement

@@ -2,7 +2,11 @@
 #include "misc.h"
 #include <shared/path.h>
 #include <shared/log.h>
+#ifndef B2_LIBRETRO_CORE
 #include <SDL.h>
+#else
+#include <string.h>
+#endif // B2_LIBRETRO_CORE
 //#include <parson.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -13,7 +17,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
+#ifndef B2_LIBRETRO_CORE
 void DumpRendererInfo(Log *log, const SDL_RendererInfo *info) {
     LogIndenter indent(log);
 
@@ -35,7 +39,7 @@ void DumpRendererInfo(Log *log, const SDL_RendererInfo *info) {
 void SetRenderScaleQualityHint(bool filter) {
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, filter ? "linear" : "nearest");
 }
-
+#endif // B2_LIBRETRO_CORE
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -56,7 +60,11 @@ std::string strprintfv(const char *fmt, va_list v) {
     char *str;
     if (vasprintf(&str, fmt, v) == -1) {
         // Better suggestions welcome... please.
+#ifndef B2_LIBRETRO_CORE
         return std::string("vasprintf failed - ") + strerror(errno) + " (" + std::to_string(errno) + ")";
+#else
+        return std::string("vasprintf failed - ") + " (" + std::to_string(errno) + ")";
+#endif // B2_LIBRETRO_CORE
     } else {
         std::string result(str);
 
@@ -206,7 +214,7 @@ void GetThousandsString(char *str, uint64_t value) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
+#ifndef B2_LIBRETRO_CORE
 void SDL_Deleter::operator()(SDL_Window *w) const {
     SDL_DestroyWindow(w);
 }
@@ -292,7 +300,7 @@ void SDL_SurfaceLocker::Unlock() {
 SDL_PixelFormat *ClonePixelFormat(const SDL_PixelFormat *pixel_format) {
     return SDL_AllocFormat(pixel_format->format);
 }
-
+#endif // B2_LIBRETRO_CORE
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -378,7 +386,9 @@ std::string GetTimeString(const struct tm &t) {
 AudioDeviceLock::AudioDeviceLock(uint32_t device)
     : m_device(device) {
     if (m_device != 0) {
+#ifndef B2_LIBRETRO_CORE
         SDL_LockAudioDevice(m_device);
+#endif // B2_LIBRETRO_CORE
     }
 }
 
@@ -387,7 +397,9 @@ AudioDeviceLock::AudioDeviceLock(uint32_t device)
 
 AudioDeviceLock::~AudioDeviceLock() {
     if (m_device != 0) {
+#ifndef B2_LIBRETRO_CORE
         SDL_UnlockAudioDevice(m_device);
+#endif // B2_LIBRETRO_CORE
     }
 }
 

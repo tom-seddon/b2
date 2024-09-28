@@ -280,8 +280,9 @@ int vasprintf(char **buf, const char *fmt, va_list v);
 // BSD extension.
 //
 // See https://lwn.net/Articles/612244/
+#ifndef B2_LIBRETRO_CORE
 size_t strlcpy(char *dest, const char *src, size_t size);
-
+#endif // B2_LIBRETRO_CORE
 #endif
 
 //////////////////////////////////////////////////////////////////////////

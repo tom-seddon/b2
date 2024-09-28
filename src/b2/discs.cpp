@@ -1,6 +1,10 @@
 #include <shared/system.h>
 #include "discs.h"
+#ifndef B2_LIBRETRO_CORE
 #include "load_save.h"
+#else
+#include "../libretro/adapters.h"
+#endif // B2_LIBRETRO_CORE
 #include "DiscGeometry.h"
 
 //////////////////////////////////////////////////////////////////////////

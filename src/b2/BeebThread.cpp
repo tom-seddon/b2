@@ -24,11 +24,15 @@
 #include "filters.h"
 #include "conf.h"
 #include <math.h>
+#ifndef B2_LIBRETRO_CORE
 #include "WriteVideoJob.h"
 #include "BeebWindow.h"
 #include <Remotery.h>
 #include "GenerateThumbnailJob.h"
 #include "VideoWriter.h"
+#else
+#include <system_error>
+#endif
 #include "BeebLinkHTTPHandler.h"
 #include <shared/system_specific.h>
 #include "profiler.h"
@@ -160,7 +164,9 @@ struct BeebThread::ThreadState {
 
     Message::CompletionFun paste_completion_fun;
 
+#ifndef B2_LIBRETRO_CORE
     std::unique_ptr<BeebLinkHTTPHandler> beeblink_handler;
+#endif // B2_LIBRETRO_CORE
 
     Log log{"BEEB  ", LOG(BTHREAD)};
     Messages msgs;
@@ -339,9 +345,13 @@ void BeebThread::KeyMessage::ThreadHandle(BeebThread *beeb_thread,
 
 BeebThread::KeySymMessage::KeySymMessage(BeebKeySym key_sym, bool state)
     : m_state(state) {
+#ifndef B2_LIBRETRO_CORE
     if (!GetBeebKeyComboForKeySym(&m_key, &m_shift_state, key_sym)) {
+#endif // B2_LIBRETRO_CORE
         m_key = BeebKey_None;
+#ifndef B2_LIBRETRO_CORE
     }
+#endif // B2_LIBRETRO_CORE
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -545,7 +555,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
     if (ts->num_executed_cycles) {
         num_cycles = *ts->num_executed_cycles;
     }
-
+#ifndef B2_LIBRETRO_CORE
     if (ts->current_config.config.beeblink) {
         if (!ts->beeblink_handler) {
             std::string sender_id = strprintf("%" PRIu64, beeb_thread->m_uid);
@@ -561,7 +571,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
     } else {
         ts->beeblink_handler.reset();
     }
-
+#endif // B2_LIBRETRO_CORE
     uint32_t init_flags = 0;
     if (ts->current_config.config.video_nula) {
         init_flags |= BBCMicroInitFlag_VideoNuLA;
@@ -586,7 +596,11 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                            nvram_contents,
                                            &now,
                                            init_flags,
+#ifndef B2_LIBRETRO_CORE
                                            ts->beeblink_handler.get(),
+#else
+                                           nullptr,
+#endif // B2_LIBRETRO_CORE
                                            num_cycles);
 
     beeb->SetOSROM(ts->current_config.os);
@@ -996,9 +1010,9 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         std::string time_str = GetCycleCountString(state->GetCycleCount());
         ts->msgs.i.f("Saved state: %s\n", time_str.c_str());
     }
-
+#ifndef B2_LIBRETRO_CORE
     BeebWindows::AddSavedState(state);
-
+#endif // B2_LIBRETRO_CORE
     *ptr = std::make_shared<BeebStateMessage>(std::move(state), true);
 
     return true;
@@ -1206,7 +1220,7 @@ bool BeebThread::CancelTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
+#ifndef B2_LIBRETRO_CORE
 BeebThread::CloneWindowMessage::CloneWindowMessage(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments)) {
 }
@@ -1347,7 +1361,7 @@ bool BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
     return true;
 }
-
+#endif
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1546,7 +1560,7 @@ bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> 
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
+#ifndef B2_LIBRETRO_CORE
 BeebThread::CreateTimelineVideoMessage::CreateTimelineVideoMessage(std::shared_ptr<const BeebState> state,
                                                                    std::unique_ptr<VideoWriter> video_writer)
     : m_state(std::move(state))
@@ -1585,7 +1599,7 @@ bool BeebThread::CreateTimelineVideoMessage::ThreadPrepare(std::shared_ptr<Messa
     ptr->reset();
     return true;
 }
-
+#endif // B2_LIBRETRO_CORE
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -2862,11 +2876,13 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
             }
         }
     }
-
+#ifndef B2_LIBRETRO_CORE
     PushFunctionMessage([data = std::move(ts->copy_data), fun = std::move(ts->copy_stop_fun)]() {
         fun(std::move(data));
     });
-
+#else
+// TODO: call copy_stop function?
+#endif
     m_is_copying.store(false, std::memory_order_release);
 }
 
@@ -2930,7 +2946,9 @@ void BeebThread::ThreadMain(void) {
             (m_is_speed_limited.load(std::memory_order_acquire) &&
              ts.next_stop_cycles.n <= ts.num_executed_cycles->n)) {
             PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Wait");
+#ifndef B2_LIBRETRO_CORE
             rmt_ScopedCPUSample(MessageQueueWaitForMessage, 0);
+#endif // B2_LIBRETRO_CORE
             m_mq.ConsumerWaitForMessages(&messages);
             ++m_num_mq_waits;
             what = "waited";
@@ -3156,8 +3174,9 @@ void BeebThread::ThreadMain(void) {
 
             if (num_va + num_vb > 0) {
                 PROFILE_SCOPE(PROFILER_COLOUR_BLUE, "Beeb Update");
+#ifndef B2_LIBRETRO_CORE
                 rmt_ScopedCPUSample(BeebUpdate, 0);
-
+#endif // B2_LIBRETRO_CORE
                 VideoDataUnit *vunit = va;
                 VideoDataUnit *vunit_end = va + num_va;
                 bool vunits_a = true;

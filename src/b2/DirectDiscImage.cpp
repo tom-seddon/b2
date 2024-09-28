@@ -6,13 +6,18 @@
 #include "native_ui.h"
 #include "Messages.h"
 #include <limits.h>
+#ifndef B2_LIBRETRO_CORE
 #include "load_save.h"
+#else
+#include "../libretro/adapters.h"
+#include "../libretro/core.h"
+#endif // B2_LIBRETRO_CORE
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
+#ifndef B2_LIBRETRO_CORE
 LOG_EXTERN(OUTPUT);
-
+#endif // B2_LIBRETRO_CORE
 const std::string DirectDiscImage::LOAD_METHOD_DIRECT = "direct";
 
 //////////////////////////////////////////////////////////////////////////
@@ -98,7 +103,7 @@ std::string DirectDiscImage::GetDescription() const {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
+#ifndef B2_LIBRETRO_CORE
 // TODO - basically the same as MemoryDiscImage.
 void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
     if (const char *ext = GetExtensionFromDiscGeometry(m_geometry)) {
@@ -106,7 +111,7 @@ void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
         fd->AddFilter("BBC disc image", {pattern});
     }
 }
-
+#endif
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -248,7 +253,9 @@ bool DirectDiscImage::fopenAndSeek(bool write,
             mode = "rb";
         }
 
+#ifndef B2_LIBRETRO_CORE
         LOGF(OUTPUT, "Opening: %s (mode=%s)\n", m_path.c_str(), mode);
+#endif // B2_LIBRETRO_CORE
 
         m_fp = fopenUTF8(m_path.c_str(), mode);
         if (!m_fp) {
@@ -271,7 +278,9 @@ bool DirectDiscImage::fopenAndSeek(bool write,
 
 void DirectDiscImage::Close() const {
     if (m_fp) {
+#ifndef B2_LIBRETRO_CORE
         LOGF(OUTPUT, "Closing: %s\n", m_path.c_str());
+#endif // B2_LIBRETRO_CORE
         fclose(m_fp);
         m_fp = nullptr;
     }
