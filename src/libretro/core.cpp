@@ -13,10 +13,13 @@ manage static 6502_internal.inl
 #include <shared/system.h>
 #include "../beeb/include/beeb/BBCMicro.h"
 #include "../beeb/include/beeb/sound.h"
+#include "../beeb/include/beeb/video.h"
 #include "../beeb/include/beeb/TVOutput.h"
+#include "../beeb/include/beeb/OutputData.h"
 #include "core.h"
 #include "libretro.h"
 #include "adapters.h"
+#include "b2_libretro_keymap.h"
 
 #define MAX_DISK_COUNT 10
 static struct retro_log_callback logging;
@@ -59,10 +62,18 @@ static retro_set_led_state_t led_state_cb;
 
 
 int autoboot=0;
+size_t updateCount = 0;
+size_t updateCount_prevframe = 0;
 bool sound_ddnoise=false;
 bool sound_tape=false;
-    uint64_t version;
+uint64_t version;
+static constexpr size_t NUM_VIDEO_UNITS = 262144;
+static constexpr size_t NUM_AUDIO_UNITS = NUM_VIDEO_UNITS / 2; //(1<<SOUND_CLOCK_SHIFT);
 
+OutputDataBuffer<VideoDataUnit> m_video_output(NUM_VIDEO_UNITS);
+OutputDataBuffer<SoundDataUnit> m_sound_output(NUM_AUDIO_UNITS);
+CycleCount num_cycles = {CYCLES_PER_SECOND / 1000};
+    
 BBCMicro *core = (BBCMicro *) 0;
 TVOutput tv;
 VideoDataUnit vdu;
@@ -139,8 +150,10 @@ void set_frame_time_cb(retro_usec_t usec)
 static void update_keyboard_cb(bool down, unsigned keycode,
                                uint32_t character, uint16_t key_modifiers)
 {
-  /*if(keycode != RETROK_UNKNOWN && core)
-    core->update_keyboard(down,keycode,character,key_modifiers);*/
+  if(keycode != RETROK_UNKNOWN && core) {
+    //log_cb(RETRO_LOG_DEBUG, "Keyboard event: %d %s\n",keycode,down?"down":"up");
+    core->SetKeyState(beeb_libretro_keymap.at(keycode),down);  
+  }
 }
 
 static void check_variables(void)
@@ -494,11 +507,13 @@ void retro_init(void)
     core->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
    //core->SetSidewaysROM(14, LoadROM("DFS-2.26.rom"));
 
-  core->Update(&vdu,&sdu);
 //  tv = TVOutput();
 
   check_variables();
   log_cb(RETRO_LOG_DEBUG, "Starting core...\n");
+  core->Update(&vdu,&sdu);
+  updateCount++;
+
 /*  core->start();
   core->change_resolution(core->currWidth,core->currHeight,environ_cb);*/
 }
@@ -632,79 +647,137 @@ static void audio_callback_batch(void)
 
 void retro_run(void)
 {
-//  printf("retro_run \n");
+   //  printf("retro_run \n");
 
-  bool updated = false;
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-    check_variables();
+   bool updated = false;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+      check_variables();
 
-  void *buf = NULL;
-static constexpr uint16_t WRCHV = 0x20e;
-static constexpr uint16_t WORDV = 0x20c;
-static constexpr uint16_t CLIV = 0x208;
+   const uint32_t *pixels = tv.GetTexturePixels(&version);
 
+   void *buf = NULL;
+   static constexpr uint16_t WRCHV = 0x20e;
+   static constexpr uint16_t WORDV = 0x20c;
+   static constexpr uint16_t CLIV = 0x208;
 
-    const uint32_t *pixels = tv.GetTexturePixels(&version);
-    const uint8_t *ram = core->GetRAM();
-    const M6502 *cpu = core->GetM6502();
-//    M6502 *cpu2 = core->GetM6502_noconst();
-   char disassembleMsg[255];
-        for (size_t i = 0; i < 1024; ++i) {
-            uint32_t update_result = core->Update(&vdu,
-                                                  &sdu);
+   VideoDataUnit *va, *vb;
+   size_t num_va, num_vb;
+   size_t num_video_units = (size_t)(num_cycles.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
+   if (!m_video_output.GetProducerBuffers(&va, &num_va, &vb, &num_vb))
+   {
+      log_cb(RETRO_LOG_ERROR, "Unable to allocate video buffers\n");
+   }
+   log_cb(RETRO_LOG_ERROR, "Allocated buffers: num_video_units %d, va %d, vb %d\n",num_video_units, num_va, num_vb);
+   if (num_va + num_vb > num_video_units)
+   {
+      if (num_va > num_video_units)
+      {
+         num_va = num_video_units;
+         num_vb = 0;
+      }
+      else
+      {
+         num_vb = num_video_units - num_va;
+      }
+   }
 
-            if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
-               //printf("retro_run tv update\n");
-               tv.Update(&vdu, 1);
+   size_t num_sound_units = (size_t)((num_va + num_vb + (1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1) >> RSHIFT_CYCLE_COUNT_TO_SOUND_CLOCK);
+
+   SoundDataUnit *sa, *sb;
+   size_t num_sa, num_sb;
+   if (!m_sound_output.GetProducerBuffers(&sa, &num_sa, &sb, &num_sb))
+   {
+      log_cb(RETRO_LOG_ERROR, "Unable to allocate sound buffers\n");
+   }
+
+   if (num_sa + num_sb < num_sound_units)
+   {
+      log_cb(RETRO_LOG_ERROR, "Unable to allocate enough sound buffers\n");
+   }
+
+   SoundDataUnit *sunit = sa;
+   SoundDataUnit *sunit_end = sa + num_sa;
+   bool sunits_a = true;
+
+//   total_num_audio_units_produced += num_sound_units;
+
+   if (num_va + num_vb > 0)
+   {
+      //log_cb(RETRO_LOG_DEBUG, "Mainloop start\n");
+      VideoDataUnit *vunit = va;
+      VideoDataUnit *vunit_end = va + num_va;
+      bool vunits_a = true;
+      size_t num_vunits = 0;
+
+      for (;;)
+      {
+
+         uint32_t update_result = core->Update(vunit, sunit);
+//         log_cb(RETRO_LOG_DEBUG, "Update\n");
+         if (update_result & BBCMicroUpdateResultFlag_VideoUnit)
+         {
+            tv.Update(vunit, 1);
+            ++vunit;
+            ++num_vunits;
+            if (vunit == vunit_end)
+            {
+               if (vunits_a && num_vb > 0)
+               {
+                  vunit = vb;
+                  vunit_end = vb + num_vb;
+                  vunits_a = false;
+               }
+               else
+               {
+                  break;
+               }
             }
+         }
 
-        if (update_result & BBCMicroUpdateResultFlag_Host) {
-            //printf("retro_run host update\n");
-            if (M6502_IsAboutToExecute(cpu)) {
-//                M6502_DisassembleLastInstruction(cpu2, disassembleMsg, 255, nullptr, nullptr);
-//                printf("retro_run cpu exec %x %s\n", cpu2->pc.w, disassembleMsg);
+         if (update_result & BBCMicroUpdateResultFlag_AudioUnit)
+         {
+/*            ++sunit;
+//                        m_sound_output.Produce(1);
 
-                /*if (cpu->abus.b.l == ram[WORDV + 0] &&
-                    cpu->abus.b.h == ram[WORDV + 1] &&
-                    cpu->a == 0) {
-                    printf("CPU instruction found %x %x\n", ram[0xffff],ram[0xfffe]);
-                }*/
+            if (sunit == sunit_end)
+            {
+               if (sunits_a && num_sb > 0)
+               {
+                  sunit = sb;
+                  sunit_end = sb + num_sb;
+                  sunits_a = false;
+               }
+               else
+               {
+                  break;
+               }
             }
-        }
+         }*/
+      }
 
-        }
+      m_video_output.Produce(num_vunits);
+   }
+   }
 
 
-        uint64_t new_version;
-        pixels = tv.GetTexturePixels(&new_version);
-        if (new_version > version) {
-            version = new_version;
-            printf("Frame advance %d\n",version);
-        }
+      uint64_t new_version;
+      pixels = tv.GetTexturePixels(&new_version);
+      if (new_version > version)
+      {
+         version = new_version;
 
-    std::vector<uint32_t> result(pixels, pixels + TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+         printf("Frame advance %d update count: %d\n",version, updateCount - updateCount_prevframe);
+         updateCount_prevframe = updateCount;
+      }
 
-  unsigned stride  = TV_TEXTURE_WIDTH;
+      std::vector<uint32_t> result(pixels, pixels + TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+
+
+
+
+      unsigned stride  = TV_TEXTURE_WIDTH;
       video_cb(pixels, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, stride << 2);
-/*      for (int i=0;i<TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT;i++)
-         if (result[i]>0)
-            printf("nonzero pixel %d %d \n",i,result[i]);*/
 
-  /*if (useSwFb)
-  {
-    struct retro_framebuffer fb = {0};
-    fb.width = core->currWidth;
-    fb.height = core->currHeight;
-    fb.access_flags = RETRO_MEMORY_ACCESS_WRITE;
-#ifdef EP128EMU_USE_XRGB8888
-    if (environ_cb(RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER, &fb) && fb.format == RETRO_PIXEL_FORMAT_XRGB8888)
-#else
-    if (environ_cb(RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER, &fb) && fb.format == RETRO_PIXEL_FORMAT_RGB565)
-#endif // EP128EMU_USE_XRGB8888
-    {
-      buf = fb.data;
-    }
-  }*/
   update_input();
   /*core->run_for(curr_frame_time,waitPeriod,buf);*/
   audio_callback_batch();

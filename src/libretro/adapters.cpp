@@ -31,7 +31,8 @@ printf ("SaveFile: %s\n",path.c_str());
 }
 
 std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::string &name) {
-    std::string path = "/media/storage/Documents/dev/b2/rom/"+ name;
+   // TODO: use system dir
+    std::string path = "/media/storage/Documents/dev/b2-libretro/rom/"+ name;
 
     std::vector<uint8_t> data;
     PathLoadBinaryFile(&data, path);
