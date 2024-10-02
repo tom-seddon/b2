@@ -72,7 +72,7 @@ static constexpr size_t NUM_AUDIO_UNITS = NUM_VIDEO_UNITS / 2; //(1<<SOUND_CLOCK
 
 OutputDataBuffer<VideoDataUnit> m_video_output(NUM_VIDEO_UNITS);
 OutputDataBuffer<SoundDataUnit> m_sound_output(NUM_AUDIO_UNITS);
-CycleCount num_cycles = {CYCLES_PER_SECOND / 1000};
+CycleCount num_cycles = {CYCLES_PER_SECOND / 50 /*1000*/};
     
 BBCMicro *core = (BBCMicro *) 0;
 TVOutput tv;
@@ -529,12 +529,12 @@ void retro_get_system_info(struct retro_system_info *info)
   info->library_version  = "v0.1";
   info->need_fullpath    = true;
   info->valid_extensions = "img|dsk|tap";
-  printf("retro_get_system_info \n");
+  //printf("retro_get_system_info \n");
 }
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
-  printf("retro_get_system_av_info \n");
+  //printf("retro_get_system_av_info \n");
 
   float aspect = 4.0f / 3.0f;
   aspect = 4.0f / (3.0f);
@@ -553,12 +553,12 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
     .max_height   = TV_TEXTURE_HEIGHT,
     .aspect_ratio = aspect,
   };
-  printf("retro_get_system_av_info \n");
+  //printf("retro_get_system_av_info \n");
 }
 
 void retro_set_environment(retro_environment_t cb)
 {
-  printf("retro_set_environment \n");
+  //printf("retro_set_environment \n");
 
   environ_cb = cb;
 
@@ -606,7 +606,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 void retro_reset(void)
 {
-  printf("retro_reset \n");
+  //printf("retro_reset \n");
 
   /*if(vmThread) vmThread->reset(true);*/
 }
@@ -667,7 +667,7 @@ void retro_run(void)
    {
       log_cb(RETRO_LOG_ERROR, "Unable to allocate video buffers\n");
    }
-   log_cb(RETRO_LOG_ERROR, "Allocated buffers: num_video_units %d, va %d, vb %d\n",num_video_units, num_va, num_vb);
+   log_cb(RETRO_LOG_DEBUG, "Allocated buffers: num_video_units %d, va %d, vb %d\n",num_video_units, num_va, num_vb);
    if (num_va + num_vb > num_video_units)
    {
       if (num_va > num_video_units)
@@ -681,23 +681,21 @@ void retro_run(void)
       }
    }
 
-   size_t num_sound_units = (size_t)((num_va + num_vb + (1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1) >> RSHIFT_CYCLE_COUNT_TO_SOUND_CLOCK);
-
    SoundDataUnit *sa, *sb;
    size_t num_sa, num_sb;
+   size_t num_sound_units = (size_t)((num_va + num_vb + (1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1) >> RSHIFT_CYCLE_COUNT_TO_SOUND_CLOCK);
    if (!m_sound_output.GetProducerBuffers(&sa, &num_sa, &sb, &num_sb))
    {
       log_cb(RETRO_LOG_ERROR, "Unable to allocate sound buffers\n");
    }
-
+   log_cb(RETRO_LOG_DEBUG, "Allocated buffers: num_sound_units %d, va %d, vb %d\n",num_sound_units, num_sa, num_sb);
    if (num_sa + num_sb < num_sound_units)
    {
       log_cb(RETRO_LOG_ERROR, "Unable to allocate enough sound buffers\n");
    }
 
-   SoundDataUnit *sunit = sa;
-   SoundDataUnit *sunit_end = sa + num_sa;
-   bool sunits_a = true;
+
+   update_input();
 
 //   total_num_audio_units_produced += num_sound_units;
 
@@ -709,6 +707,10 @@ void retro_run(void)
       bool vunits_a = true;
       size_t num_vunits = 0;
 
+      SoundDataUnit *sunit = sa;
+      SoundDataUnit *sunit_end = sa + num_sa;
+      bool sunits_a = true;
+
       for (;;)
       {
 
@@ -716,7 +718,7 @@ void retro_run(void)
 //         log_cb(RETRO_LOG_DEBUG, "Update\n");
          if (update_result & BBCMicroUpdateResultFlag_VideoUnit)
          {
-            tv.Update(vunit, 1);
+            //tv.Update(vunit, 1);
             ++vunit;
             ++num_vunits;
             if (vunit == vunit_end)
@@ -736,8 +738,11 @@ void retro_run(void)
 
          if (update_result & BBCMicroUpdateResultFlag_AudioUnit)
          {
-/*            ++sunit;
-//                        m_sound_output.Produce(1);
+            /*if(sunit->sn_output.ch[0])
+               printf("%d,",sunit->sn_output.ch[0]);*/
+            ++sunit;
+            m_sound_output.Produce(1);
+            
 
             if (sunit == sunit_end)
             {
@@ -752,34 +757,116 @@ void retro_run(void)
                   break;
                }
             }
-         }*/
+         }
       }
 
       m_video_output.Produce(num_vunits);
+      //m_video_output.Consume(num_vunits);
    }
-   }
+    const VideoDataUnit *a, *b;
+    size_t na, nb;
 
+   if (m_video_output.GetConsumerBuffers(&a, &na, &b, &nb))
+   {
+      log_cb(RETRO_LOG_DEBUG, "Consume video: %d + %d\n",na,nb);
+      size_t num_left;
+      const size_t MAX_UPDATE_SIZE = 200;
 
-      uint64_t new_version;
-      pixels = tv.GetTexturePixels(&new_version);
-      if (new_version > version)
+      tv.PrepareForUpdate();
+
+      // A.
+      num_left = na;
+      while (num_left > 0)
       {
-         version = new_version;
+         size_t n = num_left;
+         if (n > MAX_UPDATE_SIZE)
+         {
+            n = MAX_UPDATE_SIZE;
+         }
 
-         printf("Frame advance %d update count: %d\n",version, updateCount - updateCount_prevframe);
-         updateCount_prevframe = updateCount;
+         tv.Update(a, n);
+
+         a += n;
+         m_video_output.Consume(n);
+         num_left -= n;
       }
 
-      std::vector<uint32_t> result(pixels, pixels + TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+      // B.
+      num_left = nb;
+      while (num_left > 0)
+      {
+         size_t n = num_left;
+         if (n > MAX_UPDATE_SIZE)
+         {
+            n = MAX_UPDATE_SIZE;
+         }
+
+         tv.Update(b, n);
+
+         b += n;
+         m_video_output.Consume(n);
+         num_left -= n;
+      }
+   }
 
 
+   uint64_t new_version;
+   pixels = tv.GetTexturePixels(&new_version);
+   if (new_version > version)
+   {
+      version = new_version;
 
+      printf("Frame advance %d update count: %d\n",version, updateCount - updateCount_prevframe);
+      updateCount_prevframe = updateCount;
+   }
 
-      unsigned stride  = TV_TEXTURE_WIDTH;
-      video_cb(pixels, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, stride << 2);
+   std::vector<uint32_t> result(pixels, pixels + TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+   unsigned stride  = TV_TEXTURE_WIDTH;
+   video_cb(pixels, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, stride << 2);
+   const SoundDataUnit *aa, *bb;
+   if (m_sound_output.GetConsumerBuffers(&aa, &na, &bb, &nb))
+   {
+      log_cb(RETRO_LOG_DEBUG, "Consume audio: %d + %d\n",na,nb);
+      size_t buf_idx = 0;
+      int16_t buf_value;
 
-  update_input();
-  /*core->run_for(curr_frame_time,waitPeriod,buf);*/
+      // A.
+#define MIXCH(sa,CH) (VOLUMES_TABLE[sa->sn_output.ch[CH]])
+#define MIXSN (sn_scale * (MIXCH(0) + MIXCH(1) + MIXCH(2) + MIXCH(3)))
+      
+      while (buf_idx < na)
+      {
+         buf_value = (int16_t)10000.0f*(
+            VOLUMES_TABLE[aa[buf_idx].sn_output.ch[0]]+
+            VOLUMES_TABLE[aa[buf_idx].sn_output.ch[1]]+
+            VOLUMES_TABLE[aa[buf_idx].sn_output.ch[2]]+
+            VOLUMES_TABLE[aa[buf_idx].sn_output.ch[3]]);
+         //aa += 1;
+         audioBuffer[buf_idx] = buf_value;
+         if (audioBuffer[buf_idx])
+            printf("%d,",audioBuffer[buf_idx]);
+         buf_idx++;
+      }
+      m_sound_output.Consume(na);
+      
+      while (buf_idx < na+nb)
+      {
+         buf_value= (int16_t)10000.0f*(
+            VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[0]]+
+            VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[1]]+
+            VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[2]]+
+            VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[3]]);
+         audioBuffer[buf_idx] = buf_value;
+         /*if (audioBuffer[buf_idx])
+            printf("%d,",audioBuffer[buf_idx]);*/
+         //bb += 1;
+         buf_idx++;
+      }
+      m_sound_output.Consume(nb);
+
+      printf("\n");
+   }
+
   audio_callback_batch();
   /*core->sync_display();*/
   render();

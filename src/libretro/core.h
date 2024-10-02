@@ -1,10 +1,28 @@
 #ifndef __INC_CORE_H
 #define __INC_CORE_H
 
+static const float VOLUMES_TABLE[] = {
+    0.00000f,
+    0.03981f,
+    0.05012f,
+    0.06310f,
+    0.07943f,
+    0.10000f,
+    0.12589f,
+    0.15849f,
+    0.19953f,
+    0.25119f,
+    0.31623f,
+    0.39811f,
+    0.50119f,
+    0.63096f,
+    0.79433f,
+    1.00000f,
+};
 
 
-#define B2_SAMPLE_RATE 44100
-#define B2_SAMPLE_RATE_FLOAT 44100.0
+#define B2_SAMPLE_RATE 250000
+#define B2_SAMPLE_RATE_FLOAT 250000.0
 #define B2_SNAPSHOT_SIZE 262144
 
 #define B2_LIBRETRO_SCREEN_WIDTH 768
