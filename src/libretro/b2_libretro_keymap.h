@@ -21,7 +21,7 @@ const std::map<unsigned, BeebKey> beeb_libretro_keymap = {
     {RETROK_7,        BeebKey_7},
     {RETROK_8,        BeebKey_8},
     {RETROK_9,        BeebKey_9},
-    {RETROK_COLON,    BeebKey_Colon},
+    {RETROK_QUOTE,    BeebKey_Colon},
     {RETROK_SEMICOLON,BeebKey_Semicolon},
     {RETROK_BACKSLASH,BeebKey_Backslash},
     {RETROK_a,        BeebKey_A},

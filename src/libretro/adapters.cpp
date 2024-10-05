@@ -14,10 +14,55 @@ printf ("GetAssetPath: %s\n",path.c_str());
 return path;
 }
 
+// lifted from LoadSave.cpp
 bool GetFileDetails(size_t *size, bool *can_write, const char *path)
 {
-printf ("GetFileDetails: %s\n",path);
+    FILE *fp = nullptr;
+    bool good = false;
+    long len;
+
+    fp = fopenUTF8(path, "r+b");
+    if (fp) {
+        *can_write = true;
+    } else {
+        // doesn't exist, or read-only.
+        fp = fopenUTF8(path, "rb");
+        if (!fp) {
+            // assume doesn't exist.
+            goto done;
+        }
+
+        *can_write = false;
+    }
+
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        goto done;
+    }
+
+    len = ftell(fp);
+    if (len < 0) {
+        goto done;
+    }
+
+    if ((unsigned long)len > SIZE_MAX) {
+        *size = SIZE_MAX;
+    } else {
+        *size = (size_t)len;
+    }
+
+    good = true;
+done:
+    if (fp) {
+        fclose(fp);
+        fp = nullptr;
+    }
+
+    return good;
 }
+
+
+
+
 bool LoadFile(std::vector<uint8_t> *data,
               const std::string &path,
               Messages *messages,

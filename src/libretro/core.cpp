@@ -1,6 +1,22 @@
 /* TODO
 
 manage static 6502_internal.inl
+finish key layout, handle key not found
+joypad controls
+
+load game with disc input
+
+fix sound distortion - more or less OK
+use more sane sample rate than 250kHz
+
+save state
+load uef?
+database
+
+tape input?
+hook up reset
+disc autostart?
+intelligent zoom?
 
 }
 
@@ -16,7 +32,9 @@ manage static 6502_internal.inl
 #include "../beeb/include/beeb/video.h"
 #include "../beeb/include/beeb/TVOutput.h"
 #include "../beeb/include/beeb/OutputData.h"
+#include "../b2/DirectDiscImage.h"
 #include "../b2/filters.h"
+#include "../shared/h/shared/path.h"
 #include "core.h"
 #include "libretro.h"
 #include "adapters.h"
@@ -35,6 +53,7 @@ char retro_system_bios_directory[512];
 char retro_system_save_directory[512];
 char retro_content_filepath[512];
 uint16_t audioBuffer[B2_SAMPLE_RATE*1000*2];
+bool inputStateMap[256][1];
 
 retro_usec_t curr_frame_time = 0;
 retro_usec_t prev_frame_time = 0;
@@ -503,10 +522,11 @@ void retro_init(void)
   check_variables();
   log_cb(RETRO_LOG_DEBUG, "Creating core...\n");
   //core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
-  core = new BBCMicro(&BBC_MICRO_TYPE_B,nullptr,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
+  //core = new BBCMicro(&BBC_MICRO_TYPE_B,nullptr,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
+  core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
     core->SetOSROM(LoadROM("OS12.ROM"));
     core->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
-   //core->SetSidewaysROM(14, LoadROM("DFS-2.26.rom"));
+    core->SetSidewaysROM(14, LoadROM("DFS-2.26.ROM"));
 
 //  tv = TVOutput();
 
@@ -514,6 +534,7 @@ void retro_init(void)
   log_cb(RETRO_LOG_DEBUG, "Starting core...\n");
   core->Update(&vdu,&sdu);
   updateCount++;
+
 
 /*  core->start();
   core->change_resolution(core->currWidth,core->currHeight,environ_cb);*/
@@ -529,7 +550,7 @@ void retro_get_system_info(struct retro_system_info *info)
   info->library_name     = "b2";
   info->library_version  = "v0.1";
   info->need_fullpath    = true;
-  info->valid_extensions = "img|dsk|tap";
+  info->valid_extensions = "ssd|dsd";
   //printf("retro_get_system_info \n");
 }
 
@@ -617,6 +638,44 @@ static void update_input(void)
 //  log_cb(RETRO_LOG_DEBUG, "update input\n");
   input_poll_cb();
   /*core->update_input(input_state_cb, environ_cb, maxUsers);*/
+
+  int i;
+  int axisValue;
+  uint8_t port;
+  bool currInputState;
+  unsigned scanLimit = 1;
+  BBCMicro::DigitalJoystickInput di;
+  for(port=0; port<scanLimit; port++)
+  {
+    currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
+    di.bits.down = currInputState;
+    currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
+    di.bits.up = currInputState;
+    currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
+    di.bits.left= currInputState;
+    currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+    di.bits.right = currInputState;
+    currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
+    di.bits.fire0 = currInputState;
+    currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
+    di.bits.fire1 = currInputState;
+    core->SetDigitalJoystickState(port,di);
+
+    if (core->HasADC())
+    {
+      axisValue = input_state_cb(port, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_X);
+      if (axisValue < 0)
+         core->SetAnalogueChannel(0,axisValue*-1);
+      else if (axisValue > 0)
+         core->SetAnalogueChannel(1,axisValue);
+      axisValue = input_state_cb(port, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_Y);
+      if (axisValue < 0)
+         core->SetAnalogueChannel(2,axisValue*-1);
+      else if (axisValue > 0)
+         core->SetAnalogueChannel(3,axisValue);
+    }
+
+  }
 }
 
 static void render(void)
@@ -841,7 +900,7 @@ void retro_run(void)
       bool nonZeroAudio = false;
       while (buf_idx < na)
       {
-         buf_value = (int16_t)10000.0f*(
+         buf_value = (int16_t)32767.0f/4.0f*(
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[0]]+
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[1]]+
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[2]]+
@@ -849,10 +908,10 @@ void retro_run(void)
          //aa += 1;
          audioBuffer[buf_idx*2] =  /**filter * */ buf_value;
          audioBuffer[buf_idx*2+1] =  /**filter++ * */buf_value;
-         if (audioBuffer[buf_idx])
+         /*if (audioBuffer[buf_idx])
             nonZeroAudio = true;
          if (nonZeroAudio)
-            printf("%d,",audioBuffer[buf_idx]);
+            printf("%d,",audioBuffer[buf_idx]);*/
          buf_idx++;
       }
       m_sound_output.Consume(na);
@@ -873,7 +932,7 @@ void retro_run(void)
       }
       m_sound_output.Consume(nb);
 
-      printf("last buf_idx %d\n",buf_idx);
+      /*printf("last buf_idx %d\n",buf_idx);*/
    }
 
   audio_callback_batch();
@@ -918,16 +977,29 @@ bool retro_load_game(const struct retro_game_info *info)
   }
 
   check_variables();
-/*  if(info != nullptr)
+
+
+
+  if(info != nullptr)
   {
     if (core)
     {
       delete core;
-      core = (Ep128Emu::LibretroCore *) 0;
-      vmThread = (Ep128Emu::VMThread *) 0;
-      config = (Ep128Emu::EmulatorConfiguration *) 0;
+      core = (BBCMicro *) 0;
     }
     log_cb(RETRO_LOG_INFO, "Loading game: %s \n",info->path);
+
+  core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
+    core->SetOSROM(LoadROM("OS12.ROM"));
+    core->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
+    core->SetSidewaysROM(14, LoadROM("DFS-2.26.ROM"));
+
+    
+  std::string path = info->path;
+  core->SetDiscImage(0, DirectDiscImage::CreateForFile(path, nullptr));
+   }
+
+/*
     std::string filename(info->path);
     std::string contentExt;
     std::string contentPath;
