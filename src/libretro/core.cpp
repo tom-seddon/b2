@@ -16,6 +16,7 @@ manage static 6502_internal.inl
 #include "../beeb/include/beeb/video.h"
 #include "../beeb/include/beeb/TVOutput.h"
 #include "../beeb/include/beeb/OutputData.h"
+#include "../b2/filters.h"
 #include "core.h"
 #include "libretro.h"
 #include "adapters.h"
@@ -636,7 +637,7 @@ static void audio_callback(void)
 static void audio_callback_batch(void)
 {
   size_t nFrames=0;
-  int exp = int(float(1000000/50*B2_SAMPLE_RATE)/1000000.0f+0.5f);
+  int exp = 5000 /*int(float((1000000/50)*B2_SAMPLE_RATE)/1000000.0f+0.5f) */;
 
   /*core->audioOutput->forwardAudioData((int16_t*)audioBuffer,&nFrames,exp);*/
   //printf("sending frames: %d exp %d frame_time: %d\n",nFrames,exp, curr_frame_time);
@@ -831,9 +832,13 @@ void retro_run(void)
       int16_t buf_value;
 
       // A.
-#define MIXCH(sa,CH) (VOLUMES_TABLE[sa->sn_output.ch[CH]])
-#define MIXSN (sn_scale * (MIXCH(0) + MIXCH(1) + MIXCH(2) + MIXCH(3)))
+
+      const float *filter;
+      size_t filter_width;
+      GetFilterForWidth(&filter, &filter_width, (size_t)na+nb);
+      ASSERT(filter_width <= num_units);
       
+      bool nonZeroAudio = false;
       while (buf_idx < na)
       {
          buf_value = (int16_t)10000.0f*(
@@ -842,8 +847,11 @@ void retro_run(void)
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[2]]+
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[3]]);
          //aa += 1;
-         audioBuffer[buf_idx] = buf_value;
+         audioBuffer[buf_idx*2] =  /**filter * */ buf_value;
+         audioBuffer[buf_idx*2+1] =  /**filter++ * */buf_value;
          if (audioBuffer[buf_idx])
+            nonZeroAudio = true;
+         if (nonZeroAudio)
             printf("%d,",audioBuffer[buf_idx]);
          buf_idx++;
       }
@@ -856,7 +864,8 @@ void retro_run(void)
             VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[1]]+
             VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[2]]+
             VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[3]]);
-         audioBuffer[buf_idx] = buf_value;
+         audioBuffer[buf_idx*2] = /* *filter * */ buf_value;
+         audioBuffer[buf_idx*2+1] = /* *filter++ * */ buf_value;
          /*if (audioBuffer[buf_idx])
             printf("%d,",audioBuffer[buf_idx]);*/
          //bb += 1;
@@ -864,7 +873,7 @@ void retro_run(void)
       }
       m_sound_output.Consume(nb);
 
-      printf("\n");
+      printf("last buf_idx %d\n",buf_idx);
    }
 
   audio_callback_batch();
