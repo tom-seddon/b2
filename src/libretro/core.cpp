@@ -4,7 +4,10 @@ manage static 6502_internal.inl
 finish key layout, handle key not found
 joypad controls
 
-load game with disc input
+load game with disc input (paste?)
+set shift state on initial boot?
+
+different controls
 
 fix sound distortion - more or less OK
 use more sane sample rate than 250kHz
@@ -172,7 +175,15 @@ static void update_keyboard_cb(bool down, unsigned keycode,
 {
   if(keycode != RETROK_UNKNOWN && core) {
     //log_cb(RETRO_LOG_DEBUG, "Keyboard event: %d %s\n",keycode,down?"down":"up");
-    core->SetKeyState(beeb_libretro_keymap.at(keycode),down);  
+    std::map<unsigned, BeebKey>::const_iterator  iter_keymap;
+    iter_keymap = beeb_libretro_keymap.find(keycode);
+    if (iter_keymap == beeb_libretro_keymap.end()) {
+      log_cb(RETRO_LOG_DEBUG, "Unmapped keycode from frontend: %d\n",keycode); 
+    }
+    else
+    {
+      core->SetKeyState(beeb_libretro_keymap.at(keycode),down);  
+    }
   }
 }
 
@@ -645,7 +656,7 @@ static void update_input(void)
   bool currInputState;
   unsigned scanLimit = 1;
   BBCMicro::DigitalJoystickInput di;
-  for(port=0; port<scanLimit; port++)
+/*  for(port=0; port<scanLimit; port++)
   {
     currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
     di.bits.down = currInputState;
@@ -675,7 +686,7 @@ static void update_input(void)
          core->SetAnalogueChannel(3,axisValue);
     }
 
-  }
+  }*/
 }
 
 static void render(void)
@@ -727,7 +738,7 @@ void retro_run(void)
    {
       log_cb(RETRO_LOG_ERROR, "Unable to allocate video buffers\n");
    }
-   log_cb(RETRO_LOG_DEBUG, "Allocated buffers: num_video_units %d, va %d, vb %d\n",num_video_units, num_va, num_vb);
+   //log_cb(RETRO_LOG_DEBUG, "Allocated buffers: num_video_units %d, va %d, vb %d\n",num_video_units, num_va, num_vb);
    if (num_va + num_vb > num_video_units)
    {
       if (num_va > num_video_units)
@@ -748,7 +759,7 @@ void retro_run(void)
    {
       log_cb(RETRO_LOG_ERROR, "Unable to allocate sound buffers\n");
    }
-   log_cb(RETRO_LOG_DEBUG, "Allocated buffers: num_sound_units %d, va %d, vb %d\n",num_sound_units, num_sa, num_sb);
+   //log_cb(RETRO_LOG_DEBUG, "Allocated buffers: num_sound_units %d, va %d, vb %d\n",num_sound_units, num_sa, num_sb);
    if (num_sa + num_sb < num_sound_units)
    {
       log_cb(RETRO_LOG_ERROR, "Unable to allocate enough sound buffers\n");
@@ -828,7 +839,7 @@ void retro_run(void)
 
    if (m_video_output.GetConsumerBuffers(&a, &na, &b, &nb))
    {
-      log_cb(RETRO_LOG_DEBUG, "Consume video: %d + %d\n",na,nb);
+      //log_cb(RETRO_LOG_DEBUG, "Consume video: %d + %d\n",na,nb);
       size_t num_left;
       const size_t MAX_UPDATE_SIZE = 200;
 
@@ -876,7 +887,7 @@ void retro_run(void)
    {
       version = new_version;
 
-      printf("Frame advance %d update count: %d\n",version, updateCount - updateCount_prevframe);
+      //printf("Frame advance %d update count: %d\n",version, updateCount - updateCount_prevframe);
       updateCount_prevframe = updateCount;
    }
 
@@ -886,7 +897,7 @@ void retro_run(void)
    const SoundDataUnit *aa, *bb;
    if (m_sound_output.GetConsumerBuffers(&aa, &na, &bb, &nb))
    {
-      log_cb(RETRO_LOG_DEBUG, "Consume audio: %d + %d\n",na,nb);
+      //log_cb(RETRO_LOG_DEBUG, "Consume audio: %d + %d\n",na,nb);
       size_t buf_idx = 0;
       int16_t buf_value;
 
@@ -1439,3 +1450,28 @@ unsigned retro_get_region(void)
 {
   return RETRO_REGION_PAL;
 }
+
+
+/*
+    beeb->SetOSROM(ts->current_config.os);
+
+    for (uint8_t i = 0; i < 16; ++i) {
+        if (ts->current_config.config.roms[i].writeable) {
+            if (!!ts->current_config.roms[i]) {
+                beeb->SetSidewaysRAM(i, ts->current_config.roms[i]);
+            } else {
+                beeb->SetSidewaysRAM(i, nullptr);
+            }
+        } else {
+            if (!!ts->current_config.roms[i]) {
+                beeb->SetSidewaysROM(i, ts->current_config.roms[i]);
+            } else {
+                beeb->SetSidewaysROM(i, nullptr);
+            }
+        }
+    }
+
+    if (ts->current_config.config.parasite_type != BBCMicroParasiteType_None) {
+        beeb->SetParasiteOS(ts->current_config.parasite_os);
+    }
+*/
