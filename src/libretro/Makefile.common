@@ -37,7 +37,6 @@ SOURCES_CPP := \
 	$(CORE_DIR)/beeb/src/VideoULA.cpp \
 	$(CORE_DIR)/shared/c/log.cpp \
 	$(CORE_DIR)/shared/c/system.cpp \
-	$(CORE_DIR)/shared/c/system_linux.cpp \
 	$(CORE_DIR)/shared/c/mutex.cpp \
 	$(CORE_DIR)/shared/c/CommandLineParser.cpp \
 	$(CORE_DIR)/b2/BeebConfig.cpp \
@@ -55,9 +54,29 @@ SOURCES_CPP := \
 
 SOURCES_C := \
 	$(CORE_DIR)/6502/c/6502.c \
-	$(CORE_DIR)/shared/c/system_posix.c \
 	$(CORE_DIR)/shared/c/path.c \
-		
+
+	
+ifneq (,$(findstring osx,$(platform)))
+SOURCES_CPP += \
+	$(CORE_DIR)/shared/c/system_osx.cpp \
+
+SOURCES_C += \
+	$(CORE_DIR)/shared/c/system_posix.c \
+
+else ifneq (,$(findstring unix,$(platform)))
+SOURCES_CPP += \
+	$(CORE_DIR)/shared/c/system_linux.cpp \
+
+SOURCES_C += \
+	$(CORE_DIR)/shared/c/system_posix.c \
+
+else ifneq (,$(findstring win,$(platform)))
+SOURCES_CPP += \
+	$(CORE_DIR)/shared/c/system_windows.cpp \
+
+endif
+
 #beeb: all included
 #shared:
 #debug.cpp

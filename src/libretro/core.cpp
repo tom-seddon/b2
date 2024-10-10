@@ -1,11 +1,29 @@
 /* TODO
 
+sudo docker run --rm -v "/media/storage/Documents/dev/b2-libretro:/build" git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win32-cross:gcc10 bash -c "cd /build/src/libretro && make clean && make -j6"
+
+    export platform=win32
+    export ARCH=x86
+    export MSYSTEM=MINGW32
+    export AR=i686-w64-mingw32.static-ar
+    export AS=i686-w64-mingw32.static-as
+    export CC=i686-w64-mingw32.static-gcc
+    export CXX=i686-w64-mingw32.static-g++
+    export WINDRES=i686-w64-mingw32.static-windres
+
+
 manage static 6502_internal.inl
-finish key layout, handle key not found
 joypad controls
+
+core options
+   autoboot on/off
+   machine model
 
 load game with disc input (paste?)
 set shift state on initial boot?
+
+include roms in .h
+run main cycle until screen update
 
 different controls
 
@@ -20,6 +38,9 @@ tape input?
 hook up reset
 disc autostart?
 intelligent zoom?
+graphics line check (interlace, etc)?
+   *tv0,0 *tv0,1 are not different for some reason? test program?
+   fake interlace - based on register?
 
 }
 
@@ -581,7 +602,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
   info->geometry = (struct retro_game_geometry)
   {
     .base_width   = TV_TEXTURE_WIDTH,
-    .base_height  = TV_TEXTURE_HEIGHT,
+    .base_height  = TV_TEXTURE_HEIGHT/2,
     .max_width    = TV_TEXTURE_WIDTH,
     .max_height   = TV_TEXTURE_HEIGHT,
     .aspect_ratio = aspect,
@@ -893,7 +914,8 @@ void retro_run(void)
 
    std::vector<uint32_t> result(pixels, pixels + TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
    unsigned stride  = TV_TEXTURE_WIDTH;
-   video_cb(pixels, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, stride << 2);
+   //video_cb(pixels, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, stride << 2);
+   video_cb(pixels, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT/2, stride << 3);
    const SoundDataUnit *aa, *bb;
    if (m_sound_output.GetConsumerBuffers(&aa, &na, &bb, &nb))
    {
@@ -1005,6 +1027,7 @@ bool retro_load_game(const struct retro_game_info *info)
     core->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
     core->SetSidewaysROM(14, LoadROM("DFS-2.26.ROM"));
 
+  core->SetKeyState(BeebKey_Shift,true);  
     
   std::string path = info->path;
   core->SetDiscImage(0, DirectDiscImage::CreateForFile(path, nullptr));
