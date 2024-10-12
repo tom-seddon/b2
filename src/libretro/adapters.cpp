@@ -9,7 +9,7 @@ return path;
 }
 std::string GetAssetPath(const std::string &f0, const std::string &f1) 
 {
-std::string path = f0+"/"+f1;
+std::string path = f0+PATH_SEPARATOR+f1;
 printf ("GetAssetPath: %s\n",path.c_str());
 return path;
 }
@@ -68,13 +68,15 @@ bool LoadFile(std::vector<uint8_t> *data,
               Messages *messages,
               uint32_t flags)
 {
-printf ("LoadFile: %s\n",path);
+printf ("LoadFile: %s\n",path.c_str());
+return false;
 }
 bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages)
 {
 printf ("SaveFile: %s\n",path.c_str());
+return false;
 }
-
+/*
 std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::string &name) {
    // TODO: use system dir
     std::string path = "/media/storage/Documents/dev/b2-libretro/rom/"+ name;
@@ -90,4 +92,4 @@ std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::string &nam
     }
 
     return rom;
-}
+}*/

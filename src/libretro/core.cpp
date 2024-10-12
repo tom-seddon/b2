@@ -1,48 +1,76 @@
 /* TODO
 
-sudo docker run --rm -v "/media/storage/Documents/dev/b2-libretro:/build" git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win32-cross:gcc10 bash -c "cd /build/src/libretro && make clean && make -j6"
+sudo docker run -it --rm -v "/media/storage/Documents/dev/b2-libretro:/build" git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win32-cross:gcc10 bash
 
-    export platform=win32
-    export ARCH=x86
-    export MSYSTEM=MINGW32
-    export AR=i686-w64-mingw32.static-ar
-    export AS=i686-w64-mingw32.static-as
-    export CC=i686-w64-mingw32.static-gcc
-    export CXX=i686-w64-mingw32.static-g++
-    export WINDRES=i686-w64-mingw32.static-windres
+export platform=win32
+export ARCH=x86
+export MSYSTEM=MINGW32
+export AR=i686-w64-mingw32.static-ar
+export AS=i686-w64-mingw32.static-as
+export CC=i686-w64-mingw32.static-gcc
+export CXX=i686-w64-mingw32.static-g++
+export WINDRES=i686-w64-mingw32.static-windres
+cd /build/src/libretro
+make clean
+make -j6
+
+sudo docker run -it --rm -v "/media/storage/Documents/dev/b2-libretro:/build" git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win-cross-cores:gcc11 bash
+
+export platform=win64
+export ARCH=x86_64
+export MSYSTEM=MINGW64
+export AR=x86_64-w64-mingw32.static-ar
+export AS=x86_64-w64-mingw32.static-as
+export CC=x86_64-w64-mingw32.static-gcc
+export CXX=x86_64-w64-mingw32.static-g++
+export WINDRES=x86_64-w64-mingw32.static-windres
+cd /build/src/libretro
+make clean
+make -j6
 
 
-manage static 6502_internal.inl
-joypad controls
+compilation:
+   manage static 6502_internal.inl - probably to stay
+   compile in ROMs, remove remaining path dependency (no file operations to remain)
+   test Win32/64, OSX, PS2, etc.
+   remove not needed source files + ifdef changes
 
 core options
    autoboot on/off
-   machine model
+   machine model - build in JSON
+   selectable joypad controls (azop, az/', etc.)
+   fully customizable joypad controls
 
-load game with disc input (paste?)
-set shift state on initial boot?
-
-include roms in .h
-run main cycle until screen update
-
-different controls
-
-fix sound distortion - more or less OK
-use more sane sample rate than 250kHz
-
-save state
-load uef?
-database
-
-tape input?
-hook up reset
-disc autostart?
-intelligent zoom?
-graphics line check (interlace, etc)?
+speed / accuracy:
+   run main cycle until screen update
+   fix sound distortion - more or less OK
+   use more sane sample rate than 250kHz
    *tv0,0 *tv0,1 are not different for some reason? test program?
    fake interlace - based on register?
 
-}
+functions:
+   hook up reset
+   save state
+   load uef?
+   LED support
+   analog joystick, test program?
+   digital joystick, test program?
+   beeblink?
+   printer?
+   drive (and relay?) sound
+
+main QoL
+   load game with disc input (paste?)
+   intelligent zoom?
+   keyboard layouts?
+
+other QoL
+   overlay for LED display
+   SVG icon
+   database
+   game-DB similar to CPC?
+   tape input - not in b2 yet
+
 
 */
 #include <stdio.h>
@@ -60,6 +88,7 @@ graphics line check (interlace, etc)?
 #include "../b2/filters.h"
 #include "../shared/h/shared/path.h"
 #include "core.h"
+#include "roms.hpp"
 #include "libretro.h"
 #include "adapters.h"
 #include "b2_libretro_keymap.h"
@@ -556,9 +585,10 @@ void retro_init(void)
   //core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
   //core = new BBCMicro(&BBC_MICRO_TYPE_B,nullptr,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
   core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
-    core->SetOSROM(LoadROM("OS12.ROM"));
-    core->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
-    core->SetSidewaysROM(14, LoadROM("DFS-2.26.ROM"));
+
+    core->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
+    core->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
+    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));
 
 //  tv = TVOutput();
 
@@ -1023,9 +1053,9 @@ bool retro_load_game(const struct retro_game_info *info)
     log_cb(RETRO_LOG_INFO, "Loading game: %s \n",info->path);
 
   core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
-    core->SetOSROM(LoadROM("OS12.ROM"));
-    core->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
-    core->SetSidewaysROM(14, LoadROM("DFS-2.26.ROM"));
+    core->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
+    core->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
+    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));
 
   core->SetKeyState(BeebKey_Shift,true);  
     
