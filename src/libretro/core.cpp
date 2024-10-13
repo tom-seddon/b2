@@ -28,6 +28,14 @@ cd /build/src/libretro
 make clean
 make -j6
 
+current restrictions:
+one model
+crude autostart
+no drive sound
+no keyboard remap (positional only)
+no joystick remap
+no savestate
+.ssd/.dsd files only
 
 compilation:
    manage static 6502_internal.inl - probably to stay
@@ -36,7 +44,7 @@ compilation:
    remove not needed source files + ifdef changes
 
 core options
-   autoboot on/off
+   autoboot on/off, combine shift with autostart file name detection
    machine model - build in JSON
    selectable joypad controls (azop, az/', etc.)
    fully customizable joypad controls
@@ -49,7 +57,6 @@ speed / accuracy:
    fake interlace - based on register?
 
 functions:
-   hook up reset
    save state
    load uef?
    LED support
@@ -60,7 +67,6 @@ functions:
    drive (and relay?) sound
 
 main QoL
-   load game with disc input (paste?)
    intelligent zoom?
    keyboard layouts?
 
@@ -94,6 +100,9 @@ other QoL
 #include "b2_libretro_keymap.h"
 
 #define MAX_DISK_COUNT 10
+#define PASTE_FRAME 200
+size_t frameIndex = 0;
+bool autoStartPaste = false;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 static retro_environment_t environ_cb;
@@ -151,6 +160,7 @@ BBCMicro *core = (BBCMicro *) 0;
 TVOutput tv;
 VideoDataUnit vdu;
 SoundDataUnit sdu;
+static std::shared_ptr<const std::string> COPY_BASIC;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -235,6 +245,21 @@ static void update_keyboard_cb(bool down, unsigned keycode,
       core->SetKeyState(beeb_libretro_keymap.at(keycode),down);  
     }
   }
+}
+
+static void create_core(BBCMicro** newcore)
+{
+    if (*newcore)
+    {
+      delete *newcore;
+      *newcore = (BBCMicro *) 0;
+      log_cb(RETRO_LOG_DEBUG, "Deleting previous core\n"); 
+    }
+    *newcore = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
+    (*newcore)->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
+    (*newcore)->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
+    (*newcore)->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));
+    log_cb(RETRO_LOG_DEBUG, "New core created\n"); 
 }
 
 static void check_variables(void)
@@ -584,11 +609,12 @@ void retro_init(void)
   log_cb(RETRO_LOG_DEBUG, "Creating core...\n");
   //core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
   //core = new BBCMicro(&BBC_MICRO_TYPE_B,nullptr,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
-  core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
+  create_core(&core);
+  /*core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
 
     core->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
     core->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
-    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));
+    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));*/
 
 //  tv = TVOutput();
 
@@ -596,7 +622,6 @@ void retro_init(void)
   log_cb(RETRO_LOG_DEBUG, "Starting core...\n");
   core->Update(&vdu,&sdu);
   updateCount++;
-
 
 /*  core->start();
   core->change_resolution(core->currWidth,core->currHeight,environ_cb);*/
@@ -690,9 +715,8 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 void retro_reset(void)
 {
-  //printf("retro_reset \n");
-
-  /*if(vmThread) vmThread->reset(true);*/
+    log_cb(RETRO_LOG_INFO, "Machine hard reset\n");
+    create_core(&core);
 }
 
 static void update_input(void)
@@ -769,6 +793,7 @@ static void audio_callback_batch(void)
 
 void retro_run(void)
 {
+   frameIndex++;
    //  printf("retro_run \n");
 
    bool updated = false;
@@ -1004,6 +1029,15 @@ void retro_run(void)
    /* LED interface */
 /*   if (led_state_cb)
       update_led_interface();*/
+   if (frameIndex == PASTE_FRAME)
+   {
+      if (autoStartPaste) {
+         core->StartPaste(COPY_BASIC);
+         autoStartPaste = false;
+      } else {
+         core->SetKeyState(BeebKey_Shift,false);  
+      }
+   }
 }
 
 bool header_match(const char* buf1, const unsigned char* buf2, size_t length)
@@ -1045,22 +1079,39 @@ bool retro_load_game(const struct retro_game_info *info)
 
   if(info != nullptr)
   {
-    if (core)
+    log_cb(RETRO_LOG_INFO, "Loading game: %s \n",info->path);
+    create_core(&core);
+    /*if (core)
     {
       delete core;
       core = (BBCMicro *) 0;
     }
-    log_cb(RETRO_LOG_INFO, "Loading game: %s \n",info->path);
 
   core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
     core->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
     core->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
-    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));
+    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));*/
 
-  core->SetKeyState(BeebKey_Shift,true);  
     
   std::string path = info->path;
   core->SetDiscImage(0, DirectDiscImage::CreateForFile(path, nullptr));
+
+  // Autoboot: if there is [SOMETHING] notice in the filename, use it
+  // otherwise press Shift and hope for autoboot
+  std::string filename(info->path);
+  std::string autostartName;
+  size_t ridx = filename.rfind('[');
+  size_t lidx = filename.rfind(']');
+    if(ridx != std::string::npos)
+    {
+      autostartName = "CHAIN\""+filename.substr(ridx+1,lidx-ridx-1)+"\"\r";
+      log_cb(RETRO_LOG_DEBUG, "Autostart name: %s \n",autostartName.c_str());
+      COPY_BASIC = std::make_shared<const std::string>(autostartName.c_str());
+      autoStartPaste = true;
+    }
+    else
+      core->SetKeyState(BeebKey_Shift,true);  
+
    }
 
 /*

@@ -13,3 +13,4 @@ imgui.ini
 *.ROM
 *.cbp
 *.layout
+*.dll
