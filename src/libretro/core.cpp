@@ -746,22 +746,22 @@ static void update_input(void)
     currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
     di.bits.fire1 = currInputState;
     core->SetDigitalJoystickState(port,di);
-
+*/
     if (core->HasADC())
     {
+      // analogue axes: convert to 10-bit and invert
+      // TODO: replace the ugly conversion (0 should be 32768)
+      // TODO: setJoystickButtonState for button
+      // TODO: joystick 2 for analog 1 and/or player 2
       axisValue = input_state_cb(port, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_X);
-      if (axisValue < 0)
-         core->SetAnalogueChannel(0,axisValue*-1);
-      else if (axisValue > 0)
-         core->SetAnalogueChannel(1,axisValue);
+      core->SetAnalogueChannel(0,(32767+axisValue*-1)>>6);
+
       axisValue = input_state_cb(port, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_Y);
-      if (axisValue < 0)
-         core->SetAnalogueChannel(2,axisValue*-1);
-      else if (axisValue > 0)
-         core->SetAnalogueChannel(3,axisValue);
+      core->SetAnalogueChannel(1,(32767+axisValue*-1)>>6);
+
     }
 
-  }*/
+//  }
 }
 
 static void render(void)
