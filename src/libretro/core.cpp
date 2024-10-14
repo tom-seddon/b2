@@ -60,7 +60,7 @@ functions:
    save state
    load uef?
    LED support
-   analog joystick, test program?
+   analog joystick, test program? - joytest, hunchback, repton3
    digital joystick, test program?
    beeblink?
    printer?

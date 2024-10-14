@@ -1,29 +1,8 @@
 #ifndef KEYMAP_H__
 #define KEYMAP_H__
-#include <string.h>
 #include "libretro.h"
-//#include <shared/enum_decl.h>
-//#include "../beeb/include/beeb/keys.inl"
-//#include <shared/enum_end.h>
 const std::map<unsigned, BeebKey> beeb_libretro_keymap = {
-    {RETROK_SPACE,    BeebKey_Space},
-    {RETROK_COMMA,    BeebKey_Comma},
-    {RETROK_MINUS,    BeebKey_Minus},
-    {RETROK_PERIOD,   BeebKey_Stop},
-    {RETROK_SLASH,    BeebKey_Slash},
-    {RETROK_0,        BeebKey_0},
-    {RETROK_1,        BeebKey_1},
-    {RETROK_2,        BeebKey_2},
-    {RETROK_3,        BeebKey_3},
-    {RETROK_4,        BeebKey_4},
-    {RETROK_5,        BeebKey_5},
-    {RETROK_6,        BeebKey_6},
-    {RETROK_7,        BeebKey_7},
-    {RETROK_8,        BeebKey_8},
-    {RETROK_9,        BeebKey_9},
-    {RETROK_QUOTE,    BeebKey_Colon},
-    {RETROK_SEMICOLON,BeebKey_Semicolon},
-    {RETROK_HOME,     BeebKey_Backslash},
+// Straightforward mappings: letters and numbers
     {RETROK_a,        BeebKey_A},
     {RETROK_b,        BeebKey_B},
     {RETROK_c,        BeebKey_C},
@@ -50,26 +29,18 @@ const std::map<unsigned, BeebKey> beeb_libretro_keymap = {
     {RETROK_x,        BeebKey_X},
     {RETROK_y,        BeebKey_Y},
     {RETROK_z,        BeebKey_Z},
-    {RETROK_RIGHTBRACKET,BeebKey_LeftSquareBracket},
-    {RETROK_LEFTBRACKET,BeebKey_At},
-    {RETROK_BACKSLASH,BeebKey_RightSquareBracket},
-    {RETROK_EQUALS,   BeebKey_Caret},
-    {RETROK_OEM_102,  BeebKey_Underline},
-    {RETROK_ESCAPE,   BeebKey_Escape},
-    {RETROK_TAB,      BeebKey_Tab},
-    {RETROK_RCTRL,    BeebKey_Ctrl},
-    {RETROK_PAGEUP,   BeebKey_CapsLock},
-    {RETROK_NUMLOCK,  BeebKey_ShiftLock},
-    {RETROK_LSHIFT,   BeebKey_Shift},
-    {RETROK_RSHIFT,   BeebKey_Shift},
-    {RETROK_BACKSPACE,BeebKey_Delete},
-    {RETROK_END,      BeebKey_Copy},
-    {RETROK_RETURN,   BeebKey_Return},
-    {RETROK_UP,       BeebKey_Up},
-    {RETROK_DOWN,     BeebKey_Down},
-    {RETROK_LEFT,     BeebKey_Left},
-    {RETROK_RIGHT,    BeebKey_Right},
-    {RETROK_F10,      BeebKey_f0},
+    {RETROK_0,        BeebKey_0},
+    {RETROK_1,        BeebKey_1},
+    {RETROK_2,        BeebKey_2},
+    {RETROK_3,        BeebKey_3},
+    {RETROK_4,        BeebKey_4},
+    {RETROK_5,        BeebKey_5},
+    {RETROK_6,        BeebKey_6},
+    {RETROK_7,        BeebKey_7},
+    {RETROK_8,        BeebKey_8},
+    {RETROK_9,        BeebKey_9},
+// F-row
+    {RETROK_F10,      BeebKey_f0},        // logical mapping: F0 -- PC keyboard F10
     {RETROK_F1,       BeebKey_f1},
     {RETROK_F2,       BeebKey_f2},
     {RETROK_F3,       BeebKey_f3},
@@ -79,7 +50,49 @@ const std::map<unsigned, BeebKey> beeb_libretro_keymap = {
     {RETROK_F7,       BeebKey_f7},
     {RETROK_F8,       BeebKey_f8},
     {RETROK_F9,       BeebKey_f9},
-    {RETROK_F11,      BeebKey_Break},
+    {RETROK_F11,      BeebKey_Break},     // positional mapping: Break  -- PC keyboard F11
+    {RETROK_PAUSE,    BeebKey_Break},     // logical mapping:    Break  -- PC keyboard Pause/Break
+// Row 1
+    {RETROK_ESCAPE,   BeebKey_Escape},    // positional mapping: Escape -- PC keyboard backquote
+    {RETROK_BACKQUOTE,BeebKey_Escape},    // logical mapping: Escape    -- PC keyboard Esc
+    {RETROK_MINUS,    BeebKey_Minus},
+    {RETROK_EQUALS,   BeebKey_Caret},     // positional mapping: caret  -- PC keyboard =
+    {RETROK_HOME,     BeebKey_Backslash}, // semi-positional mapping: backslash -- PC keyboard Home
+    {RETROK_OEM_102,  BeebKey_Backslash}, // logical mapping: backslash -- PC keyboard 102. button (next to left Shift)
+    {RETROK_LEFT,     BeebKey_Left},      // logical mapping: left      -- PC keyboard cursor left
+    {RETROK_RIGHT,    BeebKey_Right},     // logical mapping: right     -- PC keyboard cursor right
+// Row 2
+    {RETROK_TAB,      BeebKey_Tab},
+    {RETROK_LEFTBRACKET,BeebKey_At},      // positional mapping: @  -- PC keyboard [
+    {RETROK_RIGHTBRACKET,
+              BeebKey_LeftSquareBracket}, // positional mapping: [{ -- PC keyboard ]
+    {RETROK_END,      BeebKey_Underline}, // semi-positional mapping: underline -- PC keyboard End
+    {RETROK_UP,       BeebKey_Up},        // logical mapping: up    -- PC keyboard cursor up
+    {RETROK_DOWN,     BeebKey_Down},      // logical mapping: down  -- PC keyboard cursor down
+// Row 3
+    {RETROK_CAPSLOCK, BeebKey_CapsLock},
+    {RETROK_PAGEUP,   BeebKey_CapsLock},  // extra mapping: caps lock -- PC keyboard PgUp
+    {RETROK_LCTRL,    BeebKey_Ctrl},      // logical mapping: Ctrl    -- PC keyboard left Ctrl
+    {RETROK_RCTRL,    BeebKey_Ctrl},      // logical mapping: Ctrl    -- PC keyboard right Ctrl
+    {RETROK_SEMICOLON,BeebKey_Semicolon},
+    {RETROK_QUOTE,    BeebKey_Colon},     // positional mapping: :    -- PC keyboard '
+    {RETROK_BACKSLASH,
+             BeebKey_RightSquareBracket}, // positional mapping: ]}   -- PC keyboard \| (at least in ISO layout)
+    {RETROK_RETURN,   BeebKey_Return},
+// Row 4
+    {RETROK_NUMLOCK,  BeebKey_ShiftLock}, // logical mapping (sort of): shift lock -- PC keyboard Num Lock
+    {RETROK_PAGEDOWN, BeebKey_ShiftLock}, // extra mapping: shift lock -- PC keyboard PgUp
+    {RETROK_LSHIFT,   BeebKey_Shift},     // note that Shift keys can not be distinguished in Beeb keyboard matrix
+    {RETROK_COMMA,    BeebKey_Comma},
+    {RETROK_PERIOD,   BeebKey_Stop},
+    {RETROK_SLASH,    BeebKey_Slash},
+    {RETROK_RSHIFT,   BeebKey_Shift},     // logical mapping: Shift  -- PC keyboard right Shift
+    {RETROK_BACKSPACE,BeebKey_Delete},    // logical mapping: Delete -- PC keyboard Backspace
+    {RETROK_DELETE,   BeebKey_Delete},    // logical mapping: Delete -- PC keyboard Delete
+    {RETROK_INSERT,   BeebKey_Copy},      // logical mapping: Copy   -- PC keyboard Insert
+// Row 5
+    {RETROK_SPACE,    BeebKey_Space},
+// BBC Master keypad
     {RETROK_KP0,      BeebKey_Keypad0},
     {RETROK_KP1,      BeebKey_Keypad1},
     {RETROK_KP2,      BeebKey_Keypad2},
@@ -96,8 +109,7 @@ const std::map<unsigned, BeebKey> beeb_libretro_keymap = {
     {RETROK_KP_MINUS, BeebKey_KeypadMinus},
     {RETROK_KP_DIVIDE,BeebKey_KeypadSlash},
     {RETROK_KP_MULTIPLY,BeebKey_KeypadStar},
+// TODO: map the 3 extra keypad keys on the Master somewhere (delete, ', #)
 };
 
-
 #endif
-
