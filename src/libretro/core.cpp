@@ -162,6 +162,9 @@ VideoDataUnit vdu;
 SoundDataUnit sdu;
 static std::shared_ptr<const std::string> COPY_BASIC;
 
+int prevJoystickAxes[4] = {0};
+bool prevJoystickButtons[2] = {0};
+
 static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
   (void)level;
@@ -723,14 +726,12 @@ static void update_input(void)
 {
 //  log_cb(RETRO_LOG_DEBUG, "update input\n");
   input_poll_cb();
-  /*core->update_input(input_state_cb, environ_cb, maxUsers);*/
-
-  int i;
-  int axisValue;
-  uint8_t port;
+  //int i;
+  //uint8_t port;
   bool currInputState;
-  unsigned scanLimit = 1;
-  BBCMicro::DigitalJoystickInput di;
+  //unsigned scanLimit = 1;
+  // BBCMicro::DigitalJoystickInput di;
+  // TODO: digital joystick handling (Master Compact?)
 /*  for(port=0; port<scanLimit; port++)
   {
     currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
@@ -746,22 +747,60 @@ static void update_input(void)
     currInputState = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
     di.bits.fire1 = currInputState;
     core->SetDigitalJoystickState(port,di);
+  }
 */
     if (core->HasADC())
     {
-      // analogue axes: convert to 10-bit and invert
-      // TODO: replace the ugly conversion (0 should be 32768)
-      // TODO: setJoystickButtonState for button
-      // TODO: joystick 2 for analog 1 and/or player 2
-      axisValue = input_state_cb(port, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_X);
-      core->SetAnalogueChannel(0,(32767+axisValue*-1)>>6);
+      // Analogue axes: convert +- to unsigned, invert, and scale down to 10 bits
+      // Conversion represents controller state 0 (centered) as 32767
+      // TODO: make analogue state reporting configurable? (Default reading would be 0xFFF0)
+      // TODO: make fire button configurable? (or any face button?)
 
-      axisValue = input_state_cb(port, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_Y);
-      core->SetAnalogueChannel(1,(32767+axisValue*-1)>>6);
+      int axisValue;
 
+      // Player 1
+      axisValue = input_state_cb(0, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_X);
+      if (axisValue != prevJoystickAxes[0])
+      {
+         core->SetAnalogueChannel(0,(32767+axisValue*-1)>>6);
+         prevJoystickAxes[0] = axisValue;
+      }
+      axisValue = input_state_cb(0, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_Y);
+      if (axisValue != prevJoystickAxes[1])
+      {
+         core->SetAnalogueChannel(1,(32767+axisValue*-1)>>6);
+         prevJoystickAxes[1] = axisValue;
+      }
+
+      currInputState = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
+      if (currInputState != prevJoystickButtons[0])
+      {
+         core->SetJoystickButtonState(0,currInputState);
+         prevJoystickButtons[0] = currInputState;
+      }
+
+      // Player 2
+      axisValue = input_state_cb(1, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_X);
+      if (axisValue != prevJoystickAxes[2])
+      {
+         core->SetAnalogueChannel(2,(32767+axisValue*-1)>>6);
+         prevJoystickAxes[2] = axisValue;
+      }
+
+      axisValue = input_state_cb(1, RETRO_DEVICE_ANALOG, 0, RETRO_DEVICE_ID_ANALOG_Y);
+      if (axisValue != prevJoystickAxes[3])
+      {
+         core->SetAnalogueChannel(3,(32767+axisValue*-1)>>6);
+         prevJoystickAxes[3] = axisValue;
+      }
+
+      currInputState = input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
+      if (currInputState != prevJoystickButtons[1])
+      {
+         core->SetJoystickButtonState(1,currInputState);
+         prevJoystickButtons[1] = currInputState;
+      }
     }
-
-//  }
 }
 
 static void render(void)
