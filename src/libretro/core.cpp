@@ -33,7 +33,6 @@ one model
 crude autostart
 no drive sound
 no keyboard remap (positional only)
-no joystick remap
 no savestate
 .ssd/.dsd files only
 
@@ -47,7 +46,7 @@ core options
    autoboot on/off, combine shift with autostart file name detection
    machine model - build in JSON
    selectable joypad controls (azop, az/', etc.)
-   fully customizable joypad controls
+   extra diagonal controls (keypad 7913)
 
 speed / accuracy:
    run main cycle until screen update
@@ -60,11 +59,11 @@ functions:
    save state
    load uef?
    LED support
-   analog joystick, test program? - joytest, hunchback, repton3
    digital joystick, test program?
    beeblink?
    printer?
    drive (and relay?) sound
+   disk change interface
 
 main QoL
    intelligent zoom?
@@ -114,6 +113,7 @@ char retro_system_data_directory[512];
 char retro_system_bios_directory[512];
 char retro_system_save_directory[512];
 char retro_content_filepath[512];
+
 uint16_t audioBuffer[B2_SAMPLE_RATE*1000*2];
 bool inputStateMap[256][1];
 
@@ -161,9 +161,14 @@ TVOutput tv;
 VideoDataUnit vdu;
 SoundDataUnit sdu;
 static std::shared_ptr<const std::string> COPY_BASIC;
-
+static BeebKey joypad_button_assignments[16];
+#define MAX_CORE_VARS 50
+static retro_variable core_vars[MAX_CORE_VARS] = {0};
+static char core_var_key[MAX_CORE_VARS][50] = {0};
+static char core_var_value[MAX_CORE_VARS][1024] = {0};
 int prevJoystickAxes[4] = {0};
 bool prevJoystickButtons[2] = {0};
+bool prevJoypadButtons[16] = {0};
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -240,8 +245,8 @@ static void update_keyboard_cb(bool down, unsigned keycode,
     //log_cb(RETRO_LOG_DEBUG, "Keyboard event: %d %s\n",keycode,down?"down":"up");
     std::map<unsigned, BeebKey>::const_iterator  iter_keymap;
     iter_keymap = beeb_libretro_keymap.find(keycode);
-    if (iter_keymap == beeb_libretro_keymap.end()) {
-      log_cb(RETRO_LOG_DEBUG, "Unmapped keycode from frontend: %d\n",keycode); 
+    if (iter_keymap == beeb_libretro_keymap.cend()) {
+      log_cb(RETRO_LOG_DEBUG, "Unmapped keycode from frontend: %d (%s)\n",keycode,down?"down":"up"); 
     }
     else
     {
@@ -267,105 +272,33 @@ static void create_core(BBCMicro** newcore)
 
 static void check_variables(void)
 {
-/*  struct retro_variable var =
-  {
-    .key = "ep128emu_wait",
-  };
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    waitPeriod = 0.001f * std::atoi(var.value);
-  }
-
-  var.key = "ep128emu_swfb";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    useSwFb = std::atoi(var.value) == 1 ? true : false;
-  }
-
-  var.key = "ep128emu_sdhq";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    bool soundHq_;
-    soundHq_ = std::atoi(var.value) == 1 ? true : false;
-    if (soundHq != soundHq_)
-    {
-      soundHq = soundHq_;
-      if(core)
+  std::string option_key;
+  std::map<std::string, unsigned>::const_iterator iterbm = joypad_buttonmap.cbegin();
+  for(; iterbm != joypad_buttonmap.cend(); iterbm++) {
+    option_key = "b2_joypad_";
+    option_key += iterbm->first;
+    struct retro_variable var =
       {
-        core->config->sound.highQuality = soundHq;
-        core->config->soundSettingsChanged = true;
-        core->config->applySettings();
-      }
+        .key = option_key.c_str(),
+      };
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+    {
+      log_cb(RETRO_LOG_DEBUG, "Controller map update %s: %s\n", option_key.c_str(),var.value );
+    } else {
+      log_cb(RETRO_LOG_ERROR, "Controller map error %s: %s\n", option_key.c_str(),var.value );
+    }
+    std::map<std::string, BeebKey>::const_iterator button_to_id;
+    button_to_id = joypad_keymap.find(var.value);
+    if (button_to_id == joypad_keymap.cend()) {
+      log_cb(RETRO_LOG_DEBUG, "Key map reset %s\n", var.value );
+      joypad_button_assignments[joypad_buttonmap.at(iterbm->first)] = BeebKey_None;
+    } else {
+      log_cb(RETRO_LOG_DEBUG, "Key map update %s\n", var.value );
+      joypad_button_assignments[joypad_buttonmap.at(iterbm->first)] = joypad_keymap.at(var.value);
     }
   }
-
-  var.key = "ep128emu_useh";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    useHalfFrame = std::atoi(var.value) == 1 ? true : false;
-  }
-
-  var.key = "ep128emu_brds";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    borderSize = std::atoi(var.value);
-    if(core)
-      core->borderSize = borderSize*2;
-  }
-
-  var.key = "ep128emu_romv";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    if(var.value[0] == 'E') { enhancedRom = true;}
-    else { enhancedRom = false;}
-  }
-
-  std::string zoomKey;
-  var.key = "ep128emu_zoom";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    zoomKey = var.value;
-    Ep128Emu::stringToLowerCase(zoomKey);
-  }
-
-  std::string infoKey;
-  var.key = "ep128emu_info";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    infoKey = var.value;
-    Ep128Emu::stringToLowerCase(infoKey);
-  }
-
-  std::string autofireKey;
-  var.key = "ep128emu_afbt";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    autofireKey = var.value;
-    Ep128Emu::stringToLowerCase(autofireKey);
-  }
-
-  int autofireSpeed = -1;
-  var.key = "ep128emu_afsp";
-  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-  {
-    autofireSpeed = std::atoi(var.value);
-  }
-
-  // If function is not supported, use all users (and don't interrogate again)
-  if(maxUsersSupported && !environ_cb(RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS,&maxUsers)) {
-    maxUsers = EP128EMU_MAX_USERS;
-    maxUsersSupported = false;
-    log_cb(RETRO_LOG_INFO, "GET_INPUT_MAX_USERS not supported, using fixed %d\n", EP128EMU_MAX_USERS);
-  }
-
-  if(core)
-    core->initialize_joystick_map(zoomKey,infoKey,autofireKey, autofireSpeed,
-    Ep128Emu::joystick_type.at("DEFAULT"), Ep128Emu::joystick_type.at("DEFAULT"), Ep128Emu::joystick_type.at("DEFAULT"),
-    Ep128Emu::joystick_type.at("DEFAULT"), Ep128Emu::joystick_type.at("DEFAULT"), Ep128Emu::joystick_type.at("DEFAULT"));
-
-  if(vmThread) vmThread->resetKeyboard();*/
 }
-
+ 
 /* If ejected is true, "ejects" the virtual disk tray.
  */
 static bool set_eject_state_cb(bool ejected) {
@@ -607,17 +540,11 @@ void retro_init(void)
     log_cb(RETRO_LOG_ERROR, "XRGB8888 is not supported.\n");
   }
 
-
   check_variables();
   log_cb(RETRO_LOG_DEBUG, "Creating core...\n");
   //core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
   //core = new BBCMicro(&BBC_MICRO_TYPE_B,nullptr,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
   create_core(&core);
-  /*core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
-
-    core->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
-    core->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
-    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));*/
 
 //  tv = TVOutput();
 
@@ -626,7 +553,7 @@ void retro_init(void)
   core->Update(&vdu,&sdu);
   updateCount++;
 
-/*  core->start();
+/* 
   core->change_resolution(core->currWidth,core->currHeight,environ_cb);*/
 }
 
@@ -638,7 +565,7 @@ void retro_get_system_info(struct retro_system_info *info)
 {
   memset(info, 0, sizeof(*info));
   info->library_name     = "b2";
-  info->library_version  = "v0.1";
+  info->library_version  = "v0.2";
   info->need_fullpath    = true;
   info->valid_extensions = "ssd|dsd";
   //printf("retro_get_system_info \n");
@@ -670,7 +597,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 
 void retro_set_environment(retro_environment_t cb)
 {
-  //printf("retro_set_environment \n");
 
   environ_cb = cb;
 
@@ -682,13 +608,37 @@ void retro_set_environment(retro_environment_t cb)
   else
     log_cb = fallback_log;
 
-  static const struct retro_variable vars[] =
-  {
-    { "b2_sdhq", "High sound quality; 1|0" },
-    { NULL, NULL },
-  };
-  environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
-  log_cb(RETRO_LOG_DEBUG, "Set environment end\n");
+  std::map<std::string, BeebKey>::const_iterator iterkm = joypad_keymap.cbegin();
+  std::string key_options = "None";
+  for(; iterkm != joypad_keymap.cend(); iterkm++) {
+    key_options += "|";
+    key_options += iterkm->first;
+  }
+
+  std::string option_key;
+  std::string option_val;
+  std::map<std::string, unsigned>::const_iterator iterbm = joypad_buttonmap.cbegin();
+  int i=0;
+  for( ; iterbm != joypad_buttonmap.cend(); iterbm++) {
+    option_key = "b2_joypad_";
+    option_key += iterbm->first;
+    option_val = "Key for controller button ";
+    option_val += iterbm->first;
+    option_val += "; ";
+    option_val += key_options;
+    //log_cb(RETRO_LOG_DEBUG, "Env var %d: %s -- %s\n",i, option_key.c_str(), option_val.c_str());
+
+    // Wizardy with std::string was unreliable, so finally this rude copying was made.
+    strlcpy(core_var_key[i],option_key.c_str(),50);
+    strlcpy(core_var_value[i],option_val.c_str(),1024);
+    core_vars[i].key = core_var_key[i];
+    core_vars[i].value = core_var_value[i];
+    i++;
+  }
+  core_vars[i].key = NULL;
+  core_vars[i].value = NULL;
+  environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)core_vars);
+  //log_cb(RETRO_LOG_DEBUG, "Set environment end\n");
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
@@ -724,7 +674,6 @@ void retro_reset(void)
 
 static void update_input(void)
 {
-//  log_cb(RETRO_LOG_DEBUG, "update input\n");
   input_poll_cb();
   //int i;
   //uint8_t port;
@@ -749,6 +698,17 @@ static void update_input(void)
     core->SetDigitalJoystickState(port,di);
   }
 */
+   /* Joypad button -> keyboard button mapping */
+    for (int i=0; i<16; i++) {
+      if (joypad_button_assignments[i] != BeebKey_None) {
+         currInputState = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, i);
+         if (currInputState != prevJoypadButtons[i]) {
+            core->SetKeyState(joypad_button_assignments[i],currInputState);
+            prevJoypadButtons[i] = currInputState;
+         }
+      }
+    }
+
     if (core->HasADC())
     {
       // Analogue axes: convert +- to unsigned, invert, and scale down to 10 bits
@@ -1091,16 +1051,6 @@ bool header_match(const char* buf1, const unsigned char* buf2, size_t length)
   return true;
 }
 
-bool zx_header_match(const unsigned char* buf2)
-{
-  // as per original spec, "13 00 00 00" would fit, but it doesn't always match
-  // https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
-  // empirical boundaries are from scanning the tosec collection
-  if (buf2[0]>0xe && buf2[0]<0x22 && buf2[1] == 0x0 && (buf2[2] == 0x0 || buf2[2] == 0xff))
-    return true;
-  return false;
-}
-
 bool retro_load_game(const struct retro_game_info *info)
 {
   printf("retro_load_game \n");
@@ -1114,23 +1064,10 @@ bool retro_load_game(const struct retro_game_info *info)
 
   check_variables();
 
-
-
   if(info != nullptr)
   {
     log_cb(RETRO_LOG_INFO, "Loading game: %s \n",info->path);
     create_core(&core);
-    /*if (core)
-    {
-      delete core;
-      core = (BBCMicro *) 0;
-    }
-
-  core = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
-    core->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
-    core->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
-    core->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));*/
-
     
   std::string path = info->path;
   core->SetDiscImage(0, DirectDiscImage::CreateForFile(path, nullptr));
@@ -1465,18 +1402,6 @@ bool retro_load_game(const struct retro_game_info *info)
 
 void retro_unload_game(void)
 {
-/*  try
-  {
-    config->floppy.a.imageFile = "";
-    config->floppyAChanged = true;
-    config->applySettings();
-  }
-  catch (...)
-  {
-    log_cb(RETRO_LOG_ERROR, "Exception in unload_game\n");
-    throw;
-  }
-*/
 }
 
 bool retro_load_game_special(unsigned type, const struct retro_game_info *info, size_t num)
@@ -1593,28 +1518,3 @@ unsigned retro_get_region(void)
 {
   return RETRO_REGION_PAL;
 }
-
-
-/*
-    beeb->SetOSROM(ts->current_config.os);
-
-    for (uint8_t i = 0; i < 16; ++i) {
-        if (ts->current_config.config.roms[i].writeable) {
-            if (!!ts->current_config.roms[i]) {
-                beeb->SetSidewaysRAM(i, ts->current_config.roms[i]);
-            } else {
-                beeb->SetSidewaysRAM(i, nullptr);
-            }
-        } else {
-            if (!!ts->current_config.roms[i]) {
-                beeb->SetSidewaysROM(i, ts->current_config.roms[i]);
-            } else {
-                beeb->SetSidewaysROM(i, nullptr);
-            }
-        }
-    }
-
-    if (ts->current_config.config.parasite_type != BBCMicroParasiteType_None) {
-        beeb->SetParasiteOS(ts->current_config.parasite_os);
-    }
-*/

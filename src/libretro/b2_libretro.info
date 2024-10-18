@@ -8,7 +8,7 @@ display_name = "Acorn - BBC Micro (b2)"
 categories = "Emulator"
 
 # Name of the authors who wrote the core:
-authors = "TBA"
+authors = "Tom Seddon|Zoltan Balogh"
 
 # Name of the core:
 corename = "b2"
@@ -17,7 +17,7 @@ corename = "b2"
 supported_extensions = "ssd|dsd"
 
 # License of the cores source code:
-license = "GPLv2"
+license = "GPLv3"
 
 # Privacy-specific permissions needed for using the core:
 permissions = ""
@@ -47,7 +47,7 @@ savestate_features = "serialized"
 # Does the core support the libretro cheat interface?
 cheats = "false"
 # Does the core support libretro input descriptors
-input_descriptors = "true"
+input_descriptors = "false"
 # Does the core support memory descriptors commonly used for achievements
 memory_descriptors = "false"
 # Does the core use the libretro save interface or does it do its own thing (like with shared memory cards)?
@@ -76,4 +76,4 @@ disk_control = "true"
 is_experimental = "true"
 
 # Descriptive text, useful for tooltips, etc.
-description = "Emulate the Z80 based home computers that the original ep128emu supports - that is, Enterprise 64/128, Videoton TVC, Amstrad CPC and ZX Spectrum. Focus is on Enterprise and TVC."
+description = "Libretro port of Tom Seddon's B2 emulator for BBC Micro."

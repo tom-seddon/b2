@@ -28,7 +28,7 @@ static const float VOLUMES_TABLE[] = {
 #define B2_LIBRETRO_SCREEN_WIDTH 768
 #define B2_LIBRETRO_SCREEN_HEIGHT 576
 
-#define B2_MAX_USERS 6
+#define B2_MAX_USERS 2
 #define B2_MESSAGE_DISPLAY_FRAMES 6*50
 
 #if __GNUC__
