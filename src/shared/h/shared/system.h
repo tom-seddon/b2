@@ -283,6 +283,9 @@ int vasprintf(char **buf, const char *fmt, va_list v);
 #ifndef B2_LIBRETRO_CORE
 size_t strlcpy(char *dest, const char *src, size_t size);
 #endif // B2_LIBRETRO_CORE
+#if SYSTEM_WINDOWS
+size_t strlcpy(char *dest, const char *src, size_t size);
+#endif // SYSTEM_WINDOWS
 #endif
 
 //////////////////////////////////////////////////////////////////////////
