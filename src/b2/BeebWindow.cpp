@@ -1873,7 +1873,10 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
         if (ImGui::MenuItem("Save copy as...")) {
             SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
 
-            disc_image->AddFileDialogFilter(&fd);
+            std::vector<FileDialogFilter> filters = disc_image->GetFileDialogFilters();
+            for (const FileDialogFilter &filter : filters) {
+                fd.AddFilter(filter.name, filter.extensions);
+            }
             fd.AddAllFilesFilter();
 
             std::string path;

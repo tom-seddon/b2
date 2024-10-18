@@ -6,8 +6,8 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
-class FileDialog;
 struct LogSet;
 
 //////////////////////////////////////////////////////////////////////////
@@ -42,6 +42,11 @@ struct DiscImageSummary {
     std::string hash;
 };
 
+struct FileDialogFilter {
+    std::string name;
+    std::vector<std::string> extensions;
+};
+
 class DiscImage : public std::enable_shared_from_this<DiscImage> {
   public:
     DiscImage();
@@ -74,10 +79,10 @@ class DiscImage : public std::enable_shared_from_this<DiscImage> {
 
     virtual std::string GetDescription() const = 0;
 
-    // Adds file dialog filter suitable for selecting files of
+    // Get file dialog filters suitable for selecting files of
     // whatever type of disc image this image was loaded from. Use
     // this to populate a save dialog when saving a copy.
-    virtual void AddFileDialogFilter(FileDialog *fd) const = 0;
+    virtual std::vector<FileDialogFilter> GetFileDialogFilters() const = 0;
 
     // Save a copy of this disc image to the given file. If
     // successful, returns a clone with the new name and whatever load

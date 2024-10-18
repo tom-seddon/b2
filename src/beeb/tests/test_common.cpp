@@ -183,7 +183,7 @@ class TestDiscImage : public DiscImage {
     std::string GetName() const override;
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
-    void AddFileDialogFilter(FileDialog *fd) const override;
+    std::vector<FileDialogFilter> GetFileDialogFilters() const override;
     bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
     bool Read(uint8_t *value,
               uint8_t side,
@@ -264,8 +264,8 @@ std::string TestDiscImage::GetDescription() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestDiscImage::AddFileDialogFilter(FileDialog *fd) const {
-    (void)fd;
+std::vector<FileDialogFilter> TestDiscImage::GetFileDialogFilters() const {
+    return {};
 }
 
 //////////////////////////////////////////////////////////////////////////

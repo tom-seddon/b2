@@ -100,11 +100,12 @@ std::string DirectDiscImage::GetDescription() const {
 //////////////////////////////////////////////////////////////////////////
 
 // TODO - basically the same as MemoryDiscImage.
-void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
+std::vector<FileDialogFilter> DirectDiscImage::GetFileDialogFilters() const {
     if (const char *ext = GetExtensionFromDiscGeometry(m_geometry)) {
-        std::string pattern = std::string("*") + ext;
-        fd->AddFilter("BBC disc image", {pattern});
+        return {{"BBC disc image", {ext}}};
     }
+
+    return {};
 }
 
 //////////////////////////////////////////////////////////////////////////
