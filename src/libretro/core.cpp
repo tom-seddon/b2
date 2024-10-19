@@ -38,13 +38,15 @@ no savestate
 
 compilation:
    manage static 6502_internal.inl - probably to stay
-   compile in ROMs, remove remaining path dependency (no file operations to remain)
    test Win32/64, OSX, PS2, etc.
    remove not needed source files + ifdef changes
+   clean up warnings
 
 core options
    autoboot on/off, combine shift with autostart file name detection
-   machine model - build in JSON
+   machine model 
+      missing: master, master compact, etc.
+      optional: ext_mem, adji, beeblink
    selectable joypad controls (azop, az/', etc.)
    extra diagonal controls (keypad 7913)
 
@@ -92,8 +94,8 @@ other QoL
 #include "../b2/DirectDiscImage.h"
 #include "../b2/filters.h"
 #include "../shared/h/shared/path.h"
-#include "core.h"
 #include "roms.hpp"
+#include "core.h"
 #include "libretro.h"
 #include "adapters.h"
 #include "b2_libretro_keymap.h"
@@ -169,6 +171,8 @@ static char core_var_value[MAX_CORE_VARS][1024] = {0};
 int prevJoystickAxes[4] = {0};
 bool prevJoystickButtons[2] = {0};
 bool prevJoypadButtons[16] = {0};
+static const char bbcMicroType[50] = {0};
+static int model_index = 0;
 
 static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -263,10 +267,25 @@ static void create_core(BBCMicro** newcore)
       *newcore = (BBCMicro *) 0;
       log_cb(RETRO_LOG_DEBUG, "Deleting previous core\n"); 
     }
-    *newcore = new BBCMicro(&BBC_MICRO_TYPE_B,&DISC_INTERFACE_ACORN_1770,BBCMicroParasiteType_None,{},nullptr,0,nullptr,{0});
-    (*newcore)->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(OS12_ROM));
-    (*newcore)->SetSidewaysROM(15, std::make_shared<std::array<unsigned char, 16384>>(BASIC2_ROM));
-    (*newcore)->SetSidewaysROM(14, std::make_shared<std::array<unsigned char, 16384>>(acorn_DFS_2_26_rom));
+    log_cb(RETRO_LOG_DEBUG, "Creating new core, type: %s\n",machine_types[model_index].name);
+
+    *newcore = new BBCMicro(
+      machine_types[model_index].type,
+      machine_types[model_index].disc_interface,
+      machine_types[model_index].parasite_type,
+      {},nullptr,0,nullptr,{0});
+    (*newcore)->SetOSROM(          std::make_shared<std::array<unsigned char, 16384>>(*machine_types[model_index].os_standard_rom));
+    for (int k=15;k>=0;k--)
+    {
+      if (machine_types[model_index].rom_array[k] != nullptr) {
+         if (machine_types[model_index].rom_array[k] == &writeable_ROM) {
+           // TODO: writeable + content?
+           (*newcore)->SetSidewaysRAM(k, nullptr);
+         } else {
+           (*newcore)->SetSidewaysROM(k, std::make_shared<std::array<unsigned char, 16384>>(*machine_types[model_index].rom_array[k]));
+         }
+      }
+    }
     log_cb(RETRO_LOG_DEBUG, "New core created\n"); 
 }
 
@@ -274,10 +293,27 @@ static void check_variables(void)
 {
   std::string option_key;
   std::map<std::string, unsigned>::const_iterator iterbm = joypad_buttonmap.cbegin();
+  struct retro_variable var =
+    {
+      .key = "b2_model",
+    };
+  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+  {
+    for (int j=0;j<MACHINE_TYPES_COUNT;j++)
+    {
+      if(strcmp(machine_types[j].name,var.value) == 0)
+      {
+        model_index = j;
+        log_cb(RETRO_LOG_DEBUG, "Model index update: %d %s\n", model_index, var.value);
+        break;
+      }
+    }
+  }
+  
   for(; iterbm != joypad_buttonmap.cend(); iterbm++) {
     option_key = "b2_joypad_";
     option_key += iterbm->first;
-    struct retro_variable var =
+    var =
       {
         .key = option_key.c_str(),
       };
@@ -290,10 +326,10 @@ static void check_variables(void)
     std::map<std::string, BeebKey>::const_iterator button_to_id;
     button_to_id = joypad_keymap.find(var.value);
     if (button_to_id == joypad_keymap.cend()) {
-      log_cb(RETRO_LOG_DEBUG, "Key map reset %s\n", var.value );
+      //log_cb(RETRO_LOG_DEBUG, "Key map reset %s\n", var.value );
       joypad_button_assignments[joypad_buttonmap.at(iterbm->first)] = BeebKey_None;
     } else {
-      log_cb(RETRO_LOG_DEBUG, "Key map update %s\n", var.value );
+      //log_cb(RETRO_LOG_DEBUG, "Key map update %s\n", var.value );
       joypad_button_assignments[joypad_buttonmap.at(iterbm->first)] = joypad_keymap.at(var.value);
     }
   }
@@ -615,10 +651,24 @@ void retro_set_environment(retro_environment_t cb)
     key_options += iterkm->first;
   }
 
+  int i=0;
+  std::string model_options("Emulated machine; ");
+  for (int j=0;j<MACHINE_TYPES_COUNT;j++)
+  {
+    if (j>0)
+      model_options += "|";
+    model_options += machine_types[j].name;
+  }
+
+  strlcpy(core_var_key[i],"b2_model",50);
+  strlcpy(core_var_value[i],model_options.c_str(),1024);
+  core_vars[i].key = core_var_key[i];
+  core_vars[i].value = core_var_value[i];
+  i++;
+
   std::string option_key;
   std::string option_val;
   std::map<std::string, unsigned>::const_iterator iterbm = joypad_buttonmap.cbegin();
-  int i=0;
   for( ; iterbm != joypad_buttonmap.cend(); iterbm++) {
     option_key = "b2_joypad_";
     option_key += iterbm->first;
@@ -669,6 +719,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 void retro_reset(void)
 {
     log_cb(RETRO_LOG_INFO, "Machine hard reset\n");
+    check_variables();
     create_core(&core);
 }
 

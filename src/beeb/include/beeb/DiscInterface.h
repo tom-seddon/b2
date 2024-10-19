@@ -84,7 +84,13 @@ struct DiscInterfaceDef {
 
 // This disc interface is used for the B+ and B+128.
 extern const DiscInterfaceDef DISC_INTERFACE_ACORN_1770;
-
+#ifdef B2_LIBRETRO_CORE
+extern const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB2;
+extern const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB3;
+extern const DiscInterfaceDef DISC_INTERFACE_OPUS;
+extern const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K;
+extern const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K;
+#endif
 // This disc interface is used for the Master 128.
 extern const DiscInterfaceDef DISC_INTERFACE_MASTER128;
 

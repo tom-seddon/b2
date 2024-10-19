@@ -10,7 +10,6 @@
 #include "load_save.h"
 #else
 #include "../libretro/adapters.h"
-#include "../libretro/core.h"
 #endif // B2_LIBRETRO_CORE
 
 //////////////////////////////////////////////////////////////////////////
