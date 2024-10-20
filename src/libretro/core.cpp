@@ -85,6 +85,7 @@ other QoL
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <shared/system.h>
 #include "../beeb/include/beeb/BBCMicro.h"
 #include "../beeb/include/beeb/sound.h"
@@ -100,7 +101,6 @@ other QoL
 #include "adapters.h"
 #include "b2_libretro_keymap.h"
 
-#define MAX_DISK_COUNT 10
 #define PASTE_FRAME 200
 size_t frameIndex = 0;
 bool autoStartPaste = false;
@@ -135,6 +135,9 @@ bool maxUsersSupported = true;
 unsigned diskIndex = 0;
 unsigned diskIndexInitial = 0;
 unsigned diskCount = 1;
+#define MAX_DISK_COUNT 10
+std::string diskPaths[MAX_DISK_COUNT];
+std::string diskNames[MAX_DISK_COUNT];
 bool diskEjected = false;
 
 static retro_video_refresh_t video_cb;
@@ -279,7 +282,7 @@ static void create_core(BBCMicro** newcore)
     {
       if (machine_types[model_index].rom_array[k] != nullptr) {
          if (machine_types[model_index].rom_array[k] == &writeable_ROM) {
-           // TODO: writeable + content?
+           // writeable + rom is theoretically a valid combination, but none of the fixed configs contain it
            (*newcore)->SetSidewaysRAM(k, nullptr);
          } else {
            (*newcore)->SetSidewaysROM(k, std::make_shared<std::array<unsigned char, 16384>>(*machine_types[model_index].rom_array[k]));
@@ -360,6 +363,15 @@ static unsigned get_image_index_cb(void) {
 /* Sets image index. Can only be called when disk is ejected.
  */
 static bool set_image_index_cb(unsigned index) {
+  log_cb(RETRO_LOG_DEBUG, "Disk control: change image to (%d)\n",index);
+  if (index>=diskCount) {
+    diskIndex = diskCount + 1;
+  } else {
+    diskIndex = index;
+    if (core) {
+      core->SetDiscImage(0, DirectDiscImage::CreateForFile(diskPaths[diskIndex], nullptr));
+    }
+  }
   return true;
 }
 
@@ -372,6 +384,10 @@ static unsigned get_num_images_cb(void) {return diskCount;}
 static bool replace_image_index_cb(unsigned index,
       const struct retro_game_info *info) {
 
+  log_cb(RETRO_LOG_DEBUG, "Disk control: replace image index (%d) to %s\n",index,info->path);
+  if (index >= diskCount) return false;
+  diskPaths[index] = info->path;
+  diskNames[index] = getFileNameFromPath(diskPaths[index]);
   return true;
 }
 
@@ -381,6 +397,8 @@ static bool replace_image_index_cb(unsigned index,
  * with replace_image_index. */
 static bool add_image_index_cb(void) {
   log_cb(RETRO_LOG_DEBUG, "Disk control: add image index (current %d)\n",diskCount);
+  if (diskCount >= MAX_DISK_COUNT) return false;
+  diskCount++;
   return true;
 }
 
@@ -401,9 +419,9 @@ static bool set_initial_image_cb(unsigned index, const char *path) {
  */
 static bool get_image_path_cb(unsigned index, char *path, size_t len) {
   if (index >= diskCount) return false;
-/*  if(diskPaths[index].length() > 0)
+  if(diskPaths[index].length() > 0)
   strncpy(path, diskPaths[index].c_str(), len);
-  log_cb(RETRO_LOG_DEBUG, "Disk control: get image path (%d) %s\n",index,path);*/
+  log_cb(RETRO_LOG_DEBUG, "Disk control: get image path (%d) %s\n",index,path);
   return true;
 }
 
@@ -414,8 +432,8 @@ static bool get_image_path_cb(unsigned index, char *path, size_t len) {
  */
 static bool get_image_label_cb(unsigned index, char *label, size_t len) {
   if(index >= diskCount) return false;
-/*  if(diskNames[index].length() > 0)
-  strncpy(label, diskNames[index].c_str(), len);*/
+  if(diskNames[index].length() > 0)
+  strncpy(label, diskNames[index].c_str(), len);
   //log_cb(RETRO_LOG_DEBUG, "Disk control: get image label (%d) %s\n",index,label);
   return true;
 }
@@ -426,25 +444,51 @@ static bool add_new_image_auto(const char *path) {
   if (diskCount >= MAX_DISK_COUNT) return false;
   diskCount++;
   log_cb(RETRO_LOG_DEBUG, "Disk control: add new image (%d) as %s\n",diskCount,path);
-
-/*  diskPaths[index] = path;
-  std::string contentPath;
-  Ep128Emu::splitPath(diskPaths[index],contentPath,diskNames[index]);*/
+  diskPaths[index] = path;
+  diskNames[index] = getFileNameFromPath(diskPaths[index]);
   return true;
 }
+
+static void scan_multidisk_files(const char *path) {
+
+  std::string filename(path);
+  std::string filePrefix;
+  std::string filePostfix;
+  std::string additionalFile;
+  std::map< std::string, std::string >::const_iterator  iter_multidisk;
+
+  for (iter_multidisk = multidisk_replacements.begin(); iter_multidisk != multidisk_replacements.end(); ++iter_multidisk)
+  {
+    struct stat buffer;   
+    size_t idx = filename.rfind((*iter_multidisk).first);
+    if(idx != std::string::npos) {
+      filePrefix = filename.substr(0,idx);
+      filePostfix = filename.substr(idx+(*iter_multidisk).first.length());
+      additionalFile = filePrefix + (*iter_multidisk).second.c_str() + filePostfix;
+
+      if(stat (additionalFile.c_str(), &buffer) == 0)
+      {
+        log_cb(RETRO_LOG_INFO, "Multidisk additional file found: %s => %s\n",filename.c_str(), additionalFile.c_str());
+        if (!add_new_image_auto(additionalFile.c_str())) {
+          log_cb(RETRO_LOG_WARN, "Multidisk additional image add unsuccessful: %s\n",additionalFile.c_str());
+          break;
+        }
+      }
+    }
+  }
+}
+
 
 
 void retro_init(void)
 {
   struct retro_log_callback log;
-  printf("retro_init \n");
+
   // Init log
   if (environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
     log_cb = log.log;
   else
     log_cb = fallback_log;
-
-  log_cb(RETRO_LOG_DEBUG, "retro_init started\n");
 
   struct retro_disk_control_callback dccb =
   {
@@ -831,7 +875,7 @@ static void audio_callback(void)
 */
 static void audio_callback_batch(void)
 {
-  size_t nFrames=0;
+//  size_t nFrames=0;
   int exp = 5000 /*int(float((1000000/50)*B2_SAMPLE_RATE)/1000000.0f+0.5f) */;
 
   /*core->audioOutput->forwardAudioData((int16_t*)audioBuffer,&nFrames,exp);*/
@@ -851,11 +895,6 @@ void retro_run(void)
       check_variables();
 
    const uint32_t *pixels = tv.GetTexturePixels(&version);
-
-   void *buf = NULL;
-   static constexpr uint16_t WRCHV = 0x20e;
-   static constexpr uint16_t WORDV = 0x20c;
-   static constexpr uint16_t CLIV = 0x208;
 
    VideoDataUnit *va, *vb;
    size_t num_va, num_vb;
@@ -890,7 +929,6 @@ void retro_run(void)
    {
       log_cb(RETRO_LOG_ERROR, "Unable to allocate enough sound buffers\n");
    }
-
 
    update_input();
 
@@ -1035,7 +1073,6 @@ void retro_run(void)
       GetFilterForWidth(&filter, &filter_width, (size_t)na+nb);
       ASSERT(filter_width <= num_units);
       
-      bool nonZeroAudio = false;
       while (buf_idx < na)
       {
          buf_value = (int16_t)32767.0f/4.0f*(
@@ -1043,13 +1080,9 @@ void retro_run(void)
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[1]]+
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[2]]+
             VOLUMES_TABLE[aa[buf_idx].sn_output.ch[3]]);
-         //aa += 1;
+
          audioBuffer[buf_idx*2] =  /**filter * */ buf_value;
          audioBuffer[buf_idx*2+1] =  /**filter++ * */buf_value;
-         /*if (audioBuffer[buf_idx])
-            nonZeroAudio = true;
-         if (nonZeroAudio)
-            printf("%d,",audioBuffer[buf_idx]);*/
          buf_idx++;
       }
       m_sound_output.Consume(na);
@@ -1063,18 +1096,12 @@ void retro_run(void)
             VOLUMES_TABLE[bb[buf_idx-na].sn_output.ch[3]]);
          audioBuffer[buf_idx*2] = /* *filter * */ buf_value;
          audioBuffer[buf_idx*2+1] = /* *filter++ * */ buf_value;
-         /*if (audioBuffer[buf_idx])
-            printf("%d,",audioBuffer[buf_idx]);*/
-         //bb += 1;
          buf_idx++;
       }
       m_sound_output.Consume(nb);
-
-      /*printf("last buf_idx %d\n",buf_idx);*/
    }
 
   audio_callback_batch();
-  /*core->sync_display();*/
   render();
    /* LED interface */
 /*   if (led_state_cb)
@@ -1475,6 +1502,7 @@ size_t retro_serialize_size(void)
 
 bool retro_serialize(void *data_, size_t size)
 {
+
  /* if (size < retro_serialize_size())
     return false;
 
@@ -1484,7 +1512,7 @@ bool retro_serialize(void *data_, size_t size)
   core->vm->saveState(f);
   f.writeMem(data_, size);
 */
-  return true;
+  return false;
 }
 
 bool retro_unserialize(const void *data_, size_t size)

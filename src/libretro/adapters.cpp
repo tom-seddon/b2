@@ -14,6 +14,14 @@ printf ("GetAssetPath: %s\n",path.c_str());
 return path;
 }
 
+std::string getFileNameFromPath(std::string &f0) {
+  size_t ridx = f0.rfind(PATH_SEPARATOR);
+    if(ridx != std::string::npos)
+      return f0.substr(ridx+1);
+    else
+      return f0;
+}
+
 // lifted from LoadSave.cpp
 bool GetFileDetails(size_t *size, bool *can_write, const char *path)
 {
