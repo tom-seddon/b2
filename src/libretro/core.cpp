@@ -29,7 +29,6 @@ make clean
 make -j6
 
 current restrictions:
-one model
 crude autostart
 no drive sound
 no keyboard remap (positional only)
@@ -41,14 +40,15 @@ compilation:
    test Win32/64, OSX, PS2, etc.
    remove not needed source files + ifdef changes
    clean up warnings
+   big endian tvoutput
 
 core options
-   autoboot on/off, combine shift with autostart file name detection
    machine model 
       missing: master, master compact, etc.
       optional: ext_mem, adji, beeblink
    selectable joypad controls (azop, az/', etc.)
    extra diagonal controls (keypad 7913)
+   core options v2
 
 speed / accuracy:
    run main cycle until screen update
@@ -61,11 +61,12 @@ functions:
    save state
    load uef?
    LED support
+   tape support (maybe wait for upstream)
    digital joystick, test program?
    beeblink?
    printer?
    drive (and relay?) sound
-   disk change interface
+   memory map
 
 main QoL
    intelligent zoom?
@@ -148,7 +149,7 @@ static retro_input_state_t input_state_cb;
 static retro_set_led_state_t led_state_cb;
 
 
-int autoboot=0;
+bool autoboot_core=true;
 size_t updateCount = 0;
 size_t updateCount_prevframe = 0;
 bool sound_ddnoise=false;
@@ -313,6 +314,18 @@ static void check_variables(void)
     }
   }
   
+  var =
+    {
+      .key = "b2_autoboot",
+    };
+  if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+  {
+    if(strcmp(var.value, "true") == 0)
+      autoboot_core = true;
+    else
+      autoboot_core = false;
+  }
+
   for(; iterbm != joypad_buttonmap.cend(); iterbm++) {
     option_key = "b2_joypad_";
     option_key += iterbm->first;
@@ -706,6 +719,12 @@ void retro_set_environment(retro_environment_t cb)
 
   strlcpy(core_var_key[i],"b2_model",50);
   strlcpy(core_var_value[i],model_options.c_str(),1024);
+  core_vars[i].key = core_var_key[i];
+  core_vars[i].value = core_var_value[i];
+  i++;
+
+  strlcpy(core_var_key[i],"b2_autoboot",50);
+  strlcpy(core_var_value[i],"Automatically boot disk image; true|false",1024);
   core_vars[i].key = core_var_key[i];
   core_vars[i].value = core_var_value[i];
   i++;
@@ -1152,10 +1171,11 @@ bool retro_load_game(const struct retro_game_info *info)
 
   // Autoboot: if there is [SOMETHING] notice in the filename, use it
   // otherwise press Shift and hope for autoboot
-  std::string filename(info->path);
-  std::string autostartName;
-  size_t ridx = filename.rfind('[');
-  size_t lidx = filename.rfind(']');
+  if (autoboot_core) {
+    std::string filename(info->path);
+    std::string autostartName;
+    size_t ridx = filename.rfind('[');
+    size_t lidx = filename.rfind(']');
     if(ridx != std::string::npos)
     {
       autostartName = "CHAIN\""+filename.substr(ridx+1,lidx-ridx-1)+"\"\r";
@@ -1165,9 +1185,8 @@ bool retro_load_game(const struct retro_game_info *info)
     }
     else
       core->SetKeyState(BeebKey_Shift,true);  
-
    }
-
+  }
 /*
     std::string filename(info->path);
     std::string contentExt;
