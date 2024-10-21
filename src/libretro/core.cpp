@@ -38,9 +38,10 @@ no savestate
 compilation:
    manage static 6502_internal.inl - probably to stay
    test Win32/64, OSX, PS2, etc.
-   remove not needed source files + ifdef changes
+   remove not needed ifdef changes
    clean up warnings
    big endian tvoutput
+   .gitlab-ci test
 
 core options
    machine model 

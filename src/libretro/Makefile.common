@@ -38,16 +38,10 @@ SOURCES_CPP := \
 	$(CORE_DIR)/shared/c/log.cpp \
 	$(CORE_DIR)/shared/c/system.cpp \
 	$(CORE_DIR)/shared/c/mutex.cpp \
-	$(CORE_DIR)/shared/c/CommandLineParser.cpp \
-	$(CORE_DIR)/b2/BeebConfig.cpp \
 	$(CORE_DIR)/b2/DiscGeometry.cpp \
 	$(CORE_DIR)/b2/DirectDiscImage.cpp \
 	$(CORE_DIR)/b2/discs.cpp \
 	$(CORE_DIR)/b2/filters.cpp \
-	$(CORE_DIR)/b2/MessageQueue.cpp \
-	$(CORE_DIR)/b2/Messages.cpp \
-	$(CORE_DIR)/b2/BeebThread.cpp \
-	$(CORE_DIR)/b2/BeebState.cpp \
 	$(CORE_DIR)/b2/misc.cpp \
 	$(CORE_DIR)/b2/Remapper.cpp \
 	$(CORE_DIR)/b2/roms.cpp \
@@ -139,3 +133,9 @@ endif
 #	$(CORE_DIR)/b2/load_save.cpp \
 #	$(CORE_DIR)/b2/DiscImage.cpp \
 #	$(CORE_DIR)/b2/MemoryDiscImage.cpp \ -- "miniz" requirement
+#	$(CORE_DIR)/b2/BeebThread.cpp \
+#	$(CORE_DIR)/b2/BeebState.cpp \
+#	$(CORE_DIR)/b2/MessageQueue.cpp \
+#	$(CORE_DIR)/b2/Messages.cpp \
+#	$(CORE_DIR)/b2/BeebConfig.cpp \
+#	$(CORE_DIR)/shared/c/CommandLineParser.cpp \
