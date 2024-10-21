@@ -80,6 +80,7 @@ class DiscImage : public std::enable_shared_from_this<DiscImage> {
 #ifndef B2_LIBRETRO_CORE
     virtual void AddFileDialogFilter(FileDialog *fd) const = 0;
 #endif
+
     // Save a copy of this disc image to the given file. If
     // successful, returns a clone with the new name and whatever load
     // method indicates a file.

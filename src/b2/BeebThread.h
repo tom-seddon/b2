@@ -672,6 +672,7 @@ class BeebThread {
       private:
     };
 #endif // B2_LIBRETRO_CORE
+
     // Wake thread up when emulator is being resumed. The thread could
     // have gone to sleep.
     class DebugWakeUpMessage : public Message {

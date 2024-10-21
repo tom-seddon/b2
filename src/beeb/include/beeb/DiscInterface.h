@@ -85,6 +85,7 @@ struct DiscInterfaceDef {
 // This disc interface is used for the B+ and B+128.
 extern const DiscInterfaceDef DISC_INTERFACE_ACORN_1770;
 #ifdef B2_LIBRETRO_CORE
+// Disc interface definitions are used directly by the libretro core
 extern const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB2;
 extern const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB3;
 extern const DiscInterfaceDef DISC_INTERFACE_OPUS;
