@@ -280,8 +280,9 @@ int vasprintf(char **buf, const char *fmt, va_list v);
 // BSD extension.
 //
 // See https://lwn.net/Articles/612244/
+#ifndef HAVE_STRLCPY
 size_t strlcpy(char *dest, const char *src, size_t size);
-
+#endif // HAVE_STRLCPY
 #endif
 
 //////////////////////////////////////////////////////////////////////////
