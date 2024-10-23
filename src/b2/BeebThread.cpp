@@ -1794,7 +1794,7 @@ bool BeebThread::Start() {
 
             SleepMS(1);
         }
-    } catch (...) {
+    } catch (const std::system_error &) {
         return false;
     }
 

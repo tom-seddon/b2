@@ -110,7 +110,7 @@ bool JobQueue::Init(unsigned num_threads) {
 
         try {
             td->thread = std::thread(std::bind(&JobQueue::ThreadFunc, this, td));
-        } catch (...) {
+        } catch (const std::system_error &) {
             return false;
         }
     }
