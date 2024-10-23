@@ -15,9 +15,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#ifndef B2_LIBRETRO_CORE
 LOG_EXTERN(OUTPUT);
-#endif // B2_LIBRETRO_CORE
 
 const std::string DirectDiscImage::LOAD_METHOD_DIRECT = "direct";
 
@@ -256,9 +254,7 @@ bool DirectDiscImage::fopenAndSeek(bool write,
             mode = "rb";
         }
 
-#ifndef B2_LIBRETRO_CORE
         LOGF(OUTPUT, "Opening: %s (mode=%s)\n", m_path.c_str(), mode);
-#endif // B2_LIBRETRO_CORE
 
         m_fp = fopenUTF8(m_path.c_str(), mode);
         if (!m_fp) {
@@ -281,9 +277,7 @@ bool DirectDiscImage::fopenAndSeek(bool write,
 
 void DirectDiscImage::Close() const {
     if (m_fp) {
-#ifndef B2_LIBRETRO_CORE
         LOGF(OUTPUT, "Closing: %s\n", m_path.c_str());
-#endif // B2_LIBRETRO_CORE
         fclose(m_fp);
         m_fp = nullptr;
     }

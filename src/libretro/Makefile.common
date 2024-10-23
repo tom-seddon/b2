@@ -40,11 +40,9 @@ SOURCES_CPP := \
 	$(CORE_DIR)/shared/c/mutex.cpp \
 	$(CORE_DIR)/b2/DiscGeometry.cpp \
 	$(CORE_DIR)/b2/DirectDiscImage.cpp \
-	$(CORE_DIR)/b2/discs.cpp \
 	$(CORE_DIR)/b2/filters.cpp \
 	$(CORE_DIR)/b2/misc.cpp \
 	$(CORE_DIR)/b2/Remapper.cpp \
-	$(CORE_DIR)/b2/roms.cpp \
 
 SOURCES_C := \
 	$(CORE_DIR)/6502/c/6502.c \

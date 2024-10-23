@@ -104,6 +104,8 @@ other QoL
 #include "adapters.h"
 #include "b2_libretro_keymap.h"
 
+LOG_DEFINE(OUTPUT,"OUTPUT",&log_printer_nowhere,false);
+
 #define PASTE_FRAME 200
 size_t frameIndex = 0;
 bool autoStartPaste = false;
