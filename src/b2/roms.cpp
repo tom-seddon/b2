@@ -6,6 +6,7 @@
 #else
 #include "../libretro/adapters.h"
 #endif // B2_LIBRETRO_CORE
+
 #include <shared/enum_def.h>
 #include "roms.inl"
 #include <shared/enum_end.h>

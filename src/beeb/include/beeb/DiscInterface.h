@@ -92,6 +92,7 @@ extern const DiscInterfaceDef DISC_INTERFACE_OPUS;
 extern const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K;
 extern const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K;
 #endif
+
 // This disc interface is used for the Master 128.
 extern const DiscInterfaceDef DISC_INTERFACE_MASTER128;
 

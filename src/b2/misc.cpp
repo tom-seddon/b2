@@ -387,12 +387,11 @@ std::string GetTimeString(const struct tm &t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#ifndef B2_LIBRETRO_CORE
 AudioDeviceLock::AudioDeviceLock(uint32_t device)
     : m_device(device) {
     if (m_device != 0) {
-#ifndef B2_LIBRETRO_CORE
         SDL_LockAudioDevice(m_device);
-#endif // B2_LIBRETRO_CORE
     }
 }
 
@@ -401,11 +400,10 @@ AudioDeviceLock::AudioDeviceLock(uint32_t device)
 
 AudioDeviceLock::~AudioDeviceLock() {
     if (m_device != 0) {
-#ifndef B2_LIBRETRO_CORE
         SDL_UnlockAudioDevice(m_device);
-#endif // B2_LIBRETRO_CORE
     }
 }
+#endif // B2_LIBRETRO_CORE
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

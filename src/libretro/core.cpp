@@ -1,4 +1,5 @@
 /* TODO
+sudo docker run -it --rm -v "/media/storage/Documents/dev/b2-libretro:/build"  git.libretro.com:5050/libretro-infrastructure/libretro-build-amd64-ubuntu:xenial-gcc9 bash
 
 sudo docker run -it --rm -v "/media/storage/Documents/dev/b2-libretro:/build" git.libretro.com:5050/libretro-infrastructure/libretro-build-mxe-win32-cross:gcc10 bash
 
@@ -659,7 +660,7 @@ void retro_get_system_info(struct retro_system_info *info)
 {
   memset(info, 0, sizeof(*info));
   info->library_name     = "b2";
-  info->library_version  = "v0.2";
+  info->library_version  = "v0.3";
   info->need_fullpath    = true;
   info->valid_extensions = "ssd|dsd";
   //printf("retro_get_system_info \n");

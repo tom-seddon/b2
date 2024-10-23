@@ -6,6 +6,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
 #ifndef B2_LIBRETRO_CORE
 #ifdef _WIN32_WINNT
 // 0x600 = Vista+; 0x601 = Win7+; 0x602 = Win8+;
@@ -15,8 +16,6 @@
 #else
 #define _WIN32_WINNT 0x601
 #endif
-#else
-size_t strlcpy(char *dest, const char *src, size_t size);
 #endif
 
 #define NOMINMAX

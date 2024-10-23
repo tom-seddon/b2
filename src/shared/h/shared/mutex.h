@@ -10,6 +10,7 @@
 #ifdef B2_LIBRETRO_CORE
 #include "system.h"
 #endif
+
 #ifndef MUTEX_DEBUGGING
 #define MUTEX_DEBUGGING 1
 #endif

@@ -134,6 +134,7 @@ char **GetBacktraceSymbols(void *const *array, int size) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#ifndef B2_LIBRETRO_CORE
 const char *GetLastErrorDescription(void) {
     return GetErrorDescription(GetLastError());
 }
@@ -147,7 +148,7 @@ const char *GetErrorDescription(DWORD error) {
 
     if (n == 0) {
         /* Bleargh. */
-#ifndef B2_LIBRETRO_CORE
+
 #define CASE(X) \
     case (X):   \
         return #X
@@ -182,7 +183,7 @@ const char *GetErrorDescription(DWORD error) {
         }
 
 #undef CASE
-#endif
+
     } else {
         /* For some reason, Windows error strings end with a carriage
          * return. */
@@ -195,6 +196,7 @@ const char *GetErrorDescription(DWORD error) {
 
     return g_last_error_description;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -308,6 +310,7 @@ int GetTerminalWidth(void) {
 // https://msdn.microsoft.com/en-us/library/windows/desktop/mt774976(v=vs.85).aspx...
 // but that's only from Windows 10 build 1607! Seems a bit rude to
 // require that when everything else only needs Vista+.
+
 #ifndef B2_LIBRETRO_CORE
 #include <shared/pshpack8.h>
 struct THREADNAME_INFO {
@@ -362,6 +365,7 @@ void SetCurrentThreadNameInternal(const char *name) {
 #else
 void SetCurrentThreadNameInternal(const char *name) {}
 #endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
