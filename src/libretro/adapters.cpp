@@ -85,20 +85,12 @@ bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Message
 printf ("SaveFile: %s\n",path.c_str());
 return false;
 }
-/*
-std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::string &name) {
-   // TODO: use system dir
-    std::string path = "/media/storage/Documents/dev/b2-libretro/rom/"+ name;
 
-    std::vector<uint8_t> data;
-    PathLoadBinaryFile(&data, path);
-
-    auto rom = std::make_shared<std::array<uint8_t, 16384>>();
-
-    printf("rom size check: %s, %d, %d\n",name.c_str(),data.size(), rom->size());
-    for (size_t i = 0; i < data.size(); ++i) {
-        (*rom)[i] = data[i];
-    }
-
-    return rom;
-}*/
+class FileDialog {
+  public:
+    void AddFilter(std::string title, const std::vector<std::string> extensions);
+};
+void FileDialog::AddFilter(std::string title, std::vector<std::string> patterns) {
+    (void)title;
+    (void)patterns;
+}

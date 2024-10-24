@@ -25,4 +25,6 @@ bool LoadFile(std::vector<uint8_t> *data,
               uint32_t flags = 0);
 bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages);
 
+class FileDialog;
+
 #endif

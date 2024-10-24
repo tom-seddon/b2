@@ -25,9 +25,7 @@
 #include <atomic>
 #include "BeebConfig.h"
 #include "MessageQueue.h"
-#ifndef B2_LIBRETRO_CORE
 #include "BeebWindow.h"
-#endif // B2_LIBRETRO_CORE
 
 #include <shared/enum_decl.h>
 #include "BeebThread.inl"
@@ -607,7 +605,6 @@ class BeebThread {
     };
 #endif
 
-#ifndef B2_LIBRETRO_CORE
     class CloneWindowMessage : public Message {
       public:
         explicit CloneWindowMessage(BeebWindowInitArguments init_arguments);
@@ -674,7 +671,6 @@ class BeebThread {
       protected:
       private:
     };
-#endif // B2_LIBRETRO_CORE
 
     // Wake thread up when emulator is being resumed. The thread could
     // have gone to sleep.

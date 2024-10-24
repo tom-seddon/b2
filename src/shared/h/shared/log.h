@@ -232,11 +232,7 @@ void LogStackTrace(Log *log);
 
 #define LOG__IS_ENABLED(X) ((X).enabled)
 
-//#ifndef B2_LIBRETRO_CORE
 #define LOG(X) g_log_##X
-//#else
-//#define LOG(X) log_info_##X
-//#endif // B2_LIBRETRO_CORE
 
 #define LOG_EXTERN(X) extern Log LOG(X)
 
