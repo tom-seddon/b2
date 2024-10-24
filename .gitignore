@@ -8,9 +8,3 @@ imgui.ini
 /.dir-locals-build.sh
 /etc/b2_tests/[Zz]/
 /dependencies/ProcessorTests/
-*.o
-*.so
-*.ROM
-*.cbp
-*.layout
-*.dll
