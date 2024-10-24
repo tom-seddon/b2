@@ -193,7 +193,7 @@ class DiscInterfaceWatford1770DDB2 : public DiscInterface {
   private:
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB2{
+const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB2{
     "Watford 1770 (DDB2)",
     StandardROM_WatfordDDFS_DDB2,
     []() {
@@ -255,7 +255,7 @@ class DiscInterfaceWatford1770DDB3 : public DiscInterface {
   private:
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB3{
+const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB3{
     "Watford 1770 (DDB3)",
     StandardROM_WatfordDDFS_DDB3,
     []() {
@@ -307,7 +307,7 @@ class DiscInterfaceOpus1770 : public DiscInterface {
   private:
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_OPUS{
+const DiscInterfaceDef DISC_INTERFACE_OPUS{
     "Opus 1770",
     StandardROM_OpusDDOS,
     []() {
@@ -554,7 +554,7 @@ class DiscInterfaceChallenger : public DiscInterface {
     }
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K{
+const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K{
     "Opus CHALLENGER 256K",
     StandardROM_OpusChallenger,
     []() {
@@ -562,7 +562,7 @@ static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K{
     },
     true};
 
-static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K{
+const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K{
     "Opus CHALLENGER 512K",
     StandardROM_OpusChallenger,
     []() {
