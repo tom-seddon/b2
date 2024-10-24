@@ -1,11 +1,7 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include "roms.h"
-#ifndef B2_LIBRETRO_CORE
 #include "load_save.h"
-#else
-#include "../libretro/adapters.h"
-#endif // B2_LIBRETRO_CORE
 
 #include <shared/enum_def.h>
 #include "roms.inl"

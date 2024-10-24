@@ -22,9 +22,7 @@
 #include <atomic>
 #include "BeebConfig.h"
 #include "MessageQueue.h"
-#ifndef B2_LIBRETRO_CORE
 #include "BeebWindow.h"
-#endif // B2_LIBRETRO_CORE
 
 #include <shared/enum_decl.h>
 #include "BeebThread.inl"
