@@ -103,7 +103,6 @@ std::string DirectDiscImage::GetDescription() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#ifndef B2_LIBRETRO_CORE
 // TODO - basically the same as MemoryDiscImage.
 void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
     if (const char *ext = GetExtensionFromDiscGeometry(m_geometry)) {
@@ -111,7 +110,6 @@ void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
         fd->AddFilter("BBC disc image", {pattern});
     }
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

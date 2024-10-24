@@ -44,9 +44,7 @@ class DirectDiscImage : public DiscImage {
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
 
-#ifndef B2_LIBRETRO_CORE
     void AddFileDialogFilter(FileDialog *fd) const override;
-#endif // B2_LIBRETRO_CORE
 
     bool SaveToFile(const std::string &file_name, Messages *msg) const override;
 
