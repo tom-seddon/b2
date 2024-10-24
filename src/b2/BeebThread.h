@@ -602,7 +602,6 @@ class BeebThread {
     };
 #endif
 
-#ifndef B2_LIBRETRO_CORE
     class CloneWindowMessage : public Message {
       public:
         explicit CloneWindowMessage(BeebWindowInitArguments init_arguments);
@@ -669,7 +668,6 @@ class BeebThread {
       protected:
       private:
     };
-#endif // B2_LIBRETRO_CORE
 
     // Wake thread up when emulator is being resumed. The thread could
     // have gone to sleep.
