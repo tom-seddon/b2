@@ -8,6 +8,13 @@ endif()
 ##########################################################################
 ##########################################################################
 
+check_cxx_source_compiles("#include <string.h>
+typedef decltype(&strlcpy) T;int main(void){return 0;}" HAVE_STRLCPY)
+message(STATUS "strlcpy exists: ``${HAVE_STRLCPY}''")
+
+##########################################################################
+##########################################################################
+
 set(H h/shared)
 
 set(SRCS
@@ -50,6 +57,13 @@ endif()
 
 add_library(shared_lib STATIC ${SRCS})
 
+if(HAVE_STRLCPY)
+  # There are HAVE_STRLCPY defines in SDL and libcurl, so give this
+  # one a different name in order not to interfere.
+  #
+  # It must be public, as this influences system.h.
+  target_compile_definitions(shared_lib PUBLIC SYSTEM_HAVE_STRLCPY=1)
+endif()
 
 target_include_directories(shared_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/h)
 target_include_directories(shared_lib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/h)
