@@ -444,13 +444,13 @@ static const DiscInterface *GetDiscInterface(TestBBCMicroType type, uint32_t) {
         return nullptr;
 
     case TestBBCMicroType_BAcorn1770DFS:
-        return DISC_INTERFACE_ACORN_1770;
+        return &DISC_INTERFACE_ACORN_1770;
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        return DISC_INTERFACE_MASTER128;
+        return &DISC_INTERFACE_MASTER128;
     }
 }
 
