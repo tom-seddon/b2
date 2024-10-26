@@ -26,16 +26,16 @@ DirectDiscImage::~DirectDiscImage() {
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<DirectDiscImage> DirectDiscImage::CreateForFile(std::string path,
-                                                                Messages *msg) {
+                                                                const LogSet &logs) {
     size_t size;
     bool can_write;
     if (!GetFileDetails(&size, &can_write, path.c_str())) {
-        msg->e.f("Couldn't get details for file: %s\n", path.c_str());
+        logs.e.f("Couldn't get details for file: %s\n", path.c_str());
         return nullptr;
     }
 
     DiscGeometry geometry;
-    if (!FindDiscGeometryFromFileDetails(&geometry, path.c_str(), size, msg)) {
+    if (!FindDiscGeometryFromFileDetails(&geometry, path.c_str(), size, &logs)) {
         return nullptr;
     }
 

@@ -1911,7 +1911,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
             }
         }
 
-        std::shared_ptr<DirectDiscImage> new_disc_image = DirectDiscImage::CreateForFile(direct_item.path, &m_msg);
+        std::shared_ptr<DirectDiscImage> new_disc_image = DirectDiscImage::CreateForFile(direct_item.path, m_msg);
 
         this->DoDiscImageSubMenuItem(drive,
                                      std::move(new_disc_image),
@@ -1932,10 +1932,10 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
                                                              file_item.new_disc_data.data(),
                                                              file_item.new_disc_data.size(),
                                                              *file_item.new_disc_type->geometry,
-                                                             &m_msg);
+                                                             m_msg);
         } else {
             new_disc_image = MemoryDiscImage::LoadFromFile(file_item.path,
-                                                           &m_msg);
+                                                           m_msg);
         }
         this->DoDiscImageSubMenuItem(drive,
                                      std::move(new_disc_image),
@@ -3270,7 +3270,7 @@ const std::string &BeebWindow::GetConfigName() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
-    std::shared_ptr<MemoryDiscImage> disc_image = MemoryDiscImage::LoadFromFile(arguments.file_path, &m_msg);
+    std::shared_ptr<MemoryDiscImage> disc_image = MemoryDiscImage::LoadFromFile(arguments.file_path, m_msg);
     if (!disc_image) {
         return;
     }

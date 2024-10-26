@@ -27,7 +27,7 @@ class DirectDiscImage : public DiscImage {
 
     ~DirectDiscImage();
 
-    static std::shared_ptr<DirectDiscImage> CreateForFile(std::string path, Messages *msg);
+    static std::shared_ptr<DirectDiscImage> CreateForFile(std::string path, const LogSet &logs);
 
     DirectDiscImage(const DirectDiscImage &) = delete;
     DirectDiscImage &operator=(const DirectDiscImage &) = delete;

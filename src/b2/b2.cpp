@@ -1373,9 +1373,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 }
 
                 if (options.direct_disc[i]) {
-                    ia.init_disc_images[i] = DirectDiscImage::CreateForFile(options.discs[i], &init_messages);
+                    ia.init_disc_images[i] = DirectDiscImage::CreateForFile(options.discs[i], init_messages);
                 } else {
-                    ia.init_disc_images[i] = MemoryDiscImage::LoadFromFile(options.discs[i], &init_messages);
+                    ia.init_disc_images[i] = MemoryDiscImage::LoadFromFile(options.discs[i], init_messages);
                 }
 
                 if (!ia.init_disc_images[i]) {

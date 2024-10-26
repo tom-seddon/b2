@@ -463,7 +463,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         if (FindDiscGeometryFromMIMEType(&geometry,
                                          request.content_type.c_str(),
                                          request.body.size(),
-                                         &messages)) {
+                                         messages)) {
             // ok...
         } else if (!name.empty() &&
                    FindDiscGeometryFromFileDetails(&geometry,
@@ -478,7 +478,7 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         message_list->ClearMessages();
 
-        std::shared_ptr<DiscImage> disc_image = MemoryDiscImage::LoadFromBuffer(name, HTTP_DISC_IMAGE_LOAD_METHOD, request.body.data(), request.body.size(), geometry, &messages);
+        std::shared_ptr<DiscImage> disc_image = MemoryDiscImage::LoadFromBuffer(name, HTTP_DISC_IMAGE_LOAD_METHOD, request.body.data(), request.body.size(), geometry, messages);
         if (!disc_image) {
             this->SendMessagesResponse(server, request, message_list);
             return nullptr;
