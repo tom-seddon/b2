@@ -29,7 +29,7 @@ std::shared_ptr<DirectDiscImage> DirectDiscImage::CreateForFile(std::string path
                                                                 const LogSet &logs) {
     uint64_t size;
     bool can_write;
-    if (!PathIsFileOnDisk(path,&size,&can_write)) {
+    if (!PathIsFileOnDisk(path, &size, &can_write)) {
         logs.e.f("Couldn't get details for file: %s\n", path.c_str());
         return nullptr;
     }

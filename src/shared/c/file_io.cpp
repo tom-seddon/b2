@@ -157,7 +157,7 @@ bool LoadFile(std::vector<uint8_t> *data, const std::string &path, const LogSet 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadTextFile(std::vector<char> *data, const std::string &path, const LogSet*logs, uint32_t flags) {
+bool LoadTextFile(std::vector<char> *data, const std::string &path, const LogSet *logs, uint32_t flags) {
     if (!LoadFile2(data, path, logs, flags, "rt")) {
         return false;
     }

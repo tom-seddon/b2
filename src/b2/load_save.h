@@ -53,7 +53,6 @@ bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *mes
 // Free result using free.
 unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_out, Messages *messages);
 
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
