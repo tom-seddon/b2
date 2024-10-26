@@ -6,6 +6,7 @@
 #include <shared/log.h>
 #include <ctype.h>
 #include <string>
+#include <shared/file_io.h>
 
 LOG_DEFINE(OUTPUT, "", &log_printer_stdout_and_debugger);
 
@@ -21,7 +22,7 @@ static std::vector<uint8_t> LoadFile(const std::string &dname, const std::string
     std::string path = PathJoined(dname, fname);
 
     std::vector<uint8_t> data;
-    TEST_TRUE(PathLoadBinaryFile(&data, path));
+    TEST_TRUE(LoadFile(&data, path, nullptr));
     TEST_EQ_UU(data.size(), 65536);
 
     LOGF(OUTPUT, "%s: %zu\n", path.c_str(), data.size());

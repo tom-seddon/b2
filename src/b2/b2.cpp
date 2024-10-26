@@ -699,7 +699,7 @@ static bool ParseCommandLineOptions(
 
     // Detect the File Explorer double-click case on Windows (also acts as a
     // convenient command-line shortcut).
-    if (argc == 2 && PathIsFileOnDisk(argv[1])) {
+    if (argc == 2 && PathIsFileOnDisk(argv[1], nullptr, nullptr)) {
         options->file_association_mode = true;
         options->file_association_path = argv[1];
 

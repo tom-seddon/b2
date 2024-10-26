@@ -45,6 +45,7 @@
 #if SYSTEM_WINDOWS
 #include <dwmapi.h>
 #endif
+#include <shared/file_io.h>
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -933,7 +934,7 @@ class FileMenuItem {
             if (ImGui::MenuItem(disc->name.c_str())) {
                 std::string src_path = disc->GetAssetPath();
 
-                if (!LoadFile(&this->new_disc_data, src_path, msgs, 0)) {
+                if (!LoadFile(&this->new_disc_data, src_path, msgs)) {
                     return;
                 }
 
@@ -947,14 +948,14 @@ class FileMenuItem {
     }
 };
 
-static size_t CleanUpRecentPaths(const std::string &tag, bool (*exists_fn)(const std::string &)) {
+static size_t CleanUpRecentPaths(const std::string &tag) {
     size_t n = 0;
 
     if (RecentPaths *rp = GetRecentPathsByTag(tag)) {
         size_t i = 0;
 
         while (i < rp->GetNumPaths()) {
-            if ((*exists_fn)(rp->GetPathByIndex(i))) {
+            if (PathIsFileOnDisk(rp->GetPathByIndex(i), nullptr, nullptr)) {
                 ++i;
             } else {
                 rp->RemovePathByIndex(i);
@@ -1253,8 +1254,8 @@ void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_clean_up_recent_files_lists_command)) {
         size_t n = 0;
 
-        n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE, &PathIsFileOnDisk);
-        n += CleanUpRecentPaths(RECENT_PATHS_NVRAM, &PathIsFileOnDisk);
+        n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE);
+        n += CleanUpRecentPaths(RECENT_PATHS_NVRAM);
 
         if (n > 0) {
             m_msg.i.f("Removed %zu items\n", n);

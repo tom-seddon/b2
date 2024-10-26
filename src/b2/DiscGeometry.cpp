@@ -53,7 +53,7 @@ static const size_t NUM_DDD_GEOMETRIES = sizeof DDD_GEOMETRIES / sizeof DDD_GEOM
 
 struct DiscImageType;
 
-typedef bool (*FindDiscGeometryFn)(DiscGeometry *geometry, const char *name, size_t size, const LogSet *logs, const DiscImageType *disc_image_type);
+typedef bool (*FindDiscGeometryFn)(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type);
 
 struct DiscImageType {
     const char *ext;
@@ -98,7 +98,7 @@ static bool IsMultipleOfSectorSize(const char *name, size_t size, const LogSet *
     return true;
 }
 
-static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *name, size_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
+static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
     ASSERT(disc_image_type->num_possible_geometries == 1);
     ASSERT(!disc_image_type->possible_geometries[0].double_density);
     *geometry = DiscGeometry(80, 10, 256, disc_image_type->possible_geometries[0].double_sided);
@@ -124,7 +124,7 @@ static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *na
     return true;
 }
 
-static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *name, size_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
+static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
     for (size_t i = 0; i < disc_image_type->num_possible_geometries; ++i) {
         const DiscGeometry *g = &disc_image_type->possible_geometries[i];
 
@@ -151,7 +151,7 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *nam
     return false;
 }
 
-static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, size_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
+static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
     (void)disc_image_type;
 
     if (!IsMultipleOfSectorSize(name, size, logs)) {
@@ -313,7 +313,7 @@ bool operator!=(const DiscGeometry &a, const DiscGeometry &b) {
 
 bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,
                                      const char *file_name,
-                                     size_t file_size,
+                                     uint64_t file_size,
                                      const LogSet *logs) {
     std::string ext = PathGetExtension(file_name);
 
@@ -335,7 +335,7 @@ bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,
 
 bool FindDiscGeometryFromMIMEType(DiscGeometry *geometry,
                                   const char *mime_type,
-                                  size_t file_size,
+                                  uint64_t file_size,
                                   const LogSet &logs) {
     for (const DiscImageType *type = DISC_IMAGE_TYPES; type->ext; ++type) {
         if (strcmp(mime_type, type->mime_type) == 0) {

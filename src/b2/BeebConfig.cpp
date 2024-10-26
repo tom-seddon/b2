@@ -6,12 +6,12 @@
 #include <shared/debug.h>
 #include "Messages.h"
 #include <beeb/DiscInterface.h>
-#include <shared/path.h>
 #include <stdlib.h>
 #include "conf.h"
 #include "load_save.h"
 #include <beeb/DiscImage.h>
 #include "misc.h"
+#include <shared/file_io.h>
 
 #include <shared/enum_def.h>
 #include "BeebConfig.inl"
@@ -39,7 +39,7 @@ static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, siz
         path = rom.file_name;
     }
 
-    if (!LoadFile(data, path, *msg)) {
+    if (!LoadFile(data, path, msg)) {
         return false;
     }
 

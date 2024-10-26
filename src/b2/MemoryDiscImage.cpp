@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include "native_ui.h"
 #include <shared/log.h>
+#include <shared/file_io.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -195,7 +196,7 @@ static bool LoadDiscImage(std::vector<uint8_t> *data,
                           DiscGeometry *geometry,
                           const std::string &path,
                           const LogSet &logs) {
-    if (!LoadFile(data, path, logs)) {
+    if (!LoadFile(data, path, &logs)) {
         return false;
     }
 
@@ -364,7 +365,7 @@ std::vector<FileDialogFilter> MemoryDiscImage::GetFileDialogFilters() const {
 //////////////////////////////////////////////////////////////////////////
 
 bool MemoryDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
-    return SaveFile(m_data->data, file_name, logs);
+    return SaveFile(m_data->data, file_name, &logs);
 }
 
 //////////////////////////////////////////////////////////////////////////

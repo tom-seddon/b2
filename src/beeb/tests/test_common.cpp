@@ -8,6 +8,7 @@
 #include <shared/log.h>
 #include <beeb/DiscImage.h>
 #include <shared/sha1.h>
+#include <shared/file_io.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -391,7 +392,7 @@ static std::shared_ptr<const std::array<uint8_t, 16384>> LoadOSROM(const std::st
     std::string path = PathJoined(ROMS_FOLDER, name);
 
     std::vector<uint8_t> data;
-    TEST_TRUE(PathLoadBinaryFile(&data, path));
+    TEST_TRUE(LoadFile(&data, path, nullptr));
 
     auto rom = std::make_shared<std::array<uint8_t, 16384>>();
 
@@ -612,7 +613,7 @@ void TestBBCMicro::StopCaptureOSWRCH() {
 
 void TestBBCMicro::LoadFile(const std::string &path, uint32_t addr) {
     std::vector<uint8_t> contents;
-    TEST_TRUE(PathLoadBinaryFile(&contents, path));
+    TEST_TRUE(::LoadFile(&contents, path, nullptr));
 
     if (this->GetParasiteType() == BBCMicroParasiteType_None || (addr & 0xffff0000) == 0xffff0000) {
         addr &= 0xffff;
@@ -632,7 +633,7 @@ void TestBBCMicro::LoadFile(const std::string &path, uint32_t addr) {
 
 void TestBBCMicro::LoadSSD(int drive, const std::string &path) {
     std::vector<uint8_t> contents;
-    TEST_TRUE(PathLoadBinaryFile(&contents, path));
+    TEST_TRUE(::LoadFile(&contents, path, nullptr));
     this->SetDiscImage(drive, std::make_shared<TestDiscImage>(path, std::move(contents)));
 }
 
@@ -864,7 +865,7 @@ void TestBBCMicro::LoadParasiteOS(const std::string &name) {
     std::string path = PathJoined(ROMS_FOLDER, name);
 
     std::vector<uint8_t> data;
-    TEST_TRUE(PathLoadBinaryFile(&data, path));
+    TEST_TRUE(::LoadFile(&data, path, nullptr));
 
     auto rom = std::make_shared<std::array<uint8_t, 2048>>();
 
@@ -1074,10 +1075,11 @@ void TestSpooledOutput(const TestBBCMicro &bbc,
         }
 
         std::vector<uint8_t> wanted_results;
-        TEST_TRUE(PathLoadBinaryFile(&wanted_results,
-                                     GetTestFileName(beeblink_volume_path,
-                                                     beeblink_drive,
-                                                     bbc.spool_output_name)));
+        TEST_TRUE(LoadFile(&wanted_results,
+                           GetTestFileName(beeblink_volume_path,
+                                           beeblink_drive,
+                                           bbc.spool_output_name),
+                           nullptr));
 
         std::string wanted_output(wanted_results.begin(), wanted_results.end());
 
@@ -1189,8 +1191,8 @@ void RunImageTest(const std::string &wanted_png_src_path,
     // The differences PNG isn't always illuminating.
     std::string wanted_png_path = GetOutputFileName(png_name + ".wanted.png");
     std::vector<uint8_t> wanted_png_data;
-    TEST_TRUE(PathLoadBinaryFile(&wanted_png_data, wanted_png_src_path));
-    TEST_TRUE(PathSaveBinaryFile(wanted_png_data, wanted_png_path));
+    TEST_TRUE(LoadFile(&wanted_png_data, wanted_png_src_path, nullptr));
+    TEST_TRUE(SaveFile(wanted_png_data, wanted_png_path, nullptr));
 
     int wanted_width, wanted_height;
     unsigned char *wanted_data = stbi_load(wanted_png_path.c_str(),

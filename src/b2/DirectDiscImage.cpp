@@ -1,12 +1,12 @@
 #include <shared/system.h>
-#include <shared/path.h>
 #include <string>
 #include "misc.h"
 #include "DirectDiscImage.h"
 #include "native_ui.h"
 #include "Messages.h"
 #include <limits.h>
-#include "load_save.h"
+#include <shared/file_io.h>
+#include <shared/path.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -27,9 +27,9 @@ DirectDiscImage::~DirectDiscImage() {
 
 std::shared_ptr<DirectDiscImage> DirectDiscImage::CreateForFile(std::string path,
                                                                 const LogSet &logs) {
-    size_t size;
+    uint64_t size;
     bool can_write;
-    if (!GetFileDetails(&size, &can_write, path.c_str())) {
+    if (!PathIsFileOnDisk(path,&size,&can_write)) {
         logs.e.f("Couldn't get details for file: %s\n", path.c_str());
         return nullptr;
     }
@@ -115,11 +115,11 @@ bool DirectDiscImage::SaveToFile(const std::string &file_name, const LogSet &log
     this->Close();
 
     std::vector<uint8_t> data;
-    if (!LoadFile(&data, m_path, logs)) {
+    if (!LoadFile(&data, m_path, &logs)) {
         return false;
     }
 
-    if (!SaveFile(data, file_name, logs)) {
+    if (!SaveFile(data, file_name, &logs)) {
         return false;
     }
 

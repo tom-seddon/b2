@@ -16,7 +16,7 @@
 #include <math.h>
 #include <atomic>
 #include "SettingsUI.h"
-#include <shared/path.h>
+#include <shared/file_io.h>
 
 #include <shared/enum_def.h>
 #include "TraceUI.inl"

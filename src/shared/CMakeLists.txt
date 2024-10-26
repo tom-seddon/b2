@@ -31,6 +31,7 @@ set(SRCS
   c/relacy.cpp ${H}/relacy.h
   c/mutex.cpp ${H}/mutex.h ${H}/mutex.inl
   ${H}/pshpack1.h ${H}/pshpack4.h ${H}/pshpack8.h ${H}/poppack.h
+  c/file_io.cpp ${H}/file_io.h ${H}/file_io.inl
   )
 
 if(APPLE)

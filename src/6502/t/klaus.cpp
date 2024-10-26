@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <shared/path.h>
 #include <string.h>
+#include <shared/file_io.h>
 
 /* Test driver for Klaus Dormann's test suite,
  * https://github.com/Klaus2m5/6502_65C02_functional_tests */
@@ -29,7 +30,7 @@ static int DoTest(const std::string &fname,
         std::string path = PathJoined(KLAUS_FOLDER_NAME, fname);
 
         std::vector<uint8_t> data;
-        TEST_TRUE(PathLoadBinaryFile(&data, path));
+        TEST_TRUE(LoadFile(&data, path, nullptr));
         TEST_TRUE(load_address + data.size() <= sizeof g_mem);
 
         memset(g_mem, 0, sizeof g_mem);

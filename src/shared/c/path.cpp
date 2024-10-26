@@ -154,6 +154,8 @@ int PathCompare(const std::string &a, const std::string &b) {
         int cb = b[bi];
 
 #if SYSTEM_OSX || SYSTEM_WINDOWS
+        // This is very lazy, but this function is never used anywhere where it
+        // would be a problem.
         ca = tolower(ca);
         cb = tolower(cb);
 #endif
@@ -179,108 +181,6 @@ int PathCompare(const std::string &a, const std::string &b) {
     }
 
     return 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool PathLoadBinaryFile(std::vector<uint8_t> *contents, const std::string &path) {
-    FILE *f = NULL;
-    bool good = false;
-    size_t num_read;
-    long len;
-
-    f = fopenUTF8(path.c_str(), "rb");
-    if (!f) {
-        goto done;
-    }
-
-    if (fseek(f, 0, SEEK_END) == -1) {
-        goto done;
-    }
-
-    len = ftell(f);
-    if (len < 0) {
-        goto done;
-    }
-
-#if LONG_MAX > SIZE_MAX
-    if (len > (long)SIZE_MAX) {
-        goto done;
-    }
-#endif
-
-    if (fseek(f, 0, SEEK_SET) == -1) {
-        goto done;
-    }
-
-    contents->resize((size_t)len);
-
-    num_read = fread(contents->data(), 1, contents->size(), f);
-    if (num_read != contents->size()) {
-        goto done;
-    }
-
-    good = true;
-
-done:;
-    int e = errno;
-
-    if (f) {
-        fclose(f);
-        f = NULL;
-    }
-
-    if (!good) {
-        contents->clear(); //may as well...
-    }
-
-    errno = e;
-    return good;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool PathSaveBinaryFile(const std::vector<uint8_t> &contents, const std::string &path) {
-    FILE *f = nullptr;
-    bool good = false;
-
-    f = fopenUTF8(path.c_str(), "wb");
-    if (!f) {
-        goto done;
-    }
-
-    fwrite(contents.data(), 1, contents.size(), f);
-
-    if (ferror(f)) {
-        goto done;
-    }
-
-    good = true;
-
-done:
-    if (f) {
-        fclose(f);
-        f = nullptr;
-    }
-
-    return good;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-FILE *fopenUTF8(const char *path, const char *mode) {
-#if SYSTEM_WINDOWS
-
-    return _wfopen(GetWideString(path).c_str(), GetWideString(mode).c_str());
-
-#else
-
-    return fopen(path, mode); //non-UTF8 ok
-
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
