@@ -19,6 +19,7 @@
 #include <inttypes.h>
 #include <algorithm>
 #include <atomic>
+#include <shared/file_io.h>
 
 #include <shared/enum_decl.h>
 #include "test_AVFoundation.inl"
@@ -158,7 +159,7 @@ static bool StoreWAVFile(const char *id, uint32_t size, const char *data, void *
 
 static bool LoadWAVFile(WAVFile *file, const std::string &file_name) {
     std::vector<uint8_t> data;
-    if (!PathLoadBinaryFile(&data, file_name)) {
+    if (!LoadFile(&data, file_name, nullptr)) {
         return false;
     }
 

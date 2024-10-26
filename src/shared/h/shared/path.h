@@ -87,6 +87,7 @@ bool PathGlob(const std::string &folder, std::function<void(const std::string &p
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The file details retrieved are for advisory purposes only.
 bool PathIsFileOnDisk(const std::string &path, uint64_t *file_size, bool *can_write);
 bool PathIsFolderOnDisk(const std::string &path);
 

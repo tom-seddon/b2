@@ -5,6 +5,7 @@
 #include <shared/path.h>
 #include "native_ui.h"
 #include <string.h>
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -111,7 +112,7 @@ static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *na
         if (logs) {
             PrintInvalidSizeMessage(name, *logs);
 
-            logs->i.f("(size %zu bytes is larger than maximum %zu bytes for %d*%zu*%zu sectors)\n",
+            logs->i.f("(size %" PRIu64 " bytes is larger than maximum %zu bytes for %d*%zu*%zu sectors)\n",
                       size,
                       geometry->GetTotalNumBytes(),
                       geometry->double_sided ? 2 : 1,
@@ -137,7 +138,7 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *nam
     if (logs) {
         PrintInvalidSizeMessage(name, *logs);
 
-        logs->i.f("(size is %zu; valid sizes are: ", size);
+        logs->i.f("(size is %" PRIu64 "; valid sizes are: ", size);
         for (size_t i = 0; i < disc_image_type->num_possible_geometries; ++i) {
             if (i > 0) {
                 logs->i.f("; ");
@@ -162,7 +163,7 @@ static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, uint6
         if (logs) {
             PrintInvalidSizeMessage(name, *logs);
 
-            logs->i.f("(size is %zu; max valid size is %zu", size, ADL_SIZE);
+            logs->i.f("(size is %" PRIu64 "; max valid size is %zu", size, ADL_SIZE);
         }
 
         return false;

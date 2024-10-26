@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <unistd.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -37,25 +38,42 @@ bool PathGlob(const std::string &folder,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool IsThingOnDisk(const std::string &path, mode_t mask) {
+bool PathIsFileOnDisk(const std::string &path, uint64_t *file_size, bool *can_write) {
     struct stat st;
     if (stat(path.c_str(), &st) == -1) {
         return false;
     }
 
-    if ((st.st_mode & mask) == mask) {
-        return true;
-    } else {
+    if ((st.st_mode & S_IFREG) != S_IFREG) {
         return false;
     }
-}
 
-bool PathIsFileOnDisk(const std::string &path) {
-    return IsThingOnDisk(path, S_IFREG);
+    if (file_size) {
+        if (st.st_size < 0) {
+            *file_size = 0; //???
+        } else {
+            *file_size = (uint64_t)st.st_size;
+        }
+    }
+
+    if (can_write) {
+        *can_write = access(path.c_str(), W_OK) == 0;
+    }
+
+    return true;
 }
 
 bool PathIsFolderOnDisk(const std::string &path) {
-    return IsThingOnDisk(path, S_IFDIR);
+    struct stat st;
+    if (stat(path.c_str(), &st) == -1) {
+        return false;
+    }
+
+    if ((st.st_mode & S_IFDIR) != S_IFDIR) {
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
