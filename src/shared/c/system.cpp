@@ -84,7 +84,7 @@ size_t strlcpy(char *dest, const char *src, size_t size) {
             ;
     }
 
-    return (s - src - 1); /* count does not include NUL */
+    return (size_t)(s - src - 1); /* count does not include NUL */
 }
 
 #endif
