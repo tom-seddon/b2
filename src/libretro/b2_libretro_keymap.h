@@ -81,7 +81,7 @@ const std::map<unsigned, BeebKey> beeb_libretro_keymap = {
     {RETROK_RETURN,   BeebKey_Return},
 // Row 4
     {RETROK_NUMLOCK,  BeebKey_ShiftLock}, // logical mapping (sort of): shift lock -- PC keyboard Num Lock
-    {RETROK_PAGEDOWN, BeebKey_ShiftLock}, // extra mapping: shift lock -- PC keyboard PgUp
+    {RETROK_PAGEDOWN, BeebKey_ShiftLock}, // extra mapping: shift lock -- PC keyboard PgDn
     {RETROK_LSHIFT,   BeebKey_Shift},     // note that Shift keys can not be distinguished in Beeb keyboard matrix
     {RETROK_COMMA,    BeebKey_Comma},
     {RETROK_PERIOD,   BeebKey_Stop},
