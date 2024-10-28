@@ -49,7 +49,8 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
         Message(MessageType type, uint64_t ticks, std::string text);
     };
 
-    explicit MessageList(size_t max_num_messages = 500,
+    explicit MessageList(std::string name,
+                         size_t max_num_messages = 500,
                          bool print_to_stdio = false);
     ~MessageList();
 
@@ -62,8 +63,8 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     // Total number of messages printed.
     uint64_t GetNumMessagesPrinted() const;
 
-    // Total number of error/warning messages printed.
-    uint64_t GetNumErrorsAndWarningsPrinted() const;
+    // Total number of error messages printed.
+    uint64_t GetNumErrorsPrinted() const;
 
     // Locks the mutex while it does its thing.
     //
@@ -80,6 +81,8 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     // Inserts all messages from src into their appropriate place in
     // the message list (based on their timestamp), respecting the
     // message count limit.
+    //
+    // Not terribly efficient.
     void InsertMessages(const MessageList &src);
 
     // When the print_to_stdio flag is true, messages are printed to
@@ -118,12 +121,13 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     Printer m_warning_printer;
     Printer m_error_printer;
 
+    std::string m_name;
     mutable Mutex m_mutex;
     mutable std::vector<Message> m_messages;
     size_t m_head = 0;
     size_t m_max_num_messages = 0;
     std::atomic<uint64_t> m_num_messages_printed;
-    std::atomic<uint64_t> m_num_errors_and_warnings_printed;
+    std::atomic<uint64_t> m_num_errors_printed;
 
     bool m_print_to_stdio = false;
 

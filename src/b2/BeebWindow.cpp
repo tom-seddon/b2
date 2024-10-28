@@ -539,7 +539,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments)) {
     m_name = m_init_arguments.name;
 
-    m_message_list = std::make_shared<MessageList>();
+    m_message_list = std::make_shared<MessageList>("BeebWindow");
     m_msg.SetMessageList(m_message_list);
 
     m_beeb_thread = std::make_shared<BeebThread>(m_message_list,
@@ -570,7 +570,7 @@ BeebWindow::~BeebWindow() {
 
     if (m_update_tv_texture_thread.joinable()) {
         {
-            std::lock_guard<Mutex> lock(m_update_tv_texture_state.mutex);
+            LockGuard<Mutex> lock(m_update_tv_texture_state.mutex);
 
             m_update_tv_texture_state.stop = true;
         }
@@ -1519,9 +1519,9 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             ImGuiWindowFlags extra_flags = 0;
             if (popup) {
                 extra_flags = (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
+                ImGui::SetNextWindowSize(popup->GetDefaultSize(), ImGuiCond_FirstUseEver);
             }
 
-            ImGui::SetNextWindowSize(popup->GetDefaultSize(), ImGuiCond_FirstUseEver);
             if (ImGui::Begin(popup_metadata->command.GetText().c_str(), &opened, extra_flags)) {
                 m_settings.popups |= mask;
 
@@ -1555,7 +1555,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
         }
     }
 
-    if (ValueChanged(&m_msg_last_num_errors_and_warnings_printed, m_message_list->GetNumErrorsAndWarningsPrinted())) {
+    if (ValueChanged(&m_msg_last_num_errors_printed, m_message_list->GetNumErrorsPrinted())) {
         m_settings.popups |= 1 << BeebWindowPopupType_Messages;
     }
 
@@ -1769,7 +1769,7 @@ void BeebWindow::DoFileMenu() {
             char title[100];
             snprintf(title, sizeof title, "Drive %d", drive);
 
-            std::unique_lock<Mutex> d_lock;
+            UniqueLock<Mutex> d_lock;
             std::shared_ptr<const DiscImage> disc_image = m_beeb_thread->GetDiscImage(&d_lock, drive);
 
             if (ImGui::BeginMenu(title)) {
@@ -2284,7 +2284,7 @@ void BeebWindow::DoWindowMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
-    std::unique_lock<Mutex> lock(state->mutex);
+    UniqueLock<Mutex> lock(state->mutex);
 
     while (!state->stop) {
         state->update_cv.wait(lock);
@@ -2409,7 +2409,7 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest
     ASSERT(dest_pitch > 0);
     if (threaded) {
         {
-            std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
+            UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
             m_update_tv_texture_state.done = false;
             m_update_tv_texture_state.update = true;
             m_update_tv_texture_state.update_video_output = m_beeb_thread->GetVideoOutput();
@@ -2431,7 +2431,7 @@ void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, 
     ASSERT(dest_pitch > 0);
 
     if (threaded) {
-        std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
+        UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
 
         while (!m_update_tv_texture_state.done) {
             m_update_tv_texture_state.done_cv.wait(lock);
@@ -3547,13 +3547,13 @@ void BeebWindow::SetCaptureMouse(bool capture_mouse) {
 //   bitmap, skipping a final 32 bpp->24 bpp step
 // - SDL_PIXELFORMAT_BGR24 = B8G8R8 - for Windows clipboard, 24 bpp opaque
 //   bitmap. Not very compelling as there's an extra unnecessary 32 bpp->24 bpp
-//   step 
+//   step
 
 SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format) const {
     ASSERT(pixel_format == SDL_PIXELFORMAT_RGB24 ||
            pixel_format == SDL_PIXELFORMAT_BGR24 ||
            pixel_format == SDL_PIXELFORMAT_XRGB8888);
-    std::unique_lock<Mutex> lock;
+    UniqueLock<Mutex> lock;
     uint32_t *tv_pixels;
     if (m_settings.screenshot_last_vsync) {
         tv_pixels = m_tv.GetLastVSyncTexturePixels(&lock);

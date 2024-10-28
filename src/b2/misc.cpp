@@ -446,7 +446,7 @@ std::vector<std::string> GetSplitString(const std::string &str, const std::strin
 //////////////////////////////////////////////////////////////////////////
 
 template <class T>
-static bool GetValueFromString(T *value, const char *str, int radix) {
+static bool GetUIntValueFromString(T *value, const char *str, int radix, const char **ep_out) {
     // Always skip leading spaces.
     const char *c = str;
     while (*c != 0 && isspace(*c)) {
@@ -469,8 +469,12 @@ static bool GetValueFromString(T *value, const char *str, int radix) {
 
     char *ep;
     unsigned long long tmp = strtoull(c, &ep, radix);
-    if (*ep != 0 && !isspace(*ep)) {
-        return false;
+    if (ep_out) {
+        *ep_out = ep;
+    } else {
+        if (*ep != 0 && !isspace(*ep)) {
+            return false;
+        }
     }
 
     if (tmp > std::numeric_limits<T>::max()) {
@@ -507,57 +511,57 @@ bool GetBoolFromString(bool *value, const char *str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix) {
-    return GetUInt8FromString(value, str.c_str(), radix);
+bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt8FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt8FromString(uint8_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt8FromString(uint8_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix) {
-    return GetUInt16FromString(value, str.c_str(), radix);
+bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt16FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt16FromString(uint16_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt16FromString(uint16_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix) {
-    return GetUInt32FromString(value, str.c_str(), radix);
+bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt32FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt32FromString(uint32_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt32FromString(uint32_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix) {
-    return GetUInt64FromString(value, str.c_str(), radix);
+bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt64FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt64FromString(uint64_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt64FromString(uint64_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1726,7 +1726,7 @@ BeebThread::MouseMotionMessage::MouseMotionMessage(int dx, int dy)
 void BeebThread::MouseMotionMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
     (void)beeb_thread;
 
-    ts->beeb->AddMouseMotion(m_dx,m_dy);
+    ts->beeb->AddMouseMotion(m_dx, m_dy);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1832,7 +1832,7 @@ bool BeebThread::Start() {
         // replace this with some kind of unique_lock hand-off.)
         for (;;) {
             {
-                std::lock_guard<Mutex> lock(m_mutex);
+                LockGuard<Mutex> lock(m_mutex);
 
                 if (m_thread_state) {
                     break;
@@ -1946,7 +1946,7 @@ float BeebThread::GetSpeedScale() const {
 //////////////////////////////////////////////////////////////////////////
 
 //bool BeebThread::IsPaused() const {
-//    std::lock_guard<Mutex> lock(m_mutex);
+//    LockGuard<Mutex> lock(m_mutex);
 //
 //    return m_paused;
 //}
@@ -1954,10 +1954,10 @@ float BeebThread::GetSpeedScale() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const DiscImage> BeebThread::GetDiscImage(std::unique_lock<Mutex> *lock, int drive) const {
+std::shared_ptr<const DiscImage> BeebThread::GetDiscImage(UniqueLock<Mutex> *lock, int drive) const {
     ASSERT(drive >= 0 && drive < NUM_DRIVES);
 
-    *lock = std::unique_lock<Mutex>(m_mutex);
+    *lock = UniqueLock<Mutex>(m_mutex);
 
     return m_disc_images[drive];
 }
@@ -1981,7 +1981,7 @@ bool BeebThread::GetKeyState(BeebKey beeb_key) const {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BeebThread::GetNVRAM() const {
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     std::vector<uint8_t> nvram = m_thread_state->beeb->GetNVRAM();
     return nvram;
@@ -2019,7 +2019,7 @@ void BeebThread::ClearLastTrace() {
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<Trace> BeebThread::GetLastTrace() {
-    std::lock_guard<Mutex> lock(m_last_trace_mutex);
+    LockGuard<Mutex> lock(m_last_trace_mutex);
 
     return m_last_trace;
 }
@@ -2266,7 +2266,7 @@ BeebThread::TimingStats BeebThread::GetTimingStats() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::GetTimelineState(BeebThreadTimelineState *timeline_state) const {
-    std::lock_guard<Mutex> lock(m_timeline_state_mutex);
+    LockGuard<Mutex> lock(m_timeline_state_mutex);
 
     *timeline_state = m_timeline_state;
 }
@@ -2275,7 +2275,7 @@ void BeebThread::GetTimelineState(BeebThreadTimelineState *timeline_state) const
 //////////////////////////////////////////////////////////////////////////
 
 size_t BeebThread::GetNumTimelineBeebStateEvents() const {
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     return m_timeline_beeb_state_events_copy.size();
 }
@@ -2307,7 +2307,7 @@ size_t BeebThread::GetPrinterDataSizeBytes() const {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BeebThread::GetPrinterData() const {
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     return m_printer_buffer;
 }
@@ -2350,7 +2350,7 @@ bool BeebThread::DebugIsHalted() const {
 #if BBCMICRO_DEBUGGER
 void BeebThread::DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr,
                                std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const {
-    std::lock_guard<Mutex> lock(m_beeb_state_mutex);
+    LockGuard<Mutex> lock(m_beeb_state_mutex);
 
     if (state_ptr) {
         *state_ptr = m_beeb_state;
@@ -2372,7 +2372,7 @@ BeebThread::GetTimelineBeebStateEvents(size_t begin_index,
     ASSERT(end_index <= PTRDIFF_MAX);
     ASSERT(end_index >= begin_index);
 
-    std::lock_guard<Mutex> lock(m_mutex);
+    LockGuard<Mutex> lock(m_mutex);
 
     begin_index = std::min(begin_index, m_timeline_beeb_state_events_copy.size());
     end_index = std::min(end_index, m_timeline_beeb_state_events_copy.size());
@@ -2904,7 +2904,7 @@ void BeebThread::ThreadMain(void) {
     ThreadState ts;
 
     {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         SetCurrentThreadNamef("BeebThread");
 
@@ -2932,7 +2932,6 @@ void BeebThread::ThreadMain(void) {
     }
 
     std::vector<SentMessage> messages;
-    size_t total_num_audio_units_produced = 0;
 
     int handle_messages_reason;
     (void)handle_messages_reason;
@@ -2972,14 +2971,11 @@ void BeebThread::ThreadMain(void) {
             what = "polled";
         }
 
-        //printf("%s: %s/%d: %zu message(s), cycles=%" PRIu64 ", stop=%" PRIu64 ", total_num_audio_units_produced=%zu\n",__func__,what,handle_messages_reason,messages.size(),ts.num_executed_2MHz_cycles?*ts.num_executed_2MHz_cycles:0,ts.next_stop_2MHz_cycles,total_num_audio_units_produced);
-        total_num_audio_units_produced = 0;
-
         CycleCount stop_cycles;
 
         //if(!messages.empty())
         {
-            std::lock_guard<Mutex> lock(m_mutex);
+            LockGuard<Mutex> lock(m_mutex);
 
             for (auto &&m : messages) {
                 bool prepared = m.message->ThreadPrepare(&m.message, &m.completion_fun, this, &ts);
@@ -3100,7 +3096,7 @@ void BeebThread::ThreadMain(void) {
             }
 
             {
-                std::lock_guard<Mutex> lock2(m_timeline_state_mutex);
+                LockGuard<Mutex> lock2(m_timeline_state_mutex);
 
                 m_timeline_state.mode = ts.timeline_mode;
 
@@ -3122,7 +3118,7 @@ void BeebThread::ThreadMain(void) {
             }
 
             {
-                std::lock_guard<Mutex> lock2(m_beeb_state_mutex);
+                LockGuard<Mutex> lock2(m_beeb_state_mutex);
 
                 m_beeb_state = ts.beeb->DebugGetState();
 #if BBCMICRO_DEBUGGER
@@ -3182,8 +3178,6 @@ void BeebThread::ThreadMain(void) {
             SoundDataUnit *sunit_end = sa + num_sa;
             bool sunits_a = true;
 
-            total_num_audio_units_produced += num_sound_units;
-
             if (num_va + num_vb > 0) {
                 PROFILE_SCOPE(PROFILER_COLOUR_BLUE, "Beeb Update");
                 rmt_ScopedCPUSample(BeebUpdate, 0);
@@ -3193,7 +3187,7 @@ void BeebThread::ThreadMain(void) {
                 bool vunits_a = true;
                 size_t num_vunits = 0;
 
-                std::unique_lock<Mutex> lock(m_mutex);
+                UniqueLock<Mutex> lock(m_mutex);
 
                 for (;;) {
 #if BBCMICRO_DEBUGGER
@@ -3246,7 +3240,7 @@ void BeebThread::ThreadMain(void) {
     }
 done:
     {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         m_thread_state = nullptr;
 
@@ -3373,6 +3367,7 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
     }
 
     ASSERT(m_timeline_state.num_events == num_events);
+    (void)num_events;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3534,7 +3529,7 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SetLastTrace(std::shared_ptr<Trace> last_trace) {
-    std::lock_guard<Mutex> lock(m_last_trace_mutex);
+    LockGuard<Mutex> lock(m_last_trace_mutex);
 
     m_last_trace = std::move(last_trace);
 }

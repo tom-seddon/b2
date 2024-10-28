@@ -232,27 +232,29 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
                 m_st.cursor = m_st.raster >= m_registers.bits.ncstart.bits.start && m_st.raster <= m_registers.bits.ncend;
 
                 if (m_st.cursor) {
-                    switch ((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
-                    case CRTCCursorMode_On:
-                        m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
-                        break;
-
-                    case CRTCCursorMode_Off:
-                        break;
-
-                    case CRTCCursorMode_Blink16:
-                        // 8 frames on, 8 frames off
-                        if ((m_num_frames & 8) != 0) {
+                    if (m_registers.bits.r8.bits.c != 3) {
+                        switch ((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
+                        case CRTCCursorMode_On:
                             m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
-                        }
-                        break;
+                            break;
 
-                    case CRTCCursorMode_Blink32:
-                        // 16 frames on, 16 frames off
-                        if ((m_num_frames & 16) != 0) {
-                            m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
+                        case CRTCCursorMode_Off:
+                            break;
+
+                        case CRTCCursorMode_Blink16:
+                            // 8 frames on, 8 frames off
+                            if ((m_num_frames & 8) != 0) {
+                                m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
+                            }
+                            break;
+
+                        case CRTCCursorMode_Blink32:
+                            // 16 frames on, 16 frames off
+                            if ((m_num_frames & 16) != 0) {
+                                m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
+                            }
+                            break;
                         }
-                        break;
                     }
                 }
 

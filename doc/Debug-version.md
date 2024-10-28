@@ -87,11 +87,11 @@ Prefix hex numbers with `&`, `$` or `0x`.
 
 Prefix octal numbers with `0`, like C.
 
-## Address prefixes
+## Address suffixes
 
-Addresses are annotated with a case-sensitive prefix, indicating which
-paging settings are in force when deciding what's visible at that
-address.The possible prefixes are as follows.
+Addresses may be annotated with ` followed by a case-sensitive suffix,
+indicating which paging settings are in force when deciding what's
+visible at that address. The possible suffixes are as follows.
 
 Host memory:
 
@@ -110,24 +110,18 @@ Parasite memory:
 - `p` - parasite RAM ($0000...$ffff)
 - `r` - parasite ROM ($f000...$ffff)
 
-The prefix displayed in the debugger is sometimes a redundant one.
-(For example, host address $0000 might be shown as ``m`$0000``, even
-though there's no other prefix it could have.)
+When entering an address with a suffix, appropriate paging overrides
+will be selected to ensure the requested byte is visible.
 
-When entering an address, you can usually supply an address prefix.
-(For example, to view $8000 in ROM 4, you might enter ``4`$8000``.)
-Appropriate paging overrides will be selected to ensure the requested
-byte is visible.
+You can supply multiple address suffix codes. Order is relevant, as
+certain suffixes imply the settings for other sufixes. Override this
+with further suffixes if required.
 
-You can supply multiple address prefixes. Order is relevant, as
-certain prefixes imply the settings for other prefixes. Override this
-with further prefixes if required.
-
-- ROM bank prefix ('0' - 'f') implies ROM mapper bank `w`
-- (B+/Master) ROM bank prefix (`0` - `f`) implies ANDY disabled
+- ROM bank suffix ('0' - 'f') implies ROM mapper bank `w`
+- (B+/Master) ROM bank suffix (`0` - `f`) implies ANDY disabled
 - (Master) OS ROM (`o`) implies HAZEL disabled
 
-Inappropriate prefixes are ignored. 
+Inappropriate suffixes are ignored.
 
 ## ROM Mappers
 
@@ -135,7 +129,7 @@ The MAME source is a quite readable definition of how the various ROM
 mapper PLDs fundamentally work:
 https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
 
-The applicable address prefixes affect the mapped region as follows.
+The applicable address suffixes affect the mapped region as follows.
 
 - `16 KB` - mapper region irrelevant
 - `Inter-Word` - `w` - `x` select 16 KB region visible at $8000-$bfff
@@ -163,11 +157,11 @@ will happen when `Start` is clicked:
   Return key is pressed
 * `Execute $xxxx` - recording will start once the PC is equal to the
   given address. Note that this currently goes only by address -
-  address prefixes aren't supported
+  address suffixes aren't supported
 * `Write $xxxx` - recording will start when the given address is
   written to. Writes to any address can be trapped, even if that write
   has no effect, e.g., because the area is ROM. Note that this
-  currently goes only by address - address prefixes aren't supported
+  currently goes only by address - address suffixes aren't supported
 
 Once the trace starts, you can always click `Stop` to end it, but
 there are additional options for the trace end condition:
@@ -278,9 +272,9 @@ data register. For read or read-modify-write instructions, this is the
 value read; for branch instructions, this is the result of the test
 (1=taken, 0=not taken).
 
-Addresses in the trace are annotated with an address prefix hint. Note
+Addresses in the trace are annotated with an address suffix hint. Note
 this is a hint, and while it's usually correct it may not actually
-reflect the affected byte when the prefix is `r` (read parasite ROM,
+reflect the affected byte when the suffix is `r` (read parasite ROM,
 write parasite RAM) or `i` on Master 128 (read either host I/O or MOS
 ROM, write host I/O).
 
@@ -525,7 +519,7 @@ The text to paste is taken from the request body, which must be
 `text/plain`, with `Content-Encoding` of `ISO-8859-1` (assumed if not
 specified) or `utf-8`.
 
-### `peek/WIN/BEGIN-ADDR/END-ADDR?p=PREFIX&mos=MOS`; `peek/WIN/BEGIN-ADDR/+SIZE?p=PREFIX&mos=MOS` ###
+### `peek/WIN/BEGIN-ADDR/END-ADDR?s=SUFFIX&mos=MOS`; `peek/WIN/BEGIN-ADDR/+SIZE?s=SUFFIX&mos=MOS` ###
 
 Retrieve memory from `BEGIN-ADDR` (16-bit hex, inclusive) to
 `END-ADDR` (32-bit hex, exclusive) or `BEGIN-ADDR+SIZE` (exclusive -
@@ -534,17 +528,17 @@ Retrieve memory from `BEGIN-ADDR` (16-bit hex, inclusive) to
 
 You can't peek past 0xffff.
 
-The `PREFIX` argument is any debugger address prefixes (default:
+The `SUFFIX` argument is any debugger address suffixes (default:
 none), and the `MOS` argument is the value for the `MOS's view` flag
 (default: false). Both are discussed above.
 
-### `poke/WIN/ADDR?p=PREFIX&mos=MOS` ###
+### `poke/WIN/ADDR?s=SUFFIX&mos=MOS` ###
 
 Store the request body into memory at `ADDR` (16-bit hex).
 
 As with `peek`, you can't poke past 0xffff.
 
-For info about `PREFIX` and `MOS`, see the `peek` endpoint.
+For info about `SUFFIX` and `MOS`, see the `peek` endpoint.
 
 ### `mount/WIN?drive=D&name=N` ###
 

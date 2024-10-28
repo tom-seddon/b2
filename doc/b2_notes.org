@@ -1276,4 +1276,68 @@ any more:
 | SDL       | https://github.com/tom-seddon/SDL |
 | noc       | https://github.com/tom-seddon/noc |
 
+* BBCMicro_Update.cpp build times
+** VS2019
+
+Modify =BBCMicro_Update= file, do =Project Only= > =Build= on beeb_lib
+project.
+
+Original: 3 runs: 1'09", 1'09", 1'08"
+
+Split manually into 2 groups: 0'45", 0'44", 0'44"
+
+Add configurable =BBCMICRO_NUM_UPDATE_GROUPS=:
+
+- 1 group: 1'09"
+- 2 groups: 0'47"
+- 4 groups: 0'38", 0'38", 0'37"
+
+i7-4890HQ (4C 8T)
+
+** gcc
+
+Modify =BBCMicro_Update= file, and do =time ninja
+./src/beeb/libbeeb_lib.a= from the build folder.
+
+- 1 group: 649.84s user 17.65s system 100% cpu 11:03.00 total
+- 2 groups: 725.01s user 17.84s system 195% cpu 6:20.81 total
+- 4 groups: 808.46s user 21.31s system 282% cpu 4:53.27 total
+
+VirtualBox, 3 cores
+
+** Xcode
+
+Modify =BBCMicro_Update= file, select =beeb_lib= as the target in
+Xcode, build from Xcode.
+
+- 1 group: 139.4 sec
+- 2 groups: 86.8 sec
+- 4 groups: 80.1 sec
+
+i7-5557U (2C 4T)
+
+* More build times
+
+** Initial
+
+| Scenario                | Debug        | Release      |
+|-------------------------+--------------+--------------|
+| Rebuild all             | 2 min 51 sec | 5 min 37 sec |
+| Touch BBCMicro.h, build | 1 min 11 sec |              |
+
+** Include less stuff in test_standard.cpp
+
+| Scenario                | Debug        | Release      |
+|-------------------------+--------------+--------------|
+| Rebuild all             | 2 min 35 sec | 5 min 35 sec |
+| Touch BBCMicro.h, build | 1 min 5 sec  |              |
+
+** Tidy up shared headers a bit
+
+Rebuild all
+
+debug: 2 min 29 sec
+
+Release: 5 min 30 sec
+
 * eof.

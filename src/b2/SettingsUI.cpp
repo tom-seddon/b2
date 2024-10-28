@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/debug.h>
 #include "SettingsUI.h"
 #include "commands.h"
 

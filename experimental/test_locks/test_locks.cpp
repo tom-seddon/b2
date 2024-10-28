@@ -7,12 +7,12 @@ LOG_DEFINE(OUTPUT, "", &log_printer_stdout_and_debugger);
 
 static volatile uint64_t g_counter;
 static volatile bool g_done;
-static Mutex mutex;
+static Mutex g_mutex;
 
 static void Thread() {
     while (!g_done) {
         //SleepMS(1);
-        std::lock_guard<Mutex> lock(mutex);
+        LockGuard<Mutex> lock(g_mutex);
         ++g_counter;
     }
 }
@@ -23,7 +23,7 @@ int main() {
     uint64_t a = GetCurrentTickCount();
 
     for (int i = 0; i < 2000000; ++i) {
-        std::lock_guard<Mutex> lock(mutex);
+        LockGuard<Mutex> lock(g_mutex);
 
         ++g_counter;
     }

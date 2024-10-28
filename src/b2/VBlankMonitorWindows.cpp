@@ -177,7 +177,27 @@ class VBlankMonitorWindows : public VBlankMonitor {
         SetCurrentThreadNamef("VBlank Monitor: %s", display->mi.szDevice);
 
         while (!display->stop_thread) {
-            display->output->WaitForVBlank();
+            // If the display sleeps, WaitForVBlank returns immediately. What
+            // do? The answer seems to be: not much that's particularly good.
+            // This copies
+            // https://github.com/juce-framework/JUCE/commit/fb670d209b3a80b3a3d61d1edce0e2fd5ae89b2c
+            // by imposing a frame rate limit. In this case, 250 Hz (4
+            // ms/frame).
+            //
+            // Each ThreadVBlank call represents a fair amount of work, and 250
+            // Hz isn't ideal, so this does need revisiting. 
+
+            uint64_t start_ticks = GetCurrentTickCount();
+            uint64_t wait_ticks;
+            for (;;) {
+                display->output->WaitForVBlank();
+                wait_ticks = GetCurrentTickCount() - start_ticks;
+                if (GetMillisecondsFromTicks(wait_ticks) >= 4) {
+                    break;
+                }
+                SleepMS(1);
+            }
+
             display->vbm->m_handler->ThreadVBlank(display->id, display->data);
         }
 

@@ -324,16 +324,16 @@ class TraceSaver {
             break;
         }
 
-        *c++ = codes[0];
-        if (codes[1] != 0) {
-            *c++ = codes[1];
-        }
-        *c++ = ADDRESS_PREFIX_SEPARATOR;
         *c++ = '$';
         *c++ = HEX_CHARS_LC[value >> 12];
         *c++ = HEX_CHARS_LC[value >> 8 & 15];
         *c++ = HEX_CHARS_LC[value >> 4 & 15];
         *c++ = HEX_CHARS_LC[value & 15];
+        *c++ = ADDRESS_SUFFIX_SEPARATOR;
+        *c++ = codes[0];
+        if (codes[1] != 0) {
+            *c++ = codes[1];
+        }
 
         while ((*c = *suffix++) != 0) {
             ++c;
@@ -718,11 +718,25 @@ class TraceSaver {
         c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? " (D=" : " (", ev->data, "");
 
         // Add some BBC-specific annotations
-        if (ev->pc == 0xffee || ev->pc == 0xffe3) {
-            c += sprintf(c, "; %d", ev->a);
+        if (ev->pc == 0xffee ||
+            ev->pc == 0xffe3 ||
+            (ev->opcode == 0x6c && ev->ia == 0x20e)) {
+            // If the output does overflow, the return value is no good,
+            // because it's the length of the full expansion. But it's no
+            // problem, because it won't overflow.
+            //
+            // (Of course, this means that then sprintf would actually be fine.
+            // But calling sprintf means a deprecation warning on macOS. And I
+            // just choose to avoid the deprecation warning this particular
+            // way.)
+            c += snprintf(c, (size_t)(line + sizeof line - c), "; %d", ev->a);
 
             if (isprint(ev->a)) {
-                c += sprintf(c, "; '%c'", ev->a);
+                *c++ = ';';
+                *c++ = ' ';
+                *c++ = '\'';
+                *c++ = (char)ev->a;
+                *c++ = '\'';
             }
         }
 

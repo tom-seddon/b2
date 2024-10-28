@@ -6,11 +6,9 @@
 
 #include <string>
 #include <functional>
-#include <memory>
 #include <map>
 #include <string.h>
 #include <vector>
-#include <shared/debug.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -119,7 +117,7 @@ class Command2 : private Command2Data {
     const std::string &GetName() const;
     const std::string &GetText() const;
     const std::string &GetExtraText() const;
-    bool IsAlwaysPrioritized()const;
+    bool IsAlwaysPrioritized() const;
 
     // Invisible commands refer to functionality that's compiled out of this
     // build, or otherwise hidden. They remain present, but aren't exposed in
@@ -169,7 +167,7 @@ class CommandStateTable {
 
     bool WasActioned(const Command2 &command);
 
-    bool ActionCommand(Command2*command);
+    bool ActionCommand(Command2 *command);
     bool ActionCommands(const std::vector<Command2 *> *commands);
 
     bool ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key);

@@ -6,6 +6,7 @@
 #include <shared/debug.h>
 #include "SettingsUI.h"
 #include <inttypes.h>
+#include "b2.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -185,45 +186,38 @@ static float GetPercentage(void *data_, int idx) {
 
 #if MUTEX_DEBUGGING
 
-static void ImGuiCheckbox(const char *label, std::atomic<bool> *atomic_value) {
-    bool value = atomic_value->load(std::memory_order_acquire);
-    if (ImGui::Checkbox(label, &value)) {
-        atomic_value->store(value, std::memory_order_release);
-    }
-}
-
-static void MutexMetadataUI(MutexMetadata *m) {
+static void MutexMetadataUI(MutexMetadata *m, const MutexStats *stats) {
     ImGuiIDPusher pusher(m);
 
-    uint64_t num_ticks = GetCurrentTickCount() - m->stats.start_ticks;
+    uint64_t num_ticks = GetCurrentTickCount() - stats->start_ticks;
 
     ImGui::Spacing();
-    ImGui::Text("Mutex Name: %s", m->name.c_str());
-    if (m->ever_locked) {
-        ImGui::SameLine();
-        if (ImGui::Button("Reset Stats")) {
-            m->RequestReset();
-        }
-    }
+    ImGui::Text("Mutex Name: %s", stats->name.c_str());
 
     ImGui::TextUnformatted("Interesting:");
-    ImGui::SameLine();
-    ImGuiCheckbox("Locks", &m->locks_are_interesting);
-    ImGui::SameLine();
-    ImGuiCheckbox("Contended locks", &m->contended_locks_are_interesting);
+    {
+        uint8_t events = m->GetInterestingEvents();
 
-    ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", m->stats.num_locks, num_ticks == 0 ? 0 : m->stats.num_locks / GetSecondsFromTicks(num_ticks));
-    if (m->stats.num_locks > 0) {
-        ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", m->stats.num_contended_locks, m->stats.num_locks == 0 ? 0. : (double)m->stats.num_contended_locks / m->stats.num_locks);
+        ImGui::SameLine();
+        ImGuiCheckboxFlags("Locks", &events, MutexInterestingEvent_Lock);
+        ImGui::SameLine();
+        ImGuiCheckboxFlags("Contended locks", &events, MutexInterestingEvent_ContendedLock);
+
+        m->SetInterestingEvents(events);
+    }
+
+    ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", stats->num_locks, num_ticks == 0 ? 0 : stats->num_locks / GetSecondsFromTicks(num_ticks));
+    if (stats->num_locks > 0) {
+        ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", stats->num_contended_locks, stats->num_locks == 0 ? 0. : (double)stats->num_contended_locks / stats->num_locks);
 
         ImGui::Text("Lock Wait Time: %.01f ms (~%.1f%% total)",
-                    GetMillisecondsFromTicks(m->stats.total_lock_wait_ticks),
-                    m->stats.total_lock_wait_ticks / (double)num_ticks * 100.);
+                    GetMillisecondsFromTicks(stats->total_lock_wait_ticks),
+                    stats->total_lock_wait_ticks / (double)num_ticks * 100.);
 
         ImGui::Text("Lock Wait Stats: Min: %.01f ms; Max: %0.1f ms; Mean: %.01f ms",
-                    GetMillisecondsFromTicks(m->stats.min_lock_wait_ticks),
-                    GetMillisecondsFromTicks(m->stats.max_lock_wait_ticks),
-                    GetMillisecondsFromTicks(m->stats.total_lock_wait_ticks) / m->stats.num_locks);
+                    GetMillisecondsFromTicks(stats->min_lock_wait_ticks),
+                    GetMillisecondsFromTicks(stats->max_lock_wait_ticks),
+                    GetMillisecondsFromTicks(stats->total_lock_wait_ticks) / stats->num_locks);
 
     } else {
         ImGui::TextUnformatted("Contended Locks: N/A");
@@ -231,9 +225,14 @@ static void MutexMetadataUI(MutexMetadata *m) {
         ImGui::TextUnformatted("Lock Wait Stats: N/A");
     }
 
-    uint64_t num_try_locks = m->num_try_locks.load(std::memory_order_acquire);
-    if (num_try_locks > 0) {
-        ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64, m->stats.num_successful_try_locks, num_try_locks);
+    if (stats->num_try_locks > 0) {
+        ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64, stats->num_successful_try_locks, stats->num_try_locks);
+    }
+
+    if (stats->ever_locked) {
+        if (ImGui::Button("Reset Stats")) {
+            m->RequestReset();
+        }
     }
 }
 #endif
@@ -263,6 +262,18 @@ void DataRateUI::DoImGui() {
     if (ImGui::CollapsingHeader("Video Data Availability (mark=50%)")) {
         this->GetVBlankRecords(&vblank_records);
         ImGuiPlotLines("", &GetPercentage, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 200.f, ImVec2(0, 100), ImVec2(0, 50));
+    }
+
+    if (ImGui::CollapsingHeader("Displays")) {
+        std::vector<DisplayData> dds = GetDisplaysData();
+        for (const DisplayData &dd : dds) {
+            char header[100];
+            snprintf(header, sizeof header, "Display ID: %" PRIu32, dd.display_id);
+            ImGuiHeader(header);
+            ImGui::Text("Num messages sent: %" PRIu64, dd.num_messages_sent);
+            ImGui::Text("Num thread vblanks: %" PRIu64, dd.num_thread_vblanks);
+            ImGui::Text("(Num vblanks skipped: %" PRIu64, dd.num_thread_vblanks - dd.num_messages_sent);
+        }
     }
 
     if (ImGui::CollapsingHeader("BeebThread Timing Stats")) {
@@ -309,14 +320,22 @@ void DataRateUI::DoImGui() {
 
     std::vector<std::shared_ptr<MutexMetadata>> metadata = Mutex::GetAllMetadata();
 
+    std::vector<MutexStats> mutex_stats(metadata.size());
+    for (size_t i = 0; i < metadata.size(); ++i) {
+        metadata[i]->GetStats(&mutex_stats[i]);
+    }
+
     uint64_t runtime_ticks = GetCurrentTickCount() - APPROX_STARTUP_TICKS;
     ImGui::Text("Total run time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(runtime_ticks), GetMillisecondsFromTicks(runtime_ticks));
 
     uint64_t total_lock_wait_ticks = 0;
-    for (const std::shared_ptr<MutexMetadata> &m : metadata) {
-        total_lock_wait_ticks += m->stats.total_lock_wait_ticks;
+    for (const MutexStats &stats : mutex_stats) {
+        total_lock_wait_ticks += stats.total_lock_wait_ticks;
     }
-    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks));
+    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks), total_lock_wait_ticks / (double)runtime_ticks * 100.);
+
+    uint64_t name_overhead_ticks = Mutex::GetNameOverheadTicks();
+    ImGui::Text("Mutex Name Overhead: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(name_overhead_ticks), GetMillisecondsFromTicks(name_overhead_ticks), name_overhead_ticks / (double)runtime_ticks * 100.);
 
     if (ImGui::Button("Reset all stats")) {
         for (const std::shared_ptr<MutexMetadata> &m : metadata) {
@@ -329,13 +348,14 @@ void DataRateUI::DoImGui() {
 
     for (size_t i = 0; i < metadata.size(); ++i) {
         MutexMetadata *m = metadata[i].get();
+        const MutexStats *stats = &mutex_stats[i];
 
-        if (m->ever_locked) {
-            if (m->stats.num_locks == 0) {
+        if (stats->ever_locked) {
+            if (stats->num_locks == 0) {
                 ++num_0_locks;
             } else {
                 ImGui::Separator();
-                MutexMetadataUI(m);
+                MutexMetadataUI(m, stats);
             }
         } else {
             ++num_never_locked;
@@ -346,10 +366,11 @@ void DataRateUI::DoImGui() {
         if (ImGui::CollapsingHeader("0 locks since stats reset")) {
             for (size_t i = 0; i < metadata.size(); ++i) {
                 MutexMetadata *m = metadata[i].get();
+                const MutexStats *stats = &mutex_stats[i];
 
-                if (m->ever_locked && m->stats.num_locks == 0) {
+                if (stats->ever_locked && stats->num_locks == 0) {
                     ImGui::Separator();
-                    MutexMetadataUI(m);
+                    MutexMetadataUI(m, stats);
                 }
             }
         }
@@ -359,10 +380,11 @@ void DataRateUI::DoImGui() {
         if (ImGui::CollapsingHeader("Never locked ever")) {
             for (size_t i = 0; i < metadata.size(); ++i) {
                 MutexMetadata *m = metadata[i].get();
+                const MutexStats *stats = &mutex_stats[i];
 
-                if (!m->ever_locked) {
+                if (!stats->ever_locked) {
                     ImGui::Separator();
-                    MutexMetadataUI(m);
+                    MutexMetadataUI(m, stats);
                 }
             }
         }

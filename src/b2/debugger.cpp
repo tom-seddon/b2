@@ -105,17 +105,19 @@ static bool ParseAddress(uint16_t *addr_ptr,
     uint32_t dso = 0;
     uint16_t addr;
 
-    const char *sep = strchr(text, ADDRESS_PREFIX_SEPARATOR);
-    if (sep) {
-        if (!ParseAddressPrefix(&dso, type, text, sep, nullptr)) {
+    const char *ep;
+    if (!GetUInt16FromString(&addr, text, 0, &ep)) {
+        return false;
+    }
+
+    if (!isspace(*ep) && *ep != 0) {
+        if (*ep != ADDRESS_SUFFIX_SEPARATOR) {
             return false;
         }
 
-        text = sep + 1;
-    }
-
-    if (!GetUInt16FromString(&addr, text)) {
-        return false;
+        if (!ParseAddressSuffix(&dso, type, ep + 1, nullptr)) {
+            return false;
+        }
     }
 
     *addr_ptr = addr;
@@ -563,8 +565,8 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
         ImGui::Separator();
 
         char byte_str[10];
-        snprintf(byte_str, sizeof byte_str, "%s%c$%04x",
-                 dbp->bp.metadata->minimal_codes, ADDRESS_PREFIX_SEPARATOR, addr.w);
+        snprintf(byte_str, sizeof byte_str, "$%04x%c%s",
+                 addr.w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
 
         ImGui::Text("Byte: %s (%s)",
                     byte_str,
@@ -1201,10 +1203,10 @@ class MemoryDebugWindow : public DebugUI,
 
             snprintf(text,
                      text_size,
-                     upper_case ? "%s%c$%04X" : "%s%c$%04x",
-                     dbp->bp.metadata->aligned_codes,
-                     ADDRESS_PREFIX_SEPARATOR,
-                     (unsigned)offset);
+                     upper_case ? "$%04X%c%s" : "$%04x%c%s",
+                     (unsigned)offset,
+                     ADDRESS_SUFFIX_SEPARATOR,
+                     dbp->bp.metadata->aligned_codes);
         }
 
         bool ParseAddressText(size_t *offset, const char *text) override {
@@ -1550,7 +1552,7 @@ class DisassemblyDebugWindow : public DebugUI,
             }
 
             const DebugBigPage *line_dbp = this->GetDebugBigPageForAddress(line_addr, false);
-            ImGui::Text("%s%c$%04x", line_dbp->bp.metadata->aligned_codes, ADDRESS_PREFIX_SEPARATOR, line_addr.w);
+            ImGui::Text("$%04x%c%s", line_addr.w, ADDRESS_SUFFIX_SEPARATOR, line_dbp->bp.metadata->aligned_codes);
             this->DoBytePopupGui(line_dbp, line_addr);
 
             ImGui::SameLine();
@@ -1870,7 +1872,7 @@ class DisassemblyDebugWindow : public DebugUI,
         const DebugBigPage *dbp = this->GetDebugBigPageForAddress({w}, mos);
 
         char label[100];
-        snprintf(label, sizeof label, "%s%c$%04x", dbp->bp.metadata->minimal_codes, ADDRESS_PREFIX_SEPARATOR, w);
+        snprintf(label, sizeof label, "$%04x%c%s", w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
 
         //static_assert(sizeof dbp->bp.metadata->codes == 3);
         //char label[] = {
@@ -1892,7 +1894,7 @@ class DisassemblyDebugWindow : public DebugUI,
         const DebugBigPage *dbp = this->GetDebugBigPageForAddress({value}, mos);
 
         char label[100];
-        snprintf(label, sizeof label, "%s%c$%02x", dbp->bp.metadata->minimal_codes, ADDRESS_PREFIX_SEPARATOR, value);
+        snprintf(label, sizeof label, "$%02x%c%s", value, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
 
         //static_assert(sizeof dbp->bp.metadata->codes == 3);
         //char label[] = {
@@ -2848,10 +2850,10 @@ class BreakpointsDebugWindow : public DebugUI {
                         const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[bp->big_page.i];
 
                         if (uint8_t *flags = this->Row(bp,
-                                                       "%s%c$%04x",
-                                                       metadata->aligned_codes,
-                                                       ADDRESS_PREFIX_SEPARATOR,
-                                                       metadata->addr + bp->offset)) {
+                                                       "$%04x%c%s",
+                                                       metadata->addr + bp->offset,
+                                                       ADDRESS_SUFFIX_SEPARATOR,
+                                                       metadata->aligned_codes)) {
                             m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
                                                                                                      bp->offset,
                                                                                                      *flags));
@@ -3024,7 +3026,7 @@ class PixelMetadataUI : public DebugUI {
 
                 M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
 
-                ImGui::Text("Address: %s%c$%04x", metadata->minimal_codes, ADDRESS_PREFIX_SEPARATOR, cpu_addr.w);
+                ImGui::Text("Address: $%04x%c%s", cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, metadata->minimal_codes);
                 ImGui::Text("CRTC Address: $%04x", unit->metadata.crtc_address);
 
                 const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);

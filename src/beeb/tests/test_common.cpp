@@ -12,6 +12,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -21,6 +22,7 @@
 #ifdef _MSC_VER
 #pragma warning(disable : 4244) //OPERATOR: conversion from TYPE to TYPE, possible loss of data
 #endif
+
 #include <stb_image.h>
 
 #ifdef __GNUC__
@@ -1097,9 +1099,9 @@ void TestSpooledOutput(const TestBBCMicro &bbc,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void RunStandardTest(const std::string &beeblink_volume_path,
-                     const std::string &beeblink_drive,
-                     const std::string &test_name,
+void RunStandardTest(const char *beeblink_volume_path,
+                     const char *beeblink_drive,
+                     const char *test_name,
                      TestBBCMicroType type,
                      uint32_t clear_trace_flags,
                      uint32_t set_trace_flags) {
@@ -1125,7 +1127,7 @@ void RunStandardTest(const std::string &beeblink_volume_path,
     // output is affected by it.)
     bbc.LoadFile(GetTestFileName(beeblink_volume_path,
                                  beeblink_drive,
-                                 "T." + test_name),
+                                 std::string("T.") + test_name),
                  0x1900);
     bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
     bbc.RunUntilOSWORD0(20.0);
@@ -1137,7 +1139,7 @@ void RunStandardTest(const std::string &beeblink_volume_path,
         LOG(BBC_OUTPUT).EnsureBOL();
     }
 
-    std::string stem = strprintf("%s.%s", test_name.c_str(), GetTestBBCMicroTypeEnumName(type));
+    std::string stem = strprintf("%s.%s", test_name, GetTestBBCMicroTypeEnumName(type));
 
     TEST_TRUE(SaveTextFile(bbc.oswrch_output,
                            GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str()))));

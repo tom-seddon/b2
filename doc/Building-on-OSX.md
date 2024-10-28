@@ -29,7 +29,8 @@ Initial setup, for use after cloning or updating the repo:
 
 General day-to-day build steps:
 
-1. Use `Product` > `Build` to build
+1. Use `Product` > `Build` to build. It can take a while to build.
+   Sorry
 
 2. Use `Product` > `Run` to run
 

@@ -9,6 +9,7 @@
 #include "BeebThread.h"
 #include "BeebWindows.h"
 #include <shared/mutex.h>
+#include <condition_variable>
 #include "Messages.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -45,7 +46,7 @@ struct BeebLinkHTTPHandler::ThreadState {
     // Shared stuff
 
     Mutex mutex;
-    ConditionVariable cv;
+    std::condition_variable_any cv;
 
     bool stop = false; // set if thread should stop after being woken up.
     std::vector<Request> request_queue;
@@ -72,13 +73,14 @@ struct BeebLinkHTTPHandler::ThreadState {
 //////////////////////////////////////////////////////////////////////////
 
 static Mutex g_mutex;
+static MutexNameSetter g_mutex_name_setter(&g_mutex, "BeebLink URLs");
 static std::vector<std::string> g_server_urls;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebLinkHTTPHandler::SetServerURLs(std::vector<std::string> urls) {
-    std::lock_guard<Mutex> lock(g_mutex);
+    LockGuard<Mutex> lock(g_mutex);
 
     g_server_urls = std::move(urls);
 }
@@ -87,7 +89,7 @@ void BeebLinkHTTPHandler::SetServerURLs(std::vector<std::string> urls) {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<std::string> BeebLinkHTTPHandler::GetServerURLs() {
-    std::lock_guard<Mutex> lock(g_mutex);
+    LockGuard<Mutex> lock(g_mutex);
 
     return g_server_urls;
 }
@@ -100,7 +102,7 @@ BeebLinkHTTPHandler::BeebLinkHTTPHandler(BeebThread *beeb_thread,
                                          std::shared_ptr<MessageList> message_list)
     : m_ts(std::make_unique<ThreadState>())
     , m_sender_id(std::move(sender_id)) {
-    MUTEX_SET_NAME(m_ts->mutex, "BeebLinkHTTPHandler " + sender_id);
+    MUTEX_SET_NAME(m_ts->mutex, ("BeebLinkHTTPHandler " + sender_id));
     m_ts->beeb_thread = beeb_thread;
     m_ts->message_list = std::move(message_list);
 }
@@ -110,7 +112,7 @@ BeebLinkHTTPHandler::BeebLinkHTTPHandler(BeebThread *beeb_thread,
 
 BeebLinkHTTPHandler::~BeebLinkHTTPHandler() {
     {
-        std::lock_guard<Mutex> lock(m_ts->mutex);
+        LockGuard<Mutex> lock(m_ts->mutex);
 
         m_ts->stop = true;
         m_ts->cv.notify_one();
@@ -211,7 +213,7 @@ bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data, bool is_fi
     ASSERT(!data.empty());
 
     {
-        std::lock_guard<Mutex> lock(m_ts->mutex);
+        LockGuard<Mutex> lock(m_ts->mutex);
 
         m_ts->request_queue.push_back({std::move(data), is_fire_and_forget});
     }
@@ -284,7 +286,7 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
     bool show_errors = true;
 
     for (;;) {
-        std::unique_lock<Mutex> lock(ts->mutex);
+        UniqueLock<Mutex> lock(ts->mutex);
 
         if (ts->stop) {
             break;

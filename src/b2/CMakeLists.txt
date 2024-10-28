@@ -184,29 +184,8 @@ if(WIN32)
   #
   # TL;DR - bleargh. So this is done with a #pragma in b2.cpp.
 
-
-  # https://devblogs.microsoft.com/pix/winpixeventruntime/
-  set(PIX_FOLDER ${CMAKE_SOURCE_DIR}/etc/WinPixEventRuntime/1.0.220810001)
-  set(USE_PIX $<CONFIG:Debug,RelWithDebInfo>)
-  
-  target_compile_definitions(b2 PRIVATE $<${USE_PIX}:USE_PIX>)
-  target_include_directories(b2 PRIVATE $<${USE_PIX}:${PIX_FOLDER}/include/WinPixEventRuntime>)
-  # TODO how to properly select x64 vs ARM64?
-  target_link_libraries(b2 PRIVATE $<${USE_PIX}:${PIX_FOLDER}/bin/x64/WinPixEventRuntime.lib>)
-
-  # putting the whole custom command in a generator expression based
-  # on ${USE_PIX} produced nonsense in the post-build step commands
-  # list. So, use the same command line in all builds, just replacing
-  # copy_if_different with true when appropriate. cmake -E true
-  # ignores all arguments and exits with a 0.
-  # 
-  # should figure out how to use RUNTIME_DEPENDENCY_SET available with
-  # newer cmake, perhaps? - see
-  # https://cmake.org/cmake/help/latest/command/install.html#installing-runtime-dependencies
-  add_custom_command(
-    TARGET b2 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E $<IF:${USE_PIX},copy_if_different,true> ${PIX_FOLDER}/bin/x64/WinPixEventRuntime.dll $<TARGET_FILE_DIR:b2>
-    VERBATIM)
+  target_link_libraries(b2 PRIVATE pix_lib)
+  add_copy_pix_dlls_command(b2)
 
   target_link_libraries(b2 PRIVATE Dwmapi.lib)
 endif()

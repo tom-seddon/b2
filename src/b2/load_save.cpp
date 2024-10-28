@@ -31,6 +31,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION

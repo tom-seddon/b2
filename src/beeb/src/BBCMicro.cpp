@@ -49,6 +49,13 @@ static const std::vector<float> DUMMY_DISC_DRIVE_SOUND(1, 0.f);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS];
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // The key to press to start the paste going.
 const BeebKey BBCMicro::PASTE_START_KEY = BeebKey_Space;
 
@@ -1936,7 +1943,24 @@ struct std::hash<BBCMicro::UpdateMFn> {
     }
 };
 
+static size_t LogNumUniqueInstantiations(Log *log, const char *prefix, const BBCMicro::UpdateMFn *mfns, size_t num_mfns, const size_t *num_unique_overall) {
+    std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
+    for (size_t i = 0; i < num_mfns; ++i) {
+        update_mfns.insert(mfns[i]);
+    }
+
+    log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplate instantiations", prefix, update_mfns.size(), num_mfns);
+    if (num_unique_overall) {
+        log->f(" (%.2fx ideal)", (double)update_mfns.size() * BBCMICRO_NUM_UPDATE_GROUPS / *num_unique_overall);
+    }
+    log->f("\n");
+
+    return update_mfns.size();
+}
+
 void BBCMicro::PrintInfo(Log *log) {
+    EnsureUpdateMFnsTableIsReady();
+
     size_t num_update_mfns = sizeof ms_update_mfns / sizeof ms_update_mfns[0];
 
     std::set<uint32_t> normalized_flags;
@@ -1946,11 +1970,15 @@ void BBCMicro::PrintInfo(Log *log) {
 
     log->f("%zu/%zu normalized BBCMicroUpdateFlag combinations\n", normalized_flags.size(), num_update_mfns);
 
-    std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
-    for (size_t i = 0; i < num_update_mfns; ++i) {
-        update_mfns.insert(ms_update_mfns[i]);
-    }
-    log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", update_mfns.size(), num_update_mfns);
+    size_t num_unique_overall = LogNumUniqueInstantiations(log, "ms_update_mfns", ms_update_mfns, sizeof ms_update_mfns / sizeof ms_update_mfns[0], nullptr);
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+    LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
+    LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
+#endif
+#if BBCMICRO_NUM_UPDATE_GROUPS > 2
+    LogNumUniqueInstantiations(log, "ms_update_mfns2", ms_update_mfns2, sizeof ms_update_mfns2 / sizeof ms_update_mfns2[0], &num_unique_overall);
+    LogNumUniqueInstantiations(log, "ms_update_mfns3", ms_update_mfns3, sizeof ms_update_mfns3 / sizeof ms_update_mfns3[0], &num_unique_overall);
+#endif
 
     uint32_t unused_bits = ~(uint32_t)0;
     for (uint32_t bit = 0; bit < 32; ++bit) {
@@ -2276,9 +2304,8 @@ void BBCMicro::InitStuff() {
     CHECK_SIZEOF(ROMSEL, 1);
     CHECK_SIZEOF(ACCCON, 1);
     CHECK_SIZEOF(BBCMicroState::SystemVIAPB, 1);
-    for (size_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
-        ASSERT(ms_update_mfns[i]);
-    }
+
+    EnsureUpdateMFnsTableIsReady();
 
 #if BBCMICRO_DEBUGGER
     ASSERT(!m_update_mfn_data_ptr);
@@ -2990,3 +3017,46 @@ void BBCMicro::UpdateMapperRegion(uint8_t region) {
     }
 #endif
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::EnsureUpdateMFnsTableIsReady() {
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+    if (!ms_update_mfns[0]) {
+        for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+            const UpdateMFn *mfns = nullptr; //i % 2 == 0 ? ms_update_mfns0 : ms_update_mfns1;
+            switch (i % BBCMICRO_NUM_UPDATE_GROUPS) {
+            default:
+                ASSERT(false);
+            case 0:
+                mfns = ms_update_mfns0;
+                break;
+
+            case 1:
+                mfns = ms_update_mfns1;
+                break;
+
+#if BBCMICRO_NUM_UPDATE_GROUPS > 2
+            case 2:
+                mfns = ms_update_mfns2;
+                break;
+
+            case 3:
+                mfns = ms_update_mfns3;
+                break;
+#endif
+            }
+
+            ms_update_mfns[i] = mfns[i / BBCMICRO_NUM_UPDATE_GROUPS];
+        }
+    }
+#endif
+
+    for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+        ASSERT(ms_update_mfns[i]);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

@@ -28,26 +28,25 @@ class FileMenuItem;
 struct SDL_ControllerAxisEvent;
 struct SDL_ControllerButtonEvent;
 struct JoystickResult;
+class BeebKeymap;
+class ImGuiStuff;
 
 #include "keys.h"
-#include "dear_imgui.h"
 #include <string>
 #include <SDL.h>
 #include <beeb/TVOutput.h>
 #include "native_ui.h"
 #include <beeb/conf.h>
-#include <shared/log.h>
-#include <functional>
 #include "Messages.h"
 #include <map>
 #include <set>
 #include <limits.h>
 #include "BeebConfig.h"
-#include "BeebKeymap.h"
 #include "commands.h"
-//#include "SDL_video.h"
 #include <beeb/video.h>
 #include "misc.h"
+#include <condition_variable>
+#include <thread>
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -408,7 +407,7 @@ class BeebWindow {
     //
     std::shared_ptr<MessageList> m_message_list;
     uint64_t m_msg_last_num_messages_printed = 0;
-    uint64_t m_msg_last_num_errors_and_warnings_printed = 0;
+    uint64_t m_msg_last_num_errors_printed = 0;
 #if VIDEO_TRACK_METADATA
     bool m_got_mouse_pixel_unit = false;
     VideoDataUnit m_mouse_pixel_unit = {};
@@ -425,10 +424,10 @@ class BeebWindow {
         Mutex mutex;
 
         // signaled by main thread when it wants an update.
-        ConditionVariable update_cv;
+        std::condition_variable_any update_cv;
 
         // signaled by update thread when it's done.
-        ConditionVariable done_cv;
+        std::condition_variable_any done_cv;
 
         // set if main thread wants update thread to stop.
         bool stop = false;

@@ -109,13 +109,13 @@ class HTTPMethodsHandler : public HTTPHandler {
     template <class T>
     bool HandleArgOrSendResponse(T *result,
                                  const std::string *value,
-                                 bool (*f)(T *, const std::string &, int),
+                                 bool (*f)(T *, const std::string &, int, const char **),
                                  int radix,
                                  HTTPServer *server,
                                  const HTTPRequest &request,
                                  const char *what) {
         if (value) {
-            if (!(*f)(result, *value, radix)) {
+            if (!(*f)(result, *value, radix, nullptr)) {
                 server->SendResponse(request, HTTPResponse::BadRequest(request, "bad %s: %s", what, value->c_str()));
                 return false;
             }
@@ -226,10 +226,9 @@ class HTTPMethodsHandler : public HTTPHandler {
                     std::shared_ptr<const BBCMicroReadOnlyState> state;
                     beeb_window->GetBeebThread()->DebugGetState(&state, nullptr);
 
-                    if (!ParseAddressPrefix(ptr,
+                    if (!ParseAddressSuffix(ptr,
                                             state->type,
                                             value->c_str(),
-                                            nullptr,
                                             &log)) {
                         server->SendResponse(request, HTTPResponse::BadRequest(request, "%s", log_string.c_str()));
                         return false;
@@ -264,7 +263,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         }
 
         if (!config_name.empty()) {
-            auto message_list = std::make_shared<MessageList>();
+            auto message_list = std::make_shared<MessageList>("HTTP reset");
             Messages messages(message_list);
 
             BeebLoadedConfig loaded_config;
@@ -329,7 +328,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
                                            "x16", nullptr, &addr,
-                                           "dso", "p", &dso,
+                                           "dso", "s", &dso,
                                            "bool", "mos", &mos,
                                            nullptr)) {
             return;
@@ -356,7 +355,7 @@ class HTTPMethodsHandler : public HTTPHandler {
                                            "window", nullptr, &beeb_window,
                                            "x16", nullptr, &begin,
                                            "x64/len", nullptr, &end, &end_is_len,
-                                           "dso", "p", &dso,
+                                           "dso", "s", &dso,
                                            "bool", "mos", &mos,
                                            nullptr)) {
             return;
@@ -456,7 +455,7 @@ class HTTPMethodsHandler : public HTTPHandler {
     }
 
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {
-        auto message_list = std::make_shared<MessageList>();
+        auto message_list = std::make_shared<MessageList>("HTTP disc image request");
         Messages messages(message_list);
 
         DiscGeometry geometry;
