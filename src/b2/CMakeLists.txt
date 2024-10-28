@@ -46,7 +46,7 @@ add_executable(b2 MACOSX_BUNDLE
   filters.cpp filters.h
   keymap.cpp keymap.h
   keys.cpp keys.h keys.inl
-  load_save.cpp load_save.h load_save.inl
+  load_save.cpp load_save.h
   misc.cpp misc.h misc.inl
   native_ui.cpp native_ui.h
   roms.cpp roms.h

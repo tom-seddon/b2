@@ -5,6 +5,7 @@
 #include <shared/path.h>
 #include "native_ui.h"
 #include <string.h>
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -53,7 +54,7 @@ static const size_t NUM_DDD_GEOMETRIES = sizeof DDD_GEOMETRIES / sizeof DDD_GEOM
 
 struct DiscImageType;
 
-typedef bool (*FindDiscGeometryFn)(DiscGeometry *geometry, const char *name, size_t size, Messages *msg, const DiscImageType *disc_image_type);
+typedef bool (*FindDiscGeometryFn)(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type);
 
 struct DiscImageType {
     const char *ext;
@@ -76,21 +77,21 @@ struct DiscImageType {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PrintInvalidSizeMessage(const char *name, Messages *msg) {
-    msg->e.f("invalid size");
+static void PrintInvalidSizeMessage(const char *name, const LogSet &logs) {
+    logs.e.f("invalid size");
     if (name) {
-        msg->e.f(" for file: %s", name);
+        logs.e.f(" for file: %s", name);
     }
-    msg->e.f("\n");
+    logs.e.f("\n");
 }
 
-static bool IsMultipleOfSectorSize(const char *name, size_t size, Messages *msg) {
+static bool IsMultipleOfSectorSize(const char *name, size_t size, const LogSet *logs) {
     if (size % 256 != 0) {
-        if (msg) {
-            PrintInvalidSizeMessage(name, msg);
+        if (logs) {
+            PrintInvalidSizeMessage(name, *logs);
 
-            msg->i.f("(length %zu not a multiple of sector size 256)\n",
-                     size);
+            logs->i.f("(length %zu not a multiple of sector size 256)\n",
+                      size);
         }
         return false;
     }
@@ -98,25 +99,25 @@ static bool IsMultipleOfSectorSize(const char *name, size_t size, Messages *msg)
     return true;
 }
 
-static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *name, size_t size, Messages *msg, const DiscImageType *disc_image_type) {
+static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
     ASSERT(disc_image_type->num_possible_geometries == 1);
     ASSERT(!disc_image_type->possible_geometries[0].double_density);
     *geometry = DiscGeometry(80, 10, 256, disc_image_type->possible_geometries[0].double_sided);
 
-    if (!IsMultipleOfSectorSize(name, size, msg)) {
+    if (!IsMultipleOfSectorSize(name, size, logs)) {
         return false;
     }
 
     if (size > geometry->GetTotalNumBytes()) {
-        if (msg) {
-            PrintInvalidSizeMessage(name, msg);
+        if (logs) {
+            PrintInvalidSizeMessage(name, *logs);
 
-            msg->i.f("(size %zu bytes is larger than maximum %zu bytes for %d*%zu*%zu sectors)\n",
-                     size,
-                     geometry->GetTotalNumBytes(),
-                     geometry->double_sided ? 2 : 1,
-                     geometry->num_tracks,
-                     geometry->sectors_per_track);
+            logs->i.f("(size %" PRIu64 " bytes is larger than maximum %zu bytes for %d*%zu*%zu sectors)\n",
+                      size,
+                      geometry->GetTotalNumBytes(),
+                      geometry->double_sided ? 2 : 1,
+                      geometry->num_tracks,
+                      geometry->sectors_per_track);
         }
         return false;
     }
@@ -124,7 +125,7 @@ static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *na
     return true;
 }
 
-static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *name, size_t size, Messages *msg, const DiscImageType *disc_image_type) {
+static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
     for (size_t i = 0; i < disc_image_type->num_possible_geometries; ++i) {
         const DiscGeometry *g = &disc_image_type->possible_geometries[i];
 
@@ -134,34 +135,36 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *nam
         }
     }
 
-    if (msg) {
-        PrintInvalidSizeMessage(name, msg);
+    if (logs) {
+        PrintInvalidSizeMessage(name, *logs);
 
-        msg->i.f("(size is %zu; valid sizes are: ", size);
+        logs->i.f("(size is %" PRIu64 "; valid sizes are: ", size);
         for (size_t i = 0; i < disc_image_type->num_possible_geometries; ++i) {
             if (i > 0) {
-                msg->i.f("; ");
+                logs->i.f("; ");
             }
 
-            msg->i.f("%zu", disc_image_type->possible_geometries[i].GetTotalNumBytes());
+            logs->i.f("%zu", disc_image_type->possible_geometries[i].GetTotalNumBytes());
         }
-        msg->i.f(")\n");
+        logs->i.f(")\n");
     }
 
     return false;
 }
 
-static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, size_t size, Messages *msg, const DiscImageType *disc_image_type) {
+static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
     (void)disc_image_type;
 
-    if (!IsMultipleOfSectorSize(name, size, msg)) {
+    if (!IsMultipleOfSectorSize(name, size, logs)) {
         return false;
     }
 
     if (size > ADL_SIZE) {
-        PrintInvalidSizeMessage(name, msg);
+        if (logs) {
+            PrintInvalidSizeMessage(name, *logs);
 
-        msg->i.f("(size is %zu; max valid size is %zu", size, ADL_SIZE);
+            logs->i.f("(size is %" PRIu64 "; max valid size is %zu", size, ADL_SIZE);
+        }
 
         return false;
     } else if (size > ADM_SIZE && size <= ADL_SIZE) {
@@ -311,18 +314,18 @@ bool operator!=(const DiscGeometry &a, const DiscGeometry &b) {
 
 bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,
                                      const char *file_name,
-                                     size_t file_size,
-                                     Messages *msg) {
+                                     uint64_t file_size,
+                                     const LogSet *logs) {
     std::string ext = PathGetExtension(file_name);
 
     for (const DiscImageType *type = DISC_IMAGE_TYPES; type->ext; ++type) {
         if (PathCompare(ext, type->ext) == 0) {
-            return (*type->find_geometry_fn)(geometry, file_name, file_size, msg, type);
+            return (*type->find_geometry_fn)(geometry, file_name, file_size, logs, type);
         }
     }
 
-    if (msg) {
-        msg->e.f("unknown extension: %s\n", ext.c_str());
+    if (logs) {
+        logs->e.f("unknown extension: %s\n", ext.c_str());
     }
 
     return false;
@@ -333,17 +336,15 @@ bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,
 
 bool FindDiscGeometryFromMIMEType(DiscGeometry *geometry,
                                   const char *mime_type,
-                                  size_t file_size,
-                                  Messages *msg) {
+                                  uint64_t file_size,
+                                  const LogSet &logs) {
     for (const DiscImageType *type = DISC_IMAGE_TYPES; type->ext; ++type) {
         if (strcmp(mime_type, type->mime_type) == 0) {
-            return (*type->find_geometry_fn)(geometry, nullptr, file_size, msg, type);
+            return (*type->find_geometry_fn)(geometry, nullptr, file_size, &logs, type);
         }
     }
 
-    if (msg) {
-        msg->e.f("unknown MIME type: %s\n", mime_type);
-    }
+    logs.e.f("unknown MIME type: %s\n", mime_type);
 
     return false;
 }

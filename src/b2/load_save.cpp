@@ -27,6 +27,7 @@
 #include "b2.h"
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"
+#include <shared/file_io.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -41,10 +42,6 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
-#include <shared/enum_def.h>
-#include "load_save.inl"
-#include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -378,195 +375,6 @@ static bool GetDataFromHexString(std::vector<uint8_t> *data, const std::string &
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void AddError(const LogSet &logs,
-                     const std::string &path,
-                     const char *what1,
-                     const char *what2,
-                     int err) {
-    logs.w.f("%s failed: %s\n", what1, path.c_str());
-
-    if (err != 0) {
-        logs.i.f("(%s: %s)\n", what2, strerror(err));
-    } else {
-        logs.i.f("(%s)\n", what2);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-template <class ContType>
-static bool LoadFile2(ContType *data,
-                      const std::string &path,
-                      const LogSet &logs,
-                      uint32_t flags,
-                      const char *mode) {
-    static_assert(sizeof(typename ContType::value_type) == 1, "LoadFile2 can only load into a vector of bytes");
-    FILE *f = NULL;
-    bool good = false;
-    long len;
-    size_t num_bytes, num_read;
-
-    f = fopenUTF8(path.c_str(), mode);
-    if (!f) {
-        if (errno == ENOENT && (flags & LoadFlag_MightNotExist)) {
-            // ignore this error.
-        } else {
-            AddError(logs, path, "load", "open failed", errno);
-        }
-
-        goto done;
-    }
-
-    if (fseek(f, 0, SEEK_END) == -1) {
-        AddError(logs, path, "load", "fseek (1) failed", errno);
-        goto done;
-    }
-
-    len = ftell(f);
-    if (len < 0) {
-        AddError(logs, path, "load", "ftell failed", errno);
-        goto done;
-    }
-
-#if LONG_MAX > SIZE_MAX
-    if (len > (long)SIZE_MAX) {
-        AddError(logs, path, "load", "file is too large", 0);
-        goto done;
-    }
-#endif
-
-    if (fseek(f, 0, SEEK_SET) == -1) {
-        AddError(logs, path, "load", "fseek (2) failed", errno);
-        goto done;
-    }
-
-    num_bytes = (size_t)len;
-    data->resize(num_bytes);
-
-    num_read = fread(data->data(), 1, num_bytes, f);
-    if (ferror(f)) {
-        AddError(logs, path, "load", "read failed", errno);
-        goto done;
-    }
-
-    // Number of bytes read may be smaller if mode is rt.
-    data->resize(num_read);
-    good = true;
-
-done:;
-    if (!good) {
-        data->clear();
-    }
-
-    if (f) {
-        fclose(f);
-        f = NULL;
-    }
-
-    return good;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool LoadFile(std::vector<uint8_t> *data, const std::string &path, const LogSet &logs, uint32_t flags) {
-    if (!LoadFile2(data, path, logs, flags, "rb")) {
-        return false;
-    }
-
-    data->shrink_to_fit();
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool LoadFile(std::vector<uint8_t> *data, const std::string &path, Messages *messages, uint32_t flags) {
-    return LoadFile(data, path, *messages, flags);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool LoadTextFile(std::vector<char> *data, const std::string &path, const LogSet &logs, uint32_t flags) {
-    if (!LoadFile2(data, path, logs, flags, "rt")) {
-        return false;
-    }
-
-    data->push_back(0);
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool LoadTextFile(std::vector<char> *data, const std::string &path, Messages *messages, uint32_t flags) {
-    return LoadTextFile(data, path, *messages, flags);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool SaveFile2(const void *data, size_t data_size, const std::string &path, const LogSet &logs, const char *fopen_mode) {
-    FILE *f = fopenUTF8(path.c_str(), fopen_mode);
-    if (!f) {
-        AddError(logs, path, "save", "fopen failed", errno);
-        return false;
-    }
-
-    fwrite(data, 1, data_size, f);
-
-    bool bad = !!ferror(f);
-    int e = errno;
-
-    fclose(f);
-    f = nullptr;
-
-    if (bad) {
-        AddError(logs, path, "save", "write failed", e);
-        return false;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool SaveFile(const void *data, size_t data_size, const std::string &path, const LogSet &logs) {
-    return SaveFile2(data, data_size, path, logs, "wb");
-}
-
-bool SaveFile(const void *data, size_t data_size, const std::string &path, Messages *messages) {
-    return SaveFile(data, data_size, path, *messages);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, const LogSet &logs) {
-    return SaveFile(data.data(), data.size(), path, logs);
-}
-
-bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages) {
-    return SaveFile(data, path, *messages);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool SaveTextFile(const std::string &data, const std::string &path, const LogSet &logs) {
-    return SaveFile2(data.c_str(), data.size(), path, logs, "wt");
-}
-
-bool SaveTextFile(const std::string &data, const std::string &path, Messages *messages) {
-    return SaveTextFile(data, path, *messages);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static bool IsR8G8B8(const SDL_PixelFormat *format) {
     if (format->Rmask != (0xff << 0)) {
         return false;
@@ -644,53 +452,6 @@ unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_ou
 
     *png_size_out = (size_t)png_size;
     return png;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool GetFileDetails(size_t *size, bool *can_write, const char *path) {
-    FILE *fp = nullptr;
-    bool good = false;
-    long len;
-
-    fp = fopenUTF8(path, "r+b");
-    if (fp) {
-        *can_write = true;
-    } else {
-        // doesn't exist, or read-only.
-        fp = fopenUTF8(path, "rb");
-        if (!fp) {
-            // assume doesn't exist.
-            goto done;
-        }
-
-        *can_write = false;
-    }
-
-    if (fseek(fp, 0, SEEK_END) != 0) {
-        goto done;
-    }
-
-    len = ftell(fp);
-    if (len < 0) {
-        goto done;
-    }
-
-    if ((unsigned long)len > SIZE_MAX) {
-        *size = SIZE_MAX;
-    } else {
-        *size = (size_t)len;
-    }
-
-    good = true;
-done:
-    if (fp) {
-        fclose(fp);
-        fp = nullptr;
-    }
-
-    return good;
 }
 
 //////////////////////////////////////////////////////////////////////////

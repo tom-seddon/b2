@@ -56,10 +56,10 @@ int main(int argc, char *argv[]) {
 
     TEST_TRUE(argc >= 3);
     TEST_TRUE(PathIsFolderOnDisk(argv[2]));
-    TEST_FALSE(PathIsFileOnDisk(argv[2]));
+    TEST_FALSE(PathIsFileOnDisk(argv[2], nullptr, nullptr));
 
     std::string file = PathJoined(argv[2], PathGetName(__FILE__));
-    TEST_TRUE(PathIsFileOnDisk(file));
+    TEST_TRUE(PathIsFileOnDisk(file, nullptr, nullptr));
     TEST_FALSE(PathIsFolderOnDisk(file));
 }
 

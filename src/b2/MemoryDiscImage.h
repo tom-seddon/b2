@@ -8,8 +8,7 @@
 #include <vector>
 #include "DiscGeometry.h"
 
-class Messages;
-class FileDialog;
+struct LogSet;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -21,11 +20,11 @@ class MemoryDiscImage : public DiscImage {
 
     static const uint8_t FILL_BYTE;
 
-    static std::shared_ptr<MemoryDiscImage> LoadFromBuffer(std::string path, std::string load_method, const void *data, size_t data_size, const DiscGeometry &geometry, Messages *msg);
+    static std::shared_ptr<MemoryDiscImage> LoadFromBuffer(std::string path, std::string load_method, const void *data, size_t data_size, const DiscGeometry &geometry, const LogSet &logs);
 
     // If the load succeeds, the method will be LOAD_METHOD_FILE or
     // LOAD_METHOD_ZIP.
-    static std::shared_ptr<MemoryDiscImage> LoadFromFile(std::string path, Messages *msg);
+    static std::shared_ptr<MemoryDiscImage> LoadFromFile(std::string path, const LogSet &logs);
 
     ~MemoryDiscImage();
 
@@ -45,7 +44,7 @@ class MemoryDiscImage : public DiscImage {
     std::string GetName() const override;
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
-    void AddFileDialogFilter(FileDialog *fd) const override;
+    std::vector<FileDialogFilter> GetFileDialogFilters() const override;
     bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
     //void SetNameAndLoadMethod(std::string name,std::string load_method);
 

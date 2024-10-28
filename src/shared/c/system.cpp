@@ -60,6 +60,38 @@ void SetCurrentThreadNamev(const char *fmt, va_list v) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if !SYSTEM_HAVE_STRLCPY
+
+// http://www.opensource.apple.com/source/mail_cmds/mail_cmds-24/mail/strlcpy.c
+size_t strlcpy(char *dest, const char *src, size_t size) {
+    char *d = dest;
+    const char *s = src;
+    size_t n = size;
+
+    /* Copy as many bytes as will fit */
+    if (n != 0 && --n != 0) {
+        do {
+            if ((*d++ = *s++) == 0)
+                break;
+        } while (--n != 0);
+    }
+
+    /* Not enough room in dst, add NUL and traverse rest of src */
+    if (n == 0) {
+        if (size != 0)
+            *d = '\0'; /* NUL-terminate dst */
+        while (*s++)
+            ;
+    }
+
+    return (size_t)(s - src - 1); /* count does not include NUL */
+}
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // This goes here because... it has to go somewhere.
 
 #define BIT(X, N) (((X)&1 << N) ? '1' : '0')

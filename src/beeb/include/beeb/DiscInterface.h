@@ -96,10 +96,17 @@ class DiscInterface {
 //////////////////////////////////////////////////////////////////////////
 
 // This disc interface is used for the B+ and B+128.
-extern const DiscInterface *const DISC_INTERFACE_ACORN_1770;
+extern const DiscInterface &DISC_INTERFACE_ACORN_1770;
 
 // This disc interface is used for the Master 128.
-extern const DiscInterface *const DISC_INTERFACE_MASTER128;
+extern const DiscInterface &DISC_INTERFACE_MASTER128;
+
+// Other BBC B disk interfaces.
+extern const DiscInterface &DISC_INTERFACE_WATFORD_DDB2;
+extern const DiscInterface &DISC_INTERFACE_WATFORD_DDB3;
+extern const DiscInterface &DISC_INTERFACE_OPUS;
+extern const DiscInterface &DISC_INTERFACE_CHALLENGER_256K;
+extern const DiscInterface &DISC_INTERFACE_CHALLENGER_512K;
 
 // The list of disc interfaces that can be used with a model B. Array
 // ends with NULL.

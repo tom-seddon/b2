@@ -699,7 +699,7 @@ static bool ParseCommandLineOptions(
 
     // Detect the File Explorer double-click case on Windows (also acts as a
     // convenient command-line shortcut).
-    if (argc == 2 && PathIsFileOnDisk(argv[1])) {
+    if (argc == 2 && PathIsFileOnDisk(argv[1], nullptr, nullptr)) {
         options->file_association_mode = true;
         options->file_association_path = argv[1];
 
@@ -1373,9 +1373,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 }
 
                 if (options.direct_disc[i]) {
-                    ia.init_disc_images[i] = DirectDiscImage::CreateForFile(options.discs[i], &init_messages);
+                    ia.init_disc_images[i] = DirectDiscImage::CreateForFile(options.discs[i], init_messages);
                 } else {
-                    ia.init_disc_images[i] = MemoryDiscImage::LoadFromFile(options.discs[i], &init_messages);
+                    ia.init_disc_images[i] = MemoryDiscImage::LoadFromFile(options.discs[i], init_messages);
                 }
 
                 if (!ia.init_disc_images[i]) {

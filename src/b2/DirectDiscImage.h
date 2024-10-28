@@ -27,7 +27,7 @@ class DirectDiscImage : public DiscImage {
 
     ~DirectDiscImage();
 
-    static std::shared_ptr<DirectDiscImage> CreateForFile(std::string path, Messages *msg);
+    static std::shared_ptr<DirectDiscImage> CreateForFile(std::string path, const LogSet &logs);
 
     DirectDiscImage(const DirectDiscImage &) = delete;
     DirectDiscImage &operator=(const DirectDiscImage &) = delete;
@@ -44,7 +44,7 @@ class DirectDiscImage : public DiscImage {
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
 
-    void AddFileDialogFilter(FileDialog *fd) const override;
+    std::vector<FileDialogFilter> GetFileDialogFilters() const override;
 
     bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
 

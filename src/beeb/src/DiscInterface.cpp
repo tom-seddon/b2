@@ -159,7 +159,7 @@ class DiscInterfaceAcorn1770 : public DiscInterface {
 };
 
 static const DiscInterfaceAcorn1770 DISC_INTERFACE_ACORN_1770_VALUE;
-const DiscInterface *const DISC_INTERFACE_ACORN_1770 = &DISC_INTERFACE_ACORN_1770_VALUE;
+const DiscInterface &DISC_INTERFACE_ACORN_1770 = DISC_INTERFACE_ACORN_1770_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -209,7 +209,8 @@ class DiscInterfaceWatford1770DDB2 : public DiscInterface {
   private:
 };
 
-static const DiscInterfaceWatford1770DDB2 DISC_INTERFACE_WATFORD_DDB2;
+static const DiscInterfaceWatford1770DDB2 DISC_INTERFACE_WATFORD_DDB2_VALUE;
+const DiscInterface &DISC_INTERFACE_WATFORD_DDB2 = DISC_INTERFACE_WATFORD_DDB2_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -262,7 +263,8 @@ class DiscInterfaceWatford1770DDB3 : public DiscInterface {
   private:
 };
 
-static const DiscInterfaceWatford1770DDB3 DISC_INTERFACE_WATFORD_DDB3;
+static const DiscInterfaceWatford1770DDB3 DISC_INTERFACE_WATFORD_DDB3_VALUE;
+const DiscInterface &DISC_INTERFACE_WATFORD_DDB3 = DISC_INTERFACE_WATFORD_DDB3_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -306,7 +308,8 @@ class DiscInterfaceOpus1770 : public DiscInterface {
   private:
 };
 
-static const DiscInterfaceOpus1770 DISC_INTERFACE_OPUS;
+static const DiscInterfaceOpus1770 DISC_INTERFACE_OPUS_VALUE;
+const DiscInterface &DISC_INTERFACE_OPUS = DISC_INTERFACE_OPUS_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -571,10 +574,12 @@ class DiscInterfaceChallenger : public DiscInterface {
 };
 
 static const char CHALLENGER_256K_CONFIG_NAME[] = "Opus CHALLENGER 256K";
-static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_256K(CHALLENGER_256K_CONFIG_NAME, "Opus CHALLENGER 256K", 256 * 1024);
+static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_256K_VALUE(CHALLENGER_256K_CONFIG_NAME, "Opus CHALLENGER 256K", 256 * 1024);
+const DiscInterface &DISC_INTERFACE_CHALLENGER_256K = DISC_INTERFACE_CHALLENGER_256K_VALUE;
 
 static const char CHALLENGER_512K_CONFIG_NAME[] = "Opus CHALLENGER 512K";
-static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_512K(CHALLENGER_512K_CONFIG_NAME, "Opus CHALLENGER 512K", 512 * 1024);
+static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_512K_VALUE(CHALLENGER_512K_CONFIG_NAME, "Opus CHALLENGER 512K", 512 * 1024);
+const DiscInterface &DISC_INTERFACE_CHALLENGER_512K = DISC_INTERFACE_CHALLENGER_512K_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -630,14 +635,14 @@ class DiscInterfaceMaster128 : public DiscInterface {
   private:
 };
 
-const DiscInterfaceMaster128 DISC_INTERFACE_MASTER128_VALUE;
-const DiscInterface *const DISC_INTERFACE_MASTER128 = &DISC_INTERFACE_MASTER128_VALUE;
+static const DiscInterfaceMaster128 DISC_INTERFACE_MASTER128_VALUE;
+const DiscInterface &DISC_INTERFACE_MASTER128 = DISC_INTERFACE_MASTER128_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 const DiscInterface *const MODEL_B_DISC_INTERFACES[] = {
-    &DISC_INTERFACE_ACORN_1770_VALUE,
+    &DISC_INTERFACE_ACORN_1770,
     &DISC_INTERFACE_WATFORD_DDB2,
     &DISC_INTERFACE_WATFORD_DDB3,
     &DISC_INTERFACE_OPUS,
@@ -658,8 +663,8 @@ const DiscInterface *FindDiscInterfaceByConfigName(const char *config_name) {
         }
     }
 
-    if (DISC_INTERFACE_MASTER128->config_name == config_name) {
-        return DISC_INTERFACE_MASTER128;
+    if (DISC_INTERFACE_MASTER128.config_name == config_name) {
+        return &DISC_INTERFACE_MASTER128;
     }
 
     return nullptr;

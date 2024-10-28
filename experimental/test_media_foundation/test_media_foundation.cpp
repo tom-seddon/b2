@@ -18,6 +18,7 @@
 #include "testing_windows.h"
 #include <inttypes.h>
 #include <mfobjects.h>
+#include <shared/file_io.h>
 
 #include <shared/enum_decl.h>
 #include "test_media_foundation.inl"
@@ -174,7 +175,7 @@ static bool StoreWAVFile(const char *id, uint32_t size, const char *data, void *
 
 static bool LoadWAVFile(WAVFile *file, const std::string &file_name) {
     std::vector<uint8_t> data;
-    if (!PathLoadBinaryFile(&data, file_name)) {
+    if (!LoadFile(&data, file_name, nullptr)) {
         return false;
     }
 

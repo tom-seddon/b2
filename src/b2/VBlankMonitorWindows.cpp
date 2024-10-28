@@ -185,7 +185,7 @@ class VBlankMonitorWindows : public VBlankMonitor {
             // ms/frame).
             //
             // Each ThreadVBlank call represents a fair amount of work, and 250
-            // Hz isn't ideal, so this does need revisiting. 
+            // Hz isn't ideal, so this does need revisiting.
 
             uint64_t start_ticks = GetCurrentTickCount();
             uint64_t wait_ticks;

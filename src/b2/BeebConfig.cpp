@@ -6,12 +6,12 @@
 #include <shared/debug.h>
 #include "Messages.h"
 #include <beeb/DiscInterface.h>
-#include <shared/path.h>
 #include <stdlib.h>
 #include "conf.h"
 #include "load_save.h"
 #include <beeb/DiscImage.h>
 #include "misc.h"
+#include <shared/file_io.h>
 
 #include <shared/enum_def.h>
 #include "BeebConfig.inl"
@@ -39,7 +39,7 @@ static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, siz
         path = rom.file_name;
     }
 
-    if (!LoadFile(data, path, *msg)) {
+    if (!LoadFile(data, path, msg)) {
         return false;
     }
 
@@ -236,7 +236,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "B+";
-        config.disc_interface = DISC_INTERFACE_ACORN_1770;
+        config.disc_interface = &DISC_INTERFACE_ACORN_1770;
 
         config.type_id = BBCMicroTypeID_BPlus;
         config.os.standard_rom = &BEEB_ROM_BPLUS_MOS;
@@ -260,7 +260,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master 128 (MOS 3.20)";
-        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
         config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS320_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS320_TERMINAL);
@@ -284,7 +284,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master 128 (MOS 3.50)";
-        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
         config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS350_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS350_TERMINAL);
@@ -308,7 +308,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master Turbo (MOS 3.20)";
-        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
         config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS320_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS320_TERMINAL);
@@ -335,7 +335,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master Turbo (MOS 3.50)";
-        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
         config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS350_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS350_TERMINAL);
@@ -359,7 +359,7 @@ void InitDefaultBeebConfigs() {
 
     // BBC B with 6502 second processor
     {
-        BeebConfig config = GetBConfig(DISC_INTERFACE_ACORN_1770);
+        BeebConfig config = GetBConfig(&DISC_INTERFACE_ACORN_1770);
 
         config.name += " + 6502 second processor";
         config.parasite_type = BBCMicroParasiteType_External3MHz6502;
@@ -374,7 +374,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master Compact (MOS 5.00)";
-        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
         config.type_id = BBCMicroTypeID_MasterCompact;
         config.os.standard_rom = &BEEB_ROM_MOS500_MOS_ROM;
         config.roms[15].standard_rom = &BEEB_ROM_MOS500_SIDEWAYS_ROM_F;
@@ -395,7 +395,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master Compact (MOS 5.10)";
-        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
         config.type_id = BBCMicroTypeID_MasterCompact;
         config.os.standard_rom = &BEEB_ROM_MOS510_MOS_ROM;
         config.roms[15].standard_rom = &BEEB_ROM_MOS510_SIDEWAYS_ROM_F;
@@ -416,7 +416,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Olivetti PC 128 S";
-        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
         config.type_id = BBCMicroTypeID_MasterCompact;
         config.os.standard_rom = &BEEB_ROM_MOSI510C_MOS_ROM;
         config.roms[15].standard_rom = &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F;

@@ -1,12 +1,12 @@
 #include <shared/system.h>
-#include <shared/path.h>
 #include <string>
 #include "misc.h"
 #include "DirectDiscImage.h"
 #include "native_ui.h"
 #include "Messages.h"
 #include <limits.h>
-#include "load_save.h"
+#include <shared/file_io.h>
+#include <shared/path.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -26,16 +26,16 @@ DirectDiscImage::~DirectDiscImage() {
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<DirectDiscImage> DirectDiscImage::CreateForFile(std::string path,
-                                                                Messages *msg) {
-    size_t size;
+                                                                const LogSet &logs) {
+    uint64_t size;
     bool can_write;
-    if (!GetFileDetails(&size, &can_write, path.c_str())) {
-        msg->e.f("Couldn't get details for file: %s\n", path.c_str());
+    if (!PathIsFileOnDisk(path, &size, &can_write)) {
+        logs.e.f("Couldn't get details for file: %s\n", path.c_str());
         return nullptr;
     }
 
     DiscGeometry geometry;
-    if (!FindDiscGeometryFromFileDetails(&geometry, path.c_str(), size, msg)) {
+    if (!FindDiscGeometryFromFileDetails(&geometry, path.c_str(), size, &logs)) {
         return nullptr;
     }
 
@@ -100,11 +100,12 @@ std::string DirectDiscImage::GetDescription() const {
 //////////////////////////////////////////////////////////////////////////
 
 // TODO - basically the same as MemoryDiscImage.
-void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
+std::vector<FileDialogFilter> DirectDiscImage::GetFileDialogFilters() const {
     if (const char *ext = GetExtensionFromDiscGeometry(m_geometry)) {
-        std::string pattern = std::string("*") + ext;
-        fd->AddFilter("BBC disc image", {pattern});
+        return {{"BBC disc image", {ext}}};
     }
+
+    return {};
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -114,11 +115,11 @@ bool DirectDiscImage::SaveToFile(const std::string &file_name, const LogSet &log
     this->Close();
 
     std::vector<uint8_t> data;
-    if (!LoadFile(&data, m_path, logs)) {
+    if (!LoadFile(&data, m_path, &logs)) {
         return false;
     }
 
-    if (!SaveFile(data, file_name, logs)) {
+    if (!SaveFile(data, file_name, &logs)) {
         return false;
     }
 

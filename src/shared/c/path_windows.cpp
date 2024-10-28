@@ -47,9 +47,8 @@ bool PathGlob(const std::string &folder, std::function<void(const std::string &p
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool PathIsOnDisk(const std::string &path, DWORD value) {
-    WIN32_FIND_DATAW fd;
-    HANDLE h = FindFirstFileW(GetWideString(path).c_str(), &fd);
+static bool GetFindDataForPath(WIN32_FIND_DATAW *fd, const std::string &path) {
+    HANDLE h = FindFirstFileW(GetWideString(path).c_str(), fd);
     if (h == INVALID_HANDLE_VALUE) {
         return false;
     }
@@ -57,19 +56,44 @@ static bool PathIsOnDisk(const std::string &path, DWORD value) {
     FindClose(h);
     h = INVALID_HANDLE_VALUE;
 
-    if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == value) {
-        return true;
-    } else {
-        return false;
-    }
+    return true;
 }
 
-bool PathIsFileOnDisk(const std::string &path) {
-    return PathIsOnDisk(path, 0);
+bool PathIsFileOnDisk(const std::string &path, uint64_t *file_size, bool *can_write) {
+    WIN32_FIND_DATAW fd;
+    if (!GetFindDataForPath(&fd, path)) {
+        return false;
+    }
+
+    if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        return false;
+    }
+
+    if (file_size) {
+        ULARGE_INTEGER file_size_ui;
+        file_size_ui.HighPart = fd.nFileSizeHigh;
+        file_size_ui.LowPart = fd.nFileSizeLow;
+        *file_size = file_size_ui.QuadPart;
+    }
+
+    if (can_write) {
+        *can_write = !(fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY);
+    }
+
+    return true;
 }
 
 bool PathIsFolderOnDisk(const std::string &path) {
-    return PathIsOnDisk(path, FILE_ATTRIBUTE_DIRECTORY);
+    WIN32_FIND_DATAW fd;
+    if (!GetFindDataForPath(&fd, path)) {
+        return false;
+    }
+
+    if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

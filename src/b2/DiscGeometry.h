@@ -7,7 +7,7 @@
 #include <vector>
 #include <string>
 
-class Messages;
+struct LogSet;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -57,13 +57,13 @@ extern const std::vector<std::string> DISC_IMAGE_EXTENSIONS;
 
 bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,
                                      const char *file_name,
-                                     size_t file_size,
-                                     Messages *msg);
+                                     uint64_t file_size,
+                                     const LogSet *logs);
 
 bool FindDiscGeometryFromMIMEType(DiscGeometry *geometry,
                                   const char *mime_type,
-                                  size_t file_size,
-                                  Messages *msg);
+                                  uint64_t file_size,
+                                  const LogSet &logs);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
