@@ -1,81 +1,24 @@
-# b2
+# b2-libretro
 
-A cross-platform emulator of the BBC Micro, BBC Master 128, BBC Master
-Compact and Olivetti PC 128 S. Use your Windows/Linux PC or macOS
-computer to play your old games or develop new software.
+Adaptation of [Tom Seddon's b2 emulator](https://github.com/tom-seddon/b2) for BBC Micro, to run as a libretro core, possibly via RetroArch or some other frontend.
 
-## Windows
-
-See the
-[Windows installation instructions](./doc/Installing-on-Windows.md).
-
-You can set b2 to run when you double click a disk image in the
-Windows file explorer. See the
-[file assocation instructions](./doc/File-Association.md).
-
-You can also follow the [building instructions](./doc/Building.md) to
-build from source.
-
-## macOS
-
-See the [macOS installation instructions](./doc/Installing-on-OSX.md).
-**Please also revisit the installation instructions when upgrading
-from a previous version!**
-
-You can set b2 to run when you double click a disk image in the
-Finder. See the
-[file assocation instructions](./doc/File-Association.md).
-
-You can also follow the [building instructions](./doc/Building.md) to
-build from source.
-
-## Linux
-
-Follow the [building instructions](./doc/Building.md) to
-build from source.
-
-There is also a [b2 snap](https://snapcraft.io/b2), looked after by
-[Alan Pope](https://github.com/popey/b2-snap/) - this is something I
-approve of, but due to lack of Linux knowledge I can't provide any
-support for it myself)
+# Changes compared to standalone b2 emulator:
+- Display is limited to the emulation itself. That also means that there is no windowing UI or any function that would be available via menus. Certain options are exposed either via their obvious libretro counterpart (such as reset), or as core options.
+- Input is handled via libretro, that means joypad (RetroPad) and keyboard is supported. Analogue joystick input is mapped to left analog stick and button A, but all digital inputs (D-pad and other retropad buttons) can be individually assigned.
+- Drive 0 image can be selected via "Load content" option of libretro, and if needed, it can be changed using disc control functions.
+- Not all machine models are covered, notably, BBC Master is not supported (yet).
 
 # Documentation
 
-See [the overview](./doc/Overview.md).
-
-You can configure how the emulator starts up using the
-[command line options](./doc/Command-Line.md).
-
-For creating or hacking BBC software, the
-[debug version](./doc/Debug-version.md) includes a range of debugging
-functionality (including an integrated debugger), and a simple HTTP
-API for remote control.
+To be added to libretro doc site.
 
 # Bugs/feedback/etc.
 
-Please submit feedback to
-[the b2 GitHub issues page](https://github.com/tom-seddon/b2/issues),
-or post in
-[the b2 thread on Stardot](https://stardot.org.uk/forums/viewtopic.php?f=4&t=13081).
+Please submit feedback to this repo: https://github.com/zoltanvb/b2-libretro/issues
 
 # Licence
 
-## `etc`, `submodules`
+For b2 licence, see https://github.com/tom-seddon/b2#licence
 
-Please consult folders and files for more info.
+Licence of libretro adaptation: GPL v3.
 
-The contents of `etc` is all stuff that's freely available and
-distributable, included in the repo so it's self-contained, since not
-every dependency can be added as a git submodule.
-
-## `experimental`, `src`
-
-Copyright (C) 2016-2024 by Tom Seddon
-
-Licence: GPL v3.
-
------
-
-[Build status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y/branch/master?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2/branch/master)
-
-[Pre-release build status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y/branch/wip/master?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2/branch/wip/master)

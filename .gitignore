@@ -9,3 +9,9 @@ imgui.ini
 /etc/b2_tests/[Zz]/
 /dependencies/ProcessorTests/
 *.etl
+*.o
+*.so
+*.ROM
+*.cbp
+*.layout
+*.dll
