@@ -14,6 +14,12 @@
 #include <beeb/BBCMicro.h>
 #include <beeb/Trace.h>
 #include "Messages.h"
+#include <shared/debug.h>
+#include <unordered_map>
+
+#include <shared/enum_def.h>
+#include "misc.inl"
+#include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -454,7 +460,7 @@ std::vector<std::string> GetSplitString(const std::string &str, const std::strin
 //////////////////////////////////////////////////////////////////////////
 
 template <class T>
-static bool GetValueFromString(T *value, const char *str, int radix) {
+static bool GetUIntValueFromString(T *value, const char *str, int radix, const char **ep_out) {
     // Always skip leading spaces.
     const char *c = str;
     while (*c != 0 && isspace(*c)) {
@@ -477,8 +483,12 @@ static bool GetValueFromString(T *value, const char *str, int radix) {
 
     char *ep;
     unsigned long long tmp = strtoull(c, &ep, radix);
-    if (*ep != 0 && !isspace(*ep)) {
-        return false;
+    if (ep_out) {
+        *ep_out = ep;
+    } else {
+        if (*ep != 0 && !isspace(*ep)) {
+            return false;
+        }
     }
 
     if (tmp > std::numeric_limits<T>::max()) {
@@ -515,57 +525,57 @@ bool GetBoolFromString(bool *value, const char *str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix) {
-    return GetUInt8FromString(value, str.c_str(), radix);
+bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt8FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt8FromString(uint8_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt8FromString(uint8_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix) {
-    return GetUInt16FromString(value, str.c_str(), radix);
+bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt16FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt16FromString(uint16_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt16FromString(uint16_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix) {
-    return GetUInt32FromString(value, str.c_str(), radix);
+bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt32FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt32FromString(uint32_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt32FromString(uint32_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix) {
-    return GetUInt64FromString(value, str.c_str(), radix);
+bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix, const char **ep) {
+    return GetUInt64FromString(value, str.c_str(), radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt64FromString(uint64_t *value, const char *str, int radix) {
-    return GetValueFromString(value, str, radix);
+bool GetUInt64FromString(uint64_t *value, const char *str, int radix, const char **ep) {
+    return GetUIntValueFromString(value, str, radix, ep);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -604,16 +614,122 @@ uint32_t inline decode(uint32_t *state, uint32_t *codep, uint32_t byte) {
 }
 
 //////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-static int GetBBCChar(uint32_t codepoint) {
-    if (codepoint == 13 || codepoint == 10) {
-        return (int)codepoint;
-    } else if (codepoint >= 32 && codepoint <= 126) {
-        return (int)codepoint;
-    } else if (codepoint == 0xa3) {
-        return 95; //GBP symbol
+static std::unordered_map<uint32_t, char> g_bbc_char_by_codepoint;
+static std::string g_utf8_char_by_bbc_char[BBCUTF8ConvertMode_Count][128];
+static bool g_utf8_convert_tables_initialised = false;
+
+static uint32_t GetCodePointForBBCChar(uint8_t bbc_char, BBCUTF8ConvertMode mode) {
+    ASSERT(bbc_char >= 32 && bbc_char < 127);
+
+    switch (mode) {
+    default:
+        ASSERT(false);
+        // fall through
+    case BBCUTF8ConvertMode_PassThrough:
+        return bbc_char;
+        //return std::string(1, (char)bbc_char);
+
+    case BBCUTF8ConvertMode_OnlyGBP:
+        switch (bbc_char) {
+        case '`':
+            return 0xa3; //return "\xc2\xa3"; // U+00A3 POUND SIGN
+
+        default:
+            return bbc_char; //return std::string(1, (char)bbc_char);
+        }
+
+    case BBCUTF8ConvertMode_SAA5050:
+        switch (bbc_char) {
+        case '`':
+            return 0xa3; //"\xc2\xa3"; // U+00A3 POUND SIGN
+
+        case '\\':
+            return 0xbd; //"\xc2\xbd"; //U+00BD VULGAR FRACTION ONE HALF
+
+        case '_':
+            return 0x2015; //"\xe2\x80\x95"; //U+2015 HORIZONTAL BAR
+
+        case '[':
+            return 0x2190; //"\xe2\x86\x90"; // U+2190 LEFTWARDS ARROW
+
+        case ']':
+            return 0x2192; //"\xe2\x86\x92"; // U+2192 RIGHTWARDS ARROW
+
+        case '{':
+            return 0xbc; //"\xc2\xbc"; //U+00BC VULGAR FRACTION ONE QUARTER
+
+        case '}':
+            return 0xbe; //"\xc2\xbe"; // U+00BE VULGAR FRACTION THREE QUARTERS
+
+        case '|':
+            return 0x2016; //"\xe2\x80\x96"; //U+2016 DOUBLE VERTICAL LINE
+
+        case '^':
+            return 0x2191; //"\xe2\x86\x91"; //U+2191 UPWARDS ARROW
+
+        case '~':
+            return 0xf7; //"\xc3\xb7"; // U+00F7 DIVISION SIGN
+
+        default:
+            return bbc_char; //std::string(1, (char)bbc_char);
+        }
+    }
+}
+
+static std::string GetUTF8StringForCodePoint(uint32_t u) {
+    if (u < 0x80) {
+        return std::string(1, (char)u);
+    } else if (u < 0x800) {
+        char buf[2] = {
+            (char)(0xc0 | (u >> 6)),
+            (char)(0x80 | (u & 0x3f)),
+        };
+        return std::string(buf, buf + 2);
+    } else if (u < 0x10000) {
+        char buf[3] = {
+            (char)(0xe0 | (u >> 12)),
+            (char)(0x80 | (u >> 6 & 0x3f)),
+            (char)(0x80 | (u & 0x3f)),
+        };
+        return std::string(buf, buf + 3);
     } else {
-        return -1;
+        ASSERT(u < 0x110000);
+        char buf[4] = {
+            (char)(0xf0 | (u >> 18)),
+            (char)(0x80 | (u >> 12 & 0x3f)),
+            (char)(0x80 | (u >> 6 & 0x3f)),
+            (char)(0x80 | (u & 0x3f)),
+        };
+        return std::string(buf, buf + 4);
+    }
+}
+
+static void InitUTF8ConvertTables() {
+    if (!g_utf8_convert_tables_initialised) {
+        for (int mode = 0; mode < BBCUTF8ConvertMode_Count; ++mode) {
+            for (uint8_t c = 32; c < 127; ++c) {
+                uint32_t u = GetCodePointForBBCChar(c, (BBCUTF8ConvertMode)mode);
+
+                g_utf8_char_by_bbc_char[mode][c] = GetUTF8StringForCodePoint(u);
+
+                auto &&it = g_bbc_char_by_codepoint.find(u);
+                if (it == g_bbc_char_by_codepoint.end()) {
+                    g_bbc_char_by_codepoint[u] = (char)c;
+                } else {
+                    ASSERT(g_bbc_char_by_codepoint[u] == c);
+                }
+            }
+        }
+
+        ASSERT(g_bbc_char_by_codepoint.count(10) == 0);
+        g_bbc_char_by_codepoint[10] = 10;
+
+        ASSERT(g_bbc_char_by_codepoint.count(13) == 0);
+        g_bbc_char_by_codepoint[13] = 13;
+
+        g_utf8_convert_tables_initialised = true;
     }
 }
 
@@ -627,6 +743,8 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
                          int *bad_char_len_ptr) {
     uint32_t state = UTF8_ACCEPT, codepoint;
 
+    InitUTF8ConvertTables();
+
     ascii->clear();
     size_t char_start = 0;
 
@@ -637,8 +755,8 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
     for (size_t i = 0; i < data.size(); ++i) {
         decode(&state, &codepoint, data[i]);
         if (state == UTF8_ACCEPT) {
-            int c = GetBBCChar(codepoint);
-            if (c < 0) {
+            auto &&it = g_bbc_char_by_codepoint.find(codepoint);
+            if (it == g_bbc_char_by_codepoint.end()) {
                 bad_codepoint = codepoint;
                 bad_char_start = &data[char_start];
                 bad_char_len = (int)(i - char_start);
@@ -646,7 +764,7 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
                 goto bad;
             }
 
-            ascii->push_back((char)c);
+            ascii->push_back(it->second);
         } else if (state == UTF8_REJECT) {
             goto bad;
         }
@@ -673,14 +791,19 @@ bad:;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint32_t GetBBCASCIIFromISO88511(std::string *ascii, const std::vector<uint8_t> &data) {
+uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii, const std::vector<uint8_t> &data) {
     ascii->clear();
 
     for (uint8_t x : data) {
-        int c = GetBBCChar(x);
-        if (c < 0) {
+        if (x >= 32 && x <= 126) {
+            // ok...
+        } else if (x == 0xa3) {
+            // GBP
+            x = '`';
+        } else {
             return x;
         }
+
         ascii->push_back((char)x);
     }
 
@@ -725,14 +848,22 @@ static const uint8_t VDU_CODE_LENGTHS[32] = {
     2,
 };
 
-std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data) {
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete) {
+    ASSERT(mode >= 0 && mode < BBCUTF8ConvertMode_Count);
+    InitUTF8ConvertTables();
+
     // Normalize line endings and strip out control codes.
     //
     // TODO: do it in a less dumb fashion.
     std::string utf8;
     utf8.reserve(data.size());
 
+    std::vector<uint8_t> output_sizes;
+    output_sizes.reserve(data.size());
+
     for (size_t i = 0; i < data.size(); ++i) {
+        size_t old_utf8_size = utf8.size();
+
         if (data[i] == 10 || data[i] == 13) {
             // Translate line endings.
             if (i + 1 < data.size() &&
@@ -745,20 +876,33 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data) {
             utf8 += "\r\n";
 #else
             utf8 += "\n";
-
 #endif
         } else if (data[i] < 32) {
             // Skip VDU codes.
             i += 1u + VDU_CODE_LENGTHS[data[i]];
-        } else if (data[i] == 95) {
-            // Translate pound sign into UTF8.
-            utf8 += POUND_SIGN_UTF8;
-        } else if (data[i] < 127) {
-            // Pass other printable 7-bit ASCII chars straight through.
-            utf8.push_back((char)data[i]);
+        } else if (data[i] >= 32 && data[i] < 127) {
+            utf8 += g_utf8_char_by_bbc_char[mode][data[i]];
+        } else if (data[i] == 127) {
+            if (handle_delete) {
+                // Remove the last char (if any).
+                uint8_t n = output_sizes.back();
+                output_sizes.pop_back();
+
+                if (n > utf8.size()) {
+                    n = (uint8_t)utf8.size();
+                }
+
+                utf8.erase(utf8.end() - n);
+
+                continue;
+            }
         } else {
-            // Discard DEL and 128+. TODO.
+            // 128+. TODO.
         }
+
+        size_t delta = utf8.size() - old_utf8_size;
+        ASSERT(delta < UINT8_MAX);
+        output_sizes.push_back((uint8_t)delta);
     }
 
     return utf8;

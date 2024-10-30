@@ -14,12 +14,6 @@ static constexpr uint16_t DEFAULT_CHANNEL_VALUE = 1023;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ADCHandler::~ADCHandler() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 ADC::ADC() {
     m_status.bits.not_eoc = 1;
     m_status.bits.not_busy = 1;
@@ -43,8 +37,8 @@ void ADC::Write0(void *adc_, M6502Word, uint8_t value) {
     adc->m_status.bits.not_busy = 0;
     adc->m_status.bits.not_eoc = 1;
 
-    if (adc->m_handler) {
-        adc->m_avalue = adc->m_handler->ReadAnalogueChannel(adc->m_status.bits.channel);
+    if (adc->m_handler_fn) {
+        adc->m_avalue = (*adc->m_handler_fn)(adc->m_status.bits.channel, adc->m_handler_context);
     } else {
         adc->m_avalue = DEFAULT_CHANNEL_VALUE;
     }
@@ -142,8 +136,9 @@ void ADC::SetTrace(Trace *t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ADC::SetHandler(ADCHandler *handler) {
-    m_handler = handler;
+void ADC::SetHandler(HandlerFn fn, void *context) {
+    m_handler_fn = fn;
+    m_handler_context = context;
 }
 
 //////////////////////////////////////////////////////////////////////////

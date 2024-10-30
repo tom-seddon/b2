@@ -65,7 +65,11 @@ bool DearImguiTestUI::OnClose() {
 std::unique_ptr<SettingsUI> CreateDearImguiTestUI(BeebWindow *beeb_window) {
     (void)beeb_window;
 
-    return std::make_unique<DearImguiTestUI>();
+    auto ui = std::make_unique<DearImguiTestUI>();
+
+    ui->SetDefaultSize(ImVec2(250, 250));
+
+    return ui;
 }
 
 //////////////////////////////////////////////////////////////////////////

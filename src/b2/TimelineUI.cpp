@@ -28,6 +28,7 @@ class TimelineUI : public SettingsUI {
                         SDL_Renderer *renderer)
         : m_beeb_window(beeb_window)
         , m_thumbnails(renderer) {
+        this->SetDefaultSize(ImVec2(350, 400));
     }
 
     void DoImGui() override {
@@ -258,11 +259,10 @@ class TimelineUI : public SettingsUI {
                     GetThousandsString(cycles_str, e->time_cycles.n);
                     ImGui::Text("%s (%s)", cycles_str, GetCycleCountString(e->time_cycles).c_str());
 
-                    const std::string &name = state->GetName();
-                    if (name.empty()) {
+                    if (state->name.empty()) {
                         ImGui::TextUnformatted("(no name)");
                     } else {
-                        ImGui::Text("Name: %s", name.c_str());
+                        ImGui::Text("Name: %s", state->name.c_str());
                     }
 
                     m_thumbnails.Thumbnail(e->message->GetBeebState());

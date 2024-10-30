@@ -11,7 +11,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::shared_ptr<MessageList> MessageList::stdio(std::make_shared<MessageList>(1, true));
+const std::shared_ptr<MessageList> MessageList::stdio(std::make_shared<MessageList>("stdio", 1, true));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -28,13 +28,17 @@ MessageList::Message::Message(MessageType type_,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-MessageList::MessageList(size_t max_num_messages, bool print_to_stdio)
+MessageList::MessageList(std::string name, size_t max_num_messages, bool print_to_stdio)
     : m_info_printer(this, MessageType_Info, nullptr)
-    , m_warning_printer(this, MessageType_Warning, &m_num_errors_and_warnings_printed)
-    , m_error_printer(this, MessageType_Error, &m_num_errors_and_warnings_printed)
+    , m_warning_printer(this, MessageType_Warning, nullptr)
+    , m_error_printer(this, MessageType_Error, &m_num_errors_printed)
+    , m_name(std::move(name))
     , m_max_num_messages(max_num_messages)
     , m_print_to_stdio(print_to_stdio) {
-    MUTEX_SET_NAME(m_mutex, "MessageList");
+    MUTEX_SET_NAME(m_mutex, ("MessageList: " + m_name));
+    m_info_printer.SetMutexName(("MessageList Info: " + m_name));
+    m_warning_printer.SetMutexName(("MessageList Warning: " + m_name));
+    m_error_printer.SetMutexName(("MessageList Error: " + m_name));
 
     this->ClearMessages();
 }
@@ -58,8 +62,8 @@ uint64_t MessageList::GetNumMessagesPrinted() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint64_t MessageList::GetNumErrorsAndWarningsPrinted() const {
-    return m_num_errors_and_warnings_printed;
+uint64_t MessageList::GetNumErrorsPrinted() const {
+    return m_num_errors_printed;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -74,7 +78,7 @@ void MessageList::ForEachMessage(std::function<void(Message *)> fun) const {
 
 void MessageList::ForEachMessage(size_t n, std::function<void(Message *)> fun) const {
     if (!!fun) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         this->LockedForEachMessage(n, fun);
     }
@@ -84,7 +88,7 @@ void MessageList::ForEachMessage(size_t n, std::function<void(Message *)> fun) c
 //////////////////////////////////////////////////////////////////////////
 
 void MessageList::ClearMessages() {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     this->LockedClearMessages();
 }
@@ -94,39 +98,39 @@ void MessageList::ClearMessages() {
 
 void MessageList::InsertMessages(const MessageList &src) {
     if (m_print_to_stdio) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         src.ForEachMessage(&PrintMessageToStdio);
     } else {
-        // Don't know quite what the right thing is to do with the seen
-        // flag exactly...
+        std::vector<Message> src_messages;
+        {
+            LockGuard src_lock(src.m_mutex);
 
-        std::unique_lock<Mutex> this_lock(m_mutex, std::defer_lock);
-        std::unique_lock<Mutex> src_lock(src.m_mutex, std::defer_lock);
+            src_messages = src.m_messages;
+        }
 
-        std::lock(this_lock, src_lock);
+        LockGuard lock(m_mutex);
 
         size_t old_size = m_messages.size();
 
         m_messages.insert(m_messages.end(),
-                          src.m_messages.begin(),
-                          src.m_messages.end());
+                          std::make_move_iterator(src_messages.begin()),
+                          std::make_move_iterator(src_messages.end()));
 
-        uint64_t num_errors_and_warnings = 0;
+        uint64_t num_errors = 0;
 
         for (size_t j = old_size; j < m_messages.size(); ++j) {
             Message *message = &m_messages[j];
 
             message->seen = false;
 
-            if (message->type == MessageType_Warning ||
-                message->type == MessageType_Error) {
-                ++num_errors_and_warnings;
+            if (message->type == MessageType_Error) {
+                ++num_errors;
             }
         }
 
-        m_num_messages_printed += src.m_messages.size();
-        m_num_errors_and_warnings_printed += num_errors_and_warnings;
+        m_num_messages_printed += src_messages.size();
+        m_num_errors_printed += num_errors;
 
         std::stable_sort(m_messages.begin(),
                          m_messages.end(),
@@ -150,7 +154,7 @@ void MessageList::InsertMessages(const MessageList &src) {
 //////////////////////////////////////////////////////////////////////////
 
 void MessageList::SetPrintToStdio(bool print_to_stdio) {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     if (!m_print_to_stdio && print_to_stdio) {
         this->LockedFlushMessagesToStdio();
@@ -167,7 +171,7 @@ void MessageList::SetPrintToStdio(bool print_to_stdio) {
 // Print all accumulated messages to stdout/stderr and clear the
 // list.
 void MessageList::FlushMessagesToStdio() {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     this->LockedFlushMessagesToStdio();
 }
@@ -206,7 +210,7 @@ void MessageList::Printer::Print(const char *str, size_t str_len) {
 void MessageList::AddMessage(MessageType type,
                              const char *str,
                              size_t str_len) {
-    std::lock_guard<Mutex> this_lock(m_mutex);
+    LockGuard<Mutex> this_lock(m_mutex);
 
     if (m_messages.size() < m_max_num_messages) {
         ASSERT(m_head == 0);
@@ -233,7 +237,7 @@ void MessageList::LockedClearMessages() {
     m_messages.clear();
     m_head = 0;
 
-    m_num_errors_and_warnings_printed = 0;
+    m_num_errors_printed = 0;
     m_num_messages_printed = 0;
 }
 
@@ -285,19 +289,18 @@ void MessageList::PrintMessageToStdio(Message *m) {
 //////////////////////////////////////////////////////////////////////////
 
 Messages::Messages()
-    : i("", &log_printer_nowhere, false)
-    , w("", &log_printer_nowhere, false)
-    , e("", &log_printer_nowhere, false) {
+    : LogSet{m_info, m_warning, m_error}
+    , m_info("", &log_printer_nowhere, false)
+    , m_warning("", &log_printer_nowhere, false)
+    , m_error("", &log_printer_nowhere, false) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 Messages::Messages(std::shared_ptr<MessageList> message_list)
-    : i("", !!message_list ? static_cast<LogPrinter *>(&message_list->m_info_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!message_list)
-    , w("", !!message_list ? static_cast<LogPrinter *>(&message_list->m_warning_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!message_list)
-    , e("", !!message_list ? static_cast<LogPrinter *>(&message_list->m_error_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!message_list)
-    , m_message_list(std::move(message_list)) {
+    : Messages() {
+    this->SetMessageList(std::move(message_list));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -309,3 +312,27 @@ std::shared_ptr<MessageList> Messages::GetMessageList() const {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void Messages::SetMessageList(std::shared_ptr<MessageList> message_list) {
+    m_message_list = std::move(message_list);
+
+    this->UpdateLog(&m_info, &m_message_list->m_info_printer);
+    this->UpdateLog(&m_warning, &m_message_list->m_warning_printer);
+    this->UpdateLog(&m_error, &m_message_list->m_error_printer);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Messages::UpdateLog(Log *log, LogPrinter *printer) {
+    if (m_message_list) {
+        log->SetLogPrinter(printer);
+
+        // Don't increase the enable count unnecessarily.
+        if (!log->enabled) {
+            log->Enable();
+        }
+    } else {
+        log->SetLogPrinter(&log_printer_nowhere);
+    }
+}

@@ -113,6 +113,43 @@ const char *M6502AddrMode_GetName(uint8_t mode);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+enum M6502Condition {
+    M6502Condition_None = 0,
+    M6502Condition_Always,
+    M6502Condition_CC,
+    M6502Condition_CS,
+    M6502Condition_VC,
+    M6502Condition_VS,
+    M6502Condition_NE,
+    M6502Condition_EQ,
+    M6502Condition_PL,
+    M6502Condition_MI,
+
+    // The BRx values are contiguous
+    M6502Condition_BR0,
+    M6502Condition_BR1,
+    M6502Condition_BR2,
+    M6502Condition_BR3,
+    M6502Condition_BR4,
+    M6502Condition_BR5,
+    M6502Condition_BR6,
+    M6502Condition_BR7,
+
+    // The BSx values are contiguous
+    M6502Condition_BS0,
+    M6502Condition_BS1,
+    M6502Condition_BS2,
+    M6502Condition_BS3,
+    M6502Condition_BS4,
+    M6502Condition_BS5,
+    M6502Condition_BS6,
+    M6502Condition_BS7,
+};
+typedef enum M6502Condition M6502Condition;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 typedef void (*M6502Fn)(struct M6502 *);
 
 typedef void (*M6502Callback)(struct M6502 *, void *);
@@ -136,8 +173,9 @@ struct M6502DisassemblyInfo {
     // over this instruction.
     uint8_t always_step_in : 1;
 
-    // Set if this is a branch instruction of some kind.
-    uint8_t branch : 1;
+    // Condition for branch - 0=not a branch, otherwise one of the
+    // M6502Condition values.
+    uint8_t branch_condition : 5;
 
     // Mnemonic.
     char mnemonic[5];

@@ -4,21 +4,21 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
 #include <vector>
-#include "Trace.h"
 
+class Trace;
 class R6522;
+union M6502Word;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //
 // "BeebLink" is not two words.
 //
-// Packets are vectors of 1+ byte(s), roughly following the AVR<->PC format:
-// first byte is the packet type, then the payload, if any.
-//
-// Packet type bit 7 may or may not be set - payload size is never included
-// in either case, as it can be inferred from the size of the vector.
+// Request and response data follows the v2 HTTP API format: 1 byte
+// request/response type (bit 7 ignored), 4 byte little-endian payload size,
+// then payload.
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -35,7 +35,7 @@ class BeebLinkHandler {
     BeebLinkHandler() = default;
     virtual ~BeebLinkHandler();
 
-    virtual bool GotRequestPacket(std::vector<uint8_t> data) = 0;
+    virtual bool GotRequestPacket(std::vector<unsigned char> data, bool is_fire_and_forget) = 0;
 
   protected:
   private:
@@ -44,46 +44,41 @@ class BeebLinkHandler {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::vector<uint8_t> GetBeebLinkErrorResponsePacketData(uint8_t code, const char *message);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BeebLink {
   public:
-    static std::vector<uint8_t> GetErrorResponsePacketData(uint8_t code,
-                                                           const char *message);
-
     explicit BeebLink(BeebLinkHandler *handler);
     ~BeebLink();
 
-    void Update(R6522 *via);
+    static uint8_t ReadControl(void *context, M6502Word addr);
+    static void WriteControl(void *context, M6502Word addr, uint8_t value);
+    static uint8_t ReadData(void *context, M6502Word addr);
+    static void WriteData(void *context, M6502Word addr, uint8_t value);
 
-    void SendResponse(std::vector<uint8_t> data);
+    void SendResponse(std::vector<unsigned char> data);
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *trace);
 #endif
   protected:
   private:
-    BeebLinkHandler *m_handler = nullptr;
+    BeebLinkHandler *const m_handler = nullptr;
 
-    BeebLinkState m_state;
-    uint32_t m_state_counter;
+    std::vector<unsigned char> m_recv;
+    uint64_t m_recv_index = 0;
 
-    std::vector<uint8_t> m_data;
-
-    size_t m_index = 0;
-
-    uint8_t m_type_byte = 0;
-    uint8_t m_size_bytes[4] = {};
+    bool m_may_send = false;
+    std::vector<unsigned char> m_send;
 
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
 #endif
 
-    bool WaitForBeebReadyReceive(R6522 *via, BeebLinkState ready_state, uint8_t *value);
-    bool WaitForBeebReadySend(R6522 *via, BeebLinkState ready_state, uint8_t value);
-    bool AckAndCheck(R6522 *via, BeebLinkState ack_state);
-
-    // Return value is first byte of response.
-    void HandleReceivedData();
-    void Stall();
+    void ResetReceiveBuffer();
 };
 
 //////////////////////////////////////////////////////////////////////////

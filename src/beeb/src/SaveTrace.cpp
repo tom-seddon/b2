@@ -53,6 +53,7 @@ class TraceSaver {
         this->SetHandler(Trace::WRITE_ROMSEL_EVENT, &TraceSaver::HandleWriteROMSEL);
         this->SetHandler(Trace::WRITE_ACCCON_EVENT, &TraceSaver::HandleWriteACCCON);
         this->SetHandler(Trace::PARASITE_BOOT_MODE_EVENT, &TraceSaver::HandleParasiteBootModeEvent, HandlerFlag_PrintPrefix);
+        this->SetHandler(Trace::SET_MAPPER_REGION_EVENT, &TraceSaver::HandleSetMapperRegionEvent);
         this->SetHandler(Trace::STRING_EVENT, &TraceSaver::HandleString, HandlerFlag_PrintPrefix);
         this->SetHandler(SN76489::WRITE_EVENT, &TraceSaver::HandleSN76489WriteEvent, HandlerFlag_PrintPrefix);
         this->SetHandler(SN76489::UPDATE_EVENT, &TraceSaver::HandleSN76489UpdateEvent, HandlerFlag_PrintPrefix);
@@ -105,8 +106,7 @@ class TraceSaver {
         //uint64_t start_ticks=GetCurrentTickCount();
 
         m_type = m_trace->GetBBCMicroType();
-        m_romsel = m_trace->GetInitialROMSEL();
-        m_acccon = m_trace->GetInitialACCCON();
+        m_paging = m_trace->GetInitialPagingState();
         m_parasite_m6502_config = m_trace->GetParasiteM6502Config();
         m_parasite_boot_mode = m_trace->GetInitialParasiteBootMode();
         m_paging_dirty = true;
@@ -174,14 +174,13 @@ class TraceSaver {
     uint32_t m_output_flags = DEFAULT_TRACE_OUTPUT_FLAGS;
     Handler m_handlers[256] = {};
     std::unique_ptr<Log> m_output;
-    const BBCMicroType *m_type = nullptr;
+    std::shared_ptr<const BBCMicroType> m_type;
     int m_sound_channel2_value = -1;
     R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
     CycleCount m_last_instruction_time = {0};
     bool m_got_first_event_time = false;
     CycleCount m_first_event_time = {0};
-    ROMSEL m_romsel = {};
-    ACCCON m_acccon = {};
+    PagingState m_paging;
     bool m_parasite_boot_mode = false;
     bool m_paging_dirty = true;
     MemoryBigPageTables m_paging_tables = {};
@@ -280,7 +279,7 @@ class TraceSaver {
         return c;
     }
 
-    char *AddAddress(const TraceEvent *ev, char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix) {
+    char *AddAddress(const TraceEvent *ev, char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix, bool align = false) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -288,50 +287,53 @@ class TraceSaver {
         if (m_paging_dirty) {
             (*m_type->get_mem_big_page_tables_fn)(&m_paging_tables,
                                                   &m_paging_flags,
-                                                  m_romsel,
-                                                  m_acccon);
+                                                  m_paging);
             m_paging_dirty = false;
         }
 
         //const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
         M6502Word addr = {value};
 
-        char code;
+        const char *codes;
         switch (ev->source) {
         default:
             ASSERT(false);
             // fall through
         case TraceEventSource_None:
-            code = '?';
+            codes = "?";
             break;
 
         case TraceEventSource_Host:
             if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && !(m_paging_flags & PagingFlags_ROMIO)) {
-                code = 'i';
+                codes = "i";
             } else {
                 M6502Word pc = {pc_};
-                uint8_t big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
-                ASSERT(big_page < NUM_BIG_PAGES);
-                code = m_type->big_pages_metadata[big_page].code;
+                BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
+                ASSERT(big_page.i < NUM_BIG_PAGES);
+                const BigPageMetadata *bp = &m_type->big_pages_metadata[big_page.i];
+                codes = align ? bp->aligned_codes : bp->minimal_codes;
             }
             break;
 
         case TraceEventSource_Parasite:
             if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
-                code = 'r';
+                codes = "r";
             } else {
-                code = 'p';
+                codes = "p";
             }
             break;
         }
 
-        *c++ = code;
-        *c++ = ADDRESS_PREFIX_SEPARATOR;
         *c++ = '$';
         *c++ = HEX_CHARS_LC[value >> 12];
         *c++ = HEX_CHARS_LC[value >> 8 & 15];
         *c++ = HEX_CHARS_LC[value >> 4 & 15];
         *c++ = HEX_CHARS_LC[value & 15];
+        *c++ = ADDRESS_SUFFIX_SEPARATOR;
+        *c++ = codes[0];
+        if (codes[1] != 0) {
+            *c++ = codes[1];
+        }
 
         while ((*c = *suffix++) != 0) {
             ++c;
@@ -569,7 +571,7 @@ class TraceSaver {
             c += m_time_prefix_len;
         }
 
-        c = AddAddress(e, c, "", 0, ev->pc, ":");
+        c = AddAddress(e, c, "", 0, ev->pc, ":", true); //true=align
 
         *c++ = i->undocumented ? '*' : ' ';
 
@@ -622,7 +624,7 @@ class TraceSaver {
 
         case M6502AddrMode_ABS:
             c = AddWord(c, "$", ev->ad, "");
-            if (i->branch) {
+            if (i->branch_condition != M6502Condition_None) {
                 // don't add the address for JSR/JMP - for
                 // consistency with Bxx and JMP indirect. The addresses
                 // aren't useful anyway, since the next line shows where
@@ -716,11 +718,25 @@ class TraceSaver {
         c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? " (D=" : " (", ev->data, "");
 
         // Add some BBC-specific annotations
-        if (ev->pc == 0xffee || ev->pc == 0xffe3) {
-            c += sprintf(c, "; %d", ev->a);
+        if (ev->pc == 0xffee ||
+            ev->pc == 0xffe3 ||
+            (ev->opcode == 0x6c && ev->ia == 0x20e)) {
+            // If the output does overflow, the return value is no good,
+            // because it's the length of the full expansion. But it's no
+            // problem, because it won't overflow.
+            //
+            // (Of course, this means that then sprintf would actually be fine.
+            // But calling sprintf means a deprecation warning on macOS. And I
+            // just choose to avoid the deprecation warning this particular
+            // way.)
+            c += snprintf(c, (size_t)(line + sizeof line - c), "; %d", ev->a);
 
             if (isprint(ev->a)) {
-                c += sprintf(c, "; '%c'", ev->a);
+                *c++ = ';';
+                *c++ = ' ';
+                *c++ = '\'';
+                *c++ = (char)ev->a;
+                *c++ = '\'';
             }
         }
 
@@ -743,14 +759,14 @@ class TraceSaver {
     void HandleWriteROMSEL(const TraceEvent *e) {
         auto ev = (const Trace::WriteROMSELEvent *)e->event;
 
-        m_romsel = ev->romsel;
+        m_paging.romsel = ev->romsel;
         m_paging_dirty = true;
     }
 
     void HandleWriteACCCON(const TraceEvent *e) {
         auto ev = (const Trace::WriteACCCONEvent *)e->event;
 
-        m_acccon = ev->acccon;
+        m_paging.acccon = ev->acccon;
         m_paging_dirty = true;
     }
 
@@ -759,6 +775,17 @@ class TraceSaver {
 
         m_parasite_boot_mode = ev->parasite_boot_mode;
         m_output->f("Parasite boot mode: %s\n", BOOL_STR(m_parasite_boot_mode));
+    }
+
+    void HandleSetMapperRegionEvent(const TraceEvent *e) {
+        auto ev = (const Trace::SetMapperRegionEvent *)e->event;
+
+        m_paging.rom_regions[m_paging.romsel.b_bits.pr] = ev->region;
+        m_paging_dirty = true;
+
+        if (m_output_flags & TraceOutputFlags_ROMMapper) {
+            m_output->f("Set ROM mapper region: %c\n", GetMapperRegionCode(ev->region));
+        }
     }
 
     void HandleTubeWriteFIFO1Event(const TraceEvent *e) {
@@ -934,7 +961,7 @@ class TraceSaver {
                     memset(c, ' ', n);
                     c += n;
                     if (this_->m_parasite_type == BBCMicroParasiteType_External3MHz6502) {
-                        display_time = BBCMicro::Get3MHzCycleCount(time);
+                        display_time = Get3MHzCycleCount(time);
                     } else {
                         display_time = time.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
                     }

@@ -28,26 +28,25 @@ class FileMenuItem;
 struct SDL_ControllerAxisEvent;
 struct SDL_ControllerButtonEvent;
 struct JoystickResult;
+class BeebKeymap;
+class ImGuiStuff;
 
 #include "keys.h"
-#include "dear_imgui.h"
 #include <string>
 #include <SDL.h>
 #include <beeb/TVOutput.h>
 #include "native_ui.h"
 #include <beeb/conf.h>
-#include <shared/log.h>
-#include <functional>
 #include "Messages.h"
 #include <map>
 #include <set>
 #include <limits.h>
 #include "BeebConfig.h"
-#include "BeebKeymap.h"
 #include "commands.h"
-//#include "SDL_video.h"
 #include <beeb/video.h>
 #include "misc.h"
+#include <condition_variable>
+#include <thread>
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -94,6 +93,16 @@ struct BeebWindowSettings {
     bool prefer_shortcuts = false;
 
     BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
+
+    struct CopySettings {
+        BBCUTF8ConvertMode convert_mode = BBCUTF8ConvertMode_OnlyGBP;
+        bool handle_delete = true;
+    };
+
+    CopySettings text_copy_settings;
+    CopySettings printer_copy_settings;
+
+    bool capture_mouse_on_click = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -369,9 +378,6 @@ class BeebWindow {
 
     BeebWindowSettings m_settings;
 
-    //
-    //bool m_ui=false;
-    //bool m_pushed_window_padding = false;
     ImGuiStuff *m_imgui_stuff = nullptr;
 
 #if ENABLE_IMGUI_DEMO
@@ -401,7 +407,7 @@ class BeebWindow {
     //
     std::shared_ptr<MessageList> m_message_list;
     uint64_t m_msg_last_num_messages_printed = 0;
-    uint64_t m_msg_last_num_errors_and_warnings_printed = 0;
+    uint64_t m_msg_last_num_errors_printed = 0;
 #if VIDEO_TRACK_METADATA
     bool m_got_mouse_pixel_unit = false;
     VideoDataUnit m_mouse_pixel_unit = {};
@@ -418,10 +424,10 @@ class BeebWindow {
         Mutex mutex;
 
         // signaled by main thread when it wants an update.
-        ConditionVariable update_cv;
+        std::condition_variable_any update_cv;
 
         // signaled by update thread when it's done.
-        ConditionVariable done_cv;
+        std::condition_variable_any done_cv;
 
         // set if main thread wants update thread to stop.
         bool stop = false;
@@ -449,11 +455,14 @@ class BeebWindow {
 
     CommandStateTable m_cst;
 
+    bool m_is_mouse_captured = false;
+
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
-    bool HandleCommandKey(uint32_t keycode, SettingsUI *active_popup);
+    //bool HandleCommandKey(uint32_t keycode, SettingsUI *active_popup, bool only_always_prioritized);
     void DoCommands(bool *close_window);
+    void DoCopyModeCommands(BeebWindowSettings::CopySettings *settings, bool enabled, const Command2 &pass_through, const Command2 &only_gbp, const Command2 &SAA5050, const Command2 &toggle_handle_delete);
     void DoMenuUI();
     SettingsUI *DoSettingsUI();
     void DoPopupUI(uint64_t now, int output_width, int output_height);
@@ -465,6 +474,7 @@ class BeebWindow {
     void DoHardwareMenu();
     void DoKeyboardMenu();
     void DoJoysticksMenu();
+    void DoMouseMenu();
     void DoPrinterMenu();
     void DoToolsMenu();
     void DoDebugMenu();
@@ -484,11 +494,13 @@ class BeebWindow {
 
     void DoPaste(bool add_return);
 
-    void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data) const;
+    void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, const BeebWindowSettings::CopySettings &settings) const;
 
     void SaveConfig();
 
-    SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
+    void SetCaptureMouse(bool capture_mouse);
+
+    SDLUniquePtr<SDL_Surface> CreateScreenshot(SDL_PixelFormatEnum pixel_format) const;
 
 #if ENABLE_SDL_FULL_SCREEN
     bool IsWindowFullScreen() const;

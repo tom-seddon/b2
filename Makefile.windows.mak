@@ -1,4 +1,5 @@
 # -*- mode:makefile-gmake; -*-
+SHELL:=$(windir)\system32\cmd.exe
 
 ##########################################################################
 ##########################################################################
@@ -22,3 +23,21 @@ _newer_vs:
 
 ##########################################################################
 ##########################################################################
+
+.PHONY:run_tests_vs2019
+run_tests_vs2019: CONFIG=$(error Must specify CONFIG)
+run_tests_vs2019:
+	$(MAKE) _run_tests VSYEAR=2019 VSVER=16 CONFIG=$(CONFIG)
+
+.PHONY:_run_tests
+_run_tests: VS_PATH:=$(shell "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -version $(VSVER) -property installationPath)
+_run_tests: CTEST:=$(VS_PATH)\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe
+_run_tests:
+	cd "build\vs$(VSYEAR)" && "$(CTEST)" -C $(CONFIG) -j $(NUMBER_OF_PROCESSORS)
+
+##########################################################################
+##########################################################################
+
+.PHONY:github_ci_windows
+github_ci_windows:
+	$(PYTHON3) "./etc/release/release.py" --verbose --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) --gh-release $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)

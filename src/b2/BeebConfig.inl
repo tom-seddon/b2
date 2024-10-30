@@ -10,7 +10,7 @@
 // and it won't come back automatically.)
 
 #define ENAME BeebConfigFeatureFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 EPNV(MasterTurbo, 1 << 0)
 EPNV(6502SecondProcessor, 1 << 1)
 EPNV(MasterCompact, 1 << 2)

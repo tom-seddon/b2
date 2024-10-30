@@ -38,8 +38,17 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-DiscInterface::DiscInterface(uint16_t fdc_addr_, uint16_t control_addr_, uint32_t flags_)
-    : fdc_addr(fdc_addr_)
+DiscInterfaceExtraHardwareState ::~DiscInterfaceExtraHardwareState() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+DiscInterface::DiscInterface(std::string config_name_, std::string display_name_, StandardROM fs_rom_, uint16_t fdc_addr_, uint16_t control_addr_, uint32_t flags_)
+    : config_name(std::move(config_name_))
+    , display_name(std::move(display_name_))
+    , fs_rom(fs_rom_)
+    , fdc_addr(fdc_addr_)
     , control_addr(control_addr_)
     , flags(flags_) {
 }
@@ -53,21 +62,36 @@ DiscInterface::~DiscInterface() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DiscInterface::InstallExtraHardware(BBCMicro *m) {
-    (void)m;
+std::shared_ptr<DiscInterfaceExtraHardwareState> DiscInterface::CreateExtraHardwareState() const {
+    return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::shared_ptr<DiscInterfaceExtraHardwareState> DiscInterface::CloneExtraHardwareState(const std::shared_ptr<DiscInterfaceExtraHardwareState> &src) const {
+    (void)src;
+    ASSERT(!src);
+
+    return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DiscInterface::InstallExtraHardware(BBCMicro *m, const std::shared_ptr<DiscInterfaceExtraHardwareState> &state) const {
+    (void)m, (void)state;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char ACORN_1770_CONFIG_NAME[] = "Acorn 1770";
+
 class DiscInterfaceAcorn1770 : public DiscInterface {
   public:
     DiscInterfaceAcorn1770()
-        : DiscInterface(0xfe84, 0xfe80, 0) {
-    }
-
-    DiscInterfaceAcorn1770 *Clone() const override {
-        return new DiscInterfaceAcorn1770;
+        : DiscInterface(ACORN_1770_CONFIG_NAME, "Acorn 1770", StandardROM_Acorn1770DFS, 0xfe84, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -134,26 +158,18 @@ class DiscInterfaceAcorn1770 : public DiscInterface {
   private:
 };
 
-const DiscInterfaceDef DISC_INTERFACE_ACORN_1770{
-    "Acorn 1770",
-    StandardROM_Acorn1770DFS,
-    []() {
-        return new DiscInterfaceAcorn1770;
-    },
-    false,
-};
+static const DiscInterfaceAcorn1770 DISC_INTERFACE_ACORN_1770_VALUE;
+const DiscInterface *const DISC_INTERFACE_ACORN_1770 = &DISC_INTERFACE_ACORN_1770_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static const char WATFORD_1770_DDB2_CONFIG_NAME[] = "Watford 1770 (DDB2)";
 
 class DiscInterfaceWatford1770DDB2 : public DiscInterface {
   public:
     DiscInterfaceWatford1770DDB2()
-        : DiscInterface(0xfe84, 0xfe80, 0) {
-    }
-
-    DiscInterfaceWatford1770DDB2 *Clone() const override {
-        return new DiscInterfaceWatford1770DDB2;
+        : DiscInterface(WATFORD_1770_DDB2_CONFIG_NAME, "Watford 1770 (DDB2)", StandardROM_WatfordDDFS_DDB2, 0xfe84, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -193,25 +209,16 @@ class DiscInterfaceWatford1770DDB2 : public DiscInterface {
   private:
 };
 
-const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB2{
-    "Watford 1770 (DDB2)",
-    StandardROM_WatfordDDFS_DDB2,
-    []() {
-        return new DiscInterfaceWatford1770DDB2;
-    },
-    false};
+static const DiscInterfaceWatford1770DDB2 DISC_INTERFACE_WATFORD_DDB2;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+static const char WATFORD_1770_DDB3_CONFIG_NAME[] = "Watford 1770 (DDB3)";
 
 class DiscInterfaceWatford1770DDB3 : public DiscInterface {
   public:
     DiscInterfaceWatford1770DDB3()
-        : DiscInterface(0xfe84, 0xfe80, 0) {
-    }
-
-    DiscInterfaceWatford1770DDB3 *Clone() const override {
-        return new DiscInterfaceWatford1770DDB3;
+        : DiscInterface(WATFORD_1770_DDB3_CONFIG_NAME, "Watford 1770 (DDB3)", StandardROM_WatfordDDFS_DDB3, 0xfe84, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -255,25 +262,17 @@ class DiscInterfaceWatford1770DDB3 : public DiscInterface {
   private:
 };
 
-const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB3{
-    "Watford 1770 (DDB3)",
-    StandardROM_WatfordDDFS_DDB3,
-    []() {
-        return new DiscInterfaceWatford1770DDB3;
-    },
-    false};
+static const DiscInterfaceWatford1770DDB3 DISC_INTERFACE_WATFORD_DDB3;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static const char OPUS_1770_CONFIG_NAME[] = "Opus 1770";
 
 class DiscInterfaceOpus1770 : public DiscInterface {
   public:
     DiscInterfaceOpus1770()
-        : DiscInterface(0xfe80, 0xfe84, 0) {
-    }
-
-    DiscInterfaceOpus1770 *Clone() const override {
-        return new DiscInterfaceOpus1770;
+        : DiscInterface(OPUS_1770_CONFIG_NAME, "Opus 1770", StandardROM_OpusDDOS, 0xfe80, 0xfe84, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -307,13 +306,7 @@ class DiscInterfaceOpus1770 : public DiscInterface {
   private:
 };
 
-const DiscInterfaceDef DISC_INTERFACE_OPUS{
-    "Opus 1770",
-    StandardROM_OpusDDOS,
-    []() {
-        return new DiscInterfaceOpus1770;
-    },
-    false};
+static const DiscInterfaceOpus1770 DISC_INTERFACE_OPUS;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -348,43 +341,163 @@ struct ChallengerRAMChunk {
     uint8_t data[CHALLENGER_CHUNK_SIZE] = {};
 };
 
-class DiscInterfaceChallenger : public DiscInterface {
-    static const uint16_t FDC_ADDR = 0xfcf8;
-    static const uint16_t CONTROL_ADDR = 0xfcfc;
-    static const uint32_t FLAGS = DiscInterfaceFlag_NoINTRQ;
-    static const bool STRETCH = true;
-    static const bool INTRQ = false;
-
+class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
   public:
-    DiscInterfaceChallenger(size_t ram_size)
-        : DiscInterface(FDC_ADDR, CONTROL_ADDR, FLAGS) {
-        ASSERT(ram_size % CHALLENGER_CHUNK_SIZE == 0);
+    explicit DiscInterfaceChallengerState(size_t num_chunks) {
+        //ASSERT(ram_size % CHALLENGER_CHUNK_SIZE == 0);
 
-        m_chunks.resize(ram_size / CHALLENGER_CHUNK_SIZE);
+        m_chunks.resize(num_chunks); //ram_size / CHALLENGER_CHUNK_SIZE);
         for (size_t i = 0; i < m_chunks.size(); ++i) {
             m_chunks[i] = new ChallengerRAMChunk;
         }
     }
 
-    ~DiscInterfaceChallenger() {
+    // Not actually intended for public use, but std::make_shared needs it to be
+    // public, and it's not in a header, so it's not exactly a big problem.
+    DiscInterfaceChallengerState(const DiscInterfaceChallengerState &src) = default;
+
+    ~DiscInterfaceChallengerState() {
         for (size_t i = 0; i < m_chunks.size(); ++i) {
-            this->DecLockedChunkRef(i, std::unique_lock<Mutex>(m_chunks[i]->mutex));
+            this->DecLockedChunkRef(i, UniqueLock<Mutex>(m_chunks[i]->mutex));
         }
     }
 
-    DiscInterfaceChallenger(const DiscInterfaceChallenger &rhs)
-        : DiscInterface(FDC_ADDR, CONTROL_ADDR, FLAGS)
-        , m_page(rhs.m_page)
-        , m_chunks(rhs.m_chunks) {
-        for (ChallengerRAMChunk *chunk : m_chunks) {
-            std::lock_guard<Mutex> lock(chunk->mutex);
+  protected:
+  private:
+    M6502Word m_page = {};
+    std::vector<ChallengerRAMChunk *> m_chunks;
 
-            ++chunk->num_refs;
+    bool GetChallengerRAMPtr(UniqueLock<Mutex> *lock_ptr, size_t *index_ptr, size_t *offset_ptr, uint8_t addr_lsb) {
+        size_t addr = (uint32_t)m_page.w << 8 | addr_lsb;
+
+        size_t chunk_index = addr / CHALLENGER_CHUNK_SIZE;
+
+        if (chunk_index >= m_chunks.size()) {
+            return false;
+        }
+
+        ChallengerRAMChunk *chunk = m_chunks[chunk_index];
+
+        *lock_ptr = UniqueLock<Mutex>(chunk->mutex);
+        *index_ptr = chunk_index;
+        *offset_ptr = addr % CHALLENGER_CHUNK_SIZE;
+
+        return true;
+    }
+
+    void DecLockedChunkRef(size_t index, UniqueLock<Mutex> lock) {
+        ASSERT(index >= 0 && index < m_chunks.size());
+
+        ChallengerRAMChunk *chunk = m_chunks[index];
+        m_chunks[index] = 0;
+
+        {
+            ASSERT(chunk->num_refs > 0);
+            --chunk->num_refs;
+            if (chunk->num_refs > 0) {
+                return;
+            }
+        }
+
+        lock.unlock();
+
+        delete chunk;
+        chunk = nullptr;
+    }
+
+    static uint8_t ReadPagingMSB(void *data, M6502Word addr) {
+        (void)addr;
+        auto c = (DiscInterfaceChallengerState *)data;
+
+        return c->m_page.b.h;
+    }
+
+    static void WritePagingMSB(void *data, M6502Word addr, uint8_t value) {
+        (void)addr;
+        auto c = (DiscInterfaceChallengerState *)data;
+
+        c->m_page.b.h = value;
+    }
+
+    static uint8_t ReadPagingLSB(void *data, M6502Word addr) {
+        (void)addr;
+        auto c = (DiscInterfaceChallengerState *)data;
+
+        return c->m_page.b.l;
+    }
+
+    static void WritePagingLSB(void *data, M6502Word addr, uint8_t value) {
+        (void)addr;
+        auto c = (DiscInterfaceChallengerState *)data;
+
+        c->m_page.b.l = value;
+    }
+
+    static uint8_t ReadRAM(void *data, M6502Word addr) {
+        auto c = (DiscInterfaceChallengerState *)data;
+
+        size_t index, offset;
+        UniqueLock<Mutex> lock;
+        if (c->GetChallengerRAMPtr(&lock, &index, &offset, addr.b.l)) {
+            return c->m_chunks[index]->data[offset];
+        } else {
+            if (addr.b.l & 1) {
+                return 255;
+            } else {
+                return 0;
+            }
         }
     }
 
-    DiscInterfaceChallenger *Clone() const override {
-        return new DiscInterfaceChallenger(*this);
+    static void WriteRAM(void *data, M6502Word addr, uint8_t value) {
+        auto c = (DiscInterfaceChallengerState *)data;
+
+        size_t index, offset;
+        UniqueLock<Mutex> lock;
+        if (!c->GetChallengerRAMPtr(&lock, &index, &offset, addr.b.l)) {
+            // Ignore out of range addresses.
+            return;
+        }
+
+        ChallengerRAMChunk *chunk = c->m_chunks[index];
+        ASSERT(chunk->num_refs > 0);
+
+        if (chunk->data[offset] == value) {
+            // Ignore writes that don't change memory.
+            return;
+        }
+
+        if (chunk->num_refs > 1) {
+            // Need to duplicate this chunk before modifying it.
+            auto new_chunk = new ChallengerRAMChunk;
+
+            memcpy(new_chunk->data, chunk->data, CHALLENGER_CHUNK_SIZE);
+
+            c->DecLockedChunkRef(index, std::move(lock));
+
+            ASSERT(!c->m_chunks[index]);
+            c->m_chunks[index] = new_chunk;
+            chunk = new_chunk;
+        }
+
+        chunk->data[offset] = value;
+    }
+
+    friend class DiscInterfaceChallenger;
+};
+
+class DiscInterfaceChallenger : public DiscInterface {
+    //static const uint16_t FDC_ADDR = 0xfcf8;
+    //static const uint16_t CONTROL_ADDR = 0xfcfc;
+    //static const uint32_t FLAGS = DiscInterfaceFlag_NoINTRQ;
+    static const bool STRETCH = true;
+    static const bool INTRQ = false;
+
+  public:
+    DiscInterfaceChallenger(std::string config_name, std::string display_name, size_t ram_size)
+        : DiscInterface(std::move(config_name), std::move(display_name), StandardROM_OpusChallenger, 0xfcf8, 0xfcfc, DiscInterfaceFlag_NoINTRQ | DiscInterfaceFlag_Uses1MHzBus) {
+        ASSERT(ram_size % CHALLENGER_CHUNK_SIZE == 0);
+        m_num_state_chunks = ram_size / CHALLENGER_CHUNK_SIZE;
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -423,164 +536,55 @@ class DiscInterfaceChallenger : public DiscInterface {
         return value;
     }
 
-    void InstallExtraHardware(BBCMicro *m) override {
-        m->SetXFJIO(0xfcfe, &ReadPagingMSB, this, WritePagingMSB, this);
-        m->SetXFJIO(0xfcff, &ReadPagingLSB, this, WritePagingLSB, this);
+    std::shared_ptr<DiscInterfaceExtraHardwareState> CreateExtraHardwareState() const override {
+        return std::make_shared<DiscInterfaceChallengerState>(m_num_state_chunks);
+    }
+
+    std::shared_ptr<DiscInterfaceExtraHardwareState> CloneExtraHardwareState(const std::shared_ptr<DiscInterfaceExtraHardwareState> &src) const override {
+        ASSERT(dynamic_cast<const DiscInterfaceChallengerState *>(src.get()));
+        auto clone = std::make_shared<DiscInterfaceChallengerState>(*(const DiscInterfaceChallengerState *)src.get());
+
+        for (ChallengerRAMChunk *chunk : clone->m_chunks) {
+            LockGuard<Mutex> lock(chunk->mutex);
+
+            ++chunk->num_refs;
+        }
+
+        return clone;
+    }
+
+    void InstallExtraHardware(BBCMicro *m, const std::shared_ptr<DiscInterfaceExtraHardwareState> &state) const override {
+        auto *challenger_state = dynamic_cast<DiscInterfaceChallengerState *>(state.get());
+        ASSERT(challenger_state);
+
+        m->SetXFJIO(0xfcfe, &DiscInterfaceChallengerState::ReadPagingMSB, challenger_state, DiscInterfaceChallengerState::WritePagingMSB, challenger_state);
+        m->SetXFJIO(0xfcff, &DiscInterfaceChallengerState::ReadPagingLSB, challenger_state, DiscInterfaceChallengerState::WritePagingLSB, challenger_state);
 
         for (uint16_t addr = 0xfd00; addr < 0xfe00; ++addr) {
-            m->SetXFJIO(addr, &ReadRAM, this, &WriteRAM, this);
+            m->SetXFJIO(addr, &DiscInterfaceChallengerState::ReadRAM, challenger_state, &DiscInterfaceChallengerState::WriteRAM, challenger_state);
         }
     }
 
   protected:
   private:
-    M6502Word m_page = {};
-    std::vector<ChallengerRAMChunk *> m_chunks;
-
-    bool GetChallengerRAMPtr(std::unique_lock<Mutex> *lock_ptr, size_t *index_ptr, size_t *offset_ptr, uint8_t addr_lsb) {
-        size_t addr = (uint32_t)m_page.w << 8 | addr_lsb;
-
-        size_t chunk_index = addr / CHALLENGER_CHUNK_SIZE;
-
-        if (chunk_index >= m_chunks.size()) {
-            return false;
-        }
-
-        ChallengerRAMChunk *chunk = m_chunks[chunk_index];
-
-        *lock_ptr = std::unique_lock<Mutex>(chunk->mutex);
-        *index_ptr = chunk_index;
-        *offset_ptr = addr % CHALLENGER_CHUNK_SIZE;
-
-        return true;
-    }
-
-    void DecLockedChunkRef(size_t index, std::unique_lock<Mutex> lock) {
-        ASSERT(index >= 0 && index < m_chunks.size());
-
-        ChallengerRAMChunk *chunk = m_chunks[index];
-        m_chunks[index] = 0;
-
-        {
-            ASSERT(chunk->num_refs > 0);
-            --chunk->num_refs;
-            if (chunk->num_refs > 0) {
-                return;
-            }
-        }
-
-        lock.unlock();
-
-        delete chunk;
-        chunk = nullptr;
-    }
-
-    static uint8_t ReadPagingMSB(void *data, M6502Word addr) {
-        (void)addr;
-        auto c = (DiscInterfaceChallenger *)data;
-
-        return c->m_page.b.h;
-    }
-
-    static void WritePagingMSB(void *data, M6502Word addr, uint8_t value) {
-        (void)addr;
-        auto c = (DiscInterfaceChallenger *)data;
-
-        c->m_page.b.h = value;
-    }
-
-    static uint8_t ReadPagingLSB(void *data, M6502Word addr) {
-        (void)addr;
-        auto c = (DiscInterfaceChallenger *)data;
-
-        return c->m_page.b.l;
-    }
-
-    static void WritePagingLSB(void *data, M6502Word addr, uint8_t value) {
-        (void)addr;
-        auto c = (DiscInterfaceChallenger *)data;
-
-        c->m_page.b.l = value;
-    }
-
-    static uint8_t ReadRAM(void *data, M6502Word addr) {
-        auto c = (DiscInterfaceChallenger *)data;
-
-        size_t index, offset;
-        std::unique_lock<Mutex> lock;
-        if (c->GetChallengerRAMPtr(&lock, &index, &offset, addr.b.l)) {
-            return c->m_chunks[index]->data[offset];
-        } else {
-            if (addr.b.l & 1) {
-                return 255;
-            } else {
-                return 0;
-            }
-        }
-    }
-
-    static void WriteRAM(void *data, M6502Word addr, uint8_t value) {
-        auto c = (DiscInterfaceChallenger *)data;
-
-        size_t index, offset;
-        std::unique_lock<Mutex> lock;
-        if (!c->GetChallengerRAMPtr(&lock, &index, &offset, addr.b.l)) {
-            // Ignore out of range addresses.
-            return;
-        }
-
-        ChallengerRAMChunk *chunk = c->m_chunks[index];
-        ASSERT(chunk->num_refs > 0);
-
-        if (chunk->data[offset] == value) {
-            // Ignore writes that don't change memory.
-            return;
-        }
-
-        if (chunk->num_refs > 1) {
-            // Need to duplicate this chunk before modifying it.
-            auto new_chunk = new ChallengerRAMChunk;
-
-            memcpy(new_chunk->data, chunk->data, CHALLENGER_CHUNK_SIZE);
-
-            c->DecLockedChunkRef(index, std::move(lock));
-
-            ASSERT(!c->m_chunks[index]);
-            c->m_chunks[index] = new_chunk;
-            chunk = new_chunk;
-        }
-
-        chunk->data[offset] = value;
-    }
+    size_t m_num_state_chunks = 0;
 };
 
-const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K{
-    "Opus CHALLENGER 256K",
-    StandardROM_OpusChallenger,
-    []() {
-        return new DiscInterfaceChallenger(256 * 1024);
-    },
-    true};
+static const char CHALLENGER_256K_CONFIG_NAME[] = "Opus CHALLENGER 256K";
+static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_256K(CHALLENGER_256K_CONFIG_NAME, "Opus CHALLENGER 256K", 256 * 1024);
 
-const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K{
-    "Opus CHALLENGER 512K",
-    StandardROM_OpusChallenger,
-    []() {
-        return new DiscInterfaceChallenger(512 * 1024);
-    },
-    true};
+static const char CHALLENGER_512K_CONFIG_NAME[] = "Opus CHALLENGER 512K";
+static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_512K(CHALLENGER_512K_CONFIG_NAME, "Opus CHALLENGER 512K", 512 * 1024);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static const char MASTER_128_CONFIG_NAME[] = "Master 128";
 
 class DiscInterfaceMaster128 : public DiscInterface {
   public:
     DiscInterfaceMaster128()
-        : DiscInterface(0xfe28, 0xfe24, 0) {
-    }
-
-    DiscInterfaceMaster128 *Clone() const override {
-        return new DiscInterfaceMaster128;
+        : DiscInterface(MASTER_128_CONFIG_NAME, "Master 128", StandardROM_None, 0xfe28, 0xfe24, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -626,19 +630,14 @@ class DiscInterfaceMaster128 : public DiscInterface {
   private:
 };
 
-const DiscInterfaceDef DISC_INTERFACE_MASTER128{
-    "Master 128",
-    StandardROM_None,
-    []() {
-        return new DiscInterfaceMaster128;
-    },
-    false};
+const DiscInterfaceMaster128 DISC_INTERFACE_MASTER128_VALUE;
+const DiscInterface *const DISC_INTERFACE_MASTER128 = &DISC_INTERFACE_MASTER128_VALUE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const DiscInterfaceDef *const ALL_DISC_INTERFACES[] = {
-    &DISC_INTERFACE_ACORN_1770,
+const DiscInterface *const MODEL_B_DISC_INTERFACES[] = {
+    &DISC_INTERFACE_ACORN_1770_VALUE,
     &DISC_INTERFACE_WATFORD_DDB2,
     &DISC_INTERFACE_WATFORD_DDB3,
     &DISC_INTERFACE_OPUS,
@@ -650,17 +649,17 @@ const DiscInterfaceDef *const ALL_DISC_INTERFACES[] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const DiscInterfaceDef *FindDiscInterfaceByName(const char *name) {
-    for (const DiscInterfaceDef *const *di_ptr = ALL_DISC_INTERFACES; *di_ptr != NULL; ++di_ptr) {
-        const DiscInterfaceDef *di = *di_ptr;
+const DiscInterface *FindDiscInterfaceByConfigName(const char *config_name) {
+    for (const DiscInterface *const *di_ptr = MODEL_B_DISC_INTERFACES; *di_ptr != NULL; ++di_ptr) {
+        const DiscInterface *di = *di_ptr;
 
-        if (strcmp(name, di->name.c_str()) == 0) {
+        if (di->config_name == config_name) {
             return di;
         }
     }
 
-    if (DISC_INTERFACE_MASTER128.name == name) {
-        return &DISC_INTERFACE_MASTER128;
+    if (DISC_INTERFACE_MASTER128->config_name == config_name) {
+        return DISC_INTERFACE_MASTER128;
     }
 
     return nullptr;

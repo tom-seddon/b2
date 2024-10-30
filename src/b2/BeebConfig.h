@@ -9,7 +9,8 @@
 #include <array>
 #include <vector>
 #include "roms.h"
-#include <beeb/BBCMicro.h> //bit heavyweight...?
+#include <beeb/BBCMicroParasiteType.h>
+#include <beeb/type.h>
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -17,8 +18,7 @@
 
 class BBCMicro;
 class Messages;
-struct DiscInterfaceDef;
-struct BBCMicroType;
+class DiscInterface;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -35,16 +35,22 @@ class BeebConfig {
 
     struct SidewaysROM : public ROM {
         bool writeable = false;
+
+        // If this ROM is a standard ROM, the standard ROM's type takes
+        // priority.
+        ROMType type = ROMType_16KB;
+
+        ROMType GetROMType() const;
     };
 
     std::string name;
 
-    const BBCMicroType *type = nullptr;
+    BBCMicroTypeID type_id = BBCMicroTypeID_B;
     ROM os;
     SidewaysROM roms[16];
     ROM parasite_os;
     uint8_t keyboard_links = 0;
-    const DiscInterfaceDef *disc_interface = nullptr;
+    const DiscInterface *disc_interface = nullptr;
     bool video_nula = true;
     bool ext_mem = false;
     bool beeblink = false;
@@ -52,6 +58,7 @@ class BeebConfig {
     uint8_t adji_dip_switches = 0;
     BeebConfigNVRAMType nvram_type = BeebConfigNVRAMType_Unknown;
     std::vector<uint8_t> nvram;
+    bool mouse = false;
 
     BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
@@ -89,7 +96,8 @@ class BeebLoadedConfig {
   public:
     BeebConfig config;
 
-    std::shared_ptr<const std::array<uint8_t, 16384>> os, roms[16];
+    std::shared_ptr<const std::array<uint8_t, 16384>> os;
+    std::shared_ptr<const std::vector<uint8_t>> roms[16];
     std::shared_ptr<const std::array<uint8_t, 2048>> parasite_os;
 
     static bool Load(BeebLoadedConfig *dest, const BeebConfig &src, Messages *msg);

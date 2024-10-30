@@ -12,18 +12,7 @@
 #include <inttypes.h>
 #include <shared/mutex.h>
 #include <algorithm>
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::map<std::string, std::vector<Log *>> *g_log_lists_by_tag;
-static const std::vector<Log *> g_empty_log_list;
-
-static void InitLogList() {
-    static std::map<std::string, std::vector<Log *>> s_log_lists_by_tag;
-
-    g_log_lists_by_tag = &s_log_lists_by_tag;
-}
+#include <map>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -63,7 +52,7 @@ bool LogPrinter::try_lock() {
 
 void LogPrinter::SetMutexName(std::string name) {
     (void)name;
-    MUTEX_SET_NAME(m_mutex, std::move(name));
+    MUTEX_SET_NAME(m_mutex, name);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -73,7 +62,7 @@ LogPrinterStd::LogPrinterStd(bool to_stdout, bool to_stderr, bool debugger)
     : m_stdout(to_stdout)
     , m_stderr(to_stderr)
     , m_debugger(debugger) {
-    this->SetMutexName(std::string("LogPrinterStd (out=") + BOOL_STR(to_stdout) + " err=" + BOOL_STR(to_stderr) + " debug=" + BOOL_STR(debugger));
+    this->SetMutexName((std::string("LogPrinterStd (out=") + BOOL_STR(to_stdout) + " err=" + BOOL_STR(to_stderr) + " debug=" + BOOL_STR(debugger) + ")"));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -127,21 +116,10 @@ void LogPrinterString::Print(const char *str, size_t str_len) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Log::Log(const char *prefix, LogPrinter *printer, bool enabled)
-    : Log(nullptr, prefix, printer, enabled) {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-Log::Log(const char *tag, const char *prefix, LogPrinter *printer, bool enabled_) {
+Log::Log(const char *prefix, LogPrinter *printer, bool enabled_) {
     this->SetPrefix(prefix);
 
     this->SetLogPrinter(printer);
-
-    if (tag) {
-        m_tag = tag;
-    }
 
     if (enabled_) {
         m_enable_count = 1;
@@ -369,7 +347,7 @@ void Log::Flush() {
     m_buffer[m_buffer_size] = 0;
 
     if (m_printer) {
-        std::lock_guard<LogPrinter> lock(*m_printer);
+        LockGuard<LogPrinter> lock(*m_printer);
 
         m_printer->Print(m_buffer, m_buffer_size);
     }
@@ -425,13 +403,6 @@ const char *Log::GetPrefix() const {
 
 void Log::SetPrefix(const char *prefix) {
     strlcpy(m_prefix, prefix, MAX_PREFIX_SIZE);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const std::string &Log::GetTag() const {
-    return m_tag;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -496,49 +467,48 @@ void LogIndenter::PopIndent() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LogRegister::LogRegister(Log *log)
-    : m_log(log) {
-    InitLogList();
+LogWithTag *LogWithTag::ms_first;
 
-    (*g_log_lists_by_tag)[m_log->GetTag()].push_back(log);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const LogWithTag *LogWithTag::GetFirst() {
+    return ms_first;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LogRegister::~LogRegister() {
-    const std::string &tag = m_log->GetTag();
+LogWithTag::LogWithTag(const char *tag_, Log *log_)
+    : tag(tag_)
+    , log(log_)
+    , m_next(ms_first) {
+    ms_first = this;
+}
 
-    std::vector<Log *> *logs = &(*g_log_lists_by_tag)[tag];
-    auto &&it = std::find(logs->begin(), logs->end(), m_log);
-    ASSERT(it != logs->end());
-    logs->erase(it);
-    if (logs->empty()) {
-        g_log_lists_by_tag->erase(tag);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+LogWithTag::~LogWithTag() {
+    // Dumb
+    bool found = false;
+    for (LogWithTag **ptr = &ms_first; *ptr; ptr = &(*ptr)->m_next) {
+        if (*ptr == this) {
+            *ptr = m_next;
+            found = true;
+            break;
+        }
     }
+
+    ASSERT(found);
+    (void)found;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::map<std::string, std::vector<Log *>> &GetLogListsByTag() {
-    InitLogList();
-
-    return *g_log_lists_by_tag;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const std::vector<Log *> &GetLogListByTag(const std::string &tag) {
-    InitLogList();
-
-    auto &&it = g_log_lists_by_tag->find(tag);
-    if (it == g_log_lists_by_tag->end()) {
-        return g_empty_log_list;
-    } else {
-        return it->second;
-    }
+const LogWithTag *LogWithTag::GetNext() const {
+    return m_next;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -680,11 +650,15 @@ void LogStringPrintable(Log *log, const char *str) {
                 log->c((char)x);
             } else {
             hex:
-                /* The \x notation is no good, because it isn't restricted
-                 * to 2 chars. (So \177F can't be written \x7fF, because
-                 * that's something else, assuming it's even valid.)
-                 */
-                log->f("\\%03o", x);
+                // The \x notation isn't restricted to 2 chars. So use octal
+                // notation if there's a hex digit following.
+                if ((c[1] >= '0' && c[1] <= '9') ||
+                    (c[1] >= 'A' && c[1] <= 'F') ||
+                    (c[1] >= 'a' && c[1] <= 'f')) {
+                    log->f("\\%03o", x);
+                } else {
+                    log->f("\\x%02x", x);
+                }
             }
         }
     }

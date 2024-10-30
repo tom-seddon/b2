@@ -27,6 +27,8 @@
 #include <beeb/BeebLink.h>
 #include <beeb/tube.h>
 #include <set>
+#include <unordered_set>
+#include <shared/sha1.h>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -43,6 +45,13 @@
 static const std::shared_ptr<DiscImage> NULL_DISCIMAGE_PTR;
 static std::map<DiscDriveType, std::array<std::vector<float>, DiscDriveSound_EndValue>> g_disc_drive_sounds;
 static const std::vector<float> DUMMY_DISC_DRIVE_SOUND(1, 0.f);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS];
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -112,10 +121,10 @@ static const BBCMicro::ReadMMIOFn g_WD1770_read_fns[] = {
     &WD1770::Read3,
 };
 
-static const uint8_t g_unmapped_reads[BBCMicro::BIG_PAGE_SIZE_BYTES] = {
+static const uint8_t g_unmapped_reads[BIG_PAGE_SIZE_BYTES] = {
     0,
 };
-static uint8_t g_unmapped_writes[BBCMicro::BIG_PAGE_SIZE_BYTES];
+static uint8_t g_unmapped_writes[BIG_PAGE_SIZE_BYTES];
 
 const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[] = {
     0x4000 >> 3,
@@ -134,151 +143,21 @@ const uint16_t BBCMicro::ADJI_ADDRESSES[4] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::State::State(const BBCMicroType *type_,
-                       BBCMicroParasiteType parasite_type_,
-                       const std::vector<uint8_t> &nvram_contents,
-                       uint32_t init_flags_,
-                       const tm *rtc_time,
-                       CycleCount initial_cycle_count)
-    : type(type_)
-    , init_flags(init_flags_)
-    , parasite_type(parasite_type_)
-    , cycle_count(initial_cycle_count) {
-    M6502_Init(&this->cpu, this->type->m6502_config);
-    this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);
-
-    switch (this->type->type_id) {
-    default:
-        break;
-
-    case BBCMicroTypeID_Master:
-        this->rtc.SetRAMContents(nvram_contents);
-
-        if (rtc_time) {
-            this->rtc.SetTime(rtc_time);
-        }
-        break;
-
-    case BBCMicroTypeID_MasterCompact:
-        for (size_t i = 0; i < sizeof this->eeprom.ram; ++i) {
-            this->eeprom.ram[i] = i < nvram_contents.size() ? nvram_contents[i] : 0;
-        }
-        break;
-    }
-
-    if (this->parasite_type != BBCMicroParasiteType_None) {
-        this->parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(65536);
-        this->parasite_boot_mode = true;
-        M6502_Init(&this->parasite_cpu, &M6502_rockwell65c02_config);
-        ResetTube(&this->parasite_tube);
-
-        // Whether disabled or not, the parasite starts out inaccessible, as the
-        // relevant I/O functions start out as the defaults. InitPaging will
-        // sort this out, if it needs to change.
-    }
-
-    this->sn76489.Reset(!!(this->init_flags & BBCMicroInitFlag_PowerOnTone));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-const M6502 *BBCMicro::State::DebugGetM6502(uint32_t dso) const {
-    if (dso & BBCMicroDebugStateOverride_Parasite) {
-        if (this->parasite_type != BBCMicroParasiteType_None) {
-            return &this->parasite_cpu;
-        }
-    }
-
-    return &this->cpu;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const ExtMem *BBCMicro::State::DebugGetExtMem() const {
-    if (this->init_flags & BBCMicroInitFlag_ExtMem) {
-        return &this->ext_mem;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const MC146818 *BBCMicro::State::DebugGetRTC() const {
-    if (this->type->type_id == BBCMicroTypeID_Master) {
-        return &this->rtc;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const Tube *BBCMicro::State::DebugGetTube() const {
-    if (this->parasite_type != BBCMicroParasiteType_None) {
-        return &this->parasite_tube;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const ADC *BBCMicro::State::DebugGetADC() const {
-    if (this->type->adc_addr != 0) {
-        return &this->adc;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const PCD8572 *BBCMicro::State::DebugGetEEPROM() const {
-    if (this->type->type_id == BBCMicroTypeID_MasterCompact) {
-        return &this->eeprom;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-int BBCMicro::State::DebugGetADJIDIPSwitches() const {
-    if (this->init_flags & BBCMicroInitFlag_ADJI) {
-        return this->init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
-    } else {
-        return -1;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BBCMicro::BBCMicro(const BBCMicroType *type,
-                   const DiscInterfaceDef *def,
+BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
+                   const DiscInterface *disc_interface,
                    BBCMicroParasiteType parasite_type,
                    const std::vector<uint8_t> &nvram_contents,
                    const tm *rtc_time,
                    uint32_t init_flags,
                    BeebLinkHandler *beeblink_handler,
                    CycleCount initial_cycle_count)
-    : m_state(type,
+    : m_state(std::move(type),
+              disc_interface,
               parasite_type,
               nvram_contents,
               init_flags,
               rtc_time,
               initial_cycle_count)
-    , m_disc_interface(def ? def->create_fun() : nullptr)
     , m_beeblink_handler(beeblink_handler) {
     this->InitStuff();
 }
@@ -286,31 +165,8 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::BBCMicro(const BBCMicro &src)
-    : m_state(src.m_state)
-    , m_disc_interface(src.m_disc_interface ? src.m_disc_interface->Clone() : nullptr) {
-    ASSERT(src.GetCloneImpediments() == 0);
-
-    for (int i = 0; i < NUM_DRIVES; ++i) {
-        std::shared_ptr<DiscImage> disc_image = DiscImage::Clone(src.GetDiscImage(i));
-        this->SetDiscImage(i, std::move(disc_image));
-        m_is_drive_write_protected[i] = src.m_is_drive_write_protected[i];
-    }
-
-    if (m_state.ram_buffer) {
-        m_state.ram_buffer = std::make_shared<std::vector<uint8_t>>(*m_state.ram_buffer);
-    }
-
-    for (int i = 0; i < 16; ++i) {
-        if (m_state.sideways_ram_buffers[i]) {
-            m_state.sideways_ram_buffers[i] = std::make_shared<std::array<uint8_t, 16384>>(*m_state.sideways_ram_buffers[i]);
-        }
-    }
-
-    if (m_state.parasite_ram_buffer) {
-        m_state.parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(*m_state.parasite_ram_buffer);
-    }
-
+BBCMicro::BBCMicro(const BBCMicroUniqueState &state)
+    : m_state(state) {
     this->InitStuff();
 }
 
@@ -321,8 +177,6 @@ BBCMicro::~BBCMicro() {
 #if BBCMICRO_TRACE
     this->StopTrace(nullptr);
 #endif
-
-    delete m_disc_interface;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -332,14 +186,15 @@ uint32_t BBCMicro::GetCloneImpediments() const {
     uint32_t result = 0;
 
     for (int i = 0; i < NUM_DRIVES; ++i) {
-        if (!!m_disc_images[i]) {
-            if (!m_disc_images[i]->CanClone()) {
+        const BBCMicroState::DiscDrive *drive = &m_state.drives[i];
+        if (!!drive->disc_image) {
+            if (!drive->disc_image->CanClone()) {
                 result |= (uint32_t)BBCMicroCloneImpediment_Drive0 << i;
             }
         }
     }
 
-    if (m_beeblink_handler) {
+    if (!!m_beeblink_handler) {
         result |= BBCMicroCloneImpediment_BeebLink;
     }
 
@@ -349,12 +204,12 @@ uint32_t BBCMicro::GetCloneImpediments() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<BBCMicro> BBCMicro::Clone() const {
+const BBCMicroUniqueState *BBCMicro::GetUniqueState() const {
     if (this->GetCloneImpediments() != 0) {
         return nullptr;
     }
 
-    return std::unique_ptr<BBCMicro>(new BBCMicro(*this));
+    return &m_state;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -430,16 +285,14 @@ std::vector<uint8_t> BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[] = {
 void BBCMicro::UpdatePaging() {
     MemoryBigPageTables tables;
     uint32_t paging_flags;
-    (*m_state.type->get_mem_big_page_tables_fn)(&tables,
-                                                &paging_flags,
-                                                m_state.romsel,
-                                                m_state.acccon);
+    (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, m_state.paging);
 
     for (size_t i = 0; i < 2; ++i) {
         MemoryBigPages *mbp = &m_mem_big_pages[i];
 
         for (size_t j = 0; j < 16; ++j) {
-            const BigPage *bp = &m_big_pages[tables.mem_big_pages[i][j]];
+            ASSERT(tables.mem_big_pages[i][j].i < NUM_BIG_PAGES);
+            const BigPage *bp = &m_big_pages[tables.mem_big_pages[i][j].i];
 
             mbp->w[j] = bp->w;
             mbp->r[j] = bp->r;
@@ -478,7 +331,7 @@ void BBCMicro::UpdatePaging() {
 
     case BBCMicroParasiteType_External3MHz6502:
         if (m_state.type->type_id == BBCMicroTypeID_Master) {
-            parasite_accessible = !m_state.acccon.m128_bits.itu;
+            parasite_accessible = !m_state.paging.acccon.m128_bits.itu;
         } else {
             parasite_accessible = true;
         }
@@ -486,7 +339,7 @@ void BBCMicro::UpdatePaging() {
 
     case BBCMicroParasiteType_MasterTurbo:
         if (m_state.type->type_id == BBCMicroTypeID_Master) {
-            parasite_accessible = m_state.acccon.m128_bits.itu;
+            parasite_accessible = m_state.paging.acccon.m128_bits.itu;
         } else {
             parasite_accessible = true;
         }
@@ -529,6 +382,10 @@ void BBCMicro::UpdatePaging() {
 
         m_state.parasite_accessible = parasite_accessible;
     }
+
+#if BBCMICRO_DEBUGGER
+    ++m_update_mfn_data->num_UpdatePaging_calls;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -547,27 +404,36 @@ void BBCMicro::WriteHostTube0Wrapper(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: this should probably be part of BBCMicroType, or something...?
 void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
-                                   const State *state,
+                                   const BBCMicroState *state,
 #if BBCMICRO_DEBUGGER
                                    const DebugState *debug_state,
 #endif
-                                   uint8_t big_page_index) {
+                                   BigPageIndex big_page_index) {
     bp->writeable = false;
     bp->r = nullptr;
 
-    if (big_page_index >= 0 &&
-        big_page_index < 16) {
-        size_t offset = big_page_index * BIG_PAGE_SIZE_BYTES;
+    if (big_page_index.i >= 0 &&
+        big_page_index.i < 16) {
+        size_t offset = big_page_index.i * BIG_PAGE_SIZE_BYTES;
 
         if (offset < state->ram_buffer->size()) {
             bp->r = &state->ram_buffer->at(offset);
             bp->writeable = true;
         }
-    } else if (big_page_index >= ROM0_BIG_PAGE_INDEX &&
-               big_page_index < ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES) {
-        size_t bank = ((size_t)big_page_index - ROM0_BIG_PAGE_INDEX) / NUM_ROM_BIG_PAGES;
-        size_t offset = ((size_t)big_page_index - ROM0_BIG_PAGE_INDEX) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
+    } else if (big_page_index.i >= ROM0_BIG_PAGE_INDEX.i &&
+               big_page_index.i < ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES) {
+        size_t bank = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
+        ASSERT(bank < 16);
+        size_t region = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) / 4;
+        ASSERT(region < 8);
+        size_t rom_big_page_index = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) % 4;
+        ASSERT(rom_big_page_index < 4);
+
+        size_t offset = GetROMOffset(state->paging.rom_types[bank], (uint8_t)rom_big_page_index, (uint8_t)region);
+        ASSERT(offset < GetROMTypeMetadata(state->paging.rom_types[bank])->num_bytes);
+        //size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
         if (!!state->sideways_rom_buffers[bank]) {
             bp->r = &state->sideways_rom_buffers[bank]->at(offset);
@@ -575,26 +441,26 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
             bp->r = &state->sideways_ram_buffers[bank]->at(offset);
             bp->writeable = true;
         }
-    } else if (big_page_index >= MOS_BIG_PAGE_INDEX &&
-               big_page_index < MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES) {
+    } else if (big_page_index.i >= MOS_BIG_PAGE_INDEX.i &&
+               big_page_index.i < MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES) {
         if (!!state->os_buffer) {
-            size_t offset = (big_page_index - MOS_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            size_t offset = (big_page_index.i - MOS_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
             bp->r = &state->os_buffer->at(offset);
         }
-    } else if (big_page_index >= PARASITE_BIG_PAGE_INDEX &&
-               big_page_index < PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES) {
+    } else if (big_page_index.i >= PARASITE_BIG_PAGE_INDEX.i &&
+               big_page_index.i < PARASITE_BIG_PAGE_INDEX.i + NUM_PARASITE_BIG_PAGES) {
         if (state->parasite_type != BBCMicroParasiteType_None) {
-            size_t offset = (big_page_index - PARASITE_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            size_t offset = (big_page_index.i - PARASITE_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
             bp->r = &state->parasite_ram_buffer->at(offset);
             bp->writeable = true;
         }
-    } else if (big_page_index >= PARASITE_ROM_BIG_PAGE_INDEX &&
-               big_page_index < PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES) {
+    } else if (big_page_index.i >= PARASITE_ROM_BIG_PAGE_INDEX.i &&
+               big_page_index.i < PARASITE_ROM_BIG_PAGE_INDEX.i + NUM_PARASITE_ROM_BIG_PAGES) {
         // During the initialisation, this can get called before the parasite OS
         // contents are set. Don't assert there's a rom buffer. Leave the area
         // unmapped if there isn't.
         if (!!state->parasite_rom_buffer) {
-            size_t offset = (big_page_index - PARASITE_ROM_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            size_t offset = (big_page_index.i - PARASITE_ROM_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
             bp->r = &state->parasite_rom_buffer->at(offset);
         }
     } else {
@@ -602,7 +468,7 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
     }
 
     bp->index = big_page_index;
-    bp->metadata = &state->type->big_pages_metadata[bp->index];
+    bp->metadata = &state->type->big_pages_metadata[bp->index.i];
 
 #if BBCMICRO_DEBUGGER
     bp->byte_debug_flags = nullptr;
@@ -611,7 +477,7 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
     if (debug_state) {
         if (bp->metadata->addr != 0xffff) {
             ASSERT(bp->metadata->addr % BIG_PAGE_SIZE_BYTES == 0);
-            bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->index];
+            bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->metadata->debug_flags_index.i];
 
             if (bp->metadata->is_parasite) {
                 bp->address_debug_flags = &debug_state->parasite_address_debug_flags[bp->metadata->addr];
@@ -631,7 +497,7 @@ void BBCMicro::InitPaging() {
         bp = {};
     }
 
-    for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
+    for (BigPageIndex i = {0}; i.i < NUM_BIG_PAGES; ++i.i) {
         ReadOnlyBigPage rbp;
         InitReadOnlyBigPage(&rbp,
                             &m_state,
@@ -640,7 +506,7 @@ void BBCMicro::InitPaging() {
 #endif
                             i);
 
-        BigPage *bp = &m_big_pages[i];
+        BigPage *bp = &m_big_pages[i.i];
         bp->index = rbp.index;
         bp->metadata = rbp.metadata;
         bp->r = rbp.r;
@@ -672,12 +538,13 @@ void BBCMicro::InitPaging() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: could the state pointer be m_state?
 void BBCMicro::Write1770ControlRegister(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    ASSERT(m->m_disc_interface);
-    m->m_state.disc_control = m->m_disc_interface->GetControlFromByte(value);
+    ASSERT(m->m_state.disc_interface);
+    m->m_state.disc_control = m->m_state.disc_interface->GetControlFromByte(value);
 
 #if BBCMICRO_TRACE
     if (m->m_trace) {
@@ -698,13 +565,14 @@ void BBCMicro::Write1770ControlRegister(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: could the state pointer be m_state?
 uint8_t BBCMicro::Read1770ControlRegister(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    ASSERT(m->m_disc_interface);
+    ASSERT(m->m_state.disc_interface);
 
-    uint8_t value = m->m_disc_interface->GetByteFromControl(m->m_state.disc_control);
+    uint8_t value = m->m_state.disc_interface->GetByteFromControl(m->m_state.disc_control);
     return value;
 }
 
@@ -712,7 +580,7 @@ uint8_t BBCMicro::Read1770ControlRegister(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void BBCMicro::TracePortB(SystemVIAPB pb) {
+void BBCMicro::TracePortB(BBCMicroState::SystemVIAPB pb) {
     Log log("", m_trace->GetLogPrinter(TraceEventSource_Host, 1000));
 
     log.f("PORTB - PB = $%02X (%%%s): ", pb.value, BINARY_BYTE_STRINGS[pb.value]);
@@ -818,7 +686,7 @@ uint8_t BBCMicro::ReadUnmappedMMIO(void *m_, M6502Word a) {
 uint8_t BBCMicro::ReadROMMMIO(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
 
-    return m->m_big_pages[MOS_BIG_PAGE_INDEX + 3].r[a.p.o];
+    return m->m_big_pages[MOS_BIG_PAGE_INDEX.i + 3].r[a.p.o];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -828,7 +696,7 @@ uint8_t BBCMicro::ReadROMSEL(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    return m->m_state.romsel.value;
+    return m->m_state.paging.romsel.value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -838,15 +706,16 @@ void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    if ((m->m_state.romsel.value ^ value) & m->m_romsel_mask) {
-        m->m_state.romsel.value = value & m->m_romsel_mask;
+    if ((m->m_state.paging.romsel.value ^ value) & m->m_romsel_mask) {
+        m->m_state.paging.romsel.value = value & m->m_romsel_mask;
 
         m->UpdatePaging();
+        m->UpdateCPUDataBusFn();
         //(*m->m_update_romsel_pages_fn)(m);
 
 #if BBCMICRO_TRACE
         if (m->m_trace) {
-            m->m_trace->AllocWriteROMSELEvent(m->m_state.romsel);
+            m->m_trace->AllocWriteROMSELEvent(m->m_state.paging.romsel);
         }
 #endif
     }
@@ -859,7 +728,7 @@ uint8_t BBCMicro::ReadACCCON(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    return m->m_state.acccon.value;
+    return m->m_state.paging.acccon.value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -869,13 +738,13 @@ void BBCMicro::WriteACCCON(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    if ((m->m_state.acccon.value ^ value) & m->m_acccon_mask) {
-        m->m_state.acccon.value = value & m->m_acccon_mask;
+    if ((m->m_state.paging.acccon.value ^ value) & m->m_acccon_mask) {
+        m->m_state.paging.acccon.value = value & m->m_acccon_mask;
         m->UpdatePaging();
 
 #if BBCMICRO_TRACE
         if (m->m_trace) {
-            m->m_trace->AllocWriteACCCONEvent(m->m_state.acccon);
+            m->m_trace->AllocWriteACCCONEvent(m->m_state.paging.acccon);
         }
 #endif
     }
@@ -894,8 +763,8 @@ uint8_t BBCMicro::ReadADJI(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroType *BBCMicro::GetType() const {
-    return m_state.type;
+BBCMicroTypeID BBCMicro::GetTypeID() const {
+    return m_state.type->type_id;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -997,8 +866,8 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
 
 bool BBCMicro::GetJoystickButtonState(uint8_t index) const {
     ASSERT(index == 0 || index == 1);
-    static_assert(SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT == SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT + 1, "");
-    uint8_t mask = 1 << (SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT + (index & 1));
+    static_assert(BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT == BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT + 1, "");
+    uint8_t mask = 1 << (BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT + (index & 1));
 
     return !(m_state.not_joystick_buttons & mask);
 }
@@ -1020,7 +889,7 @@ void BBCMicro::SetJoystickButtonState(uint8_t index, bool new_state) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::HasNumericKeypad() const {
-    return ::HasNumericKeypad(m_state.type);
+    return ::HasNumericKeypad(m_state.type->type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1031,6 +900,15 @@ void BBCMicro::SetTeletextDebug(bool teletext_debug) {
     m_state.saa5050.debug = teletext_debug;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::OptionalLowFrequencyUpdate() {
+#if BBCMICRO_DEBUGGER
+    this->UpdateUpdateMFnData();
+#endif
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1088,19 +966,12 @@ const uint8_t BBCMicro::CURSOR_PATTERNS[8] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 void BBCMicro::SetDiscDriveSound(DiscDriveType type, DiscDriveSound sound, std::vector<float> samples) {
     ASSERT(sound >= 0 && sound < DiscDriveSound_EndValue);
     ASSERT(g_disc_drive_sounds[type][sound].empty());
     ASSERT(samples.size() <= INT_MAX);
     g_disc_drive_sounds[type][sound] = std::move(samples);
 }
-
-//void BBCMicro::SetDiscDriveSound(int drive,DiscDriveSound sound,const float *samples,size_t num_samples) {
-//    ASSERT(drive>=0&&drive<NUM_DRIVES);
-//    DiscDrive_SetSoundData(&m_state.drives[drive],sound,samples,num_samples);
-//}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1153,12 +1024,15 @@ void BBCMicro::SetOSROM(std::shared_ptr<const std::array<uint8_t, 16384>> data) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data) {
+void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data, ROMType type) {
     ASSERT(bank < 16);
 
+    // No sideways RAM in this bank.
     m_state.sideways_ram_buffers[bank].reset();
 
     m_state.sideways_rom_buffers[bank] = std::move(data);
+    m_state.paging.rom_types[bank] = type;
+    m_state.paging.rom_regions[bank] = 0;
 
     this->InitPaging();
 }
@@ -1166,16 +1040,19 @@ void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uin
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data) {
+void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data) {
     ASSERT(bank < 16);
 
     if (data) {
-        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>(*data);
+        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>();
+        for (size_t i = 0; i < std::min(data->size(), (size_t)16384); ++i) {
+        }
     } else {
         m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>();
     }
 
-    m_state.sideways_rom_buffers[bank] = nullptr;
+    // No sideways ROM in this bank.
+    m_state.sideways_rom_buffers[bank] = {};
 
     this->InitPaging();
 }
@@ -1205,8 +1082,7 @@ void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
 
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
                                            m_state.type,
-                                           m_state.romsel,
-                                           m_state.acccon,
+                                           m_state.paging,
                                            m_state.parasite_type,
                                            parasite_m6502_config,
                                            parasite_boot_mode),
@@ -1317,7 +1193,7 @@ void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, W
 
 std::shared_ptr<DiscImage> BBCMicro::TakeDiscImage(int drive) {
     if (drive >= 0 && drive < NUM_DRIVES) {
-        std::shared_ptr<DiscImage> tmp = std::move(m_disc_images[drive]);
+        std::shared_ptr<DiscImage> tmp = std::move(m_state.drives[drive].disc_image);
         return tmp;
     } else {
         return nullptr;
@@ -1329,7 +1205,7 @@ std::shared_ptr<DiscImage> BBCMicro::TakeDiscImage(int drive) {
 
 std::shared_ptr<const DiscImage> BBCMicro::GetDiscImage(int drive) const {
     if (drive >= 0 && drive < NUM_DRIVES) {
-        return m_disc_images[drive];
+        return m_state.drives[drive].disc_image;
     } else {
         return nullptr;
     }
@@ -1344,8 +1220,10 @@ void BBCMicro::SetDiscImage(int drive,
         return;
     }
 
-    m_disc_images[drive] = std::move(disc_image);
-    m_is_drive_write_protected[drive] = false;
+    BBCMicroState::DiscDrive *dd = &m_state.drives[drive];
+
+    dd->disc_image = std::move(disc_image);
+    dd->is_write_protected = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1355,7 +1233,7 @@ void BBCMicro::SetDriveWriteProtected(int drive,
                                       bool is_write_protected) {
     ASSERT(drive >= 0 && drive < NUM_DRIVES);
 
-    m_is_drive_write_protected[drive] = is_write_protected;
+    m_state.drives[drive].is_write_protected = is_write_protected;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1364,7 +1242,7 @@ void BBCMicro::SetDriveWriteProtected(int drive,
 bool BBCMicro::IsDriveWriteProtected(int drive) const {
     ASSERT(drive >= 0 && drive < NUM_DRIVES);
 
-    return m_is_drive_write_protected[drive];
+    return m_state.drives[drive].is_write_protected;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1419,9 +1297,8 @@ void BBCMicro::StopPaste() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const BBCMicro::State> BBCMicro::DebugGetState() const {
-    auto result = std::make_shared<BBCMicro::State>(m_state);
-    result->init_flags |= BBCMicroInitFlag_Clone;
+std::shared_ptr<const BBCMicroReadOnlyState> BBCMicro::DebugGetState() const {
+    auto result = std::make_shared<BBCMicroReadOnlyState>(m_state);
     return result;
 }
 
@@ -1439,7 +1316,7 @@ const M6502 *BBCMicro::GetM6502() const {
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              bool mos,
                                                              uint32_t dso) const {
-    unsigned big_page;
+    BigPageIndex big_page;
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         bool parasite_boot_mode = m_state.parasite_boot_mode;
         if (dso & BBCMicroDebugStateOverride_OverrideParasiteROM) {
@@ -1449,22 +1326,21 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
         if (addr.w >= 0xf000 && parasite_boot_mode) {
             big_page = PARASITE_ROM_BIG_PAGE_INDEX;
         } else {
-            big_page = (uint8_t)(PARASITE_BIG_PAGE_INDEX + addr.p.p);
+            big_page = {(BigPageIndex::Type)(PARASITE_BIG_PAGE_INDEX.i + addr.p.p)};
         }
     } else {
-        ROMSEL romsel = m_state.romsel;
-        ACCCON acccon = m_state.acccon;
-        (*m_state.type->apply_dso_fn)(&romsel, &acccon, dso);
+        PagingState paging = m_state.paging;
+        (*m_state.type->apply_dso_fn)(&paging, dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, paging);
 
         big_page = tables.mem_big_pages[mos][addr.p.p];
     }
 
-    ASSERT(big_page < NUM_BIG_PAGES);
-    const BigPage *bp = &m_big_pages[big_page];
+    ASSERT(big_page.i < NUM_BIG_PAGES);
+    const BigPage *bp = &m_big_pages[big_page.i];
     return bp;
 }
 #endif
@@ -1474,12 +1350,12 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
-                                         const State *state,
+                                         const BBCMicroState *state,
                                          const DebugState *debug_state,
                                          M6502Word addr,
                                          bool mos,
                                          uint32_t dso) {
-    uint8_t index;
+    BigPageIndex index;
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         bool boot_mode = state->parasite_boot_mode;
         if (dso & BBCMicroDebugStateOverride_OverrideParasiteROM) {
@@ -1489,16 +1365,15 @@ void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
         if (addr.w >= 0xf000 && boot_mode) {
             index = PARASITE_ROM_BIG_PAGE_INDEX;
         } else {
-            index = (uint8_t)(PARASITE_BIG_PAGE_INDEX + addr.p.p);
+            index = {(BigPageIndex::Type)(PARASITE_BIG_PAGE_INDEX.i + addr.p.p)};
         }
     } else {
-        ROMSEL romsel = state->romsel;
-        ACCCON acccon = state->acccon;
-        (*state->type->apply_dso_fn)(&romsel, &acccon, dso);
+        PagingState paging = state->paging;
+        (*state->type->apply_dso_fn)(&paging, dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, paging);
 
         index = tables.mem_big_pages[mos][addr.p.p];
     }
@@ -1511,18 +1386,17 @@ void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const State *state, uint32_t dso) {
+void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const BBCMicroState *state, uint32_t dso) {
     // Should maybe try to make this all fit together a bit better...
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         memset(mem_big_page_is_mos, 0, 16);
     } else {
-        ROMSEL romsel = state->romsel;
-        ACCCON acccon = state->acccon;
-        (*state->type->apply_dso_fn)(&romsel, &acccon, dso);
+        PagingState paging = state->paging;
+        (*state->type->apply_dso_fn)(&paging, dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, paging);
 
         memcpy(mem_big_page_is_mos, tables.pc_mem_big_pages_set, 16);
     }
@@ -1549,13 +1423,13 @@ uint8_t BBCMicro::DebugGetByteDebugFlags(const BigPage *big_page,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
+void BBCMicro::DebugSetByteDebugFlags(BigPageIndex big_page_index,
                                       uint32_t offset,
                                       uint8_t flags) {
-    ASSERT(big_page_index < NUM_BIG_PAGES);
+    ASSERT(big_page_index.i < NUM_BIG_PAGES);
     ASSERT(offset < BIG_PAGE_SIZE_BYTES);
 
-    BigPage *big_page = &m_big_pages[big_page_index];
+    BigPage *big_page = &m_big_pages[big_page_index.i];
     if (big_page->byte_debug_flags) {
         uint8_t *byte_flags = &big_page->byte_debug_flags[offset & BIG_PAGE_OFFSET_MASK];
 
@@ -1709,7 +1583,7 @@ void BBCMicro::DebugHalt(const char *fmt, ...) {
                         (uintptr_t)flags < (uintptr_t)((char *)m_debug->parasite_address_debug_flags + sizeof m_debug->parasite_address_debug_flags)));
 
                 uint8_t old = *flags;
-                *flags &= ~(uint32_t)BBCMicroByteDebugFlag_TempBreakExecute;
+                *flags &= (uint8_t)~BBCMicroByteDebugFlag_TempBreakExecute;
                 if (old != 0 && *flags == 0) {
                     ASSERT(m_debug->num_breakpoint_bytes > 0);
                     --m_debug->num_breakpoint_bytes;
@@ -1916,8 +1790,8 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-uint32_t BBCMicro::DebugGetCurrentStateOverride(const State *state) {
-    uint32_t dso = (state->type->get_dso_fn)(state->romsel, state->acccon);
+uint32_t BBCMicro::DebugGetCurrentStateOverride(const BBCMicroState *state) {
+    uint32_t dso = (state->type->get_dso_fn)(state->paging);
 
     if (state->parasite_type != BBCMicroParasiteType_None) {
         if (state->parasite_boot_mode) {
@@ -1945,21 +1819,52 @@ uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//#if BBCMICRO_DEBUGGER
-//void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
-//                                  uint8_t *parasite_address_debug_flags,
-//                                  uint8_t *big_pages_debug_flags) const {
-//    if (m_debug) {
-//        memcpy(host_address_debug_flags, m_debug->host_address_debug_flags, 65536);
-//        memcpy(parasite_address_debug_flags, m_debug->parasite_address_debug_flags, 65536);
-//        memcpy(big_pages_debug_flags, m_debug->big_pages_byte_debug_flags, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
-//    } else {
-//        memset(host_address_debug_flags, 0, 65536);
-//        memset(parasite_address_debug_flags, 0, 65536);
-//        memset(big_pages_debug_flags, 0, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
-//    }
-//}
-//#endif
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugResetRelativeCycleBase(uint32_t dso) {
+    if (m_debug) {
+        DebugState::RelativeCycleCountBase DebugState::*base_mptr = DebugGetRelativeCycleCountBaseMPtr(m_state, dso);
+        if (base_mptr) {
+            DebugState::RelativeCycleCountBase *base = &(m_debug->*base_mptr);
+
+            base->prev = m_state.cycle_count;
+            base->recent = m_state.cycle_count;
+        }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso) {
+    if (m_debug) {
+        DebugState::RelativeCycleCountBase DebugState::*base_mptr = DebugGetRelativeCycleCountBaseMPtr(m_state, dso);
+        if (base_mptr) {
+            DebugState::RelativeCycleCountBase *base = &(m_debug->*base_mptr);
+
+            base->reset_on_breakpoint = !base->reset_on_breakpoint;
+        }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BBCMicro::DebugState::RelativeCycleCountBase BBCMicro::DebugState::*BBCMicro::DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state, uint32_t dso) {
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        if (state.parasite_type != BBCMicroParasiteType_None) {
+            return &DebugState::parasite_relative_base;
+        }
+    } else {
+        return &DebugState::host_relative_base;
+    }
+
+    return nullptr;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1975,10 +1880,11 @@ void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetUpdateFlagExpr(const uint32_t flags_) {
+std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
     std::string expr;
 
-    uint32_t flags = flags_;
+    // ROMType is dealt with separately.
+    uint32_t flags = flags_ & ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift);
     uint32_t mask = 1;
     while (flags != 0) {
         if (flags & mask) {
@@ -1986,7 +1892,7 @@ static std::string GetUpdateFlagExpr(const uint32_t flags_) {
                 expr += "|";
             }
 
-            const char *name = GetBBCMicroUpdateFlagEnumName((int)mask);
+            const char *name = GetBBCMicroUpdateFlagEnumName(mask);
             if (name[0] == '?') {
                 char tmp[100];
                 snprintf(tmp, sizeof tmp, "0x%" PRIx32, mask);
@@ -1997,6 +1903,17 @@ static std::string GetUpdateFlagExpr(const uint32_t flags_) {
         }
         flags &= ~mask;
         mask <<= 1;
+    }
+
+    ROMType type = (ROMType)(flags_ >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
+    if (type != ROMType_16KB) {
+        const char *type_name = GetROMTypeEnumName(type);
+        if (type_name[0] == '?') {
+            expr += "(ROMType)" + std::to_string((int)type);
+        } else {
+            expr += type_name;
+        }
+        expr += "<<ROMTypeShift";
     }
 
     if (expr.empty()) {
@@ -2010,7 +1927,40 @@ static std::string GetUpdateFlagExpr(const uint32_t flags_) {
     return expr;
 }
 
+template <>
+struct std::hash<BBCMicro::UpdateMFn> {
+    uint64_t operator()(const BBCMicro::UpdateMFn &mfn) const {
+        uint8_t mfn_data[sizeof mfn];
+        memcpy(mfn_data, &mfn, sizeof mfn);
+
+        unsigned char digest[SHA1::DIGEST_SIZE];
+        SHA1::HashBuffer(digest, nullptr, mfn_data, sizeof mfn_data);
+
+        uint64_t result;
+        memcpy(&result, digest, sizeof(uint64_t));
+
+        return result;
+    }
+};
+
+static size_t LogNumUniqueInstantiations(Log *log, const char *prefix, const BBCMicro::UpdateMFn *mfns, size_t num_mfns, const size_t *num_unique_overall) {
+    std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
+    for (size_t i = 0; i < num_mfns; ++i) {
+        update_mfns.insert(mfns[i]);
+    }
+
+    log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplate instantiations", prefix, update_mfns.size(), num_mfns);
+    if (num_unique_overall) {
+        log->f(" (%.2fx ideal)", (double)update_mfns.size() * BBCMICRO_NUM_UPDATE_GROUPS / *num_unique_overall);
+    }
+    log->f("\n");
+
+    return update_mfns.size();
+}
+
 void BBCMicro::PrintInfo(Log *log) {
+    EnsureUpdateMFnsTableIsReady();
+
     size_t num_update_mfns = sizeof ms_update_mfns / sizeof ms_update_mfns[0];
 
     std::set<uint32_t> normalized_flags;
@@ -2020,27 +1970,15 @@ void BBCMicro::PrintInfo(Log *log) {
 
     log->f("%zu/%zu normalized BBCMicroUpdateFlag combinations\n", normalized_flags.size(), num_update_mfns);
 
-    std::map<uint32_t, std::vector<uint32_t>> map;
-    for (uint32_t i = 0; i < num_update_mfns; ++i) {
-        for (uint32_t j = 0; j <= i; ++j) {
-            if (ms_update_mfns[i] == ms_update_mfns[j]) {
-                map[j].push_back(i);
-                break;
-            }
-        }
-    }
-
-    log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", map.size(), num_update_mfns);
-    //for (auto &&it : map) {
-    //    if (it.second.size() > 1) {
-    //        log->f("    0x%08" PRIx32 ": ", it.first);
-    //        log->PushIndent();
-    //        for (uint32_t x : it.second) {
-    //            log->f("%s\n", GetUpdateFlagExpr(x).c_str());
-    //        }
-    //        log->PopIndent();
-    //    }
-    //}
+    size_t num_unique_overall = LogNumUniqueInstantiations(log, "ms_update_mfns", ms_update_mfns, sizeof ms_update_mfns / sizeof ms_update_mfns[0], nullptr);
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+    LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
+    LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
+#endif
+#if BBCMICRO_NUM_UPDATE_GROUPS > 2
+    LogNumUniqueInstantiations(log, "ms_update_mfns2", ms_update_mfns2, sizeof ms_update_mfns2 / sizeof ms_update_mfns2[0], &num_unique_overall);
+    LogNumUniqueInstantiations(log, "ms_update_mfns3", ms_update_mfns3, sizeof ms_update_mfns3 / sizeof ms_update_mfns3[0], &num_unique_overall);
+#endif
 
     uint32_t unused_bits = ~(uint32_t)0;
     for (uint32_t bit = 0; bit < 32; ++bit) {
@@ -2056,10 +1994,15 @@ void BBCMicro::PrintInfo(Log *log) {
         }
     }
 
-    log->f("unused BBCMicroUpdateFlag values: %s\n", GetUpdateFlagExpr(unused_bits).c_str());
+    if (unused_bits != 0) {
+        log->f("unused BBCMicroUpdateFlag values: %s\n", GetUpdateFlagExpr(unused_bits).c_str());
+    }
 
     log->f("sizeof(BBCMicro): %zu\n", sizeof(BBCMicro));
-    log->f("sizeof(BBCMicro::State): %zu\n", sizeof(BBCMicro::State));
+    log->f("sizeof(BBCMicroState): %zu\n", sizeof(BBCMicroState));
+    log->f("sizeof BBCMicro::ms_update_mfns: %zu\n", sizeof ms_update_mfns);
+    log->f("sizeof BBCMicro::ms_update_mfns[0]: %zu\n", sizeof ms_update_mfns[0]);
+    log->f("sizeof(BBCMicro::UpdateMFn): %zu\n", sizeof(UpdateMFn));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2097,6 +2040,62 @@ bool BBCMicro::HasADC() const {
 
 uint32_t BBCMicro::GetUpdateFlags() const {
     return m_update_flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+std::shared_ptr<const BBCMicro::UpdateMFnData> BBCMicro::GetUpdateMFnData() const {
+    return m_update_mfn_data_ptr;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::AddMouseMotion(int dx, int dy) {
+    if (!(m_update_flags & BBCMicroUpdateFlag_Mouse)) {
+        return;
+    }
+
+    m_state.mouse_dx += dx;
+    m_state.mouse_dy += dy;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetMouseButtons(uint8_t mask, uint8_t value) {
+    if (!(m_update_flags & BBCMicroUpdateFlag_Mouse)) {
+        return;
+    }
+
+    if (m_update_flags & BBCMicroUpdateFlag_IsMasterCompact) {
+        if (mask & BBCMicroMouseButton_Left) {
+            m_state.mouse_data.compact_bits.l = !(value & BBCMicroMouseButton_Left);
+        }
+
+        if (mask & BBCMicroMouseButton_Middle) {
+            m_state.mouse_data.compact_bits.m = !(value & BBCMicroMouseButton_Middle);
+        }
+
+        if (mask & BBCMicroMouseButton_Right) {
+            m_state.mouse_data.compact_bits.r = !(value & BBCMicroMouseButton_Right);
+        }
+    } else {
+        if (mask & BBCMicroMouseButton_Left) {
+            m_state.mouse_data.amx_bits.l = !(value & BBCMicroMouseButton_Left);
+        }
+
+        if (mask & BBCMicroMouseButton_Middle) {
+            m_state.mouse_data.amx_bits.m = !(value & BBCMicroMouseButton_Middle);
+        }
+
+        if (mask & BBCMicroMouseButton_Right) {
+            m_state.mouse_data.amx_bits.r = !(value & BBCMicroMouseButton_Right);
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2152,7 +2151,7 @@ void BBCMicro::UpdateDebugState() {
         if (m_debug) {
             const BigPageMetadata *metadata = &m_state.type->big_pages_metadata[i];
             if (metadata->addr != 0xffff) {
-                bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index];
+                bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index.i];
 
                 if (metadata->is_parasite) {
                     bp->address_debug_flags = &m_debug->parasite_address_debug_flags[metadata->addr];
@@ -2203,28 +2202,43 @@ void BBCMicro::SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cp
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, uint8_t flags) {
+void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::RelativeCycleCountBase *base, uint8_t flags) {
     auto metadata = (const M6502Metadata *)cpu->context;
+    bool maybe_update_base = false;
 
     if (cpu->read == 0) {
         if (flags & BBCMicroByteDebugFlag_BreakWrite) {
+            maybe_update_base = true;
             DebugHalt("%s data write: $%04x", metadata->name, m_state.cpu.abus.w);
         }
     } else {
-        if (flags & BBCMicroByteDebugFlag_BreakExecute) {
-            if (cpu->read == M6502ReadType_Opcode) {
-                this->DebugHalt("%s execute: $%04x", metadata->name, m_state.cpu.abus.w);
-            }
-        } else if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
+        if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
             if (cpu->read == M6502ReadType_Opcode) {
                 this->DebugHalt("%s single step", metadata->name);
+            }
+        } else if (flags & BBCMicroByteDebugFlag_BreakExecute) {
+            if (cpu->read == M6502ReadType_Opcode) {
+                // Only update the hit cycle count when not stepping.
+                if (m_debug->step_type == BBCMicroStepType_None) {
+                    maybe_update_base = true;
+                }
+
+                this->DebugHalt("%s execute: $%04x", metadata->name, m_state.cpu.abus.w);
             }
         }
 
         if (flags & BBCMicroByteDebugFlag_BreakRead) {
             if (cpu->read <= M6502ReadType_LastInterestingDataRead) {
+                maybe_update_base = true;
                 this->DebugHalt("%s data read: $%04x", metadata->name, m_state.cpu.abus.w);
             }
+        }
+    }
+
+    if (maybe_update_base) {
+        if (base->reset_on_breakpoint) {
+            base->prev = base->recent;
+            base->recent = m_state.cycle_count;
         }
     }
 }
@@ -2239,6 +2253,11 @@ void BBCMicro::DebugHandleStep() {
     switch (m_debug->step_type) {
     default:
         ASSERT(false);
+        // fall through
+    case BBCMicroStepType_None:
+        // It's valid to end up here with no step type: the flags and
+        // m_update_mfn might change, but the current update function continues
+        // to run. Just do nothing in this case.
         break;
 
     case BBCMicroStepType_StepIn:
@@ -2281,13 +2300,19 @@ void BBCMicro::DebugHandleStep() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::InitStuff() {
-    CHECK_SIZEOF(AddressableLatch, 1);
+    CHECK_SIZEOF(BBCMicroState::AddressableLatch, 1);
     CHECK_SIZEOF(ROMSEL, 1);
     CHECK_SIZEOF(ACCCON, 1);
-    CHECK_SIZEOF(SystemVIAPB, 1);
-    for (size_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
-        ASSERT(ms_update_mfns[i]);
-    }
+    CHECK_SIZEOF(BBCMicroState::SystemVIAPB, 1);
+
+    EnsureUpdateMFnsTableIsReady();
+
+#if BBCMICRO_DEBUGGER
+    ASSERT(!m_update_mfn_data_ptr);
+    m_update_mfn_data_ptr = std::make_shared<UpdateMFnData>();
+    m_update_mfn_data = m_update_mfn_data_ptr.get();
+    m_last_mfn_change_cycle_count = m_state.cycle_count;
+#endif
 
     m_ram = m_state.ram_buffer->data();
 
@@ -2352,30 +2377,30 @@ void BBCMicro::InitStuff() {
     }
 
     // I/O: disc interface
-    if (m_disc_interface) {
+    if (m_state.disc_interface) {
         m_state.fdc.SetHandler(this);
-        m_state.fdc.SetNoINTRQ(!!(m_disc_interface->flags & DiscInterfaceFlag_NoINTRQ));
-        m_state.fdc.Set1772(!!(m_disc_interface->flags & DiscInterfaceFlag_1772));
+        m_state.fdc.SetNoINTRQ(!!(m_state.disc_interface->flags & DiscInterfaceFlag_NoINTRQ));
+        m_state.fdc.Set1772(!!(m_state.disc_interface->flags & DiscInterfaceFlag_1772));
 
-        M6502Word c = {m_disc_interface->control_addr};
+        M6502Word c = {m_state.disc_interface->control_addr};
         c.b.h -= 0xfc;
         ASSERT(c.b.h < 3);
 
-        M6502Word f = {m_disc_interface->fdc_addr};
+        M6502Word f = {m_state.disc_interface->fdc_addr};
         f.b.h -= 0xfc;
         ASSERT(f.b.h < 3);
 
-        // Slightly annoying code, to work around Challenger FDC being in the
-        // external 1 MHz bus area.
+        // Slightly ugly code gonig straight to the internal function, to work
+        // around Challenger FDC being in the external 1 MHz bus area.
         for (int i = 0; i < 4; ++i) {
-            uint16_t addr = (uint16_t)(m_disc_interface->fdc_addr + i);
+            uint16_t addr = (uint16_t)(m_state.disc_interface->fdc_addr + i);
 
             this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], &m_state.fdc, g_WD1770_write_fns[i], &m_state.fdc, true, false);
         }
 
-        this->SetMMIOFnsInternal(m_disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, true, false);
+        this->SetMMIOFnsInternal(m_state.disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, true, false);
 
-        m_disc_interface->InstallExtraHardware(this);
+        m_state.disc_interface->InstallExtraHardware(this, m_state.disc_interface_extra_hardware);
     } else {
         m_state.fdc.SetHandler(nullptr);
     }
@@ -2387,6 +2412,9 @@ void BBCMicro::InitStuff() {
 
     if (m_beeblink_handler) {
         m_beeblink = std::make_unique<BeebLink>(m_beeblink_handler);
+
+        this->SetSIO(0xfe9e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
+        this->SetSIO(0xfe9f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
     }
 
     this->UpdateCPUDataBusFn();
@@ -2394,7 +2422,7 @@ void BBCMicro::InitStuff() {
     m_romsel_mask = m_state.type->romsel_mask;
     m_acccon_mask = m_state.type->acccon_mask;
 
-    if (CanDisplayTeletextAt3C00(m_state.type)) {
+    if (CanDisplayTeletextAt3C00(m_state.type->type_id)) {
         m_teletext_bases[0] = 0x3c00;
         m_teletext_bases[1] = 0x7c00;
     } else {
@@ -2504,14 +2532,12 @@ void BBCMicro::InitStuff() {
 #endif
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
-    m_state.adc.SetHandler(this);
+    m_state.adc.SetHandler(&ReadAnalogueChannel, this);
 
     // Page in current ROM bank and sort out ACCCON.
     this->InitPaging();
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     this->InitDiscDriveSounds(m_state.type->default_disc_drive_type);
-#endif
 
 #if BBCMICRO_TRACE
     this->SetTrace(nullptr, 0);
@@ -2522,7 +2548,7 @@ void BBCMicro::InitStuff() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::IsTrack0() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         return dd->track == 0;
     }
 
@@ -2533,13 +2559,11 @@ bool BBCMicro::IsTrack0() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepOut() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         if (dd->track > 0) {
             --dd->track;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
             this->StepSound(dd);
-#endif
         }
     }
 }
@@ -2548,13 +2572,11 @@ void BBCMicro::StepOut() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepIn() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         if (dd->track < 255) {
             ++dd->track;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
             this->StepSound(dd);
-#endif
         }
     }
 }
@@ -2563,13 +2585,11 @@ void BBCMicro::StepIn() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SpinUp() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         dd->motor = true;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
         dd->spin_sound_index = 0;
         dd->spin_sound = DiscDriveSound_SpinStartLoaded;
-#endif
     }
 }
 
@@ -2577,16 +2597,14 @@ void BBCMicro::SpinUp() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SpinDown() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         dd->motor = false;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
         dd->spin_sound_index = 0;
         dd->spin_sound = DiscDriveSound_SpinEnd;
-#endif
 
-        if (m_disc_images[m_state.disc_control.drive]) {
-            m_disc_images[m_state.disc_control.drive]->Flush();
+        if (dd->disc_image) {
+            dd->disc_image->Flush();
         }
     }
 }
@@ -2595,13 +2613,13 @@ void BBCMicro::SpinDown() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::IsWriteProtected() {
-    if (this->GetDiscDrive()) {
-        if (m_disc_images[m_state.disc_control.drive]) {
-            if (m_disc_images[m_state.disc_control.drive]->IsWriteProtected()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
+        if (dd->disc_image) {
+            if (dd->disc_image->IsWriteProtected()) {
                 return true;
             }
 
-            if (m_is_drive_write_protected[m_state.disc_control.drive]) {
+            if (dd->is_write_protected) {
                 return true;
             }
         }
@@ -2614,15 +2632,11 @@ bool BBCMicro::IsWriteProtected() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::GetByte(uint8_t *value, uint8_t sector, size_t offset) {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         m_disc_access = true;
 
-        if (m_disc_images[m_state.disc_control.drive]) {
-            if (m_disc_images[m_state.disc_control.drive]->Read(value,
-                                                                m_state.disc_control.side,
-                                                                dd->track,
-                                                                sector,
-                                                                offset)) {
+        if (dd->disc_image) {
+            if (dd->disc_image->Read(value, m_state.disc_control.side, dd->track, sector, offset)) {
                 return true;
             }
         }
@@ -2635,15 +2649,11 @@ bool BBCMicro::GetByte(uint8_t *value, uint8_t sector, size_t offset) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::SetByte(uint8_t sector, size_t offset, uint8_t value) {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         m_disc_access = true;
 
-        if (m_disc_images[m_state.disc_control.drive]) {
-            if (m_disc_images[m_state.disc_control.drive]->Write(m_state.disc_control.side,
-                                                                 dd->track,
-                                                                 sector,
-                                                                 offset,
-                                                                 value)) {
+        if (dd->disc_image) {
+            if (dd->disc_image->Write(m_state.disc_control.side, dd->track, sector, offset, value)) {
                 return true;
             }
         }
@@ -2656,11 +2666,11 @@ bool BBCMicro::SetByte(uint8_t sector, size_t offset, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uint8_t sector, bool double_density) {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         m_disc_access = true;
 
-        if (m_disc_images[m_state.disc_control.drive]) {
-            if (m_disc_images[m_state.disc_control.drive]->GetDiscSectorSize(size, m_state.disc_control.side, dd->track, sector, double_density)) {
+        if (dd->disc_image) {
+            if (dd->disc_image->GetDiscSectorSize(size, m_state.disc_control.side, dd->track, sector, double_density)) {
                 *track = dd->track;
                 *side = m_state.disc_control.side;
                 return true;
@@ -2674,7 +2684,7 @@ bool BBCMicro::GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uin
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::DiscDrive *BBCMicro::GetDiscDrive() {
+BBCMicroState::DiscDrive *BBCMicro::GetDiscDrive() {
     if (m_state.disc_control.drive >= 0 && m_state.disc_control.drive < NUM_DRIVES) {
         return &m_state.drives[m_state.disc_control.drive];
     } else {
@@ -2685,7 +2695,6 @@ BBCMicro::DiscDrive *BBCMicro::GetDiscDrive() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 void BBCMicro::InitDiscDriveSounds(DiscDriveType type) {
     for (size_t i = 0; i < DiscDriveSound_EndValue; ++i) {
         m_disc_drive_sounds[i] = &DUMMY_DISC_DRIVE_SOUND;
@@ -2702,12 +2711,9 @@ void BBCMicro::InitDiscDriveSounds(DiscDriveType type) {
         }
     }
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 
 // As per http://www.ninerpedia.org/index.php?title=MAME_Floppy_sound_emulation
 
@@ -2739,7 +2745,7 @@ static const SeekSound g_seek_sounds[] = {
     {0},
 };
 
-void BBCMicro::StepSound(DiscDrive *dd) {
+void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd) {
     if (dd->step_sound_index < 0) {
         // step
         dd->step_sound_index = 0;
@@ -2762,13 +2768,11 @@ void BBCMicro::StepSound(DiscDrive *dd) {
         }
     }
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
+float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
     float acc = 0.f;
 
     if (dd->spin_sound != DiscDriveSound_EndValue) {
@@ -2822,7 +2826,6 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
 
     return acc;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2862,10 +2865,6 @@ void BBCMicro::UpdateCPUDataBusFn() {
         update_flags |= BBCMicroUpdateFlag_Hacks;
     }
 
-    if (m_beeblink_handler) {
-        update_flags |= BBCMicroUpdateFlag_HasBeebLink;
-    }
-
     if (m_state.type->type_id == BBCMicroTypeID_Master) {
         update_flags |= BBCMicroUpdateFlag_IsMaster128;
     } else if (m_state.type->type_id == BBCMicroTypeID_MasterCompact) {
@@ -2893,6 +2892,19 @@ void BBCMicro::UpdateCPUDataBusFn() {
     if (m_state.printer_enabled) {
         update_flags |= BBCMicroUpdateFlag_ParallelPrinter;
     }
+
+    if (m_state.init_flags & BBCMicroInitFlag_Mouse) {
+        update_flags |= BBCMicroUpdateFlag_Mouse;
+    }
+
+#if BBCMICRO_DEBUGGER
+    this->UpdateUpdateMFnData();
+    if (update_flags != m_update_flags) {
+        ++m_update_mfn_data->num_update_mfn_changes;
+    }
+#endif
+
+    update_flags |= (uint32_t)m_state.paging.rom_types[m_state.paging.romsel.b_bits.pr] << BBCMicroUpdateFlag_ROMTypeShift;
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_flags = update_flags;
@@ -2953,15 +2965,17 @@ void BBCMicro::SetAnalogueChannel(uint8_t channel, uint16_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel) const {
-    uint16_t value = this->GetAnalogueChannel(channel);
+uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel, void *context) {
+    auto m = (BBCMicro *)context;
+
+    uint16_t value = m->GetAnalogueChannel(channel);
     return value;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::DigitalJoystickInput BBCMicro::GetDigitalJoystickState(uint8_t index) const {
+BBCMicroState::DigitalJoystickInput BBCMicro::GetDigitalJoystickState(uint8_t index) const {
     (void)index;
 
     return m_state.digital_joystick_state;
@@ -2970,10 +2984,78 @@ BBCMicro::DigitalJoystickInput BBCMicro::GetDigitalJoystickState(uint8_t index) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetDigitalJoystickState(uint8_t index, DigitalJoystickInput state) {
+void BBCMicro::SetDigitalJoystickState(uint8_t index, BBCMicroState::DigitalJoystickInput state) {
     (void)index;
 
     m_state.digital_joystick_state = state;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::UpdateUpdateMFnData() {
+    if (m_update_mfn) {
+        ASSERT(m_update_flags < NUM_UPDATE_MFNS);
+        m_update_mfn_data->update_mfn_cycle_count[m_update_flags].n += m_state.cycle_count.n - m_last_mfn_change_cycle_count.n;
+        m_last_mfn_change_cycle_count = m_state.cycle_count;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::UpdateMapperRegion(uint8_t region) {
+    m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] = region;
+    this->UpdatePaging();
+    // The update_mfn won't change.
+
+#if BBCMICRO_TRACE
+    if (m_trace) {
+        m_trace->AllocSetMapperRegionEvent(region);
+    }
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::EnsureUpdateMFnsTableIsReady() {
+#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+    if (!ms_update_mfns[0]) {
+        for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+            const UpdateMFn *mfns = nullptr; //i % 2 == 0 ? ms_update_mfns0 : ms_update_mfns1;
+            switch (i % BBCMICRO_NUM_UPDATE_GROUPS) {
+            default:
+                ASSERT(false);
+            case 0:
+                mfns = ms_update_mfns0;
+                break;
+
+            case 1:
+                mfns = ms_update_mfns1;
+                break;
+
+#if BBCMICRO_NUM_UPDATE_GROUPS > 2
+            case 2:
+                mfns = ms_update_mfns2;
+                break;
+
+            case 3:
+                mfns = ms_update_mfns3;
+                break;
+#endif
+            }
+
+            ms_update_mfns[i] = mfns[i / BBCMICRO_NUM_UPDATE_GROUPS];
+        }
+    }
+#endif
+
+    for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+        ASSERT(ms_update_mfns[i]);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1452,21 +1452,23 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
         "bpl",
     };
 
-    const std::set<std::string> BRANCH = {
-        "jmp",
-        "jsr",
-        "bra",
-        "bcc",
-        "bcs",
-        "beq",
-        "bne",
-        "bvc",
-        "bvs",
-        "bmi",
-        "bpl",
+    std::map<std::string, std::string> branch_conditions = {
+        {"jmp", "Always"},
+        {"jsr", "Always"},
+        {"bra", "Always"},
+        {"bcc", "CC"},
+        {"bcs", "CS"},
+        {"beq", "EQ"},
+        {"bne", "NE"},
+        {"bvc", "VC"},
+        {"bvs", "VS"},
+        {"bmi", "MI"},
+        {"bpl", "PL"},
     };
-
-    //const std::map<
+    for (int i = 0; i < 8; ++i) {
+        branch_conditions["bbr" + std::to_string(i)] = "BR" + std::to_string(i);
+        branch_conditions["bbs" + std::to_string(i)] = "BS" + std::to_string(i);
+    }
 
     P("static const M6502DisassemblyInfo %s[256]={\n", di_name.c_str());
     for (size_t i = 0; i < 256; ++i) {
@@ -1478,17 +1480,25 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
 
         bool always_step_in = ALWAYS_STEP_IN.count(mnemonic) > 0;
 
-        bool branch = BRANCH.count(mnemonic) > 0;
+        std::string condition;
+        {
+            auto &&it = branch_conditions.find(mnemonic);
+            if (it == branch_conditions.end()) {
+                condition = "None";
+            } else {
+                condition = it->second;
+            }
+        }
 
         ASSERT(mnemonic.size() <= 4);
-        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch=%d},\n",
+        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch_condition=M6502Condition_%s},\n",
           i,
           mnemonic.c_str(),
           mode.c_str(),
           instr->GetNumBytes(),
           instr->undocumented,
           always_step_in,
-          branch);
+          condition.c_str());
     }
     P("};\n");
     P("\n");

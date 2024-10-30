@@ -35,6 +35,7 @@ EPNV(IFJ, 1 << 1)
 
 // Set if display comes from shadow RAM rather than main RAM.
 EPNV(DisplayShadow, 1 << 2)
+
 EEND()
 #undef ENAME
 
@@ -50,7 +51,7 @@ EEND()
 // Flags not supported by the current setup should be treated as no-ops.
 
 #define ENAME BBCMicroDebugStateOverride
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 EPNV(ROM, 15)
 EPNV(OverrideROM, 1 << 4)
 EPNV(ANDY, 1 << 5)
@@ -69,6 +70,11 @@ EPNV(OverrideParasiteROM, 1 << 14)
 // system. It's always assumed to be clear (so the debugger views the host), but
 // can be set to view the parasite instead.
 EPNV(Parasite, 1 << 15)
+
+EPNV(OverrideMapperRegion, 1 << 16)
+EPNV(MapperRegionShift, 17)
+EPNV(MapperRegionMask, 7)
+//next free bit is 20
 
 EEND()
 #undef ENAME

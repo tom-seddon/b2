@@ -7,7 +7,6 @@
 #include "conf.h"
 #include "6502.h"
 
-struct DiscDrive;
 class DiscInterface;
 class Trace;
 
@@ -174,9 +173,6 @@ struct WD1770 {
     //
     bool m_no_intrq = false;
     bool m_is1772 = false;
-
-    // The drive the FDC is operating on.
-    //struct DiscDrive *m_drive=nullptr;
 
     // Registers.
     Status m_status = {};   //read

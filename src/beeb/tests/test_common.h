@@ -106,23 +106,6 @@ std::string GetOutputFileName(const std::string &path);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Runs one of the standard tests.
-//
-// Does a _exit(1) if any of the tests fail.
-//
-// See etc/b2_tests/README.md in the working copy for more about this.
-//
-// TODO - maybe move this into test_standard.cpp...?
-void RunStandardTest(const std::string &beeblink_volume_path,
-                     const std::string &beeblink_drive,
-                     const std::string &test_name,
-                     TestBBCMicroType type,
-                     uint32_t clear_trace_flags,
-                     uint32_t set_trace_flags);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void TestSpooledOutput(const TestBBCMicro &bbc,
                        const std::string &beeblink_volume_path,
                        const std::string &beeblink_drive,

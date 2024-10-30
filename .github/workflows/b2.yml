@@ -1,0 +1,61 @@
+name: Build b2
+
+on:
+  push:
+    branches:
+      - master
+      - wip/master
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_ubuntu
+
+  build-windows:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_windows
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build-macos-x64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_macos_homebrew
+      - run: make github_ci_macos_homebrew_ffmpeg
+      - run: make github_ci_macos_x64
+        env:
+          GH_TOKEN: ${{ github.token }}
+          
+  build-older-macos-x64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_macos_homebrew
+      - run: make github_ci_older_macos_x64
+        env:
+          GH_TOKEN: ${{ github.token }}
+          
+  build-macos-arm:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_macos_homebrew
+      - run: make github_ci_macos_homebrew_ffmpeg
+      - run: make github_ci_macos_arm
+        env:
+          GH_TOKEN: ${{ github.token }}

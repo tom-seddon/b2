@@ -9,10 +9,6 @@
 
 #include <beeb/roms.h>
 
-#include <shared/enum_decl.h>
-#include "roms.inl"
-#include <shared/enum_end.h>
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -20,6 +16,7 @@ struct BeebROM {
     std::string path;
     std::string name; //shown in UI
     StandardROM rom;
+    ROMType type = ROMType_16KB;
 
     std::string GetAssetPath() const;
 };

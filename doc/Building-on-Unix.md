@@ -81,7 +81,9 @@ Day-to-day build steps:
    (Debug build has no optimizations, asserts compiled in, plus maybe
    some other stuff that's snuck in.)
    
-2. Run `ninja` to build
+2. Run `ninja` to build. If building with gcc, note that it is normal
+   for this to take longer than you might like. Build times with clang
+   are a bit better
 
 3. Run `ninja test` to run the automated tests (this might take a few
    minutes - they should all pass)

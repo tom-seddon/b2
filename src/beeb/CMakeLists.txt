@@ -7,7 +7,7 @@ set(SRCS
   ${S}/1770.cpp ${I}/1770.h ${I}/1770.inl
   ${S}/6502.cpp ${I}/6502.h
   ${S}/6522.cpp ${I}/6522.h ${I}/6522.inl
-  ${S}/BBCMicro.cpp ${S}/BBCMicro_Update.cpp ${S}/BBCMicro_private.inl ${I}/BBCMicro.h ${I}/BBCMicro.inl
+  ${S}/BBCMicro.cpp ${S}/BBCMicro_Update.cpp ${S}/BBCMicro_Update.inl ${S}/BBCMicro_Update0.cpp ${S}/BBCMicro_Update1.cpp ${S}/BBCMicro_Update2.cpp ${S}/BBCMicro_Update3.cpp ${S}/BBCMicro_private.inl ${I}/BBCMicro.h ${I}/BBCMicro.inl
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   ${S}/DiscImage.cpp ${I}/DiscImage.h
   ${S}/DiscInterface.cpp ${I}/DiscInterface.h ${I}/DiscInterface.inl
@@ -31,6 +31,8 @@ set(SRCS
   ${S}/BBCMicroParasiteType.cpp ${I}/BBCMicroParasiteType.inl ${I}/BBCMicroParasiteType.h
   ${S}/adc.cpp ${I}/adc.h
   ${S}/PCD8572.cpp ${I}/PCD8572.h ${I}/PCD8572.inl
+  ${S}/uef.cpp ${I}/uef.h
+  ${S}/BBCMicroState.cpp ${I}/BBCMicroState.h ${I}/BBCMicroState.inl
 )
 
 if(MSVC)

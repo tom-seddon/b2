@@ -179,6 +179,8 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
 
 TraceUI::TraceUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
+    this->SetDefaultSize(ImVec2(350, 450));
+
     this->ResetTextBoxes();
 }
 
@@ -220,7 +222,7 @@ static void DoTraceFlag(uint32_t *flags_seen,
     *flags_seen |= flag;
 
     if (!text) {
-        text = GetBBCMicroTraceFlagEnumName((int)flag);
+        text = GetBBCMicroTraceFlagEnumName(flag);
     }
 
     ImGuiIDPusher id_pusher(flag);
@@ -366,7 +368,7 @@ void TraceUI::DoImGui() {
 
         for (uint32_t i = 1; i != 0; i <<= 1) {
             if (!(flags_seen & i)) {
-                const char *name = GetBBCMicroTraceFlagEnumName((int)i);
+                const char *name = GetBBCMicroTraceFlagEnumName(i);
                 if (name[0] == '?') {
                     continue;
                 }
@@ -374,6 +376,10 @@ void TraceUI::DoImGui() {
                 ImGui::CheckboxFlags(name, &g_default_settings.flags, i);
             }
         }
+
+        // This isn't the same set of flags, but logically it's an additional
+        // trace.
+        ImGuiCheckboxFlags("ROM Mapper", &g_default_settings.output_flags, TraceOutputFlags_ROMMapper);
 
         ImGui::Spacing();
 

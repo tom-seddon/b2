@@ -114,15 +114,15 @@ void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool DirectDiscImage::SaveToFile(const std::string &file_name, Messages *msg) const {
+bool DirectDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
     this->Close();
 
     std::vector<uint8_t> data;
-    if (!LoadFile(&data, m_path, msg)) {
+    if (!LoadFile(&data, m_path, logs)) {
         return false;
     }
 
-    if (!SaveFile(data, file_name, msg)) {
+    if (!SaveFile(data, file_name, logs)) {
         return false;
     }
 

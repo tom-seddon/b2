@@ -9,7 +9,6 @@ struct DiscDriveCallbacks;
 class Log;
 struct VideoDataUnit;
 struct SoundDataUnit;
-struct DiscInterfaceDef;
 class Trace;
 struct TraceStats;
 class TraceEventType;
@@ -21,28 +20,16 @@ class BeebLink;
 #include <memory>
 #include <vector>
 #include "conf.h"
-#include "crtc.h"
-#include "ExtMem.h"
-#include "1770.h"
-#include "6522.h"
-#include "6502.h"
-#include "SN76489.h"
-#include "MC146818.h"
-#include "VideoULA.h"
-#include "teletext.h"
-#include "DiscInterface.h"
-#include <time.h>
 #include "keys.h"
-#include "video.h"
-#include "type.h"
-#include "tube.h"
 #include "BBCMicroParasiteType.h"
-#include "adc.h"
-#include "PCD8572.h"
+#include "BBCMicroState.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
 #include <shared/enum_end.h>
+
+//
+#define BBCMICRO_NUM_UPDATE_GROUPS (4)
 
 #define BBCMicroLEDFlags_AllDrives (255u * BBCMicroLEDFlag_Drive0)
 
@@ -51,24 +38,42 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BBCMicro : private WD1770Handler,
-                 private ADCHandler {
+constexpr ROMType GetBBCMicroUpdateFlagsROMType(uint32_t update_flags) {
+    return (ROMType)(update_flags >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class BBCMicro : private WD1770Handler {
   public:
-    struct State;
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
     static const uint16_t ADJI_ADDRESSES[4];
 
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *, const ACCCON *);
+    typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
 
-    // BIG_PAGE_SIZE_BYTES fits into a uint16_t.
-    static constexpr size_t BIG_PAGE_SIZE_BYTES = 4096;
-    static constexpr size_t BIG_PAGE_OFFSET_MASK = 4095;
+    static constexpr size_t NUM_UPDATE_MFNS = 65536;
 
-    static constexpr size_t BIG_PAGE_SIZE_PAGES = BIG_PAGE_SIZE_BYTES / 256u;
+    static std::string GetUpdateFlagExpr(const uint32_t flags_);
 
 #if BBCMICRO_DEBUGGER
+
+    struct UpdateMFnData {
+        // number of cycles spent in each state
+        CycleCount update_mfn_cycle_count[NUM_UPDATE_MFNS] = {};
+
+        // Number of times the update mfn has changed
+        uint64_t num_update_mfn_changes = 0;
+
+        // Number of UpdatePaging calls
+        uint64_t num_UpdatePaging_calls = 0;
+    };
+
+    // TODO: need to do a pass on the thread safety of this stuff?
+
     struct HardwareDebugState {
         R6522::IRQ system_via_irq_breakpoints = {};
         R6522::IRQ user_via_irq_breakpoints = {};
@@ -76,6 +81,19 @@ class BBCMicro : private WD1770Handler,
 
     struct DebugState {
         static const uint16_t INVALID_PAGE_INDEX = 0xffff;
+
+        struct RelativeCycleCountBase {
+            // Cycle count of most recent reset, or invalid if no such.
+            CycleCount recent = {};
+
+            // Cycle count of previous reset, if any. Used to provide a useful
+            // time-since-last-breakpoint indicator if a breakpoint was hit this
+            // cycle (thus overwriting hit_recent).
+            CycleCount prev = {};
+
+            // Whether to reset when a breokpoint is hit.
+            bool reset_on_breakpoint = true;
+        };
 
         struct Breakpoint {
             uint64_t id = 0;
@@ -87,6 +105,9 @@ class BBCMicro : private WD1770Handler,
         const M6502 *step_cpu = nullptr;
 
         HardwareDebugState hw;
+
+        RelativeCycleCountBase host_relative_base;
+        RelativeCycleCountBase parasite_relative_base;
 
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
@@ -151,7 +172,7 @@ class BBCMicro : private WD1770Handler,
 
         // Index of this big page, from 0 (inclusive) to NUM_BIG_PAGES
         // (exclusive).
-        uint8_t index = 0;
+        BigPageIndex index = {0};
 
         const BigPageMetadata *metadata = nullptr;
     };
@@ -171,14 +192,14 @@ class BBCMicro : private WD1770Handler,
         // often overlap.
         const uint8_t *address_debug_flags = nullptr;
 #endif
-        uint8_t index = 0;
+        BigPageIndex index = {0};
         const BigPageMetadata *metadata = nullptr;
     };
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
-    BBCMicro(const BBCMicroType *type,
-             const DiscInterfaceDef *def,
+    BBCMicro(std::shared_ptr<const BBCMicroType> type,
+             const DiscInterface *disc_interface,
              BBCMicroParasiteType parasite_type,
              const std::vector<uint8_t> &nvram_contents,
              const tm *rtc_time,
@@ -186,8 +207,8 @@ class BBCMicro : private WD1770Handler,
              BeebLinkHandler *beeblink_handler,
              CycleCount initial_cycle_count);
 
-  protected:
-    BBCMicro(const BBCMicro &src);
+    explicit BBCMicro(const BBCMicroUniqueState &state);
+    BBCMicro(const BBCMicro &) = delete;
 
   public:
     ~BBCMicro();
@@ -195,7 +216,7 @@ class BBCMicro : private WD1770Handler,
     // result is a combination of BBCMicroCloneImpediment.
     uint32_t GetCloneImpediments() const;
 
-    std::unique_ptr<BBCMicro> Clone() const;
+    const BBCMicroUniqueState *GetUniqueState() const;
 
     //typedef std::array<uint8_t, 16384> ROMData;
 
@@ -209,66 +230,6 @@ class BBCMicro : private WD1770Handler,
 
     static const TraceEventType INSTRUCTION_EVENT;
 #endif
-
-#include <shared/pushwarn_bitfields.h>
-    struct SystemVIAPBBits {
-        static const uint8_t NOT_JOYSTICK0_FIRE_BIT = 4;
-        static const uint8_t NOT_JOYSTICK1_FIRE_BIT = 5;
-        uint8_t latch_index : 3, latch_value : 1, not_joystick0_fire : 1, not_joystick1_fire : 1;
-    };
-#include <shared/popwarn.h>
-
-#include <shared/pushwarn_bitfields.h>
-    struct BSystemVIAPBBits {
-        uint8_t _ : 6, speech_ready : 1, speech_interrupt : 1;
-    };
-#include <shared/popwarn.h>
-
-#include <shared/pushwarn_bitfields.h>
-    struct Master128SystemVIAPBBits {
-        uint8_t _ : 6, rtc_chip_select : 1, rtc_address_strobe : 1;
-    };
-#include <shared/popwarn.h>
-
-#include <shared/pushwarn_bitfields.h>
-    struct MasterCompactSystemVIAPBBits {
-        static constexpr uint8_t DATA_BIT = 4;
-        uint8_t _ : 4, data : 1, clk : 1;
-    };
-#include <shared/popwarn.h>
-
-    union SystemVIAPB {
-        uint8_t value;
-        SystemVIAPBBits bits;
-        BSystemVIAPBBits b_bits;
-        Master128SystemVIAPBBits m128_bits;
-        MasterCompactSystemVIAPBBits mcompact_bits;
-    };
-
-#include <shared/pushwarn_bitfields.h>
-    struct BAddressableLatchBits {
-        uint8_t _ : 1, speech_read : 1, speech_write : 1;
-    };
-#include <shared/popwarn.h>
-
-#include <shared/pushwarn_bitfields.h>
-    struct AddressableLatchBits {
-        uint8_t not_sound_write : 1, _ : 2, not_kb_write : 1, screen_base : 2, caps_lock_led : 1, shift_lock_led : 1;
-    };
-#include <shared/popwarn.h>
-
-#include <shared/pushwarn_bitfields.h>
-    struct Master128AddressableLatchBits {
-        uint8_t _ : 1, rtc_read : 1, rtc_data_strobe : 1;
-    };
-#include <shared/popwarn.h>
-
-    union AddressableLatch {
-        uint8_t value;
-        AddressableLatchBits bits;
-        BAddressableLatchBits b_bits;
-        Master128AddressableLatchBits m128_bits;
-    };
 
     // w[i], r[i] and debug[i] point to the corresponding members of bp[i].
     //
@@ -296,40 +257,6 @@ class BBCMicro : private WD1770Handler,
         void *context;
     };
 
-    struct DiscDrive {
-        bool motor = false;
-        uint8_t track = 0;
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-        int step_sound_index = -1;
-
-        DiscDriveSound seek_sound = DiscDriveSound_EndValue;
-        size_t seek_sound_index = 0;
-
-        DiscDriveSound spin_sound = DiscDriveSound_EndValue;
-        size_t spin_sound_index = 0;
-
-        float noise = 0.f;
-#endif
-    };
-
-    // Somewhere better for this? Maybe?
-    //
-    // Not coincidentally, the layout for this is identical to the
-    // ADJI/Slogger/First Byte interface hardware.
-    struct DigitalJoystickInputBits {
-        bool up : 1;
-        bool down : 1;
-        bool left : 1;
-        bool right : 1;
-        bool fire0 : 1;
-        bool fire1 : 1;
-    };
-
-    union DigitalJoystickInput {
-        uint8_t value;
-        DigitalJoystickInputBits bits;
-    };
-
     // Called after an opcode fetch and before execution.
     //
     // cpu->pc.w is PC+1; cpu->pc.dbus is the opcode fetched.
@@ -340,7 +267,7 @@ class BBCMicro : private WD1770Handler,
     // Called when an address is about to be written.
     typedef bool (*WriteFn)(const BBCMicro *m, const M6502 *cpu, void *context);
 
-    const BBCMicroType *GetType() const;
+    BBCMicroTypeID GetTypeID() const;
     BBCMicroParasiteType GetParasiteType() const;
 
     // Get read-only pointer to the cycle counter. The pointer is never
@@ -350,8 +277,6 @@ class BBCMicro : private WD1770Handler,
     // also cheap enough in a debug build (unlike a getter) that I don't
     // have to worry about that.)
     const CycleCount *GetCycleCountPtr() const;
-
-    static uint64_t Get3MHzCycleCount(CycleCount n);
 
     uint8_t GetKeyState(BeebKey key);
 
@@ -386,15 +311,17 @@ class BBCMicro : private WD1770Handler,
         return (this->*m_update_mfn)(video_unit, sound_unit);
     }
 
+    // Update stats and debug stuff that need updating only at low frequency
+    // (100 Hz, say...) - if even at all.
+    void OptionalLowFrequencyUpdate();
+
     static uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     // The disc drive sounds are used by all BBCMicro objects created
     // after they're set.
     //
     // Once a particular sound is set, it can't be changed.
     static void SetDiscDriveSound(DiscDriveType type, DiscDriveSound sound, std::vector<float> samples);
-#endif
 
     uint32_t GetLEDs();
 
@@ -404,10 +331,10 @@ class BBCMicro : private WD1770Handler,
     void SetOSROM(std::shared_ptr<const std::array<uint8_t, 16384>> data);
 
     // The shared_ptr is copied.
-    void SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data);
+    void SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data, ROMType type);
 
-    // The ROM data is copied.
-    void SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data);
+    // The first 16 KB of the ROM data is copied.
+    void SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data);
 
     // The shared_ptr is copied.
     void SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 2048>> data);
@@ -469,7 +396,7 @@ class BBCMicro : private WD1770Handler,
     void StartPaste(std::shared_ptr<const std::string> text);
     void StopPaste();
 
-    std::shared_ptr<const BBCMicro::State> DebugGetState() const;
+    std::shared_ptr<const BBCMicroReadOnlyState> DebugGetState() const;
 
     const M6502 *GetM6502() const;
 
@@ -481,21 +408,17 @@ class BBCMicro : private WD1770Handler,
     // (false).
     const BigPage *DebugGetBigPageForAddress(M6502Word addr, bool mos, uint32_t dso) const;
     static void DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
-                                          const State *state,
+                                          const BBCMicroState *state,
                                           const DebugState *debug_state,
                                           M6502Word addr,
                                           bool mos,
                                           uint32_t dso);
 
-    static void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const State *state, uint32_t dso);
+    static void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const BBCMicroState *state, uint32_t dso);
 
     // Get/set per-byte debug flags for one byte.
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page, uint32_t offset) const;
-    void DebugSetByteDebugFlags(uint8_t big_page_index, uint32_t offset, uint8_t flags);
-
-    // Returns pointer to per-address debug flags for the entire given mem big
-    // page.
-    const uint8_t *DebugGetAddressDebugFlagsForMemBigPage(uint8_t mem_big_page) const;
+    void DebugSetByteDebugFlags(BigPageIndex big_page_index, uint32_t offset, uint8_t flags);
 
     // Get/set per-address byte debug flags for one address.
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
@@ -527,11 +450,18 @@ class BBCMicro : private WD1770Handler,
     HardwareDebugState GetHardwareDebugState() const;
     void SetHardwareDebugState(const HardwareDebugState &hw);
 
-    static uint32_t DebugGetCurrentStateOverride(const State *state);
+    static uint32_t DebugGetCurrentStateOverride(const BBCMicroState *state);
 
     // The breakpoints change counter is incremented any time the set of
     // breakpoints changes.
     uint64_t DebugGetBreakpointsChangeCounter() const;
+
+    void DebugResetRelativeCycleBase(uint32_t dso);
+    void DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso);
+
+    // Bit ugly to actually use, but it at least centralises some logic.
+    static DebugState::RelativeCycleCountBase DebugState::*DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state, uint32_t dso);
+
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
@@ -539,8 +469,8 @@ class BBCMicro : private WD1770Handler,
     uint16_t GetAnalogueChannel(uint8_t channel) const;
     void SetAnalogueChannel(uint8_t channel, uint16_t value);
 
-    DigitalJoystickInput GetDigitalJoystickState(uint8_t index) const;
-    void SetDigitalJoystickState(uint8_t index, DigitalJoystickInput state);
+    BBCMicroState::DigitalJoystickInput GetDigitalJoystickState(uint8_t index) const;
+    void SetDigitalJoystickState(uint8_t index, BBCMicroState::DigitalJoystickInput state);
 
     static void PrintInfo(Log *log);
 
@@ -554,6 +484,12 @@ class BBCMicro : private WD1770Handler,
     bool HasADC() const;
 
     uint32_t GetUpdateFlags() const;
+#if BBCMICRO_DEBUGGER
+    std::shared_ptr<const UpdateMFnData> GetUpdateMFnData() const;
+#endif
+
+    void AddMouseMotion(int dx, int dy);
+    void SetMouseButtons(uint8_t mask, uint8_t value);
 
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
@@ -580,185 +516,6 @@ class BBCMicro : private WD1770Handler,
 #endif
     };
 
-  public: //TODO rationalize this a bit
-    // All the shared_ptr<vector<uint8_t>> point to vectors that are never
-    // resized once created. So in principle it's safe(ish) to call size() and
-    // operator[] from multiple threads without bothering to lock.
-    //
-    // The ExtMem has a shared_ptr<vector<uint8_t>> inside it, and that follows
-    // the same rules.
-    //
-    // This will get improved.
-    struct State {
-        // There's deliberately not much you can publicly do with one of these
-        // other than default-construct it or copy it.
-        explicit State() = default;
-        explicit State(const State &) = default;
-        State &operator=(const State &) = default;
-
-        const M6502 *DebugGetM6502(uint32_t dso) const;
-        const ExtMem *DebugGetExtMem() const;
-        const MC146818 *DebugGetRTC() const;
-        const Tube *DebugGetTube() const;
-        const ADC *DebugGetADC() const;
-        const PCD8572 *DebugGetEEPROM() const;
-
-        int DebugGetADJIDIPSwitches() const;
-
-        const BBCMicroType *type = nullptr;
-
-      private:
-        uint32_t init_flags = 0;
-
-      public:
-        BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
-
-        // 6845
-        CRTC crtc;
-
-      private:
-        CRTC::Output crtc_last_output = {};
-
-      public:
-        // Video output
-        VideoULA video_ula;
-
-        SAA5050 saa5050;
-
-      private:
-        uint8_t ic15_byte = 0;
-
-        // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
-        uint16_t shadow_select_mask = 0x0000;
-        uint8_t cursor_pattern = 0;
-
-      public:
-        SN76489 sn76489;
-
-        // Number of emulated system cycles elapsed. Used to regulate sound
-        // output and measure (for informational purposes) time between vsyncs.
-        CycleCount cycle_count = {0};
-
-        // Addressable latch.
-        AddressableLatch addressable_latch = {0xff};
-
-      private:
-        // Previous values, for detecting edge transitions.
-        AddressableLatch old_addressable_latch = {0xff};
-
-      public:
-        M6502 cpu = {};
-
-      private:
-        uint8_t stretch = 0;
-        bool resetting = false;
-
-      public:
-        R6522 system_via;
-
-      private:
-        SystemVIAPB old_system_via_pb;
-        uint8_t system_via_irq_pending = 0;
-
-      public:
-        R6522 user_via;
-
-      private:
-        uint8_t user_via_irq_pending = 0;
-
-      public:
-        ROMSEL romsel = {};
-        ACCCON acccon = {};
-
-        // Key states
-        uint8_t key_columns[16] = {};
-        uint8_t key_scan_column = 0;
-
-      private:
-        int num_keys_down = 0;
-        //BeebKey auto_reset_key=BeebKey_None;
-
-        // Disk stuff
-        WD1770 fdc;
-        DiscInterfaceControl disc_control = {};
-        DiscDrive drives[NUM_DRIVES];
-
-        // RTC
-        MC146818 rtc;
-
-        // EEPROM
-        PCD8572 eeprom;
-
-        // ADC
-        ADC adc;
-
-      public:
-        DigitalJoystickInput digital_joystick_state = {};
-
-      private:
-        // Parallel printer
-        bool printer_enabled = false;
-        uint16_t printer_busy_counter = 0;
-
-        // Joystick states.
-        //
-        // Suitable for ORing into the PB value - only the two joystick button
-        // bits are ever set (indicating button unpressed).
-        uint8_t not_joystick_buttons = 1 << 4 | 1 << 5;
-
-      public:
-        uint16_t analogue_channel_values[4] = {};
-
-      private:
-        // External 1MHz bus RAM.
-        ExtMem ext_mem;
-
-        CycleCount last_vsync_cycle_count = {0};
-        CycleCount last_frame_cycle_count = {0};
-
-        std::shared_ptr<std::vector<uint8_t>> ram_buffer;
-
-        std::shared_ptr<const std::array<uint8_t, 16384>> os_buffer;
-        std::shared_ptr<const std::array<uint8_t, 16384>> sideways_rom_buffers[16];
-        // Each element is either a copy of the ROMData contents, or null.
-        std::shared_ptr<std::array<uint8_t, 16384>> sideways_ram_buffers[16];
-
-        // Combination of BBCMicroHackFlag.
-        uint32_t hack_flags = 0;
-
-        // Current paste data, if any.
-        //
-        // (This has to be part of the BBCMicro state - suppose a
-        // state is saved mid-paste. The initiating event is in the
-        // past, and won't be included in the replay data, but when
-        // starting a replay from that state then the rest of the
-        // paste needs to be performed.)
-        BBCMicroPasteState paste_state = BBCMicroPasteState_None;
-        std::shared_ptr<const std::string> paste_text;
-        size_t paste_index = 0;
-        uint64_t paste_wait_end = 0;
-
-        // Tube stuff.
-        bool parasite_accessible = false;
-
-        M6502 parasite_cpu = {};
-
-      private:
-        std::shared_ptr<const std::array<uint8_t, 2048>> parasite_rom_buffer;
-        std::shared_ptr<std::vector<uint8_t>> parasite_ram_buffer;
-        bool parasite_boot_mode = true;
-        Tube parasite_tube;
-
-        explicit State(const BBCMicroType *type,
-                       BBCMicroParasiteType parasite_type,
-                       const std::vector<uint8_t> &nvram_contents,
-                       uint32_t init_flags,
-                       const tm *rtc_time,
-                       CycleCount initial_cycle_count);
-
-        friend class BBCMicro;
-    };
-
   private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
@@ -769,21 +526,7 @@ class BBCMicro : private WD1770Handler,
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    State m_state;
-
-    //////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
-    //
-    // stuff that is copied, but needs special handling.
-    //
-    //////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
-
-    DiscInterface *const m_disc_interface = nullptr;
-    std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
-    bool m_is_drive_write_protected[NUM_DRIVES] = {};
-    //const bool m_video_nula;
-    //const bool m_ext_mem;
+    BBCMicroUniqueState m_state;
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
@@ -794,7 +537,6 @@ class BBCMicro : private WD1770Handler,
     //////////////////////////////////////////////////////////////////////////
 
     BigPage m_big_pages[NUM_BIG_PAGES];
-    typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
     UpdateMFn m_update_mfn = nullptr;
     uint32_t m_update_flags = 0;
 
@@ -905,6 +647,12 @@ class BBCMicro : private WD1770Handler,
 
     std::vector<uint8_t> *m_printer_buffer = nullptr;
 
+#if BBCMICRO_DEBUGGER
+    std::shared_ptr<UpdateMFnData> m_update_mfn_data_ptr;
+    UpdateMFnData *m_update_mfn_data = nullptr;
+    CycleCount m_last_mfn_change_cycle_count = {};
+#endif
+
     void InitStuff();
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags);
@@ -914,7 +662,7 @@ class BBCMicro : private WD1770Handler,
     static void Write1770ControlRegister(void *m_, M6502Word a, uint8_t value);
     static uint8_t Read1770ControlRegister(void *m_, M6502Word a);
 #if BBCMICRO_TRACE
-    void TracePortB(SystemVIAPB pb);
+    void TracePortB(BBCMicroState::SystemVIAPB pb);
 #endif
     static void WriteUnmappedMMIO(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadUnmappedMMIO(void *m_, M6502Word a);
@@ -928,16 +676,16 @@ class BBCMicro : private WD1770Handler,
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cpu);
-    void DebugHitBreakpoint(const M6502 *cpu, uint8_t flags);
+    void DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::RelativeCycleCountBase *base, uint8_t flags);
     void DebugHandleStep();
     // Public for the debugger's benefit.
 #endif
     static void InitReadOnlyBigPage(ReadOnlyBigPage *bp,
-                                    const State *state,
+                                    const BBCMicroState *state,
 #if BBCMICRO_DEBUGGER
                                     const DebugState *debug_state,
 #endif
-                                    uint8_t big_page_index);
+                                    BigPageIndex big_page_index);
 
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);
 
@@ -951,25 +699,52 @@ class BBCMicro : private WD1770Handler,
     bool GetByte(uint8_t *value, uint8_t sector, size_t offset) override;
     bool SetByte(uint8_t sector, size_t offset, uint8_t value) override;
     bool GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uint8_t sector, bool double_density) override;
-    DiscDrive *GetDiscDrive();
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
+    BBCMicroState::DiscDrive *GetDiscDrive();
     void InitDiscDriveSounds(DiscDriveType type);
-    void StepSound(DiscDrive *dd);
-    float UpdateDiscDriveSound(DiscDrive *dd);
-#endif
+    void StepSound(BBCMicroState::DiscDrive *dd);
+    float UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd);
     void UpdateCPUDataBusFn();
     void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj);
 
     static void WriteHostTube0Wrapper(void *context, M6502Word a, uint8_t value);
 
     // ADC handler stuff.
-    uint16_t ReadAnalogueChannel(uint8_t channel) const override;
+    static uint16_t ReadAnalogueChannel(uint8_t channel, void *context);
 
     template <uint32_t UPDATE_FLAGS>
     uint32_t UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
+#if BBCMICRO_DEBUGGER
+    void UpdateUpdateMFnData();
+#endif
+
+    void UpdateMapperRegion(uint8_t region);
+
     static const uint8_t CURSOR_PATTERNS[8];
-    static const UpdateMFn ms_update_mfns[4096];
+
+#if !(BBCMICRO_NUM_UPDATE_GROUPS == 1 || BBCMICRO_NUM_UPDATE_GROUPS == 2 || BBCMICRO_NUM_UPDATE_GROUPS == 4)
+#error unsupported BBCMICRO_NUM_UPDATE_GROUPS value
+#endif
+
+    static_assert(NUM_UPDATE_MFNS % BBCMICRO_NUM_UPDATE_GROUPS == 0);
+
+    static void EnsureUpdateMFnsTableIsReady();
+
+#if BBCMICRO_NUM_UPDATE_GROUPS == 1
+    static const UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];
+#endif
+#if BBCMICRO_NUM_UPDATE_GROUPS >= 2
+    // A bit wasteful, but it reduces the impact of changing
+    // BBCMICRO_NUM_UPDATE_GROUPS on the rest of the code.
+    static UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];
+
+    static const UpdateMFn ms_update_mfns0[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+    static const UpdateMFn ms_update_mfns1[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+#endif
+#if BBCMICRO_NUM_UPDATE_GROUPS == 4
+    static const UpdateMFn ms_update_mfns2[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+    static const UpdateMFn ms_update_mfns3[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

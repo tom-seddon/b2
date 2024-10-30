@@ -6,11 +6,9 @@
 
 #include <string>
 #include <functional>
-#include <memory>
 #include <map>
 #include <string.h>
 #include <vector>
-#include <shared/debug.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -47,7 +45,7 @@ class CommandTable2 {
     void AddMapping(uint32_t pc_key, Command2 *command);
     void RemoveMapping(uint32_t pc_key, Command2 *command);
 
-    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults, Command2 *command) const;
+    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults, const Command2 *command) const;
     const std::vector<Command2 *> *GetCommandsForPCKey(uint32_t pc_key) const;
 
     Command2 *FindCommandByName(const char *name) const;
@@ -58,7 +56,7 @@ class CommandTable2 {
     std::string m_name;
     bool m_default_command_visibility = true;
 
-    std::map<Command2 *, std::vector<uint32_t>> m_pc_keys_by_command;
+    std::map<const Command2 *, std::vector<uint32_t>> m_pc_keys_by_command;
 
     mutable std::map<uint32_t, std::vector<Command2 *>> m_commands_by_pc_key;
     mutable bool m_commands_by_pc_key_dirty = true;
@@ -85,11 +83,13 @@ class Command2Data {
     CommandTable2 *m_table = nullptr;
     std::string m_name;
     std::string m_text;
+    std::string m_extra_text;
     bool m_must_confirm = false;
     bool m_has_tick = false;
     std::vector<uint32_t> m_shortcuts;
     bool m_visible = true;
     size_t m_index = ~(size_t)0;
+    bool m_always_prioritized = false;
 
     Command2Data(const Command2Data &) = default;
     Command2Data(Command2Data &&) = default;
@@ -116,6 +116,8 @@ class Command2 : private Command2Data {
     // TODO: terminology...
     const std::string &GetName() const;
     const std::string &GetText() const;
+    const std::string &GetExtraText() const;
+    bool IsAlwaysPrioritized() const;
 
     // Invisible commands refer to functionality that's compiled out of this
     // build, or otherwise hidden. They remain present, but aren't exposed in
@@ -129,6 +131,8 @@ class Command2 : private Command2Data {
     Command2 &WithTick();
     Command2 &WithShortcut(uint32_t shortcut);
     Command2 &VisibleIf(int flag); //invisible if any such flag is false
+    Command2 &WithExtraText(std::string extra_text);
+    Command2 &AlwaysPrioritized();
 
   protected:
   private:
@@ -162,6 +166,9 @@ class CommandStateTable {
     void DoToggleCheckbox(const Command2 &command);
 
     bool WasActioned(const Command2 &command);
+
+    bool ActionCommand(Command2 *command);
+    bool ActionCommands(const std::vector<Command2 *> *commands);
 
     bool ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key);
 

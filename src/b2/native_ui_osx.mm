@@ -134,7 +134,11 @@ static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &fi
                 }
             }
 
+            // This was deprecated after 10.9, so just hide the warning.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
             [panel setAllowedFileTypes:types];
+#pragma GCC diagnostic pop
         }
     }
 

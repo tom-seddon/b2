@@ -12,8 +12,8 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include <shared/mutex.h>
+#include <condition_variable>
 #include <vector>
-#include <bitset>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -24,14 +24,14 @@ class MessageQueue {
   public:
     MessageQueue() = default;
 
-    void SetName(std::string name) {
+    void SetName(const char *name) {
         (void)name;
-        MUTEX_SET_NAME(m_mutex, name + " mutex");
+        MUTEX_SET_NAME(m_mutex, name);
     }
 
     // Pushed messages are retrieved in the order they were submitted.
     void ProducerPush(T message) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         m_messages.push_back(Message(std::move(message)));
 
@@ -55,7 +55,7 @@ class MessageQueue {
 
         uint64_t old_indexed_messages_pending;
         {
-            std::lock_guard<Mutex> lock(m_mutex);
+            LockGuard<Mutex> lock(m_mutex);
 
             old_indexed_messages_pending = m_indexed_messages_pending;
 
@@ -69,7 +69,7 @@ class MessageQueue {
     }
 
     void ConsumerWaitForMessages(std::vector<T> *messages) {
-        std::unique_lock<Mutex> lock(m_mutex);
+        UniqueLock<Mutex> lock(m_mutex);
 
         for (;;) {
             if (this->PollLocked(messages)) {
@@ -81,7 +81,7 @@ class MessageQueue {
     }
 
     bool ConsumerPollForMessages(std::vector<T> *messages) {
-        std::lock_guard<Mutex> lock(m_mutex);
+        LockGuard<Mutex> lock(m_mutex);
 
         return this->PollLocked(messages);
     }
@@ -102,7 +102,7 @@ class MessageQueue {
     };
 
     Mutex m_mutex;
-    ConditionVariable m_cv;
+    std::condition_variable_any m_cv;
     std::vector<Message> m_messages;
     Message m_indexed_messages[64];
     uint64_t m_indexed_messages_pending = 0;

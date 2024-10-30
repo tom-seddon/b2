@@ -4,10 +4,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include <mutex>
-#include <condition_variable>
-#include <string>
-
 #ifndef MUTEX_DEBUGGING
 #define MUTEX_DEBUGGING 1
 #endif
@@ -21,8 +17,13 @@
 // Potentially save on some system calls for every lock.
 #define MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE 0
 
-#include <atomic>
 #include <vector>
+#include <string>
+#include <memory>
+
+#include "enum_decl.h"
+#include "mutex.inl"
+#include "enum_end.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -30,48 +31,40 @@
 class Mutex;
 
 struct MutexStats {
-    // The mutex itself must be locked to correctly modify any of these.
-    //
-    // May read, at own risk...
     uint64_t num_locks = 0;
     uint64_t num_contended_locks = 0;
     uint64_t total_lock_wait_ticks = 0;
     uint64_t min_lock_wait_ticks = UINT64_MAX;
     uint64_t max_lock_wait_ticks = 0;
     uint64_t num_successful_try_locks = 0;
-
     uint64_t start_ticks;
+    uint64_t num_try_locks = 0;
+
+    bool ever_locked = false;
+
+    std::string name;
 
     MutexStats();
 };
 
 struct MutexMetadata {
-    std::string name;
+  public:
+    MutexMetadata();
+    virtual ~MutexMetadata() = 0;
 
-    MutexStats stats;
+    MutexMetadata(const MutexMetadata &) = delete;
+    MutexMetadata &operator=(const MutexMetadata &) = delete;
+    MutexMetadata(MutexMetadata &&) = delete;
+    MutexMetadata &operator=(MutexMetadata &&) = delete;
 
-    // A try_lock needs accounting for even if the mutex ends up not taken.
-    std::atomic<uint64_t> num_try_locks{0};
-
-    std::atomic<bool> reset{false};
-
-    std::atomic<bool> interesting{false};
-
-    Mutex *mutex = nullptr;
-
-    // This is never reset, so that it's possible to distinguish no locks ever
-    // from no locks since stats last reset.
-    bool ever_locked = false;
-
-    void RequestReset();
-
-  private:
-    void Reset();
-
-    friend class Mutex;
+    virtual void GetStats(MutexStats *stats) const = 0;
+    virtual void RequestReset() = 0;
+    virtual uint8_t GetInterestingEvents() const = 0;
+    virtual void SetInterestingEvents(uint8_t events) = 0;
 };
 
 struct MutexFullMetadata;
+struct MutexMetadataImpl;
 
 class Mutex {
   public:
@@ -90,95 +83,34 @@ class Mutex {
     // anything, so...
     const MutexMetadata *GetMetadata() const;
 
-    void lock() {
-        bool interesting = false;
-#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-        uint64_t lock_start_ticks = GetCurrentTickCount();
-#endif
-        uint64_t lock_wait_ticks = 0;
-
-        if (!m_mutex.try_lock()) {
-#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-            uint64_t lock_start_ticks = GetCurrentTickCount();
-#endif
-            m_mutex.lock();
-            ++m_meta->stats.num_contended_locks;
-#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-            lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
-#endif
-
-            if (m_meta->interesting.load(std::memory_order_acquire)) {
-                interesting = true;
-            }
-        }
-
-        ++m_meta->stats.num_locks;
-#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-        lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
-#endif
-
-        if (m_meta->reset.exchange(false)) {
-            m_meta->Reset();
-        }
-
-        m_meta->ever_locked = true;
-        m_meta->stats.total_lock_wait_ticks += lock_wait_ticks;
-
-        if (lock_wait_ticks < m_meta->stats.min_lock_wait_ticks) {
-            m_meta->stats.min_lock_wait_ticks = lock_wait_ticks;
-        }
-
-        if (lock_wait_ticks > m_meta->stats.max_lock_wait_ticks) {
-            m_meta->stats.max_lock_wait_ticks = lock_wait_ticks;
-        }
-
-        if (interesting) {
-            this->OnInterestingEvent();
-        }
-    }
-
-    bool try_lock() {
-        bool succeeded = m_mutex.try_lock();
-
-        if (succeeded) {
-            ++m_meta->stats.num_successful_try_locks;
-            m_meta->ever_locked = true;
-        }
-
-        ++m_meta->num_try_locks;
-
-        if (m_meta->reset.exchange(false)) {
-            m_meta->Reset();
-        }
-
-        return succeeded;
-    }
-
-    void unlock() {
-        m_mutex.unlock();
-    }
-
     static std::vector<std::shared_ptr<MutexMetadata>> GetAllMetadata();
+    static uint64_t GetNameOverheadTicks();
+
+    void lock();
+    bool try_lock();
+    void unlock();
 
   protected:
   private:
-    std::mutex m_mutex;
-
-    // The mutex has a shared_ptr to its MutexFullMetadata, so there's
-    // no problem if the mutex goes away with a pointer to its
-    // metadata still in a list returned by GetAllMetadata.
     std::shared_ptr<MutexFullMetadata> m_metadata;
 
     // This is just the value of &m_metadata_shared_ptr.get()->meta,
     // in an attempt to avoid atrocious debug build performance.
-    MutexMetadata *m_meta = nullptr;
+    MutexMetadataImpl *m_meta = nullptr;
 
-    void OnInterestingEvent();
+    void OnInterestingEvents(uint8_t interesting_events);
+};
+
+// for use as a global.
+class MutexNameSetter {
+  public:
+    MutexNameSetter(Mutex *mutex, const char *name);
+
+  protected:
+  private:
 };
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((MUTEX).SetName((NAME)))
-
-typedef std::condition_variable_any ConditionVariable;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -188,8 +120,18 @@ typedef std::condition_variable_any ConditionVariable;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include <mutex> //#if !MUTEX_DEBUGGING
+
 typedef std::mutex Mutex;
-typedef std::condition_variable ConditionVariable;
+
+class MutexNameSetter {
+  public:
+    MutexNameSetter(Mutex *, const char *) {
+    }
+
+  protected:
+  private:
+};
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((void)0)
 
@@ -197,5 +139,102 @@ typedef std::condition_variable ConditionVariable;
 //////////////////////////////////////////////////////////////////////////
 
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Pound shop equivalent of std::lock_guard, that doesn't need a standard header.
+template <class MutexType>
+class LockGuard {
+  public:
+    explicit LockGuard(MutexType &mutex)
+        : m_mutex(&mutex) {
+        m_mutex->lock();
+    }
+
+    ~LockGuard() {
+        m_mutex->unlock();
+    }
+
+    LockGuard(const LockGuard<MutexType> &) = delete;
+    LockGuard<MutexType> &operator=(const LockGuard<MutexType> &) = delete;
+    LockGuard(LockGuard<MutexType> &&) = delete;
+    LockGuard<MutexType> &operator=(LockGuard<MutexType> &&) = delete;
+
+  protected:
+  private:
+    MutexType *m_mutex = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Janky std::unique_lock knockoff, ditto. Also forward declaration-friendly.
+//
+// (This does enough to work with condition_variable_any, but no more.
+// std::unique_lock may still prove necessary.)
+template <class MutexType>
+class UniqueLock {
+  public:
+    explicit UniqueLock()
+        : m_mutex(nullptr) {
+    }
+
+    explicit UniqueLock(MutexType &mutex)
+        : m_mutex(&mutex) {
+        m_mutex->lock();
+        m_locked = true;
+    }
+
+    ~UniqueLock() {
+        this->unlock();
+    }
+
+    UniqueLock(const UniqueLock<MutexType> &) = delete;
+    UniqueLock<MutexType> &operator=(const UniqueLock<MutexType> &) = delete;
+
+    UniqueLock(UniqueLock<MutexType> &&src)
+        : m_mutex(src.m_mutex)
+        , m_locked(src.m_locked) {
+        src.m_mutex = nullptr;
+        src.m_locked = false;
+    }
+
+    UniqueLock<MutexType> &operator=(UniqueLock<MutexType> &&other) {
+        if (this != &other) {
+            this->unlock();
+            m_mutex = other.m_mutex;
+            m_locked = other.m_locked;
+            other.m_mutex = nullptr;
+            other.m_locked = false;
+        }
+
+        return *this;
+    }
+
+    void lock() {
+        if (m_mutex) {
+            m_mutex->lock();
+            m_locked = true;
+        }
+    }
+
+    void unlock() {
+        if (m_mutex) {
+            if (m_locked) {
+                m_mutex->unlock();
+                m_locked = false;
+            }
+        }
+    }
+
+  protected:
+  private:
+    MutexType *m_mutex = nullptr;
+    bool m_locked = false;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #endif

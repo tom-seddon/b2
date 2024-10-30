@@ -31,6 +31,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -377,17 +378,17 @@ static bool GetDataFromHexString(std::vector<uint8_t> *data, const std::string &
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void AddError(Messages *msg,
+static void AddError(const LogSet &logs,
                      const std::string &path,
                      const char *what1,
                      const char *what2,
                      int err) {
-    msg->w.f("%s failed: %s\n", what1, path.c_str());
+    logs.w.f("%s failed: %s\n", what1, path.c_str());
 
     if (err != 0) {
-        msg->i.f("(%s: %s)\n", what2, strerror(err));
+        logs.i.f("(%s: %s)\n", what2, strerror(err));
     } else {
-        msg->i.f("(%s)\n", what2);
+        logs.i.f("(%s)\n", what2);
     }
 }
 
@@ -397,7 +398,7 @@ static void AddError(Messages *msg,
 template <class ContType>
 static bool LoadFile2(ContType *data,
                       const std::string &path,
-                      Messages *msg,
+                      const LogSet &logs,
                       uint32_t flags,
                       const char *mode) {
     static_assert(sizeof(typename ContType::value_type) == 1, "LoadFile2 can only load into a vector of bytes");
@@ -411,32 +412,32 @@ static bool LoadFile2(ContType *data,
         if (errno == ENOENT && (flags & LoadFlag_MightNotExist)) {
             // ignore this error.
         } else {
-            AddError(msg, path, "load", "open failed", errno);
+            AddError(logs, path, "load", "open failed", errno);
         }
 
         goto done;
     }
 
     if (fseek(f, 0, SEEK_END) == -1) {
-        AddError(msg, path, "load", "fseek (1) failed", errno);
+        AddError(logs, path, "load", "fseek (1) failed", errno);
         goto done;
     }
 
     len = ftell(f);
     if (len < 0) {
-        AddError(msg, path, "load", "ftell failed", errno);
+        AddError(logs, path, "load", "ftell failed", errno);
         goto done;
     }
 
 #if LONG_MAX > SIZE_MAX
     if (len > (long)SIZE_MAX) {
-        AddError(msg, path, "load", "file is too large", 0);
+        AddError(logs, path, "load", "file is too large", 0);
         goto done;
     }
 #endif
 
     if (fseek(f, 0, SEEK_SET) == -1) {
-        AddError(msg, path, "load", "fseek (2) failed", errno);
+        AddError(logs, path, "load", "fseek (2) failed", errno);
         goto done;
     }
 
@@ -445,7 +446,7 @@ static bool LoadFile2(ContType *data,
 
     num_read = fread(data->data(), 1, num_bytes, f);
     if (ferror(f)) {
-        AddError(msg, path, "load", "read failed", errno);
+        AddError(logs, path, "load", "read failed", errno);
         goto done;
     }
 
@@ -469,11 +470,8 @@ done:;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadFile(std::vector<uint8_t> *data,
-              const std::string &path,
-              Messages *messages,
-              uint32_t flags) {
-    if (!LoadFile2(data, path, messages, flags, "rb")) {
+bool LoadFile(std::vector<uint8_t> *data, const std::string &path, const LogSet &logs, uint32_t flags) {
+    if (!LoadFile2(data, path, logs, flags, "rb")) {
         return false;
     }
 
@@ -484,11 +482,15 @@ bool LoadFile(std::vector<uint8_t> *data,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadTextFile(std::vector<char> *data,
-                  const std::string &path,
-                  Messages *messages,
-                  uint32_t flags) {
-    if (!LoadFile2(data, path, messages, flags, "rt")) {
+bool LoadFile(std::vector<uint8_t> *data, const std::string &path, Messages *messages, uint32_t flags) {
+    return LoadFile(data, path, *messages, flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool LoadTextFile(std::vector<char> *data, const std::string &path, const LogSet &logs, uint32_t flags) {
+    if (!LoadFile2(data, path, logs, flags, "rt")) {
         return false;
     }
 
@@ -499,10 +501,17 @@ bool LoadTextFile(std::vector<char> *data,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool SaveFile2(const void *data, size_t data_size, const std::string &path, Messages *messages, const char *fopen_mode) {
+bool LoadTextFile(std::vector<char> *data, const std::string &path, Messages *messages, uint32_t flags) {
+    return LoadTextFile(data, path, *messages, flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool SaveFile2(const void *data, size_t data_size, const std::string &path, const LogSet &logs, const char *fopen_mode) {
     FILE *f = fopenUTF8(path.c_str(), fopen_mode);
     if (!f) {
-        AddError(messages, path, "save", "fopen failed", errno);
+        AddError(logs, path, "save", "fopen failed", errno);
         return false;
     }
 
@@ -515,7 +524,7 @@ static bool SaveFile2(const void *data, size_t data_size, const std::string &pat
     f = nullptr;
 
     if (bad) {
-        AddError(messages, path, "save", "write failed", e);
+        AddError(logs, path, "save", "write failed", e);
         return false;
     }
 
@@ -525,22 +534,34 @@ static bool SaveFile2(const void *data, size_t data_size, const std::string &pat
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool SaveFile(const void *data, size_t data_size, const std::string &path, const LogSet &logs) {
+    return SaveFile2(data, data_size, path, logs, "wb");
+}
+
 bool SaveFile(const void *data, size_t data_size, const std::string &path, Messages *messages) {
-    return SaveFile2(data, data_size, path, messages, "wb");
+    return SaveFile(data, data_size, path, *messages);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, const LogSet &logs) {
+    return SaveFile(data.data(), data.size(), path, logs);
+}
 
 bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages) {
-    return SaveFile(data.data(), data.size(), path, messages);
+    return SaveFile(data, path, *messages);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool SaveTextFile(const std::string &data, const std::string &path, const LogSet &logs) {
+    return SaveFile2(data.c_str(), data.size(), path, logs, "wt");
+}
+
 bool SaveTextFile(const std::string &data, const std::string &path, Messages *messages) {
-    return SaveFile2(data.c_str(), data.size(), path, messages, "wt");
+    return SaveTextFile(data, path, *messages);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -918,9 +939,9 @@ static bool FindBitIndexedFlagsMember(T *flags, rapidjson::Value *object, const 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const char *(*get_name_fn)(int)) {
+static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const char *(*get_name_fn)(uint32_t)) {
     for (uint32_t mask = 1; mask != 0; mask <<= 1) {
-        const char *name = (*get_name_fn)((int)mask);
+        const char *name = (*get_name_fn)(mask);
         if (name[0] == '?') {
             continue;
         }
@@ -936,7 +957,7 @@ static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const ch
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(int), Messages *msg) {
+static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(uint32_t), Messages *msg) {
     rapidjson::Value array;
     if (!FindArrayMember(&array, object, key, msg)) {
         return false;
@@ -951,7 +972,7 @@ static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const cha
             const char *flag_name = array[i].GetString();
 
             for (uint32_t mask = 1; mask != 0; mask <<= 1) {
-                const char *name = (*get_name_fn)((int)mask);
+                const char *name = (*get_name_fn)(mask);
                 if (name[0] == '?') {
                     continue;
                 }
@@ -976,9 +997,9 @@ static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const cha
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class T>
-static void SaveEnum(JSONWriter<StringStream> *writer, T value, const char *(*get_name_fn)(int)) {
-    const char *name = (*get_name_fn)((int)value);
+template <class EnumType, class EnumBaseType>
+static void SaveEnum(JSONWriter<StringStream> *writer, EnumType value, const char *(*get_name_fn)(EnumBaseType)) {
+    const char *name = (*get_name_fn)(value);
     if (name[0] != '?') {
         writer->String(name);
     } else {
@@ -992,9 +1013,9 @@ static void SaveEnum(JSONWriter<StringStream> *writer, T value, const char *(*ge
 
 // To be suitable for use with this function, thie enum values must
 // start from 0 and be contiguous.
-template <class T>
-static bool LoadEnum(T *value, const std::string &str, const char *what, const char *(*get_name_fn)(int), Messages *msg) {
-    int i = 0;
+template <class EnumType, class EnumBaseType>
+static bool LoadEnum(EnumType *value, const std::string &str, const char *what, const char *(*get_name_fn)(EnumBaseType), Messages *msg) {
+    EnumBaseType i = 0;
     for (;;) {
         const char *name = (*get_name_fn)(i);
         if (name[0] == '?') {
@@ -1002,7 +1023,7 @@ static bool LoadEnum(T *value, const std::string &str, const char *what, const c
         }
 
         if (str == name) {
-            *value = (T)i;
+            *value = (EnumType)i;
             return true;
         }
 
@@ -1016,8 +1037,8 @@ static bool LoadEnum(T *value, const std::string &str, const char *what, const c
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class T>
-static bool FindEnumMember(T *value, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(int), Messages *msg) {
+template <class EnumType, class EnumBaseType>
+static bool FindEnumMember(EnumType *value, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(EnumBaseType), Messages *msg) {
     std::string str;
     if (!FindStringMember(&str, object, key, msg)) {
         return false;
@@ -1178,6 +1199,12 @@ static const char FULL_SCREEN[] = "full_screen";
 #endif
 static const char ADJI[] = "adji";
 static const char ADJI_DIP_SWITCHES[] = "adji_dip_switches";
+static const char TEXT_UTF8_CONVERT_MODE[] = "text_utf8_convert_mode";
+static const char PRINTER_UTF8_CONVERT_MODE[] = "printer_utf8_convert_mode";
+static const char TEXT_HANDLE_DELETE[] = "text_handle_delete";
+static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
+static const char MOUSE[] = "mouse";
+static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1632,18 +1659,26 @@ static void SaveShortcuts(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void SetROMDefaults(bool *writeable, ROMType *type) {
+    if (writeable) {
+        *writeable = false;
+    }
+
+    if (type) {
+        *type = ROMType_16KB;
+    }
+}
+
 static bool LoadROM(rapidjson::Value *rom_json,
                     BeebConfig::ROM *rom,
                     bool *writeable,
+                    ROMType *type,
                     const std::string &json_path,
                     Messages *msg) {
     if (rom_json->IsNull()) {
         rom->file_name.clear();
         rom->standard_rom = nullptr;
-
-        if (writeable) {
-            *writeable = false;
-        }
+        SetROMDefaults(writeable, type);
 
         return true;
     } else if (rom_json->IsString()) {
@@ -1653,9 +1688,7 @@ static bool LoadROM(rapidjson::Value *rom_json,
         // it might actually be a standard ROM, but...
         rom->standard_rom = nullptr;
 
-        if (writeable) {
-            *writeable = false;
-        }
+        SetROMDefaults(writeable, type);
 
         return true;
     } else if (rom_json->IsObject()) {
@@ -1669,8 +1702,14 @@ static bool LoadROM(rapidjson::Value *rom_json,
             // ...
         }
 
+        SetROMDefaults(writeable, type);
+
         if (writeable) {
             FindBoolMember(writeable, rom_json, WRITEABLE, msg);
+        }
+
+        if (type) {
+            FindEnumMember(type, rom_json, TYPE, "ROM type", &GetROMTypeEnumName, msg);
         }
 
         return true;
@@ -1684,8 +1723,10 @@ static bool LoadROM(rapidjson::Value *rom_json,
 
 static void SaveROM(JSONWriter<StringStream> *writer,
                     const BeebConfig::ROM &rom,
-                    const bool *writeable_) {
+                    const bool *writeable_,
+                    const ROMType *type_) {
     bool writeable = writeable_ && *writeable_;
+    ROMType type = type_ ? *type_ : ROMType_16KB;
 
     if (!writeable && !rom.standard_rom && rom.file_name.empty()) {
         writer->Null();
@@ -1704,6 +1745,9 @@ static void SaveROM(JSONWriter<StringStream> *writer,
             if (!rom.file_name.empty()) {
                 writer->Key(FILE_NAME);
                 writer->String(rom.file_name.c_str());
+
+                writer->Key(TYPE);
+                SaveEnum(writer, type, &GetROMTypeEnumName);
             }
         }
     }
@@ -1713,22 +1757,22 @@ static bool LoadROM(rapidjson::Value *rom_json,
                     BeebConfig::SidewaysROM *rom,
                     const std::string &json_path,
                     Messages *msg) {
-    return LoadROM(rom_json, rom, &rom->writeable, json_path, msg);
+    return LoadROM(rom_json, rom, &rom->writeable, &rom->type, json_path, msg);
 }
 
 static void SaveROM(JSONWriter<StringStream> *writer, const BeebConfig::SidewaysROM &rom) {
-    SaveROM(writer, rom, &rom.writeable);
+    SaveROM(writer, rom, &rom.writeable, &rom.type);
 }
 
 static bool LoadROM(rapidjson::Value *rom_json,
                     BeebConfig::ROM *rom,
                     const std::string &json_path,
                     Messages *msg) {
-    return LoadROM(rom_json, rom, nullptr, json_path, msg);
+    return LoadROM(rom_json, rom, nullptr, nullptr, json_path, msg);
 }
 
 static void SaveROM(JSONWriter<StringStream> *writer, const BeebConfig::ROM &rom) {
-    SaveROM(writer, rom, nullptr);
+    SaveROM(writer, rom, nullptr, nullptr);
 }
 
 static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path, Messages *msg) {
@@ -1758,16 +1802,13 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
-        BBCMicroTypeID type_id;
-        if (!FindEnumMember(&type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, msg)) {
+        if (!FindEnumMember(&config.type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, msg)) {
             continue;
         }
 
-        config.type = GetBBCMicroTypeForTypeID(type_id);
-
         std::string disc_interface_name;
         if (FindStringMember(&disc_interface_name, config_json, DISC_INTERFACE, nullptr)) {
-            config.disc_interface = FindDiscInterfaceByName(disc_interface_name.c_str());
+            config.disc_interface = FindDiscInterfaceByConfigName(disc_interface_name.c_str());
             if (!config.disc_interface) {
                 msg->w.f("unknown disc interface: %s\n", disc_interface_name.c_str());
             }
@@ -1797,6 +1838,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
         FindBoolMember(&config.beeblink, config_json, BEEBLINK, msg);
         FindBoolMember(&config.adji, config_json, ADJI, msg);
         FindUInt8Member(&config.adji_dip_switches, config_json, ADJI_DIP_SWITCHES, msg);
+        FindBoolMember(&config.mouse, config_json, MOUSE, msg);
 
         if (FindEnumMember(&config.parasite_type, config_json, PARASITE_TYPE, "parasite type", &GetBBCMicroParasiteTypeEnumName, msg)) {
             // ...
@@ -1852,13 +1894,13 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             SaveROM(writer, config->os);
 
             writer->Key(TYPE);
-            SaveEnum(writer, config->type->type_id, &GetBBCMicroTypeIDEnumName);
+            SaveEnum(writer, config->type_id, &GetBBCMicroTypeIDEnumName);
 
             writer->Key(DISC_INTERFACE);
             if (!config->disc_interface) {
                 writer->Null();
             } else {
-                writer->String(config->disc_interface->name.c_str());
+                writer->String(config->disc_interface->config_name.c_str());
             }
 
             {
@@ -1882,6 +1924,9 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
                 writer->Key(ADJI_DIP_SWITCHES);
                 writer->Uint(config->adji_dip_switches);
             }
+
+            writer->Key(MOUSE);
+            writer->Bool(config->mouse);
 
             writer->Key(PARASITE_TYPE);
             SaveEnum(writer, config->parasite_type, &GetBBCMicroParasiteTypeEnumName);
@@ -1968,6 +2013,11 @@ static void SaveJoysticks(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void LoadCopySettings(BeebWindowSettings::CopySettings *settings, rapidjson::Value *windows, const char *convert_mode_key, const char *handle_delete_key, const char *what, Messages *msg) {
+    FindEnumMember(&settings->convert_mode, windows, convert_mode_key, what, &GetBBCUTF8ConvertModeEnumName, msg);
+    FindBoolMember(&settings->handle_delete, windows, handle_delete_key, msg);
+}
+
 static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     {
         std::string placement_str;
@@ -2000,6 +2050,9 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.full_screen, windows, FULL_SCREEN, nullptr);
 #endif
     FindBoolMember(&BeebWindows::defaults.prefer_shortcuts, windows, PREFER_SHORTCUTS, nullptr);
+    LoadCopySettings(&BeebWindows::defaults.text_copy_settings, windows, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE, "Text copy mode", msg);
+    LoadCopySettings(&BeebWindows::defaults.printer_copy_settings, windows, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE, "Printe copy mode", msg);
+    FindBoolMember(&BeebWindows::defaults.capture_mouse_on_click, windows, CAPTURE_MOUSE_ON_CLICK, nullptr);
 
     {
         std::string keymap_name;
@@ -2016,6 +2069,14 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     }
 
     return true;
+}
+
+static void SaveCopySettings(JSONWriter<StringStream> *writer, const BeebWindowSettings::CopySettings &settings, const char *convert_mode_key, const char *handle_delete_key) {
+    writer->Key(convert_mode_key);
+    SaveEnum(writer, settings.convert_mode, &GetBBCUTF8ConvertModeEnumName);
+
+    writer->Key(handle_delete_key);
+    writer->Bool(settings.handle_delete);
 }
 
 static void SaveWindows(JSONWriter<StringStream> *writer) {
@@ -2087,6 +2148,12 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(GUI_FONT_SIZE);
         writer->Uint(BeebWindows::defaults.gui_font_size);
+
+        SaveCopySettings(writer, BeebWindows::defaults.text_copy_settings, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE);
+        SaveCopySettings(writer, BeebWindows::defaults.printer_copy_settings, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE);
+
+        writer->Key(CAPTURE_MOUSE_ON_CLICK);
+        writer->Bool(BeebWindows::defaults.capture_mouse_on_click);
 
         if (!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);
@@ -2369,7 +2436,10 @@ bool LoadGlobalConfig(Messages *msg) {
         BeebConfig *config = BeebWindows::GetConfigByIndex(i);
 
         if (config->nvram.empty()) {
-            switch (config->type->type_id) {
+            switch (config->type_id) {
+            default:
+                break;
+
             case BBCMicroTypeID_Master:
                 config->nvram = master_nvram;
                 break;

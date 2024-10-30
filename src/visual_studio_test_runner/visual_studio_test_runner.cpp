@@ -1,8 +1,10 @@
 #include <shared/system.h>
 #include <shared/system_specific.h>
+#include <shared/path.h>
 #include <stdlib.h>
 #include <direct.h>
 #include <string>
+#include <process.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -13,15 +15,17 @@ int main(void) {
         return 1;
     }
 
-    std::string c = "ctest";
+    std::string command = PathJoined(PathGetFolder(CMAKE_COMMAND), "ctest");
 
+    intptr_t result = _spawnl(_P_WAIT,
+                              command.c_str(),
+                              command.c_str(),
 #ifdef SUBSET
-    c += " -LE slow";
+                              "-LE", "slow",
 #endif
+                              "-C",
+                              CONFIG,
+                              nullptr);
 
-    c += " -C \"" + std::string(CONFIG) + "\"";
-
-    int result = system(c.c_str());
-
-    return result;
+    return (int)result;
 }

@@ -94,12 +94,31 @@ fire button 2 (when supported).
 For Master 128, the digital joystick is connected via a Retro Hardware
 ADJI cartridge (mostly compatible with the Slogger Switched Joystick
 Interface cartridge, designed for the Electron). See the Customize
-Hardware section for how to enable this. This isn't supported by the
+hardware section for how to enable this. This isn't supported by the
 OS, but some Electron games do support it.
 
 For Master Compact, the digital joystick is connected to the 9-pin
 joystick connector on the back of the machine. This is supported by
 the OS in the usual fashion.
+
+## Mouse
+
+If the current setup includes an emulated mouse (see the Customize
+hardware section below), select `Capture mouse` to have mouse input go
+to the emulated BBC. The system mouse cursor will be hidden,
+indicating that mouse input is going to the BBC instead.
+
+To cancel mouse capture, switch away from the b2 window using the
+usual OS keyboard shortcut. You can also assign a keyboard shortcut to
+the `Capture mouse` command - see the Customize keyboard keys section
+below.
+
+(Note that unlike other commands, `Capture mouse` is special, and its
+keyboard shortcut will always be handled even if it would overlap with
+ordinary BBC input.)
+
+If `Capture on click` is ticked, the mouse will be captured
+automatically if you click on the emulator display.
 
 ## Save states
 
@@ -216,15 +235,18 @@ See [the file association section](./File-Association.md).
 `Keyboard` > `Command Keys...` lets you select shortcut keys for many of
 the menu options and window buttons.
 
-By default, BBC keys take priority. If a key is both a shortcut key
+By default, BBC keys take priority, so if a key is both a shortcut key
 and a BBC key, its shortcut will be ignored. Tick `Keyboard` >
 `Prioritize command keys` to change this, so the emulator will process
 shortcut keys before processing BBC keys.
 
-(The results aren't always perfect. For example, suppose you assign
+The results aren't always perfect. For example, suppose you assign
 Shift+F5 to a command, and then use that combination: when you press
 Shift, the emulated BBC will see the Shift press, even though the F5
-will then be ignored when the emulator recognises the combination.)
+will then be ignored when the emulator recognises the combination.
+
+(There's one exception to this rule: `Capture mouse`. If it has a
+shortcut, that shortcut takes priority over any BBC input.)
 
 ## Customize keyboard layout
 
@@ -268,7 +290,27 @@ Click the `...` button next to a sideways ROM slot/OS ROM to select
 the ROM image. You can load a file off disk, or choose one of the
 various standard ROMs that are supplied with the emulator.
 
-Tick the box in the RAM column to make that sideways slot writeable.
+Use the `Type` option in the `...` menu to select the ROM mapper type,
+necessary if the ROM is larger than 16 KB. The following options are
+available, each listed with a (non-exhaustive) selection of a few ROMs
+that require that type.
+
+- `16 KB` - ordinary ROM, 16 KB or smaller
+- `Inter-Word (32 KB)` - Computer Concepts Inter-Word, AMX Design,
+  Beebug Master ROM
+- `Inter-Base (64 KB)` - Computer Concepts Inter-Base, PMS The
+  Publisher,
+- `Spellmaster (128 KB)` - Computer Concepts Spellmaster, Computer
+  Concepts Mega3
+- `Quest Paint (32 KB)` - Watford Quest Paint, Watford ConQuest,
+  Watford PCB Designer
+- `Wapping Editor (64 KB)` - The Wapping Editor
+- `TED (32 KB)` - Watford TED (Teletext Editor)
+- `PRES ABE+ (32 KB)` - PRES Advanced BASIC Editor Plus
+- `PRES ABE (32 KB)` - PRES Advanced BASIC Editor
+
+If the ROM type is 16 KB, you can tick the box in the RAM column to
+make that sideways slot writeable.
 
 Use the up/down arrows to rearrange the ROM contents, changing the
 priorities.
@@ -282,10 +324,11 @@ Items of optional hardware are as follows:
   (The external RAM can't be enabled in conjunction with the Opus
   Challenger disc interface, as both devices use page &FD.)
   
-- Tick the `BeebLink` box to add an emulated
-  [BeebLink](https://github.com/tom-seddon/beeblink) widget to the
-  emulated user port. For more details, see the
-  [BeebLink notes](./BeebLink.md).
+- Tick the `Mouse` box to add an emulated AMX mouse to the user port.
+  
+- Tick the `BeebLink` box to enable support for
+  [BeebLink](https://github.com/tom-seddon/beeblink). For more
+  details, see the [BeebLink notes](./BeebLink.md).
   
 - Tick the `Video NuLA` box to add a
   [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150).
@@ -321,8 +364,7 @@ Tube host code in it, such as the Acorn 1770 DFS.)
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Hard Reset` (if you're editing the current config) or
-select the updated configuration from the `File` > `Configuration`
-submenu.
+select the updated configuration from the `Hardware' menu.
 
 To create a new configuration, click the `New...` button to create one
 based off one of the default configs, or the `Copy...` button to
@@ -347,6 +389,38 @@ Use `Tools` > `Reset CMOS/EEPROM` to reset the saved settings to
 reasonable default settings. Again, use `File` > `Hard reset` to see
 the effect.
 
+## Copy to clipboard
+
+Copy text output using `Copy OSWRCH nexn output`. It works a bit like
+`*SPOOL`, in that once activated it captures anything printed via
+`OSWRCH` until deactivated.
+
+It's explicitly described as "text output", because it strips out VDU
+control codes and normalizes line endings. You stand a good chance of
+being able to paste the result into a word processor or text editor or
+what have you.
+
+There are 3 text translation modes available on the `Copy options`
+submenu:
+
+- `No translation` - BBC ASCII chars come through as-is in the
+  clipboard data. BBC £ chars will turn into `
+  
+- `Translate £ only` (default) - BBC £ chars will come through as £
+
+- `Translate Mode 7 chars` - characters will be translated to symbols
+  that resemble their Mode 7 appearance. (For example, `{` will come
+  through as `¼`.) Perfect results from this are not guaranteed
+  
+When `Handle delete` is ticked (which is the default setting), the
+emulator will try to handle delete (ASCII 127) chars properly and
+remove previous chars when they're printed. This won't handle
+everything perfectly, but if you're copying stuff you're typing in at
+the BASIC prompt then it will do about the right thing.
+
+(When unticked, the delete chars are stripped out entirely, same as
+other control codes.)
+
 ## Paste from clipboard
 
 Paste text from the clipboard to the BASIC prompt using `OSRDCH Paste`
@@ -359,22 +433,15 @@ guarantees it will work properly anywhere else, but you might get
 lucky...
 
 To make it easy to paste text in from modern applications, newlines
-(`CR LF`, `LF CR`, `LF`) are translated into `CR` (ASCII 13), and £ is
-translated into BBC-style £ (ASCII 95). ASCII characters between 32
-and 126 are passed on as-is.
+(`CR LF`, `LF CR`, `LF`) are translated into `CR` (ASCII 13).
 
-Other characters are not currently supported.
+`£` is automatically translated into BBC-style £ (ASCII 96).
 
-## Copy to clipboard
+The Mode 7 characters produced by the `Translate Mode 7 chars` will
+automatically be translated into the corresponding BBC chars, so the
+data will round trip correctly.
 
-Copy text output using `OSWRCH Copy Text`. This works a bit like
-`*SPOOL`, in that once activated it captures anything printed via
-`OSWRCH` until deactivated.
-
-It's explicitly described as `Copy Text`, because it strips out VDU
-control codes and normalizes line endings. You stand a good chance of
-being able to paste the result into a word processor or text editor or
-what have you.
+Other non-ASCII characters are not currently supported.
 
 ## Printer
 
@@ -389,3 +456,9 @@ discarding the current contents.
 text, stripping out any BBC control codes and translating line
 endings. Note that this won't properly strip out Epson-style ESC
 control codes though!
+
+As when copying text, there are copy options available on the `Copy
+options` submenu. (See the Copy to clipboard section above.) One thing
+to note though is that delete handling is not as useful as with text
+output because 127 chars are stripped from the output unless
+explicitly sent using VDU 1.

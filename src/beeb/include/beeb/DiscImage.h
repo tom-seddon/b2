@@ -8,7 +8,7 @@
 #include <string>
 
 class FileDialog;
-class Messages;
+struct LogSet;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ class DiscImage : public std::enable_shared_from_this<DiscImage> {
     // Save a copy of this disc image to the given file. If
     // successful, returns a clone with the new name and whatever load
     // method indicates a file.
-    virtual bool SaveToFile(const std::string &file_name, Messages *msg) const = 0;
+    virtual bool SaveToFile(const std::string &file_name, const LogSet &logs) const = 0;
 
     //
     virtual bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const = 0;

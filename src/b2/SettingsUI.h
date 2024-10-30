@@ -4,10 +4,11 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class CommandTable;
+class CommandStateTable;
 class CommandTable2;
 
 #include <string>
+#include "dear_imgui.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -19,7 +20,11 @@ class CommandTable2;
 
 class SettingsUI {
   public:
+    CommandStateTable *const cst = nullptr;
+    const CommandTable2 *const command_table = nullptr;
+
     SettingsUI();
+    explicit SettingsUI(const CommandTable2 *command_table);
     virtual ~SettingsUI() = 0;
 
     SettingsUI(const SettingsUI &) = delete;
@@ -39,14 +44,13 @@ class SettingsUI {
     // Return true to have the config saved when this UI window is closed.
     virtual bool OnClose() = 0;
 
-    // Return true if any command actioned.
-    //
-    // default impl returns false.
-    virtual bool ActionCommandsForPCKey(uint32_t pc_key);
+    ImVec2 GetDefaultSize() const;
+    void SetDefaultSize(ImVec2 default_size);
 
   protected:
   private:
     std::string m_name;
+    ImVec2 m_default_size = {};
 };
 
 //////////////////////////////////////////////////////////////////////////

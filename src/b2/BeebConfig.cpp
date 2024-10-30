@@ -20,10 +20,18 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <size_t MAX_SIZE, bool OS>
-static std::shared_ptr<std::array<uint8_t, MAX_SIZE>> LoadROM(const BeebConfig::ROM &rom, Messages *msg) {
-    std::vector<uint8_t> data;
+ROMType BeebConfig::SidewaysROM::GetROMType() const {
+    if (this->standard_rom) {
+        return this->standard_rom->type;
+    } else {
+        return this->type;
+    }
+}
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, size_t size, Messages *msg) {
     std::string path;
     if (rom.standard_rom) {
         path = rom.standard_rom->GetAssetPath();
@@ -31,41 +39,55 @@ static std::shared_ptr<std::array<uint8_t, MAX_SIZE>> LoadROM(const BeebConfig::
         path = rom.file_name;
     }
 
-    if (!LoadFile(&data, path, msg)) {
-        return nullptr;
+    if (!LoadFile(data, path, *msg)) {
+        return false;
     }
 
-    if (rom.standard_rom) {
-        path = rom.standard_rom->GetAssetPath();
-    } else {
-        path = rom.file_name;
-    }
-
-    if (!LoadFile(&data, path, msg)) {
-        return nullptr;
-    }
-
-    if (data.size() > MAX_SIZE) {
+    if (data->size() > size) {
         msg->e.f(
             "ROM too large (%zu bytes; max: %zu bytes): %s\n",
-            data.size(),
-            MAX_SIZE,
+            data->size(),
+            size,
             path.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+template <size_t SIZE>
+static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::ROM &rom, Messages *msg) {
+    std::vector<uint8_t> data;
+    if (!LoadROM2(&data, rom, SIZE, msg)) {
         return nullptr;
     }
 
-    auto result = std::make_shared<std::array<uint8_t, MAX_SIZE>>();
-
-    for (size_t i = 0; i < MAX_SIZE; ++i) {
+    auto result = std::make_shared<std::array<uint8_t, SIZE>>();
+    for (size_t i = 0; i < SIZE; ++i) {
         (*result)[i] = 0;
     }
 
-    size_t end = OS ? MAX_SIZE : data.size();
-
+    // fill the OS ROM backwards. The vectors are at the end.
     for (size_t i = 0; i < data.size(); ++i) {
-        (*result)[end - data.size() + i] = data[i];
+        (*result)[result->size() - data.size() + i] = data[i];
     }
 
+    return result;
+}
+
+static std::shared_ptr<std::vector<uint8_t>> LoadSidewaysROM(const BeebConfig::SidewaysROM &rom,
+                                                             Messages *msg) {
+    const ROMTypeMetadata *metadata = GetROMTypeMetadata(rom.GetROMType());
+
+    std::vector<uint8_t> data;
+    if (!LoadROM2(&data, rom, metadata->num_bytes, msg)) {
+        return nullptr;
+    }
+
+    // Ensure the ROM data is the right size.
+    data.resize(metadata->num_bytes);
+
+    auto result = std::make_shared<std::vector<uint8_t>>(std::move(data));
     return result;
 }
 
@@ -87,7 +109,7 @@ void BeebConfig::ResetNVRAM() {
         // field was added. (This only really causes a problem in the Master
         // Compact case, as the NVRAM contents aren't always cross-variant
         // compatible. None of the GitHub releases are affected.)
-        switch (this->type->type_id) {
+        switch (this->type_id) {
         default:
             ASSERT(false);
             // fall through
@@ -186,12 +208,12 @@ std::vector<uint8_t> GetDefaultMasterCompactNVRAM() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static BeebConfig GetBConfig(const DiscInterfaceDef *di) {
+static BeebConfig GetBConfig(const DiscInterface *di) {
     BeebConfig config;
 
-    config.name = std::string("B/") + di->name;
+    config.name = std::string("B/") + di->display_name;
 
-    config.type = &BBC_MICRO_TYPE_B;
+    config.type_id = BBCMicroTypeID_B;
     config.disc_interface = di;
 
     config.os.standard_rom = &BEEB_ROM_OS12;
@@ -205,8 +227,8 @@ static BeebConfig GetBConfig(const DiscInterfaceDef *di) {
 void InitDefaultBeebConfigs() {
     ASSERT(g_default_configs.empty());
 
-    for (const DiscInterfaceDef *const *di_ptr = ALL_DISC_INTERFACES; *di_ptr; ++di_ptr) {
-        g_default_configs.push_back(GetBConfig(*di_ptr));
+    for (size_t i = 0; MODEL_B_DISC_INTERFACES[i]; ++i) {
+        g_default_configs.push_back(GetBConfig(MODEL_B_DISC_INTERFACES[i]));
     }
 
     // B+/B+128
@@ -214,9 +236,9 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "B+";
-        config.disc_interface = &DISC_INTERFACE_ACORN_1770;
+        config.disc_interface = DISC_INTERFACE_ACORN_1770;
 
-        config.type = &BBC_MICRO_TYPE_B_PLUS;
+        config.type_id = BBCMicroTypeID_BPlus;
         config.os.standard_rom = &BEEB_ROM_BPLUS_MOS;
         config.roms[15].standard_rom = &BEEB_ROM_BASIC2;
         config.roms[14].standard_rom = FindBeebROM(config.disc_interface->fs_rom);
@@ -238,8 +260,8 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master 128 (MOS 3.20)";
-        config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER_128;
+        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS320_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS320_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS320_VIEW);
@@ -262,8 +284,8 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master 128 (MOS 3.50)";
-        config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER_128;
+        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS350_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS350_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS350_VIEW);
@@ -286,8 +308,8 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master Turbo (MOS 3.20)";
-        config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER_128;
+        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS320_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS320_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS320_VIEW);
@@ -313,8 +335,8 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master Turbo (MOS 3.50)";
-        config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER_128;
+        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_Master;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS350_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS350_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS350_VIEW);
@@ -337,7 +359,7 @@ void InitDefaultBeebConfigs() {
 
     // BBC B with 6502 second processor
     {
-        BeebConfig config = GetBConfig(&DISC_INTERFACE_ACORN_1770);
+        BeebConfig config = GetBConfig(DISC_INTERFACE_ACORN_1770);
 
         config.name += " + 6502 second processor";
         config.parasite_type = BBCMicroParasiteType_External3MHz6502;
@@ -347,14 +369,13 @@ void InitDefaultBeebConfigs() {
         g_default_configs.push_back(config);
     }
 
-#if BBCMICRO_ENABLE_MASTER_COMPACT
     // Master Compact MOS 5.00
     {
         BeebConfig config;
 
         config.name = "Master Compact (MOS 5.00)";
-        config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER_COMPACT;
+        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_MasterCompact;
         config.os.standard_rom = &BEEB_ROM_MOS500_MOS_ROM;
         config.roms[15].standard_rom = &BEEB_ROM_MOS500_SIDEWAYS_ROM_F;
         config.roms[14].standard_rom = &BEEB_ROM_MOS500_SIDEWAYS_ROM_E;
@@ -374,8 +395,8 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Master Compact (MOS 5.10)";
-        config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER_COMPACT;
+        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_MasterCompact;
         config.os.standard_rom = &BEEB_ROM_MOS510_MOS_ROM;
         config.roms[15].standard_rom = &BEEB_ROM_MOS510_SIDEWAYS_ROM_F;
         config.roms[14].standard_rom = &BEEB_ROM_MOS510_SIDEWAYS_ROM_E;
@@ -395,8 +416,8 @@ void InitDefaultBeebConfigs() {
         BeebConfig config;
 
         config.name = "Olivetti PC 128 S";
-        config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER_COMPACT;
+        config.disc_interface = DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_MasterCompact;
         config.os.standard_rom = &BEEB_ROM_MOSI510C_MOS_ROM;
         config.roms[15].standard_rom = &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F;
         config.roms[14].standard_rom = &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E;
@@ -410,7 +431,6 @@ void InitDefaultBeebConfigs() {
 
         g_default_configs.push_back(config);
     }
-#endif
 
     for (BeebConfig &config : g_default_configs) {
         config.ResetNVRAM();
@@ -494,15 +514,16 @@ bool BeebLoadedConfig::Load(
     Messages *msg) {
     dest->config = src;
 
-    dest->os = LoadROM<16384, true>(dest->config.os, msg);
+    dest->os = LoadOSROM<16384>(dest->config.os, msg);
     if (!dest->os) {
         return false;
     }
 
     for (int i = 0; i < 16; ++i) {
-        if (dest->config.roms[i].standard_rom ||
-            !dest->config.roms[i].file_name.empty()) {
-            dest->roms[i] = LoadROM<16384, false>(dest->config.roms[i], msg);
+        BeebConfig::SidewaysROM *rom = &dest->config.roms[i];
+
+        if (rom->standard_rom || !rom->file_name.empty()) {
+            dest->roms[i] = LoadSidewaysROM(*rom, msg);
             if (!dest->roms[i]) {
                 return false;
             }
@@ -511,7 +532,7 @@ bool BeebLoadedConfig::Load(
 
     if (dest->config.parasite_os.standard_rom ||
         !dest->config.parasite_os.file_name.empty()) {
-        dest->parasite_os = LoadROM<2048, true>(dest->config.parasite_os, msg);
+        dest->parasite_os = LoadOSROM<2048>(dest->config.parasite_os, msg);
         if (!dest->parasite_os) {
             return false;
         }

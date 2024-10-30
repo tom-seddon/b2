@@ -46,7 +46,7 @@ class DirectDiscImage : public DiscImage {
 
     void AddFileDialogFilter(FileDialog *fd) const override;
 
-    bool SaveToFile(const std::string &file_name, Messages *msg) const override;
+    bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
 
     bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const override;
     bool Write(uint8_t side, uint8_t track, uint8_t sector, size_t offset, uint8_t value) override;

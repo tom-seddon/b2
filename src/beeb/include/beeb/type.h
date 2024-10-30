@@ -4,12 +4,15 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
+#include "roms.h"
+#include <string>
+#include <vector>
+#include <memory>
+
 #include <shared/enum_decl.h>
 #include "type.inl"
 #include <shared/enum_end.h>
-
-#include <string>
-#include <vector>
 
 class Log;
 struct BigPageType;
@@ -18,109 +21,66 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Various bits and pieces to make the difference between BBC types somewhat
-// data-driven. Trying to avoid BBCMicroTypeID-specific cases if possible.
+// Various paging-related bits and pieces that need a bit of a tidy up.
+//
+// At least some of this stuff could go into BBCMicro
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Total max addressable memory on the BBC is 468K:
-//
-// - 64K RAM (main+shadow+ANDY+HAZEL)
-// - 256K ROM (16 * 16K)
-// - 16K MOS
-// - 64K int Tube
-// - 2K int Tube ROM
-// - 64K ext Tube
-// - 2K ext Tube ROM
-//
-// The paging generally operates at a 4K resolution, so this can be divided into
-// 84 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The big
-// pages are assigned like this:
-//
-// <pre>
-// 0-7     main                     }
-// 8       ANDY (M128)/ANDY (B+)    } "RAM"
-// 9,10    HAZEL (M128)/ANDY (B+)   }
-// 11-15   shadow RAM (M128/B+)     }
-//
-// 16-19   ROM 0                    }
-// 20-23   ROM 1                    } "ROM"
-// ...                              }
-// 76-79   ROM 15                   }
-//
-// 80-83   MOS
-// 84-99   parasite
-// 100     parasite ROM
-// 101-116 second parasite [planned]
-// 117     second parasite ROM (double up to make 4K) [planned]
-// </pre>
-//
-// (Three additional pages, for FRED/JIM/SHEILA, are planned.)
-//
-// Big pages 0-15 map directly to the BBCMicro RAM buffer, with each one being
-// at offset index<<12. (When the RAM buffer is 32K, big pages 8-15 aren't
-// mapped.)
-//
-// Each big page can be set up once, when the BBCMicro is first created,
-// simplifying some of the logic. When switching to ROM 1, for example, the
-// buffers can be found by looking at big pages 20-23, rather than having to
-// check m_state.sideways_rom_buffers[1] (etc.).
-//
-// The per-big page struct can also contain some cold info (debug flags, static
-// data, etc.), as it's only fetched when the paging registers are changed,
-// rather than for every instruction.
-//
-// The BBC memory map is also divided into big pages, so things match up - the
-// terminology is a bit slack but usually a 'big page' refers to one of the big
-// pages in the list above, and a 'memory/mem big page' refers to a big page in
-// the 6502 address space.
-//
-// "Second parasite" only applies to the Master, when there's both internal and
-// external second processors connected. The external one counts as the second
-// one.
+char GetROMBankCode(uint32_t bank);
+char GetMapperRegionCode(uint32_t region);
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+// BIG_PAGE_SIZE_BYTES fits into a uint16_t.
+static constexpr size_t BIG_PAGE_SIZE_BYTES = 4096;
+static constexpr size_t BIG_PAGE_OFFSET_MASK = 4095;
 
-static constexpr uint8_t MAIN_BIG_PAGE_INDEX = 0;
-static constexpr uint8_t NUM_MAIN_BIG_PAGES = 32 / 4;
+// See comment for (very similar) CycleCount struct.
+struct BigPageIndex {
+    typedef uint16_t Type;
+    Type i;
+};
 
-static constexpr uint8_t ANDY_BIG_PAGE_INDEX = MAIN_BIG_PAGE_INDEX + NUM_MAIN_BIG_PAGES;
-static constexpr uint8_t NUM_ANDY_BIG_PAGES = 4 / 4;
+static constexpr BigPageIndex MAIN_BIG_PAGE_INDEX = {0};
+static constexpr BigPageIndex::Type NUM_MAIN_BIG_PAGES = {32 / 4};
 
-static constexpr uint8_t HAZEL_BIG_PAGE_INDEX = ANDY_BIG_PAGE_INDEX + NUM_ANDY_BIG_PAGES;
-static constexpr uint8_t NUM_HAZEL_BIG_PAGES = 8 / 4;
+static constexpr BigPageIndex ANDY_BIG_PAGE_INDEX = {MAIN_BIG_PAGE_INDEX.i + NUM_MAIN_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_ANDY_BIG_PAGES = {4 / 4};
 
-static constexpr uint8_t BPLUS_RAM_BIG_PAGE_INDEX = ANDY_BIG_PAGE_INDEX;
-static constexpr uint8_t NUM_BPLUS_RAM_BIG_PAGES = 12 / 4;
+static constexpr BigPageIndex HAZEL_BIG_PAGE_INDEX = {ANDY_BIG_PAGE_INDEX.i + NUM_ANDY_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_HAZEL_BIG_PAGES = {8 / 4};
 
-static constexpr uint8_t SHADOW_BIG_PAGE_INDEX = HAZEL_BIG_PAGE_INDEX + NUM_HAZEL_BIG_PAGES;
-static constexpr uint8_t NUM_SHADOW_BIG_PAGES = 20 / 4;
+static constexpr BigPageIndex BPLUS_RAM_BIG_PAGE_INDEX = {ANDY_BIG_PAGE_INDEX.i};
+static constexpr BigPageIndex::Type NUM_BPLUS_RAM_BIG_PAGES = {12 / 4};
 
-static constexpr uint8_t ROM0_BIG_PAGE_INDEX = SHADOW_BIG_PAGE_INDEX + NUM_SHADOW_BIG_PAGES;
-static constexpr uint8_t NUM_ROM_BIG_PAGES = 16 / 4;
+static constexpr BigPageIndex SHADOW_BIG_PAGE_INDEX = {HAZEL_BIG_PAGE_INDEX.i + NUM_HAZEL_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_SHADOW_BIG_PAGES = {20 / 4};
 
-static constexpr uint8_t MOS_BIG_PAGE_INDEX = ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES;
-static constexpr uint8_t NUM_MOS_BIG_PAGES = 16 / 4;
+static constexpr BigPageIndex ROM0_BIG_PAGE_INDEX = {SHADOW_BIG_PAGE_INDEX.i + NUM_SHADOW_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {128 / 4};
 
-static constexpr uint8_t PARASITE_BIG_PAGE_INDEX = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
-static constexpr uint8_t NUM_PARASITE_BIG_PAGES = 64 / 4;
+static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = {16 / 4};
 
-static constexpr uint8_t PARASITE_ROM_BIG_PAGE_INDEX = PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES;
-static constexpr uint8_t NUM_PARASITE_ROM_BIG_PAGES = 1;
+static constexpr BigPageIndex PARASITE_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_PARASITE_BIG_PAGES = {64 / 4};
 
-//static constexpr uint8_t SECOND_PARASITE_BIG_PAGE_INDEX = PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES;
-//static constexpr uint8_t NUM_SECOND_PARASITE_BIG_PAGES = 64 / 4;
+static constexpr BigPageIndex PARASITE_ROM_BIG_PAGE_INDEX = {PARASITE_BIG_PAGE_INDEX.i + NUM_PARASITE_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_PARASITE_ROM_BIG_PAGES = {1};
+
+//static constexpr uint8_t SECOND_PARASITE_BIG_PAGE_INDEX = {PARASITE_ROM_BIG_PAGE_INDEX.i + NUM_PARASITE_ROM_BIG_PAGES.i};
+//static constexpr uint8_t NUM_SECOND_PARASITE_BIG_PAGES = {64 / 4};
 //
-//static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = SECOND_PARASITE_BIG_PAGE_INDEX + NUM_SECOND_PARASITE_BIG_PAGES;
-//static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = 1;
+//static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = {SECOND_PARASITE_BIG_PAGE_INDEX.i + NUM_SECOND_PARASITE_BIG_PAGES.i};
+//static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = {1};
 
-static constexpr uint8_t NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
+static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
 
 // A few big page indexes from NUM_BIG_PAGES onwards will never be valid, so
 // they can be used for other purposes.
-static_assert(NUM_BIG_PAGES <= 0xf0, "too many big pages");
+static_assert(NUM_BIG_PAGES <= (BigPageIndex::Type)~0xf, "too many big pages");
+
+static constexpr BigPageIndex INVALID_BIG_PAGE_INDEX = {(BigPageIndex::Type) ~(BigPageIndex::Type)0};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -164,10 +124,29 @@ union ACCCON {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct PagingState {
+    // Value of ROMSEL.
+    ROMSEL romsel = {};
+
+    // Value of ACCCON.
+    ACCCON acccon = {};
+
+    // Current ROM mapper region for each ROM.
+    uint8_t rom_regions[16] = {};
+
+    // ROM type for each ROM.
+    ROMType rom_types[16] = {};
+};
+
+static_assert(sizeof(PagingState) == 34);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct MemoryBigPageTables {
     // [0][i] is the big page to use when user code accesses memory big page i;
     // [1][i] likewise for MOS code.
-    uint8_t mem_big_pages[2][16];
+    BigPageIndex mem_big_pages[2][16];
 
     // [i] is 0 if memory big page i counts as user code, or 1 if it counts as
     // MOS code. Can use as index into mem_big_pages, hence the name.
@@ -179,11 +158,18 @@ struct MemoryBigPageTables {
 
 // TODO think of a better name for this!
 struct BigPageMetadata {
-    // index of this big page.
-    uint8_t index = 0xff;
 
-    // Single char syntax for use when entering addresses in the debugger.
-    char code = 0;
+#if BBCMICRO_DEBUGGER
+    // index of the debug flags for this big page.
+    BigPageIndex debug_flags_index = INVALID_BIG_PAGE_INDEX;
+#endif
+
+    // Page override char(s) to display in the debugger. (At the moment, only 2
+    // are required.)
+    //
+    // If only 1 code applies, the second char of aligned_codes is a space.
+    char aligned_codes[3] = {};
+    char minimal_codes[3] = {};
 
     // More elaborate description, printed in UI.
     std::string description;
@@ -208,10 +194,7 @@ struct BigPageMetadata {
 
 struct BBCMicroType {
     // Switch-friendly identifier.
-    const BBCMicroTypeID type_id;
-
-    // Display name suitable for UI or whatever.
-    const char *model_name;
+    BBCMicroTypeID type_id;
 
     const M6502Config *m6502_config;
 
@@ -249,18 +232,15 @@ struct BBCMicroType {
     // (The naming of these isn't the best.)
     void (*get_mem_big_page_tables_fn)(MemoryBigPageTables *tables,
                                        uint32_t *paging_flags,
-                                       ROMSEL romsel,
-                                       ACCCON acccon);
+                                       const PagingState &paging);
 
 #if BBCMICRO_DEBUGGER
-    void (*apply_dso_fn)(ROMSEL *romsel,
-                         ACCCON *acccon,
+    void (*apply_dso_fn)(PagingState *paging,
                          uint32_t dso);
 #endif
 
 #if BBCMICRO_DEBUGGER
-    uint32_t (*get_dso_fn)(ROMSEL romsel,
-                           ACCCON accon);
+    uint32_t (*get_dso_fn)(const PagingState &paging);
 #endif
 
     // Mask for ROMSEL bits.
@@ -279,48 +259,41 @@ struct BBCMicroType {
     uint16_t adc_count = 0;
 
 #if BBCMICRO_DEBUGGER
-    bool (*parse_prefix_lower_case_char_fn)(uint32_t *dso, char c);
+    bool (*parse_suffix_char_fn)(uint32_t *dso, char c);
 #endif
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-extern const BBCMicroType BBC_MICRO_TYPE_B;
-extern const BBCMicroType BBC_MICRO_TYPE_B_PLUS;
-extern const BBCMicroType BBC_MICRO_TYPE_MASTER_128;
-extern const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT;
+size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t region);
 
-// returns a pointer to one of the global BBCMicroType objects.
-const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
+std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types);
 
 // a few per-type ID fixed properties.
-bool HasNVRAM(const BBCMicroType *type);
-bool CanDisplayTeletextAt3C00(const BBCMicroType *type);
-bool HasNumericKeypad(const BBCMicroType *type);
-bool HasSpeech(const BBCMicroType *type);
-bool HasTube(const BBCMicroType *type);
-bool HasCartridges(const BBCMicroType *type);
-bool HasUserPort(const BBCMicroType *type);
-bool Has1MHzBus(const BBCMicroType *type);
-bool HasADC(const BBCMicroType *type);
-bool HasIndependentMOSView(const BBCMicroType*type);
-
-size_t GetNumBBCMicroTypes();
-const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);
+bool HasNVRAM(BBCMicroTypeID type_id);
+bool CanDisplayTeletextAt3C00(BBCMicroTypeID type_id);
+bool HasNumericKeypad(BBCMicroTypeID type_id);
+bool HasSpeech(BBCMicroTypeID type_id);
+bool HasTube(BBCMicroTypeID type_id);
+bool HasCartridges(BBCMicroTypeID type_id);
+bool HasUserPort(BBCMicroTypeID type_id);
+bool Has1MHzBus(BBCMicroTypeID type_id);
+bool HasADC(BBCMicroTypeID type_id);
+bool HasIndependentMOSView(BBCMicroTypeID type_id);
+const char *GetModelName(BBCMicroTypeID type_id);
 
 #if BBCMICRO_DEBUGGER
-// Parse address prefix and add additional flags to *dso_ptr.
+// Parse address suffix and add additional flags to *dso_ptr.
 //
 // Returns true if OK. Any bits set or cleared in *dso_ptr will have their
 // corresponding DebugStateOverride_OverrideXXX flag set too.
 //
 // Returns false if not ok (*dso_ptr unmodified), and prints error messages on
 // *log if not NULL.
-bool ParseAddressPrefix(uint32_t *dso_ptr,
-                        const BBCMicroType *type,
-                        const char *prefix_begin,
-                        const char *prefix_end,
+bool ParseAddressSuffix(uint32_t *dso_ptr,
+                        const std::shared_ptr<const BBCMicroType> &type,
+                        const char *suffix,
                         Log *log);
 #endif
 

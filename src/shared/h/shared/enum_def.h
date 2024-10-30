@@ -6,24 +6,14 @@
 
 #define EEND_EXTRA()
 
-#define EBEGIN()                                                          \
-    EPREFIX UNUSED const char *CONCAT3(Get, ENAME, EnumName)(int value) { \
-        switch (value) {                                                  \
-        default:                                                          \
-            return "?" STRINGIZE(ENAME) "?";
-
-#define EBEGIN_DERIVED(BASE_NAME)                                          \
-    EPREFIX const char *CONCAT3(Get, ENAME, EnumName)(int value) {         \
+#define EBEGIN__BODY(TYPE)                                                 \
+    EPREFIX UNUSED const char *CONCAT3(Get, ENAME, EnumName)(TYPE value) { \
         switch (value) {                                                   \
         default:                                                           \
-            {                                                              \
-                const char *result = CONCAT3(Get, BASE_NAME, Name)(value); \
-                if (result[0] == '?') {                                    \
-                    result = "?" STRINGIZE(ENAME) "?";                     \
-                }                                                          \
-                                                                           \
-                return result;                                             \
-            }
+            return "?" STRINGIZE(ENAME) "?";
+
+#define EBEGIN() EBEGIN__BODY(int)
+#define EBEGIN_DERIVED(BASE_NAME) EBEGIN__BODY(BASE_NAME)
 
 #define EN_INTERNAL(NAME, STR) \
     case (NAME):               \

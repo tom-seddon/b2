@@ -7,16 +7,18 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Now a misnomer...
-#include "SettingsUI.h"
 #include <memory>
 #include <beeb/type.h>
 
 class BeebWindow;
+class SettingsUI;
 
 // If the relevant features are compiled out, the Create... function will return
 // nullptr.
 
-std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateHost6502DebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateParasite6502DebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateParasiteMemoryDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window);
@@ -37,6 +39,7 @@ std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

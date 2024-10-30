@@ -6,6 +6,7 @@
 
 #include <thread>
 #include <shared/mutex.h>
+#include <condition_variable>
 #include <vector>
 #include <atomic>
 
@@ -69,7 +70,7 @@ class JobQueue {
     std::vector<ThreadData> m_threads;
 
     mutable Mutex m_jobs_mutex;
-    ConditionVariable m_jobs_cv;
+    std::condition_variable_any m_jobs_cv;
     std::vector<std::shared_ptr<Job>> m_jobs;
     bool m_quit = false;
 

@@ -1,16 +1,23 @@
 #ifndef HEADER_DC000C3A3B824FD5996AAC979C8B4922 // -*- mode:c++ -*-
 #define HEADER_DC000C3A3B824FD5996AAC979C8B4922
-#include "cpp_begin.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#ifdef _MSC_VER
+// Anywhere better for this?
+#define _CRT_NONSTDC_NO_WARNINGS
+#endif
 
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #ifdef _MSC_VER
-#include <intrin.h>
+// This is the relevant part of intrin.h. Don't #include it; it is somewhat slow
+// to parse (for whatever reason) and it saves a few seconds in a full rebuild
+// not having it included absolutely everywhere.
+extern "C" void __nop(void);
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -373,11 +380,11 @@ void SleepMS(unsigned ms);
 // shorter-than-milliseconds period.
 uint64_t GetCurrentTickCount(void);
 double GetSecondsFromTicks(uint64_t ticks);
+double GetSecondsPerTick();
 
 #define GetMillisecondsFromTicks(TICKS) (GetSecondsFromTicks(TICKS) * 1000.)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include "cpp_end.h"
 #endif //HEADER_DC000C3A3B824FD5996AAC979C8B4922
