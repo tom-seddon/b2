@@ -1,17 +1,13 @@
 #include <shared/system.h>
 #include <string>
-#include "misc.h"
-#include "DirectDiscImage.h"
-#include "native_ui.h"
-#include "Messages.h"
+#include <beeb/DirectDiscImage.h>
 #include <limits.h>
 #include <shared/file_io.h>
 #include <shared/path.h>
+#include <shared/log.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-LOG_EXTERN(OUTPUT);
 
 const std::string DirectDiscImage::LOAD_METHOD_DIRECT = "direct";
 
@@ -89,11 +85,14 @@ std::string DirectDiscImage::GetLoadMethod() const {
 
 // TODO - basically the same as MemoryDiscImage.
 std::string DirectDiscImage::GetDescription() const {
-    return strprintf("%s %s %zuT x %zuS",
-                     m_geometry.double_sided ? "DS" : "SS",
-                     m_geometry.double_density ? "DD" : "SD",
-                     m_geometry.num_tracks,
-                     m_geometry.sectors_per_track);
+    char description[100];
+    snprintf(description, sizeof description, "%s %s %zuT x %zuS",
+             m_geometry.double_sided ? "DS" : "SS",
+             m_geometry.double_density ? "DD" : "SD",
+             m_geometry.num_tracks,
+             m_geometry.sectors_per_track);
+
+    return description;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -249,8 +248,6 @@ bool DirectDiscImage::fopenAndSeek(bool write,
             mode = "rb";
         }
 
-        LOGF(OUTPUT, "Opening: %s (mode=%s)\n", m_path.c_str(), mode);
-
         m_fp = fopenUTF8(m_path.c_str(), mode);
         if (!m_fp) {
             return false;
@@ -272,7 +269,6 @@ bool DirectDiscImage::fopenAndSeek(bool write,
 
 void DirectDiscImage::Close() const {
     if (m_fp) {
-        LOGF(OUTPUT, "Closing: %s\n", m_path.c_str());
         fclose(m_fp);
         m_fp = nullptr;
     }

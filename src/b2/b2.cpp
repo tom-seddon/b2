@@ -37,7 +37,7 @@
 #include "HTTPServer.h"
 #include "HTTPMethodsHandler.h"
 #include <curl/curl.h>
-#include "DirectDiscImage.h"
+#include <beeb/DirectDiscImage.h>
 #include "discs.h"
 #if SYSTEM_OSX
 #include <IOKit/hid/IOHIDLib.h>

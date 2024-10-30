@@ -16,8 +16,6 @@ add_executable(b2 MACOSX_BUNDLE
   ConfigsUI.cpp ConfigsUI.h ConfigsUI_private.inl
   DataRateUI.cpp DataRateUI.h
   DearImguiTestUI.cpp DearImguiTestUI.h
-  DirectDiscImage.cpp DirectDiscImage.h
-  DiscGeometry.cpp DiscGeometry.h
   GenerateThumbnailJob.cpp GenerateThumbnailJob.h
   HTTPMethodsHandler.cpp HTTPMethodsHandler.h
   HTTPServer.cpp HTTPServer.h

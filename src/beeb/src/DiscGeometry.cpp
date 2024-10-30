@@ -1,11 +1,10 @@
 #include <shared/system.h>
 #include <shared/debug.h>
-#include "Messages.h"
-#include "DiscGeometry.h"
+#include <beeb/DiscGeometry.h>
 #include <shared/path.h>
-#include "native_ui.h"
 #include <string.h>
 #include <inttypes.h>
+#include <shared/log.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

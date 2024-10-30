@@ -6,10 +6,10 @@
 //
 // Write-through disc image.
 //
-// Does an fopen, fseek, fgetc/fputc, fclose for every byte. Needs more
-// support from the disc system for better performance - should ideally
-// open the file when the motor spins up, and close it when it spins down.
-// It's then pretty obvious when the file is safe to overwrite.
+// Opens disk image file as required, then closes on motor spin down. This
+// strikes a decent balance between performance (fopen per byte is pretty
+// terrible on Windows...) and making it easy to rewrite a DFS disk image that's
+// in use (file can be overwritten when motor is off).
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

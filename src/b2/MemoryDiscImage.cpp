@@ -13,6 +13,7 @@
 #include "native_ui.h"
 #include <shared/log.h>
 #include <shared/file_io.h>
+#include <beeb/DiscGeometry.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push

@@ -34,7 +34,7 @@
 #include "DearImguiTestUI.h"
 #include "debugger.h"
 #include "HTTPServer.h"
-#include "DirectDiscImage.h"
+#include <beeb/DirectDiscImage.h>
 #include "SavedStatesUI.h"
 #include "BeebLinkUI.h"
 #include "SettingsUI.h"
