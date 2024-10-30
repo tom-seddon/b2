@@ -435,7 +435,8 @@ void SetCurrentThreadNameInternal(const char *name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const int64_t NS_PER_SEC = 1000 * 1000 * 1000;
+static constexpr int64_t NS_PER_SEC = 1000 * 1000 * 1000;
+static constexpr double SECS_PER_NS = 1.0 / NS_PER_SEC;
 
 uint64_t GetCurrentTickCount(void) {
     struct timespec r;
@@ -447,8 +448,12 @@ uint64_t GetCurrentTickCount(void) {
 //////////////////////////////////////////////////////////////////////////
 
 double GetSecondsFromTicks(uint64_t ticks) {
-    return ticks / (double)NS_PER_SEC;
+    return ticks * SECS_PER_NS;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+double GetSecondsPerTick(void) {
+    return SECS_PER_NS;
+}

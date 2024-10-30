@@ -62,12 +62,16 @@ def fatal(str):
 ##########################################################################
 ##########################################################################
 
-def run(argv,ignore_errors=False):
+def run(argv,ignore_errors=False,**other_popen_kwargs):
+    def quote(x):
+        if not x.startswith('"') and ' ' in x: return '"%s"'%x
+        else: return x
+
     print(80*"-")
-    print(" ".join([shlex.quote(x) for x in argv]))
+    print(" ".join([quote(x) for x in argv]))
     print(80*"-")
 
-    ret=subprocess.call(argv)
+    ret=subprocess.call(argv,**other_popen_kwargs)
 
     if not ignore_errors:
         if ret!=0: fatal("process failed: %s"%argv)
@@ -76,7 +80,7 @@ def capture(argv):
     v("Run: %s\n"%argv)
     process=subprocess.Popen(args=argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output=process.communicate()
-    if process.returncode!=0: fatal("process failed")
+    if process.returncode!=0: fatal("process failed: %s"%argv)
     return output[0].decode('utf8').splitlines()
 
 def bool_str(x): return "YES" if x else "NO"
@@ -131,10 +135,53 @@ def create_README(options,folder,rev_hash):
 ##########################################################################
 ##########################################################################
 
+def gh_release(release_files,options):
+    # Is this really the best place for all these policies?
+    prerelease=capture(['git','branch','--show-current'])[0]!='master'
+    hash=capture(['git','rev-parse','HEAD'])[0]
+
+    release_name='b2-'+options.release_name
+    if prerelease: release_name+='-prerelease'
+
+    create_argv=['gh','release','create',release_name,'--notes','Release notes to follow.','--target',hash,'--title',release_name]
+    if prerelease: create_argv+=['--prerelease']
+
+    # Assume any errors from the creation process are due to the
+    # release already existing. Worst case, that's wrong - and gh
+    # release will fail.
+    run(create_argv,ignore_errors=True)
+    
+    for release_file in release_files: run(['gh','release','upload',release_name,release_file])
+
+##########################################################################
+##########################################################################
+
 def get_win32_build_folder(options):
     return '%s/%s%s'%(BUILD_FOLDER,
                       FOLDER_PREFIX,
                       options.toolchain)
+
+def get_win32_vs_path(options):
+    vswhere_path=r'''C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'''
+    if not os.path.isfile(vswhere_path):
+        fatal('Visual Studio not installed? vswhere.exe not found at: %s'%vswhere_path)
+
+    if options.toolchain=='vs2019': ver=16
+    else: fatal('unknown toolchain: %s'%options.toolchain)
+
+    installation_path=subprocess.check_output([vswhere_path,'-version',str(ver),'-property','installationPath']).decode('utf-8').rstrip()
+    if not os.path.isdir(installation_path):
+        fatal('Visual Studio installation path not found at: %s'%installation_path)
+
+    return installation_path
+
+def get_win32_vstool_path(vstool_relative_path,options):
+    vstool_path=os.path.join(get_win32_vs_path(options),vstool_relative_path)
+    if not os.path.isfile(vstool_path):
+        fatal('%s not found at: %s'%(os.path.split(vstool_relative_path)[1],
+                                     vstool_path))
+
+    return vstool_path
 
 def build_win32_config(timings,options,config,colour):
     folder=get_win32_build_folder(options)
@@ -144,17 +191,31 @@ def build_win32_config(timings,options,config,colour):
          "color","%x"%colour],ignore_errors=True)
     
     if not options.skip_compile:
-        run(["cmd","/c",
-             r"etc\release\build_windows.bat",
+        # env=os.environ is a workaround for the environment possibly
+        # having two environment variables, one called PATH and one
+        # Path. This confuses and enrages msbuild, and they aren't
+        # going to fix it:
+        # https://github.com/dotnet/msbuild/issues/5726
+        #
+        # Not 100% sure why this is happening, but it looks like GNU
+        # Make could be the culprit? As in, it sets PATH, but doesn't
+        # unset Path.
+        #
+        # Python doesn't make this easy to figure out or fix, because
+        # os.environ only contains a value for PATH - but that makes
+        # it perfect as the new environment to use for the subprocess.
+
+        run([get_win32_vstool_path(r'''MSBuild\Current\Bin\MSBuild.exe''',options),
              "/maxcpucount",
              "/property:MultiProcessorCompilation=true", # http://stackoverflow.com/a/17719445/1618406
              "/property:Configuration=%s"%config,
              "/verbosity:minimal",
-             os.path.join(folder,"b2.sln")])
+             os.path.join(folder,"b2.sln")],
+            env=os.environ)
 
     if not options.skip_ctest:
         with ChangeDirectory(folder):
-            run(["ctest",
+            run([get_win32_vstool_path(r'''Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe''',options),
                  "-j",os.getenv("NUMBER_OF_PROCESSORS"),
                  "-C",config])
             
@@ -165,6 +226,7 @@ def build_win32_config(timings,options,config,colour):
 
 def build_win32(options,ifolder,rev_hash):
     timings={}
+    release_files=[]
 
     # path that the ZIP contents will be assembled into.
     zip_folder=os.path.join(ifolder,"b2")
@@ -208,7 +270,9 @@ def build_win32(options,ifolder,rev_hash):
     set_tree_timestamps(options,ifolder)
 
     # The ZipFile module is a bit annoying to use.
-    with ChangeDirectory(ifolder): run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
+    with ChangeDirectory(ifolder):
+        run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
+        release_files.append(os.path.abspath(zip_fname))
 
     set_file_timestamps(options,zip_fname)
 
@@ -226,6 +290,9 @@ def build_win32(options,ifolder,rev_hash):
     with ChangeDirectory(ifolder):
         zip_fname='symbols.b2-windows-%s.7z'%options.release_name
         run(['7z.exe','a','-mx=9',zip_fname,'b2 Debug.pdb','b2.pdb'])
+        release_files.append(os.path.abspath(zip_fname))
+
+    if options.gh_release: gh_release(release_files,options)
     
 ##########################################################################
 ##########################################################################
@@ -262,12 +329,20 @@ def copy_darwin_app(config,mount,app_name):
     run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
 
 def build_darwin(options,ifolder,rev_hash):
+    release_files=[]
+    
+    arch=capture(['uname','-m'])[0]
+    if arch=='x86_64': arch='intel'
+    elif arch=='arm64': arch='applesilicon'
+    else: fatal('unknown architecture from uname -m: %s'%arch)
+    
     if not options.skip_debug: build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
-    stem="b2-osx-"
+    stem="b2-macos-"
     if options.macos_deployment_target is not None:
         stem+='%s-'%options.macos_deployment_target
+    stem+='%s-'%arch
     stem+=options.release_name
     
     # 
@@ -309,6 +384,7 @@ def build_darwin(options,ifolder,rev_hash):
     # Convert temp DMG into final DMG.
     run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
     set_file_timestamps(options,final_dmg)
+    release_files.append(os.path.abspath(final_dmg))
 
     # Delete temp DMG.
     rm(temp_dmg)
@@ -330,7 +406,9 @@ def build_darwin(options,ifolder,rev_hash):
         run(['7z','a','-mx=9',symbols_zip,'b2','b2 Debug'])
         shutil.rmtree('b2',ignore_errors=True)
         shutil.rmtree('b2 Debug',ignore_errors=True)
+        release_files.append(os.path.abspath(symbols_zip))
 
+    if options.gh_release: gh_release(release_files,options)
 
 ##########################################################################
 ##########################################################################
@@ -358,6 +436,13 @@ def build_linux(options,ifolder,rev_hash):
 def main(options):
     global g_verbose
     g_verbose=options.verbose
+
+    if options.gh_release:
+        try:
+            subprocess.check_output(['gh','--help'])
+        except: fatal('''couldn't run gh --help. Is gh installed?''')
+
+        if 'GH_TOKEN' not in os.environ: fatal('no GH_TOKEN for gh in environment')
 
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
 
@@ -420,29 +505,12 @@ if __name__=="__main__":
     parser.add_argument('--make-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='run %(metavar)s GNU make jobs at once. Default: %(default)d')
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
-    
+    parser.add_argument('--gh-release',action='store_true',help='''create GitHub release (or prerelease if not on master git branch) and upload artefacts''')
+
     if sys.platform=='win32':
-        vsver=os.getenv('VisualStudioVersion')
-        if vsver is not None: vsver=int(float(vsver))
-
-        if vsver==14: toolchain='vs2015'
-        elif vsver==15: toolchain='vs2017'
-        elif vsver==16: toolchain='vs2019'
-        else: toolchain=None
-
-        if toolchain is None: help_suffix=''
-        else: help_suffix="Default: ``%s''"%toolchain
-        
-        parser.add_argument('-t','--toolchain',
-                            metavar='TOOLCHAIN',
-                            default=toolchain,
-                            required=toolchain is None,
-                            help='toolchain to use. One of: vs2015, vs2017, vs2019. '+help_suffix)
-    else:
-        parser.add_argument('-t','--toolchain',
-                            metavar='TOOLCHAIN',
-                            help='placeholder, ignored')
-
+        # TODO: sort this out...
+        parser.set_defaults(toolchain='vs2019')
+    
     if sys.platform=='darwin':
         macos_deployment_target_help='''macOS deployment target. Default is whatever the Makefile defaults to'''
     else:
@@ -451,5 +519,5 @@ if __name__=="__main__":
     parser.add_argument('--macos-deployment-target',
                         metavar='VERSION',
                         help=macos_deployment_target_help)
-    
+
     main(parser.parse_args(sys.argv[1:]))

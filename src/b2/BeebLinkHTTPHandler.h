@@ -32,7 +32,7 @@ class BeebLinkHTTPHandler : public BeebLinkHandler {
 
     bool Init(Messages *msg);
 
-    bool GotRequestPacket(std::vector<uint8_t> data) override;
+    bool GotRequestPacket(std::vector<uint8_t> data, bool is_fire_and_forget) override;
 
   protected:
   private:

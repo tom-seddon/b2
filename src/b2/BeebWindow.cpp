@@ -95,8 +95,16 @@ static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_
 static Command2 g_reset_dock_windows_command = Command2(&g_beeb_window_command_table, "reset_dock_windows", "Reset dock windows").MustConfirm();
 static Command2 g_paste_command(&g_beeb_window_command_table, "paste", "OSRDCH Paste");
 static Command2 g_paste_return_command(&g_beeb_window_command_table, "paste_return", "OSRDCH Paste (+Return)");
-static Command2 g_toggle_copy_oswrch_text_command = Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text").WithTick();
+static Command2 g_toggle_copy_oswrch_text_command = Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "Copy OSWRCH text output").WithTick();
 static Command2 g_copy_basic_command = Command2(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
+static Command2 g_copy_translation_pass_through = Command2(&g_beeb_window_command_table, "copy_translation_none", "No translation").WithTick().WithExtraText("Copy text");
+static Command2 g_copy_translation_only_gbp = Command2(&g_beeb_window_command_table, "copy_translation_only_gbp", "Translate " POUND_SIGN_UTF8 " only").WithTick().WithExtraText("Copy text");
+static Command2 g_copy_translation_SAA5050 = Command2(&g_beeb_window_command_table, "copy_translation_SAA5050", "Translate Mode 7 chars").WithTick().WithExtraText("Copy text");
+static Command2 g_copy_toggle_handle_delete = Command2(&g_beeb_window_command_table, "copy_toggle_handle_delete", "Handle delete").WithTick().WithExtraText("Copy text");
+static Command2 g_printer_translation_pass_through = Command2(&g_beeb_window_command_table, "printer_translation_none", "No translation").WithTick().WithExtraText("Copy printer");
+static Command2 g_printer_translation_only_gbp = Command2(&g_beeb_window_command_table, "printer_translation_only_gbp", "Translate " POUND_SIGN_UTF8 " only").WithTick().WithExtraText("Copy printer");
+static Command2 g_printer_translation_SAA5050 = Command2(&g_beeb_window_command_table, "printer_translation_SAA5050", "Translate Mode 7 chars").WithTick().WithExtraText("Copy printer");
+static Command2 g_printer_toggle_handle_delete = Command2(&g_beeb_window_command_table, "printer_toggle_handle_delete", "Handle delete").WithTick().WithExtraText("Copy printer");
 static Command2 g_parallel_printer_command = Command2(&g_beeb_window_command_table, "parallel_printer", "Parallel printer").WithTick();
 static Command2 g_reset_printer_buffer_command = Command2(&g_beeb_window_command_table, "reset_printer_buffer", "Reset printer buffer").MustConfirm();
 static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer");
@@ -115,6 +123,8 @@ static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_t
 static Command2 g_new_window_command = Command2(&g_beeb_window_command_table, "new_window", "New window");
 static Command2 g_clone_window_command = Command2(&g_beeb_window_command_table, "clone_window", "Clone window");
 static Command2 g_close_window_command = Command2(&g_beeb_window_command_table, "close_window", "Close window");
+static Command2 g_toggle_capture_mouse_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse", "Capture mouse").WithTick().AlwaysPrioritized();
+static Command2 g_toggle_capture_mouse_on_click_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse_on_click", "Capture on click").WithTick();
 
 struct PopupMetadata {
     Command2 command;
@@ -159,7 +169,8 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_AudioCallback, "toggle_date_rate", "Performance", &CreateDataRateUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_PixelMetadata, "toggle_pixel_metadata", "Pixel Metadata", &CreatePixelMetadataDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DearImguiTest, "toggle_dear_imgui_test", "Dear ImGui Test", &CreateDearImguiTestUI);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_6502Debugger, "toggle_6502_debugger", "6502 Debug", &Create6502DebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_6502Debugger, "toggle_6502_debugger", "Host 6502 Debug", &CreateHost6502DebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Parasite6502Debugger, "toggle_parasite_6502_debugger", "Parasite 6502 Debug", &CreateParasite6502DebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger1, "toggle_memory_debugger1", "Host Memory Debug 1", &CreateHostMemoryDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger2, "toggle_memory_debugger2", "Host Memory Debug 2", &CreateHostMemoryDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger3, "toggle_memory_debugger3", "Host Memory Debug 3", &CreateHostMemoryDebugWindow);
@@ -220,6 +231,8 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_DigitalJoystickDebugger, "toggle_digital_joystick_debugger", "Digital Joystick Debug", &CreateDigitalJoystickDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "Imgui debug", &BeebWindow::CreateImGuiDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard debug", &CreateKeyboardDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_system_debug", "System debug", &CreateSystemDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MouseDebug, "toggle_mouse_debug", "Mouse debug", &CreateMouseDebugWindow);
     return true;
 }
 
@@ -345,6 +358,7 @@ class BeebWindow::OptionsUI : public SettingsUI {
 
 BeebWindow::OptionsUI::OptionsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
+    this->SetDefaultSize(ImVec2(450, 450));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -480,14 +494,15 @@ void BeebWindow::OptionsUI::DoImGui() {
     {
         ImGuiHeader("Debug Options");
 
-        std::shared_ptr<const BBCMicro::State> beeb_state;
+        std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
         m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
 
         bool teletext_debug = beeb_state->saa5050.debug;
         if (ImGui::Checkbox("Teletext debug", &teletext_debug)) {
-            std::unique_lock<Mutex> lock;
-            BBCMicro *m = m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
-            m->SetTeletextDebug(teletext_debug);
+            m_beeb_window->m_beeb_thread->Send(
+                std::make_shared<BeebThread::CallbackMessage>([teletext_debug](BBCMicro *m) -> void {
+                    m->SetTeletextDebug(teletext_debug);
+                }));
         }
 
         ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
@@ -524,8 +539,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments)) {
     m_name = m_init_arguments.name;
 
-    m_message_list = std::make_shared<MessageList>();
-    m_msg = Messages(m_message_list);
+    m_message_list = std::make_shared<MessageList>("BeebWindow");
+    m_msg.SetMessageList(m_message_list);
 
     m_beeb_thread = std::make_shared<BeebThread>(m_message_list,
                                                  m_init_arguments.sound_device,
@@ -555,7 +570,7 @@ BeebWindow::~BeebWindow() {
 
     if (m_update_tv_texture_thread.joinable()) {
         {
-            std::lock_guard<Mutex> lock(m_update_tv_texture_state.mutex);
+            LockGuard<Mutex> lock(m_update_tv_texture_state.mutex);
 
             m_update_tv_texture_state.stop = true;
         }
@@ -647,6 +662,8 @@ void BeebWindow::HandleSDLFocusLostEvent() {
         auto message = std::make_shared<BeebThread::JoystickButtonMessage>(i, false);
         m_beeb_thread->Send(std::move(message));
     }
+
+    this->SetCaptureMouse(false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -683,7 +700,27 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent &event) {
-    if (m_imgui_stuff) {
+    if (m_is_mouse_captured) {
+        uint8_t mask = 0;
+
+        switch (event.button) {
+        case 1:
+            mask = BBCMicroMouseButton_Left;
+            break;
+
+        case 2:
+            mask = BBCMicroMouseButton_Middle;
+            break;
+
+        case 3:
+            mask = BBCMicroMouseButton_Right;
+            break;
+        }
+
+        if (mask != 0) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::MouseButtonsMessage>(mask, event.state == SDL_PRESSED ? mask : (uint8_t)0));
+        }
+    } else if (m_imgui_stuff) {
         m_imgui_stuff->AddMouseButtonEvent(event.button, event.type == SDL_MOUSEBUTTONDOWN);
     }
 }
@@ -808,7 +845,11 @@ void BeebWindow::HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
-    if (m_imgui_stuff) {
+    if (m_is_mouse_captured) {
+        if (event.xrel != 0 || event.yrel != 0) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::MouseMotionMessage>(event.xrel, event.yrel));
+        }
+    } else if (m_imgui_stuff) {
         m_imgui_stuff->AddMouseMotionEvent(event.x, event.y);
     }
 }
@@ -1042,12 +1083,48 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 }
             }
 
+            const std::vector<Command2 *> *beeb_window_commands = nullptr;
+            const std::vector<Command2 *> *active_popup_commands = nullptr;
+            if (keycode != 0) {
+                if (is_valid_shortcut) {
+                    beeb_window_commands = g_beeb_window_command_table.GetCommandsForPCKey(keycode);
+
+                    if (active_popup) {
+                        if (active_popup->command_table) {
+                            active_popup_commands = active_popup->command_table->GetCommandsForPCKey(keycode);
+                        }
+                    }
+                }
+            }
+
             if (beeb_focus) {
+                // 1. Handle always-prioritized shortcuts, or all shortcuts if
+                // all shortcuts prioritized
+                //
+                // 2. Handle Beeb window
+                //
+                // 3. Handle shortcuts, if shortcuts not prioritized
+                //
+                // No need to skip always-prioritized commands in step 3, as
+                // there's no harm in actioning a command twice.
+
                 bool handled = false;
 
-                if (m_settings.prefer_shortcuts) {
-                    if (is_valid_shortcut) {
-                        handled = this->HandleCommandKey(keycode, active_popup);
+                if (beeb_window_commands) {
+                    for (Command2 *command : *beeb_window_commands) {
+                        if (m_settings.prefer_shortcuts || command->IsAlwaysPrioritized()) {
+                            m_cst.ActionCommand(command);
+                            handled = true;
+                        }
+                    }
+                }
+
+                if (active_popup_commands) {
+                    for (Command2 *command : *active_popup_commands) {
+                        if (m_settings.prefer_shortcuts || command->IsAlwaysPrioritized()) {
+                            active_popup->cst->ActionCommand(command);
+                            handled = true;
+                        }
                     }
                 }
 
@@ -1056,15 +1133,16 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 }
 
                 if (!m_settings.prefer_shortcuts) {
-                    if (!handled) {
-                        if (is_valid_shortcut) {
-                            handled = this->HandleCommandKey(keycode, active_popup);
-                        }
+                    m_cst.ActionCommands(beeb_window_commands);
+                    if (active_popup_commands) {
+                        active_popup->cst->ActionCommands(active_popup_commands);
                     }
                 }
             } else {
-                if (is_valid_shortcut) {
-                    this->HandleCommandKey(keycode, active_popup);
+                m_cst.ActionCommands(beeb_window_commands);
+
+                if (active_popup_commands) {
+                    active_popup->cst->ActionCommands(active_popup_commands);
                 }
             }
         }
@@ -1073,25 +1151,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     m_sdl_keyboard_events.clear();
 
     return !close_window; // sigh, inverted logic
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::HandleCommandKey(uint32_t keycode, SettingsUI *active_popup) {
-    if (keycode != 0) {
-        if (m_cst.ActionCommandsForPCKey(g_beeb_window_command_table, keycode)) {
-            return true;
-        }
-
-        if (active_popup) {
-            if (active_popup->ActionCommandsForPCKey(keycode)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1106,6 +1165,39 @@ static BeebConfig *FindBeebConfigByName(const std::string &name) {
     }
 
     return nullptr;
+}
+
+void BeebWindow::DoCopyModeCommands(BeebWindowSettings::CopySettings *settings,
+                                    bool enabled,
+                                    const Command2 &pass_through,
+                                    const Command2 &only_gbp,
+                                    const Command2 &SAA5050,
+                                    const Command2 &toggle_handle_delete) {
+    m_cst.SetTicked(pass_through, settings->convert_mode == BBCUTF8ConvertMode_PassThrough);
+    m_cst.SetTicked(only_gbp, settings->convert_mode == BBCUTF8ConvertMode_OnlyGBP);
+    m_cst.SetTicked(SAA5050, settings->convert_mode == BBCUTF8ConvertMode_SAA5050);
+    m_cst.SetTicked(toggle_handle_delete, settings->handle_delete);
+
+    m_cst.SetEnabled(pass_through, enabled);
+    m_cst.SetEnabled(only_gbp, enabled);
+    m_cst.SetEnabled(SAA5050, enabled);
+    m_cst.SetEnabled(toggle_handle_delete, enabled);
+
+    if (m_cst.WasActioned(pass_through)) {
+        settings->convert_mode = BBCUTF8ConvertMode_PassThrough;
+    }
+
+    if (m_cst.WasActioned(only_gbp)) {
+        settings->convert_mode = BBCUTF8ConvertMode_OnlyGBP;
+    }
+
+    if (m_cst.WasActioned(SAA5050)) {
+        settings->convert_mode = BBCUTF8ConvertMode_SAA5050;
+    }
+
+    if (m_cst.WasActioned(toggle_handle_delete)) {
+        settings->handle_delete = !settings->handle_delete;
+    }
 }
 
 void BeebWindow::DoCommands(bool *close_window) {
@@ -1183,17 +1275,25 @@ void BeebWindow::DoCommands(bool *close_window) {
         this->DoPaste(true);
     }
 
-    m_cst.SetTicked(g_toggle_copy_oswrch_text_command, m_beeb_thread->IsCopying());
+    const bool is_copying = m_beeb_thread->IsCopying();
+    m_cst.SetTicked(g_toggle_copy_oswrch_text_command, is_copying);
     if (m_cst.WasActioned(g_toggle_copy_oswrch_text_command)) {
         if (m_beeb_thread->IsCopying()) {
             m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
         } else {
             m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-                this->SetClipboardFromBBCASCII(data);
+                this->SetClipboardFromBBCASCII(data, m_settings.text_copy_settings);
             },
                                                                                false)); //false=not Copy BASIC
         }
     }
+
+    DoCopyModeCommands(&m_settings.text_copy_settings,
+                       !is_copying,
+                       g_copy_translation_pass_through,
+                       g_copy_translation_only_gbp,
+                       g_copy_translation_SAA5050,
+                       g_copy_toggle_handle_delete);
 
     m_cst.SetEnabled(g_copy_basic_command, !m_beeb_thread->IsPasting());
     if (m_cst.WasActioned(g_copy_basic_command)) {
@@ -1201,7 +1301,7 @@ void BeebWindow::DoCommands(bool *close_window) {
             m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
         } else {
             m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-                this->SetClipboardFromBBCASCII(data);
+                this->SetClipboardFromBBCASCII(data, m_settings.text_copy_settings);
             },
                                                                                true)); //true=Copy BASIC
         }
@@ -1212,19 +1312,20 @@ void BeebWindow::DoCommands(bool *close_window) {
         m_beeb_thread->Send(std::make_shared<BeebThread::SetPrinterEnabledMessage>(!m_cst.GetTicked(g_parallel_printer_command)));
     }
 
-    m_cst.SetEnabled(g_reset_printer_buffer_command, m_beeb_thread->GetPrinterDataSizeBytes() > 0);
+    const bool any_printer_data = m_beeb_thread->GetPrinterDataSizeBytes() > 0;
+    m_cst.SetEnabled(g_reset_printer_buffer_command, any_printer_data);
     if (m_cst.WasActioned(g_reset_printer_buffer_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::ResetPrinterBufferMessage>());
     }
 
-    m_cst.SetEnabled(g_copy_printer_buffer_command, m_cst.GetEnabled(g_reset_printer_buffer_command));
+    m_cst.SetEnabled(g_copy_printer_buffer_command, any_printer_data);
     if (m_cst.WasActioned(g_copy_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
-        this->SetClipboardFromBBCASCII(data);
+        this->SetClipboardFromBBCASCII(data, m_settings.printer_copy_settings);
     }
 
-    m_cst.SetEnabled(g_save_printer_buffer_command, m_cst.GetEnabled(g_reset_printer_buffer_command));
+    m_cst.SetEnabled(g_save_printer_buffer_command, any_printer_data);
     if (m_cst.WasActioned(g_save_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
@@ -1238,24 +1339,28 @@ void BeebWindow::DoCommands(bool *close_window) {
         }
     }
 
+    DoCopyModeCommands(&m_settings.printer_copy_settings,
+                       true, //no reason not to have these permanently enabled?
+                       g_printer_translation_pass_through,
+                       g_printer_translation_only_gbp,
+                       g_printer_translation_SAA5050,
+                       g_printer_toggle_handle_delete);
+
 #if BBCMICRO_DEBUGGER
     m_cst.SetEnabled(g_debug_run_command, this->DebugIsHalted());
     if (m_cst.WasActioned(g_debug_run_command)) {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-        m->DebugRun();
-        m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+        m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+            m->DebugRun();
+        }));
     }
 #endif
 
 #if BBCMICRO_DEBUGGER
     m_cst.SetEnabled(g_debug_stop_command, !m_cst.GetEnabled(g_debug_run_command));
     if (m_cst.WasActioned(g_debug_stop_command)) {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-        m->DebugHalt("manual stop");
+        m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+            m->DebugHalt("manual stop");
+        }));
     }
 #endif
 
@@ -1291,7 +1396,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 
         std::string path;
         if (fd.Open(&path)) {
-            SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+            SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24);
             if (!!screenshot) {
                 SaveSDLSurface(screenshot.get(), path, &m_msg);
             }
@@ -1299,7 +1404,13 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_copy_screenshot_command)) {
-        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+        // TODO this constant should be in platform-specific code.
+#if SYSTEM_WINDOWS
+        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_XRGB8888;
+#else
+        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_RGB24;
+#endif
+        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(ideal_clipboard_format);
         if (!!screenshot) {
             SetClipboardImage(screenshot.get(), &m_msg);
         }
@@ -1335,6 +1446,18 @@ void BeebWindow::DoCommands(bool *close_window) {
         *close_window = true;
     }
 
+    m_cst.SetEnabled(g_toggle_capture_mouse_command, m_beeb_thread->HasMouse());
+    m_cst.SetTicked(g_toggle_capture_mouse_command, m_is_mouse_captured);
+    if (m_cst.WasActioned(g_toggle_capture_mouse_command)) {
+        this->SetCaptureMouse(!m_is_mouse_captured);
+    }
+
+    m_cst.SetEnabled(g_toggle_capture_mouse_on_click_command, m_beeb_thread->HasMouse());
+    m_cst.SetTicked(g_toggle_capture_mouse_on_click_command, m_settings.capture_mouse_on_click);
+    if (m_cst.WasActioned(g_toggle_capture_mouse_on_click_command)) {
+        m_settings.capture_mouse_on_click = !m_settings.capture_mouse_on_click;
+    }
+
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
         const uint64_t mask = (uint64_t)1 << type;
 
@@ -1357,6 +1480,7 @@ void BeebWindow::DoMenuUI() {
         this->DoHardwareMenu();
         this->DoKeyboardMenu();
         this->DoJoysticksMenu();
+        this->DoMouseMenu();
         this->DoPrinterMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
@@ -1395,6 +1519,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             ImGuiWindowFlags extra_flags = 0;
             if (popup) {
                 extra_flags = (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
+                ImGui::SetNextWindowSize(popup->GetDefaultSize(), ImGuiCond_FirstUseEver);
             }
 
             if (ImGui::Begin(popup_metadata->command.GetText().c_str(), &opened, extra_flags)) {
@@ -1430,7 +1555,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
         }
     }
 
-    if (ValueChanged(&m_msg_last_num_errors_and_warnings_printed, m_message_list->GetNumErrorsAndWarningsPrinted())) {
+    if (ValueChanged(&m_msg_last_num_errors_printed, m_message_list->GetNumErrorsPrinted())) {
         m_settings.popups |= 1 << BeebWindowPopupType_Messages;
     }
 
@@ -1507,10 +1632,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
     }
 
     if (show_leds_popup) {
-        if (!m_leds_popup_ui_active) {
-            m_leds_popup_ticks = now;
-        }
-
+        m_leds_popup_ticks = now;
         m_leds_popup_ui_active = true;
     }
 
@@ -1647,7 +1769,7 @@ void BeebWindow::DoFileMenu() {
             char title[100];
             snprintf(title, sizeof title, "Drive %d", drive);
 
-            std::unique_lock<Mutex> d_lock;
+            UniqueLock<Mutex> d_lock;
             std::shared_ptr<const DiscImage> disc_image = m_beeb_thread->GetDiscImage(&d_lock, drive);
 
             if (ImGui::BeginMenu(title)) {
@@ -1744,7 +1866,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
         if (disc_image->CanSave()) {
             if (ImGui::MenuItem("Save")) {
-                disc_image->SaveToFile(disc_image->GetName(), &m_msg);
+                disc_image->SaveToFile(disc_image->GetName(), m_msg);
             }
         }
 
@@ -1756,7 +1878,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
             std::string path;
             if (fd.Open(&path)) {
-                if (disc_image->SaveToFile(path, &m_msg)) {
+                if (disc_image->SaveToFile(path, m_msg)) {
                     fd.AddLastPathToRecentPaths();
                 }
             }
@@ -1845,7 +1967,17 @@ void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit")) {
         m_cst.DoMenuItem(g_toggle_copy_oswrch_text_command);
         m_cst.DoMenuItem(g_copy_basic_command);
+        if (ImGui::BeginMenu("Copy options")) {
+            m_cst.DoMenuItem(g_copy_translation_pass_through);
+            m_cst.DoMenuItem(g_copy_translation_only_gbp);
+            m_cst.DoMenuItem(g_copy_translation_SAA5050);
+            ImGui::Separator();
+            m_cst.DoMenuItem(g_copy_toggle_handle_delete);
+            ImGui::EndMenu();
+        }
+        ImGui::Separator();
         m_cst.DoMenuItem(g_copy_screenshot_command);
+        ImGui::Separator();
         m_cst.DoMenuItem(g_paste_command);
         m_cst.DoMenuItem(g_paste_return_command);
 
@@ -1909,7 +2041,16 @@ void BeebWindow::DoKeyboardMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string NULL_JOYSTICK_NAME("(none)");
+void BeebWindow::DoMouseMenu() {
+    if (ImGui::BeginMenu("Mouse")) {
+        m_cst.DoMenuItem(g_toggle_capture_mouse_command);
+        m_cst.DoMenuItem(g_toggle_capture_mouse_on_click_command);
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoJoysticksMenu() {
     if (ImGui::BeginMenu("Joysticks")) {
@@ -1940,6 +2081,15 @@ void BeebWindow::DoPrinterMenu() {
         m_cst.DoMenuItem(g_reset_printer_buffer_command);
 
         m_cst.DoMenuItem(g_copy_printer_buffer_command);
+
+        if (ImGui::BeginMenu("Copy options")) {
+            m_cst.DoMenuItem(g_printer_translation_pass_through);
+            m_cst.DoMenuItem(g_printer_translation_only_gbp);
+            m_cst.DoMenuItem(g_printer_translation_SAA5050);
+            ImGui::Separator();
+            m_cst.DoMenuItem(g_printer_toggle_handle_delete);
+            ImGui::EndMenu();
+        }
 
         m_cst.DoMenuItem(g_save_printer_buffer_command);
 
@@ -2011,7 +2161,10 @@ void BeebWindow::DoDebugMenu() {
 #if BBCMICRO_DEBUGGER
         ImGui::Separator();
 
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SystemDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_6502Debugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Parasite6502Debugger].command);
+
         if (ImGui::BeginMenu("Memory Debug")) {
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger1].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger2].command);
@@ -2061,6 +2214,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TubeDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DigitalJoystickDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_KeyboardDebug].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MouseDebug].command);
 
         ImGui::Separator();
 
@@ -2130,7 +2284,7 @@ void BeebWindow::DoWindowMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
-    std::unique_lock<Mutex> lock(state->mutex);
+    UniqueLock<Mutex> lock(state->mutex);
 
     while (!state->stop) {
         state->update_cv.wait(lock);
@@ -2255,7 +2409,7 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest
     ASSERT(dest_pitch > 0);
     if (threaded) {
         {
-            std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
+            UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
             m_update_tv_texture_state.done = false;
             m_update_tv_texture_state.update = true;
             m_update_tv_texture_state.update_video_output = m_beeb_thread->GetVideoOutput();
@@ -2277,7 +2431,7 @@ void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, 
     ASSERT(dest_pitch > 0);
 
     if (threaded) {
-        std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
+        UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
 
         while (!m_update_tv_texture_state.done) {
             m_update_tv_texture_state.done_cv.wait(lock);
@@ -2409,6 +2563,12 @@ bool BeebWindow::DoBeebDisplayUI() {
             ImGui::SetCursorPos(pos);
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
             ImGui::Image(m_tv_texture, size);
+
+            if (m_settings.capture_mouse_on_click) {
+                if (ImGui::IsItemClicked()) {
+                    this->SetCaptureMouse(true);
+                }
+            }
 
 #if VIDEO_TRACK_METADATA
 
@@ -2968,7 +3128,12 @@ void BeebWindow::UpdateTitle() {
         smoothed_speed = speed;
     }
 
-    snprintf(title, sizeof title, "%s [%.3fx]", m_name.c_str(), smoothed_speed);
+    const char *mouse_capture_state = "";
+    if (m_is_mouse_captured) {
+        mouse_capture_state = " (Mouse Captured)";
+    }
+
+    snprintf(title, sizeof title, "%s [%.3fx]%s", m_name.c_str(), smoothed_speed, mouse_capture_state);
 
     m_last_title_speed = speed;
 
@@ -3290,8 +3455,8 @@ void BeebWindow::DoPaste(bool add_return) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data) const {
-    std::string utf8 = GetUTF8FromBBCASCII(data);
+void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, const BeebWindowSettings::CopySettings &settings) const {
+    std::string utf8 = GetUTF8FromBBCASCII(data, settings.convert_mode, settings.handle_delete);
 
     int rc = SDL_SetClipboardText(utf8.c_str());
     if (rc != 0) {
@@ -3304,12 +3469,10 @@ void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data) cons
 
 #if BBCMICRO_DEBUGGER
 void BeebWindow::DebugStepOver(uint32_t dso) {
-    std::unique_lock<Mutex> lock;
-    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-    m->DebugStepOver(dso);
-    m->DebugRun();
-    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+    m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([dso](BBCMicro *m) -> void {
+        m->DebugStepOver(dso);
+        m->DebugRun();
+    }));
 }
 #endif
 
@@ -3318,12 +3481,10 @@ void BeebWindow::DebugStepOver(uint32_t dso) {
 
 #if BBCMICRO_DEBUGGER
 void BeebWindow::DebugStepIn(uint32_t dso) {
-    std::unique_lock<Mutex> lock;
-    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-    m->DebugStepIn(dso);
-    m->DebugRun();
-    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+    m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([dso](BBCMicro *m) -> void {
+        m->DebugStepIn(dso);
+        m->DebugRun();
+    }));
 }
 #endif
 
@@ -3359,10 +3520,40 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::SetCaptureMouse(bool capture_mouse) {
+    if (!m_beeb_thread->HasMouse()) {
+        return;
+    }
+
+    if (!capture_mouse && m_is_mouse_captured) {
+        // Buttons up.
+        m_beeb_thread->Send(std::make_shared<BeebThread::MouseButtonsMessage>((uint8_t)(BBCMicroMouseButton_Left | BBCMicroMouseButton_Middle | BBCMicroMouseButton_Right), (uint8_t)0));
+    }
+
+    SDL_SetRelativeMouseMode(capture_mouse ? SDL_TRUE : SDL_FALSE);
+    m_is_mouse_captured = capture_mouse;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Creates a 24 bpp R8_G8_B8 surface. This format coexists nicely with
 // stbi_image_write, which is a bit inflexible in terms of input format.
-SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
-    std::unique_lock<Mutex> lock;
+//
+// Output formats can be:
+//
+// - SDL_PIXELFORMAT_RGB24 = R8G8B8 - for stb_image 3-component RGB writing
+// - SDL_PIXELFORMAT_XRGB8888 = B8G8R8X8 - for Windows clipboard, 32 bpp opaque
+//   bitmap, skipping a final 32 bpp->24 bpp step
+// - SDL_PIXELFORMAT_BGR24 = B8G8R8 - for Windows clipboard, 24 bpp opaque
+//   bitmap. Not very compelling as there's an extra unnecessary 32 bpp->24 bpp
+//   step
+
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format) const {
+    ASSERT(pixel_format == SDL_PIXELFORMAT_RGB24 ||
+           pixel_format == SDL_PIXELFORMAT_BGR24 ||
+           pixel_format == SDL_PIXELFORMAT_XRGB8888);
+    UniqueLock<Mutex> lock;
     uint32_t *tv_pixels;
     if (m_settings.screenshot_last_vsync) {
         tv_pixels = m_tv.GetLastVSyncTexturePixels(&lock);
@@ -3410,13 +3601,17 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
         src_surface = std::move(surface);
     }
 
-    std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, SDL_PIXELFORMAT_RGB24));
-    if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
-        m_msg.e.f("Failed to copy image: %s\n", SDL_GetError());
-        return nullptr;
-    }
+    if (src_surface->format->format == (Uint32)pixel_format) {
+        return src_surface;
+    } else {
+        std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, pixel_format));
+        if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
+            m_msg.e.f("Failed to copy image: %s\n", SDL_GetError());
+            return nullptr;
+        }
 
-    return surface;
+        return surface;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

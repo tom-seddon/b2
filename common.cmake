@@ -44,6 +44,16 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASSERT_ENABLED=1")
 
 set(CMAKE_CXX_FLAGS_FINAL "${CMAKE_CXX_FLAGS_FINAL} -DMUTEX_DEBUGGING=0")
 
+if(OSX)
+  # At some point I introduced something that's only present in 10.12
+  # and later.
+  message(STATUS "OS X deployment target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  if(${CMAKE_OSX_DEPLOYMENT_TARGET} VERSION_LESS 10.12)
+    message(STATUS "Mutex debugging disabled")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMUTEX_DEBUGGING=0")
+  endif()
+endif()
+
 ##########################################################################
 ##########################################################################
 
@@ -138,8 +148,8 @@ elseif(MSVC)
   # C4113: <function pointer type> differs in parameter lists from <function pointer>
   # C4715: not all control paths return a value
   
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4096 /we4113 /we4715 /w44800")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4098 /we4113 /we4715 /w44800")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4096 /we4113 /we4715 /we4800")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4098 /we4113 /we4715 /we4800")
   
   # Warnings not relevant for C99:
   #

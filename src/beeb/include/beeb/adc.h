@@ -50,21 +50,6 @@ static_assert(sizeof(ADCStatusRegister) == 1, "");
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Handle communication between the ADC and whatever produces the analogue data.
-
-class ADCHandler {
-  public:
-    virtual ~ADCHandler();
-
-    virtual uint16_t ReadAnalogueChannel(uint8_t channel) const = 0;
-
-  protected:
-  private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class ADC {
   public:
     ADC();
@@ -86,11 +71,13 @@ class ADC {
     void SetTrace(Trace *t);
 #endif
 
-    void SetHandler(ADCHandler *handler);
+    typedef uint16_t (*HandlerFn)(uint8_t channel, void *context);
+    void SetHandler(HandlerFn fn, void *context);
 
   protected:
   private:
-    ADCHandler *m_handler = nullptr;
+    HandlerFn m_handler_fn = nullptr;
+    void *m_handler_context = nullptr;
     ADCStatusRegister m_status = {};
     uint16_t m_avalue = 0;
     M6502Word m_dvalue = {}; //result of previous conversion

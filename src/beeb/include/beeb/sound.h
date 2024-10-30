@@ -10,6 +10,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// 250,000 Hz
 static constexpr uint64_t SHIFT_CONSTANTS(2MHZ, SOUND_CLOCK, 3);
 static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, SOUND_CLOCK, LSHIFT_SOUND_CLOCK_TO_2MHZ + LSHIFT_2MHZ_TO_CYCLE_COUNT);
 
@@ -23,9 +24,7 @@ static constexpr unsigned SOUND_CLOCK_HZ = CYCLES_PER_SECOND >> RSHIFT_CYCLE_COU
 
 struct SoundDataUnit {
     SN76489::Output sn_output;
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     float disc_drive_sound;
-#endif
 };
 typedef struct SoundDataUnit SoundDataUnit;
 

@@ -87,11 +87,11 @@ Prefix hex numbers with `&`, `$` or `0x`.
 
 Prefix octal numbers with `0`, like C.
 
-## Address prefixes
+## Address suffixes
 
-Addresses are annotated with a prefix, indicating which paging
-settings are in force when deciding what's visible at that address.The
-possible prefixes are as follows.
+Addresses may be annotated with ` followed by a case-sensitive suffix,
+indicating which paging settings are in force when deciding what's
+visible at that address. The possible suffixes are as follows.
 
 Host memory:
 
@@ -102,29 +102,44 @@ Host memory:
 - `h` - HAZEL (Master only) ($c000...$dfff)
 - `o` - OS ROM ($c000...$ffff)
 - `i` - I/O area ($fc00...$feff)
+- 'w', 'x', 'y', 'z' - ROM mapper regions 0-3
+- 'W', 'X', 'Y', 'Z' - ROM mapper regions 4-7
 
 Parasite memory:
 
 - `p` - parasite RAM ($0000...$ffff)
 - `r` - parasite ROM ($f000...$ffff)
 
-The prefix is sometimes redundant. (For example, host address $0000 is
-always shown as ``m`$0000``, even though there's no other prefix it
-could have.)
+When entering an address with a suffix, appropriate paging overrides
+will be selected to ensure the requested byte is visible.
 
-When entering an address, you can usually supply an address prefix.
-(For example, to view $8000 in ROM 4, you might enter ``4`$8000``.)
-Appropriate paging overrides will be selected to ensure the requested
-byte is visible.
+You can supply multiple address suffix codes. Order is relevant, as
+certain suffixes imply the settings for other sufixes. Override this
+with further suffixes if required.
 
-You can supply multiple address prefixes, and they stack up in the
-order given, though this isn't always especially useful.
+- ROM bank suffix ('0' - 'f') implies ROM mapper bank `w`
+- (B+/Master) ROM bank suffix (`0` - `f`) implies ANDY disabled
+- (Master) OS ROM (`o`) implies HAZEL disabled
 
-Note that on B+ and Master, a ROM bank prefix (`0` - `f`) implies ANDY
-is disabled, and on Master the OS ROM (`o`) implies HAZEL is disabled.
-Supply further prefixes to change this if desired.
+Inappropriate suffixes are ignored.
 
-Inappropriate prefixes are ignored. 
+## ROM Mappers
+
+The MAME source is a quite readable definition of how the various ROM
+mapper PLDs fundamentally work:
+https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
+
+The applicable address suffixes affect the mapped region as follows.
+
+- `16 KB` - mapper region irrelevant
+- `Inter-Word` - `w` - `x` select 16 KB region visible at $8000-$bfff
+- `Inter-Base` - `w` - `z` select 16 KB region visible at $8000-$bfff
+- `Spellmaster` - `w` - `z` and `W` - `Z` select 16 KB region visible
+  at $8000-$bfff
+- `Quest Paint` - `w` - `z` select 8 KB region visible at $a000-$bfff
+  ($8000-$9fff is fixed)
+- `Wapping Editor` - `w` - `z` and `W` - `Z` select 8 KB region
+  visible at $a000-$bfff ($8000-$9fff is fixed)
 
 # Debugger windows
 
@@ -142,11 +157,11 @@ will happen when `Start` is clicked:
   Return key is pressed
 * `Execute $xxxx` - recording will start once the PC is equal to the
   given address. Note that this currently goes only by address -
-  address prefixes aren't supported
+  address suffixes aren't supported
 * `Write $xxxx` - recording will start when the given address is
   written to. Writes to any address can be trapped, even if that write
   has no effect, e.g., because the area is ROM. Note that this
-  currently goes only by address - address prefixes aren't supported
+  currently goes only by address - address suffixes aren't supported
 
 Once the trace starts, you can always click `Stop` to end it, but
 there are additional options for the trace end condition:
@@ -257,9 +272,9 @@ data register. For read or read-modify-write instructions, this is the
 value read; for branch instructions, this is the result of the test
 (1=taken, 0=not taken).
 
-Addresses in the trace are annotated with an address prefix hint. Note
+Addresses in the trace are annotated with an address suffix hint. Note
 this is a hint, and while it's usually correct it may not actually
-reflect the affected byte when the prefix is `r` (read parasite ROM,
+reflect the affected byte when the suffix is `r` (read parasite ROM,
 write parasite RAM) or `i` on Master 128 (read either host I/O or MOS
 ROM, write host I/O).
 
@@ -288,11 +303,26 @@ want).
 Show a window that displays the RAM address of the pixel the mouse
 cursor is over.
 
-## `6502 Debug` ##
+## `System Debug`
 
-Show a 6502 debug window. Displays typical register info in the top
-half, and internal stuff (cycle count, internal state, data bus
-address, etc.) in the bottom half.
+Shows cycle counts and execution state (running/halted) for the
+system. The execution state covers the entire system (host processor,
+second processor, hardware, TV output, disk access, etc.), which runs
+as a unit.
+
+## `Host 6502 Debug`, `Parasite 6502 Debug` ##
+
+Show 6502 state: register info in the top half, and internal stuff
+(cycle count, internal state, data bus address, etc.) in the bottom
+half.
+
+The absolute cycle count indicator always counts CPU cycles since the
+emulated system was started. The relative cycle count indicator counts
+at the same rate, but can also be reset to 0 using `Reset`.
+
+When `Reset on breakpoint` is ticked (as is the default), the relative
+cycle count is reset when a breakpoint is hit when running.
+Breakpoints hit while single stepping won't affect the counter.
 
 ## `Host Memory Debug`, `Parasite Memory Debug` ##
 
@@ -331,6 +361,12 @@ addresses, when not statically obvious. Its guesses are based on the
 current state of the system, trying to take paging overrides into
 account, and are for advisory purposes only.
 
+It will also attempt to guess whether a branch will be taken or not
+taken - taken branches have a `(taken)` indicator next to them. Again,
+this is purely based on the current state of the system, so exercise
+caution if the instruction in question is not the one about to be
+executed.
+
 Two step buttons allow instruction-resolution steeping: `Step In` will
 run one instruction for the given CPU and then stop, and `Step Over`
 will run until the given CPU reaches the next instruction visible.
@@ -344,10 +380,11 @@ either CPU, meaning a breakpoint for one CPU could interrupt a step
 operation for the other. Debugging code on two CPUs simultaneously is
 inevitably going to be a little inconvenient.
 
-## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug` ##
+## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug` ##
 
-Activate a debug window for the corresponding piece of BBC hardware,
-showing current register values and additional useful info.
+Activate a debug window for the corresponding piece of BBC hardware
+(if present), showing current register values and additional useful
+info.
 
 ## `Paging debug`
 
@@ -363,19 +400,41 @@ particular address or byte, that byte or address will continue to be
 shown in the list even if all its breakpoint flags are cleared. When
 this happens, click the `x` button to get rid of it.
 
-## `Host Stack`, `Parasite Stack`
+## `Stack`, `Parasite Stack`
 
-Shows a dump of the stack contents. Values below the bottom of the
-stack are shown in a darker colour.
+Shows a dump of the stack contents, byte by byte. Values below the
+bottom of the stack are shown in a darker colour.
 
-The `Addr` column is right-clickable. The address shown is exactly
-what was pushed, but the right click popup includes the address after
-it, for dealing with addresses pushed by `jsr`.
+The `Addr` column shows the 2-byte address at that location in the
+stack.
 
-## `Tube`
+Assuming the `Addr` value was pushed by a `jsr` instruction, the `rts`
+and `jsr` columns show the return address and `jsr` instruction
+address respectively. These are shown in white if it looks like this
+was the case (i.e., the `jsr` address actually points to a `jsr`
+instruction), or in a darker column if not.
+
+The paging override UI doesn't affect the values read from the stack,
+but can affect whether a return address is detected as one or not.
+
+## `Tube Debug`
 
 Shows current Tube status: IRQ state, control register values,
 contents and status for each FIFO.
+
+## `Digital Joystick Debug`
+
+Shows current digital joystick input state, if supported.
+
+## `Keyboard Debug`
+
+Lists current BBC keys pressed, keyboard scan state, and a diagram of
+the keyborad matrix.
+
+## `Mouse Debug`
+
+Shows current mouse state. Four buttons permit generation of fake
+mouse motion.
 
 # Other debug-related options #
 
@@ -410,14 +469,14 @@ documentation for that applies.
 
 ## HTTP endpoints
 
-Values in capitals indicate parameters. Parameters listed as part of
-the path are found by position, and are mandatory; those listed as
-part of the query string are found by name, and are optional.
+Names in capitals are argument placeholders. When listed as part of
+the path, they are found by position, and are mandatory; those given
+as part of the query string are found by name, and are optional.
 
 Every method takes a window name, `WIN` - as seen in the title bar -
-as a parameter, indicating which window to send the request to. In
-most cases, this will probably be `b2`, the name of the initial window
-the emulator creates on startup.
+indicating which window to send the request to. In most cases, this
+will probably be `b2`, the name of the initial window the emulator
+creates on startup.
 
 Parameters expecting numbers are typically hex values, e.g., `ffff`
 (65535), or C-style literals, e.g., `65535` (65535), `0xffff` (65535),
@@ -460,28 +519,26 @@ The text to paste is taken from the request body, which must be
 `text/plain`, with `Content-Encoding` of `ISO-8859-1` (assumed if not
 specified) or `utf-8`.
 
-### `poke/WIN/ADDR` ###
+### `peek/WIN/BEGIN-ADDR/END-ADDR?s=SUFFIX&mos=MOS`; `peek/WIN/BEGIN-ADDR/+SIZE?s=SUFFIX&mos=MOS` ###
 
-**This endpoint is deprecated and will probably be going away**
-
-Store the request body into memory at `ADDR` (a 32-bit hex value), the
-address as per
-[JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
-
-### `peek/WIN/BEGIN-ADDR/END-ADDR`; `peek/WIN/BEGIN-ADDR/+SIZE` ###
-
-**This endpoint is deprecated and will probably be going away**
-
-Retrieve memory from `BEGIN-ADDR` (32-bit hex, inclusive) to
+Retrieve memory from `BEGIN-ADDR` (16-bit hex, inclusive) to
 `END-ADDR` (32-bit hex, exclusive) or `BEGIN-ADDR+SIZE` (exclusive -
 `SIZE` is a C-style 32-bit literal). Respond with
 `application/octet-stream`, a dump of the requested range.
 
-There is a limit on the amount of data that can be peeked. Currently
-this is 4MBytes.
+You can't peek past 0xffff.
 
-Addresses are as per
-[JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
+The `SUFFIX` argument is any debugger address suffixes (default:
+none), and the `MOS` argument is the value for the `MOS's view` flag
+(default: false). Both are discussed above.
+
+### `poke/WIN/ADDR?s=SUFFIX&mos=MOS` ###
+
+Store the request body into memory at `ADDR` (16-bit hex).
+
+As with `peek`, you can't poke past 0xffff.
+
+For info about `SUFFIX` and `MOS`, see the `peek` endpoint.
 
 ### `mount/WIN?drive=D&name=N` ###
 

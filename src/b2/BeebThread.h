@@ -7,17 +7,11 @@
 #include "conf.h"
 #include <shared/mutex.h>
 #include <thread>
-#include <beeb/sound.h>
-#include <beeb/video.h>
 #include <beeb/OutputData.h>
-#include <beeb/conf.h>
 #include <memory>
 #include <vector>
-#include <shared/mutex.h>
 #include <beeb/Trace.h>
-#include "misc.h"
 #include "keys.h"
-#include <beeb/DiscImage.h>
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include "BeebConfig.h"
@@ -40,6 +34,9 @@ class MessageList;
 //class BeebEvent;
 class VideoWriter;
 class R6522;
+struct SoundDataUnit;
+struct VideoDataUnit;
+class DiscImage;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -130,13 +127,11 @@ class BeebThread {
         // COMPLETION_FUN, if non-null, points to the completion fun to be
         // called when the message completes for the first time. ('completion'
         // is rather vaguely defined, and is message-dependent.) Leave this as
-        // it is to have the completion function called automatically: if *PTR
-        // is non-null, with true (and no message) after the ThreadHandle call
-        // returns, or with false (and no message) if *PTR is null. Move it and
-        // handle in ThreadPrepare if special handling is necessary and/ or a
-        // message would be helpful.
+        // it is to have the completion function called automatically, or move
+        // its contents for later calling to do it manually.
         //
-        // Default impl does nothing and returns true.
+        // Default impl does nothing and returns true (completion_fun will be
+        // called straight away with no message).
         //
         // Return false to reject the message. The completion_fun will be called
         // with false, and the message will be discarded.
@@ -274,7 +269,7 @@ class BeebThread {
 
     class DigitalJoystickStateMessage : public Message {
       public:
-        explicit DigitalJoystickStateMessage(uint8_t index, BBCMicro::DigitalJoystickInput state);
+        explicit DigitalJoystickStateMessage(uint8_t index, BBCMicroState::DigitalJoystickInput state);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -285,7 +280,7 @@ class BeebThread {
       protected:
       private:
         const uint8_t m_index = 0;
-        const BBCMicro::DigitalJoystickInput m_state = {};
+        const BBCMicroState::DigitalJoystickInput m_state = {};
     };
 
     class HardResetMessage : public Message {
@@ -669,14 +664,6 @@ class BeebThread {
       private:
     };
 
-    // Wake thread up when emulator is being resumed. The thread could
-    // have gone to sleep.
-    class DebugWakeUpMessage : public Message {
-      public:
-      protected:
-      private:
-    };
-
     //    class PauseMessage:
     //        public Message
     //    {
@@ -771,7 +758,7 @@ class BeebThread {
 #if BBCMICRO_DEBUGGER
     class DebugSetByteDebugFlags : public Message {
       public:
-        DebugSetByteDebugFlags(uint8_t big_page_index, uint16_t offset, uint8_t byte_flags);
+        DebugSetByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t byte_flags);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -780,7 +767,7 @@ class BeebThread {
 
       protected:
       private:
-        const uint8_t m_big_page_index = 0;
+        const BigPageIndex m_big_page_index = {0};
         const uint16_t m_offset = 0;
         const uint8_t m_byte_flags = 0;
     };
@@ -802,21 +789,20 @@ class BeebThread {
         std::unique_ptr<VideoWriter> m_video_writer;
     };
 
-    // Somewhat open-ended extension mechanism.
-    //
-    // This does the bare minimum needed for the HTTP stuff to hang
-    // together.
-    class CustomMessage : public Message {
+    // Extension mechanism. The supplied callback is called on the BeebThread
+    // once, when the message is prepared.
+    class CallbackMessage : public Message {
       public:
+        explicit CallbackMessage(std::function<void(BBCMicro *)> callback);
+
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
-        virtual void ThreadHandleMessage(BBCMicro *beeb) = 0;
-
       protected:
       private:
+        std::function<void(BBCMicro *)> m_callback;
     };
 
     class TimingMessage : public Message {
@@ -875,6 +861,30 @@ class BeebThread {
       private:
     };
 
+    class MouseMotionMessage : public Message {
+      public:
+        explicit MouseMotionMessage(int dx, int dy);
+
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const int m_dx = 0;
+        const int m_dy = 0;
+    };
+
+    class MouseButtonsMessage : public Message {
+      public:
+        explicit MouseButtonsMessage(uint8_t mask, uint8_t value);
+
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const uint8_t m_mask = 0;
+        const uint8_t m_value = 0;
+    };
+
     struct AudioCallbackRecord {
         uint64_t time = 0;
         uint64_t needed = 0;
@@ -929,16 +939,6 @@ class BeebThread {
 
     bool IsCopying() const;
 
-#if BBCMICRO_DEBUGGER
-    // It's safe to call any of the const BBCMicro public member
-    // functions on the result as long as the lock is held.
-    //const BBCMicro *LockBeeb(std::unique_lock<Mutex> *lock) const;
-
-    // As well as the LockBeeb guarantees, it's also safe to call the
-    // non-const DebugXXX functions.
-    BBCMicro *LockMutableBeeb(std::unique_lock<Mutex> *lock);
-#endif
-
     // Get trace stats, or nullptr if there's no trace.
     const volatile TraceStats *GetTraceStats() const;
 
@@ -949,7 +949,7 @@ class BeebThread {
 
     // Get the disc image pointer for the given drive, using the given
     // lock object to take a lock on the disc access mutex.
-    std::shared_ptr<const DiscImage> GetDiscImage(std::unique_lock<Mutex> *lock, int drive) const;
+    std::shared_ptr<const DiscImage> GetDiscImage(UniqueLock<Mutex> *lock, int drive) const;
 
     // Get the current LED flags - a combination of BBCMicroLEDFlag values.
     uint32_t GetLEDs() const;
@@ -965,7 +965,7 @@ class BeebThread {
     // Returns true if the emulated computer has NVRAM.
     bool HasNVRAM() const;
 
-    const BBCMicroType *GetBBCMicroType() const;
+    BBCMicroTypeID GetBBCMicroTypeID() const;
 
     uint32_t GetBBCMicroCloneImpediments() const;
 
@@ -1033,10 +1033,16 @@ class BeebThread {
 
 #if BBCMICRO_DEBUGGER
     bool DebugIsHalted() const;
-    void DebugGetState(std::shared_ptr<const BBCMicro::State> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
+    void DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
 #endif
 
     uint32_t GetUpdateFlags() const;
+
+    bool HasMouse() const;
+
+#if BBCMICRO_DEBUGGER
+    std::shared_ptr<const BBCMicro::UpdateMFnData> GetUpdateMFnData() const;
+#endif
 
   protected:
   private:
@@ -1086,7 +1092,7 @@ class BeebThread {
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
-    std::atomic<const BBCMicroType *> m_beeb_type{nullptr};
+    std::atomic<BBCMicroTypeID> m_beeb_type_id{BBCMicroTypeID_B};
     std::atomic<uint32_t> m_clone_impediments{0};
     std::atomic<bool> m_power_on_tone{true};
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
@@ -1100,9 +1106,10 @@ class BeebThread {
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)
     mutable Mutex m_beeb_state_mutex;
-    std::shared_ptr<const BBCMicro::State> m_beeb_state;
+    std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
+    std::shared_ptr<const BBCMicro::UpdateMFnData> m_update_mfn_data;
 #endif
 
     // Lock m_mutex first, if locking both. (The public API makes this hard to

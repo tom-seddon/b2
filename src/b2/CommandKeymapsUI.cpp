@@ -17,9 +17,16 @@ class CommandKeymapsUI : public SettingsUI {
   public:
     CommandKeymapsUI(ImGuiStuff *imgui_stuff)
         : m_imgui_stuff(imgui_stuff) {
+        this->SetDefaultSize(ImVec2(300, 300));
+
         ForEachCommandTable2([this](CommandTable2 *table) {
             table->ForEachCommand([this](Command2 *command) {
-                ImVec2 size = ImGui::CalcTextSize(command->GetText().c_str());
+                std::string text = command->GetText();
+                const std::string &extra_text = command->GetExtraText();
+                if (!extra_text.empty()) {
+                    text += " (" + extra_text + ")";
+                }
+                ImVec2 size = ImGui::CalcTextSize(text.c_str());
                 m_max_command_text_width = std::max(m_max_command_text_width, size.x);
             });
         });
@@ -70,6 +77,12 @@ class CommandKeymapsUI : public SettingsUI {
 
         if (ImGui::Button(command->GetText().c_str())) {
             ImGui::OpenPopup(SHORTCUT_KEYCODES_POPUP);
+        }
+
+        const std::string &extra_text = command->GetExtraText();
+        if (!extra_text.empty()) {
+            ImGui::SameLine();
+            ImGui::Text(" (%s)", extra_text.c_str());
         }
 
         if (ImGui::BeginPopupContextItem("command context item")) {

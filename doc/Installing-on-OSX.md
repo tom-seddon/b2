@@ -1,17 +1,22 @@
 # Install on macOS
 
-Requires a 64-bit machine running OS X 10.9 (Mavericks) or later.
+Requires a 64-bit Intel machine running OS X 10.9 (Mavericks) or
+later, or an Apple Silicon Mac.
 
 Files for the latest release are here:
-https://github.com/tom-seddon/b2/releases/latest.
+https://github.com/tom-seddon/b2/releases/latest
+
+If using macOS 13 (Ventura) or later on Apple Silicon, download the
+`b2-macos-13.0-applesilicon-XXX.dmg` file if available, or follow the
+instructions below if not.
 
 If using macOS 11 (Big Sur) or later, download the
-`b2-osx-11.0-XXX.dmg` file. This is currently built for Intel only,
-but it should also run fine on an Apple Silicon Mac under Rosetta.
+`b2-osx-11.0-XXX.dmg` or `b2-macos-11.0-intel-XXX.dmg` file.
 
 If using OS X 10.9 (Mavericks) or later, download the
-`b2-osx-10.9-XXX.dmg` file. The 10.9 version does not support video
-writing, but is otherwise fully-featured.
+`b2-osx-10.9-XXX.dmg` or `b2-macos-10.9-intel-XXX.pmg` file. The 10.9
+version does not support video writing, but is otherwise
+fully-featured.
 
 You don't need to download any of the other files; the dmg contains
 everything required.
@@ -19,6 +24,11 @@ everything required.
 Open the dmg, drag b2 to your Applications folder, and run it from
 there. (Running it from the dmg directly is unsupported, and it may
 not work. I've had reports of odd behaviour when attempting it!)
+
+On first run, you'll almost certainly get a warning about the
+developer being unidentified. To get around this, follow the
+instructions here:
+https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
 
 ## macOS files missing from releases page?
 

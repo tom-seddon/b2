@@ -12,6 +12,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -21,6 +22,7 @@
 #ifdef _MSC_VER
 #pragma warning(disable : 4244) //OPERATOR: conversion from TYPE to TYPE, possible loss of data
 #endif
+
 #include <stb_image.h>
 
 #ifdef __GNUC__
@@ -182,7 +184,7 @@ class TestDiscImage : public DiscImage {
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
     void AddFileDialogFilter(FileDialog *fd) const override;
-    bool SaveToFile(const std::string &file_name, Messages *msg) const override;
+    bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
     bool Read(uint8_t *value,
               uint8_t side,
               uint8_t track,
@@ -269,8 +271,8 @@ void TestDiscImage::AddFileDialogFilter(FileDialog *fd) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool TestDiscImage::SaveToFile(const std::string &file_name, Messages *msg) const {
-    (void)file_name, (void)msg;
+bool TestDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
+    (void)file_name, (void)logs;
 
     return false;
 }
@@ -385,7 +387,7 @@ bool TestDiscImage::GetByteIndex(size_t *index,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::string &name) {
+static std::shared_ptr<const std::array<uint8_t, 16384>> LoadOSROM(const std::string &name) {
     std::string path = PathJoined(ROMS_FOLDER, name);
 
     std::vector<uint8_t> data;
@@ -401,33 +403,38 @@ static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::stri
     return rom;
 }
 
+static std::shared_ptr<const std::vector<uint8_t>> LoadSidewaysROM(const std::string &name) {
+    std::shared_ptr<const std::array<uint8_t, 16384>> rom = LoadOSROM(name);
+    return std::make_shared<std::vector<uint8_t>>(rom->begin(), rom->end());
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type, uint32_t) {
+static BBCMicroTypeID GetBBCMicroTypeID(TestBBCMicroType type, uint32_t) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
         // fall through
     case TestBBCMicroType_BTape:
     case TestBBCMicroType_BAcorn1770DFS:
-        return &BBC_MICRO_TYPE_B;
+        return BBCMicroTypeID_B;
 
     case TestBBCMicroType_BPlusTape:
-        return &BBC_MICRO_TYPE_B_PLUS;
+        return BBCMicroTypeID_BPlus;
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        return &BBC_MICRO_TYPE_MASTER_128;
+        return BBCMicroTypeID_Master;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type, uint32_t) {
+static const DiscInterface *GetDiscInterface(TestBBCMicroType type, uint32_t) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
@@ -437,13 +444,13 @@ static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type, uint32
         return nullptr;
 
     case TestBBCMicroType_BAcorn1770DFS:
-        return &DISC_INTERFACE_ACORN_1770;
+        return DISC_INTERFACE_ACORN_1770;
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        return &DISC_INTERFACE_MASTER128;
+        return DISC_INTERFACE_MASTER128;
     }
 }
 
@@ -522,9 +529,12 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static_assert(ROMType_16KB == 0);
+static const ROMType DEFAULT_ROM_TYPES[16] = {};
+
 TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
-    : BBCMicro(GetBBCMicroType(type, args.flags),
-               GetDiscInterfaceDef(type, args.flags),
+    : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type, args.flags), DEFAULT_ROM_TYPES),
+               GetDiscInterface(type, args.flags),
                GetBBCMicroParasiteType(type, args.flags),
                GetNVRAMContents(type, args.flags),
                nullptr,
@@ -551,7 +561,7 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
 
     case TestBBCMicroType_BAcorn1770DFS:
         this->LoadROMsB();
-        this->SetSidewaysROM(14, LoadROM("acorn/DFS-2.26.rom"));
+        this->SetSidewaysROM(14, LoadSidewaysROM("acorn/DFS-2.26.rom"), ROMType_16KB);
         break;
 
     case TestBBCMicroType_BPlusTape:
@@ -817,30 +827,30 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadROMsB() {
-    this->SetOSROM(LoadROM("OS12.ROM"));
-    this->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
+    this->SetOSROM(LoadOSROM("OS12.ROM"));
+    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"), ROMType_16KB);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadROMsBPlus() {
-    this->SetOSROM(LoadROM("B+MOS.ROM"));
-    this->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
+    this->SetOSROM(LoadOSROM("B+MOS.ROM"));
+    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"), ROMType_16KB);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadROMsMaster(const std::string &version) {
-    this->SetOSROM(LoadROM(PathJoined("M128", version, "mos.rom")));
-    this->SetSidewaysROM(15, LoadROM(PathJoined("M128", version, "terminal.rom")));
-    this->SetSidewaysROM(14, LoadROM(PathJoined("M128", version, "view.rom")));
-    this->SetSidewaysROM(13, LoadROM(PathJoined("M128", version, "adfs.rom")));
-    this->SetSidewaysROM(12, LoadROM(PathJoined("M128", version, "basic4.rom")));
-    this->SetSidewaysROM(11, LoadROM(PathJoined("M128", version, "edit.rom")));
-    this->SetSidewaysROM(10, LoadROM(PathJoined("M128", version, "viewsht.rom")));
-    this->SetSidewaysROM(9, LoadROM(PathJoined("M128", version, "dfs.rom")));
+    this->SetOSROM(LoadOSROM(PathJoined("M128", version, "mos.rom")));
+    this->SetSidewaysROM(15, LoadSidewaysROM(PathJoined("M128", version, "terminal.rom")), ROMType_16KB);
+    this->SetSidewaysROM(14, LoadSidewaysROM(PathJoined("M128", version, "view.rom")), ROMType_16KB);
+    this->SetSidewaysROM(13, LoadSidewaysROM(PathJoined("M128", version, "adfs.rom")), ROMType_16KB);
+    this->SetSidewaysROM(12, LoadSidewaysROM(PathJoined("M128", version, "basic4.rom")), ROMType_16KB);
+    this->SetSidewaysROM(11, LoadSidewaysROM(PathJoined("M128", version, "edit.rom")), ROMType_16KB);
+    this->SetSidewaysROM(10, LoadSidewaysROM(PathJoined("M128", version, "viewsht.rom")), ROMType_16KB);
+    this->SetSidewaysROM(9, LoadSidewaysROM(PathJoined("M128", version, "dfs.rom")), ROMType_16KB);
 
     for (uint8_t i = 4; i < 8; ++i) {
         this->SetSidewaysRAM(i, nullptr);
@@ -1089,9 +1099,9 @@ void TestSpooledOutput(const TestBBCMicro &bbc,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void RunStandardTest(const std::string &beeblink_volume_path,
-                     const std::string &beeblink_drive,
-                     const std::string &test_name,
+void RunStandardTest(const char *beeblink_volume_path,
+                     const char *beeblink_drive,
+                     const char *test_name,
                      TestBBCMicroType type,
                      uint32_t clear_trace_flags,
                      uint32_t set_trace_flags) {
@@ -1117,7 +1127,7 @@ void RunStandardTest(const std::string &beeblink_volume_path,
     // output is affected by it.)
     bbc.LoadFile(GetTestFileName(beeblink_volume_path,
                                  beeblink_drive,
-                                 "T." + test_name),
+                                 std::string("T.") + test_name),
                  0x1900);
     bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
     bbc.RunUntilOSWORD0(20.0);
@@ -1129,7 +1139,7 @@ void RunStandardTest(const std::string &beeblink_volume_path,
         LOG(BBC_OUTPUT).EnsureBOL();
     }
 
-    std::string stem = strprintf("%s.%s", test_name.c_str(), GetTestBBCMicroTypeEnumName(type));
+    std::string stem = strprintf("%s.%s", test_name, GetTestBBCMicroTypeEnumName(type));
 
     TEST_TRUE(SaveTextFile(bbc.oswrch_output,
                            GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str()))));

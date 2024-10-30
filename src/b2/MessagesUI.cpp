@@ -47,12 +47,9 @@ class MessagesUI : public SettingsUI {
 
     bool OnClose() override;
 
-    bool ActionCommandsForPCKey(uint32_t pc_key) override;
-
   protected:
   private:
     std::shared_ptr<MessageList> m_message_list;
-    CommandStateTable m_cst;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -66,18 +63,20 @@ static Command2 g_clear_command(&g_messages_table, "clear", "Clear");
 //////////////////////////////////////////////////////////////////////////
 
 MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list)
-    : m_message_list(std::move(message_list)) {
+    : SettingsUI(&g_messages_table)
+    , m_message_list(std::move(message_list)) {
+    this->SetDefaultSize(ImVec2(600, 300));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void MessagesUI::DoImGui() {
-    if (m_cst.WasActioned(g_clear_command)) {
+    if (this->cst->WasActioned(g_clear_command)) {
         m_message_list->ClearMessages();
     }
 
-    if (m_cst.WasActioned(g_copy_command)) {
+    if (this->cst->WasActioned(g_copy_command)) {
         ImGuiIO &io = ImGui::GetIO();
 
         std::string text;
@@ -91,11 +90,11 @@ void MessagesUI::DoImGui() {
     }
 
     //
-    m_cst.DoButton(g_clear_command);
+    this->cst->DoButton(g_clear_command);
 
     ImGui::SameLine();
 
-    m_cst.DoButton(g_copy_command);
+    this->cst->DoButton(g_copy_command);
 
     ImGui::BeginChild("##messages", ImVec2(), true);
 
@@ -109,13 +108,6 @@ void MessagesUI::DoImGui() {
 
 bool MessagesUI::OnClose() {
     return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool MessagesUI::ActionCommandsForPCKey(uint32_t pc_key) {
-    return m_cst.ActionCommandsForPCKey(g_messages_table, pc_key);
 }
 
 //////////////////////////////////////////////////////////////////////////

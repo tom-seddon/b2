@@ -1,5 +1,5 @@
 project(shared)
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 if(UNIX)
   find_package(Threads REQUIRED)
@@ -22,20 +22,20 @@ set(SRCS
   ${H}/enum_decl.h  ${H}/enum_def.h  ${H}/enum_end.h  ${H}/system_specific.h
   ${H}/popwarn.h ${H}/pushwarn_bitfields.h ${H}/pushwarn_flexible_struct_member.h ${H}/pushwarn_padded_struct.h
   c/relacy.cpp ${H}/relacy.h
-  c/mutex.cpp ${H}/mutex.h
+  c/mutex.cpp ${H}/mutex.h ${H}/mutex.inl
   ${H}/pshpack1.h ${H}/pshpack4.h ${H}/pshpack8.h ${H}/poppack.h
   )
 
 if(APPLE)
   set(SRCS ${SRCS}
-    c/system_osx.cpp c/system_posix.c
+    c/system_osx.cpp c/system_posix.cpp
     c/path_posix.cpp
     c/path_osx.cpp
     )
 elseif(UNIX)
   # Of course, Linux is the only possible Unix.
   set(SRCS ${SRCS}
-    c/system_posix.c c/system_linux.cpp
+    c/system_linux.cpp c/system_posix.cpp
     c/path_posix.cpp c/path_linux.cpp
     )    
 elseif(WIN32)

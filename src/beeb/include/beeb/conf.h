@@ -52,11 +52,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define BBCMICRO_ENABLE_DISC_DRIVE_SOUND 1
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BUILD_TYPE_Final
 
 // The 1770 logging stuff is always stripped out in this mode.
@@ -94,10 +89,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Will probably dither over this at least once more...
-//
-// There's probably a better place for this.
-static constexpr char ADDRESS_PREFIX_SEPARATOR = '`';
+static constexpr char ADDRESS_SUFFIX_SEPARATOR = '`';
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -150,11 +142,15 @@ static_assert(sizeof(CycleCount) == 8, "CycleCount is the wrong size");
 // Generates constanst for shifting between units: one to do a left shift from
 // the smaller unit to the larger, and one to do a right shift in the other
 // direction.
-#define SHIFT_CONSTANTS(LARGER, SMALLER, N) LSHIFT_##SMALLER##_TO_##LARGER = (N), RSHIFT_##LARGER##_TO_##SMALLER = (N)
+#define SHIFT_CONSTANTS(LARGER, SMALLER, N) LSHIFT_##SMALLER##_TO_##LARGER UNUSED = (N), RSHIFT_##LARGER##_TO_##SMALLER UNUSED = (N)
 
 static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 4MHZ, 0);
 static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 2MHZ, 1);
 static constexpr uint64_t CYCLES_PER_SECOND = 2000000ull << LSHIFT_2MHZ_TO_CYCLE_COUNT;
+
+// defined in BBCMicro_Update.cpp - not the best place for it, but all the
+// related logic is in one file.
+uint64_t Get3MHzCycleCount(CycleCount n);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -506,3 +506,838 @@ Default CMOS:
 
 address_debug_flags=0x0000017971e2d28a
 addr_flags=0x0000017971e3bc38
+
+
+
+* b2 UEF save state extra stuff
+
+** Memory chunks
+
+May as well reuse the BeebEm memory state and sideways ROM chunks,
+though it might be nice to tidy up the shadow RAM while doing it.
+Maybe just save all 32 KB of shadow RAM and skip the separate
+private/FS RAM chunks?
+
+** 6502 stuff
+
+Cycle count for each 6502 is unnecessary, as there's a global one for
+the entire system. Include that as part of some global system state
+chunk that also holds machine type.
+
+For saving 6502 state, it must be possible to save it on any cycle
+boundary (pretty much) - the entire state will have to be saved. Can't
+cheat by trying to put the 6502 to a known point, because it'll only
+end up with the same issue as issue #2 for BeebEm compat...
+
+The only complicated bit here is the tfn/ifn pointers, but
+=g_named_ifns= and =g_name_tfns= to the rescue (hopefully). I'm not
+certain there are no holes in the table, though - could this be
+detected statically? Accesses to it are not really
+performance-sensitive. (Answer: looks like it'd be possible to do at
+least something, but a bit hard to guarantee the tables are set up
+properly. Would be easier if it were C++. For now, can advance the
+system cycle by cycle until all have known names, and flag any problem
+cases.)
+
+** VIA stuff
+
+b2 will need to save more stuff than there's room for in the
+BeebEm-format chunk.
+
+** Sound stuff
+
+The BeebEm stuff might be good?
+
+** Video stuff
+
+The 
+
+* b2/BeebEm UEF save state compat stuff
+
+Limitations if saving BeebEm-compatible state:
+
+1. Can't save during 1770 operation, as the b2 internal state doesn't
+   map to the BeebEm FDCCommand stuff. Probably no bad thing
+
+2. Can't reliably save with second processor, as it may not be
+   possible to advance tho emulation to a point where both CPUs are
+   about to fetch an instruction
+
+3. Have to fake the FDC DLL name
+
+4. NMILock ain't a thing so it'll probably have to be saved as 0
+
+5. Might not work anyway...!
+
+Loading BeebEm-compatible states should be easy enough, probably.
+Restrictions:
+
+1. Note unsupported hardware (Master ET, 8271, Z80, Music 5000, etc.)
+
+2. Can't load if 1770 active
+
+
+* BeebEm UEF chunks
+
+Current BeebEm UEF version is major 0, minor 14.
+
+| # (hex) | Func                      | Notes                                      |
+|---------+---------------------------+--------------------------------------------|
+|    0460 | Save6502UEF               |                                            |
+|    0461 | SaveMemUEF                | ROMSEL+ACCCON. 3=IntegraB                  |
+|    0462 | SaveMemUEF                | Main memory: 32 KB                         |
+|    0463 | SaveMemUEF                | Shadow RAM                                 |
+|    0464 | SaveMemUEF                | Private RAM/ANDY                           |
+|    0465 | SaveMemUEF                | FS RAM/HAZEL                               |
+|    0466 | SaveMemUEF                | Sideways RAM                               |
+|    0467 | SaveVIAUEF                | Saved twice. Flag in chunk indicates which |
+|    0468 | SaveVideoUEF              |                                            |
+|    046a | BeebWin::SaveEmuUEF       |                                            |
+|    046b | SaveSoundUEF              |                                            |
+|    046c | BeebWin::SaveBeebEmID     |                                            |
+|    046e | Save8271UEF               | *Not yet supported*                        |
+|    046f | Save1770UEF               | *Going to be painful*                      |
+|    0470 | SaveTubeUEF               |                                            |
+|    0471 | Save65C02UEF              |                                            |
+|    0472 | Save65C02MemUEF           |                                            |
+|    0473 | SaveSerialUEF             | *Not yet supported*                        |
+|    0474 | SaveMusic5000UEF          | *Out of scope*                             |
+|    0475 | SaveMemUEF                | ROM bank                                   |
+|    0478 | SaveZ80UEF                | *Out of scope*                             |
+|    0479 | CArm::SaveState           | *Out of scope*                             |
+|    047C | SaveMemUEF                | PAL ROM bank                               |
+|    047a | SprowCoPro::SaveState     | *Out of scope*                             |
+|    047b | Master512CoPro::SaveState | *Out of scope*                             |
+
+** 0460 6502 State
+
+| Size | What        | Notes |
+|------+-------------+-------|
+|    2 | PC          |       |
+|    1 | A           |       |
+|    1 | X           |       |
+|    1 | Y           |       |
+|    1 | S           |       |
+|    1 | P           |       |
+|    4 | TotalCycles |       |
+|    1 | intStatus   |       |
+|    1 | NMIStatus   |       |
+|    0 | NMILock     |       |
+|    2 | 0           | ?     |
+
+- ~intStatus~ is a bitfield. (See ~IRQ_Nums~ (6502core.h) for the bit
+  indexes.) If any are set, initiate IRQ
+- ~NMIStatus~ is a bitfield. (See ~NMI_Nums" (6502core.h) for the bit
+  indexes.)
+- ~NMILock~ is there to handle the edge-triggering. It's set if an NMI
+  is initiated, then reset once the RTI occurs
+
+** 0461 Memory Control State
+
+*** Integra B
+
+| Size | What                   |
+|------+------------------------|
+|    1 | ROMSEL+MemSel+PrvEn    |
+|    1 | ShEn+Prvs8+Prvs4+Prvs1 |
+|    1 | HiAdd                  |
+
+*** B+
+
+| Size | What          |
+|------+---------------|
+|    1 | ROMSEL+MemSel |
+|    1 | Sh_Display    |
+
+*** Master
+
+| Size | What   |
+|------+--------|
+|    1 | ROMSEL |
+|    1 | ACCCON |
+
+** 0462 Main RAM
+
+|  Size | What     |
+|-------+----------|
+| 32768 | Main RAM |
+
+** 0463 Shadow RAM
+
+*** Integra B
+
+|  Size | What                |
+|-------+---------------------|
+| 20480 | shadow RAM contents |
+
+*** B+
+
+|  Size | What                |
+|-------+---------------------|
+| 32768 | shadow RAM contents |
+
+In this mode, shadow RAM contents below $3000 are ignored.
+
+*** Master
+
+|  Size | What                | Notes |
+|-------+---------------------+-------|
+|     2 | 0                   | Why?  |
+| 32768 | shadow RAM contents |       |
+
+In this mode, shadow RAM contents below $3000 are ignored.
+
+** 0464 Private RAM
+
+*** Integra B
+
+|  Size | What        |
+|-------+-------------|
+| 12288 | private RAM |
+
+*** B+
+
+|  Size | What        | Notes |
+|-------+-------------+-------|
+| 12288 | private RAM | ANDY  |
+
+There is no overlap with the contents of chunk 0463; the corresponding
+region of chunk 0463 is simply ignored.
+
+*** Master
+
+| Size | What        | Notes |
+|------+-------------+-------|
+| 4096 | private RAM | ANDY  |
+
+There is no overlap with the contents of chunk 0463; the corresponding
+region of chunk 0463 is simply ignored.
+
+** 0465 Filing System RAM
+
+*** Master
+
+| Size | What   | Notes |
+|------+--------+-------|
+| 8192 | FS RAM | HAZEL |
+
+There is no overlap with the contents of chunk 0463; the corresponding
+region of chunk 0463 is simply ignored.
+
+** 0466 Sideways RAM
+
+|  Size | What          |
+|-------+---------------|
+| 16384 | Bank contents |
+|     1 | Bank index    |
+
+** 0467 VIA
+
+| Size | What      | Notes                                   |
+|------+-----------+-----------------------------------------|
+|    1 | ident     | 0=System VIA, 1=User VIA                |
+|    1 | ORB       |                                         |
+|    1 | IRB       |                                         |
+|    1 | ORA       |                                         |
+|    1 | IRB       |                                         |
+|    1 | DDRB      |                                         |
+|    1 | DDRA      |                                         |
+|    2 | T1C       | 2 MHz value/2                           |
+|    2 | T1L       |                                         |
+|    2 | T2C       | 2 MHz value/2                           |
+|    2 | T1L       |                                         |
+|    1 | ACR       |                                         |
+|    1 | PCR       |                                         |
+|    1 | IFR       |                                         |
+|    1 | IER       |                                         |
+|    1 | t1hasshot |                                         |
+|    1 | t2hasshot |                                         |
+|    1 | extra     | IC32 state if System VIA; 0 if User VIA |
+|      |           |                                         |
+
+** 0468 Video
+
+| Size | What                               | Notes                          | Ver  |
+|------+------------------------------------+--------------------------------+------|
+|    1 | H Total                            |                                |      |
+|    1 | H Displayed                        |                                |      |
+|    1 | H Sync Pos                         |                                |      |
+|    1 | Sync Width                         |                                |      |
+|    1 | V Total                            |                                |      |
+|    1 | V Total Adjust                     |                                |      |
+|    1 | V Displayed                        |                                |      |
+|    1 | V Sync Pos                         |                                |      |
+|    1 | Interlace & Delay                  |                                |      |
+|    1 | Scan Lines/Char                    |                                |      |
+|    1 | Cursor Start                       |                                |      |
+|    1 | Cursor End                         |                                |      |
+|    1 | Screen Start MSB                   |                                |      |
+|    1 | Screen Start LSB                   |                                |      |
+|    1 | Cursor MSB                         |                                |      |
+|    1 | Cursor LSB                         |                                |      |
+|    1 | Light Pen MSB                      |                                |      |
+|    1 | Light Pen LSB                      |                                |      |
+|    1 | ULA Control Register               |                                |      |
+|   16 | Palette                            | Actual colour values are saved |      |
+|    2 | ActualScreenWidth                  |                                |      |
+|    4 | ScreenAdjust                       |                                |      |
+|    1 | CRTC Control Reg                   |                                |      |
+|    1 | Teletext Style                     | 1 or 2                         |      |
+|    4 | VideoState Addr                    |                                | >=13 |
+|    4 | VideoState StartAddr               |                                | >=13 |
+|    4 | VideoState PixmapLine              |                                | >=13 |
+|    4 | VideoState PreviousFirstPixmapLine |                                | >=13 |
+|    4 | VideoState CharLine                |                                | >=13 |
+|    4 | VideoState InCharLineUp            |                                | >=13 |
+|    4 | VideoState VSyncState              |                                | >=13 |
+|    1 | VideoState IsNewTVFrame            |                                | >=13 |
+|    1 | VideoState InterlaceFrame          |                                | >=13 |
+|    1 | VideoState DoCA1Int                |                                | >=13 |
+|    4 | ova                                |                                | >=13 |
+|    4 | ovn                                |                                | >=13 |
+|    4 | CursorFieldCount                   |                                | >=13 |
+|    1 | CursorOnState                      |                                | >=13 |
+|    4 | CurY                               |                                | >=13 |
+|    4 | Mode7FlashTrigger                  |                                | >=13 |
+|    1 | Mode7lashOn                        |                                | >=13 |
+|    4 | VideoTriggerCount-TotalCycles      |                                | >=13 |
+
+** 046A Emulator Specifics
+
+|   Size | What         | Notes                                                                       | Min Ver |
+|--------+--------------+-----------------------------------------------------------------------------+---------|
+|      1 | Machine Type | 0=B; 1=B+Integra B; 2=B+; 3=M128; 4=ET                                      |         |
+|      1 | Native FDC   | set if 8271 rather than FDC DLL??                                           |         |
+|      1 | Tube Type    | 0=None; 1=65c02; 2=M512; 3=Acorn Z80; 4=Torch Z80; 5=Acorn ARM; 6=Sprow ARM |         |
+|      2 | Key Mapping  | Key mapping type                                                            | >=11    |
+|    256 | Key Map Path |                                                                             | <14     |
+| String | Key Map Path |                                                                             | >=14    |
+|      1 | 0            |                                                                             |         |
+
+Key mapping types are:
+
+- IDM_USERKYBDMAPPING :: 40060
+- IDM_DEFAULTKYBDMAPPING :: 40034
+- IDM_LOGICALKYBDMAPPING :: 40035
+
+The Key Map Path is set if Key Mapping is IDM_USERKYBDMAPPING.
+
+** 046B Sound
+
+| Size | What                  | Notes                          |
+|------+-----------------------+--------------------------------|
+|    2 | Tone 2 Freq           |                                |
+|    2 | Tone 1 Freq           |                                |
+|    2 | Tone 0 Freq           |                                |
+|    1 | Channel 3 Attenuation |                                |
+|    1 | Channel 2 Attenuation |                                |
+|    1 | Channel 1 Attenuation |                                |
+|    1 | Noise register value  |                                |
+|    1 | Channel 0 Attenuation |                                |
+|    1 | Last channel set      | Used for handling the 2nd byte |
+|    2 | GenIndex[0]           |                                |
+|    2 | GenIndex[1]           |                                |
+|    2 | GenIndex[2]           |                                |
+|    2 | GenIndex[3]           |                                |
+
+~GenIndex~ entries increment once per update and are used to decide
+when to flip the polarity of the output.
+
+** 046C BeebEm Id
+
+Used to indicate this is a BeebEm save state UEF file.
+
+| Size | What          |
+|------+---------------|
+|    6 | "BeebEm"      |
+|    8 | 0 bytes       |
+|    1 | Major version |
+|    1 | Minor version |
+
+Versions come from https://github.com/stardot/beebem-windows/blob/master/Src/Version.h
+
+** 046E 8271
+
+(Not relevant for b2)
+
+** 046F 1770
+
+|     Size | What          | Notes                                            |
+|----------+---------------+--------------------------------------------------|
+|      2*1 | Drive Type    | 0=SSD 1=DSD 2=ADFS 3=IMG 4=DOS 5=FSD             |
+| 2*string | Drive File    |                                                  |
+|        1 | Status        | status register                                  |
+|        1 | Data          | data register                                    |
+|        1 | Track         | actual track head is on??                        |
+|        1 | ATrack        | value returned when track register read          |
+|        1 | Sector        | sector register                                  |
+|        1 | HeadDir       | step direction - true: track+=1, false: track-=1 |
+|        1 | FDCCommand    | see below...                                     |
+|        1 | LoadingCycles | spinup counter                                   |
+|      2*4 | SpinDown      |                                                  |
+|        1 | UpdateTrack   |                                                  |
+|        1 | MultiSect     |                                                  |
+|        1 | StepRate      |                                                  |
+|        1 | SpinUp        |                                                  |
+|        1 | Verify        |                                                  |
+|      2*1 | LightsOn      |                                                  |
+|        4 | ByteCount     |                                                  |
+|        4 | 0             | unused                                           |
+|        1 | ExtControl    |                                                  |
+|        1 | CurrentDrive  |                                                  |
+|      2*4 | HeadPos       | offset in current disk file                      |
+|      2*1 | CurrentHead   |                                                  |
+|      2*4 | DiscStep      |                                                  |
+|      2*4 | DiscStrt      |                                                  |
+|      2*1 | MaxSects      |                                                  |
+|      2*4 | DefStart      |                                                  |
+|      2*4 | Trklen        |                                                  |
+|      2*1 | DWriteable    |                                                  |
+|      2*1 | DiskDensity   |                                                  |
+|        1 | RotSect       |                                                  |
+|   string | FDCDLL        |                                                  |
+
+=FDCCommand= is the state in BeebEm's internal 1770 state machine,
+which is probably going to be a bit painful to map to anything in b2
+(or vice versa). So perhaps it'll be safest just to insist on the 1770
+being idle when saving or loading a BeebEm-compatible state. I think
+an FDCCommand of 0 indicatse that the 1770 is waiting for a command.
+
+FDCDLL probably easiest handled by checking the file name part, which
+needs to be one of:
+
+- `Acorn1770.dll` :: Acorn 1770
+- `OpusDDOS.dll` :: Opus 1770
+- `Watford.dll` :: Watford DDB2
+
+** 0470 Tube ULA State
+
+| Size | What          | Notes                                                          |
+|------+---------------+----------------------------------------------------------------|
+|    1 | R1 Status     | Holds the PVMKIQ bits                                          |
+|   24 | R1 P->H Data  |                                                                |
+|    1 | R1 P->H Index |                                                                |
+|    1 | R1 H Status   | Holds the full/available bits (same applies to all H/P status) |
+|    1 | R1 H->P Data  |                                                                |
+|    1 | R1 P Status   |                                                                |
+|    1 | R2 P->H Data  |                                                                |
+|    1 | R2 H Status   |                                                                |
+|    1 | R2 H->P Data  |                                                                |
+|    1 | R2 P Status   |                                                                |
+|    2 | R3 P->H Data  |                                                                |
+|    1 | R3 P->H Index |                                                                |
+|    1 | R3 H Status   |                                                                |
+|    2 | R3 H->P Data  |                                                                |
+|    1 | R3 H->P Index |                                                                |
+|    1 | R3 P Status   |                                                                |
+|    1 | R4 P->H Data  |                                                                |
+|    1 | R4 H Status   |                                                                |
+|    1 | R4 H->P Data  |                                                                |
+|    1 | R4 P Status   |                                                                |
+
+** 0471 65c02 Second Processor State
+
+| Size | What            | Notes |
+|------+-----------------+-------|
+|    2 | PC              |       |
+|    1 | A               |       |
+|    1 | X               |       |
+|    1 | Y               |       |
+|    1 | S               |       |
+|    1 | P               |       |
+|    4 | TotalTubeCycles |       |
+|    1 | TubeintStatus   |       |
+|    1 | TubeNMIStatus   |       |
+|    1 | TubeNMILock     |       |
+|    2 | 0               | ?     |
+
+Boot mode is not handled. BeebEm copies the second processor ROM into
+memory before starting execution.
+
+** 0472 65c02 Second Processor Memory
+
+|  Size | What | Notes |
+|-------+------+-------|
+| 65536 | RAM  |       |
+
+** 0475 Sideways ROM
+
+|  Size | What          | Notes              |
+|-------+---------------+--------------------|
+|     1 | Bank index    |                    |
+|     1 | 0             | indicates ROM bank |
+| 16384 | Bank contents |                    |
+
+* bp cycle counts
+
+-		hits	0x0000016d73723638 {hit_recent={n=42490100 } hit_prev={n=42489926 } }	BBCMicro::DebugState::BreakpointHits *
++		hit_recent	{n=42490100 }	CycleCount
++		hit_prev	{n=42489926 }	CycleCount
+
+* PAL ROM mappers
+
+MAME link: https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
+
+MAME BBC roms.xml: https://github.com/mamedev/mame/blob/master/hash/bbc_rom.xml
+
+Large ROMs thread: https://stardot.org.uk/forums/viewtopic.php?t=14384
+
+IntegraB V2: https://stardot.org.uk/forums/viewtopic.php?t=19392
+
+** Interword
+
+- Mask :: 3fe0
+- Offset 0060, 3fc0 :: bank = 0
+- Offset 0040, 3fa0, 3fe0 :: bank = 1
+
+| What        | f | e | d | c | b | a | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+|-------------+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---|
+| Mask 3fe0   |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   |   |   |   |   |
+| Offset 0060 |   |   |   |   |   |   |   |   |   | 1 | 1 |   |   |   |   |   |
+| Offset 3fc0 |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   |   |   |   |   |   |
+| Offset 0040 |   |   |   |   |   |   |   |   |   | 1 |   |   |   |   |   |   |
+| Offset 3fa0 |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   | 1 |   |   |   |   |   |
+| Offset 3fe0 |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   |   |   |   |   |
+
+9 bits, 512 bytes
+
+** Increase big pages to 128 KB's-worth per bank?
+
+But the Watford ones have a fixed 8 KB at the bottom. So now the big
+page addresses are no longer fixed.
+
+# There would then be 32 big pages per bank, laid out as follows.
+
+# | MBank | Big page | Address |
+# |-------+----------+---------|
+# | w     |       +0 | 8000    |
+# | w     |       +1 | 9000    |
+# | w     |       +2 | a000    |
+# | w     |       +3 | b000    |
+# | x     |       +4 | 8000    |
+# | x     |       +5 | 9000    |
+# | x     |       +6 | a000    |
+# | x     |       +7 | b000    |
+# | y     |       +8 | 8000    |
+# | y     |       +9 | 9000    |
+# | y     |      +10 | a000    |
+# | y     |      +11 | b000    |
+# | z     |      +12 | 8000    |
+# | z     |      +13 | 9000    |
+# | z     |      +14 | a000    |
+# | z     |      +15 | b000    |
+# | W     |      +16 | 8000    |
+# | W     |      +17 | 9000    |
+# | W     |      +18 | a000    |
+# | W     |      +19 | b000    |
+# | X     |      +20 | 8000    |
+# | X     |      +21 | 9000    |
+# | X     |      +22 | a000    |
+# | X     |      +23 | b000    |
+# | Y     |      +24 | 8000    |
+# | Y     |      +25 | 9000    |
+# | Y     |      +26 | a000    |
+# | Y     |      +27 | b000    |
+# | Z     |      +28 | 8000    |
+# | Z     |      +29 | 9000    |
+# | Z     |      +30 | a000    |
+# | Z     |      +31 | b000    |
+
+# Then for the various mapper types (names as per MAME):
+
+# | Name     | w | x | y | z | W | X | Y | Z |
+# |----------+---+---+---+---+---+---+---+---|
+# | CCIWORD  | 1 | 1 |   |   |   |   |   |   |
+# | CCIBASE  | 1 | 1 | 1 | 1 |   |   |   |   |
+# | CCISPELL | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+# | PALQST   | 1 | 1 | 1 | 1 |   |   | 1 | 1 |
+
+** Dynamic big pages
+
+Base requirements:
+
+- 32 KB RAM (B/B+/Master)
+- 12 KB ANDY (B+)
+- 4 KB ANDY (Master)
+- 8 KB HAZEL (Master)
+- 20 KB Shadow RAM (Master)
+- <N> KB paged ROMs
+- 16 KB MOS
+- 64 KB parasite
+- 2 KB parasite ROM
+
+*** B
+
+8 main RAM
+4 OS ROM
+...plus ROMs
+
+*** B+
+
+8 main RAM
+3 ANDY
+5 shadow RAM
+4 OS ROM
+...plus ROMs
+
+*** Master/Compact
+
+8 main RAM
+1 ANDY
+2 HAZEL
+5 shadow RAM
+4 OS ROM
+...plus ROMs
+
+*** 2nd processor
+
+16 RAM
+1 ROM
+
+*** Other notes
+
+=PARASITE_BIG_PAGE_INDEX= is used in update function to check for
+breakpoints.
+
+=MOS_BIG_PAGE_INDEX= is used in debugger code when showing the paging
+setup.
+
+** Status <2024-07-05 Fri>
+
+Big page tables should be set up correctly. Regardless of mapper type,
+the big page index is bank*32+region*4+bigpage.
+
+ReadOnlyBigPage structs should be set up correctly. There's a new
+function, =GetROMOffset=, that handles the details.
+
+Mapper port access should work... maybe... there's a new =if
+constexpr= inside =BBCMicro::Update=. This calls =UpdatePaging= to
+sort out a new big page arrangement. No need to worry about switching
+update function: that's impossible in this case. Access to mapper IO
+can only change the paging. Code needs to access ROMSEL to switch to a
+different update function due to switching to a different mapper, and
+that's now handled with an additional =UpdateCPUDataBusFn= call in
+=BBCMicro::WriteROMSEL=.
+
+=UpdateCPUDataBusFn= has been updated to take the mapper type into
+account.
+
+TODOs
+
+*** DONE don't allow writeable slot unless 16 KB
+CLOSED: [2024-07-06 Sat 21:55]
+
+etc., etc. - make sure the UI makes this clear
+
+*** DONE NUM_BIG_PAGES is now a LOT
+CLOSED: [2024-07-06 Sat 21:54]
+
+Go through anywhere it's used to size arrays, and eliminate anything
+that's now far too large.
+
+Conclusion: probably going to leave this. Major offenders are:
+
+- BBCMicro :: not a big deal, as there's only one of these per running
+  emulator
+
+- BBCMicro::DebugState :: this is now a slightly monstrous 2 MBytes
+  plus, but, ditto. 
+
+- BreakpointsDebugWindow :: another singleton
+
+4 MBytes just ain't that much these days...
+
+*** DONE NUM_UPDATE_MFNS is now a LOT
+CLOSED: [2024-07-06 Sat 21:54]
+
+Ditto.
+
+Conclusion: ditto, but the sizeof BBCMicro::UpdateMFnsData is realy a
+bit ridiculous!
+
+Use a std::map or similar for this instead? It would only need
+re-examining when the update mfn actually changes.
+
+Or what about a remap table, so only the unique functions need to be
+counted. This could be built up at runtime by scanning the update_mfns
+table.
+
+*** DONE Use GetROMBankCode where appropriate
+CLOSED: [2024-07-06 Sat 21:56]
+
+Remove all the occurrences of "%x" for this purpose.
+
+* NUM_UPDATE_MFNS reduction (from 65536)
+
+Current update flags, set a:
+
+| Field                | # options |
+|----------------------+-----------|
+| IsMaster128          |         2 |
+| HasBeebLink          |         2 |
+| Hacks                |         2 |
+| Debug                |         2 |
+| Trace                |         2 |
+| Parasite             |         2 |
+| ParasiteSpecial      |         2 |
+| DebugStepParasite    |         2 |
+| DebugStepHost        |         2 |
+| Parasite3MHzExternal |         2 |
+| ParallelPrinter      |         2 |
+| IsMasterCompact      |         2 |
+| ROMType              |        16 |
+
+#+begin_src lisp-interaction
+  ;; a
+  (* 2 2 2 2 2 2 2 2 2 2 2 2 16)
+  65536
+
+  ;; b
+  (* 3 2 2 2 2 3 2 2 2 2 8)		
+  18432
+
+  ;; c
+  (* 3 2 2 2 2 5 2 2 2 8)
+  15360
+#+end_src
+
+But the actual set of options is more like this (set b):
+
+| Field             | # options | Notes                |
+|-------------------+-----------+----------------------|
+| Type              |         3 | B/B+; M128; MCompact |
+| BeebLink          |         2 |                      |
+| Hacks             |         2 |                      |
+| Debug             |         2 |                      |
+| Trace             |         2 |                      |
+| ParasiteType      |         3 | None; 3 MHz; 4 MHz   |
+| ParasiteSpecial   |         2 |                      |
+| DebugStepParasite |         2 |                      |
+| DebugStepHost     |         2 |                      |
+| ParallelPrinter   |         2 |                      |
+| ROMType           |         8 |                      |
+
+Other possibilities: merge parasite special into parasite type. 5. Set
+c.
+
+But, ultimately, this is only reducing the size of the tables. The
+number of actual routines will necessarily remain the same. So does it
+actually matter?
+
+A 512 KB table (that's 90% unused) is kind of dumb, but for a modern
+PC it's basically irrelevant.
+
+* Mouse notes
+
+~300 IRQs/sec for my Quest Mouse.
+
+* Submodule upstreams
+
+Origin is upstream already:
+
+| Submodule            | Upstream                                        |
+|----------------------+-------------------------------------------------+
+| 6502Timing           | https://github.com/dp111/6502Timing             |
+| Font-Awesome         | https://github.com/FortAwesome/Font-Awesome     |
+| IconFontCppHeaders   | https://github.com/juliettef/IconFontCppHeaders |
+| SDL_GameControllerDB | https://github.com/gabomdq/SDL_GameControllerDB |
+| miniz                | https://github.com/richgel999/miniz             |
+| rcedit               | https://github.com/electron/rcedit              |
+| sanitizers-cmake     | https://github.com/arsenm/sanitizers-cmake      |
+| stb                  | https://github.com/nothings/stb                 |
+| 6502-tests           | https://github.com/tom-seddon/6502-tests        |
+| beeb                 | https://github.com/tom-seddon/beeb              |
+| shellcmd.py          | https://github.com/tom-seddon/shellcmd.py       |
+|                      |                                                 |
+
+Origin is my fork and upstream is elsewhere:
+
+| submodule       | Upstream                                   | Origin                                        |
+|-----------------+--------------------------------------------+-----------------------------------------------|
+| Remotery        | https://github.com/Celtoys/Remotery        | https://github.com/tom-seddon/Remotery        |
+| SDL_official    | https://github.com/libsdl-org/SDL          | https://github.com/tom-seddon/SDL-1           |
+| curl            | https://github.com/curl/curl               | https://github.com/tom-seddon/curl            |
+| http-parser     | https://github.com/nodejs/http-parser      | https://github.com/tom-seddon/http-parser     |
+| imgui           | https://github.com/ocornut/imgui           | https://github.com/tom-seddon/imgui           |
+| imgui_club      | https://github.com/tom-seddon/imgui_club   | https://github.com/tom-seddon/imgui_club      |
+| libuv           | https://github.com/libuv/libuv             | https://github.com/tom-seddon/libuv           |
+| macdylibbundler | https://github.com/auriamg/macdylibbundler | https://github.com/tom-seddon/macdylibbundler |
+| perfect6502     | https://github.com/mist64/perfect6502      | https://github.com/tom-seddon/perfect6502     |
+| rapidjson       | https://github.com/Tencent/rapidjson       | https://github.com/tom-seddon/rapidjson       |
+| relacy          | https://github.com/dvyukov/relacy          | https://github.com/tom-seddon/relacy          |
+| salieri         | https://github.com/nemequ/salieri          | https://github.com/tom-seddon/salieri         |
+| visual6502      | https://github.com/trebonian/visual6502    | https://github.com/tom-seddon/visual6502      |
+
+Upstream updates no longer relevant, as HEAD doesn't use this library
+any more:
+
+| Submodule | Origin                            |
+|-----------+-----------------------------------|
+| SDL       | https://github.com/tom-seddon/SDL |
+| noc       | https://github.com/tom-seddon/noc |
+
+* BBCMicro_Update.cpp build times
+** VS2019
+
+Modify =BBCMicro_Update= file, do =Project Only= > =Build= on beeb_lib
+project.
+
+Original: 3 runs: 1'09", 1'09", 1'08"
+
+Split manually into 2 groups: 0'45", 0'44", 0'44"
+
+Add configurable =BBCMICRO_NUM_UPDATE_GROUPS=:
+
+- 1 group: 1'09"
+- 2 groups: 0'47"
+- 4 groups: 0'38", 0'38", 0'37"
+
+i7-4890HQ (4C 8T)
+
+** gcc
+
+Modify =BBCMicro_Update= file, and do =time ninja
+./src/beeb/libbeeb_lib.a= from the build folder.
+
+- 1 group: 649.84s user 17.65s system 100% cpu 11:03.00 total
+- 2 groups: 725.01s user 17.84s system 195% cpu 6:20.81 total
+- 4 groups: 808.46s user 21.31s system 282% cpu 4:53.27 total
+
+VirtualBox, 3 cores
+
+** Xcode
+
+Modify =BBCMicro_Update= file, select =beeb_lib= as the target in
+Xcode, build from Xcode.
+
+- 1 group: 139.4 sec
+- 2 groups: 86.8 sec
+- 4 groups: 80.1 sec
+
+i7-5557U (2C 4T)
+
+* More build times
+
+** Initial
+
+| Scenario                | Debug        | Release      |
+|-------------------------+--------------+--------------|
+| Rebuild all             | 2 min 51 sec | 5 min 37 sec |
+| Touch BBCMicro.h, build | 1 min 11 sec |              |
+
+** Include less stuff in test_standard.cpp
+
+| Scenario                | Debug        | Release      |
+|-------------------------+--------------+--------------|
+| Rebuild all             | 2 min 35 sec | 5 min 35 sec |
+| Touch BBCMicro.h, build | 1 min 5 sec  |              |
+
+** Tidy up shared headers a bit
+
+Rebuild all
+
+debug: 2 min 29 sec
+
+Release: 5 min 30 sec
+
+* eof.

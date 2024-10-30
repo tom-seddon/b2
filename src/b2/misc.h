@@ -16,13 +16,17 @@ struct _SDL_GameController;
 class BBCMicro;
 struct ROM;
 class Messages;
+class Log;
 
 #include "conf.h"
 #include <vector>
 #include <string>
 #include <functional>
-#include <shared/log.h>
 #include <memory>
+
+#include <shared/enum_decl.h>
+#include "misc.inl"
+#include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -164,22 +168,26 @@ std::vector<std::string> GetSplitString(const std::string &str, const std::strin
 bool GetBoolFromString(bool *value, const std::string &str);
 bool GetBoolFromString(bool *value, const char *str);
 
-bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix = 0);
-bool GetUInt8FromString(uint8_t *value, const char *str, int radix = 0);
+// If !ep, fail unless parsing reaches a non-space char or end of string. If ep,
+// parse as much as possible and set *ep to point to the problem char.
+bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt8FromString(uint8_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
-bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix = 0);
-bool GetUInt16FromString(uint16_t *value, const char *str, int radix = 0);
+bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt16FromString(uint16_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
-bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix = 0);
-bool GetUInt32FromString(uint32_t *value, const char *str, int radix = 0);
+bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt32FromString(uint32_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
-bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix = 0);
-bool GetUInt64FromString(uint64_t *value, const char *str, int radix = 0);
+bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix = 0, const char **ep = nullptr);
+bool GetUInt64FromString(uint64_t *value, const char *str, int radix = 0, const char **ep = nullptr);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // returns true on success, or false on failure.
+//
+// TODO: should be std::vector<uint8_t> *bbc_ascii -
 bool GetBBCASCIIFromUTF8(std::string *ascii,
                          const std::vector<uint8_t> &data,
                          uint32_t *bad_codepoint_ptr,
@@ -187,12 +195,12 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
                          int *bad_char_len_ptr);
 
 // returns 0 on success, or the unsupported codepoint on failure.q
-uint32_t GetBBCASCIIFromISO88511(std::string *ascii,
-                                 const std::vector<uint8_t> &data);
+uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii,
+                                  const std::vector<uint8_t> &data);
 
-// Normalizes line endings, strips out BBC-type control codes, and translates
-// ASCII 95 to U+00A3 Pound Sign.
-std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data);
+// Normalizes line endings, strips out BBC-type control codes, converts chars
+// according to the mode.
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

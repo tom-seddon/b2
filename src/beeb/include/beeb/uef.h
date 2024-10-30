@@ -1,0 +1,66 @@
+#ifndef HEADER_87D19780EC7F43ED97DCAA333EB7A06F // -*- mode:c++ -*-
+#define HEADER_87D19780EC7F43ED97DCAA333EB7A06F
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#include <vector>
+
+struct LogSet;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct UEFChunk {
+    uint16_t id = 0;
+    uint32_t size = 0;
+    const void *data = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class UEFReader {
+  public:
+    explicit UEFReader(const LogSet *logs);
+
+    bool Load(std::vector<uint8_t> data);
+
+    size_t GetNumChunks() const;
+    UEFChunk GetChunkByIndex(size_t index) const;
+
+  protected:
+  private:
+    struct Chunk {
+        uint16_t id = 0;
+        uint32_t size = 0;
+        size_t data_index = 0;
+    };
+
+    const LogSet *m_logs = nullptr;
+    uint8_t m_minor_version = 0, m_major_version = 0;
+    std::vector<uint8_t> m_data;
+    std::vector<Chunk> m_chunks;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class UEFWriter {
+  public:
+    UEFWriter(uint8_t major_version, uint8_t minor_version, const LogSet *logs);
+
+    std::vector<uint8_t> Save();
+
+    void AddChunk(uint16_t id, const std::vector<uint8_t> &data);
+
+  protected:
+  private:
+    const LogSet *m_logs = nullptr;
+    std::vector<uint8_t> m_data;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#endif

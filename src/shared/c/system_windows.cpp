@@ -376,7 +376,7 @@ void SleepMS(unsigned ms) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static double GetSecondsPerTick(void) {
+double GetSecondsPerTick(void) {
     if (!g_got_qpc_freq) {
         LARGE_INTEGER hz;
         QueryPerformanceFrequency(&hz);

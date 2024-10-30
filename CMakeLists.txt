@@ -75,7 +75,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_FINAL ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO})
 # the build byproducts though :( - 3.07 GB when building absolutely
 # everything with DLL CRT, and 5.50 GB when building absolutely
 # everything with .lib CRT.
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>")
 
 ##########################################################################
 ##########################################################################
@@ -244,6 +244,15 @@ else()
   set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
   add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/SDL_official)
 
+  if(OSX)
+    # Probably unavoidable, as SDL2 will be trying to support older
+    # macOS versions.
+    target_compile_options(SDL2-static PRIVATE "-Wno-deprecated-declarations")
+
+    # I'm gambling these are benign.
+    target_compile_options(SDL2-static PRIVATE "-Wno-shorten-64-to-32")
+  endif()
+
   set(HAVE_SDL_SOFTSTRETCHLINEAR TRUE)
 
   set(SDL2_LIBRARY SDL2::SDL2-static SDL2::SDL2main)
@@ -328,6 +337,12 @@ if(USE_SYSTEM_LIBUV)
 else()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
 
+  if(OSX)
+    # I'm trusting (possibly wrongly...) that these are benign.
+    target_compile_options(uv PRIVATE "-Wno-shorten-64-to-32")
+    target_compile_options(uv_a PRIVATE "-Wno-shorten-64-to-32")
+  endif()
+
   # Don't add libuv's tests as a ctest test. The shutdown_eof test fails, for some reason.
 
   # add_test(
@@ -346,8 +361,8 @@ endif()
 progress_message("submodules; src; dependencies")
 
 add_subdirectory(submodules)
-add_subdirectory(src)
 add_subdirectory(dependencies)
+add_subdirectory(src)
 
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.cmake)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)

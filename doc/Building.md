@@ -27,10 +27,9 @@ The following should always build:
 * `wip/master` - used to prepare GitHub prereleases. I periodically
   merge this into `master`. Should always build, though there may be
   some new stuff that isn't quite ready
-
-Anything else with a `wip/` prefix is stuff I'm working on, and may or
-may not work. (These branches get merged into `wip/master` once
-they're roughly working.)
+  
+(Anything else: at your own risk. Anything worth keeping always ends
+up in `wip/master`.)
 
 After switching branches, you will need to do `git submodule update`
 again, to ensure the submodules are also at the correct revisions. Git

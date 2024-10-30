@@ -18,6 +18,7 @@ class SavedStatesUI : public SettingsUI {
                            SDL_Renderer *renderer)
         : m_beeb_window(beeb_window)
         , m_thumbnails(renderer) {
+        this->SetDefaultSize(ImVec2(350, 400));
     }
 
     void DoImGui() override {
@@ -78,17 +79,16 @@ class SavedStatesUI : public SettingsUI {
                             }
 
                             // Name
-                            const std::string &name = s->GetName();
-                            if (name.empty()) {
+                            if (s->name.empty()) {
                                 ImGui::TextUnformatted("(no name)");
                             } else {
                                 ImGui::Text("Name: %s",
-                                            name.c_str());
+                                            s->name.c_str());
                             }
 
                             // Drives
                             for (int drive = 0; drive < NUM_DRIVES; ++drive) {
-                                const std::shared_ptr<const DiscImage> &di = s->GetDiscImageByDrive(drive);
+                                const std::shared_ptr<const DiscImage> &di = s->GetDiscImage(drive);
                                 if (!di) {
                                     ImGui::Text("Drive %d: *empty*",
                                                 drive);

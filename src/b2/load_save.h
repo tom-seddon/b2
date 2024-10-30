@@ -13,6 +13,7 @@
 #include <vector>
 #include <stdio.h>
 
+struct LogSet;
 class Messages;
 struct SDL_Surface;
 
@@ -51,20 +52,19 @@ std::string GetCachePath(const std::string &path);
 
 // File names are assumed to be UTF-8.
 
-bool LoadFile(std::vector<uint8_t> *data,
-              const std::string &path,
-              Messages *messages,
-              uint32_t flags = 0);
+bool LoadFile(std::vector<uint8_t> *data, const std::string &path, const LogSet &logs, uint32_t flags = 0);
+bool LoadFile(std::vector<uint8_t> *data, const std::string &path, Messages *messages, uint32_t flags = 0);
 
-bool LoadTextFile(std::vector<char> *data,
-                  const std::string &path,
-                  Messages *messages,
-                  uint32_t flags = 0);
+bool LoadTextFile(std::vector<char> *data, const std::string &path, const LogSet &logs, uint32_t flags = 0);
+bool LoadTextFile(std::vector<char> *data, const std::string &path, Messages *messages, uint32_t flags = 0);
 
+bool SaveFile(const void *data, size_t data_size, const std::string &path, const LogSet &logs);
 bool SaveFile(const void *data, size_t data_size, const std::string &path, Messages *messages);
 
+bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, const LogSet &logs);
 bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages);
 
+bool SaveTextFile(const std::string &data, const std::string &path, const LogSet &logs);
 bool SaveTextFile(const std::string &data, const std::string &path, Messages *messages);
 
 bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages);

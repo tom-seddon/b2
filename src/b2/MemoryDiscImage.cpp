@@ -294,7 +294,7 @@ bool MemoryDiscImage::CanSave() const {
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<DiscImage> MemoryDiscImage::Clone() const {
-    std::lock_guard<Mutex> lock(m_data->mut);
+    LockGuard<Mutex> lock(m_data->mut);
 
     ++m_data->num_refs;
 
@@ -305,7 +305,7 @@ std::shared_ptr<DiscImage> MemoryDiscImage::Clone() const {
 //////////////////////////////////////////////////////////////////////////
 
 std::string MemoryDiscImage::GetHash() const {
-    std::lock_guard<Mutex> lock(m_data->mut);
+    LockGuard<Mutex> lock(m_data->mut);
 
     if (m_data->hash.empty()) {
         char hash_str[SHA1::DIGEST_STR_SIZE];
@@ -361,9 +361,8 @@ void MemoryDiscImage::AddFileDialogFilter(FileDialog *fd) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool MemoryDiscImage::SaveToFile(const std::string &file_name,
-                                 Messages *msg) const {
-    return SaveFile(m_data->data, file_name, msg);
+bool MemoryDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
+    return SaveFile(m_data->data, file_name, logs);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -382,7 +381,7 @@ bool MemoryDiscImage::Read(uint8_t *value,
                            uint8_t track,
                            uint8_t sector,
                            size_t offset) const {
-    std::lock_guard<Mutex> lock(m_data->mut);
+    LockGuard<Mutex> lock(m_data->mut);
 
     size_t index;
     if (!m_data->geometry.GetIndex(&index, side, track, sector, offset)) {
@@ -413,7 +412,7 @@ bool MemoryDiscImage::Write(uint8_t side,
 
     this->MakeDataUnique();
 
-    std::lock_guard<Mutex> lock(m_data->mut);
+    LockGuard<Mutex> lock(m_data->mut);
 
     if (index >= m_data->data.size()) {
         // Round up to the next sector boundary, but don't try to be
@@ -470,7 +469,7 @@ void MemoryDiscImage::MakeDataUnique() {
     Data *old_data;
 
     {
-        std::lock_guard<Mutex> lock(m_data->mut);
+        LockGuard<Mutex> lock(m_data->mut);
 
         if (m_data->num_refs == 1) {
             // This can't be racing anything else; there's no other
@@ -495,7 +494,7 @@ void MemoryDiscImage::ReleaseData(Data **data_ptr) {
     Data *data = *data_ptr;
     *data_ptr = nullptr;
 
-    std::unique_lock<Mutex> lock(data->mut);
+    UniqueLock<Mutex> lock(data->mut);
 
     ASSERT(data->num_refs > 0);
     --data->num_refs;
@@ -513,7 +512,7 @@ void MemoryDiscImage::ReleaseData(Data **data_ptr) {
 void MemoryDiscImage::SetName(std::string name) {
     m_name = std::move(name);
 
-    MUTEX_SET_NAME(m_data->mut, strprintf("MemoryDiscImage: %s", m_name.c_str()));
+    MUTEX_SET_NAME(m_data->mut, ("MemoryDiscImage: " + m_name));
 }
 
 //////////////////////////////////////////////////////////////////////////

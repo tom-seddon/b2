@@ -12,6 +12,7 @@
 #include "BeebConfig.h"
 #include <beeb/type.h>
 #include <IconsFontAwesome5.h>
+#include <beeb/BBCMicro.h>
 
 #include <shared/enum_decl.h>
 #include "ConfigsUI_private.inl"
@@ -50,7 +51,7 @@ class ConfigsUI : public SettingsUI {
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
 
     // rom_edit_flags is a combination of ROMEditFlag values
-    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, uint32_t rom_edit_flags);
+    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, ROMType *type, uint32_t rom_edit_flags);
     void DoROMs(BeebConfig::ROM *rom,
                 bool *edited,
                 uint32_t rom_edit_flags,
@@ -67,6 +68,8 @@ class ConfigsUI : public SettingsUI {
 ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window)
     , m_ofd(RECENT_PATHS_ROMS) {
+    this->SetDefaultSize(ImVec2(650, 450));
+
     m_ofd.AddAllFilesFilter();
 
     const std::string &config_name = m_beeb_window->GetConfigName();
@@ -208,7 +211,7 @@ void ConfigsUI::DoEditConfigGui() {
 
     uint32_t rom_edit_sideways_rom_flags;
     uint32_t rom_edit_os_rom_flags;
-    switch (config->type->type_id) {
+    switch (config->type_id) {
     default:
         ASSERT(false);
         [[fallthrough]];
@@ -242,8 +245,8 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGuiIDPusher config_id_pusher(config);
 
-    ImGui::Text("Model: %s", config->type->model_name);
-    ImGui::Text("Disc interface: %s", config->disc_interface->name.c_str());
+    ImGui::Text("Model: %s", GetModelName(config->type_id));
+    ImGui::Text("Disc interface: %s", config->disc_interface->display_name.c_str());
 
     std::string title = config->name;
 
@@ -278,6 +281,7 @@ void ConfigsUI::DoEditConfigGui() {
     if (this->DoROMEditGui("Host OS",
                            &config->os,
                            nullptr,
+                           nullptr,
                            rom_edit_os_rom_flags) != ROMEditAction_None) {
         edited = true;
     }
@@ -302,6 +306,7 @@ void ConfigsUI::DoEditConfigGui() {
             ROMEditAction a = this->DoROMEditGui(CAPTIONS[bank],
                                                  rom,
                                                  &rom->writeable,
+                                                 &rom->type,
                                                  rom_edit_flags);
             if (a != ROMEditAction_None) {
                 action = a;
@@ -334,15 +339,15 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGui::Columns(1);
 
-    if (Has1MHzBus(config->type)) {
-        if (!config->disc_interface->uses_1MHz_bus) {
+    if (Has1MHzBus(config->type_id)) {
+        if (!(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
             if (ImGui::Checkbox("External memory", &config->ext_mem)) {
                 edited = true;
             }
         }
     }
 
-    if (HasUserPort(config->type)) {
+    if (HasUserPort(config->type_id)) {
         if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
             edited = true;
         }
@@ -352,7 +357,7 @@ void ConfigsUI::DoEditConfigGui() {
         edited = true;
     }
 
-    if (HasCartridges(config->type)) {
+    if (HasCartridges(config->type_id)) {
         if (ImGui::Checkbox("Retro Hardware ADJI cartridge", &config->adji)) {
             edited = true;
         }
@@ -367,7 +372,11 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (HasTube(config->type)) {
+    if (ImGui::Checkbox("Mouse", &config->mouse)) {
+        edited = true;
+    }
+
+    if (HasTube(config->type_id)) {
         if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
             edited = true;
         }
@@ -399,11 +408,12 @@ void ConfigsUI::DoEditConfigGui() {
             if (this->DoROMEditGui("Parasite OS",
                                    &config->parasite_os,
                                    nullptr,
+                                   nullptr,
                                    ROMEditFlag_ParasiteROMs)) {
                 edited = true;
             }
 
-            if (config->type->type_id == BBCMicroTypeID_Master) {
+            if (config->type_id == BBCMicroTypeID_Master) {
                 ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
             } else {
                 ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");
@@ -608,6 +618,7 @@ void ConfigsUI::DoROMs(BeebConfig::ROM *rom,
 ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                                       BeebConfig::ROM *rom,
                                       bool *writeable,
+                                      ROMType *type,
                                       uint32_t rom_edit_flags) {
     ROMEditAction action = ROMEditAction_None;
     bool edited = false;
@@ -650,9 +661,11 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
     ImGui::NextColumn();
 
     if (writeable) {
+        ImGui::BeginDisabled(!type || *type != ROMType_16KB);
         if (ImGui::Checkbox("##ram", writeable)) {
             edited = true;
         }
+        ImGui::EndDisabled();
     }
 
     ImGui::NextColumn();
@@ -691,9 +704,33 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
         ImGui::Separator();
 
+        if (type) {
+            if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
+                for (int i = 0; i < ROMType_Count; ++i) {
+                    const ROMTypeMetadata *metadata = GetROMTypeMetadata((ROMType)i);
+                    bool selected = *type == i;
+                    if (ImGui::MenuItem(metadata->description, nullptr, &selected)) {
+                        *type = (ROMType)i;
+
+                        if (*type != ROMType_16KB) {
+                            if (writeable) {
+                                *writeable = false;
+                            }
+                        }
+                    }
+                }
+                ImGui::EndMenu();
+            }
+        }
+
+        ImGui::Separator();
+
         if (ImGui::MenuItem("(empty)")) {
             rom->standard_rom = nullptr;
             rom->file_name.clear();
+            if (type) {
+                *type = ROMType_16KB;
+            }
             edited = true;
         }
 

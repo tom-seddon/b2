@@ -30,7 +30,7 @@ bool GenerateThumbnailJob::Init(std::shared_ptr<const BeebState> beeb_state,
 
 void GenerateThumbnailJob::ThreadExecute() {
     if (!m_beeb) {
-        m_beeb = m_beeb_state->CloneBBCMicro();
+        m_beeb = std::make_unique<BBCMicro>(*m_beeb_state);
     }
 
     // Discard the first frame - it'll probably be junk.

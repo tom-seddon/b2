@@ -99,10 +99,10 @@ static void SendAcknowledge(PCD8572 *p, PCD8572State next_state) {
 }
 
 void UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
+#if PCD8572_MOS510_DEBUG
     if (clk != p->oclk || data != p->odata) {
         uint16_t pc = 0;
         const char *symbol = "?";
-#if PCD8572_MOS510_DEBUG
         if (p->cpu) {
             pc = p->cpu->opcode_pc.w;
             auto &&it = g_mos510_names.find(pc);
@@ -110,10 +110,10 @@ void UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
                 symbol = it->second.c_str();
             }
         }
-#endif
 
         ELOG("%s: clk=%d->%d data=%d->%d: pc=$%04x (%s)", GetPCD8572StateEnumName(p->state), p->oclk, clk, p->odata, data, pc, symbol);
     }
+#endif
 
     if (p->oclk && clk) {
         if (p->odata && !data) {

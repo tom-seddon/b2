@@ -1,7 +1,8 @@
 # b2
 
-A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
-macOS computer to play your old BBC games or develop new BBC software.
+A cross-platform emulator of the BBC Micro, BBC Master 128, BBC Master
+Compact and Olivetti PC 128 S. Use your Windows/Linux PC or macOS
+computer to play your old games or develop new software.
 
 ## Windows
 
@@ -52,9 +53,9 @@ API for remote control.
 
 # Bugs/feedback/etc.
 
-Please submit feedback to the
-[b2 GitHub issues page](https://github.com/tom-seddon/b2/issues), or
-post in
+Please submit feedback to
+[the b2 GitHub issues page](https://github.com/tom-seddon/b2/issues),
+or post in
 [the b2 thread on Stardot](https://stardot.org.uk/forums/viewtopic.php?f=4&t=13081).
 
 # Licence
@@ -69,7 +70,7 @@ every dependency can be added as a git submodule.
 
 ## `experimental`, `src`
 
-Copyright (C) 2016-9 by Tom Seddon
+Copyright (C) 2016-2024 by Tom Seddon
 
 Licence: GPL v3.
 

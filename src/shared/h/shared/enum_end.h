@@ -3,9 +3,12 @@
 #endif
 
 #undef EPREFIX
+#undef EBASE
 
 #undef EBEGIN
 #undef EBEGIN_DERIVED
+
+#undef EBEGIN__BODY
 
 #undef EN
 #undef ENV

@@ -114,39 +114,36 @@ const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity", sizeof(Discont
 const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel", sizeof(WriteROMSELEvent), TraceEventSource_Host);
 const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon", sizeof(WriteACCCONEvent), TraceEventSource_Host);
 const TraceEventType Trace::PARASITE_BOOT_MODE_EVENT("_parasite_boot_mode", sizeof(ParasiteBootModeEvent), TraceEventSource_Parasite);
+const TraceEventType Trace::SET_MAPPER_REGION_EVENT("_set_mapper_region", sizeof(SetMapperRegionEvent), TraceEventSource_Host);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// must be a POD type - it's allocated with malloc.
 struct Trace::Chunk {
-    struct Chunk *next;
-    size_t size;
-    size_t capacity;
-    size_t num_events;
+    struct Chunk *next = nullptr;
+    size_t size = 0;
+    size_t capacity = 0;
+    size_t num_events = 0;
 
-    CycleCount initial_time;
-    CycleCount last_time;
+    CycleCount initial_time = {};
+    CycleCount last_time = {};
 
-    ROMSEL initial_romsel;
-    ACCCON initial_acccon;
-    bool initial_parasite_boot_mode;
+    PagingState initial_paging;
+    bool initial_parasite_boot_mode = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 Trace::Trace(size_t max_num_bytes,
-             const BBCMicroType *bbc_micro_type,
-             ROMSEL initial_romsel,
-             ACCCON initial_acccon,
+             std::shared_ptr<const BBCMicroType> bbc_micro_type,
+             const PagingState &initial_paging,
              BBCMicroParasiteType parasite_type,
              const M6502Config *parasite_m6502_config,
              bool initial_parasite_boot_mode)
     : m_max_num_bytes(max_num_bytes)
-    , m_bbc_micro_type(bbc_micro_type)
-    , m_romsel(initial_romsel)
-    , m_acccon(initial_acccon)
+    , m_bbc_micro_type(std::move(bbc_micro_type))
+    , m_paging(initial_paging)
     , m_parasite_type(parasite_type)
     , m_parasite_m6502_config(parasite_m6502_config)
     , m_parasite_boot_mode(initial_parasite_boot_mode) {
@@ -160,6 +157,7 @@ Trace::~Trace() {
     while (c) {
         Chunk *next = c->next;
 
+        static_assert(std::is_trivially_destructible<decltype(*c)>::value);
         free(c);
 
         c = next;
@@ -314,7 +312,7 @@ void Trace::AllocWriteROMSELEvent(ROMSEL romsel) {
     auto ev = (WriteROMSELEvent *)this->AllocEvent(WRITE_ROMSEL_EVENT);
 
     ev->romsel = romsel;
-    m_romsel = romsel;
+    m_paging.romsel = romsel;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -324,7 +322,7 @@ void Trace::AllocWriteACCCONEvent(ACCCON acccon) {
     auto ev = (WriteACCCONEvent *)this->AllocEvent(WRITE_ACCCON_EVENT);
 
     ev->acccon = acccon;
-    m_acccon = acccon;
+    m_paging.acccon = acccon;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -335,6 +333,16 @@ void Trace::AllocParasiteBootModeEvent(bool parasite_boot_mode) {
 
     ev->parasite_boot_mode = parasite_boot_mode;
     m_parasite_boot_mode = parasite_boot_mode;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Trace::AllocSetMapperRegionEvent(uint8_t region) {
+    auto ev = (SetMapperRegionEvent *)this->AllocEvent(SET_MAPPER_REGION_EVENT);
+
+    ev->region = region;
+    m_paging.rom_regions[m_paging.romsel.b_bits.pr] = region;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -403,29 +411,18 @@ void Trace::GetStats(TraceStats *stats) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroType *Trace::GetBBCMicroType() const {
+std::shared_ptr<const BBCMicroType> Trace::GetBBCMicroType() const {
     return m_bbc_micro_type;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ROMSEL Trace::GetInitialROMSEL() const {
+const PagingState &Trace::GetInitialPagingState() const {
     if (m_head) {
-        return m_head->initial_romsel;
+        return m_head->initial_paging;
     } else {
-        return m_romsel;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-ACCCON Trace::GetInitialACCCON() const {
-    if (m_head) {
-        return m_head->initial_acccon;
-    } else {
-        return m_acccon;
+        return m_paging;
     }
 }
 
@@ -617,11 +614,10 @@ void *Trace::Alloc(CycleCount time, size_t n) {
             }
         }
 
-        memset(c, 0, sizeof *c);
+        new (c) Chunk;
         c->capacity = size;
         c->initial_time = c->last_time = time;
-        c->initial_romsel = m_romsel;
-        c->initial_acccon = m_acccon;
+        c->initial_paging = m_paging;
         c->initial_parasite_boot_mode = m_parasite_boot_mode;
 
         if (!m_head) {

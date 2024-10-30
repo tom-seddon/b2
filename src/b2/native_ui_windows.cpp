@@ -10,6 +10,7 @@
 #include <SDL.h>
 #include "misc.h"
 #include "Messages.h"
+#include "load_save.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -29,21 +30,31 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
     header.bV5BitCount = 24;
     header.bV5Compression = BI_RGB;
 
-    size_t stride = (((header.bV5Width * header.bV5BitCount) + 31) & ~31) >> 3;
+    std::vector<char> dibits_buffer;
+    const void *dibits;
+    if (surface->format->format == SDL_PIXELFORMAT_XRGB8888 && surface->pitch == surface->w * 4) {
+        dibits = surface->pixels;
+        // This is a top-down 32 bpp DI bitmap.
+        header.bV5BitCount = 32;
+        header.bV5Height = -header.bV5Height;
+    } else if (surface->format->format == SDL_PIXELFORMAT_BGR24 &&
+               surface->pitch == ((surface->w * 3 + 3) / 4 * 4)) {
+        dibits = surface->pixels;
+        // This is a top-down 24 bpp DI bitmap.
+        header.bV5Height = -header.bV5Height;
+    } else {
+        size_t stride = (((header.bV5Width * header.bV5BitCount) + 31) & ~31) >> 3;
+        dibits_buffer.resize(stride * header.bV5Height, 0);
+        for (int y = 0; y < header.bV5Height; ++y) {
+            // Top-down SDL surface.
+            auto src = (const char *)surface->pixels + y * surface->pitch;
 
-    // TODO: if the surface is BGR24 already, could just lock the bits and use
-    // them directly. But it's not like setting the clipboard image is
-    // performance-sensitive.
+            // Form a bottom-up DI bitmap.
+            auto dest = &dibits_buffer[(header.bV5Height - 1 - y) * stride];
 
-    std::vector<char> dibits(stride * header.bV5Height, 0);
-    for (int y = 0; y < header.bV5Height; ++y) {
-        // Top-down SDL surface.
-        auto src = (const char *)surface->pixels + y * surface->pitch;
-
-        // Bottom-up DI bitmap.
-        auto dest = &dibits[(header.bV5Height - 1 - y) * stride];
-
-        SDL_ConvertPixels(surface->w, 1, surface->format->format, src, surface->pitch, SDL_PIXELFORMAT_BGR24, dest, (int)stride);
+            SDL_ConvertPixels(surface->w, 1, surface->format->format, src, surface->pitch, SDL_PIXELFORMAT_BGR24, dest, (int)stride);
+        }
+        dibits = dibits_buffer.data();
     }
 
     HDC screen_dc = nullptr;
@@ -61,7 +72,7 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
         goto done;
     }
 
-    int n = SetDIBits(screen_dc, bitmap, 0, surface->h, dibits.data(), (BITMAPINFO *)&header, DIB_RGB_COLORS);
+    int n = SetDIBits(screen_dc, bitmap, 0, surface->h, dibits, (BITMAPINFO *)&header, DIB_RGB_COLORS);
     if (n != surface->h) {
         messages->e.f("SetDIBits failed: result was %d\n", n);
         goto done;
