@@ -981,6 +981,17 @@ static void LoadDiscDriveSound(bool *good, DiscDriveType type, DiscDriveSound so
 static bool LoadDiscDriveSamples(Messages *init_messages) {
     bool good = true;
 
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_Seek2ms, "35_seek_2ms.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_Seek6ms, "35_seek_6ms.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_Seek12ms, "35_seek_12ms.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_Seek20ms, "35_seek_20ms.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_SpinEmpty, "35_spin_empty.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_SpinEnd, "35_spin_end.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_SpinLoaded, "35_spin_loaded.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_SpinStartEmpty, "35_spin_start_empty.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_SpinStartLoaded, "35_spin_start_loaded.wav", init_messages);
+    LoadDiscDriveSound(&good, DiscDriveType_90mm, DiscDriveSound_Step, "35_step_1_1.wav", init_messages);
+
     LoadDiscDriveSound(&good, DiscDriveType_133mm, DiscDriveSound_Seek2ms, "525_seek_2ms.wav", init_messages);
     LoadDiscDriveSound(&good, DiscDriveType_133mm, DiscDriveSound_Seek6ms, "525_seek_6ms.wav", init_messages);
     LoadDiscDriveSound(&good, DiscDriveType_133mm, DiscDriveSound_Seek12ms, "525_seek_12ms.wav", init_messages);
