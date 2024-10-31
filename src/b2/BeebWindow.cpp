@@ -11,7 +11,8 @@
 #include "keymap.h"
 #include "keys.h"
 #include <algorithm>
-#include "MemoryDiscImage.h"
+#include <beeb/MemoryDiscImage.h>
+#include "LoadMemoryDiscImage.h"
 #include "BeebWindows.h"
 #include <beeb/BBCMicro.h>
 #include <SDL_syswm.h>
@@ -1935,8 +1936,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
                                                              *file_item.new_disc_type->geometry,
                                                              m_msg);
         } else {
-            new_disc_image = MemoryDiscImage::LoadFromFile(file_item.path,
-                                                           m_msg);
+            new_disc_image = LoadMemoryDiscImage(file_item.path, m_msg);
         }
         this->DoDiscImageSubMenuItem(drive,
                                      std::move(new_disc_image),
@@ -3271,7 +3271,7 @@ const std::string &BeebWindow::GetConfigName() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
-    std::shared_ptr<MemoryDiscImage> disc_image = MemoryDiscImage::LoadFromFile(arguments.file_path, m_msg);
+    std::shared_ptr<MemoryDiscImage> disc_image = LoadMemoryDiscImage(arguments.file_path, m_msg);
     if (!disc_image) {
         return;
     }

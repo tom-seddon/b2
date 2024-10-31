@@ -21,7 +21,6 @@ add_executable(b2 MACOSX_BUNDLE
   HTTPServer.cpp HTTPServer.h
   JobQueue.cpp JobQueue.h
   KeymapsUI.cpp KeymapsUI.h
-  MemoryDiscImage.cpp MemoryDiscImage.h
   MessageQueue.cpp MessageQueue.h
   Messages.cpp Messages.h
   MessagesUI.cpp MessagesUI.h
@@ -50,6 +49,7 @@ add_executable(b2 MACOSX_BUNDLE
   roms.cpp roms.h
   profiler.cpp profiler.h
   joysticks.cpp joysticks.h
+  LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
   )
 
 if(OSX)

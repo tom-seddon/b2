@@ -35,6 +35,7 @@ set(SRCS
   ${S}/BBCMicroState.cpp ${I}/BBCMicroState.h ${I}/BBCMicroState.inl
   ${S}/DiscGeometry.cpp ${I}/DiscGeometry.h
   ${S}/DirectDiscImage.cpp ${I}/DirectDiscImage.h
+  ${S}/MemoryDiscImage.cpp ${I}/MemoryDiscImage.h
 )
 
 if(MSVC)

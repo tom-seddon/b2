@@ -13,7 +13,7 @@
 #include "BeebWindow.h"
 #include "BeebThread.h"
 #include <inttypes.h>
-#include "MemoryDiscImage.h"
+#include <beeb/MemoryDiscImage.h>
 #include "Messages.h"
 #include <shared/path.h>
 #include <beeb/DiscGeometry.h>

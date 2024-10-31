@@ -16,7 +16,6 @@ struct DiscGeometry;
 class MemoryDiscImage : public DiscImage {
   public:
     static const std::string LOAD_METHOD_FILE;
-    static const std::string LOAD_METHOD_ZIP;
 
     static const uint8_t FILL_BYTE;
 
@@ -24,7 +23,7 @@ class MemoryDiscImage : public DiscImage {
 
     // If the load succeeds, the method will be LOAD_METHOD_FILE or
     // LOAD_METHOD_ZIP.
-    static std::shared_ptr<MemoryDiscImage> LoadFromFile(std::string path, const LogSet &logs);
+    //static std::shared_ptr<MemoryDiscImage> LoadFromFile(std::string path, const LogSet &logs);
 
     ~MemoryDiscImage();
 
