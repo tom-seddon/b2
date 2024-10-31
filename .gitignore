@@ -1,11 +1,4 @@
 /.dir-locals.el
-/0Rel*/
-/games/
-beeb_dis.txt
-imgui.ini
 /build/
-/cmake-build-*/
-/.dir-locals-build.sh
 /etc/b2_tests/[Zz]/
 /dependencies/ProcessorTests/
-*.etl
