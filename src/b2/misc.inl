@@ -1,6 +1,6 @@
 #define ENAME BBCUTF8ConvertMode
 EBEGIN()
-// Pass all values through. BBC £ will come through as `.
+// Pass all values through. BBC pound sign will come through as `.
 EPN(PassThrough)
 
 // Translate to teletext chars. [ will come through as left arrow, etc.

@@ -1134,10 +1134,12 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                     handled = this->HandleBeebKey(event.keysym, state);
                 }
 
-                if (!m_settings.prefer_shortcuts) {
-                    m_cst.ActionCommands(beeb_window_commands);
-                    if (active_popup_commands) {
-                        active_popup->cst->ActionCommands(active_popup_commands);
+                if (!handled) {
+                    if (!m_settings.prefer_shortcuts) {
+                        m_cst.ActionCommands(beeb_window_commands);
+                        if (active_popup_commands) {
+                            active_popup->cst->ActionCommands(active_popup_commands);
+                        }
                     }
                 }
             } else {
