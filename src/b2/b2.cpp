@@ -337,6 +337,7 @@ void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
 //////////////////////////////////////////////////////////////////////////
 
 void b2VBlankHandler::FreeDisplayData(uint32_t display_id, void *data) {
+    (void)data;
     (void)display_id;
 
     LockGuard<Mutex> lock(m_mutex);

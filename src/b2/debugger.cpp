@@ -951,7 +951,7 @@ class M6502DebugWindow : public DebugUI {
         }
 
         //ImGui::Text("m_dso=0x%" PRIx32, m_dso);
-        if (m_cst.WasActioned(g_reset_relative_cycles_command)) {
+        if (this->cst->WasActioned(g_reset_relative_cycles_command)) {
             m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([dso = m_dso](BBCMicro *m) -> void {
                 m->DebugResetRelativeCycleBase(dso);
             }));
@@ -975,8 +975,8 @@ class M6502DebugWindow : public DebugUI {
             relative_cycles = absolute_cycles - m_beeb_state->DebugGetCPUCycless(m_dso, relative_base);
         }
 
-        m_cst.SetTicked(g_toggle_reset_relative_cycles_on_breakpoint_command, reset_on_breakpoint);
-        if (m_cst.WasActioned(g_toggle_reset_relative_cycles_on_breakpoint_command)) {
+        this->cst->SetTicked(g_toggle_reset_relative_cycles_on_breakpoint_command, reset_on_breakpoint);
+        if (this->cst->WasActioned(g_toggle_reset_relative_cycles_on_breakpoint_command)) {
             m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([dso = m_dso](BBCMicro *m) -> void {
                 m->DebugToggleResetRelativeCycleBaseOnBreakpoint(dso);
             }));
@@ -1012,14 +1012,12 @@ class M6502DebugWindow : public DebugUI {
         ImGui::Text("Relative cycles = %s", cycles_str);
 
         ImGui::SameLine();
-        m_cst.DoButton(g_reset_relative_cycles_command);
+        this->cst->DoButton(g_reset_relative_cycles_command);
         ImGui::SameLine();
-        m_cst.DoToggleCheckbox(g_toggle_reset_relative_cycles_on_breakpoint_command);
+        this->cst->DoToggleCheckbox(g_toggle_reset_relative_cycles_on_breakpoint_command);
     }
 
   private:
-    CommandStateTable m_cst;
-
     void Reg(const char *name, uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s", name, value, value, BINARY_BYTE_STRINGS[value]);
     }
@@ -1401,8 +1399,8 @@ class DisassemblyDebugWindow : public DebugUI,
         //    m->DebugGetMemBigPageIsMOSTable(pc_is_mos, m_dso);
         //}
 
-        m_cst.SetTicked(g_toggle_track_pc_command, m_track_pc);
-        if (m_cst.WasActioned(g_toggle_track_pc_command)) {
+        this->cst->SetTicked(g_toggle_track_pc_command, m_track_pc);
+        if (this->cst->WasActioned(g_toggle_track_pc_command)) {
             m_track_pc = !m_track_pc;
 
             if (m_track_pc) {
@@ -1411,41 +1409,41 @@ class DisassemblyDebugWindow : public DebugUI,
             }
         }
 
-        m_cst.SetEnabled(g_back_command, !m_history.empty());
-        if (m_cst.WasActioned(g_back_command)) {
+        this->cst->SetEnabled(g_back_command, !m_history.empty());
+        if (this->cst->WasActioned(g_back_command)) {
             ASSERT(!m_history.empty());
             m_track_pc = false;
             m_addr = m_history.back();
             m_history.pop_back();
         }
 
-        m_cst.SetEnabled(g_up_command, !m_track_pc);
-        if (m_cst.WasActioned(g_up_command)) {
+        this->cst->SetEnabled(g_up_command, !m_track_pc);
+        if (this->cst->WasActioned(g_up_command)) {
             this->Up(cpu->config, 1);
         }
 
-        m_cst.SetEnabled(g_down_command, !m_track_pc);
-        if (m_cst.WasActioned(g_down_command)) {
+        this->cst->SetEnabled(g_down_command, !m_track_pc);
+        if (this->cst->WasActioned(g_down_command)) {
             this->Down(cpu->config, 1);
         }
 
-        m_cst.SetEnabled(g_page_up_command, !m_track_pc);
-        if (m_cst.WasActioned(g_page_up_command)) {
+        this->cst->SetEnabled(g_page_up_command, !m_track_pc);
+        if (this->cst->WasActioned(g_page_up_command)) {
             this->Up(cpu->config, m_num_lines - 2);
         }
 
-        m_cst.SetEnabled(g_page_down_command, !m_track_pc);
-        if (m_cst.WasActioned(g_page_down_command)) {
+        this->cst->SetEnabled(g_page_down_command, !m_track_pc);
+        if (this->cst->WasActioned(g_page_down_command)) {
             this->Down(cpu->config, m_num_lines - 2);
         }
 
-        m_cst.SetEnabled(g_step_over_command, m_beeb_window->DebugIsRunEnabled());
-        if (m_cst.WasActioned(g_step_over_command)) {
+        this->cst->SetEnabled(g_step_over_command, m_beeb_window->DebugIsRunEnabled());
+        if (this->cst->WasActioned(g_step_over_command)) {
             m_beeb_window->DebugStepOver(m_dso);
         }
 
-        m_cst.SetEnabled(g_step_in_command, m_beeb_window->DebugIsRunEnabled());
-        if (m_cst.WasActioned(g_step_in_command)) {
+        this->cst->SetEnabled(g_step_in_command, m_beeb_window->DebugIsRunEnabled());
+        if (this->cst->WasActioned(g_step_in_command)) {
             m_beeb_window->DebugStepIn(m_dso);
         }
 
@@ -1477,9 +1475,9 @@ class DisassemblyDebugWindow : public DebugUI,
         ImGui::SameLine();
         this->WordRegUI("PC", cpu->opcode_pc);
         ImGui::SameLine();
-        m_cst.DoToggleCheckbox(g_toggle_track_pc_command);
+        this->cst->DoToggleCheckbox(g_toggle_track_pc_command);
 
-        m_cst.DoButton(g_back_command);
+        this->cst->DoButton(g_back_command);
 
         if (ImGui::InputText("Address",
                              m_address_text, sizeof m_address_text,
@@ -1490,9 +1488,9 @@ class DisassemblyDebugWindow : public DebugUI,
             }
         }
 
-        m_cst.DoButton(g_step_over_command);
+        this->cst->DoButton(g_step_over_command);
         ImGui::SameLine();
-        m_cst.DoButton(g_step_in_command);
+        this->cst->DoButton(g_step_in_command);
 
         if (m_track_pc) {
             if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
@@ -1786,7 +1784,6 @@ class DisassemblyDebugWindow : public DebugUI,
     int m_num_lines = 0;
     //char m_disassembly_text[100];
     float m_wheel = 0;
-    CommandStateTable m_cst;
 
     static bool IsBranchTaken(M6502Condition condition, M6502P p) {
         switch (condition) {
