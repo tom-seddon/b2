@@ -83,7 +83,10 @@ Day-to-day build steps:
    
 2. Run `ninja` to build. If building with gcc, note that it is normal
    for this to take longer than you might like. Build times with clang
-   are a bit better
+   are a bit better. It may use a lot of RAM in either case
+   
+   (`ninja -j 1` will run max 1 job at once, possibly worth trying on
+   Linux if the build awakens the OOM killer)
 
 3. Run `ninja test` to run the automated tests (this might take a few
    minutes - they should all pass)
