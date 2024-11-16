@@ -120,8 +120,8 @@ const char *GetErrorDescription(DWORD error) {
     if (n == 0) {
         /* Bleargh. */
 
-#define CASE(X) \
-    case (X):   \
+#define CASE(X)      \
+    case (DWORD)(X): \
         return #X
 
         switch (error) {

@@ -7,15 +7,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32_WINNT
-// 0x600 = Vista+; 0x601 = Win7+; 0x602 = Win8+;
-#if _WIN32_WINNT < 0x601
-#error _WIN32_WINNT should probably be 0x601 or better
-#endif
-#else
-#define _WIN32_WINNT 0x601
-#endif
-
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
