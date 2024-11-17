@@ -189,8 +189,8 @@ std::string OpenFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters
 
 std::string SaveFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path) {
-    GtkWidget *gdialog = CreateFileDialog("Open File",
-                                          GTK_FILE_CHOOSER_ACTION_OPEN);
+    GtkWidget *gdialog = CreateFileDialog("Save File",
+                                          GTK_FILE_CHOOSER_ACTION_SAVE);
 
     AddFilters(gdialog, filters);
     SetDefaultPath(gdialog, default_path);
