@@ -215,7 +215,7 @@ static bool FindAssetLinux(std::string *result,
 
     size_t size;
     bool can_write;
-    if (!GetFileDetails(&size, &can_write, result->c_str())) {
+    if (!PathIsFileOnDisk(*result, &size, &can_write)) {
         // Whatever the reason, this path obviously ain't it.
         LOGF(LOADSAVE, "no.\n");
         return false;

@@ -3,6 +3,8 @@
 #include <shared/system_specific.h>
 #include <shared/log.h>
 
+#include <string.h>
+
 #include <shared/enum_def.h>
 #include <shared/file_io.inl>
 #include <shared/enum_end.h>

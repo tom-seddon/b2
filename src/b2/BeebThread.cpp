@@ -32,6 +32,7 @@
 #include "BeebLinkHTTPHandler.h"
 #include <shared/system_specific.h>
 #include "profiler.h"
+#include <system_error>
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
