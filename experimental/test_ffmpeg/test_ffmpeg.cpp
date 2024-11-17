@@ -827,8 +827,12 @@ int main(int argc, char *argv[]) {
             fps = 30.;
         }
 
-        frame_duration.num = 100000;
-        frame_duration.den = (int)(fps * 100000.);
+        // Ensure denominator is max 65535. See mpegvideo_enc.c.
+        // frame_duration.num = 100000;
+        // frame_duration.den = (int)(fps * 100000.);
+        frame_duration.num=(int)(65535.0/fps);
+        frame_duration.den=65535;
+        
         // the calculation can be (# jpegs)*(bytes/sec)/(bytes data),
         // which could be used as the MF_MT_FRAME_RATE_FPS ratio. But
         // they're only UINT32s and that doesn't leave much overhead.
