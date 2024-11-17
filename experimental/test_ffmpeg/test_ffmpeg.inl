@@ -99,7 +99,7 @@ NN(AV_CODEC_CAP_CHANNEL_CONF)
 NN(AV_CODEC_CAP_FRAME_THREADS)
 NN(AV_CODEC_CAP_SLICE_THREADS)
 NN(AV_CODEC_CAP_PARAM_CHANGE)
-#ifdef AV_CODEC_CAP_AUTO_THREADS
+#if defined AV_CODEC_CAP_AUTO_THREADS && !defined AV_CODEC_CAP_OTHER_THREADS
 NN(AV_CODEC_CAP_AUTO_THREADS)
 #endif
 #ifdef AV_CODEC_CAP_OTHER_THREADS
@@ -164,6 +164,7 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if LIBAVFORMAT_VERSION_MAJOR>=59
 #define ENAME int
 NBEGIN(AVChannelOrder)
 NN(AV_CHANNEL_ORDER_UNSPEC)
@@ -172,3 +173,4 @@ NN(AV_CHANNEL_ORDER_CUSTOM)
 NN(AV_CHANNEL_ORDER_AMBISONIC)
 NEND()
 #undef ENAME
+#endif
