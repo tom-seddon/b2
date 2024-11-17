@@ -24,7 +24,7 @@ bool PathGlob(const std::string &folder,
     while ((de = readdir(d)) != NULL) {
         std::string path = PathJoined(folder, de->d_name);
 
-        int is_folder = PathIsFolderOnDisk(path);
+        bool is_folder = PathIsFolderOnDisk(path);
 
         fun(path, is_folder);
     }
