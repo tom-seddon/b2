@@ -53,12 +53,16 @@ static std::vector<VideoWriterFFmpegFormat> g_formats;
 
 static bool g_can_write_video = false;
 
-static AVCodec *g_acodec;
+static const AVCodec *g_acodec;
 static AVSampleFormat g_aformat;
 
-static AVCodec *g_vcodec;
+static const AVCodec *g_vcodec;
 
 static SDL_AudioSpec g_audio_spec;
+
+#if LIBAVUTIL_VERSION_MAJOR >= 57
+static const AVChannelLayout CHANNEL_LAYOUT_MONO = AV_CHANNEL_LAYOUT_MONO;
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -89,6 +93,7 @@ class VideoWriterFFmpeg : public VideoWriter {
         if (m_ofcontext) {
             this->CloseFile();
 
+#if LIBAVFORMAT_VERSION_MAJOR == 58
             // http://stackoverflow.com/questions/43389411/
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -108,7 +113,7 @@ class VideoWriterFFmpeg : public VideoWriter {
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
+#endif
             avformat_free_context(m_ofcontext);
             m_ofcontext = nullptr;
         }
@@ -194,13 +199,24 @@ class VideoWriterFFmpeg : public VideoWriter {
         m_acontext->bit_rate = format->abitrate;
         m_acontext->sample_rate = g_audio_spec.freq;
         m_acontext->sample_fmt = g_aformat;
+#if LIBAVUTIL_VERSION_MAJOR < 57
         m_acontext->channel_layout = AV_CH_LAYOUT_MONO;
         m_acontext->channels = 1;
+#else
+        rc = av_channel_layout_copy(&m_acontext->ch_layout, &CHANNEL_LAYOUT_MONO);
+        if (rc < 0) {
+            return this->Error(rc, "av_channel_layout_copy (acontext)");
+        }
+#endif
         m_acontext->time_base = av_make_q(1, m_acontext->sample_rate);
 
         {
             char channel_desc[1000];
+#if LIBAVUTIL_VERSION_MAJOR < 57
             av_get_channel_layout_string(channel_desc, sizeof channel_desc, m_acontext->channels, m_acontext->channel_layout);
+#else
+            av_channel_layout_describe(&m_acontext->ch_layout, channel_desc, sizeof channel_desc);
+#endif
 
             LOGF(FFMPEG, "Audio context: ");
             LOGI(FFMPEG);
@@ -229,7 +245,14 @@ class VideoWriterFFmpeg : public VideoWriter {
         m_aframe->format = m_acontext->sample_fmt;
         m_aframe->nb_samples = m_acontext->frame_size;
         m_aframe->sample_rate = m_acontext->sample_rate;
+#if LIBAVUTIL_VERSION_MAJOR < 57
         m_aframe->channel_layout = m_acontext->channel_layout;
+#else
+        rc = av_channel_layout_copy(&m_aframe->ch_layout, &m_acontext->ch_layout);
+        if (rc != 0) {
+            return this->Error(rc, "av_channel_layout_copy (aframe)");
+        }
+#endif
 
         rc = av_frame_get_buffer(m_aframe, 0);
         if (rc < 0) {
@@ -551,17 +574,35 @@ static bool IsSupported(T value,
     }
 }
 
-static bool IsChannelLayoutSupported(AVCodec *codec,
+#if LIBAVUTIL_VERSION_MAJOR < 57
+static bool IsChannelLayoutSupported(const AVCodec *codec,
                                      uint64_t channel_layout) {
     return IsSupported(channel_layout, codec->channel_layouts, (uint64_t)0);
 }
+#else
+static bool IsChannelLayoutSupported(const AVCodec *codec,
+                                     const AVChannelLayout *ch_layout) {
+    if (!codec->ch_layouts) {
+        // Judging by the encode_audio example, if ch_layouts is NULL, anything goes?
+        return true;
+    }
 
-static bool IsSampleFormatSupported(AVCodec *codec,
+    for (const AVChannelLayout *l = codec->ch_layouts; l->order != 0; ++l) {
+        if (av_channel_layout_compare(l, ch_layout) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+#endif
+
+static bool IsSampleFormatSupported(const AVCodec *codec,
                                     AVSampleFormat fmt) {
     return IsSupported(fmt, codec->sample_fmts, (AVSampleFormat)-1);
 }
 
-static int FindBestSampleRate(AVCodec *codec,
+static int FindBestSampleRate(const AVCodec *codec,
                               int rate) {
     int best = rate;
     int64_t best_error = INT64_MAX;
@@ -610,8 +651,13 @@ bool InitFFmpeg(Messages *messages) {
         goto bad;
     }
 
-    if (!IsChannelLayoutSupported(g_acodec, AV_CH_LAYOUT_MONO)) {
-        messages->e.f("FFmpeg: %s codec doesn't support float audio\n", g_acodec->name);
+#if LIBAVUTIL_VERSION_MAJOR < 57
+    const bool is_mono_supported = IsChannelLayoutSupported(g_acodec, AV_CH_LAYOUT_MONO);
+#else
+    const bool is_mono_supported = IsChannelLayoutSupported(g_acodec, &CHANNEL_LAYOUT_MONO);
+#endif
+    if (!is_mono_supported) {
+        messages->e.f("FFmpeg: %s codec doesn't support mono output\n", g_acodec->name);
         goto bad;
     }
 

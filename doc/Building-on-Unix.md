@@ -15,13 +15,14 @@ necessary.)
 
 - Xcode
 
-There are additional dependencies for video writing, which are
-optional. The project will build without these, but video writing
+## Additional prerequisites for video writing
+
+These are optional. b2 will build without them, but video writing
 won't be available.
 
-- FFmpeg libs (I used `ffmpeg @4.2.1_2+gpl2` from MacPorts)
+- FFmpeg libs (should work with FFmpeg 4 or above)
 
-Video writing on macOS is experimental.
+Yuu can get these from MacPorts or Homebrew.
 
 # Linux prerequisites
 
@@ -39,18 +40,17 @@ ticked.
 	
 ## Additional prerequisites for video writing
 	
-There are additional dependencies for video writing, which are
-optional. The project will build without these, but video writing
+These are optional. b2 will build without them, but video writing
 won't be available.
 
 - `libx264-dev` apt package
 - `FFmpeg` libs: libavcodec 58+, libavformat 58+, libavutil 56+,
-  libswresample 3+, libswscale 5+ - not sure about the version
-  numbering here, but this seems to correspond to FFmpeg 4.1.
+  libswresample 3+, libswscale 5+ (this corresponds to FFmpeg 4 or
+  later)
   
-Watch out for older package manager versions of FFmpeg! It's easy to
-build from [the FFmpeg github repo](https://github.com/FFmpeg/FFmpeg),
-though. (I used configure options `--enable-libx264 --enable-gpl
+FFmpeg is easy enough to build from the [the FFmpeg github
+repo](https://github.com/FFmpeg/FFmpeg) if the package manager version
+doesn't suit. (I used configure options `--enable-libx264 --enable-gpl
 --enable-shared`. I had to re-run `ldconfig` after doing `make
 install` so the system could find the new libraries.)
 

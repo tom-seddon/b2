@@ -1397,9 +1397,17 @@ literals. So this can be used to create fodder for the copy function.
 
 (The naming is annoyingly wonky.)
 
-** ffmpeg7
+*** Undefined 'av_get_channel_layout_string'
+*** No member named 'channel_layouts' in 'AVCodec'
 
-Audio codecs:
+FFmpeg5:
+
+ * @deprecated use av_channel_layout_describe()
+
+
+** ffmpeg7 properties
+
+*** Audio codecs
 
 012v 4xm 8bps a64multi a64multi5 aasc agm aic alias_pix alias_pix amv
 amv anm ansi apng apng arbc argo asv1 asv1 asv2 asv2 aura aura2 av1
@@ -1438,7 +1446,7 @@ wmv2 wmv2 wmv3 wmv3image wnv1 wrapped_avframe wrapped_avframe xan_wc3
 xan_wc4 xbin xbm xbm xface xface xl xpm xwd xwd y41p y41p ylc yop yuv4
 yuv4 zerocodec zlib zlib zmbv zmbv
 
-Video codecs:
+*** Video codecs
 
 8svx_exp 8svx_fib aac aac aac_at aac_at aac_fixed aac_latm ac3 ac3
 ac3_at ac3_fixed ac3_fixed acelp.kelvin adpcm_4xm adpcm_adx adpcm_adx
@@ -1485,7 +1493,7 @@ vmdaudio vorbis vorbis wady_dpcm wavarc wavesynth wavpack wavpack
 wmalossless wmapro wmav1 wmav1 wmav2 wmav2 wmavoice ws_snd1 xan_dpcm
 xma1 xma2
 
-Formats:
+*** Formats
 
 | name                    | long_name                                                   | mime_type                                 | acodec           | vcodec          | scodec   | flags  | extensions                                                                                                                                                                     |
 |-------------------------+-------------------------------------------------------------+-------------------------------------------+------------------+-----------------+----------+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
