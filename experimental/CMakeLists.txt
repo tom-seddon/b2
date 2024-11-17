@@ -7,7 +7,7 @@ if(WIN32)
   add_subdirectory(test_media_foundation)
 endif()
 
-if(HAVE_FFMPEG)
+if(FFMPEG_FOUND)
   add_subdirectory(test_ffmpeg)
 endif()
 

@@ -5,13 +5,13 @@ project(test_ffmpeg)
 ##########################################################################
 
 add_executable(test_ffmpeg
- test_ffmpeg.cpp
+ test_ffmpeg.cpp test_ffmpeg.inl
  )
 add_sanitizers(test_ffmpeg)
 
 target_include_directories(test_ffmpeg PRIVATE ${FFMPEG_INCLUDE_DIRS})
 target_compile_definitions(test_ffmpeg PRIVATE ${FFMPEG_DEFINITIONS})
-target_link_libraries(test_ffmpeg PRIVATE shared_lib ${FFMPEG_LIBRARIES})
+target_link_libraries(test_ffmpeg PRIVATE shared_lib ${FFMPEG_LINK_LIBRARIES})
 
 ##########################################################################
 ##########################################################################

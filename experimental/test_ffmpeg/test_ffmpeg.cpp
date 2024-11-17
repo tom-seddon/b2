@@ -10,6 +10,7 @@
 #include <shared/testing.h>
 #include <shared/CommandLineParser.h>
 #include <map>
+#include <shared/file_io.h>
 
 #ifdef __clang__
 
@@ -54,6 +55,17 @@ static void PrintLastAVResult(const TestFailArgs *tfa) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//static std::string av_strerror(int result) {
+//    char tmp[AV_ERROR_MAX_STRING_SIZE];
+//    
+//    av_strerror(result,tmp,sizeof tmp);
+//    
+//    return tmp;
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #include <shared/enum_decl.h>
 #include "test_ffmpeg.inl"
 #include <shared/enum_end.h>
@@ -89,6 +101,8 @@ static void PrintLastAVResult(const TestFailArgs *tfa) {
 LOG_DEFINE(VOUT, "", &log_printer_stdout_and_debugger, false);
 LOG_DEFINE(OUT, "", &log_printer_stdout_and_debugger);
 LOG_DEFINE(ERR, "", &log_printer_stderr_and_debugger);
+
+static const LogSet g_log_set={LOG(VOUT),LOG(OUT),LOG(ERR)};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -216,7 +230,7 @@ static bool StoreWAVFile(const char *id, uint32_t size, const char *data, void *
 
 static bool LoadWAVFile(WAVFile *file, const std::string &file_name) {
     std::vector<uint8_t> data;
-    if (!PathLoadBinaryFile(&data, file_name)) {
+    if (!LoadFile(&data, file_name, &g_log_set)) {
         return false;
     }
 
@@ -232,6 +246,30 @@ static bool LoadWAVFile(WAVFile *file, const std::string &file_name) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+template<class T>
+static void PrintFlagsOneLine(T value,const char *(*get_name_fn)(T)) {
+    bool any=false;
+    
+    for(T mask=0;mask!=0;mask<<=1){
+        const char *name=(*get_name_fn)(mask);
+        if(name[0]=='?'){
+            continue;
+        }
+        
+        if(value&mask){
+            if(any){
+                LOGF(OUT," ");
+            }
+            LOG_STR(OUT,name);
+            any=true;
+        }
+    }
+    
+    if(!any){
+        LOG_STR(OUT,"(none)");
+    }
+}
 
 template <class T>
 static void PrintFlags(T value, const char *(*get_name_fn)(T)) {
@@ -321,10 +359,30 @@ static void DumpCodecFormats(const T *fmts,
     }
 }
 
+#if LIBAVCODEC_VERSION_MAJOR<60
 static char *GetChannelLayoutString(char *buf, int n, uint64_t layout) {
     av_get_channel_layout_string(buf, n, -1, layout);
     return nullptr;
 }
+#endif
+
+#if LIBAVCODEC_VERSION_MAJOR>=60
+static void DumpChLayouts(const AVCodec*c){
+    LOGF(OUT,"Channel Layouts: ");
+    LOGI(OUT);
+    
+    if(!c->ch_layouts){
+        LOGF(OUT,"NULL\n");
+    }else{
+        for(const AVChannelLayout*l=c->ch_layouts;l->order!=0;++l){
+            LOGF(OUT, "%zd. ",l-c->ch_layouts);
+            LOGI(OUT);
+            LOGF(OUT,"order=%d (%s)\n",(int)l->order,GetAVChannelOrderEnumName(l->order));
+            LOGF(OUT,"nb_channels=%d\n",l->nb_channels);
+        }
+    }
+}
+#endif
 
 static char *GetSampleRateString(char *buf, int n, int hz) {
     ASSERT(n >= 0);
@@ -356,11 +414,19 @@ static void DumpCodecVerbose(const AVCodec *c) {
                          true,
                          (AVSampleFormat)-1);
 
+#if LIBAVCODEC_VERSION_MAJOR>=60
+        
+        DumpChLayouts(c);
+        
+#else
+        
         DumpCodecFormats(c->channel_layouts,
                          "Channel Layouts",
                          &GetChannelLayoutString,
                          false,
                          (uint64_t)0);
+        
+#endif
 
         DumpCodecFormats(c->supported_samplerates,
                          "Sample Rates",
@@ -393,6 +459,24 @@ static const char *GetAVCodecNameById(AVCodecID id) {
 
     return "(none)";
 }
+
+static void DumpFormatsOrg(){
+    void *opaque = nullptr;
+    LOGF(OUT,"|name|long_name|mime_type|extensions|acodec|vcodec|scodec|flags|\n");
+    LOGF(OUT,"|---\n");
+    while (const AVOutputFormat *f = av_muxer_iterate(&opaque)) {
+        LOGF(OUT, "|%s ", f->name);
+        LOGF(OUT, "|%s", f->long_name);
+        LOGF(OUT, "|%s", f->mime_type);
+        LOGF(OUT, "|%s", f->extensions);
+        LOGF(OUT, "|%s", GetAVCodecNameById(f->audio_codec));
+        LOGF(OUT, "|%s", GetAVCodecNameById(f->video_codec));
+        LOGF(OUT, "|%s", GetAVCodecNameById(f->subtitle_codec));
+        LOGF(OUT,"|");
+        PrintFlagsOneLine(f->flags,&GetAVOutputFormatFlagEnumName);
+        LOGF(OUT,"\n");
+    }
+}    
 
 static void DumpFormatsVerbose() {
     void *opaque = nullptr;
@@ -451,6 +535,7 @@ struct Options {
     std::map<std::string, std::string> options;
     int num_frames = 0;
     std::string audio_output_file_name;
+    bool org=false;
 };
 
 static bool DoOptions(Options *o, int argc, char *argv[]) {
@@ -459,6 +544,7 @@ static bool DoOptions(Options *o, int argc, char *argv[]) {
     // there used to be a way to fill this! - maybe it will come back
     // one day.
     std::vector<std::string> options;
+    bool help;
 
     p.AddOption("version").Help("show version numbers").SetIfPresent(&o->version);
     p.AddOption("codecs").Help("dump codecs list").SetIfPresent(&o->dump_codecs);
@@ -468,21 +554,27 @@ static bool DoOptions(Options *o, int argc, char *argv[]) {
     p.AddOption('a', "audio-codec").Meta("CODEC").Help("set audio codec").Arg(&o->acodec);
     p.AddOption('v', "video-codec").Meta("CODEC").Help("set video codec").Arg(&o->vcodec);
     p.AddOption('o').Meta("FILE").Help("write output to FILE").Arg(&o->output_file_name);
+    p.AddOption("org").Help("produce org-mode-friendly output when possible").SetIfPresent(&o->org);
 
     p.AddOption('n', "num-frames").Meta("COUNT").Help("write out max COUNT frames").Arg(&o->num_frames);
-    p.AddOption('A', "audio-output").Meta("FILE").Help("write raw audio data toFILE").Arg(&o->audio_output_file_name);
+    p.AddOption('A', "audio-output").Meta("FILE").Help("write raw audio data to FILE").Arg(&o->audio_output_file_name);
+    
+    p.AddHelpOption(&help);
 
     std::vector<std::string> other_args;
-    if (!p.Parse(argc, argv, &other_args)) {
+    if (!p.Parse(argc, argv, &other_args)||help) {
+        p.Help(argv[0]);
+        
+        // not great to return exit code 1 on -h, but it's only test code
         return false;
     }
-
-    if (other_args.size() != 1) {
+    
+    if (other_args.size() > 1) {
         LOGF(ERR, "Must specify exactly one folder\n");
         return false;
+    } else if(other_args.size()==1){
+        o->folder_name = other_args[0];
     }
-
-    o->folder_name = other_args[0];
 
     if (o->num_frames < 0) {
         LOGF(ERR, "invalid --num-frames: %d\n", o->num_frames);
@@ -563,8 +655,8 @@ static void WriteFrames(AVFormatContext *f_context,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool FindCodec(AVCodec **codec_ptr,
-                      AVOutputFormat *oformat,
+static bool FindCodec(const AVCodec **codec_ptr,
+                      const AVOutputFormat *oformat,
                       AVCodecID default_id,
                       const std::string &name,
                       AVMediaType type) {
@@ -574,7 +666,7 @@ static bool FindCodec(AVCodec **codec_ptr,
             return true;
         }
 
-        AVCodec *codec = avcodec_find_encoder_by_name(name.c_str());
+        const AVCodec *codec = avcodec_find_encoder_by_name(name.c_str());
         if (!codec) {
             LOGF(ERR, "unknown codec: %s\n", name.c_str());
             return false;
@@ -598,7 +690,7 @@ static bool FindCodec(AVCodec **codec_ptr,
             return false;
         }
 
-        AVCodec *codec = avcodec_find_encoder(default_id);
+        const AVCodec *codec = avcodec_find_encoder(default_id);
         ASSERT(codec);
         ASSERT(codec->type == type);
 
@@ -654,7 +746,9 @@ int main(int argc, char *argv[]) {
     }
 
     if (options.dump_formats) {
-        if (options.verbose) {
+        if(options.org){
+            DumpFormatsOrg();
+        }else        if (options.verbose) {
             DumpFormatsVerbose();
         } else {
             DumpFormatsBrief();
@@ -669,8 +763,8 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> jpeg_file_names, wav_file_names;
     {
         std::vector<std::string> file_names;
-        PathGlob(argv[1], [&](const std::string &path, bool is_folder) {
-            if (is_folder) {
+        PathGlob(options.folder_name, [&](const std::string &path, bool is_folder) {
+            if (!is_folder) {
                 file_names.push_back(path);
             }
         });
@@ -786,7 +880,7 @@ int main(int argc, char *argv[]) {
                       options.output_file_name.c_str(),
                       AVIO_FLAG_WRITE));
 
-    AVCodec *acodec, *vcodec;
+    const AVCodec *acodec, *vcodec;
 
     if (!FindCodec(&acodec,
                    avf_context->oformat,
@@ -929,8 +1023,14 @@ int main(int argc, char *argv[]) {
         ac_context->bit_rate = 128000;
         ac_context->sample_rate = (int)wav_fmt->nSamplesPerSec;
         ac_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
+#if LIBAVUTIL_VERSION_MAJOR<58
         ac_context->channel_layout = wav_fmt->nChannels == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO;
         ac_context->channels = av_get_channel_layout_nb_channels(ac_context->channel_layout);
+#else
+        const AVChannelLayout LAYOUT_MONO=AV_CHANNEL_LAYOUT_MONO;
+        const AVChannelLayout LAYOUT_STEREO=AV_CHANNEL_LAYOUT_STEREO;
+        TEST_AV(av_channel_layout_copy(&ac_context->ch_layout,wav_fmt->nChannels==1?&LAYOUT_MONO:&LAYOUT_STEREO));
+#endif
         ac_context->time_base = av_make_q(1, ac_context->sample_rate);
 
         // -strict -2
@@ -953,7 +1053,12 @@ int main(int argc, char *argv[]) {
         aframe->format = ac_context->sample_fmt;
         aframe->nb_samples = ac_context->frame_size;
         aframe->sample_rate = ac_context->sample_rate;
+        
+#if LIBAVUTIL_VERSION_MAJOR<58
         aframe->channel_layout = ac_context->channel_layout;
+#else
+        TEST_AV(av_channel_layout_copy(&aframe->ch_layout,&ac_context->ch_layout));
+#endif
 
         TEST_AV(av_frame_get_buffer(aframe, 0));
 
@@ -1147,10 +1252,13 @@ int main(int argc, char *argv[]) {
                 ASSERT(aframe_index <= (size_t)aframe->nb_samples);
                 if (aframe_index == (size_t)aframe->nb_samples) {
                     if (audio_output_file) {
-                        for (int i = 0;
-                             i < aframe->nb_samples;
-                             ++i) {
-                            for (int j = 0; j < aframe->channels; ++j) {
+                        for (int i = 0;i < aframe->nb_samples;++i) {
+#if LIBAVCODEC_VERSION_MAJOR<60
+                            int num_channels=aframe->channels;
+#else
+                            int num_channels=aframe->ch_layout.nb_channels;
+#endif
+                            for (int j = 0; j < num_channels; ++j) {
                                 const float *ch = (float *)aframe->data[j];
 
                                 fwrite(&ch[i], 4, 1, audio_output_file);
@@ -1215,6 +1323,7 @@ int main(int argc, char *argv[]) {
     avcodec_free_context(&ac_context);
     avcodec_free_context(&vc_context);
 
+#if LIBAVFORMAT_VERSION_MAJOR==58
     // http://stackoverflow.com/questions/43389411/
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -1233,6 +1342,7 @@ int main(int argc, char *argv[]) {
     }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 #endif
 
     avformat_free_context(avf_context);
