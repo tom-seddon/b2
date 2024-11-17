@@ -7,9 +7,15 @@ I do some of the development on macOS, so that version should work
 well.
 
 The Linux version doesn't get much testing by me, though I do try it
-on Ubuntu 18.04 occasionally. But I've had few reports of problems.
+on a Ubuntu VM occasionally. But I've had few reports of problems.
 (Please [create an issue](https://github.com/tom-seddon/b2/issues) if
 necessary.)
+
+# Common prerequisites
+
+- [cmake](https://cmake.org/) version 3.20+ on the PATH (I built it from [the CMake github repo](https://github.com/Kitware/CMake))
+- [ninja](https://ninja-build.org/) (build from the [Ninja github repo](https://github.com/ninja-build/ninja), install from MacPorts, etc.)
+- Python 3.x
 
 # macOS prerequisites
 
@@ -50,15 +56,7 @@ won't be available.
   
 FFmpeg is easy enough to build from the [the FFmpeg github
 repo](https://github.com/FFmpeg/FFmpeg) if the package manager version
-doesn't suit. (I used configure options `--enable-libx264 --enable-gpl
---enable-shared`. I had to re-run `ldconfig` after doing `make
-install` so the system could find the new libraries.)
-
-# Common prerequisites
-
-- [cmake](https://cmake.org/) version 3.20+ on the PATH (I built it from [the CMake github repo](https://github.com/Kitware/CMake))
-- [ninja](https://ninja-build.org/) (build from the [Ninja github repo](https://github.com/ninja-build/ninja), install from MacPorts, etc.)
-- Python 3.x
+doesn't suit.
 
 # Building
 
