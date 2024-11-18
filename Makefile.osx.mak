@@ -45,7 +45,7 @@ github_ci_macos_homebrew:
 
 .PHONY:github_ci_macos_homebrew_ffmpeg
 github_ci_macos_homebrew_ffmpeg:
-	brew install ffmpeg@4
+	brew install ffmpeg
 
 .PHONY:_github_ci_macos_release
 _github_ci_macos_release:
