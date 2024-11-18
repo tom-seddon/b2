@@ -128,7 +128,7 @@ github_ci_ubuntu_without_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_release SUFFIX1=noffmpeg-
 
 .PHONY:github_ci_ubuntu_with_ffmpeg
-github_cu_ubuntu_with_ffmpeg:
+github_ci_ubuntu_with_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
 	sudo apt-get -y install ffmpeg libavcodec-dev libavutil-dev libswresample-dev libavformat-dev libswscale-dev
 	$(MAKE) _github_ci_ubuntu_release SUFFIX1=ffmpeg-
