@@ -7,13 +7,21 @@ on:
       - wip/master
 
 jobs:
-  build-linux:
+  build-linux-with-ffmpeg:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: make github_ci_ubuntu
+      - run: make github_ci_ubuntu_with_ffmpeg
+        
+  build-linux-without-ffmpeg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_ubuntu_without_ffmpeg
 
   build-windows:
     runs-on: windows-2019

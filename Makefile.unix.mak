@@ -122,8 +122,22 @@ travis_ci_before_install_linux:
 ##########################################################################
 ##########################################################################
 
-.PHONY:github_ci_ubuntu
-github_ci_ubuntu:
+.PHONY:github_ci_ubuntu_without_ffmpeg
+github_ci_ubuntu_without_ffmpeg:
+	$(MAKE) _github_ci_ubuntu_start
+	$(MAKE) _github_ci_ubuntu_release SUFFIX1=noffmpeg-
+
+.PHONY:github_ci_ubuntu_with_ffmpeg
+github_cu_ubuntu_with_ffmpeg:
+	$(MAKE) _github_ci_ubuntu_start
+	sudo apt-get -y install ffmpeg libavcodec-dev libavutil-dev libswresample-dev libavformat-dev libswscale-dev
+	$(MAKE) _github_ci_ubuntu_release SUFFIX1=ffmpeg-
+
+.PHONY:_github_ci_ubuntu_start
+_github_ci_ubuntu_start:
 	sudo apt-get -y update
 	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev ninja-build
-	$(PYTHON3) "./etc/release/release.py" --verbose $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
+
+.PHONY:_github_ci_ubuntu_release
+_github_ci_ubuntu_release:
+	$(PYTHON3) "./etc/release/release.py" --verbose $(SUFFIX1)$(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)	
