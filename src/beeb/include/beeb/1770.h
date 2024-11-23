@@ -35,10 +35,10 @@ class WD1770Handler {
     virtual bool IsTrack0() = 0;
 
     // Step out (towards track 0).
-    virtual void StepOut() = 0;
+    virtual void StepOut(int step_rate_ms) = 0;
 
     // Step in (towards track N).
-    virtual void StepIn() = 0;
+    virtual void StepIn(int step_rate_ms) = 0;
 
     // Spin the drive up. The motor is assumed to switch on.
     virtual void SpinUp() = 0;
@@ -210,7 +210,7 @@ struct WD1770 {
     int IsMotorOn();
     void SpinUp();
     void SpinDown();
-    int GetStepRate(uint8_t index) const;
+    int GetStepRateMS(uint8_t index) const;
     void SetState(WD1770State state);
     void Print1770Registers(Log *log);
     void SetDRQ(bool value);
@@ -225,6 +225,13 @@ struct WD1770 {
     int DoTypeIIFindSector();
     void DoTypeIINextByte(WD1770State next_byte_state, WD1770State next_sector_state);
     void UpdateTrack0Status();
+
+    static const int STEP_RATES_MS_1770[];
+    static const int STEP_RATES_MS_1772[];
+
+#ifdef BBCMICRO_DEBUGGER
+    friend class WD1770DebugWindow;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -691,8 +691,8 @@ class BBCMicro : private WD1770Handler {
 
     // 1770 handler stuff.
     bool IsTrack0() override;
-    void StepOut() override;
-    void StepIn() override;
+    void StepOut(int step_rate_ms) override;
+    void StepIn(int step_rate_ms) override;
     void SpinUp() override;
     void SpinDown() override;
     bool IsWriteProtected() override;
@@ -701,7 +701,7 @@ class BBCMicro : private WD1770Handler {
     bool GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uint8_t sector, bool double_density) override;
     BBCMicroState::DiscDrive *GetDiscDrive();
     void InitDiscDriveSounds(DiscDriveType type);
-    void StepSound(BBCMicroState::DiscDrive *dd);
+    void StepSound(BBCMicroState::DiscDrive *dd, int step_rate_ms);
     float UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd);
     void UpdateCPUDataBusFn();
     void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj);

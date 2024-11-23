@@ -2558,12 +2558,12 @@ bool BBCMicro::IsTrack0() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::StepOut() {
+void BBCMicro::StepOut(int step_rate_ms) {
     if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         if (dd->track > 0) {
             --dd->track;
 
-            this->StepSound(dd);
+            this->StepSound(dd, step_rate_ms);
         }
     }
 }
@@ -2571,12 +2571,12 @@ void BBCMicro::StepOut() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::StepIn() {
+void BBCMicro::StepIn(int step_rate_ms) {
     if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         if (dd->track < 255) {
             ++dd->track;
 
-            this->StepSound(dd);
+            this->StepSound(dd, step_rate_ms);
         }
     }
 }
@@ -2745,7 +2745,7 @@ static const SeekSound g_seek_sounds[] = {
     {0},
 };
 
-void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd) {
+void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd, int step_rate_ms) {
     if (dd->step_sound_index < 0) {
         // step
         dd->step_sound_index = 0;

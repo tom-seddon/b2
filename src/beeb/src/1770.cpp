@@ -72,12 +72,12 @@ LOG_TAGGED_DEFINE(1770nd, "1770", "1770", &log_printer_stdout, false);
 
 // The difference between the 1772 and the 1770 is the timings.
 
-static const int STEP_RATES_uS_1770[] = {6000, 12000, 20000, 30000};
+const int WD1770::STEP_RATES_MS_1770[] = {6, 12, 20, 30};
 static const int SETTLE_uS_1770 = 30000;
 
 // The data sheet has these as (2,3,5,6), but just about every other
 // reference has 2,3,6,12.
-static const int STEP_RATES_uS_1772[] = {2000, 3000, 6000, 12000};
+const int WD1770::STEP_RATES_MS_1772[] = {2, 3, 6, 12};
 //static const int SETTLE_uS_1772=30000;
 
 // Time between each byte when doing a read or write.
@@ -123,13 +123,13 @@ void WD1770::SpinDown() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int WD1770::GetStepRate(uint8_t index) const {
+int WD1770::GetStepRateMS(uint8_t index) const {
     ASSERT(index < 4);
 
     if (m_is1772) {
-        return STEP_RATES_uS_1772[index];
+        return STEP_RATES_MS_1772[index];
     } else {
-        return STEP_RATES_uS_1770[index];
+        return STEP_RATES_MS_1770[index];
     }
 }
 
@@ -271,14 +271,14 @@ void WD1770::DoSpinUp(int h, WD1770State state) {
 //////////////////////////////////////////////////////////////////////////
 
 void WD1770::DoTypeI(WD1770State state) {
-    LOGF(1770, "%s: state=%s: u=%d h=%d v=%d r=%d (%dms) (track=%u)\n",
+    LOGF(1770, "%s: state=%s: u=%d h=%d v=%d r=%d (%d ms) (track=%u)\n",
          __func__,
          GetWD1770StateEnumName(state),
          m_command.bits_step.u, //bogus when restore/seek... but what can you do?
          m_command.bits_i.h,
          m_command.bits_i.v,
          m_command.bits_i.r,
-         this->GetStepRate(m_command.bits_i.r) / 1000,
+         this->GetStepRateMS(m_command.bits_i.r),
          m_track);
 
     m_status.bits.busy = 1;
@@ -782,16 +782,16 @@ WD1770::Pins WD1770::Update() {
     case WD1770State_Step:
         {
             ASSERT(m_next_state != WD1770State_BeginIdle);
+            int step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
 
             ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
             if (m_direction == STEP_IN) {
-                m_handler->StepIn();
+                m_handler->StepIn(step_rate_ms);
             } else {
-                m_handler->StepOut();
+                m_handler->StepOut(step_rate_ms);
             }
 
-            int step_rate_us = this->GetStepRate(m_command.bits_i.r);
-            this->Wait(step_rate_us, m_next_state);
+            this->Wait(step_rate_ms * 1000, m_next_state);
         }
         break;
 
