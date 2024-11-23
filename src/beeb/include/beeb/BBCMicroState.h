@@ -194,6 +194,7 @@ class BBCMicroState {
     uint64_t DebugGetCPUCycless(uint32_t dso, CycleCount n) const;
     int DebugGetADJIDIPSwitches() const;
     uint8_t DebugGetMouseButtons() const;
+    bool DebugGetWD1770(const WD1770 **fdc_ptr, DiscInterfaceControl *disc_control_ptr) const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -269,12 +270,16 @@ class BBCMicroState {
     //BeebKey auto_reset_key=BeebKey_None;
 
     // Disk stuff
+  public:
     const DiscInterface *const disc_interface = nullptr;
+
+  protected:
     WD1770 fdc;
     DiscInterfaceControl disc_control = {};
     DiscDrive drives[NUM_DRIVES];
     std::shared_ptr<DiscInterfaceExtraHardwareState> disc_interface_extra_hardware;
 
+  protected:
     // RTC
     MC146818 rtc;
 

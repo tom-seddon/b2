@@ -40,6 +40,7 @@ std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateWD1770DebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

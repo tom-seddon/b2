@@ -3625,6 +3625,133 @@ std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class WD1770DebugWindow : public DebugUI {
+  public:
+  protected:
+    void DoImGui2() override {
+        if (!m_beeb_state->disc_interface) {
+            ImGui::TextUnformatted("No disk interface");
+            return;
+        }
+
+        const WD1770 *fdc;
+        DiscInterfaceControl control;
+        if (!m_beeb_state->DebugGetWD1770(&fdc, &control)) {
+            ImGui::Text("Not 1770 interface: %s", m_beeb_state->disc_interface->display_name.c_str());
+            return;
+        }
+
+        ImGui::Text("Disk interface: %s", m_beeb_state->disc_interface->display_name.c_str());
+        ImGui::Text("FDC type: %s", fdc->m_is1772 ? "1772" : "1770");
+        //if (ImGui::CollapsingHeader("Register Values")) {
+        //    Register("Status ", fdc->m_status.value);
+        //    Register("Command", fdc->m_command.value);
+        //    Register("Track  ", fdc->m_track);
+        //    Register("Sector ", fdc->m_sector);
+        //    Register("Data   ", fdc->m_data);
+
+        //    ImGui::Separator();
+        //}
+
+        bool type1 = !(fdc->m_command.value & 0x80);
+
+        Register("Track  ", fdc->m_track);
+        Register("Sector ", fdc->m_sector);
+        Register("Data   ", fdc->m_data);
+
+        ImGuiHeader("Status Register");
+        Register("Status ", fdc->m_status.value);
+        ImGui::BulletText("Motor On: %d", fdc->m_status.bits.motor_on);
+        ImGui::BulletText("Write Protect: %d", fdc->m_status.bits.write_protect);
+        ImGui::BulletText("%s: %d", type1 ? "Spin-up" : "Record Type", fdc->m_status.bits.deleted_or_spinup);
+        ImGui::BulletText("Record Not Found: %d", fdc->m_status.bits.rnf);
+        ImGui::BulletText("CRC Error: %d", fdc->m_status.bits.crc_error);
+        ImGui::BulletText("%s: %d", type1 ? "Track 00" : "Lost Data", fdc->m_status.bits.lost_or_track0);
+        ImGui::BulletText("%s: %d", type1 ? "Index" : "Data Request", fdc->m_status.bits.drq_or_idx);
+        ImGui::BulletText("Busy: %d", fdc->m_status.bits.busy);
+
+        ImGuiHeader("Command");
+        Register("Command", fdc->m_command.value);
+        if (type1) {
+            bool step = false;
+            const char *name;
+            if ((fdc->m_command.value & 0xe0) == 0) {
+                name = fdc->m_command.value & 0x10 ? "Seek" : "Restore";
+                step = false;
+            } else {
+                static const char *NAMES[] = {nullptr, "Step", "Step In", "Step Out"};
+                name = NAMES[fdc->m_command.bits_step.cmd];
+                ASSERT(name);
+                step = true;
+            }
+
+            CommandName(name);
+            if (step) {
+                ImGui::BulletText("Update Track Register: %s", BOOL_STR(fdc->m_command.bits_step.u));
+            }
+
+            HBit(fdc->m_command.bits_i.h);
+            ImGui::BulletText("Verify: %u", fdc->m_command.bits_i.v);
+
+            const int *step_rates = fdc->m_is1772 ? WD1770::STEP_RATES_MS_1772 : WD1770::STEP_RATES_MS_1770;
+            ImGui::BulletText("Step Rate: %d ms", step_rates[fdc->m_command.bits_i.r]);
+        } else if ((fdc->m_command.value & 0xc0) == 0x80) {
+            // Type II
+            ImGui::BulletText("Command: %s", fdc->m_command.value & 0x20 ? "Write Sector" : "Read Sector");
+            ImGui::BulletText("Multiple Sectors: %s", BOOL_STR(fdc->m_command.bits_ii.m));
+            HBit(fdc->m_command.bits_ii.h);
+            EBit(fdc->m_command.bits_ii.e);
+            PBit(fdc->m_command.bits_ii.p);
+            ImGui::BulletText("Write Deleted Data: %s", BOOL_STR(fdc->m_command.bits_ii.a0));
+        } else if ((fdc->m_command.value & 0xf0) == 0xd0) {
+            // Type IV
+            ImGui::BulletText("Command: Reset");
+            ImGui::BulletText("Index Pulse: %s", BOOL_STR(fdc->m_command.bits_iv.index));
+            ImGui::BulletText("Immediate: %s", BOOL_STR(fdc->m_command.bits_iv.immediate));
+            ImGui::BulletText("No Interrupt: %s", BOOL_STR((fdc->m_command.value & 0x0f) == 0x00));
+        } else {
+            // Type III
+            ImGui::BulletText("Command: %s", fdc->m_command.value & 0x10 ? "Write Track" : "Read Track");
+            HBit(fdc->m_command.bits_iii.h);
+            EBit(fdc->m_command.bits_iii.e);
+            PBit(fdc->m_command.bits_iii.p);
+        }
+
+        ImGuiHeader("Control");
+        ImGui::BulletText("Drive: %d", control.drive);
+        ImGui::BulletText("Density: %s", control.dden ? "Double" : "Single");
+        ImGui::BulletText("Side: %d", control.side);
+        ImGui::BulletText("Reset: %d", control.reset);
+    }
+
+  private:
+    static void PBit(uint8_t p) {
+        ImGui::BulletText("Write Precompensation: %s", BOOL_STR(p));
+    }
+    static void EBit(uint8_t e) {
+        ImGui::BulletText("Settling Delay: %s", BOOL_STR(e));
+    }
+
+    static void HBit(uint8_t h) {
+        ImGui::BulletText("Spin Up: %s", BOOL_STR(!h));
+    }
+
+    static void CommandName(const char *name) {
+        ImGui::BulletText("Command: %s", name);
+    }
+
+    static void Register(const char *name, uint8_t value) {
+        ImGui::Text("%s: $%02x %-3d %%%s", name, value, value, BINARY_BYTE_STRINGS[value]);
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateWD1770DebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<WD1770DebugWindow>(beeb_window, ImVec2(300, 300));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -3720,6 +3847,10 @@ std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateWD1770DebugWindow(BeebWindow *) {
     return nullptr;
 }
 
