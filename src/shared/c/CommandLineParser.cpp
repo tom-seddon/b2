@@ -156,6 +156,10 @@ bool CommandLineParser::Parse(int argc,
 
     m_help = false;
 
+    if (m_help_flag_ptr) {
+        *m_help_flag_ptr = false;
+    }
+
     while (i < argc) {
         if (argv[i][0] == '-') {
             if (argv[i][1] == '-') {
