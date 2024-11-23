@@ -202,3 +202,11 @@ tube_test_target_boilerplate(test_tube_xtu_r3)
 # set_tests_properties(test_TIMINGS_BTape test_kevin_edwards_Nightsh test_kevin_edwards_Jetman
 #   PROPERTIES
 #   WILL_FAIL TRUE)
+
+##########################################################################
+##########################################################################
+
+add_executable(test_beeb test_beeb.cpp)
+target_compile_definitions(test_beeb PRIVATE
+  -Db2_SOURCE_DIR="${b2_SOURCE_DIR}")
+test_target_boilerplate(test_beeb)

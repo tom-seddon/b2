@@ -1677,5 +1677,70 @@ xma1 xma2
 | wv                      | raw WavPack                                                 | audio/x-wavpack                           | wavpack          | (none)          | (none)   | (none) | wv                                                                                                                                                                             |
 | yuv4mpegpipe            | YUV4MPEG pipe                                               | (null)                                    | (none)           | wrapped_avframe | (none)   | (none) | y4m                                                                                                                                                                            |
 
+* Disk seek noises
+
+| Sample            | Duration (ms) | Step rate (ms) |
+|-------------------+---------------+----------------|
+| 35_seek_2ms.wav   |            83 |              2 |
+| 35_seek_6ms.wav   |           251 |              6 |
+| 35_seek_12ms.wav  |           300 |             12 |
+| 35_seek_20ms.wav  |           500 |             20 |
+| 35_step_1_1.wav   |            77 |             30 |
+| 525_seek_2ms.wav  |            60 |              2 |
+| 525_seek_6ms.wav  |           167 |              6 |
+| 525_seek_12ms.wav |           257 |             12 |
+| 525_seek_20ms.wav |           340 |             20 |
+| 525_step_1_1.wav  |            74 |             30 |
+
+* beeb_lib test types
+
+Separate EXE for each one is no fun! It'd be nice to rationalise this
+somehow.
+
+** Kevin Edwards
+
+Parameters:
+
+1. File containing minimized Kevin Edwards protection routine
+2. Text (possibly >1 line) for pasting in at BASIC prompt
+
+All dealt with by shared function: =TestKevinEwards=
+
+** Standard
+
+Parameters:
+
+1. File to load
+2. BBC Micro type
+
+All dealt with by shared function: =RunStandardTest=
+
+** Teletest
+
+Parameters:
+
+1. Teletext image file to load
+2. .png file to compare it to
+
+All dealt with by shared function: =RunStandardTest=
+
+** dp111 6502Timing
+
+Parameters:
+
+1. BBC Micro type
+2. .ssd file to run =6502tim= from
+
+** Hoglet Tube test
+
+Parameters:
+
+1. BBC Micro type
+2. File to load and address to load it to
+3. Pre-test command to paste
+4. Post-test command to paste
+5. =*CONFIGURE NOTUBE= or =*CONFIGURE EXTUBE=
+
+All dealt with by shared function: =TestTube=
 
 * eof.
