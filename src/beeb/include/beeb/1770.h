@@ -31,6 +31,11 @@ class WD1770Handler {
     WD1770Handler();
     virtual ~WD1770Handler() = 0;
 
+    WD1770Handler(const WD1770Handler &) = delete;
+    WD1770Handler &operator=(const WD1770Handler &) = delete;
+    WD1770Handler(WD1770Handler &&) = delete;
+    WD1770Handler &operator=(WD1770Handler &&) = delete;
+
     // Return true if the drive is at track 0.
     virtual bool IsTrack0() = 0;
 
@@ -54,11 +59,6 @@ class WD1770Handler {
     virtual bool GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uint8_t sector, bool double_density) = 0;
 
   protected:
-    WD1770Handler(const WD1770Handler &) = default;
-    WD1770Handler &operator=(const WD1770Handler &) = default;
-    WD1770Handler(WD1770Handler &&) = default;
-    WD1770Handler &operator=(WD1770Handler &&) = default;
-
   private:
 };
 
