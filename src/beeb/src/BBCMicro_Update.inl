@@ -158,13 +158,13 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 }
             } else {
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
-                    if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf800) == 0xf800) {
+                    if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
                         // Really not concerned about the efficiency of special
                         // mode. The emulator is not in this state for long.
                         if (!m_state.parasite_rom_buffer) {
                             m_state.parasite_cpu.dbus = 0;
                         } else {
-                            m_state.parasite_cpu.dbus = m_state.parasite_rom_buffer->at(m_state.parasite_cpu.abus.w & 0x7ff);
+                            m_state.parasite_cpu.dbus = m_state.parasite_rom_buffer->at(m_state.parasite_cpu.abus.w & 0xfff);
                         }
                     } else {
                         m_state.parasite_cpu.dbus = m_parasite_ram[m_state.parasite_cpu.abus.w];

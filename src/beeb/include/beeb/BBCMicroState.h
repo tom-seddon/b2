@@ -350,7 +350,7 @@ class BBCMicroState {
     ~BBCMicroState() = default;
 
   protected:
-    std::shared_ptr<const std::array<uint8_t, 2048>> parasite_rom_buffer;
+    std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
     std::shared_ptr<std::vector<uint8_t>> parasite_ram_buffer;
     bool parasite_boot_mode = true;
     Tube parasite_tube;

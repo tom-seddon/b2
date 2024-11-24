@@ -1028,11 +1028,11 @@ void TestBBCMicro::LoadParasiteOS(const std::string &name) {
     std::vector<uint8_t> data;
     TEST_TRUE(::LoadFile(&data, path, nullptr));
 
-    auto rom = std::make_shared<std::array<uint8_t, 2048>>();
+    auto rom = std::make_shared<std::array<uint8_t, 4096>>();
 
     TEST_LE_UU(data.size(), rom->size());
     for (size_t i = 0; i < data.size(); ++i) {
-        (*rom)[i] = data[i];
+        (*rom)[rom->size() - data.size() + i] = data[i];
     }
 
     this->SetParasiteOS(rom);
