@@ -1558,11 +1558,12 @@ class TubeTest : public Test {
 
 class TeletextTest : public Test {
   public:
-    TeletextTest(const std::string &name, uint32_t load_addr, std::string paste_text)
+    TeletextTest(const std::string &name, uint32_t load_addr, std::string paste_text, std::string png_name)
         : Test("teletext", name)
         , m_stem(name)
         , m_load_addr(load_addr)
-        , m_paste_text(std::move(paste_text)) {
+        , m_paste_text(std::move(paste_text))
+        , m_png_name(std::move(png_name)) {
     }
 
     void Run() override {
@@ -1580,7 +1581,7 @@ class TeletextTest : public Test {
             bbc.RunUntilOSWORD0(10.0);
         }
 
-        RunImageTest(PathJoined(beeblink_volume_path, m_stem + ".png"),
+        RunImageTest(PathJoined(beeblink_volume_path, m_png_name),
                      m_stem,
                      &bbc);
     }
@@ -1590,6 +1591,7 @@ class TeletextTest : public Test {
     std::string m_stem;
     uint32_t m_load_addr;
     std::string m_paste_text;
+    std::string m_png_name;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1633,9 +1635,9 @@ static const std::unique_ptr<Test> ALL_TESTS[] = {
     M(TubeTest, "itu_prst", "PRST", TestBBCMicroType_Master128MOS320WithMasterTurbo, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=TRUE\r", ""),
     M(TubeTest, "xtu_r124", "R124", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureExTube, 0x800, "OLD\r*SPOOL X.R124\r", "*SPOOL\r"),
     M(TubeTest, "xtu_r3", "R3", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, 0, 0x800, "OLD\r*SPOOL X.R3\r", "*SPOOL\r"),
-    M(TeletextTest, "engtest", 0x7c00, ""),
-    M(TeletextTest, "red", 0x7c00, ""),
-    M(TeletextTest, "teletst", 0xe00, "OLD\rRUN\r"),
+    M(TeletextTest, "ENGTEST", 0x7c00, "", "engtest.png"),
+    M(TeletextTest, "RED", 0x7c00, "", "red.png"),
+    M(TeletextTest, "TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"),
 };
 #undef M
 
