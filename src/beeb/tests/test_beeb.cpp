@@ -1386,7 +1386,7 @@ class KevinEdwardsTest : public Test {
     }
 
     void Run() override {
-        bool save_trace = false;//TODO...
+        bool save_trace = false; //TODO...
 
         TestBBCMicro bbc(TestBBCMicroType_BTape);
 
