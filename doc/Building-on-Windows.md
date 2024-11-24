@@ -34,23 +34,28 @@ information and the initial build steps ensure everything is rebuilt.)
 
 # Notes
 
-- Because of the way cmake works, there are 40+ projects in the
-  solution. Even though most are never used, they're still there
+- Because of the way cmake works, there are 50+ projects in the
+  solution. Even though most are rarely used, they're still there
   cluttering the place up. You just have to put up with this
 
 # Running the automated tests
 
-Set the startup project to be `visual_studio_test_runner`, build, and
-run. This runs the full set of tests, such as it is, and takes about 4
-minutes on my laptop.
+To run from the command line, run `make run_tests_vs2019
+CONFIG=<<config>>`, supplying the config of interest (`Debug`,
+`RelWithDebInfo` or `Final`). This will run the tests in parallel
+according to PC core count.
 
-You can exclude the slow tests with the
-`visual_studio_test_runner_subset` project, which finishes in about 5
-seconds.
+To run in the debugger, set the Visual Studio startup project to be
+`visual_studio_test_runner`, build, and run. This runs the full set of
+tests, such as it is, one test at a time.
+
+You can exclude the particularly slow tests with the
+`visual_studio_test_runner_subset` project, which will finish a bit
+more quickly.
 
 If you have the child process debugging tool installed, the debugger
 will attach to each test case as it is executed. This does add
 overhead but makes debugging a lot easier.
 
-Each test case has its own project in the solution, so you can also
-run them independently.
+Individual tests can be run by setting each one as the startup
+project.

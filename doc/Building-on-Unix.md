@@ -147,7 +147,3 @@ warnings.
 # Running the automated tests
 
 `ninja test` will run the full set of tests.
-
-A shorter set of tests can be run using cmake's `ctest` tool:
-
-    ctest -LE 'slow|kevin_edwards' --output-on-failure
