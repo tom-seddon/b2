@@ -1,7 +1,5 @@
 #include <shared/system.h>
 #include "test_common.h"
-#include "test_kevin_edwards.h"
-#include "test_tube.h"
 #include <shared/CommandLineParser.h>
 #include <memory>
 #include <vector>
@@ -10,10 +8,13 @@
 #include <regex>
 #include <shared/path.h>
 #include <shared/log.h>
+#include <shared/testing.h>
 
 #ifndef b2_SOURCE_DIR
 #error
 #endif
+
+LOG_EXTERN(BBC_OUTPUT);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -55,12 +56,60 @@ class StandardTest : public Test {
     }
 
     void Run() override {
-        RunStandardTest(GetBeebLinkVolumePath().c_str(),
-                        m_drive.c_str(),
-                        m_name.c_str(),
-                        m_bbc_micro_type,
-                        0,
-                        0);
+        //RunStandardTest(GetBeebLinkVolumePath().c_str(),
+        //                m_drive.c_str(),
+        //                m_name.c_str(),
+        //                m_bbc_micro_type,
+        //                0,
+        //                0);
+
+        TestBBCMicro bbc(m_bbc_micro_type);
+
+        //{
+        //    uint32_t trace_flags = bbc.GetTestTraceFlags();
+
+        //    trace_flags &= ~clear_trace_flags;
+        //    trace_flags |= set_trace_flags;
+
+        //    bbc.SetTestTraceFlags(trace_flags);
+        //}
+
+        bbc.StartCaptureOSWRCH();
+        bbc.RunUntilOSWORD0(10.0);
+        //bbc.SetTestTraceFlags(bbc.GetTestTraceFlags()|BBCMicroTraceFlag_EveryMemoryAccess);
+
+        // Putting PAGE at $1900 makes it easier to replicate the same
+        // conditions on a real BBC B with DFS.
+        //
+        // (Most tests don't depend on the value of PAGE, but the T.TIMINGS
+        // output is affected by it.)
+        bbc.LoadFile(GetTestFileName(GetBeebLinkVolumePath(),
+                                     m_drive,
+                                     std::string("T.") + m_name),
+                     0x1900);
+        bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
+        bbc.RunUntilOSWORD0(20.0);
+
+        {
+            LOGF(BBC_OUTPUT, "All Output: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
+        }
+
+        std::string stem = strprintf("%s.%s", this->name.c_str(), GetTestBBCMicroTypeEnumName(m_bbc_micro_type));
+
+        TEST_TRUE(SaveTextFile(bbc.oswrch_output,
+                               GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str()))));
+
+        bbc.SaveTestTrace(stem);
+
+        TestSpooledOutput(bbc,
+                          GetBeebLinkVolumePath(),
+                          m_drive,
+                          stem);
+
+        LOGF(OUTPUT, "Speed: ~%.3fx\n", bbc.GetSpeed());
     }
 
   protected:
@@ -82,11 +131,50 @@ class KevinEdwardsTest : public Test {
     }
 
     void Run() override {
-        TestKevinEdwards(GetBeebLinkVolumePath(),
-                         "2",
-                         m_file_name,
-                         m_pre_paste_text,
-                         false);
+        bool save_trace = false;//TODO...
+
+        TestBBCMicro bbc(TestBBCMicroType_BTape);
+
+        bbc.SetTestTraceFlags(0);
+        bbc.StartCaptureOSWRCH();
+        bbc.RunUntilOSWORD0(10.0);
+        bbc.LoadFile(GetTestFileName(GetBeebLinkVolumePath(),
+                                     "2",
+                                     "$." + m_file_name),
+                     0x3000);
+
+        TEST_LT_UU(m_pre_paste_text.size(), 250);
+        bbc.Paste(m_pre_paste_text);
+
+        const M6502 *cpu = bbc.GetM6502();
+
+        bool good = false;
+
+        uint64_t num_cycles = 0;
+        uint64_t max_num_cycles = 100 * 1000 * 1000;
+        while (num_cycles < max_num_cycles) {
+            if (M6502_IsAboutToExecute(cpu)) {
+                if (cpu->abus.w == 0xfff4 &&
+                    cpu->a == 200 &&
+                    cpu->x == 3) {
+                    break;
+                } else if (cpu->abus.w == 0xe00) {
+                    good = true;
+                    break;
+                }
+            }
+
+            bbc.Update1();
+            ++num_cycles;
+        }
+
+        if (save_trace) {
+            // Not super useful... trace is rather large and utterly impenetrable.
+            bbc.SaveTestTrace(name);
+        }
+
+        TEST_LT_UU(num_cycles, max_num_cycles);
+        TEST_TRUE(good);
     }
 
   protected:
@@ -97,8 +185,6 @@ class KevinEdwardsTest : public Test {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-LOG_EXTERN(BBC_OUTPUT);
 
 class dp111TimingTest : public Test {
   public:
@@ -129,11 +215,7 @@ class dp111TimingTest : public Test {
         }
 
         printf("Number of failures: %d\n", m_num_failures);
-        if (m_num_failures != 0) {
-            exit(1);
-        }
-
-        exit(0);
+        TEST_EQ_II(m_num_failures, 0);
     }
 
   protected:
@@ -169,15 +251,41 @@ class TubeTest : public Test {
         TestBBCMicroArgs args;
         args.flags = m_test_bbc_micro_flags;
 
-        TestTube(this->name,
-                 m_bbc_micro_type,
-                 args,
-                 GetBeebLinkVolumePath(),
-                 "4",
-                 m_file_name,
-                 m_load_addr,
-                 m_pre_paste_text,
-                 m_post_paste_text);
+        TestBBCMicro bbc(m_bbc_micro_type, args);
+
+        //bbc.StartTrace(0, 256 * 1024 * 1024);
+        bbc.StartCaptureOSWRCH();
+        bbc.RunUntilOSWORD0(10.0);
+        bbc.LoadFile(GetTestFileName(GetBeebLinkVolumePath(),
+                                     "4",
+                                     "$." + m_file_name),
+                     m_load_addr);
+        //bbc.SaveTestTrace("test_tube");
+
+        if (!m_pre_paste_text.empty()) {
+            bbc.Paste(m_pre_paste_text);
+        }
+
+        bbc.Paste("RUN\r");
+
+        bbc.RunUntilOSWORD0(200);
+
+        if (!m_post_paste_text.empty()) {
+            bbc.Paste(m_post_paste_text);
+            bbc.RunUntilOSWORD0(10);
+        }
+
+        {
+            LOGF(BBC_OUTPUT, "All Output: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
+        }
+
+        TestSpooledOutput(bbc,
+                          GetBeebLinkVolumePath(),
+                          "4",
+                          this->name);
     }
 
   protected:

@@ -1101,64 +1101,6 @@ void TestSpooledOutput(const TestBBCMicro &bbc,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void RunStandardTest(const char *beeblink_volume_path,
-                     const char *beeblink_drive,
-                     const char *test_name,
-                     TestBBCMicroType type,
-                     uint32_t clear_trace_flags,
-                     uint32_t set_trace_flags) {
-    TestBBCMicro bbc(type);
-
-    {
-        uint32_t trace_flags = bbc.GetTestTraceFlags();
-
-        trace_flags &= ~clear_trace_flags;
-        trace_flags |= set_trace_flags;
-
-        bbc.SetTestTraceFlags(trace_flags);
-    }
-
-    bbc.StartCaptureOSWRCH();
-    bbc.RunUntilOSWORD0(10.0);
-    //bbc.SetTestTraceFlags(bbc.GetTestTraceFlags()|BBCMicroTraceFlag_EveryMemoryAccess);
-
-    // Putting PAGE at $1900 makes it easier to replicate the same
-    // conditions on a real BBC B with DFS.
-    //
-    // (Most tests don't depend on the value of PAGE, but the T.TIMINGS
-    // output is affected by it.)
-    bbc.LoadFile(GetTestFileName(beeblink_volume_path,
-                                 beeblink_drive,
-                                 std::string("T.") + test_name),
-                 0x1900);
-    bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
-    bbc.RunUntilOSWORD0(20.0);
-
-    {
-        LOGF(BBC_OUTPUT, "All Output: ");
-        LOGI(BBC_OUTPUT);
-        LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
-        LOG(BBC_OUTPUT).EnsureBOL();
-    }
-
-    std::string stem = strprintf("%s.%s", test_name, GetTestBBCMicroTypeEnumName(type));
-
-    TEST_TRUE(SaveTextFile(bbc.oswrch_output,
-                           GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str()))));
-
-    bbc.SaveTestTrace(stem);
-
-    TestSpooledOutput(bbc,
-                      beeblink_volume_path,
-                      beeblink_drive,
-                      stem);
-
-    LOGF(OUTPUT, "Speed: ~%.3fx\n", bbc.GetSpeed());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void RunImageTest(const std::string &wanted_png_src_path,
                   const std::string &png_name,
                   TestBBCMicro *beeb) {
