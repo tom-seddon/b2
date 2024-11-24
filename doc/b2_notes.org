@@ -1743,4 +1743,35 @@ Parameters:
 
 All dealt with by shared function: =TestTube=
 
+* New Tests
+
+** Before
+
+Build folder = 11.3 GB
+
+Test run times:
+
+- Debug :: 138.637
+- RelWithDebInfo :: 63.994
+- Final :: 48.121
+
+** After (1st pass)
+
+Build folder = 2.9 GB
+
+Test run times:
+
+- Debug :: 66.374
+- RelWithDebInfo :: 34.846
+- Final :: 34.972
+
+** After (2nd pass)
+
+=Total Test Time= times:
+
+- Debug :: 67.76
+- RelWithDebInfo :: 32.62
+- Final :: 31.47
+
+
 * eof.

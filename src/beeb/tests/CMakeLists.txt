@@ -65,8 +65,7 @@ endif()
 ##########################################################################
 
 add_executable(test_beeb
-  test_beeb.cpp
-  test_common.h test_common.cpp test_common.inl)
+  test_beeb.cpp test_beeb.inl)
 target_compile_definitions(test_beeb PRIVATE
   -Db2_SOURCE_DIR="${b2_SOURCE_DIR}"
   -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
@@ -74,6 +73,13 @@ target_compile_definitions(test_beeb PRIVATE
 target_link_libraries(test_beeb PRIVATE shared_lib beeb_lib stb_image_lib)
 target_boilerplate(test_beeb)
 
-# Can be split into multiple ctest tests if/when it starts taking too
-# log
-add_test(NAME test_beeb COMMAND $<TARGET_FILE:test_beeb>)
+function(add_test_beeb_category category)
+  add_test(NAME test_beeb_${category}
+    COMMAND $<TARGET_FILE:test_beeb> -T ${category}\..*)
+endfunction()
+
+add_test_beeb_category(standard)
+add_test_beeb_category(tube)
+add_test_beeb_category(kevin_edwards)
+add_test_beeb_category(teletext)
+add_test_beeb_category(dp111)
