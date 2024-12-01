@@ -561,6 +561,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
     m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
+    m_beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(m_init_arguments.limit_speed));
 
     m_blend_amt = 1.f;
 }

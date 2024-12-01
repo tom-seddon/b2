@@ -646,6 +646,7 @@ struct Options {
     bool vsync = false;
     bool timer = false;
     std::string config_name;
+    bool limit_speed = true;
 #if RMT_ENABLED
     bool remotery = false;
     bool remotery_thread_sampler = false;
@@ -720,6 +721,7 @@ static bool ParseCommandLineOptions(
 
     p.AddOption('b', "boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");
     p.AddOption('c', "config").Arg(&options->config_name).Meta("CONFIG").Help("start emulator with configuration CONFIG");
+    p.AddOption("no-limit-speed").ResetIfPresent(&options->limit_speed).Help("start emulator with speed limiting disabled");
 
     p.AddOption("hz").Arg(&options->audio_hz).Meta("HZ").Help("set sound output frequency to HZ").ShowDefault();
     p.AddOption("buffer").Arg(&options->audio_buffer_size).Meta("SAMPLES").Help("set audio buffer size, in samples (must be a power of two <32768: 512, 1024, 2048, etc.)").ShowDefault();
@@ -1397,6 +1399,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             }
 
             ia.boot = options.boot;
+            ia.limit_speed = options.limit_speed;
         }
 
         if (!BeebWindows::CreateBeebWindow(ia)) {

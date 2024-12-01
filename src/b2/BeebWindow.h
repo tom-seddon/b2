@@ -191,6 +191,9 @@ struct BeebWindowInitArguments {
     // If set, try to autoboot. Only set for the first window created - the
     // value comes from the --boot command line option.
     bool boot = false;
+
+    // Initial setting for the speed limiting.
+    bool limit_speed = true;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -2954,8 +2954,7 @@ void BeebThread::ThreadMain(void) {
         (void)what;
 
         if (paused ||
-            (m_is_speed_limited.load(std::memory_order_acquire) &&
-             ts.next_stop_cycles.n <= ts.num_executed_cycles->n)) {
+            (m_is_speed_limited.load(std::memory_order_acquire) && ts.next_stop_cycles.n <= ts.num_executed_cycles->n)) {
             PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Wait");
             rmt_ScopedCPUSample(MessageQueueWaitForMessage, 0);
             m_mq.ConsumerWaitForMessages(&messages);
@@ -3007,9 +3006,15 @@ void BeebThread::ThreadMain(void) {
                 }
             }
 
-            stop_cycles = ts.next_stop_cycles;
-
             messages.clear();
+
+            if (!ts.beeb) {
+                // No point carrying on with the other stuff if there's
+                // currently no emulated beeb.
+                continue;
+            }
+
+            stop_cycles = ts.next_stop_cycles;
 
             uint32_t clone_impediments = ts.beeb->GetCloneImpediments();
 
