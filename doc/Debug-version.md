@@ -205,13 +205,6 @@ shown; tick `Absolute cycle count` to have the absolute count shown
 Tick `Include register names` to include register names in the output.
 This takes up a few more columns but you may find it easier to read.
 
-The `Cycles output` options let you specify how the cycle count is
-displayed in the output. `Absolute` is the absolute number of emulated
-cycles since the BBC was rebooted, probably not very useful;
-`Relative` counts the start of the trace as cycle 0, and goes from
-there; `None` omits the cycle count entirely, which can be useful if
-trying to diff the output from multiple runs.
-
 Tick `Auto-save on stop` to have the trace saved automatically when
 the trace stops. Select the file name to save to. It will be
 overwritten, no questions asked, if the trace finishes without being
@@ -369,7 +362,7 @@ this is purely based on the current state of the system, so exercise
 caution if the instruction in question is not the one about to be
 executed.
 
-Two step buttons allow instruction-resolution steeping: `Step In` will
+Two step buttons allow instruction-resolution stepping: `Step In` will
 run one instruction for the given CPU and then stop, and `Step Over`
 will run until the given CPU reaches the next instruction visible.
 
@@ -382,7 +375,7 @@ either CPU, meaning a breakpoint for one CPU could interrupt a step
 operation for the other. Debugging code on two CPUs simultaneously is
 inevitably going to be a little inconvenient.
 
-## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug` ##
+## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug` ##
 
 Activate a debug window for the corresponding piece of BBC hardware
 (if present), showing current register values and additional useful
@@ -463,9 +456,9 @@ using an HTTP client library.
 The emulator listens on port 48075 (0xbbcb) for connections from
 localhost only.
 
-The HTTP API also supports
-[the file associaton mechanism](./File-Association.md), so the
-documentation for that applies.
+The HTTP API is what supports [the file association
+mechanism](./File-Association.md), so the documentation for that also
+applies.
 
 **The HTTP API is a work in progress, and may change.**
 
@@ -567,7 +560,7 @@ In either case, read the disc image data from the request body.
 specified, or the request content type if not.
 
 Currently, onle one file type is supported: a BBC disc image, as per
-the list above. The image will be inserted in drive 0, as per `mount`
+the list above. The image will be inserted in drive 0, as per `mount`,
 and the emulator reset.
 
 ## Using the HTTP API for developing BBC software
