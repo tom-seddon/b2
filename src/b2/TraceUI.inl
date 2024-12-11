@@ -4,6 +4,7 @@ EPN(Now)
 EPN(Return)
 EPN(Instruction)
 EPN(WriteAddress)
+EPN(Reset)
 EEND()
 #undef ENAME
 

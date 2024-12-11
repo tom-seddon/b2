@@ -299,6 +299,7 @@ void TraceUI::DoImGui() {
 
             ImGuiRadioButton(&g_default_settings.start, TraceUIStartCondition_Now, "Immediate");
             ImGuiRadioButton(&g_default_settings.start, TraceUIStartCondition_Return, "Return");
+            ImGuiRadioButton(&g_default_settings.start, TraceUIStartCondition_Reset, "Reset or BREAK");
             ImGuiRadioButtonf(&g_default_settings.start,
                               TraceUIStartCondition_Instruction,
                               "Execute $%04x",
@@ -557,6 +558,10 @@ void TraceUI::StartTrace() {
     case TraceUIStartCondition_WriteAddress:
         c.start = BeebThreadStartTraceCondition_WriteAddress;
         c.start_address = g_default_settings.start_write_address;
+        break;
+
+    case TraceUIStartCondition_Reset:
+        c.start = BeebThreadStartTraceCondition_Reset;
         break;
     }
 

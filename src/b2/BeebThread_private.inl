@@ -14,6 +14,9 @@ EPNV(Autoboot, 1 << 1)
 // If set, keep current discs. Used when changing config.
 EPNV(KeepCurrentDiscs, 1 << 2)
 
+// Treat this as a reset for tracing purposes.
+EPNV(IsReset, 1 << 3)
+
 EEND()
 #undef ENAME
 

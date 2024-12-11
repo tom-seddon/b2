@@ -531,7 +531,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                              ThreadState *ts,
                                              const BeebLoadedConfig &loaded_config,
                                              const std::vector<uint8_t> &nvram_contents) const {
-    uint32_t replace_flags = BeebThreadReplaceFlag_KeepCurrentDiscs;
+    uint32_t replace_flags = BeebThreadReplaceFlag_KeepCurrentDiscs | BeebThreadReplaceFlag_IsReset;
 
     if (m_flags & BeebThreadHardResetFlag_Boot) {
         replace_flags |= BeebThreadReplaceFlag_Autoboot;
@@ -2650,6 +2650,11 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 
 #if BBCMICRO_TRACE
     if (m_is_tracing.load(std::memory_order_acquire)) {
+        if (ts->trace_conditions.start == BeebThreadStartTraceCondition_Reset && (flags & BeebThreadReplaceFlag_IsReset)) {
+            // The condition is fulfilled. The trace starts immediately.
+            ts->trace_conditions.start = BeebThreadStartTraceCondition_Immediate;
+        }
+
         this->ThreadStartTrace(ts);
     }
 #endif
@@ -2679,8 +2684,9 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
         this->ThreadBeebStartTrace(ts);
         break;
 
+    case BeebThreadStartTraceCondition_Reset:
     case BeebThreadStartTraceCondition_NextKeypress:
-        // Wait for the key...
+        // Wait for the condition...
         break;
 
     case BeebThreadStartTraceCondition_Instruction:
@@ -2807,7 +2813,8 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
         ts->beeb->SetKeyState(beeb_key, state);
 
 #if BBCMICRO_TRACE
-        if (ts->trace_conditions.start == BeebThreadStartTraceCondition_NextKeypress) {
+        switch (ts->trace_conditions.start) {
+        case BeebThreadStartTraceCondition_NextKeypress:
             if (m_is_tracing.load(std::memory_order_acquire)) {
                 if (state) {
                     if (ts->trace_conditions.start_key < 0 || beeb_key == ts->trace_conditions.start_key) {
@@ -2816,6 +2823,14 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
                     }
                 }
             }
+            break;
+
+        case BeebThreadStartTraceCondition_Reset:
+            if (beeb_key == BeebKey_Break && state) {
+                // the trace will actually start once the CPU unhalts.
+                this->ThreadBeebStartTrace(ts);
+            }
+            break;
         }
 #endif
     }

@@ -153,8 +153,10 @@ There are multiple options for starting the recording, indicating what
 will happen when `Start` is clicked:
 
 * `Immediate` - recording will start straight away
-* `Return` - recording will start once the
-  Return key is pressed
+* `Return` - recording will start once the Return key is pressed
+* `Reset or BREAK` - recording will start on the next hard reset (or
+  equivalent - e.g., changing config from the Hardware menu) or the
+  next time the BREAK key is pressed
 * `Execute $xxxx` - recording will start once the PC is equal to the
   given address. Note that this currently goes only by address -
   address suffixes aren't supported

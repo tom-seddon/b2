@@ -17,6 +17,7 @@ EPN(Immediate)
 EPN(NextKeypress)
 EPN(Instruction)
 EPN(WriteAddress)
+EPN(Reset)
 EEND()
 #undef ENAME
 #endif
