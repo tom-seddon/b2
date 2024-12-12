@@ -1774,4 +1774,90 @@ Test run times:
 - Final :: 31.47
 
 
+* Hard disk stuff
+
+** adsb bits
+
+Some info here: http://www.adsb.co.uk/bbc/winchester/
+
+Addresses:
+
+| Controller | Address | Read   | Write           |
+|------------+---------+--------+-----------------|
+|          0 | fc40    | data   | data            |
+|          0 | fc41    | status | -               |
+|          0 | fc42    | -      | select          |
+|          0 | fc43    |        | interrupt latch |
+|------------+---------+--------+-----------------|
+|          1 | fc44    | data   | data            |
+|          1 | fc45    | status | -               |
+|          1 | fc46    | -      | select          |
+|          1 | fc47    |        | interrupt latch |
+
+#+begin_quote
+IC5 (74LS254), IC6 (74LS138) and IC7 (74LS138) perform the address
+line buffering and decoding. S1 provides a link selectable setting for
+controller 0 or controller 1 (base address FC40 or FC44). The output
+of the address decoder provides eight lines (active low), four for
+read and four for write (shown for controller 0 on the diagram).
+
+IC1 (74LS245) buffers the data bus continuously, IC2 (73LS373) is used
+to latch data that is written to the controller. Writer data is
+inverted by IC13/14 when enabled by the I/O control signal from the
+controller card. IC13/14 (7438) are open collector output devices that
+drive the SASI data port (pins 2 to 16).
+
+Data is read from the controller card, inverted and buffered by IC3
+(74LS240). Controller status is inverted by individual Schmitt
+inverters in IC15 (7414) and latched and bufferedf by IC4 (74LS373).
+Acknowledge (ACK) signals are provided automatically after a Request
+from the controller when a read or write to the data port is peformed.
+Select (SEL) is driven automatically by the Busy (BSY) status from the
+controller.
+
+An unusual interrupt generating arrangement is also incorporated, a
+set reset flip flop, IC12, is set every time a Request (REQ) is
+received from the controller, and is cleared when a "1" is written to
+bit of the interrupt latch, half of IC10. At certain times this system
+interrupts the CPU (via the IRQ line). The precise operation of this
+interrupt system is not known, if it is omitted from the host adapter
+then all OSFILE (load/save) operations work correctly, but writes in
+random access mode (OPENUP, *SLPOO) fail and leave the controller hung
+in a selected state, we can only presume that it forms a hardware
+"bodge" to fix a software problem...
+#+end_quote
+
+** BeebEm formats
+
+.dsc - 22 byte geometry file
+
+This appears to be 
+
+| Offset | What |
+|--------+------|
+|      0 |      |
+|      1 |      |
+|      2 |      |
+|      3 |      |
+|      4 |      |
+|      5 |      |
+|      6 |      |
+|      7 |      |
+|      8 |      |
+|      9 |      |
+|     10 |      |
+|     11 |      |
+|     12 |      |
+|     13 |      |
+|     14 |      |
+|     15 |      |
+|     16 |      |
+|     17 |      |
+|     18 |      |
+|     19 |      |
+|     20 |      |
+|     21 |      |
+
+.dat - actual disk data
+
 * eof.
