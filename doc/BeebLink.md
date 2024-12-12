@@ -5,12 +5,11 @@ BeebLink is a file storage system for the BBC Micro.
 For instructions, see here:
 https://github.com/tom-seddon/beeblink/blob/master/README.md
 
-For the latest release, see here:
-https://github.com/tom-seddon/beeblink/releases/latest
-
 *You will need a BeebLink release dated July 2024 or later* - older
 releases will not have the required ROM for use with b2, and the
-server will not support the new features it requires.
+server will not support the new features it requires. For now, you may
+need to download a prerelease version to get a build that's recent
+enough: https://github.com/tom-seddon/beeblink/releases
 
 To use BeebLink with b2, add the `--http` option when running the
 server, so that it listens for connections from b2. Run b2 on the same
