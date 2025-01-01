@@ -1831,8 +1831,6 @@ in a selected state, we can only presume that it forms a hardware
 
 .dsc - 22 byte geometry file
 
-This appears to be 
-
 | Offset | What |
 |--------+------|
 |      0 |      |
@@ -1859,5 +1857,8 @@ This appears to be
 |     21 |      |
 
 .dat - actual disk data
+
+Some notes about this stuff:
+http://www.cowsarenotpurple.co.uk/bbccomputer/native/adfs.html
 
 * eof.
