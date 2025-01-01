@@ -63,16 +63,3 @@ To fix this, go to `System Preferences`, `Security and Privacy`,
 clicking on its row and using the `-` button.
 
 Run it again, and you should get the keystroke access warning.
-
-## What about Apple Silicon?
-
-Apple Silicon releases are in the pipeline, and there's an open issue
-for this here: https://github.com/tom-seddon/b2/issues/325
-
-In the mean time, if you would be comfortable building b2 from source
-code, you can get a native build on your Apple Silicon Mac by
-following [the building instructions](./Building.md). I don't (yet!)
-have a suitable Mac for testing Apple Silicon compatibility, but it is
-supposed to work. Please report any issues via the
-[b2 GitHub issues page](https://github.com/tom-seddon/b2/issues) or
-[the b2 thread on Stardot](https://stardot.org.uk/forums/viewtopic.php?f=4&t=13081).
