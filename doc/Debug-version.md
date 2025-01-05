@@ -1,20 +1,28 @@
 # Debug version
 
+The debug version has a range of extra debug-related functionality,
+accessible from the `Debug` menu.
+
+## Using Windows?
+
 Run the debug version on Windows by running `b2_Debug.exe`, as
 extracted from the distribution zip file.
+
+## Using macOS?
 
 Run the debug version on macOS by copying `b2 Debug` from the dmg file
 to your Applications folder and running it.
 
+## Building from source?
+
 When building from source - your only option on Linux, sorry about
 that - get the debug version by building `Debug` (unoptimized) or
-`RelWithDebInfo` (optimized). (As is probably obvious:
+`RelWithDebInfo` (optimized).
+
+(As might be obvious, despite the slightly confusing naming:
 `RelWithDebInfo` will be more efficient, and `Debug` will be slower,
 but easier to step through in a debugger. But either should maintain
 100% BBC Micro speed on any decent modern PC.)
-
-However you run it, the debug version has a range of extra
-debug-related functionality, accessible from the `Debug` menu.
 
 # Integrated debugger
 

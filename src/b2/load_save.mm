@@ -75,13 +75,7 @@ static std::string GetPath(const std::string &path,
 
         fname = fileSystemRepresentation;
 
-        NSBundle *mainBundle = [NSBundle mainBundle];
-
-        NSString *bundleIdentifier = [mainBundle bundleIdentifier];
-
-        if ([bundleIdentifier length] > 0) {
-            fname = PathJoined(fname, [bundleIdentifier UTF8String]);
-        }
+        fname = PathJoined(fname, MACOS_BUNDLE_IDENTIFIER);
     }
 
     fname = PathJoined(fname, path);
