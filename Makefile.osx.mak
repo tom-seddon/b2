@@ -54,7 +54,7 @@ _github_ci_macos_release:
 .PHONY:github_ci_macos_x64
 github_ci_macos_x64: export PKG_CONFIG_PATH:=$(PKG_CONFIG_PATH):/usr/local/opt/ffmpeg@4/lib/pkgconfig
 github_ci_macos_x64:
-	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=11.0
+	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=12.0
 
 .PHONY:github_ci_older_macos_x64
 github_ci_older_macos_x64:

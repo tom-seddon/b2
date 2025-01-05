@@ -7,16 +7,14 @@ Files for the latest release are here:
 https://github.com/tom-seddon/b2/releases/latest
 
 If using macOS 13 (Ventura) or later on Apple Silicon, download the
-`b2-macos-13.0-applesilicon-XXX.dmg` file if available, or follow the
-instructions below if not.
+`b2-macos-13.0-applesilicon-XXX.dmg` file.
 
-If using macOS 11 (Big Sur) or later, download the
-`b2-osx-11.0-XXX.dmg` or `b2-macos-11.0-intel-XXX.dmg` file.
+If using macOS 12 (Monterey) or later, download the
+`b2-macos-12.0-intel-XXX.dmg` file.
 
 If using OS X 10.9 (Mavericks) or later, download the
-`b2-osx-10.9-XXX.dmg` or `b2-macos-10.9-intel-XXX.pmg` file. The 10.9
-version does not support video writing, but is otherwise
-fully-featured.
+`b2-macos-10.9-intel-XXX.pmg` file. The 10.9 version does not support
+video writing, but is otherwise fully-featured.
 
 You don't need to download any of the other files; the dmg contains
 everything required.
