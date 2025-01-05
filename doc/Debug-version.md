@@ -13,6 +13,12 @@ extracted from the distribution zip file.
 Run the debug version on macOS by copying `b2 Debug` from the dmg file
 to your Applications folder and running it.
 
+The debug version shares most settings with the ordinary version, but
+it is a separate app from the point of view of macOS, meaning you'll
+need to manage its Caps Lock access separately (see [the installation
+instructions](./Installing-on-OSX.md). (It also has a separate
+persistent window position and size.)
+
 ## Building from source?
 
 When building from source - your only option on Linux, sorry about

@@ -19,7 +19,7 @@ video writing, but is otherwise fully-featured.
 You don't need to download any of the other files; the dmg contains
 everything required.
 
-Open the dmg, drag b2 to your Applications folder, and run it from
+Open the dmg, drag `b2` to your Applications folder, and run it from
 there. (Running it from the dmg directly is unsupported, and it may
 not work. I've had reports of odd behaviour when attempting it!)
 
@@ -27,6 +27,11 @@ On first run, you'll almost certainly get a warning about the
 developer being unidentified. To get around this, follow the
 instructions here:
 https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
+
+If you're a programmer, you might also want to try `b2 Debug`,
+installed in the same way, an extended version with [additional
+debugging features](./Debug-version.md) for use when creating new
+programs or investigating existing software.
 
 ## macOS files missing from releases page?
 

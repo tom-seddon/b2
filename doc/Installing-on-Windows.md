@@ -10,6 +10,11 @@ any of the other files; this file contains everything required.)
 
 Unzip to a folder of your choice and run `b2.exe`.
 
+If you're a programmer, you might also want to try `b2_Debug.exe`, run
+in the same way, an extended version with [additional debugging
+features](./Debug-version.md) for use when creating new programs or
+investigating existing software.
+
 ## Windows 7 performance
 
 If you have trouble with slow startup and poor performance on Windows
