@@ -3394,7 +3394,10 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
         ASSERT(!ts->timeline_end_event.message);
     }
 
-    ASSERT(m_timeline_state.num_events == num_events);
+    // Don't check m_timeline_state - it's normal for it to be out of date. It's
+    // updated in the ThreadMain loop so the UI can query it.
+
+    //ASSERT(m_timeline_state.num_events == num_events);
     (void)num_events;
 }
 
