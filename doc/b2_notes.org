@@ -1861,4 +1861,9 @@ in a selected state, we can only presume that it forms a hardware
 Some notes about this stuff:
 http://www.cowsarenotpurple.co.uk/bbccomputer/native/adfs.html
 
+* release.py bork
+
+Works: 9f41cdeca4c6d91ffe8662145496d68967efdef6
+Not works: e825ff1654b8181292c6ef2f07f072e860c21693
+
 * eof.

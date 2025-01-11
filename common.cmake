@@ -45,12 +45,23 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASSERT_ENABLED=1")
 set(CMAKE_CXX_FLAGS_FINAL "${CMAKE_CXX_FLAGS_FINAL} -DMUTEX_DEBUGGING=0")
 
 if(OSX)
-  # At some point I introduced something that's only present in 10.12
-  # and later.
-  message(STATUS "OS X deployment target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
-  if(${CMAKE_OSX_DEPLOYMENT_TARGET} VERSION_LESS 10.12)
-    message(STATUS "Mutex debugging disabled")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMUTEX_DEBUGGING=0")
+  # At some point, I introduced something that's only present in 10.12
+  # and later. So when explicitly targeting a specific version, switch
+  # this stuff off when appropriate.
+  #
+  # If not explicitly targeting a specific version, you just get
+  # whatever you get.
+  #
+  # Going by the docs, it seems you should be able to test DEFINED
+  # CMAKE_OSX_DEPLOYMENT_TARGET, but it seems that can be true when
+  # running from release.py even though CMAKE_OSX_DEPLOYMENT_TARGET is
+  # actually blank. I haven't figured out why.
+  if(NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
+    message(STATUS "OS X deployment target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    if(${CMAKE_OSX_DEPLOYMENT_TARGET} VERSION_LESS 10.12)
+      message(STATUS "Mutex debugging disabled")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMUTEX_DEBUGGING=0")
+    endif()
   endif()
 endif()
 
