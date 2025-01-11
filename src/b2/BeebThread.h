@@ -76,9 +76,9 @@ struct TraceConditions {
 //////////////////////////////////////////////////////////////////////////
 //
 // The official pointer type for a BeebThread message is shared_ptr<Message>,
-// and the official data structure for the timeline is
-// vector<shared_ptr<TimelineEvent>>. This is very wasteful, and could be
-// improved. Maybe one day I'll get round to doing that.
+// and the official data structure for the timeline is vector<TimelineEvent>.
+// This is very wasteful, and could be improved. Maybe one day I'll get round to
+// doing that.
 //
 // (Since Message objects are immutable once Prepare'd, messages that don't
 // require a mutating Prepare step could at least be potentially pooled.)
