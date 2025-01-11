@@ -1152,8 +1152,10 @@ class MemoryDebugWindow : public DebugUI,
             uint16_t begin;
             uint32_t end_or_size;
             bool save_enabled = this->GetSaveParameters(&begin, &end_or_size);
-            if (m_specify_end && end_or_size < begin) {
-                save_enabled = false;
+            if (save_enabled) {
+                if (m_specify_end && end_or_size < begin) {
+                    save_enabled = false;
+                }
             }
 
             {

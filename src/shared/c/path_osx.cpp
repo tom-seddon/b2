@@ -15,6 +15,7 @@ std::string PathGetEXEFileName(void) {
     char tmp[1];
     size = 1;
     rc = _NSGetExecutablePath(tmp, &size);
+    (void)rc;
 
     std::vector<char> buf;
     buf.resize(size);

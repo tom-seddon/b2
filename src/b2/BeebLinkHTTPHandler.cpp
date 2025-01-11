@@ -298,6 +298,7 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
 
         if (!ts->request_queue.empty()) {
             std::vector<Request> request_queue = std::move(ts->request_queue);
+            ts->request_queue.clear();
             lock.unlock();
 
             std::vector<uint8_t> server_to_beeb_data;

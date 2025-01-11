@@ -543,6 +543,7 @@ void BBCMicro::Write1770ControlRegister(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
+    ASSERT(m);
     ASSERT(m->m_state.disc_interface);
     m->m_state.disc_control = m->m_state.disc_interface->GetControlFromByte(value);
 
@@ -570,6 +571,7 @@ uint8_t BBCMicro::Read1770ControlRegister(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
+    ASSERT(m);
     ASSERT(m->m_state.disc_interface);
 
     uint8_t value = m->m_state.disc_interface->GetByteFromControl(m->m_state.disc_control);
@@ -2746,6 +2748,8 @@ static const SeekSound g_seek_sounds[] = {
 };
 
 void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd, int step_rate_ms) {
+    (void)step_rate_ms;
+
     if (dd->step_sound_index < 0) {
         // step
         dd->step_sound_index = 0;

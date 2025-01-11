@@ -20,8 +20,8 @@ class CommandTable2;
 
 class SettingsUI {
   public:
-    CommandStateTable *const cst = nullptr;
-    const CommandTable2 *const command_table = nullptr;
+    CommandStateTable *const cst;
+    const CommandTable2 *const command_table;
 
     SettingsUI();
     explicit SettingsUI(const CommandTable2 *command_table);

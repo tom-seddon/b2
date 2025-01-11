@@ -168,6 +168,7 @@ void SHA1::Transform(uint32_t state[5], const uint8_t buffer[BLOCK_SIZE]) {
 
     /* Wipe variables */
     a = b = c = d = e = 0;
+    (void)a, (void)b, (void)c, (void)d, (void)e;
 }
 
 /*

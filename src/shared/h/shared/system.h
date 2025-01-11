@@ -251,6 +251,13 @@ int IsDebuggerAttached(void);
 #define UNUSED __attribute__((unused))
 #endif
 
+// https://clang-analyzer.llvm.org/annotations.html#attr_analyzer_noreturn
+#if __has_feature(attribute_analyzer_noreturn)
+#define ANALYZER_NORETURN __attribute__((analyzer_noreturn))
+#else
+#define ANALYZER_NORETURN
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

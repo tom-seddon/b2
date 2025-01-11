@@ -229,10 +229,15 @@ int TestEqSS(const char *got, const char *got_str, const char *wanted, const cha
         LogStringPrintable(&tmp, got);
         tmp.s("\"\n");
 
-        tmp.f("    Wanted length: %zu\n", strlen(wanted));
-        tmp.f("       Got length: %zu\n", strlen(got));
+        if (wanted) {
+            tmp.f("    Wanted length: %zu\n", strlen(wanted));
+        }
 
-        if (strlen(wanted) == strlen(got)) {
+        if (got) {
+            tmp.f("       Got length: %zu\n", strlen(got));
+        }
+
+        if (wanted && got && strlen(wanted) == strlen(got)) {
             size_t begin = 0;
             for (size_t i = 0; wanted[i] != 0; ++i) {
                 if (got[i] == '\r' || got[i] == '\n') {

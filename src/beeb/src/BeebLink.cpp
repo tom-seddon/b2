@@ -56,6 +56,7 @@ std::vector<uint8_t> GetBeebLinkErrorResponsePacketData(uint8_t code,
 
 BeebLink::BeebLink(BeebLinkHandler *handler)
     : m_handler(handler) {
+    ASSERT(m_handler);
 }
 
 //////////////////////////////////////////////////////////////////////////

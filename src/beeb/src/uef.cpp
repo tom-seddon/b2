@@ -53,8 +53,8 @@ bool UEFReader::Load(std::vector<uint8_t> data) {
 
     m_data = std::move(data);
     m_chunks = std::move(chunks);
-    m_minor_version = data[10];
-    m_major_version = data[11];
+    m_minor_version = m_data[10];
+    m_major_version = m_data[11];
 
     return true;
 }

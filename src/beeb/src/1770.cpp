@@ -1022,7 +1022,6 @@ WD1770::Pins WD1770::Update() {
 #endif
 
             if (!m_handler->SetByte(m_sector, m_offset, value)) {
-                value = 0;
                 m_status.bits.lost_or_track0 = 1;
 
 #if WD1770_VERBOSE_WRITE_SECTOR

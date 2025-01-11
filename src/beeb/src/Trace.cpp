@@ -623,6 +623,7 @@ void *Trace::Alloc(CycleCount time, size_t n) {
         if (!m_head) {
             m_head = c;
         } else {
+            ASSERT(m_tail);
             m_tail->next = c;
         }
 

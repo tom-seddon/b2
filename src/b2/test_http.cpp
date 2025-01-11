@@ -76,6 +76,7 @@ int main() {
             TEST_EQ_II(status, 200);
 
             status = client->SendRequest(HTTPRequest("http://127.0.0.1:" + std::to_string(PORT) + "/test_url?key=value"), &response);
+            (void)status;
         }
 
         std::vector<HTTPRequest> requests = handler->GetRequests();

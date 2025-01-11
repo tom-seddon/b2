@@ -15,7 +15,10 @@
 
 void LogAssertFailed(const char *file, int line, const char *function, const char *expr);
 void PRINTF_LIKE(1, 2) LogAssertElaboration(const char *fmt, ...);
-void HandleAssertFailed(void);
+
+// This is only noreturn for static analysis purposes. It's always valid to
+// carry on (at own risk...) after an assert failure.
+void HandleAssertFailed(void) ANALYZER_NORETURN;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -66,7 +66,7 @@ class BeebLink {
 #endif
   protected:
   private:
-    BeebLinkHandler *const m_handler = nullptr;
+    BeebLinkHandler *const m_handler;
 
     std::vector<unsigned char> m_recv;
     uint64_t m_recv_index = 0;

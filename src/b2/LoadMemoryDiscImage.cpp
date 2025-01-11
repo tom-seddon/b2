@@ -115,6 +115,7 @@ done:;
     if (za_opened) {
         mz_zip_reader_end(&za);
         za_opened = 0;
+        (void)za_opened;
     }
 
     return good;

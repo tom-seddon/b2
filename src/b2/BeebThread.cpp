@@ -2814,6 +2814,9 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
 
 #if BBCMICRO_TRACE
         switch (ts->trace_conditions.start) {
+        default:
+            break;
+
         case BeebThreadStartTraceCondition_NextKeypress:
             if (m_is_tracing.load(std::memory_order_acquire)) {
                 if (state) {
@@ -2950,9 +2953,9 @@ void BeebThread::ThreadMain(void) {
     std::vector<SentMessage> messages;
 
     int handle_messages_reason;
-    (void)handle_messages_reason;
     for (;;) {
         handle_messages_reason = -1;
+        (void)handle_messages_reason;
     handle_messages:
         bool paused = false;
         if (!ts.beeb) {
@@ -2966,7 +2969,6 @@ void BeebThread::ThreadMain(void) {
         }
 
         const char *what;
-        (void)what;
 
         if (paused ||
             (m_is_speed_limited.load(std::memory_order_acquire) && ts.next_stop_cycles.n <= ts.num_executed_cycles->n)) {
@@ -2975,6 +2977,7 @@ void BeebThread::ThreadMain(void) {
             m_mq.ConsumerWaitForMessages(&messages);
             ++m_num_mq_waits;
             what = "waited";
+            (void)what;
         } else {
             // Don't add a PROFILE_SCOPE in this case - it generates zillions of
             // events, almost none of which are interesting, measurably
@@ -2984,6 +2987,7 @@ void BeebThread::ThreadMain(void) {
             m_mq.ConsumerPollForMessages(&messages);
             ++m_num_mq_polls;
             what = "polled";
+            (void)what;
         }
 
         CycleCount stop_cycles;
@@ -3169,6 +3173,7 @@ void BeebThread::ThreadMain(void) {
             size_t num_video_units = (size_t)(num_cycles.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
             if (!m_video_output.GetProducerBuffers(&va, &num_va, &vb, &num_vb)) {
                 handle_messages_reason = 0;
+                (void)handle_messages_reason;
                 goto handle_messages;
             }
 
@@ -3187,11 +3192,13 @@ void BeebThread::ThreadMain(void) {
             size_t num_sa, num_sb;
             if (!m_sound_output.GetProducerBuffers(&sa, &num_sa, &sb, &num_sb)) {
                 handle_messages_reason = 1;
+                (void)handle_messages_reason;
                 goto handle_messages;
             }
 
             if (num_sa + num_sb < num_sound_units) {
                 handle_messages_reason = 2;
+                (void)handle_messages_reason;
                 goto handle_messages;
             }
 
@@ -3348,11 +3355,11 @@ void BeebThread::ThreadClearRecording(ThreadState *ts) {
 void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
     size_t num_events = 0;
 
-    ASSERT(ts->timeline_event_lists.size() == m_timeline_beeb_state_events_copy.size());
-
-    if (!ts->timeline_event_lists.empty()) {
+    size_t num_event_lists = ts->timeline_event_lists.size();
+    ASSERT(num_event_lists == m_timeline_beeb_state_events_copy.size());
+    if (num_event_lists > 0) {
         const TimelineEventList *pe = nullptr;
-        for (size_t i = 0; i < ts->timeline_event_lists.size(); ++i) {
+        for (size_t i = 0; i < num_event_lists; ++i) {
             const TimelineEventList *e = &ts->timeline_event_lists[i];
 
             ASSERT(e->state_event.time_cycles.n == m_timeline_beeb_state_events_copy[i].time_cycles.n);

@@ -55,11 +55,9 @@ static void TestImplementationRequirements(void) {
     TEST_EQ_UU(sizeof(void *), sizeof(void (*)(void)));
 
     /* NULL must be all bits clear. */
-    void **p = (void **)calloc(1, sizeof *p);
-    TEST_NON_NULL(p);
-    TEST_NULL(*p);
-    free(p);
-    p = NULL;
+    void *p;
+    memset(&p, 0, sizeof p);
+    TEST_NULL(p);
 }
 
 //////////////////////////////////////////////////////////////////////////
