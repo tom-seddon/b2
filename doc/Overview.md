@@ -290,10 +290,31 @@ Click the `...` button next to a sideways ROM slot/OS ROM to select
 the ROM image. You can load a file off disk, or choose one of the
 various standard ROMs that are supplied with the emulator.
 
-Use the `Type` option in the `...` menu to select the ROM mapper type,
-necessary if the ROM is larger than 16 KB. The following options are
-available, each listed with a (non-exhaustive) selection of a few ROMs
-that require that type.
+Use the `Type` option in the `...` menu for the OS ROM to select the
+OS ROM type. The options available are:
+
+- `16 KB` - ordinary ROM, 16 KB or smaller (smaller ROMs will be
+  loaded at the top of the region)
+- `Master Compact (64 KB)` - Master Compact ROM, 64 KB (65,536 bytes)
+  exactly, containing OS ROM and sideways RAM banks 13-15. This will
+  work with a ROM dump from a genuine Master Compact ROM
+- `MegaROM (128 KB)` - Master 128 ROM, 128 KB (131,072 bytes) exactly,
+  containing OS ROM and sideways ROM banks 9-15. This will work with a
+  ROM dump from a genuine Master 128 ROM
+- `Multi-OS (512 KB)` - Multi-OS ROM, 512 KB (524,288 bytes) exactly,
+  containing 4 sets of MegaROM contents. There are 4 such options,
+  corresponding to which particular bank you want to use. This will
+  work with a ROM dump from one of the commonly-available modern OS
+  ROM switchers
+
+If using one of the larger ROM types (64 KB, 128 KB, 512 KB), some
+sideways ROM banks will become hidden, as their contents are part of
+the OS ROM and can't be configured separately.
+
+Use the `Type` option in the `...` menu for a sideways ROM to select
+the sideways ROM mapper type, necessary if a sideways ROM is larger
+than 16 KB. The following options are available, each listed with a
+(non-exhaustive) selection of a few ROMs that require that type.
 
 - `16 KB` - ordinary ROM, 16 KB or smaller
 - `Inter-Word (32 KB)` - Computer Concepts Inter-Word, AMX Design,

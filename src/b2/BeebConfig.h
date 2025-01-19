@@ -64,6 +64,12 @@ class BeebConfig {
 
     uint32_t feature_flags = 0; //combination of BeebConfigFeatureFlag
 
+    // Sigh... got the arrangement a bit wrong here.
+    //
+    // If set, the OS is a 128/64 KB image for Master 128 or Compact. First 16
+    // KB is the OS area, then banks 9-15 or 13-15 in that order.
+    OSROMType os_rom_type = OSROMType_16KB;
+
     void ResetNVRAM();
 
   protected:

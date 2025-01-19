@@ -26,6 +26,7 @@ EPNV(Master128OSROMs, 1 << 7)
 EPNV(ParasiteROMs, 1 << 8)
 EPNV(MasterCompactSidewaysROMs, 1 << 9)
 EPNV(MasterCompactOSROMs, 1 << 10)
+EPNV(ContainedInOSROM, 1 << 11)
 EEND()
 #undef ENAME
 

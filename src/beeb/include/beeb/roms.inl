@@ -49,6 +49,8 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 // Named after the corresponding enums in the MAME source: https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
+//
+// TODO: should really be SidewaysROMType or ROMMapperType or something.
 #define ENAME ROMType
 EBEGIN_DERIVED(uint8_t)
 EPN(16KB)
@@ -68,3 +70,18 @@ EEND()
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#define ENAME OSROMType
+EBEGIN_DERIVED(uint8_t)
+EPN(16KB)
+EPN(Compact)
+EPN(MegaROM)
+EPN(MultiOSBank0)
+EPN(MultiOSBank1)
+EPN(MultiOSBank2)
+EPN(MultiOSBank3)
+
+//must be last
+EPN(Count)
+EEND()
+#undef ENAME

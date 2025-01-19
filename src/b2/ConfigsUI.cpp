@@ -51,7 +51,7 @@ class ConfigsUI : public SettingsUI {
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
 
     // rom_edit_flags is a combination of ROMEditFlag values
-    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, ROMType *type, uint32_t rom_edit_flags);
+    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, ROMType *type, OSROMType *os_type, uint32_t rom_edit_flags);
     void DoROMs(BeebConfig::ROM *rom,
                 bool *edited,
                 uint32_t rom_edit_flags,
@@ -282,12 +282,15 @@ void ConfigsUI::DoEditConfigGui() {
                            &config->os,
                            nullptr,
                            nullptr,
+                           &config->os_rom_type,
                            rom_edit_os_rom_flags) != ROMEditAction_None) {
         edited = true;
     }
 
     ROMEditAction action = ROMEditAction_None;
     uint8_t action_bank = 0;
+
+    uint8_t sideways_roms_end = 16 - GetNumNonOSSidewaysROMs(config->os_rom_type);
 
     for (uint8_t i = 0; i < 16; ++i) {
         uint8_t bank = 15 - i;
@@ -299,14 +302,23 @@ void ConfigsUI::DoEditConfigGui() {
 
             BeebConfig::SidewaysROM *rom = &config->roms[bank];
 
-            uint32_t rom_edit_flags = (bank < 15 ? (uint32_t)ROMEditFlag_CanMoveUp : 0) |
-                                      (bank > 0 ? (uint32_t)ROMEditFlag_CanMoveDown : 0) |
-                                      rom_edit_sideways_rom_flags;
+            uint32_t rom_edit_flags = rom_edit_sideways_rom_flags;
+
+            if (bank < sideways_roms_end - 1) {
+                rom_edit_flags |= ROMEditFlag_CanMoveUp;
+            } else if (bank >= sideways_roms_end) {
+                rom_edit_flags |= ROMEditFlag_ContainedInOSROM;
+            }
+
+            if (bank > 0 && bank < sideways_roms_end) {
+                rom_edit_flags |= ROMEditFlag_CanMoveDown;
+            }
 
             ROMEditAction a = this->DoROMEditGui(CAPTIONS[bank],
                                                  rom,
                                                  &rom->writeable,
                                                  &rom->type,
+                                                 nullptr,
                                                  rom_edit_flags);
             if (a != ROMEditAction_None) {
                 action = a;
@@ -407,6 +419,7 @@ void ConfigsUI::DoEditConfigGui() {
 
             if (this->DoROMEditGui("Parasite OS",
                                    &config->parasite_os,
+                                   nullptr,
                                    nullptr,
                                    nullptr,
                                    ROMEditFlag_ParasiteROMs)) {
@@ -619,6 +632,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                                       BeebConfig::ROM *rom,
                                       bool *writeable,
                                       ROMType *type,
+                                      OSROMType *os_type,
                                       uint32_t rom_edit_flags) {
     ROMEditAction action = ROMEditAction_None;
     bool edited = false;
@@ -660,7 +674,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
     ImGui::NextColumn();
 
-    if (writeable) {
+    if (writeable && !(rom_edit_flags & ROMEditFlag_ContainedInOSROM)) {
         ImGui::BeginDisabled(!type || *type != ROMType_16KB);
         if (ImGui::Checkbox("##ram", writeable)) {
             edited = true;
@@ -670,16 +684,20 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
     ImGui::NextColumn();
 
-    if (ImGui::Button("...")) {
-        ImGui::OpenPopup(ROM_POPUP);
-    }
+    if (!(rom_edit_flags & ROMEditFlag_ContainedInOSROM)) {
+        if (ImGui::Button("...")) {
+            ImGui::OpenPopup(ROM_POPUP);
+        }
 
-    ImGui::SameLine();
+        ImGui::SameLine();
+    }
 
     {
         ImGuiItemWidthPusher pusher(-1);
 
-        if (rom->standard_rom) {
+        if (rom_edit_flags & ROMEditFlag_ContainedInOSROM) {
+            ImGui::Text("(contained in OS ROM)");
+        } else if (rom->standard_rom) {
             ImGui::TextUnformatted(rom->standard_rom->name.c_str());
         } else {
             if (ImGuiInputText(&rom->file_name, "##name", rom->file_name)) {
@@ -717,6 +735,17 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                                 *writeable = false;
                             }
                         }
+                    }
+                }
+                ImGui::EndMenu();
+            }
+        } else if (os_type) {
+            if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
+                for (int i = 0; i < OSROMType_Count; ++i) {
+                    const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata((OSROMType)i);
+                    bool selected = *os_type == i;
+                    if (ImGui::MenuItem(metadata->description, nullptr, &selected)) {
+                        *os_type = (OSROMType)i;
                     }
                 }
                 ImGui::EndMenu();

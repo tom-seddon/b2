@@ -514,12 +514,48 @@ bool BeebLoadedConfig::Load(
     Messages *msg) {
     dest->config = src;
 
-    dest->os = LoadOSROM<16384>(dest->config.os, msg);
-    if (!dest->os) {
-        return false;
+    size_t sideways_roms_end;
+    if (dest->config.os.standard_rom || dest->config.os_rom_type == OSROMType_16KB) {
+        dest->os = LoadOSROM<16384>(dest->config.os, msg);
+        if (!dest->os) {
+            return false;
+        }
+
+        sideways_roms_end = 16;
+    } else {
+        const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata(dest->config.os_rom_type);
+        ASSERT(metadata);
+
+        std::vector<uint8_t> data;
+        if (!LoadFile(&data, dest->config.os.file_name, msg)) {
+            return false;
+        }
+
+        if (data.size() != metadata->file_size_bytes) {
+            msg->e.f("%s ROM is %zu bytes, not %zu bytes as expected: %s\n", metadata->description, data.size(), data.size(), dest->config.os.file_name.c_str());
+            return false;
+        }
+
+        sideways_roms_end = 16 - GetNumNonOSSidewaysROMs(dest->config.os_rom_type);
+
+        size_t offset = metadata->rom_offset;
+
+        auto os = std::make_shared<std::array<uint8_t, 16384>>();
+        for (size_t i = 0; i < 16384; ++i) {
+            (*os)[i] = data[offset + i];
+        }
+        offset += 16384;
+
+        dest->os = os;
+
+        for (size_t i = sideways_roms_end; i < 16; ++i) {
+            dest->roms[i] = std::make_shared<std::vector<uint8_t>>(data.begin() + offset, data.begin() + offset + 16384);
+            offset += 16384;
+        }
+        ASSERT(offset - metadata->rom_offset == metadata->rom_size_bytes);
     }
 
-    for (int i = 0; i < 16; ++i) {
+    for (size_t i = 0; i < sideways_roms_end; ++i) {
         BeebConfig::SidewaysROM *rom = &dest->config.roms[i];
 
         if (rom->standard_rom || !rom->file_name.empty()) {

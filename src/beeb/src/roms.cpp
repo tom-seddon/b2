@@ -33,3 +33,35 @@ const ROMTypeMetadata *GetROMTypeMetadata(ROMType type) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static const OSROMTypeMetadata OS_ROM_TYPES_METADATA[OSROMType_Count] = {
+    {OSROMType_16KB, "16 KB", 16384, 0, 16384},
+    {OSROMType_Compact, "Master Compact (64 KB)", 65536, 0, 65536},
+    {OSROMType_MegaROM, "MegaROM (128 KB)", 131072, 0, 131072},
+    {OSROMType_MultiOSBank0, "Multi-OS (512 KB) bank 0", 524288, 0 * 131072, 131072},
+    {OSROMType_MultiOSBank1, "Multi-OS (512 KB) bank 1", 524288, 1 * 131072, 131072},
+    {OSROMType_MultiOSBank2, "Multi-OS (512 KB) bank 2", 524288, 2 * 131072, 131072},
+    {OSROMType_MultiOSBank3, "Multi-OS (512 KB) bank 3", 524288, 3 * 131072, 131072},
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const OSROMTypeMetadata *GetOSROMTypeMetadata(OSROMType type) {
+    ASSERT(type >= 0 && type < OSROMType_Count);
+    const OSROMTypeMetadata *metadata = &OS_ROM_TYPES_METADATA[type];
+    ASSERT(metadata->type == type);
+    return metadata;
+}
+
+uint8_t GetNumNonOSSidewaysROMs(OSROMType type) {
+    const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata(type);
+    ASSERT(metadata->rom_size_bytes >= 16384);
+    ASSERT(metadata->rom_size_bytes % 16384 == 0);
+    size_t n = (metadata->rom_size_bytes - 16384) / 16384;
+    ASSERT(n < UINT8_MAX);
+    return (uint8_t)n;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

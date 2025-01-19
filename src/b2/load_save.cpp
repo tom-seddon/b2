@@ -966,6 +966,7 @@ static const char TEXT_HANDLE_DELETE[] = "text_handle_delete";
 static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
 static const char MOUSE[] = "mouse";
 static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
+static const char OS_ROM_TYPE[] = "os_rom_type";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1563,6 +1564,8 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
+        FindEnumMember(&config.os_rom_type, config_json, OS_ROM_TYPE, "OS ROM type", &GetOSROMTypeEnumName, nullptr);
+
         if (!FindEnumMember(&config.type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, msg)) {
             continue;
         }
@@ -1653,6 +1656,9 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(OS);
             SaveROM(writer, config->os);
+
+            writer->Key(OS_ROM_TYPE);
+            SaveEnum(writer, config->os_rom_type, &GetOSROMTypeEnumName);
 
             writer->Key(TYPE);
             SaveEnum(writer, config->type_id, &GetBBCMicroTypeIDEnumName);
