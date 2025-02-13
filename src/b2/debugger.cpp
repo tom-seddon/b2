@@ -167,11 +167,10 @@ class DebugUI : public SettingsUI {
 
     virtual void DoImGui2() = 0;
 
-    bool ReadByte(uint8_t *value,
-                  uint8_t *address_flags,
-                  uint8_t *byte_flags,
-                  uint16_t addr,
-                  bool mos);
+    uint8_t ReadByte(uint8_t *address_flags,
+                     uint8_t *byte_flags,
+                     uint16_t addr,
+                     bool mos);
 
     void DoDebugPageOverrideImGui();
 
@@ -279,20 +278,13 @@ void DebugUI::SetDebugStateOverrides(uint32_t dso) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool DebugUI::ReadByte(uint8_t *value,
-                       uint8_t *addr_flags,
-                       uint8_t *byte_flags,
-                       uint16_t addr_,
-                       bool mos) {
+uint8_t DebugUI::ReadByte(uint8_t *addr_flags,
+                          uint8_t *byte_flags,
+                          uint16_t addr_,
+                          bool mos) {
     M6502Word addr = {addr_};
 
     const DebugBigPage *dbp = this->GetDebugBigPageForAddress(addr, mos);
-
-    if (!dbp->bp.r) {
-        return false;
-    }
-
-    *value = dbp->bp.r[addr.p.o];
 
     if (addr_flags) {
         if (dbp->bp.address_debug_flags) {
@@ -310,7 +302,7 @@ bool DebugUI::ReadByte(uint8_t *value,
         }
     }
 
-    return true;
+    return dbp->bp.r[addr.p.o];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1182,10 +1174,7 @@ class MemoryDebugWindow : public DebugUI,
 
                         std::vector<uint8_t> buffer;
                         for (uint32_t addr = begin; addr != end; ++addr) {
-                            uint8_t value;
-                            if (!m_window->ReadByte(&value, nullptr, nullptr, (uint16_t)addr, this->mos)) {
-                                value = 0;
-                            }
+                            uint8_t value = m_window->ReadByte(nullptr, nullptr, (uint16_t)addr, this->mos);
                             buffer.push_back(value);
                         }
 
@@ -1516,14 +1505,12 @@ class DisassemblyDebugWindow : public DebugUI,
 
             ImGuiIDPusher id_pusher(addr);
 
-            uint8_t opcode;
             uint8_t opcode_addr_flags;
             uint8_t opcode_byte_flags;
-            this->ReadByte(&opcode,
-                           &opcode_addr_flags,
-                           &opcode_byte_flags,
-                           addr++,
-                           false);
+            uint8_t opcode = this->ReadByte(&opcode_addr_flags,
+                                            &opcode_byte_flags,
+                                            addr++,
+                                            false);
             char ascii[4];
 
             const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[opcode];
@@ -1532,18 +1519,16 @@ class DisassemblyDebugWindow : public DebugUI,
             M6502Word operand_addr_flags = {};
             M6502Word operand_byte_flags = {};
             if (di->num_bytes >= 2) {
-                this->ReadByte(&operand.b.l,
-                               &operand_addr_flags.b.l,
-                               &operand_byte_flags.b.l,
-                               addr++,
-                               false);
+                operand.b.l = this->ReadByte(&operand_addr_flags.b.l,
+                                             &operand_byte_flags.b.l,
+                                             addr++,
+                                             false);
             }
             if (di->num_bytes >= 3) {
-                this->ReadByte(&operand.b.h,
-                               &operand_addr_flags.b.h,
-                               &operand_byte_flags.b.h,
-                               addr++,
-                               false);
+                operand.b.h = this->ReadByte(&operand_addr_flags.b.h,
+                                             &operand_byte_flags.b.h,
+                                             addr++,
+                                             false);
             }
 
             ImGuiStyleColourPusher pusher;
@@ -1735,21 +1720,19 @@ class DisassemblyDebugWindow : public DebugUI,
                     this->AddWord(",", dest.w, false, "");
 
                     //bool taken = false;//TODO
-                    uint8_t value;
-                    if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false)) {
-                        uint8_t bit;
-                        bool set;
-                        if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
-                            bit = di->branch_condition - M6502Condition_BR0;
-                            set = false;
-                        } else {
-                            ASSERT(di->branch_condition >= M6502Condition_BS0 && di->branch_condition <= M6502Condition_BS7);
-                            bit = di->branch_condition - M6502Condition_BS0;
-                            set = true;
-                        }
-
-                        this->AddBranchTakenIndicator(!!(value & 1 << bit) == set);
+                    uint8_t value = this->ReadByte(nullptr, nullptr, operand.b.l, false);
+                    uint8_t bit;
+                    bool set;
+                    if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
+                        bit = di->branch_condition - M6502Condition_BR0;
+                        set = false;
+                    } else {
+                        ASSERT(di->branch_condition >= M6502Condition_BS0 && di->branch_condition <= M6502Condition_BS7);
+                        bit = di->branch_condition - M6502Condition_BS0;
+                        set = true;
                     }
+
+                    this->AddBranchTakenIndicator(!!(value & 1 << bit) == set);
                 }
                 break;
             }
@@ -1856,12 +1839,12 @@ class DisassemblyDebugWindow : public DebugUI,
     void DoIndirect(uint16_t address, bool mos, uint16_t mask, uint16_t post_index) {
         M6502Word addr;
 
-        this->ReadByte(&addr.b.l, nullptr, nullptr, address, mos);
+        addr.b.l = this->ReadByte(nullptr, nullptr, address, mos);
 
         ++address;
         address &= mask;
 
-        this->ReadByte(&addr.b.h, nullptr, nullptr, address, mos);
+        addr.b.h = this->ReadByte(nullptr, nullptr, address, mos);
 
         addr.w += post_index;
 
@@ -1951,22 +1934,14 @@ class DisassemblyDebugWindow : public DebugUI,
 
     void Up(const M6502Config *config, int n) {
         for (int i = 0; i < n; ++i) {
-            uint8_t opcode;
-
-            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr - 1, false)) {
-                --m_addr;
-                continue;
-            }
+            uint8_t opcode = this->ReadByte(nullptr, nullptr, m_addr - 1, false);
 
             if (config->disassembly_info[opcode].num_bytes == 1) {
                 --m_addr;
                 continue;
             }
 
-            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr - 2, false)) {
-                --m_addr;
-                continue;
-            }
+            opcode = this->ReadByte(nullptr, nullptr, m_addr - 2, false);
 
             if (config->disassembly_info[opcode].num_bytes == 2) {
                 m_addr -= 2;
@@ -1979,12 +1954,9 @@ class DisassemblyDebugWindow : public DebugUI,
 
     void Down(const M6502Config *config, int n) {
         for (int i = 0; i < n; ++i) {
-            uint8_t opcode;
-            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr, false)) {
-                ++m_addr;
-            } else {
-                m_addr += config->disassembly_info[opcode].num_bytes;
-            }
+            uint8_t opcode = this->ReadByte(nullptr, nullptr, m_addr, false);
+
+            m_addr += config->disassembly_info[opcode].num_bytes;
         }
     }
 
@@ -3162,11 +3134,9 @@ class StackDebugWindow : public DebugUI {
                         //
                         // (Paging can interfere with this! The paging overrides UI is
                         // available if you need it.)
-                        uint8_t possible_jsr;
-                        if (this->ReadByte(&possible_jsr, nullptr, nullptr, addr.w - 2, false)) {
-                            if (possible_jsr == 0x20) {
-                                was_jsr = true;
-                            }
+                        uint8_t possible_jsr = this->ReadByte(nullptr, nullptr, addr.w - 2, false);
+                        if (possible_jsr == 0x20) {
+                            was_jsr = true;
                         }
                     }
 
