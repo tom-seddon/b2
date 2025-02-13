@@ -39,6 +39,13 @@ There is also a [b2 snap](https://snapcraft.io/b2), looked after by
 approve of, but due to lack of Linux knowledge I can't provide any
 support for it myself)
 
+## libretro/RetroArch
+
+There is a version of the core b2 emulation code available as a
+libretro core: https://docs.libretro.com/library/b2/# - looked after
+by [Zoltan Balogh](https://github.com/zoltanvb/b2-libretro). I can't
+provide any support for this but I do approve!
+
 # Documentation
 
 See [the overview](./doc/Overview.md).
