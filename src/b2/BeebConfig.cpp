@@ -560,9 +560,9 @@ bool BeebLoadedConfig::Load(
 
         if (rom->standard_rom || !rom->file_name.empty()) {
             dest->roms[i] = LoadSidewaysROM(*rom, msg);
-            if (!dest->roms[i]) {
-                return false;
-            }
+
+            // Allow a sideways ROM load failure. The message will get printed
+            // out.
         }
     }
 
