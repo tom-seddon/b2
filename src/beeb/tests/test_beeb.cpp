@@ -1190,6 +1190,8 @@ void TestSpooledOutput(const TestBBCMicro &bbc,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool g_infer_wanted_images = false;
+
 void RunImageTest(const std::string &wanted_png_src_path,
                   const std::string &png_name,
                   TestBBCMicro *beeb) {
@@ -1222,7 +1224,15 @@ void RunImageTest(const std::string &wanted_png_src_path,
     // The differences PNG isn't always illuminating.
     std::string wanted_png_path = GetOutputFileName(png_name + ".wanted.png");
     std::vector<uint8_t> wanted_png_data;
-    TEST_TRUE(LoadFile(&wanted_png_data, wanted_png_src_path, nullptr));
+    bool got_wanted_png_data = LoadFile(&wanted_png_data, wanted_png_src_path, nullptr);
+    if (!got_wanted_png_data) {
+        if (g_infer_wanted_images) {
+            TEST_TRUE(LoadFile(&wanted_png_data, got_png_path, nullptr));
+            TEST_TRUE(SaveFile(wanted_png_data, wanted_png_src_path, nullptr));
+        } else {
+            TEST_TRUE(got_wanted_png_data);
+        }
+    }
     TEST_TRUE(SaveFile(wanted_png_data, wanted_png_path, nullptr));
 
     int wanted_width, wanted_height;
@@ -1279,9 +1289,13 @@ static std::string GetBeebLinkVolumePath() {
 class Test {
   public:
     const std::string name;
+    const std::string name_category;
+    const std::string name_name;
 
-    Test(std::string category, std::string name_)
-        : name(category + "." + name_) {
+    Test(const std::string &category, const std::string &name_)
+        : name(category + "." + name_)
+        , name_category(category)
+        , name_name(name) {
     }
 
     virtual ~Test() = 0;
@@ -1597,49 +1611,38 @@ class TeletextTest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define M(T, ...) std::make_unique<T>(__VA_ARGS__)
-static const std::unique_ptr<Test> ALL_TESTS[] = {
-    M(StandardTest, "VTIMERS"),
-    M(StandardTest, "VIA.AC1"),
-    M(StandardTest, "VIA.AC2"),
-    M(StandardTest, "VIA.AC3"),
-    M(StandardTest, "VIA.AC4"),
-    M(StandardTest, "VIA.AC5"),
-    M(StandardTest, "VIA.AC6"),
-    M(StandardTest, "VIA.AC7"),
-    M(StandardTest, "VIA.C1"),
-    M(StandardTest, "VIA.C2"),
-    M(StandardTest, "VIA.C3"),
-    // VIA.C4 isn't Master-specific, but it uses ASL $xxxx,X, which behaves
-    // differently on CMOS CPUs, and the output in the repo comes from a Master 128.
-    M(StandardTest, "VIA.C4", TestBBCMicroType_Master128MOS320),
-    M(StandardTest, "VIA.I1"),
-    M(StandardTest, "VIA.I2"),
-    M(StandardTest, "VIA.PB2"),
-    M(StandardTest, "VIA.PB7"),
-    M(StandardTest, "VIA.T11"),
-    M(StandardTest, "VIA.T21"),
-    M(StandardTest, "VIA.T22"),
-    M(StandardTest, "VIA.PB6"),
-    M(StandardTest, "TIMINGS"),
-    M(StandardTest, "VTIMEOU", TestBBCMicroType_Master128MOS320),
-    M(StandardTest, "VPOLL", TestBBCMicroType_Master128MOS320),
-    M(KevinEdwardsTest, "Alien8", "P%=&900:[OPT 2:LDX #4:LDY #0:.loop LDA &3000,Y:STA &C00,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #1:STA &FC10:JMP &CEA:]\rCALL &900\r"),
-    M(KevinEdwardsTest, "Nightsh", "P%=&3900:[OPT3:LDX #9:LDY #0:.loop LDA &3000,Y:STA &700,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&40:STA0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &3900\r"),
-    M(KevinEdwardsTest, "Jetman", "P%=&380:[OPT 3:LDX #10:LDY #0:.loop LDA &3000,Y:STA &600,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&1F:STA 0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &380\r"),
-    M(dp111TimingTest, "6502timing", TestBBCMicroType_BAcorn1770DFS),
-    M(dp111TimingTest, "6502timing1M", TestBBCMicroType_BAcorn1770DFS),
-    M(dp111TimingTest, "65C12timing", TestBBCMicroType_Master128MOS320),
-    M(dp111TimingTest, "65C12timing1M", TestBBCMicroType_Master128MOS320),
-    M(TubeTest, "xtu_prst", "PRST", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=FALSE\r", ""),
-    M(TubeTest, "itu_prst", "PRST", TestBBCMicroType_Master128MOS320WithMasterTurbo, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=TRUE\r", ""),
-    M(TubeTest, "xtu_r124", "R124", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureExTube, 0x800, "OLD\r*SPOOL X.R124\r", "*SPOOL\r"),
-    M(TubeTest, "xtu_r3", "R3", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, 0, 0x800, "OLD\r*SPOOL X.R3\r", "*SPOOL\r"),
-    M(TeletextTest, "ENGTEST", 0x7c00, "", "engtest.png"),
-    M(TeletextTest, "RED", 0x7c00, "", "red.png"),
-    M(TeletextTest, "TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"),
+class VideoULATest : public Test {
+  public:
+    VideoULATest(bool clock, bool flash, uint8_t mode)
+        : Test("video_ula", "C" + std::to_string((int)clock) + "F" + std::to_string((int)flash) + "M" + std::to_string(mode))
+        , m_clock(clock)
+        , m_flash(flash)
+        , m_mode(mode) {
+    }
+
+    void Run() override {
+        TestBBCMicro bbc(TestBBCMicroType_Master128MOS320);
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        bbc.LoadFile(GetTestFileName(GetBeebLinkVolumePath(), "5", "$.ULAMODE"), 0xe00);
+
+        bbc.Paste("C%=" + std::to_string(m_clock) + "\rF%=" + std::to_string(m_flash) + "\rM%=" + std::to_string(m_mode) + "\rOLD\rRUN\r");
+
+        bbc.RunUntilOSWORD0(10);
+
+        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->name_name + ".png");
+        RunImageTest(wanted_image_path,
+                     this->name_name,
+                     &bbc);
+    }
+
+  protected:
+  private:
+    bool m_clock = false;
+    bool m_flash = false;
+    uint8_t m_mode = 0;
 };
-#undef M
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1648,6 +1651,7 @@ struct Options {
     std::vector<std::string> test_name_strs;
     std::vector<std::regex> test_name_regexes;
     bool list = false;
+    bool infer_wanted_images = false;
 };
 
 static Options GetOptions(int argc, char *argv[]) {
@@ -1663,6 +1667,7 @@ static Options GetOptions(int argc, char *argv[]) {
     p.AddOption('t', "test").Meta("TEST").AddArgToList(&options.test_name_strs).Help("run test(s) matching TEST, a case-insensitive string");
     p.AddOption('T', "test-regexp").Meta("TEST").AddArgToList(&test_name_regex_strs).Help("run test(s) matching TEST, a case-insensitive regular expression");
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
+    p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path");
 
     if (!p.Parse(argc, argv)) {
         exit(1);
@@ -1690,19 +1695,70 @@ static Options GetOptions(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
     Options options = GetOptions(argc, argv);
 
+    std::vector<std::unique_ptr<Test>> all_tests;
+    all_tests.push_back(std::make_unique<StandardTest>("VTIMERS"));
+    all_tests.push_back(std::make_unique<StandardTest>("VTIMERS"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC1"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC2"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC3"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC4"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC5"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC6"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC7"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C1"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C2"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C3"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C4", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.I1"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.I2"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB2"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB7"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.T11"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.T21"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.T22"));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB6"));
+    all_tests.push_back(std::make_unique<StandardTest>("TIMINGS"));
+    all_tests.push_back(std::make_unique<StandardTest>("VTIMEOU", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<StandardTest>("VPOLL", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<KevinEdwardsTest>("Alien8", "P%=&900:[OPT 2:LDX #4:LDY #0:.loop LDA &3000,Y:STA &C00,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #1:STA &FC10:JMP &CEA:]\rCALL &900\r"));
+    all_tests.push_back(std::make_unique<KevinEdwardsTest>("Nightsh", "P%=&3900:[OPT3:LDX #9:LDY #0:.loop LDA &3000,Y:STA &700,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&40:STA0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &3900\r"));
+    all_tests.push_back(std::make_unique<KevinEdwardsTest>("Jetman", "P%=&380:[OPT 3:LDX #10:LDY #0:.loop LDA &3000,Y:STA &600,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&1F:STA 0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &380\r"));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("6502timing", TestBBCMicroType_BAcorn1770DFS));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("6502timing1M", TestBBCMicroType_BAcorn1770DFS));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("65C12timing", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("65C12timing1M", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<TubeTest>("xtu_prst", "PRST", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=FALSE\r", ""));
+    all_tests.push_back(std::make_unique<TubeTest>("itu_prst", "PRST", TestBBCMicroType_Master128MOS320WithMasterTurbo, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=TRUE\r", ""));
+    all_tests.push_back(std::make_unique<TubeTest>("xtu_r124", "R124", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureExTube, 0x800, "OLD\r*SPOOL X.R124\r", "*SPOOL\r"));
+    all_tests.push_back(std::make_unique<TubeTest>("xtu_r3", "R3", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, 0, 0x800, "OLD\r*SPOOL X.R3\r", "*SPOOL\r"));
+    all_tests.push_back(std::make_unique<TeletextTest>("ENGTEST", 0x7c00, "", "engtest.png"));
+    all_tests.push_back(std::make_unique<TeletextTest>("RED", 0x7c00, "", "red.png"));
+    all_tests.push_back(std::make_unique<TeletextTest>("TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"));
+    for (int c = 0; c < 2; ++c) {
+        for (int f = 0; f < 2; ++f) {
+            for (int m = 0; m < 4; ++m) {
+                all_tests.push_back(std::make_unique<VideoULATest>(c != 0, f != 0, m));
+            }
+        }
+    }
+
     if (options.list) {
         std::set<std::string> names;
 
-        for (const std::unique_ptr<Test> &test : ALL_TESTS) {
+        for (const std::unique_ptr<Test> &test : all_tests) {
             names.insert(test->name);
         }
 
         for (const std::string &name : names) {
             printf("%s\n", name.c_str());
         }
+
+        return 0;
     }
 
-    for (const std::unique_ptr<Test> &test : ALL_TESTS) {
+    g_infer_wanted_images = options.infer_wanted_images;
+
+    for (const std::unique_ptr<Test> &test : all_tests) {
         bool run = options.test_name_regexes.empty() && options.test_name_strs.empty();
 
         if (!run) {
