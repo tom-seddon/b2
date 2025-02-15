@@ -1058,6 +1058,9 @@ class BeebThread {
     std::shared_ptr<const BBCMicro::UpdateMFnData> GetUpdateMFnData() const;
 #endif
 
+    bool GetShowCursor() const;
+    void SetShowCursor(bool show_cursor);
+
   protected:
   private:
     struct AudioThreadData;
@@ -1108,7 +1111,6 @@ class BeebThread {
     std::atomic<bool> m_has_nvram{false};
     std::atomic<BBCMicroTypeID> m_beeb_type_id{BBCMicroTypeID_B};
     std::atomic<uint32_t> m_clone_impediments{0};
-    std::atomic<bool> m_power_on_tone{true};
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
     std::atomic<bool> m_is_printer_enabled{false};
     std::atomic<size_t> m_printer_data_size_bytes{false};
@@ -1116,6 +1118,10 @@ class BeebThread {
     std::atomic<uint64_t> m_num_mq_waits{0};
     std::atomic<bool> m_debug_is_halted{false};
     std::atomic<uint32_t> m_update_flags{0};
+
+    // Stuff the BeebThread reads to update the BBCMicro at appropriate times.
+    std::atomic<bool> m_show_cursor{true};
+    bool m_power_on_tone = true;
 
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)

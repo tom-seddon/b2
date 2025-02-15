@@ -62,6 +62,35 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include <shared/enum_def.h>
+#define ENAME int
+NBEGIN(SDL_WindowEventID)
+NN(SDL_WINDOWEVENT_NONE);
+NN(SDL_WINDOWEVENT_SHOWN);
+NN(SDL_WINDOWEVENT_HIDDEN);
+NN(SDL_WINDOWEVENT_EXPOSED);
+NN(SDL_WINDOWEVENT_MOVED);
+NN(SDL_WINDOWEVENT_RESIZED);
+NN(SDL_WINDOWEVENT_SIZE_CHANGED);
+NN(SDL_WINDOWEVENT_MINIMIZED);
+NN(SDL_WINDOWEVENT_MAXIMIZED);
+NN(SDL_WINDOWEVENT_RESTORED);
+NN(SDL_WINDOWEVENT_ENTER);
+NN(SDL_WINDOWEVENT_LEAVE);
+NN(SDL_WINDOWEVENT_FOCUS_GAINED);
+NN(SDL_WINDOWEVENT_FOCUS_LOST);
+NN(SDL_WINDOWEVENT_CLOSE);
+NN(SDL_WINDOWEVENT_TAKE_FOCUS);
+NN(SDL_WINDOWEVENT_HIT_TEST);
+NN(SDL_WINDOWEVENT_ICCPROF_CHANGED);
+NN(SDL_WINDOWEVENT_DISPLAY_CHANGED);
+NEND()
+#undef ENAME
+#include <shared/enum_end.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " STRINGIZE(RELEASE_NAME);
 
 //////////////////////////////////////////////////////////////////////////
@@ -797,6 +826,9 @@ static bool InitSystem(
 
     SDL_SetHint(SDL_HINT_GAMECONTROLLERCONFIG_FILE, GetAssetPath("gamecontrollerdb.txt").c_str());
 
+    // Click through when the window was unfocused. Might need to be system-dependent?
+    SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+
     // Initialise SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
         init_messages->e.f("FATAL: SDL_Init failed: %s\n", SDL_GetError());
@@ -1190,6 +1222,9 @@ static std::shared_ptr<MessageList> GetMRUMessageList() {
     }
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
@@ -1438,6 +1473,11 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             case SDL_WINDOWEVENT:
                 {
                     rmt_ScopedCPUSample(SDL_WINDOWEVENT, 0);
+
+                    //LOGF(OUTPUT,"SDL_WINDOWEVENT: windowID=%d, event=%d (%s)\n", event.window.windowID, event.window.event, GetSDL_WindowEventIDEnumName(event.window.event));
+
+                    // Works differently because it may poke about with the
+                    // overall BeebWindows list to remove the closed window.
                     BeebWindows::HandleSDLWindowEvent(event.window);
                 }
                 break;
@@ -1445,6 +1485,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             case SDL_MOUSEMOTION:
                 {
                     rmt_ScopedCPUSample(SDL_MOUSEMOTION, 0);
+                    
+                    //LOGF(OUTPUT,"SDL_MOUSEMOTION: windowID=%d, x=%d, y=%d\n", event.motion.windowID, event.motion.x, event.motion.y);
+
                     if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.motion.windowID)) {
                         window->HandleSDLMouseMotionEvent(event.motion);
                     }
@@ -1474,6 +1517,8 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             case SDL_MOUSEBUTTONUP:
             case SDL_MOUSEBUTTONDOWN:
                 {
+                    //LOGF(OUTPUT,"SDL_MOUSEBUTTON%s: windowID=%d, button=%d\n", event.type == SDL_MOUSEBUTTONUP ? "UP" : "DOWN", event.button.windowID, event.button.button);
+
                     if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.button.windowID)) {
                         window->HandleSDLMouseButtonEvent(event.button);
                     }

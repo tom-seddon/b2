@@ -745,7 +745,7 @@ parasite_update_done:
             }
 
             if (output.cudisp) {
-                m_state.cursor_pattern = CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
+                m_state.cursor_pattern = CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor & m_cursor_mask];
             }
 
 #if VIDEO_TRACK_METADATA

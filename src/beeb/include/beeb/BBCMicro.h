@@ -491,6 +491,8 @@ class BBCMicro : private WD1770Handler {
     void AddMouseMotion(int dx, int dy);
     void SetMouseButtons(uint8_t mask, uint8_t value);
 
+    void SetShowCursor(bool show_cursor);
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -608,6 +610,12 @@ class BBCMicro : private WD1770Handler {
     // This doesn't need to be copied. The event list records its
     // influence.
     bool m_disc_access = false;
+
+    // Mask for ULA cursor state. Set to 0xff to show cursor, or 0x00 to hide
+    // it (overriding the hardware settings).
+    //
+    // This doesn't need to be copied. It can be updated regularly.
+    uint8_t m_cursor_mask = 0xff;
 
 #if VIDEO_TRACK_METADATA
     // This doesn't need to be copied. If it becomes stale, it'll be

@@ -103,6 +103,8 @@ struct BeebWindowSettings {
     CopySettings printer_copy_settings;
 
     bool capture_mouse_on_click = false;
+
+    bool hide_cursor_when_unfocused = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -460,7 +462,7 @@ class BeebWindow {
 
     bool m_is_mouse_captured = false;
 
-    bool m_beeb_focus = false;
+    bool m_beeb_got_imgui_focus = false;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

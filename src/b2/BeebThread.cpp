@@ -617,7 +617,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= BBCMicroInitFlag_ExtMem;
     }
 
-    if (beeb_thread->m_power_on_tone.load(std::memory_order_acquire)) {
+    if (beeb_thread->m_power_on_tone) {
         init_flags |= BBCMicroInitFlag_PowerOnTone;
     }
 
@@ -2271,7 +2271,7 @@ void BeebThread::SetDiscVolume(float db) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SetPowerOnTone(bool power_on_tone) {
-    m_power_on_tone.store(power_on_tone, std::memory_order_release);
+    m_power_on_tone = power_on_tone;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2377,6 +2377,20 @@ std::shared_ptr<const BBCMicro::UpdateMFnData> BeebThread::GetUpdateMFnData() co
     return m_update_mfn_data;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::GetShowCursor() const {
+    return m_show_cursor.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetShowCursor(bool show_cursor) {
+    m_show_cursor.store(show_cursor, std::memory_order_release);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3201,6 +3215,7 @@ void BeebThread::ThreadMain(void) {
         }
 
         if (!paused && stop_cycles.n > ts.num_executed_cycles->n) {
+            ts.beeb->SetShowCursor(m_show_cursor.load(std::memory_order_acquire));
             ts.beeb->OptionalLowFrequencyUpdate();
 
             ASSERT(ts.beeb);

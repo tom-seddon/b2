@@ -205,6 +205,13 @@ scale of 1.0, or 2.0, and so on.
 approximates the visual effect of an interlaced display when
 interlacing is switched on.
 
+`Hide CRTC cursor when unfocused` will try to hide the cursor when the
+BBC is running and its display loses keyboard focus, either because
+another b2 dialog is active or because the b2 window doesn't have
+input focus. This makes the emulated BBC behave a bit more like an
+ordinary GUI program, in that flashing cursor implies it's where
+keyboard input will go.
+
 ### Screenshot options
 
 `Correct aspect ratio` and `Filter display` have the same effect as

@@ -423,6 +423,8 @@ void BeebWindow::OptionsUI::DoImGui() {
 
         ImGui::Checkbox("Emulate interlace", &settings->display_interlace);
 
+        ImGui::Checkbox("Hide CRTC cursor when unfocused", &settings->hide_cursor_when_unfocused);
+
 #if 1 //BUILD_TYPE_Debug
         if (ImGui::Checkbox("Threaded texture update", &m_beeb_window->m_update_tv_texture_thread_enabled)) {
             ResetTimerDefs();
@@ -656,6 +658,7 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLFocusGainedEvent() {
+    m_imgui_stuff->AddFocusEvent(true);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -668,6 +671,8 @@ void BeebWindow::HandleSDLFocusLostEvent() {
     }
 
     this->SetCaptureMouse(false);
+
+    m_imgui_stuff->AddFocusEvent(false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -725,7 +730,7 @@ void BeebWindow::HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent &event) {
             m_beeb_thread->Send(std::make_shared<BeebThread::MouseButtonsMessage>(mask, event.state == SDL_PRESSED ? mask : (uint8_t)0));
         }
     } else if (m_imgui_stuff) {
-        m_imgui_stuff->AddMouseButtonEvent(event.button, event.type == SDL_MOUSEBUTTONDOWN);
+        m_imgui_stuff->AddMouseButtonEvent(event.which, event.button, event.type == SDL_MOUSEBUTTONDOWN);
     }
 }
 
@@ -838,9 +843,9 @@ uint32_t BeebWindow::GetSDLWindowID() const {
 void BeebWindow::HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent &event) {
     if (m_imgui_stuff) {
 #if SDL_COMPILEDVERSION < SDL_VERSIONNUM(2, 0, 18)
-        m_imgui_stuff->AddMouseWheelEvent((float)event.x, (float)event.y);
+        m_imgui_stuff->AddMouseWheelEvent(event.which, (float)event.x, (float)event.y);
 #else
-        m_imgui_stuff->AddMouseWheelEvent(event.preciseX, event.preciseY);
+        m_imgui_stuff->AddMouseWheelEvent(event.which, event.preciseX, event.preciseY);
 #endif
     }
 }
@@ -854,7 +859,7 @@ void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
             m_beeb_thread->Send(std::make_shared<BeebThread::MouseMotionMessage>(event.xrel, event.yrel));
         }
     } else if (m_imgui_stuff) {
-        m_imgui_stuff->AddMouseMotionEvent(event.x, event.y);
+        m_imgui_stuff->AddMouseMotionEvent(event.which, event.x, event.y);
     }
 }
 
@@ -1020,12 +1025,12 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     SettingsUI *active_popup = nullptr;
 
-    // Set if the BBC display panel has focus. This isn't entirely regular,
-    // because the BBC display panel is handled by separate code - this will
-    // probably get fixed eventually.
+    // Set if the BBC display panel has Dear ImGui focus. This isn't entirely
+    // regular, because the BBC display panel is handled by separate code - this
+    // will probably get fixed eventually.
     //
     // The BBC display panel never has any dear imgui text widgets in it.
-    bool beeb_focus = false;
+    bool beeb_got_imgui_focus = false;
 
     this->DoMenuUI();
 
@@ -1042,7 +1047,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         ImGui::SetNextWindowPos(central_node->Pos);
         ImGui::SetNextWindowSize(central_node->Size);
 
-        beeb_focus = this->DoBeebDisplayUI();
+        beeb_got_imgui_focus = this->DoBeebDisplayUI();
 
         this->DoPopupUI(ticks, output_width, output_height);
     }
@@ -1101,7 +1106,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 }
             }
 
-            if (beeb_focus) {
+            if (beeb_got_imgui_focus) {
                 // 1. Handle always-prioritized shortcuts, or all shortcuts if
                 // all shortcuts prioritized
                 //
@@ -1153,13 +1158,20 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
             }
         }
 
-        if (!beeb_focus && m_beeb_focus) {
+        if (!beeb_got_imgui_focus && m_beeb_got_imgui_focus) {
             m_beeb_thread->Send(std::make_shared<BeebThread::AllKeysUpMessage>());
         }
     }
 
     m_sdl_keyboard_events.clear();
-    m_beeb_focus = beeb_focus;
+    m_beeb_got_imgui_focus = beeb_got_imgui_focus;
+
+    // Check if the BBC display actually has system keyboard focus.
+    bool beeb_actually_got_focus = false;
+    if (SDL_GetKeyboardFocus() == m_window) {
+        beeb_actually_got_focus = beeb_got_imgui_focus;
+    }
+    m_beeb_thread->SetShowCursor(beeb_actually_got_focus || !m_settings.hide_cursor_when_unfocused);
 
     return !close_window; // sigh, inverted logic
 }

@@ -967,6 +967,7 @@ static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
 static const char MOUSE[] = "mouse";
 static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
 static const char OS_ROM_TYPE[] = "os_rom_type";
+static const char HIDE_CURSOR_WHEN_UNFOCUSED[] = "hide_cursor_when_unfocused";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1820,6 +1821,7 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     LoadCopySettings(&BeebWindows::defaults.text_copy_settings, windows, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE, "Text copy mode", msg);
     LoadCopySettings(&BeebWindows::defaults.printer_copy_settings, windows, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE, "Printe copy mode", msg);
     FindBoolMember(&BeebWindows::defaults.capture_mouse_on_click, windows, CAPTURE_MOUSE_ON_CLICK, nullptr);
+    FindBoolMember(&BeebWindows::defaults.hide_cursor_when_unfocused, windows, HIDE_CURSOR_WHEN_UNFOCUSED, nullptr);
 
     {
         std::string keymap_name;
@@ -1921,6 +1923,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(CAPTURE_MOUSE_ON_CLICK);
         writer->Bool(BeebWindows::defaults.capture_mouse_on_click);
+
+        writer->Key(HIDE_CURSOR_WHEN_UNFOCUSED);
+        writer->Bool(BeebWindows::defaults.hide_cursor_when_unfocused);
 
         if (!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);

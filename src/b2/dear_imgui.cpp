@@ -385,6 +385,9 @@ void ImGuiStuff::RenderImGui() {
     g_in_frame = false;
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void ImGuiStuff::RenderSDL() {
     ImGuiContextSetter setter(this);
 
@@ -527,18 +530,36 @@ void ImGuiStuff::RenderSDL() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::AddMouseWheelEvent(float x, float y) {
+void ImGuiStuff::AddFocusEvent(bool got_focus) {
+    ImGuiContextSetter setter(this);
+    ImGuiIO &io = ImGui::GetIO();
+
+    io.AddFocusEvent(got_focus);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void AddMouseSourceEvent(ImGuiIO *io, uint32_t mouse_id) {
+    io->AddMouseSourceEvent(mouse_id == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::AddMouseWheelEvent(uint32_t mouse_id, float x, float y) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
     //printf("%s: x=%f y=%f\n",__func__,x,y);
+    AddMouseSourceEvent(&io, mouse_id);
     io.AddMouseWheelEvent(x, y);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::AddMouseButtonEvent(uint8_t button, bool state) {
+void ImGuiStuff::AddMouseButtonEvent(uint32_t mouse_id, uint8_t button, bool state) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
@@ -562,7 +583,8 @@ void ImGuiStuff::AddMouseButtonEvent(uint8_t button, bool state) {
     }
 
     if (imgui_button >= 0) {
-        //printf("%s: button=%d state=%s\n",__func__,imgui_button,BOOL_STR(state));
+        printf("%s: button=%d state=%s\n", __func__, imgui_button, BOOL_STR(state));
+        AddMouseSourceEvent(&io, mouse_id);
         io.AddMouseButtonEvent(imgui_button, state);
     }
 }
@@ -570,11 +592,12 @@ void ImGuiStuff::AddMouseButtonEvent(uint8_t button, bool state) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::AddMouseMotionEvent(int x, int y) {
+void ImGuiStuff::AddMouseMotionEvent(uint32_t mouse_id, int x, int y) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
     //printf("%s: x=%d y=%d\n",__func__,x,y);
+    AddMouseSourceEvent(&io, mouse_id);
     io.AddMousePosEvent((float)x, (float)y);
 }
 

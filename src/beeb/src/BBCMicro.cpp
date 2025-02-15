@@ -2103,6 +2103,17 @@ void BBCMicro::SetMouseButtons(uint8_t mask, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::SetShowCursor(bool show_cursor) {
+    if (show_cursor) {
+        m_cursor_mask = 0xff;
+    } else {
+        m_cursor_mask = 0x00;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer->size());
     m_state.ram_buffer->at(ram_buffer_index) = value;

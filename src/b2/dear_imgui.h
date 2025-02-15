@@ -87,9 +87,10 @@ class ImGuiStuff {
     // does the SDL rendering stuff.
     void RenderSDL();
 
-    void AddMouseWheelEvent(float x, float y);
-    void AddMouseButtonEvent(uint8_t button, bool state);
-    void AddMouseMotionEvent(int x, int y);
+    void AddFocusEvent(bool got_focus);
+    void AddMouseWheelEvent(uint32_t mouse_id, float x, float y);
+    void AddMouseButtonEvent(uint32_t mouse_id, uint8_t button, bool state);
+    void AddMouseMotionEvent(uint32_t mouse_id, int x, int y);
     bool AddKeyEvent(uint32_t scancode, bool state);
     void AddInputCharactersUTF8(const char *text);
 
