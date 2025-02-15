@@ -1043,6 +1043,8 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                                            ImGuiDockNodeFlags_NoDockingOverCentralNode);
     ImGuiID dock_space_id = ImGui::DockSpaceOverViewport(viewport, dock_space_flags);
 
+    active_popup = this->DoSettingsUI();
+
     if (ImGuiDockNode *central_node = ImGui::DockBuilderGetCentralNode(dock_space_id)) {
         ImGui::SetNextWindowPos(central_node->Pos);
         ImGui::SetNextWindowSize(central_node->Size);
@@ -1067,8 +1069,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     if (m_imgui_metrics) {
         ImGui::ShowMetricsWindow();
     }
-
-    active_popup = this->DoSettingsUI();
 
     // Handle input as appropriate.
     //
