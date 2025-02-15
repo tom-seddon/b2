@@ -39,9 +39,9 @@ if(MSVC)
   target_compile_options(imgui_lib PRIVATE /wd4305 /wd4267 /wd4800 /wd4244 /wd4312 /wd4458)
 endif()
 
+# Add standalone Dear ImGui examples, for emergency testing purposes.
+
 if(WIN32)
-  # Add the minimal-dependency standalone example, for emergency
-  # testing purposes.
   add_executable(imgui_example_win32_directx11
     ${IMGUI__FOLDER}/examples/example_win32_directx11/main.cpp
     ${IMGUI__FOLDER}/backends/imgui_impl_dx11.cpp
@@ -49,6 +49,17 @@ if(WIN32)
   target_include_directories(imgui_example_win32_directx11 PRIVATE ${IMGUI__FOLDER}/backends)
   target_link_libraries(imgui_example_win32_directx11 PRIVATE d3d11.lib imgui_lib)
 endif()
+
+find_package(OpenGL REQUIRED)
+
+add_executable(imgui_example_sdl2_opengl2
+  ${IMGUI__FOLDER}/examples/example_sdl2_opengl2/main.cpp
+  ${IMGUI__FOLDER}/backends/imgui_impl_opengl2.cpp
+  ${IMGUI__FOLDER}/backends/imgui_impl_opengl2.h
+  ${IMGUI__FOLDER}/backends/imgui_impl_sdl2.cpp
+  ${IMGUI__FOLDER}/backends/imgui_impl_sdl2.h)
+target_include_directories(imgui_example_sdl2_opengl2 PRIVATE ${IMGUI__FOLDER}/backends)
+target_link_libraries(imgui_example_sdl2_opengl2 PRIVATE imgui_lib ${SDL2_LIBRARY} ${OPENGL_LIBRARIES})
 
 ##########################################################################
 ##########################################################################
