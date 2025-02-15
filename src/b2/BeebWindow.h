@@ -460,6 +460,8 @@ class BeebWindow {
 
     bool m_is_mouse_captured = false;
 
+    bool m_beeb_focus = false;
+
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);

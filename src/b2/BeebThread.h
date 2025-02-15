@@ -235,6 +235,20 @@ class BeebThread {
         BeebShiftState m_shift_state = BeebShiftState_Any;
     };
 
+    class AllKeysUpMessage : public Message {
+      public:
+        AllKeysUpMessage() = default;
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+      protected:
+      private:
+        bool m_shift_up = true;
+    };
+
     class JoystickButtonMessage : public Message {
       public:
         JoystickButtonMessage(uint8_t index, bool state);

@@ -385,6 +385,48 @@ void BeebThread::KeySymMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BeebThread::AllKeysUpMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
+                                                 BeebThread *beeb_thread,
+                                                 ThreadState *ts) {
+    if (!PrepareUnlessReplayingOrHalted(ptr, completion_fun, beeb_thread, ts)) {
+        return false;
+    }
+
+    // If fake shift on, don't unpress shift, because that'll happen in due
+    // course anyway.
+    m_shift_up = ts->fake_shift_state != BeebShiftState_On;
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::AllKeysUpMessage::ThreadHandle(BeebThread *beeb_thread,
+                                                ThreadState *ts) const {
+    for (uint8_t i = 0; i < 0x80; ++i) {
+        bool up = true;
+        if ((i & 0x70) == 0) {
+            if (i == BeebKey_Shift) {
+                up = m_shift_up;
+            } else if (i == BeebKey_Ctrl) {
+                up = true;
+            } else {
+                // Leave keylinks alone.
+                up = false;
+            }
+        }
+
+        if (up) {
+            beeb_thread->ThreadSetKeyState(ts, (BeebKey)i, false);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebThread::JoystickButtonMessage::JoystickButtonMessage(uint8_t index, bool state)
     : m_index(index)
     , m_state(state) {

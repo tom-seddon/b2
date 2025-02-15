@@ -1152,9 +1152,14 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 }
             }
         }
+
+        if (!beeb_focus && m_beeb_focus) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::AllKeysUpMessage>());
+        }
     }
 
     m_sdl_keyboard_events.clear();
+    m_beeb_focus = beeb_focus;
 
     return !close_window; // sigh, inverted logic
 }
