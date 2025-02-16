@@ -53,7 +53,7 @@ static BOOL CALLBACK TestStartupInitOnce(PINIT_ONCE InitOnce,
 
 static INIT_ONCE g_test_startup_init_once = INIT_ONCE_STATIC_INIT;
 
-void TestStartup(void) {
+void TestStartup() {
     InitOnceExecuteOnce(&g_test_startup_init_once,
                         &TestStartupInitOnce,
                         NULL,
@@ -113,7 +113,7 @@ void TestFailed(const char *file, int line, const TestFailArgs *tfa) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestQuit(void) {
+void TestQuit() {
     fflush(stderr);
     fflush(stdout);
 

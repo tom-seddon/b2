@@ -15,7 +15,7 @@
 /* Call to disable some modal Windows dialogs that are a bit annoying.
  * Does nothing on Linux/OS X. (Automatically called as necessary.)
  */
-void TestStartup(void);
+void TestStartup();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -51,7 +51,7 @@ void TestFailed(const char *file, int line, const TestFailArgs *tfa);
 void AddTestFailFn(TestFailFn fn, void *context);
 void RemoveTestFailFnByContext(void *context);
 
-void NORETURN TestQuit(void);
+void NORETURN TestQuit();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
