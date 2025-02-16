@@ -1866,4 +1866,109 @@ http://www.cowsarenotpurple.co.uk/bbccomputer/native/adfs.html
 Works: 9f41cdeca4c6d91ffe8662145496d68967efdef6
 Not works: e825ff1654b8181292c6ef2f07f072e860c21693
 
+* Unify ROM mappers 
+
+The BBCMicro::Update code maps accesses to specific regions to a new
+mapper region to set. (The actual behaviour of the mapper region is
+handled elsewhere.)
+
+Masks:
+
+| Type     | Mask 0x | Mask 0b             |
+|----------+---------+---------------------|
+| CCIWORD  |  0xffe0 | 1111 1111 1110 0000 |
+| CCIBASE  |  0xffe0 | 1111 1111 1110 0000 |
+| CCISPELL |  0xffe0 | 1011 1111 1110 0000 |
+| PALQST   |  0xffe0 | 1111 1111 1110 0000 |
+| PALWAP   |  0xffe0 | 1111 1111 1110 0000 |
+| PALTED   |  0xffe0 | 1111 1111 1110 0000 |
+| ABEP     |  0xfffc | 1111 1111 1111 1100 |
+| ABE      |  0xfffc | 1111 1111 1111 1100 |
+
+ROM areas:
+
+- 0x8000 - 1000 xxxx xxxx xxxx
+- 0x9000 - 1001 xxxx xxxx xxxx
+- 0xa000 - 1010 xxxx xxxx xxxx
+- 0xb000 - 1011 xxxx xxxx xxxx
+
+So, ROM address mask is 10xx xxxx xxxx xxxx
+
+Hit regions:
+
+CCIWORD:
+
+| Addr 0x | Addr 0b             | Region |
+|---------+---------------------+--------|
+| 8060    | 1000 0000 011x xxxx |      0 |
+| bfc0    | 1011 1111 110x xxxx |      0 |
+| 8040    | 1000 0000 010x xxxx |      1 |
+| bfa0    | 1011 1111 101x xxxx |      1 |
+| bfe0    | 1011 1111 111x xxxx |      1 |
+
+CCIBASE:
+
+| Addr 0x | Addr 0b             | Region |
+|---------+---------------------+--------|
+| bf80    | 1011 1111 100x xxxx |      0 |
+| bfa0    | 1011 1111 101x xxxx |      1 |
+| bfc0    | 1011 1111 110x xxxx |      2 |
+| bfe0    | 1011 1111 111x xxxx |      3 |
+
+CCISPELL:
+
+Note conditional banking though - regions 1-7 can only be selected
+when region 0 is active.
+
+| Addr 0x | Addr 0b             | Region |
+|---------+---------------------+--------|
+| bfe0    | 1011 1111 111x xxxx |      0 |
+| bfc0    | 1011 1111 110x xxxx |      1 |
+| bfa0    | 1011 1111 101x xxxx |      2 |
+| bf80    | 1011 1111 100x xxxx |      3 |
+| bf60    | 1011 1111 011x xxxx |      4 |
+| bf40    | 1011 1111 010x xxxx |      5 |
+| bf20    | 1011 1111 001x xxxx |      6 |
+| bf00    | 1011 1111 000x xxxx |      7 |
+
+PALQST:
+
+| Addr 0x | Addr 0b             | Region |
+|---------+---------------------+--------|
+|    8820 | 1000 1000 001x xxxx |      2 |
+|    91e0 | 1001 0001 111x xxxx |      1 |
+|    92c0 | 1001 0010 110x xxxx |      3 |
+|    9340 | 1001 0011 010x xxxx |      0 |
+
+PALWAP:
+
+| Addr 0x | Addr 0b             | Region |
+|---------+---------------------+--------|
+| 9f00    | 1001 1111 000x xxxx |      0 |
+| 9f20    | 1001 1111 001x xxxx |      1 |
+| 9f40    | 1001 1111 010x xxxx |      2 |
+| 9f60    | 1001 1111 011x xxxx |      3 |
+| 9f80    | 1001 1111 100x xxxx |      4 |
+| 9fa0    | 1001 1111 101x xxxx |      5 |
+| 9fc0    | 1001 1111 110x xxxx |      6 |
+| 9fe0    | 1001 1111 111x xxxx |      7 |
+
+PALTED:
+
+| Addr 0x | Addr 0b             | Region |
+|---------+---------------------+--------|
+| 9f80    | 1001 1111 100x xxxx |      0 |
+| 9fa0    | 1001 1111 101x xxxx |      1 |
+| 9fc0    | 1001 1111 110x xxxx |      2 |
+| 9fe0    | 1001 1111 111x xxxx |      3 |
+
+ABEP/ABE:
+
+| Addr 0x | Addr 0b             | Region |
+|---------+---------------------+--------|
+| bff8    | 1011 1111 1111 10xx |      1 |
+| bffc    | 1011 1111 1111 11xx |      0 |
+
+Logic is identical for ABEP but banks swapped.
+
 * eof.
