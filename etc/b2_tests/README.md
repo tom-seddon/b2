@@ -1,6 +1,5 @@
-Various tests for running on the BBC, mostly thanks to
-[scarybeasts](https://github.com/scarybeasts). Many are run as part of
-the automated tests you get when running `ctest`.
+Various tests for running on the BBC, Most are run as part of the
+automated tests you get when running `ctest`.
 
 This folder is a BeebLink volume. (For more about BeebLink, see
 https://github.com/tom-seddon/beeblink.)
@@ -8,6 +7,8 @@ https://github.com/tom-seddon/beeblink.)
 Licence: GPL v3
 
 # Test notes
+
+## Text-based tests
 
 The intention is for test output to be produced by a * command that
 somehow creates a file. When run on a real BBC from the BeebLink
@@ -21,16 +22,30 @@ system. No need for an emulated filing system.
 
 * `*SPOOL` - test output is whatever gets spooled
 
-And in the future:
-
-* `*SAVE` - test output is whatever was saved
-
 And more to follow, perhaps? Hand-coded special cases are also always
 an option.
+
+## Image-based tests
+
+Each one produces a single image, then arranges for an OSWORD 0 call
+(either using `INPUT`, or by returning to the BASIC prompt). The test
+runner saves the image at this point and compares it to a known good
+one.
+
+The known good Images are initially created by running the test
+program with `--infer-wanted-images` - if it doesn't find a particular
+known good image, it assumes the saved image is correct, and uses it
+to create the known good image in the right folder.
+
+Once all the known good images are actually looking good (this bit has
+to be done by eye...), they can be committed to the repo.
 
 # Volume layout
 
 ## Drive 0
+
+Mostly thanks to [Chris Evans](
+https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307).
 
 The files are categorised by BBC dir:
 
@@ -45,27 +60,43 @@ system is rather careless about this, and just assumes that the PC
 names and BBC names match (taking the #xx escaping scheme into
 account).
 
+### Producing SSDs
+
+Run `make rel_tests` in the root of the working copy to produce SSD
+files for this set of tests. The SSDs will be created in
+`build/b2_tests`, one SSD per test.
+
 ## Drive 1
 
-WIP stuff.
+WIP CMOS stuff.
+
+## Drive 2
 
 Kevin Edwards protection tests.
 
+## Drive 3
+
+WIP 1770 stuff.
+
 ## Drive 4
+
+Mostly by [David
+Banks](https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=9657).
 
 Tube stuff.
 
+## Drive 5
 
+Image-based Video ULA/Video NuLA tests.
 
-# Test runner notes
+All can be run in a single-test version, as above, which produces one
+image and then does an OSWORD 0. The tests is configured by setting
+resident integer variables before running - instructions in each test.
 
-* the test runner knows the name stem to use, because it's called that
-  way from the C++ code
+Some also have an interactive mode, designed for use on a real Beeb,
+where the program somehow cycles through all the possible outputs. I
+use this when first putting the test together. To activate this
+option, store a specific value in zero page using `!`, then run - then
+press Return to see the next image. (See the code for the magic value
+to use.)
 
-* the * command used determines the test output type, so it's all
-  automatic
-
-# Producing SSDs
-
-Run `make rel_tests` in the root of the working copy. The SSDs will be
-created in `build/b2_tests`, one SSD per test.

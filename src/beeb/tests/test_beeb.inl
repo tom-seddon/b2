@@ -20,6 +20,7 @@ EEND()
 EBEGIN()
 EPNV(ConfigureExTube, 1 << 0) // Default for test Master is INTUBE.
 EPNV(ConfigureNoTube, 1 << 1) // Default for test Master is TUBE.
+EPNV(VideoNuLA, 1 << 2)
 EEND()
 #undef ENAME
 

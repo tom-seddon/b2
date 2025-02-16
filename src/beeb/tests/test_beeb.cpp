@@ -691,6 +691,21 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static uint32_t GetBBCMicroInitFlags(TestBBCMicroType type, uint32_t flags) {
+    uint32_t init_flags = 0;
+
+    (void)type;
+
+    if (flags & TestBBCMicroFlags_VideoNuLA) {
+        init_flags |= BBCMicroInitFlag_VideoNuLA;
+    }
+
+    return init_flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static_assert(ROMType_16KB == 0);
 static const ROMType DEFAULT_ROM_TYPES[16] = {};
 
@@ -700,7 +715,7 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
                GetBBCMicroParasiteType(type, args.flags),
                GetNVRAMContents(type, args.flags),
                nullptr,
-               0,
+               GetBBCMicroInitFlags(type, args.flags),
                nullptr,
                {0}) {
 #if BBCMICRO_TRACE
@@ -1289,20 +1304,10 @@ static std::string GetBeebLinkVolumePath() {
 
 class Test {
   public:
-    const std::string name_category;
-    const std::string name_name;
-
-    Test(const std::string &category, const std::string &name)
-        : name_category(category)
-        , name_name(name) {
-    }
-
+    Test() = default;
     virtual ~Test() = 0;
 
-    std::string GetName() const {
-        return this->name_category + "." + this->name_name;
-    }
-
+    virtual std::string GetFullName() const = 0;
     virtual void Run() = 0;
 
   protected:
@@ -1321,10 +1326,13 @@ Test::~Test() {
 class StandardTest : public Test {
   public:
     StandardTest(const std::string &name, TestBBCMicroType bbc_micro_type_ = TestBBCMicroType_BTape, const char *drive = "0")
-        : Test("standard", name)
-        , m_bbc_micro_type(bbc_micro_type_)
+        : m_bbc_micro_type(bbc_micro_type_)
         , m_drive(drive)
         , m_name(name) {
+    }
+
+    std::string GetFullName() const override {
+        return "standard." + m_name;
     }
 
     void Run() override {
@@ -1369,7 +1377,7 @@ class StandardTest : public Test {
             LOG(BBC_OUTPUT).EnsureBOL();
         }
 
-        std::string stem = strprintf("%s.%s", this->GetName().c_str(), GetTestBBCMicroTypeEnumName(m_bbc_micro_type));
+        std::string stem = strprintf("%s.%s", this->GetFullName().c_str(), GetTestBBCMicroTypeEnumName(m_bbc_micro_type));
 
         TEST_TRUE(SaveTextFile(bbc.oswrch_output,
                                GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str()))));
@@ -1397,9 +1405,12 @@ class StandardTest : public Test {
 class KevinEdwardsTest : public Test {
   public:
     KevinEdwardsTest(const std::string &name, std::string pre_paste_text)
-        : Test("kevin_edwards", name)
-        , m_file_name(name)
+        : m_file_name(name)
         , m_pre_paste_text(std::move(pre_paste_text)) {
+    }
+
+    std::string GetFullName() const override {
+        return "kevin_edwards." + m_file_name;
     }
 
     void Run() override {
@@ -1442,7 +1453,7 @@ class KevinEdwardsTest : public Test {
 
         if (save_trace) {
             // Not super useful... trace is rather large and utterly impenetrable.
-            bbc.SaveTestTrace(this->GetName());
+            bbc.SaveTestTrace(this->GetFullName());
         }
 
         TEST_LT_UU(num_cycles, max_num_cycles);
@@ -1461,9 +1472,12 @@ class KevinEdwardsTest : public Test {
 class dp111TimingTest : public Test {
   public:
     dp111TimingTest(const std::string &name, TestBBCMicroType bbc_micro_type)
-        : Test("dp111", name)
-        , m_ssd_stem(name)
+        : m_ssd_stem(name)
         , m_bbc_micro_type(bbc_micro_type) {
+    }
+
+    std::string GetFullName() const override {
+        return "dp111." + m_ssd_stem;
     }
 
     void Run() override {
@@ -1510,13 +1524,17 @@ class dp111TimingTest : public Test {
 class TubeTest : public Test {
   public:
     TubeTest(std::string name, std::string file_name, TestBBCMicroType bbc_micro_type, uint32_t test_bbc_micro_flags, uint32_t load_addr, std::string pre_paste_text, std::string post_paste_text)
-        : Test("tube", std::move(name))
+        : m_name(std::move(name))
         , m_file_name(std::move(file_name))
         , m_bbc_micro_type(bbc_micro_type)
         , m_test_bbc_micro_flags(test_bbc_micro_flags)
         , m_load_addr(load_addr)
         , m_pre_paste_text(std::move(pre_paste_text))
         , m_post_paste_text(post_paste_text) {
+    }
+
+    std::string GetFullName() const override {
+        return "tube." + m_name;
     }
 
     void Run() override {
@@ -1557,11 +1575,12 @@ class TubeTest : public Test {
         TestSpooledOutput(bbc,
                           GetBeebLinkVolumePath(),
                           "4",
-                          this->GetName());
+                          this->GetFullName());
     }
 
   protected:
   private:
+    std::string m_name;
     std::string m_file_name;
     TestBBCMicroType m_bbc_micro_type;
     uint32_t m_test_bbc_micro_flags;
@@ -1576,11 +1595,14 @@ class TubeTest : public Test {
 class TeletextTest : public Test {
   public:
     TeletextTest(const std::string &name, uint32_t load_addr, std::string paste_text, std::string png_name)
-        : Test("teletext", name)
-        , m_stem(name)
+        : m_stem(name)
         , m_load_addr(load_addr)
         , m_paste_text(std::move(paste_text))
         , m_png_name(std::move(png_name)) {
+    }
+
+    std::string GetFullName() const override {
+        return "teletext." + m_stem;
     }
 
     void Run() override {
@@ -1617,10 +1639,13 @@ class TeletextTest : public Test {
 class VideoULATest : public Test {
   public:
     VideoULATest(bool clock, bool flash, uint8_t mode)
-        : Test("video_ula", "ULAMODE.C" + std::to_string((int)clock) + "F" + std::to_string((int)flash) + "M" + std::to_string(mode))
-        , m_clock(clock)
+        : m_clock(clock)
         , m_flash(flash)
         , m_mode(mode) {
+    }
+
+    std::string GetFullName() const override {
+        return "video_ula.ULAMODE.C" + std::to_string((int)m_clock) + "F" + std::to_string((int)m_flash) + "M" + std::to_string(m_mode);
     }
 
     void Run() override {
@@ -1634,9 +1659,9 @@ class VideoULATest : public Test {
 
         bbc.RunUntilOSWORD0(10);
 
-        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->GetName() + ".png");
+        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/video_ula.ULAMODE/" + this->GetFullName() + ".png");
         RunImageTest(wanted_image_path,
-                     this->name_name,
+                     this->GetFullName(),
                      &bbc);
     }
 
@@ -1649,14 +1674,22 @@ class VideoULATest : public Test {
 
 class VideoNuLATest : public Test {
   public:
-    VideoNuLATest(const std::string &category2, std::string basic_name, std::vector<std::pair<std::string, std::string>> vars)
-        : Test("video_nula." + category2, GetTestName(basic_name, vars))
-        , m_vars(std::move(vars))
-        , m_basic_name(std::move(basic_name)) {
+    VideoNuLATest(std::string category2, std::string basic_name, std::vector<std::pair<std::string, std::string>> vars)
+        : m_category2(std::move(category2))
+        , m_basic_name(std::move(basic_name))
+        , m_vars(std::move(vars)) {
+    }
+
+    std::string GetFullName() const override {
+        std::string name = this->GetNameStem();
+        for (const std::pair<std::string, std::string> &name_and_value : m_vars) {
+            name += "." + name_and_value.first + name_and_value.second;
+        }
+        return name;
     }
 
     void Run() override {
-        TestBBCMicro bbc(TestBBCMicroType_BTape);
+        TestBBCMicro bbc(TestBBCMicroType_BTape, {TestBBCMicroFlags_VideoNuLA});
 
         bbc.RunUntilOSWORD0(10.0);
 
@@ -1672,22 +1705,19 @@ class VideoNuLATest : public Test {
 
         bbc.RunUntilOSWORD0(10);
 
-        std::string png_name = this->name_name;
-        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + png_name + ".png");
+        std::string png_name = this->GetFullName();
+        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->GetNameStem() + "/" + png_name + ".png");
         RunImageTest(wanted_image_path, png_name, &bbc);
     }
 
   protected:
   private:
-    std::vector<std::pair<std::string, std::string>> m_vars;
+    std::string m_category2;
     std::string m_basic_name;
+    std::vector<std::pair<std::string, std::string>> m_vars;
 
-    std::string GetTestName(const std::string &basic_name, const std::vector<std::pair<std::string, std::string>> &vars) const {
-        std::string name = basic_name;
-        for (const std::pair<std::string, std::string> &name_and_value : vars) {
-            name += "." + name_and_value.first + name_and_value.second;
-        }
-        return name;
+    std::string GetNameStem() const {
+        return "video_nula." + m_category2 + "." + m_basic_name;
     }
 };
 
@@ -1699,6 +1729,7 @@ struct Options {
     std::vector<std::regex> test_name_regexes;
     bool list = false;
     bool infer_wanted_images = false;
+    bool wip = false;
 };
 
 static Options GetOptions(int argc, char *argv[]) {
@@ -1715,6 +1746,7 @@ static Options GetOptions(int argc, char *argv[]) {
     p.AddOption('T', "test-regexp").Meta("TEST").AddArgToList(&test_name_regex_strs).Help("run test(s) matching TEST, a case-insensitive regular expression");
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path");
+    p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
 
     if (!p.Parse(argc, argv)) {
         exit(1);
@@ -1788,18 +1820,20 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    //for (int m = 0; m < 8; ++m) {
-    //    for (int o = 0; o < 16; ++o) {
-    //        auto test = new VideoNuLATest("scroll", "N.2-SCROLL-1", {{"M", std::to_string(m)}, {"O", strprintf("%02d", o)}});
-    //        all_tests.push_back(std::unique_ptr<VideoNuLATest>(test));
-    //    }
-    //}
+    if (options.wip) {
+        for (int m = 0; m < 8; ++m) {
+            for (int o = 0; o < 16; ++o) {
+                auto test = new VideoNuLATest("scroll", "N.2-SCROLL-1", {{"M", std::to_string(m)}, {"O", strprintf("%02d", o)}});
+                all_tests.push_back(std::unique_ptr<VideoNuLATest>(test));
+            }
+        }
+    }
 
     if (options.list) {
         std::set<std::string> names;
 
         for (const std::unique_ptr<Test> &test : all_tests) {
-            names.insert(test->GetName());
+            names.insert(test->GetFullName());
         }
 
         for (const std::string &name : names) {
@@ -1816,7 +1850,7 @@ int main(int argc, char *argv[]) {
 
         if (!run) {
             for (const std::regex &test_name_regex : options.test_name_regexes) {
-                if (std::regex_match(test->GetName(), test_name_regex)) {
+                if (std::regex_match(test->GetFullName(), test_name_regex)) {
                     run = true;
                     break;
                 }
@@ -1825,7 +1859,7 @@ int main(int argc, char *argv[]) {
 
         if (!run) {
             for (const std::string &test_name_str : options.test_name_strs) {
-                if (strcasecmp(test->GetName().c_str(), test_name_str.c_str()) == 0) {
+                if (strcasecmp(test->GetFullName().c_str(), test_name_str.c_str()) == 0) {
                     run = true;
                     break;
                 }
@@ -1833,11 +1867,11 @@ int main(int argc, char *argv[]) {
         }
 
         if (!run) {
-            printf("skipping test: %s\n", test->GetName().c_str());
+            printf("skipping test: %s\n", test->GetFullName().c_str());
             continue;
         }
 
-        printf("running test: %s\n", test->GetName().c_str());
+        printf("running test: %s\n", test->GetFullName().c_str());
 
         test->Run();
     }
