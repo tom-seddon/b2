@@ -337,7 +337,7 @@ parasite_update_done:
 
                         case 0x8040:
                         case 0xbfa0:
-                        case 0x0fe0:
+                        case 0xbfe0:
                             this->UpdateMapperRegion(1);
                             break;
                         }
