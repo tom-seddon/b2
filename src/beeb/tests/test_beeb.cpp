@@ -1871,8 +1871,14 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        printf("running test: %s\n", test->GetFullName().c_str());
+        printf("starting test: %s\n", test->GetFullName().c_str());
+
+        uint64_t start_ticks = GetCurrentTickCount();
 
         test->Run();
+
+        uint64_t end_ticks = GetCurrentTickCount();
+
+        printf("test finished: %s (took %.3f seconds)\n", test->GetFullName().c_str(), GetSecondsFromTicks(end_ticks - start_ticks));
     }
 }
