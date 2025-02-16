@@ -1823,7 +1823,14 @@ int main(int argc, char *argv[]) {
     if (options.wip) {
         for (int m = 0; m < 8; ++m) {
             for (int o = 0; o < 16; ++o) {
-                auto test = new VideoNuLATest("scroll", "N.2-SCROLL-1", {{"M", std::to_string(m)}, {"O", strprintf("%02d", o)}});
+                auto test = new VideoNuLATest("scroll1", "N.2-SCROLL-1", {{"M", std::to_string(m)}, {"O", strprintf("%02d", o)}});
+                all_tests.push_back(std::unique_ptr<VideoNuLATest>(test));
+            }
+        }
+
+        for (int m = 0; m < 9; ++m) {
+            for (int n = 0; n < 16; ++n) {
+                auto test = new VideoNuLATest("blank1", "N.3-BLANK-1", {{"M", std::to_string(m)}, {"N", strprintf("%02d", n)}});
                 all_tests.push_back(std::unique_ptr<VideoNuLATest>(test));
             }
         }

@@ -2,3 +2,4 @@ $.ULAMODE diff=bbcbasic
 $.DETECTNULA diff=bbcbasic
 $.NULA1 diff=bbcbasic
 N.2-SCROLL-1 diff=bbcbasic
+N.3-BLANK-1 diff=bbcbasic
