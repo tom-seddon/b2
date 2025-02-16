@@ -1971,4 +1971,13 @@ ABEP/ABE:
 
 Logic is identical for ABEP but banks swapped.
 
+Trilogy:
+
+| Addr 0x   | Addr 0b             | Region |
+|-----------+---------------------+--------|
+| bff8/bffc | 1011 1111 1111 1x00 |      0 |
+| bff9/bffd | 1011 1111 1111 1x01 |      1 |
+| bffa/bffe | 1011 1111 1111 1x10 |      2 |
+| bffb/bfff | 1011 1111 1111 1x11 |      3 |
+
 * eof.

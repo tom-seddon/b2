@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const ROMTypeMetadata ROM_TYPES_METADATA[ROMType_Count] = {
+static const ROMTypeMetadata ROM_TYPES_METADATA[] = {
     {ROMType_16KB, "16 KB", 16384},
     {ROMType_CCIWORD, "Inter-Word (32 KB)", 32768},
     {ROMType_CCIBASE, "Inter-Base (64 KB)", 65536},
@@ -19,7 +19,9 @@ static const ROMTypeMetadata ROM_TYPES_METADATA[ROMType_Count] = {
     {ROMType_PALTED, "TED (32 KB)", 32768},
     {ROMType_ABEP, "PRES ABE+ (32 KB)", 32768},
     {ROMType_ABE, "PRES ABE (32 KB)", 32768},
+    {ROMType_Trilogy, "View Trilogy (64 KB)", 65536},
 };
+static_assert(sizeof ROM_TYPES_METADATA / sizeof ROM_TYPES_METADATA[0] == ROMType_Count);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -62,6 +62,7 @@ EPN(PALWAP)
 EPN(PALTED)
 EPN(ABEP)
 EPN(ABE)
+EPN(Trilogy)
 
 //must be last
 EPN(Count)

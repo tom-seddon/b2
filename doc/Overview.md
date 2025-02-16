@@ -336,6 +336,9 @@ than 16 KB. The following options are available, each listed with a
 - `TED (32 KB)` - Watford TED (Teletext Editor)
 - `PRES ABE+ (32 KB)` - PRES Advanced BASIC Editor Plus
 - `PRES ABE (32 KB)` - PRES Advanced BASIC Editor
+- `View Trilogy (64 KB)` - Acornsoft View Trilogy (unreleased, I
+  think - see [Stardot
+  thread](https://stardot.org.uk/forums/viewtopic.php?t=25960))
 
 If the ROM type is 16 KB, you can tick the box in the RAM column to
 make that sideways slot writeable.
