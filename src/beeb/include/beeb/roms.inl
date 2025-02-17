@@ -63,6 +63,9 @@ EPN(PALTED)
 EPN(ABEP)
 EPN(ABE)
 EPN(Trilogy)
+#if ENABLE_MO2_ROM_MAPPER
+EPN(MO2)
+#endif
 
 //must be last
 EPN(Count)

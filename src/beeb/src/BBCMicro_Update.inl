@@ -487,6 +487,12 @@ parasite_update_done:
                         if ((m_state.cpu.abus.w & 0xfff8) == 0xbff8) {
                             this->UpdateMapperRegion(m_state.cpu.abus.w & 3);
                         }
+#if ENABLE_MO2_ROM_MAPPER
+                    } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_MO2) {
+                        if ((m_state.cpu.abus.w & 0xfff0) == 0xa000) {
+                            this->UpdateMapperRegion(m_state.cpu.abus.w & 0xf);
+                        }
+#endif
                     } else {
 #ifdef _MSC_VER
                         // TODO can probably perform this check without relying

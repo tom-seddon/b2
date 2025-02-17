@@ -1980,4 +1980,28 @@ Trilogy:
 | bffa/bffe | 1011 1111 1111 1x10 |      2 |
 | bffb/bfff | 1011 1111 1111 1x11 |      3 |
 
+* Instant Mini Office II
+
+https://github.com/mamedev/mame/blob/81284c68caf803c81989b2e55a9b6434b892ab96/src/devices/bus/bbc/rom/pal.cpp#L312
+
+#+begin_src c
+  uint8_t bbc_palmo2_device::read(offs_t offset)
+  {
+      if (!machine().side_effects_disabled())
+      {
+          /* switching zones for Instant Mini Office 2 */
+          switch (offset & 0x3ff0)
+          {
+          case 0x2000: m_bank = offset & 0x0f; break;
+          }
+      }
+
+      return get_rom_base()[(offset & 0x3fff) | (m_bank << 13)];
+  }
+#+end_src
+
+1<<13==0x2000
+
+
+
 * eof.
