@@ -2644,6 +2644,22 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     // during the DoImGui call.
     bool threaded_update = m_update_tv_texture_thread_enabled;
 
+    bool do_update = true;
+#if BBCMICRO_DEBUGGER
+    {
+        std::shared_ptr<const BBCMicroReadOnlyState> state;
+        m_beeb_thread->DebugGetState(&state, nullptr);
+        if (!state) {
+            // Beeb thread hasn't started yet. Bail and cross fingers that it'll
+            // become ready in time. (I don't think this case can be hit in
+            // normal use?? - just if first startup is taking longer than
+            // normal. I hit this after adding a lot of logging to BBCMicro
+            // construction.)
+            return true;
+        }
+    }
+#endif
+
     {
         Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
 
