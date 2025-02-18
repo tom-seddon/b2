@@ -784,7 +784,7 @@ class TraceSaver {
         m_paging_dirty = true;
 
         if (m_output_flags & TraceOutputFlags_ROMMapper) {
-            m_output->f("Set ROM mapper region: %c\n", GetMapperRegionCode(ev->region));
+            m_output->f("Set ROM mapper region: %c%c\n", GetROMBankCode(m_paging.romsel.b_bits.pr), GetMapperRegionCode(ev->region));
         }
     }
 
