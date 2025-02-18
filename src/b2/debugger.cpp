@@ -420,11 +420,11 @@ void DebugUI::DoDebugPageOverrideImGui() {
                 }
 
                 ImGui::Text("Force Region");
-                for (uint32_t i = 0; i < 8; ++i) {
+                for (uint32_t i = 0; i < NUM_MAPPER_REGIONS; ++i) {
                     ImGui::SameLine();
 
                     char text[2] = {};
-                    text[0] = GetMapperRegionCode((uint8_t)i);
+                    text[0] = GetMapperRegionCode(i);
 
                     if (ImGui::Button(text)) {
                         m_dso |= BBCMicroDebugStateOverride_OverrideMapperRegion;

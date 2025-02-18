@@ -427,7 +427,7 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
         size_t bank = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
         ASSERT(bank < 16);
         size_t region = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) / 4;
-        ASSERT(region < 8);
+        ASSERT(region < NUM_MAPPER_REGIONS);
         size_t rom_big_page_index = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) % 4;
         ASSERT(rom_big_page_index < 4);
 

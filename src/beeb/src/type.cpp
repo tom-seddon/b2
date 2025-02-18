@@ -121,14 +121,36 @@
 // t -
 // u -
 // v -
-// w - ROM mapper bank 0
-// x - ROM mapper bank 1
-// y - ROM mapper bank 2
-// z - ROM mapper bank 3
-// W - ROM mapper bank 4
-// X - ROM mapper bank 5
-// Y - ROM mapper bank 6
-// Z - ROM mapper bank 7
+// w -
+// x -
+// y -
+// z -
+// A - ROM mapper region 0
+// B - ROM mapper region 1
+// C - ROM mapper region 2
+// D - ROM mapper region 3
+// E - ROM mapper region 4
+// F - ROM mapper region 5
+// G - ROM mapper region 6
+// H - ROM mapper region 7
+// I - ROM mapper region 8
+// J - ROM mapper region 9
+// K - ROM mapper region 10
+// L - ROM mapper region 11
+// M - ROM mapper region 12
+// N - ROM mapper region 13
+// O - ROM mapper region 14
+// P - ROM mapper region 15
+// Q -
+// R -
+// S -
+// T -
+// U -
+// V -
+// W -
+// X -
+// Y -
+// Z -
 // </pre>
 //
 // How the ROM mapper bank affects things depends on the ROM mapper type.
@@ -137,7 +159,6 @@
 //////////////////////////////////////////////////////////////////////////
 
 static const char ROM_BANK_CODES[] = "0123456789abcdef";
-static const char MAPPER_REGION_CODES[] = "wxyzWXYZ";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -148,8 +169,8 @@ char GetROMBankCode(uint32_t bank) {
 }
 
 char GetMapperRegionCode(uint32_t region) {
-    ASSERT(region < 8);
-    return MAPPER_REGION_CODES[region];
+    ASSERT(region < NUM_MAPPER_REGIONS);
+    return (char)('A' + region);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -175,7 +196,7 @@ static void ApplyROMDSO(PagingState *paging, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_OverrideMapperRegion) {
         // This is sort-of wrong, in that it only overrides the mapper region
         // for the current ROM. But you can't tell from the UI.
-        paging->rom_regions[paging->romsel.b_bits.pr] = dso >> BBCMicroDebugStateOverride_MapperRegionShift & BBCMicroDebugStateOverride_MapperRegionMask;
+        paging->rom_regions[paging->romsel.b_bits.pr] = (uint8_t)(dso >> BBCMicroDebugStateOverride_MapperRegionShift & BBCMicroDebugStateOverride_MapperRegionMask);
     }
 }
 #endif
@@ -254,7 +275,7 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
 
 size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t region) {
     ASSERT(relative_big_page_index < 4);
-    ASSERT(region < 8);
+    ASSERT(region < NUM_MAPPER_REGIONS);
 
     switch (rom_type) {
     default:
@@ -273,7 +294,7 @@ size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t
         return (region & 3) * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
 
     case ROMType_CCISPELL:
-        return region * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
+        return (region & 7) * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
 
     case ROMType_PALQST:
     case ROMType_PALTED:
@@ -328,7 +349,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         char rom_desc[100];
         snprintf(rom_desc, sizeof rom_desc, "ROM %c", bank_code);
 
-        for (uint32_t region = 0; region < 8; ++region) {
+        for (uint32_t region = 0; region < NUM_MAPPER_REGIONS; ++region) {
             char region_code = GetMapperRegionCode(region);
 
             char rom_and_region_desc[100];
@@ -346,8 +367,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      4,
                                      bank_code, 0, rom_desc,
 #if BBCMICRO_DEBUGGER
-                                     (uint32_t)BBCMicroDebugStateOverride_ROM,
-                                     BBCMicroDebugStateOverride_ROM | bank,
+                                     BBCMicroDebugStateOverride_ROM,
+                                     BBCMicroDebugStateOverride_OverrideROM | bank,
 #endif
                                      0x8000);
                 break;
@@ -365,7 +386,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
                                      BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift,
-                                     BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
+                                     BBCMicroDebugStateOverride_OverrideROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | region << BBCMicroDebugStateOverride_MapperRegionShift,
 #endif
                                      0x8000);
                 break;
@@ -380,7 +401,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      bank_code, 0, rom_desc,
 #if BBCMICRO_DEBUGGER
                                      BBCMicroDebugStateOverride_ROM,
-                                     BBCMicroDebugStateOverride_ROM | bank,
+                                     BBCMicroDebugStateOverride_OverrideROM | bank,
 #endif
                                      0x8000);
 
@@ -390,7 +411,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
                                      BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift,
-                                     BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
+                                     BBCMicroDebugStateOverride_OverrideROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | region << BBCMicroDebugStateOverride_MapperRegionShift,
 #endif
                                      0xa000);
                 break;
@@ -443,7 +464,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 static bool HandleROMSuffixChar(uint32_t *dso, uint8_t rom) {
     ASSERT(rom >= 0 && rom <= 15);
 
-    *dso &= ~(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY);
+    *dso &= ~(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY | BBCMicroDebugStateOverride_MapperRegionMask);
     *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_OverrideROM | rom;
 
     return true;
@@ -457,6 +478,11 @@ static bool ParseROMSuffixChar(uint32_t *dso, char c) {
         return HandleROMSuffixChar(dso, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
         return HandleROMSuffixChar(dso, (uint8_t)(c - 'a' + 10));
+    } else if (c >= 'A' && c < 'A' + NUM_MAPPER_REGIONS) {
+        *dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
+        *dso |= (c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
+
+        return true;
     } else {
         return false;
     }

@@ -10,6 +10,8 @@
 #include <vector>
 #include <memory>
 
+static const size_t NUM_MAPPER_REGIONS = 16;
+
 #include <shared/enum_decl.h>
 #include "type.inl"
 #include <shared/enum_end.h>
@@ -57,7 +59,7 @@ static constexpr BigPageIndex SHADOW_BIG_PAGE_INDEX = {HAZEL_BIG_PAGE_INDEX.i + 
 static constexpr BigPageIndex::Type NUM_SHADOW_BIG_PAGES = {20 / 4};
 
 static constexpr BigPageIndex ROM0_BIG_PAGE_INDEX = {SHADOW_BIG_PAGE_INDEX.i + NUM_SHADOW_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {128 / 4};
+static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {NUM_MAPPER_REGIONS * 16 / 4};
 
 static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = {16 / 4};

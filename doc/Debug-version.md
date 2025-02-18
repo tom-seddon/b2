@@ -116,8 +116,7 @@ Host memory:
 - `h` - HAZEL (Master only) ($c000...$dfff)
 - `o` - OS ROM ($c000...$ffff)
 - `i` - I/O area ($fc00...$feff)
-- 'w', 'x', 'y', 'z' - ROM mapper regions 0-3
-- 'W', 'X', 'Y', 'Z' - ROM mapper regions 4-7
+- `A` ... `P` - ROM mapper region, 0-15
 
 Parasite memory:
 
@@ -131,7 +130,8 @@ You can supply multiple address suffix codes. Order is relevant, as
 certain suffixes imply the settings for other sufixes. Override this
 with further suffixes if required.
 
-- ROM bank suffix ('0' - 'f') implies ROM mapper bank `w`
+- ROM bank suffix ('0' - 'f') implies current selected ROM mapper
+  region for that bank
 - (B+/Master) ROM bank suffix (`0` - `f`) implies ANDY disabled
 - (Master) OS ROM (`o`) implies HAZEL disabled
 
@@ -146,13 +146,15 @@ https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
 The applicable address suffixes affect the mapped region as follows.
 
 - `16 KB` - mapper region irrelevant
-- `Inter-Word` - `w` - `x` select 16 KB region visible at $8000-$bfff
-- `Inter-Base` - `w` - `z` select 16 KB region visible at $8000-$bfff
-- `Spellmaster` - `w` - `z` and `W` - `Z` select 16 KB region visible
+- `Inter-Word`, `PRES ABE+`, `PRES ABE` - `A` - `B` select 16 KB
+  region visible at $8000-$bfff
+- `Inter-Base`, `View Trilogy` - `A` - `D` select 16 KB region visible
   at $8000-$bfff
-- `Quest Paint` - `w` - `z` select 8 KB region visible at $a000-$bfff
-  ($8000-$9fff is fixed)
-- `Wapping Editor` - `w` - `z` and `W` - `Z` select 8 KB region
+- `Spellmaster` - `A` - `H` select 16 KB region visible
+  at $8000-$bfff
+- `Quest Paint`, `TED` - `A` - `D` select 8 KB region visible at
+  $a000-$bfff ($8000-$9fff is fixed)
+- `Wapping Editor` - `A` - `H` select 8 KB region
   visible at $a000-$bfff ($8000-$9fff is fixed)
 
 # Debugger windows

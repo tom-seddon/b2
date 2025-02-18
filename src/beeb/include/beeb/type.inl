@@ -44,10 +44,6 @@ EEND()
 
 #if BBCMICRO_DEBUGGER
 
-// This name has ended up a bit of a misnomer - it should really be
-// BBCMicroDebugStateOverride, or something. It's a set of flags that indicate
-// which aspects of the system may get overridden for debugging purposes.
-//
 // Flags not supported by the current setup should be treated as no-ops.
 
 #define ENAME BBCMicroDebugStateOverride
@@ -73,8 +69,8 @@ EPNV(Parasite, 1 << 15)
 
 EPNV(OverrideMapperRegion, 1 << 16)
 EPNV(MapperRegionShift, 17)
-EPNV(MapperRegionMask, 7)
-//next free bit is 20
+EPNV(MapperRegionMask, (1 << NUM_MAPPER_REGIONS) - 1)
+//next free bit is 21
 
 EEND()
 #undef ENAME
