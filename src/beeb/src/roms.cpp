@@ -20,9 +20,7 @@ static const ROMTypeMetadata ROM_TYPES_METADATA[] = {
     {ROMType_ABEP, "PRES ABE+ (32 KB)", 32768},
     {ROMType_ABE, "PRES ABE (32 KB)", 32768},
     {ROMType_Trilogy, "View Trilogy (64 KB)", 65536},
-#if ENABLE_MO2_ROM_MAPPER
     {ROMType_MO2, "Mini Office II (128 KB)", 131072},
-#endif
 };
 static_assert(sizeof ROM_TYPES_METADATA / sizeof ROM_TYPES_METADATA[0] == ROMType_Count);
 
