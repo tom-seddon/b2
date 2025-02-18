@@ -2000,8 +2000,109 @@ https://github.com/mamedev/mame/blob/81284c68caf803c81989b2e55a9b6434b892ab96/sr
   }
 #+end_src
 
+Note: the ROMs are numbered in reverse order of offset!
+
+#+begin_src nxml
+  <software name="moffice2">
+  	<description>Instant Mini Office II</description>
+  	<year>1986</year>
+  	<publisher>Database Software</publisher>
+  	<part name="rom1" interface="bbc_rom">
+  		<feature name="slot" value="palmo2" />
+  		<dataarea name="rom" size="131072">
+  			<rom name="MiniOfficeII-1.rom" size="32768" crc="5e0f6853" sha1="3deef1b1680c9a1449009b11899bf5ab360f89ef" offset="0x18000"/>
+  			<rom name="MiniOfficeII-2.rom" size="32768" crc="afb646cc" sha1="d7ead85e32930b0f35ad87d3a825f48896abc8e1" offset="0x10000"/>
+  			<rom name="MiniOfficeII-3.rom" size="32768" crc="e8a1cbd8" sha1="9e31542d2099c98605032c175c196f3ea073de5f" offset="0x08000"/>
+  			<rom name="MiniOfficeII-4.rom" size="32768" crc="d041fe31" sha1="cd0297096009c71ebb00709cfb32a6c56e7eea8b" offset="0x00000"/>
+  		</dataarea>
+  	</part>
+  </software>
+#+end_src
+
 1<<13==0x2000
 
+Odd arrangement:
 
+| Region | Addr | Offset |
+|--------+------+--------|
+| 0 (A)  | 8xxx |  +0xxx |
+| 0 (A)  | 9xxx |  +1xxx |
+| 0 (A)  | axxx |  +2xxx |
+| 0 (A)  | bxxx |  +3xxx |
+|--------+------+--------|
+| 1 (B)  | 8xxx |  +2xxx |
+| 1 (B)  | 9xxx |  +3xxx |
+| 1 (B)  | axxx |  +2xxx |
+| 1 (B)  | bxxx |  +3xxx |
+|--------+------+--------|
+| 2 (C)  | 8xxx |  +4xxx |
+| 2 (C)  | 9xxx |  +5xxx |
+| 2 (C)  | axxx |  +6xxx |
+| 2 (C)  | bxxx |  +7xxx |
+|--------+------+--------|
+| 3 (D)  | 8xxx |  +6xxx |
+| 3 (D)  | 9xxx |  +7xxx |
+| 3 (D)  | axxx |  +6xxx |
+| 3 (D)  | bxxx |  +7xxx |
+|--------+------+--------|
+| 4 (E)  | 8xxx |  +8xxx |
+| 4 (E)  | 9xxx |  +9xxx |
+| 4 (E)  | axxx |  +axxx |
+| 4 (E)  | bxxx |  +bxxx |
+|--------+------+--------|
+| 5 (F)  | 8xxx |  +axxx |
+| 5 (F)  | 9xxx |  +bxxx |
+| 5 (F)  | axxx |  +axxx |
+| 5 (F)  | bxxx |  +bxxx |
+|--------+------+--------|
+| 6 (G)  | 8xxx |  +cxxx |
+| 6 (G)  | 9xxx |  +dxxx |
+| 6 (G)  | axxx |  +exxx |
+| 6 (G)  | bxxx |  +fxxx |
+|--------+------+--------|
+| 7 (H)  | 8xxx |  +exxx |
+| 7 (H)  | 9xxx |  +fxxx |
+| 7 (H)  | axxx |  +exxx |
+| 7 (H)  | bxxx |  +fxxx |
+|--------+------+--------|
+| 8 (I)  | 8xxx | +10xxx |
+| 8 (I)  | 9xxx | +11xxx |
+| 8 (I)  | axxx | +12xxx |
+| 8 (I)  | bxxx | +13xxx |
+|--------+------+--------|
+| 9 (J)  | 8xxx | +12xxx |
+| 9 (J)  | 9xxx | +13xxx |
+| 9 (J)  | axxx | +12xxx |
+| 9 (J)  | bxxx | +13xxx |
+|--------+------+--------|
+| 10 (K) | 8xxx | +14xxx |
+| 10 (K) | 9xxx | +15xxx |
+| 10 (K) | axxx | +16xxx |
+| 10 (K) | bxxx | +17xxx |
+|--------+------+--------|
+| 11 (L) | 8xxx | +16xxx |
+| 11 (L) | 9xxx | +17xxx |
+| 11 (L) | axxx | +16xxx |
+| 11 (L) | bxxx | +17xxx |
+|--------+------+--------|
+| 12 (M) | 8xxx | +18xxx |
+| 12 (M) | 9xxx | +19xxx |
+| 12 (M) | axxx | +1axxx |
+| 12 (M) | bxxx | +1bxxx |
+|--------+------+--------|
+| 13 (N) | 8xxx | +1axxx |
+| 13 (N) | 9xxx | +1bxxx |
+| 13 (N) | axxx | +1axxx |
+| 13 (N) | bxxx | +1bxxx |
+|--------+------+--------|
+| 14 (O) | 8xxx | +1cxxx |
+| 14 (O) | 9xxx | +1dxxx |
+| 14 (O) | axxx | +1exxx |
+| 14 (O) | bxxx | +1fxxx |
+|--------+------+--------|
+| 15 (P) | 8xxx | +1exxx |
+| 15 (P) | 9xxx | +1fxxx |
+| 15 (P) | axxx | +1exxx |
+| 15 (P) | bxxx | +1fxxx |
 
 * eof.
