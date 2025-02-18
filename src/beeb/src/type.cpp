@@ -473,7 +473,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 static bool HandleROMSuffixChar(uint32_t *dso, uint8_t rom) {
     ASSERT(rom >= 0 && rom <= 15);
 
-    *dso &= ~(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY | BBCMicroDebugStateOverride_MapperRegionMask);
+    *dso &= ~(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY | BBCMicroDebugStateOverride_OverrideMapperRegion);
     *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_OverrideROM | rom;
 
     return true;
@@ -489,7 +489,7 @@ static bool ParseROMSuffixChar(uint32_t *dso, char c) {
         return HandleROMSuffixChar(dso, (uint8_t)(c - 'a' + 10));
     } else if (c >= 'A' && c < 'A' + NUM_MAPPER_REGIONS) {
         *dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
-        *dso |= (c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
+        *dso |= BBCMicroDebugStateOverride_OverrideMapperRegion | (c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
 
         return true;
     } else {
