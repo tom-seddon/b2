@@ -156,6 +156,9 @@ The applicable address suffixes affect the mapped region as follows.
   $a000-$bfff ($8000-$9fff is fixed)
 - `Wapping Editor` - `A` - `H` select 8 KB region
   visible at $a000-$bfff ($8000-$9fff is fixed)
+- `Mini Office II` - `A` - `P` select 16 KB region visible at
+  $8000-$bfff (the paging seems to be arranged as 16 x 8 KB regions,
+  but the two 8 KB halves are not necessarily mirrored)
 
 # Debugger windows
 

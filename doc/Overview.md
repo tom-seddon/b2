@@ -339,6 +339,11 @@ than 16 KB. The following options are available, each listed with a
 - `View Trilogy (64 KB)` - Acornsoft View Trilogy (unreleased, I
   think - see [Stardot
   thread](https://stardot.org.uk/forums/viewtopic.php?t=25960))
+- `Mini Office II (128 KB)` - [Instant Mini Office
+  II](https://raw.githubusercontent.com/tom-seddon/b2/refs/heads/wip/tom/etc/roms/InstantMiniOfficeII/MiniOfficeII.bin)
+  (use that link to get a 128 KByte ROM image suitable for use with
+  b2 - b2 doesn't support the set of 4 x 32 KByte images commonly
+  available)
 
 If the ROM type is 16 KB, you can tick the box in the RAM column to
 make that sideways slot writeable.
