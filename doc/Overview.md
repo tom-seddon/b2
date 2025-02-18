@@ -340,7 +340,7 @@ than 16 KB. The following options are available, each listed with a
   think - see [Stardot
   thread](https://stardot.org.uk/forums/viewtopic.php?t=25960))
 - `Mini Office II (128 KB)` - [Instant Mini Office
-  II](https://raw.githubusercontent.com/tom-seddon/b2/refs/heads/wip/tom/etc/roms/InstantMiniOfficeII/MiniOfficeII.bin)
+  II](https://raw.githubusercontent.com/tom-seddon/b2/caefc40ad7bab931d087b95b58bd6e23c315cb45/etc/roms/InstantMiniOfficeII/MiniOfficeII.bin)
   (use that link to get a 128 KByte ROM image suitable for use with
   b2 - b2 doesn't support the set of 4 x 32 KByte images commonly
   available)

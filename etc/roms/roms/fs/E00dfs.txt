@@ -1,2 +1,0 @@
-MRM Software's E00 DFS.  This was an Acorn compatible DFS on a carrier board with 8k ROM and 4k RAM.  By using the RAM on the carrier, the DFS was able to leave PAGE at &0E00.  Works in a sideways RAM slot and was invaluable for copying huge tape games (mainly adventure games) to disc.
-Limitation: only 4 files max open instead of 5 in Acorn DFS
