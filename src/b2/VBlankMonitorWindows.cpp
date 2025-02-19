@@ -8,9 +8,34 @@
 #include <atlbase.h>
 #include <atomic>
 #include <shared/debug.h>
+#include <shared/log.h>
+#include <inttypes.h>
+#include "b2.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#include <shared/enum_def.h>
+#define ENAME DWORD
+NBEGIN(DXGI_MODE_ROTATION)
+NN(DXGI_MODE_ROTATION_UNSPECIFIED)
+NN(DXGI_MODE_ROTATION_IDENTITY)
+NN(DXGI_MODE_ROTATION_ROTATE90)
+NN(DXGI_MODE_ROTATION_ROTATE180)
+NN(DXGI_MODE_ROTATION_ROTATE270)
+NEND()
+#undef ENAME
+#include <shared/enum_end.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+LOG_EXTERN(OUTPUT);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define MBYTES_FROM_BYTES(X) ((X) / 1024. / 1024.)
 
 class VBlankMonitorWindows : public VBlankMonitor {
   public:
@@ -19,50 +44,88 @@ class VBlankMonitorWindows : public VBlankMonitor {
     }
 
     bool Init(Handler *handler, Messages *messages) {
+        (void)messages;
+
         m_handler = handler;
+
+        return true;
+    }
+
+    bool RefreshDisplayList(Messages *messages) override {
+        ++m_num_refreshes;
+        LOGF(OUTPUT, "VBlankMonitorWindows::RefreshDisplayList: %" PRIu64 " calls\n", m_num_refreshes);
+
+        this->ResetDisplayList();
 
         HRESULT hr;
 
         {
             void *factory;
-            hr = CreateDXGIFactory(IID_IDXGIFactory, &factory);
+            hr = CreateDXGIFactory1(IID_IDXGIFactory1, &factory);
             if (FAILED(hr)) {
-                messages->e.f("CreateDXGIFactory failed: %s", GetErrorDescription(hr));
+                messages->e.f("CreateDXGIFactory failed: %s\n", GetErrorDescription(hr));
                 return false;
             }
 
-            m_factory.Attach((IDXGIFactory *)factory);
+            m_factory.Attach((IDXGIFactory1 *)factory);
         }
 
         {
             UINT adapter_idx;
-            CComPtr<IDXGIAdapter> adapter;
+            CComPtr<IDXGIAdapter1> adapter;
             for (adapter_idx = 0, adapter = NULL;
-                 m_factory->EnumAdapters(adapter_idx, &adapter) != DXGI_ERROR_NOT_FOUND;
+                 m_factory->EnumAdapters1(adapter_idx, &adapter) != DXGI_ERROR_NOT_FOUND;
                  ++adapter_idx) {
+                DXGI_ADAPTER_DESC1 adesc;
+
+                LOGF(OUTPUT, "DXGI adapter %u: ", adapter_idx);
+                LOGI(OUTPUT);
+
+                hr = adapter->GetDesc1(&adesc);
+                if (FAILED(hr)) {
+                    LOGF(OUTPUT, "failed to get description: %s\n", GetErrorDescription(hr));
+                    // ...but this isn't necessarily fatal.
+                } else {
+                    // LOGF isn't actually designed for UTF8, but, hopefully, close enough...
+                    LOGF(OUTPUT, "Description: %s\n", GetUTF8String(adesc.Description).c_str());
+                    LOGF(OUTPUT, "VendorId=0x%x; DeviceId=0x%x; SubSysId=0x%x; Revision=0x%x\n", adesc.VendorId, adesc.DeviceId, adesc.SubSysId, adesc.Revision);
+                    LOGF(OUTPUT, "DedicatedVideoMemory=%.3f MBytes; DedicatedSystemMemory=%.3f MBytes; SharedSystemMemory=%.3f MBytes\n", MBYTES_FROM_BYTES(adesc.DedicatedVideoMemory), MBYTES_FROM_BYTES(adesc.DedicatedSystemMemory), MBYTES_FROM_BYTES(adesc.SharedSystemMemory));
+                    LOGF(OUTPUT, "Flags: 0x%08" PRIx32 "\n", adesc.Flags);
+                }
+
                 UINT output_idx;
                 CComPtr<IDXGIOutput> output;
                 for (output_idx = 0, output = NULL;
                      adapter->EnumOutputs(output_idx, &output) != DXGI_ERROR_NOT_FOUND;
                      ++output_idx) {
-                    DXGI_OUTPUT_DESC desc;
-                    hr = output->GetDesc(&desc);
+                    LOGF(OUTPUT, "Output %u: ", output_idx);
+                    LOGI(OUTPUT);
+
+                    DXGI_OUTPUT_DESC odesc;
+                    hr = output->GetDesc(&odesc);
                     if (FAILED(hr)) {
+                        LOGF(OUTPUT, "failed to get description: %s\n", GetErrorDescription(hr));
                         continue;
                     }
 
-                    if (!desc.Monitor) {
+                    LOGF(OUTPUT, "DeviceName: %s\n", GetUTF8String(odesc.DeviceName).c_str());
+                    LOGF(OUTPUT, "DesktopCoordinates: (%ld,%ld)-(%ld,%ld) (%ld x %ld)\n", odesc.DesktopCoordinates.left, odesc.DesktopCoordinates.top, odesc.DesktopCoordinates.right, odesc.DesktopCoordinates.bottom, odesc.DesktopCoordinates.right - odesc.DesktopCoordinates.left, odesc.DesktopCoordinates.bottom - odesc.DesktopCoordinates.top);
+                    LOGF(OUTPUT, "AttachedToDesktop: %s\n", BOOL_STR(odesc.AttachedToDesktop));
+                    LOGF(OUTPUT, "Rotation: %s\n", GetDXGI_MODE_ROTATIONEnumName(odesc.Rotation));
+                    LOGF(OUTPUT, "Monitor: %p\n", odesc.Monitor);
+
+                    if (!odesc.Monitor) {
                         continue;
                     }
 
-                    if (!desc.AttachedToDesktop) {
+                    if (!odesc.AttachedToDesktop) {
                         continue;
                     }
 
                     auto &&display = std::make_unique<Display>();
 
                     display->id = m_next_display_id++;
-                    display->hmonitor = desc.Monitor;
+                    display->hmonitor = odesc.Monitor;
                     display->vbm = this;
                     display->output = output;
 
@@ -81,13 +144,14 @@ class VBlankMonitorWindows : public VBlankMonitor {
 
                     output = nullptr;
                 }
+                LOGF(OUTPUT, "Outputs found: %u\n", output_idx);
 
                 adapter = nullptr;
             }
         }
 
         if (m_displays.empty()) {
-            messages->e.f("No usable displays found");
+            messages->e.f("No usable displays found\n");
             return false;
         }
 
@@ -109,6 +173,14 @@ class VBlankMonitorWindows : public VBlankMonitor {
         }
 
         return true;
+    }
+
+    bool NeedsRefreshDisplayList() const override {
+        if (m_factory->IsCurrent()) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     void *GetDisplayDataForDisplayID(uint32_t display_id) const {
@@ -149,9 +221,10 @@ class VBlankMonitorWindows : public VBlankMonitor {
     };
 
     Handler *m_handler;
-    CComPtr<IDXGIFactory> m_factory;
+    CComPtr<IDXGIFactory1> m_factory;
     std::vector<std::unique_ptr<Display>> m_displays;
     uint32_t m_next_display_id = 1;
+    uint64_t m_num_refreshes = 0;
 
     void ResetDisplayList() {
         for (auto &&display : m_displays) {

@@ -2105,4 +2105,29 @@ Odd arrangement:
 | 15 (P) | axxx | +1exxx |
 | 15 (P) | bxxx | +1fxxx |
 
+* Windows 10 user switch hang
+
+https://github.com/tom-seddon/b2/issues/143
+
+** Example case
+
+Displays in array after switching user then back:
+
+: [0]	unique_ptr {id=1 hmonitor=0x000000000f6f08a9 {unused=??? } data=0x0000016599412e40 ...}	std::unique_ptr<VBlankMonitorWindows::Display,std::default_delete<VBlankMonitorWindows::Display>>
+: [1]	unique_ptr {id=2 hmonitor=0x0000000002c20581 {unused=??? } data=0x000001659941ba70 ...}	std::unique_ptr<VBlankMonitorWindows::Display,std::default_delete<VBlankMonitorWindows::Display>>
+: [2]	unique_ptr {id=3 hmonitor=0x00000000024d07c9 {unused=??? } data=0x000001659941fcc0 ...}	std::unique_ptr<VBlankMonitorWindows::Display,std::default_delete<VBlankMonitorWindows::Display>>
+
+This stuff all seems to work, and the vblank messages keep coming.
+
+But then:
+
+: HMONITOR hmonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+: hmonitor	0x000000000f0f0005 {unused=??? }	HMONITOR__ *
+
+Not a known HMONITOR!
+
+There's no [[https://learn.microsoft.com/en-us/windows/win32/gdi/wm-displaychange][WM_DISPLAYCHANGE]] message to indicate this has happened.
+
+There's no [[https://learn.microsoft.com/en-us/windows/win32/devio/wm-devicechange][WM_DEVICECHANGE]]...
+
 * eof.

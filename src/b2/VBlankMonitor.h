@@ -34,6 +34,21 @@ class VBlankMonitor {
 
     virtual bool Init(Handler *handler, Messages *messages) = 0;
 
+    // For now, non-abstract. Default impl does nothing and returns true.
+    //
+    // The return value is for informational purposes only, and may be ignored.
+    // The vblank monitor should do something sensible if used after
+    // RefreshDisplayList returns false, in the hope that a future
+    // RefreshDisplayList might return true.
+    virtual bool RefreshDisplayList(Messages *messages);
+
+    // For now, non-abstract. Default NeedsRefreshDisplayList impl returns
+    // false.
+    //
+    // Called regularly, same sort of frequency as the window title update
+    // messages. If it ever returns true, RefreshDisplayList will get called.
+    virtual bool NeedsRefreshDisplayList() const;
+
     virtual void *GetDisplayDataForDisplayID(uint32_t display_id) const = 0;
     virtual void *GetDisplayDataForPoint(int x, int y) const = 0;
 
@@ -44,7 +59,8 @@ class VBlankMonitor {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// calls Init() as part of the process. If it fails, returns null.
+// calls Init() and RefreshDisplayList() as part of the process. If either
+// fails, returns null.
 std::unique_ptr<VBlankMonitor> CreateVBlankMonitor(VBlankMonitor::Handler *handler,
                                                    bool force_default,
                                                    Messages *messages);

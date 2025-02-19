@@ -359,6 +359,8 @@ void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
 
     m_data_by_display_id[display_id] = display;
 
+    LOGF(OUTPUT, "b2VBlankHandler::AllocateDisplayData: display_id=%" PRIu32 ": data=%p\n", display_id, (void *)display.get());
+
     return display.get();
 }
 
@@ -370,6 +372,8 @@ void b2VBlankHandler::FreeDisplayData(uint32_t display_id, void *data) {
     (void)display_id;
 
     LockGuard<Mutex> lock(m_mutex);
+
+    LOGF(OUTPUT, "b2VBlankHandler::FreeDisplayData: display_id=%" PRIu32 "; data=%p\n", display_id, data);
 
     ASSERT(m_data_by_display_id.count(display_id) > 0);
     ASSERT(m_data_by_display_id[display_id].get() == data);
@@ -1485,7 +1489,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             case SDL_MOUSEMOTION:
                 {
                     rmt_ScopedCPUSample(SDL_MOUSEMOTION, 0);
-                    
+
                     //LOGF(OUTPUT,"SDL_MOUSEMOTION: windowID=%d, x=%d, y=%d\n", event.motion.windowID, event.motion.x, event.motion.y);
 
                     if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.motion.windowID)) {
@@ -1620,6 +1624,23 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                             {
                                 rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle, 0);
                                 BeebWindows::UpdateWindowTitles();
+
+                                if (vblank_monitor->NeedsRefreshDisplayList()) {
+                                    auto &&message_list = std::make_shared<MessageList>("RefreshDisplayList");
+
+                                    {
+                                        Messages msg(message_list);
+
+                                        vblank_monitor->RefreshDisplayList(&msg);
+                                    }
+
+                                    // There's nowhere particularly good for the
+                                    // messages to go here. The OUTPUT log is as
+                                    // good as any.
+                                    message_list->ForEachMessage([](MessageList::Message *m) {
+                                        LOGF(OUTPUT, "%s\n", m->text.c_str());
+                                    });
+                                }
                             }
                             break;
 

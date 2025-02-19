@@ -31,6 +31,22 @@ VBlankMonitor::~VBlankMonitor() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool VBlankMonitor::RefreshDisplayList(Messages *messages) {
+    (void)messages;
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool VBlankMonitor::NeedsRefreshDisplayList() const {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::unique_ptr<VBlankMonitor> CreateVBlankMonitor(VBlankMonitor::Handler *handler,
                                                    bool force_default,
                                                    Messages *messages) {
@@ -55,6 +71,10 @@ std::unique_ptr<VBlankMonitor> CreateVBlankMonitor(VBlankMonitor::Handler *handl
     }
 
     if (!v->Init(handler, messages)) {
+        return nullptr;
+    }
+
+    if (!v->RefreshDisplayList(messages)) {
         return nullptr;
     }
 
