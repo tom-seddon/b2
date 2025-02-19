@@ -2080,7 +2080,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
     AudioThreadData *const atd = m_audio_thread_data;
     uint64_t now_ticks = GetCurrentTickCount();
 
-    ASSERT(num_samples == atd->sound_buffer_size_samples);
+    ASSERT(num_samples <= atd->sound_buffer_size_samples);
 
     if (!atd) {
         return 0;
