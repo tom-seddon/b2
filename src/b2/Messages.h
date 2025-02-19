@@ -85,12 +85,10 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     // Not terribly efficient.
     void InsertMessages(const MessageList &src);
 
-    // When the print_to_stdio flag is true, messages are printed to
-    // stdout (info) or stderr (warning/error) rather than saved in
-    // the list.
+    // When the print_to_stdio flag is true, messages are printed to stdout
+    // (info) or stderr (warning/error) rather than saved in the list.
     //
-    // Queued messages are also flushed when the print_to_stdio flag
-    // is set.
+    // Queued messages are also flushed when the print_to_stdio flag is set.
     void SetPrintToStdio(bool print_to_stdio);
 
     // Print all accumulated messages to stdout/stderr and clear the
@@ -151,6 +149,7 @@ class Messages : public LogSet {
     // the nowhere printer.
     Messages();
     Messages(std::shared_ptr<MessageList> message_list);
+    ~Messages();
 
     Messages(const Messages &) = delete;
     Messages &operator=(const Messages &) = delete;
