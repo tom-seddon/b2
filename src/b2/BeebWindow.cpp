@@ -2644,7 +2644,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     // during the DoImGui call.
     bool threaded_update = m_update_tv_texture_thread_enabled;
 
-    bool do_update = true;
 #if BBCMICRO_DEBUGGER
     {
         std::shared_ptr<const BBCMicroReadOnlyState> state;
