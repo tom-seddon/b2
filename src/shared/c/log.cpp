@@ -483,6 +483,12 @@ LogWithTag::LogWithTag(const char *tag_, Log *log_)
     : tag(tag_)
     , log(log_)
     , m_next(ms_first) {
+    // Tags shouldn't contain spaces. That way, hey're easier to specify on the
+    // command line by hand, and they can be printed unquoted and
+    // space-separated in the stdout --help output for easy copy and paste with
+    // the mouse.
+    ASSERT(!strchr(this->tag, ' '));
+
     ms_first = this;
 }
 
