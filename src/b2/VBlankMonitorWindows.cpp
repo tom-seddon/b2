@@ -11,6 +11,7 @@
 #include <shared/log.h>
 #include <inttypes.h>
 #include "b2.h"
+#include "misc.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -30,7 +31,7 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_EXTERN(OUTPUT);
+LOG_EXTERN(VBLANK);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -53,7 +54,7 @@ class VBlankMonitorWindows : public VBlankMonitor {
 
     bool RefreshDisplayList(Messages *messages) override {
         ++m_num_refreshes;
-        LOGF(OUTPUT, "VBlankMonitorWindows::RefreshDisplayList: %" PRIu64 " calls\n", m_num_refreshes);
+        LOGF(VBLANK, "VBlankMonitorWindows::RefreshDisplayList: %" PRIu64 " calls\n", m_num_refreshes);
 
         this->ResetDisplayList();
 
@@ -78,19 +79,19 @@ class VBlankMonitorWindows : public VBlankMonitor {
                  ++adapter_idx) {
                 DXGI_ADAPTER_DESC1 adesc;
 
-                LOGF(OUTPUT, "DXGI adapter %u: ", adapter_idx);
-                LOGI(OUTPUT);
+                LOGF(VBLANK, "DXGI adapter %u: ", adapter_idx);
+                LOGI(VBLANK);
 
                 hr = adapter->GetDesc1(&adesc);
                 if (FAILED(hr)) {
-                    LOGF(OUTPUT, "failed to get description: %s\n", GetErrorDescription(hr));
+                    LOGF(VBLANK, "failed to get description: %s\n", GetErrorDescription(hr));
                     // ...but this isn't necessarily fatal.
                 } else {
                     // LOGF isn't actually designed for UTF8, but, hopefully, close enough...
-                    LOGF(OUTPUT, "Description: %s\n", GetUTF8String(adesc.Description).c_str());
-                    LOGF(OUTPUT, "VendorId=0x%x; DeviceId=0x%x; SubSysId=0x%x; Revision=0x%x\n", adesc.VendorId, adesc.DeviceId, adesc.SubSysId, adesc.Revision);
-                    LOGF(OUTPUT, "DedicatedVideoMemory=%.3f MBytes; DedicatedSystemMemory=%.3f MBytes; SharedSystemMemory=%.3f MBytes\n", MBYTES_FROM_BYTES(adesc.DedicatedVideoMemory), MBYTES_FROM_BYTES(adesc.DedicatedSystemMemory), MBYTES_FROM_BYTES(adesc.SharedSystemMemory));
-                    LOGF(OUTPUT, "Flags: 0x%08" PRIx32 "\n", adesc.Flags);
+                    LOGF(VBLANK, "Description: %s\n", GetUTF8String(adesc.Description).c_str());
+                    LOGF(VBLANK, "VendorId=0x%x; DeviceId=0x%x; SubSysId=0x%x; Revision=0x%x\n", adesc.VendorId, adesc.DeviceId, adesc.SubSysId, adesc.Revision);
+                    LOGF(VBLANK, "DedicatedVideoMemory=%.3f MBytes; DedicatedSystemMemory=%.3f MBytes; SharedSystemMemory=%.3f MBytes\n", MBYTES_FROM_BYTES(adesc.DedicatedVideoMemory), MBYTES_FROM_BYTES(adesc.DedicatedSystemMemory), MBYTES_FROM_BYTES(adesc.SharedSystemMemory));
+                    LOGF(VBLANK, "Flags: 0x%08" PRIx32 "\n", adesc.Flags);
                 }
 
                 UINT output_idx;
@@ -98,21 +99,21 @@ class VBlankMonitorWindows : public VBlankMonitor {
                 for (output_idx = 0, output = NULL;
                      adapter->EnumOutputs(output_idx, &output) != DXGI_ERROR_NOT_FOUND;
                      ++output_idx) {
-                    LOGF(OUTPUT, "Output %u: ", output_idx);
-                    LOGI(OUTPUT);
+                    LOGF(VBLANK, "Output %u: ", output_idx);
+                    LOGI(VBLANK);
 
                     DXGI_OUTPUT_DESC odesc;
                     hr = output->GetDesc(&odesc);
                     if (FAILED(hr)) {
-                        LOGF(OUTPUT, "failed to get description: %s\n", GetErrorDescription(hr));
+                        LOGF(VBLANK, "failed to get description: %s\n", GetErrorDescription(hr));
                         continue;
                     }
 
-                    LOGF(OUTPUT, "DeviceName: %s\n", GetUTF8String(odesc.DeviceName).c_str());
-                    LOGF(OUTPUT, "DesktopCoordinates: (%ld,%ld)-(%ld,%ld) (%ld x %ld)\n", odesc.DesktopCoordinates.left, odesc.DesktopCoordinates.top, odesc.DesktopCoordinates.right, odesc.DesktopCoordinates.bottom, odesc.DesktopCoordinates.right - odesc.DesktopCoordinates.left, odesc.DesktopCoordinates.bottom - odesc.DesktopCoordinates.top);
-                    LOGF(OUTPUT, "AttachedToDesktop: %s\n", BOOL_STR(odesc.AttachedToDesktop));
-                    LOGF(OUTPUT, "Rotation: %s\n", GetDXGI_MODE_ROTATIONEnumName(odesc.Rotation));
-                    LOGF(OUTPUT, "Monitor: %p\n", odesc.Monitor);
+                    LOGF(VBLANK, "DeviceName: %s\n", GetUTF8String(odesc.DeviceName).c_str());
+                    LOGF(VBLANK, "DesktopCoordinates: (%ld,%ld)-(%ld,%ld) (%ld x %ld)\n", odesc.DesktopCoordinates.left, odesc.DesktopCoordinates.top, odesc.DesktopCoordinates.right, odesc.DesktopCoordinates.bottom, odesc.DesktopCoordinates.right - odesc.DesktopCoordinates.left, odesc.DesktopCoordinates.bottom - odesc.DesktopCoordinates.top);
+                    LOGF(VBLANK, "AttachedToDesktop: %s\n", BOOL_STR(odesc.AttachedToDesktop));
+                    LOGF(VBLANK, "Rotation: %s\n", GetDXGI_MODE_ROTATIONEnumName(odesc.Rotation));
+                    LOGF(VBLANK, "Monitor: %p\n", odesc.Monitor);
 
                     if (!odesc.Monitor) {
                         continue;
@@ -144,7 +145,7 @@ class VBlankMonitorWindows : public VBlankMonitor {
 
                     output = nullptr;
                 }
-                LOGF(OUTPUT, "Outputs found: %u\n", output_idx);
+                LOGF(VBLANK, "Outputs found: %u\n", output_idx);
 
                 adapter = nullptr;
             }
@@ -249,27 +250,43 @@ class VBlankMonitorWindows : public VBlankMonitor {
 
         SetCurrentThreadNamef("VBlank Monitor: %s", display->mi.szDevice);
 
-        while (!display->stop_thread) {
-            // If the display sleeps, WaitForVBlank returns immediately. What
-            // do? The answer seems to be: not much that's particularly good.
-            // This copies
-            // https://github.com/juce-framework/JUCE/commit/fb670d209b3a80b3a3d61d1edce0e2fd5ae89b2c
-            // by imposing a frame rate limit. In this case, 250 Hz (4
-            // ms/frame).
-            //
-            // Each ThreadVBlank call represents a fair amount of work, and 250
-            // Hz isn't ideal, so this does need revisiting.
+        Log log(strprintf("display %" PRIu32, display->id).c_str(), LOG(VBLANK));
 
+        bool first_update = true;
+        bool probably_sleeping = false;
+
+        while (!display->stop_thread) {
+            // If the display is asleep, WaitForVBlank successfully returns
+            // immediately. (Try to) detect this case by timing the call.
+            //
+            // Assume a 50 Hz frame time if the display is asleep. It's as good
+            // a guess as any.
+            
             uint64_t start_ticks = GetCurrentTickCount();
-            uint64_t wait_ticks;
-            for (;;) {
-                display->output->WaitForVBlank();
-                wait_ticks = GetCurrentTickCount() - start_ticks;
-                if (GetMillisecondsFromTicks(wait_ticks) >= 4) {
-                    break;
+            HRESULT hr = display->output->WaitForVBlank();
+            if (FAILED(hr)) {
+                // Just pick some random value.
+                SleepMS(20);
+            } else {
+                uint64_t wait_ticks = GetCurrentTickCount() - start_ticks;
+                double wait_ms = GetMillisecondsFromTicks(wait_ticks);
+                if (wait_ms < 1. && !first_update) {
+                    if (!probably_sleeping) {
+                        log.f("frame time was ~%.1fms: probably now asleep.\n", wait_ms);
+                        probably_sleeping = true;
+                    }
+
+                    // pick some random value.
+                    SleepMS(20);
+                } else {
+                    if (probably_sleeping) {
+                        log.f("frame time was ~%.1fms: probably now awake.\n", wait_ms);
+                        probably_sleeping = false;
+                    }
                 }
-                SleepMS(1);
             }
+
+            first_update = false;
 
             display->vbm->m_handler->ThreadVBlank(display->id, display->data);
         }

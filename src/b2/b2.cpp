@@ -817,6 +817,32 @@ static bool ParseCommandLineOptions(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_WINDOWS
+static void SDLCALL HandleWindowsMessage(void *userdata, void *hWnd, unsigned int message, Uint64 wParam, Sint64 lParam) {
+    (void)userdata, (void)hWnd, (void)message, (void)wParam, (void)lParam;
+
+    // Experimental detection of display sleep, so that the vblank monitor can
+    // potentially be kept informed. But it doesn't seem to work usefully:
+    // SC_SCREENSAVE doesn't get invoked for display sleep, and in the
+    // SC_MONITORPOWER case the lParam is always 2 (display shut off).
+    //
+    //
+    // See https://learn.microsoft.com/en-us/windows/win32/menurc/wm-syscommand
+
+    //if (message == WM_SYSCOMMAND) {
+    //    if (wParam == SC_MONITORPOWER) {
+    //        LOGF(OUTPUT, "WM_SYSCOMMAND: got SC_MONITORPOWER: lParam=%" PRId64 "\n", lParam);
+    //    } else if (wParam == SC_SCREENSAVE) {
+    //        LOGF(OUTPUT, "WM_SYSCOMMAND: got SC_SCREENSAVE\n");
+    //    }
+    //}
+}
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // I'm not careful enough about tidying things up before returning
 // from `main2' with an error to trust this as a local...
 static FillAudioBufferData g_fill_audio_buffer_data;
@@ -832,6 +858,10 @@ static bool InitSystem(
 
     // Click through when the window was unfocused. Might need to be system-dependent?
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+
+#if SYSTEM_WINDOWS
+    SDL_SetWindowsMessageHook(&HandleWindowsMessage, nullptr);
+#endif
 
     // Initialise SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
