@@ -13,10 +13,6 @@
 
 #if MUTEX_DEBUGGING
 
-// If true, assume that try_lock is effectively free when it succeeds.
-// Potentially save on some system calls for every lock.
-#define MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE 0
-
 #include <vector>
 #include <string>
 #include <memory>
@@ -85,6 +81,11 @@ class Mutex {
 
     static std::vector<std::shared_ptr<MutexMetadata>> GetAllMetadata();
     static uint64_t GetNameOverheadTicks();
+
+    // If true, assume that try_lock is effectively free when it succeeds.
+    // Potentially save on some system calls for every lock.
+    static bool GetAssumeFreeUncontendedLocks();
+    static void SetAssumeFreeUncontendedLocks(bool assume_free_uncontended_locks);
 
     void lock();
     bool try_lock();

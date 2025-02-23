@@ -59,6 +59,7 @@ struct MutexFullMetadata : public std::enable_shared_from_this<MutexFullMetadata
 static std::shared_ptr<std::mutex> g_mutex_metadata_list_mutex;
 static std::once_flag g_mutex_metadata_list_mutex_initialise_once_flag;
 static std::atomic<uint64_t> g_mutex_name_overhead_ticks{0};
+static std::atomic<bool> g_assume_free_uncontended_locks{false};
 
 static MutexFullMetadata *g_mutex_metadata_head;
 
@@ -235,9 +236,13 @@ const MutexMetadata *Mutex::GetMetadata() const {
 //////////////////////////////////////////////////////////////////////////
 
 void Mutex::lock() {
-#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-    uint64_t lock_start_ticks = GetCurrentTickCount();
-#endif
+    const bool assume_free_uncontended_locks = g_assume_free_uncontended_locks.load(std::memory_order_acquire);
+
+    uint64_t lock_start_ticks;
+    if (!assume_free_uncontended_locks) {
+        lock_start_ticks = GetCurrentTickCount();
+    }
+
     uint64_t lock_wait_ticks = 0;
 
     uint8_t interesting_events = m_meta->interesting_events.load(std::memory_order_relaxed);
@@ -245,20 +250,22 @@ void Mutex::lock() {
     if (m_meta->mutex.try_lock()) {
         interesting_events &= (uint8_t)~MutexInterestingEvent_ContendedLock;
     } else {
-#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-        uint64_t lock_start_ticks = GetCurrentTickCount();
-#endif
+        if (assume_free_uncontended_locks) {
+            lock_start_ticks = GetCurrentTickCount();
+        }
+
         m_meta->mutex.lock();
         ++m_meta->stats.num_contended_locks;
-#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-        lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
-#endif
+
+        if (assume_free_uncontended_locks) {
+            lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+        }
     }
 
     ++m_meta->stats.num_locks;
-#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-    lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
-#endif
+    if (!assume_free_uncontended_locks) {
+        lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+    }
 
     if (m_meta->reset.exchange(false)) {
         m_meta->Reset();
@@ -335,6 +342,20 @@ std::vector<std::shared_ptr<MutexMetadata>> Mutex::GetAllMetadata() {
 
 uint64_t Mutex::GetNameOverheadTicks() {
     return g_mutex_name_overhead_ticks.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool Mutex::GetAssumeFreeUncontendedLocks() {
+    return g_assume_free_uncontended_locks.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Mutex::SetAssumeFreeUncontendedLocks(bool assume_free_uncontended_locks) {
+    g_assume_free_uncontended_locks.store(assume_free_uncontended_locks, std::memory_order_release);
 }
 
 //////////////////////////////////////////////////////////////////////////

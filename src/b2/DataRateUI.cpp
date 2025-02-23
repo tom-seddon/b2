@@ -318,6 +318,11 @@ void DataRateUI::DoImGui() {
 
     ImGui::Separator();
 
+    bool assume_free_uncontended_locks = Mutex::GetAssumeFreeUncontendedLocks();
+    if (ImGui::Checkbox("Assume uncontended locks are free", &assume_free_uncontended_locks)) {
+        Mutex::SetAssumeFreeUncontendedLocks(assume_free_uncontended_locks);
+    }
+
     std::vector<std::shared_ptr<MutexMetadata>> metadata = Mutex::GetAllMetadata();
 
     std::vector<MutexStats> mutex_stats(metadata.size());
