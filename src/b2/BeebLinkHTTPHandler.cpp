@@ -56,8 +56,6 @@ struct BeebLinkHTTPHandler::ThreadState {
 
     std::string sender_id;
 
-    CURL *curl = nullptr;
-
     std::unique_ptr<Log> log;
 
     BeebThread *beeb_thread = nullptr;
@@ -172,28 +170,12 @@ static void CurlDebugFunction(CURL *handle,
 }
 
 bool BeebLinkHTTPHandler::Init(Messages *msg) {
-    m_ts->curl = curl_easy_init();
-    if (!m_ts->curl) {
-        msg->e.f("BeebLink - libcurl initialisation failed.\n");
-        return false;
-    }
-
     m_ts->sender_id = m_sender_id;
 
     if (LOG(BEEBLINK_HTTP).enabled) {
         std::string prefix = std::string(LOG(BEEBLINK_HTTP).GetPrefix()) + ": HTTP " + m_sender_id;
         m_ts->log = std::make_unique<Log>(prefix.c_str(), LOG(BEEBLINK_HTTP).GetLogPrinter(), true);
-
-        curl_easy_setopt(m_ts->curl, CURLOPT_DEBUGFUNCTION, &CurlDebugFunction);
-        curl_easy_setopt(m_ts->curl, CURLOPT_DEBUGDATA, m_ts->log.get());
     }
-
-    // see notes regarding DNS timeouts in https://curl.haxx.se/libcurl/c/CURLOPT_NOSIGNAL.html
-    // - hopefully not too much an issue here, as the connection is always to
-    // 127.0.0.1 unless otherwise specified.
-    curl_easy_setopt(m_ts->curl, CURLOPT_NOSIGNAL, 1L);
-
-    curl_easy_setopt(m_ts->curl, CURLOPT_FAILONERROR, 1L);
 
     try {
         m_thread = std::thread([this]() {
@@ -288,7 +270,6 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
     SetCurrentThreadNamef("%s BLHTTP", ts->sender_id.c_str());
 
     char curl_error_buffer[CURL_ERROR_SIZE];
-    curl_easy_setopt(ts->curl, CURLOPT_ERRORBUFFER, curl_error_buffer);
 
     const std::string sender_id_header = "BeebLink-Sender-Id: " + ts->sender_id;
 
@@ -345,38 +326,55 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
 
                 bool done = false;
                 do {
-                    curl_easy_setopt(ts->curl, CURLOPT_URL, urls[url_index].c_str());
+                    CURL *curl = curl_easy_init();
+                    if (!curl) {
+                        msg.e.f("BeebLink - libcurl initialisation failed for URL: %s\n", urls[url_index].c_str());
+                        continue;
+                    }
 
-                    curl_easy_setopt(ts->curl, CURLOPT_POST, 1L);
-                    curl_easy_setopt(ts->curl, CURLOPT_CUSTOMREQUEST, "POST");
+                    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_error_buffer);
+
+                    curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, &CurlDebugFunction);
+                    curl_easy_setopt(curl, CURLOPT_DEBUGDATA, ts->log.get());
+
+                    // see notes regarding DNS timeouts in https://curl.haxx.se/libcurl/c/CURLOPT_NOSIGNAL.html
+                    // - hopefully not too much an issue here, as the connection is always to
+                    // 127.0.0.1 unless otherwise specified.
+                    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+                    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+
+                    curl_easy_setopt(curl, CURLOPT_URL, urls[url_index].c_str());
+
+                    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+                    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
 
                     CurlReadPayloadFunctionState readdata;
                     readdata.payload = &request.data;
 
-                    curl_easy_setopt(ts->curl, CURLOPT_READFUNCTION, &CurlReadPayloadFunction);
-                    curl_easy_setopt(ts->curl, CURLOPT_READDATA, &readdata);
+                    curl_easy_setopt(curl, CURLOPT_READFUNCTION, &CurlReadPayloadFunction);
+                    curl_easy_setopt(curl, CURLOPT_READDATA, &readdata);
 
                     ASSERT(!request.data.empty());
                     auto postfieldsize_large = (curl_off_t)request.data.size();
                     //printf("xxx %zu %" PRIu64 " %" PRIu64 "\n",sizeof(curl_off_t),(uint64_t)beeb_to_server_data.size(),(uint64_t)postfieldsize_large);
-                    curl_easy_setopt(ts->curl, CURLOPT_POSTFIELDSIZE_LARGE, postfieldsize_large);
+                    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, postfieldsize_large);
 
                     server_to_beeb_data.clear();
-                    curl_easy_setopt(ts->curl, CURLOPT_WRITEFUNCTION, &CurlWriteCallback);
-                    curl_easy_setopt(ts->curl, CURLOPT_WRITEDATA, &server_to_beeb_data);
+                    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &CurlWriteCallback);
+                    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &server_to_beeb_data);
 
                     // No harm in configuring this every time. Perhaps
                     // there should be somewhere in the UI for the logs to
                     // go, making this possibly a useful runtime toggle?
-                    curl_easy_setopt(ts->curl, CURLOPT_VERBOSE, (long)LOG(BEEBLINK_HTTP).enabled);
+                    curl_easy_setopt(curl, CURLOPT_VERBOSE, (long)LOG(BEEBLINK_HTTP).enabled);
 
-                    curl_easy_setopt(ts->curl, CURLOPT_HTTPHEADER, headers);
+                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
                     if (ts->log) {
                         ts->log->f("curl_easy_perform...\n");
                     }
 
-                    CURLcode perform_result = curl_easy_perform(ts->curl);
+                    CURLcode perform_result = curl_easy_perform(curl);
 
                     if (ts->log) {
                         ts->log->f("curl_easy_perform returned: %d\n", (int)perform_result);
@@ -384,7 +382,7 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
 
                     if (perform_result == CURLE_OK) {
                         long status;
-                        curl_easy_getinfo(ts->curl, CURLINFO_RESPONSE_CODE, &status);
+                        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
 
                         if (ts->url.empty()) {
                             ts->url = urls[url_index];
@@ -422,6 +420,8 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
                             done = true;
                         }
                     }
+
+                    curl_easy_cleanup(curl), curl = nullptr;
                 } while (!done);
 
                 ASSERT(!server_to_beeb_data.empty());
@@ -432,9 +432,6 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
             }
         }
     }
-
-    curl_easy_cleanup(ts->curl);
-    ts->curl = nullptr;
 
     curl_slist_free_all(headers);
     headers = nullptr;
