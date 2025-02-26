@@ -90,7 +90,6 @@ if(WIN32)
   set(USE_SYSTEM_SDL_DEFAULT OFF)
   set(USE_SYSTEM_LIBUV_DEFAULT OFF)
   set(USE_SYSTEM_CURL_DEFAULT OFF)
-  option(CMAKE_USE_WINSSL "" ON)
 elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
   set(OSX 1)
 
@@ -180,6 +179,10 @@ else()
   option(BUILD_SHARED_LIBS "" OFF)
   option(BUILD_TESTING "" OFF)
 
+  # Set this explicitly to ON as it also covers the variable of the
+  # same name used by llhttp.
+  option(BUILD_STATIC_LIBS "" ON)
+
   # libcurl finds zlib using find_package, which is annoying:
   #
   # 1. it'll just find some random copy of zlib, if you have one (on
@@ -201,6 +204,13 @@ else()
   # stuff anyway!)
   option(CURL_ZLIB "" OFF)
 
+  option(CURL_USE_LIBPSL "" OFF)
+  option(BUILD_EXAMPLES "" OFF)
+
+  if(WIN32)
+    option(CURL_USE_SCHANNEL "" ON)
+  endif()
+  
   add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/curl)
   set(LIBCURL_TARGET libcurl)
 endif()
