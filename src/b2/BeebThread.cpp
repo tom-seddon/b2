@@ -604,8 +604,13 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                 ts->beeblink_handler.reset();
             }
         }
+
     } else {
         ts->beeblink_handler.reset();
+    }
+
+    if (!!ts->beeblink_handler) {
+        ts->beeblink_handler->Reset();
     }
 
     uint32_t init_flags = 0;

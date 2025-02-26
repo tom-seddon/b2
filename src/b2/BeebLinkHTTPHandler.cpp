@@ -50,6 +50,7 @@ struct BeebLinkHTTPHandler::ThreadState {
 
     bool stop = false; // set if thread should stop after being woken up.
     std::vector<Request> request_queue;
+    bool reset_url = false; //set if thread should reset the URL to use
 
     // Used by the thread once it's running.
 
@@ -209,6 +210,18 @@ bool BeebLinkHTTPHandler::Init(Messages *msg) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebLinkHTTPHandler::Reset() {
+    LockGuard<Mutex> lock(m_ts->mutex);
+
+    m_ts->reset_url = true;
+
+    // No need to notify condition variable watchers. It'll take place on the
+    // next operation.
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data, bool is_fire_and_forget) {
     ASSERT(!data.empty());
 
@@ -294,6 +307,13 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
 
         if (ts->request_queue.empty()) {
             ts->cv.wait(lock);
+        }
+
+        if (ts->reset_url) {
+            ts->url.clear();
+
+            ts->reset_url = false;
+            show_errors = true;
         }
 
         if (!ts->request_queue.empty()) {
