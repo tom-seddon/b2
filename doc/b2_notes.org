@@ -2130,4 +2130,167 @@ There's no [[https://learn.microsoft.com/en-us/windows/win32/gdi/wm-displaychang
 
 There's no [[https://learn.microsoft.com/en-us/windows/win32/devio/wm-devicechange][WM_DEVICECHANGE]]...
 
+* b2.json schema
+
+In slightly bogus C++ terms...
+
+- =T *= means optional. Might be null.
+
+- =union= is more like TypeScript's =|= - it'll be one of the given
+  types. Unnamed union members are always valid
+
+- =Flags<T>= is a bitfield. See the referenced enum
+
+#+begin_src c++
+  struct b2 {
+      Globals globals;
+      map<string,RecentPaths> recent_paths;
+      vector<NewKeymap> new_keymaps;
+      map<string/*window name*/,map<string/*command name*/,vector<Shortcut>>> shortcuts;
+      Windows windows;
+      Trace trace;
+      BeebLink beeblink;
+
+      // The formats of these two are the same.
+      //
+      // If configs is present, that is used. The default configs are
+      // force added first and anything in configs overrides them.
+      //
+      // Otherwise, new_configs is used. Everything in there is loaded,
+      // and then the default configs are added afterwards, based on the
+      // feature flags seen.
+      vector<Config> configs;
+      vector<Config> new_configs;
+      Joysticks joysticks;
+  };
+
+  struct Globals {
+      bool vsync;
+      Flags<BeebConfigFeatureFlag> feature_flags;
+  };
+
+  struct RecentPaths {
+      vector<string> paths;
+  };
+
+  struct NewKeymap {
+      string name;
+      bool keysyms;
+      bool prefer_shortcuts;
+      map<string,NewKeymapKey> keys;
+  };
+
+  union NewKeymapKey {
+      string;//name
+      int;//number;
+      vector<NewKeymapKeySym>;//sym;
+  };
+
+  struct NewKeymapKeySym {
+      bool Shift;
+      string keycode;
+  };
+
+  struct Shortcut {
+      bool Shift,Ctrl,Alt;
+      string keycode;
+  };
+
+  struct Windows {
+      string window_placement;
+      vector<string> popups;
+      string keymap;
+      float bbc_volume,disc_volume;
+      bool filter_bbc;
+      bool correct_aspect_ratio;
+      bool screenshot_filtery
+      bool screenshot_correct_aspect_ratioy
+      bool screenshot_last_vsyncy
+      bool full_screeny
+      bool prefer_shortcutsy
+      bool auto_scaley
+
+      float manual_scale;
+      bool power_on_tone;
+      bool interlace;
+      LEDsPopupMode leds_popup_mode;
+      int gui_font_size;
+      UTF8ConvertMode text_utf8_convert_mode;
+      bool text_handle_delete;
+      UTF8ConvertMode "printer_utf8_convert_mode;
+      bool printer_handle_delete;
+      bool capture_mouse_on_click;
+      bool hide_cursor_when_unfocused;
+      string config;/*must be one of the keys of new_configs*/
+  };
+
+  struct Trace {
+      Flags<BBCMicroTraceFlag> flags;
+      Flags<TraceOutputFlags> output_flags;
+      TraceUIStartCondition start;
+      TraceUIStopCondition stop;
+      bool unlimited;
+      uint64_t start_instruction_address;
+      uint64_t start_write_address;
+      uint64_t stop_write_address;
+      uint64_t stop_num_cycles;
+      bool auto_save;
+      string auto_save_path;
+  #if SYSTEM_WINDOWS
+      bool unix_line_endings;
+  #endif
+  };
+
+  struct Beeblink {
+      vector<string> urls;
+  };
+
+  struct Config {
+      string name;
+      ROM *os;
+      OSROMType os_rom_type;
+      BBCMicroTypeID type;
+      string disc_interface;
+      ROM *roms[16];
+      bool ext_mem;
+      bool beeblink;
+      bool adji;
+      unsigned adji_dip_switches;
+      bool mouse;
+      BBCMicroParasiteType parasite_type;
+      ROM *parasite_os;
+      BeebConfigNVRAMType nvram_type;
+      string nvram;
+  };
+
+  struct ROM {
+      bool writeable;
+      union {
+          StandardROMEnum standard_rom;
+          struct {
+              string file_name;
+              ROMType type;
+          };
+      };
+  };
+
+  struct Joysticks {
+      vector<string> device_names;
+      bool swap_joysticks_when_shared;
+  };
+#+end_src
+
+* libcurl vs llhttp
+
+Both have a =BUILD_STATIC_LIBS= CMake option...
+
+The first option encountered with the given name wins. This is kind of
+exactly what you want, but there's the possibility of problems when
+multiple packages use the same option names. Not an issue in this case
+but probably worth filing a bug over.
+
+Noticed this because llhttp stopped building properly after upgrading
+libcurl. Something about the exact way that these 2 libraries make
+decisions based on options and variables.
+
 * eof.
