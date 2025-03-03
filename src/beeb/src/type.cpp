@@ -286,8 +286,10 @@ size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t
 
     case ROMType_CCIWORD:
     case ROMType_ABEP:
-    case ROMType_ABE:
         return (region & 1) * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
+
+    case ROMType_ABE:
+        return (~region & 1) * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
 
     case ROMType_CCIBASE:
     case ROMType_Trilogy:

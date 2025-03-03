@@ -1951,7 +1951,7 @@ static size_t LogNumUniqueInstantiations(Log *log, const char *prefix, const BBC
         update_mfns.insert(mfns[i]);
     }
 
-    log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplate instantiations", prefix, update_mfns.size(), num_mfns);
+    log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplated instantiations", prefix, update_mfns.size(), num_mfns);
     if (num_unique_overall) {
         log->f(" (%.2fx ideal)", (double)update_mfns.size() * BBCMICRO_NUM_UPDATE_GROUPS / *num_unique_overall);
     }
