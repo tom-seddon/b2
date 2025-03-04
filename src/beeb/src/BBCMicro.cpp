@@ -937,37 +937,6 @@ void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages, bool non
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// The cursor pattern is spread over the next 4 displayed columns.
-//
-// <pre>
-// b7 b6 b5  Shape
-// -- -- --  -----
-//  0  0  0  <none>
-//  0  0  1    __
-//  0  1  0   _
-//  0  1  1   ___
-//  1  0  0  _
-//  1  0  1  _ __
-//  1  1  0  __
-//  1  1  1  ____
-// </pre>
-//
-// Bit 7 control the first column, bit 6 controls the second column,
-// and bit 7 controls the 3rd and 4th.
-const uint8_t BBCMicro::CURSOR_PATTERNS[8] = {
-    0 + 0 + 0 + 0,
-    0 + 0 + 4 + 8,
-    0 + 2 + 0 + 0,
-    0 + 2 + 4 + 8,
-    1 + 0 + 0 + 0,
-    1 + 0 + 4 + 8,
-    1 + 2 + 0 + 0,
-    1 + 2 + 4 + 8,
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BBCMicro::SetDiscDriveSound(DiscDriveType type, DiscDriveSound sound, std::vector<float> samples) {
     ASSERT(sound >= 0 && sound < DiscDriveSound_EndValue);
     ASSERT(g_disc_drive_sounds[type][sound].empty());
@@ -2104,11 +2073,7 @@ void BBCMicro::SetMouseButtons(uint8_t mask, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SetShowCursor(bool show_cursor) {
-    if (show_cursor) {
-        m_cursor_mask = 0xff;
-    } else {
-        m_cursor_mask = 0x00;
-    }
+    m_cursor_mask = !!show_cursor;
 }
 
 //////////////////////////////////////////////////////////////////////////

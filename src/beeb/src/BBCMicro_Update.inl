@@ -647,8 +647,6 @@ parasite_update_done:
         if (m_state.video_ula.control.bits.fast_6845 | phi2_1MHz_trailing_edge) {
             const CRTC::Output output = m_state.crtc.Update(m_state.system_via.b.c2);
 
-            m_state.cursor_pattern >>= 1;
-
             uint16_t addr = (uint16_t)output.address;
 
             if (addr & 0x2000) {
@@ -730,22 +728,20 @@ parasite_update_done:
 #endif
             }
 
+            // Do this even in teletext mode - the cursor flag then sets up the
+            // new cursor state. The byte value only sets some state.
+            uint8_t value = m_ram[addr];
+            m_state.video_ula.Byte(value, output.cudisp & m_cursor_mask);
+
             if (!m_state.video_ula.control.bits.teletext) {
                 if (!m_state.crtc_last_output.display) {
                     m_state.video_ula.DisplayEnabled();
                 }
 
-                uint8_t value = m_ram[addr];
-                m_state.video_ula.Byte(value);
-
 #if VIDEO_TRACK_METADATA
                 video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
                 video_unit->metadata.value = value;
 #endif
-            }
-
-            if (output.cudisp) {
-                m_state.cursor_pattern = CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor & m_cursor_mask];
             }
 
 #if VIDEO_TRACK_METADATA
@@ -779,25 +775,17 @@ parasite_update_done:
         if (m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.EmitPixels(&video_unit->pixels, m_state.video_ula.output_palette);
 
-            if (m_state.cursor_pattern & 1) {
+            if (m_state.video_ula.cursor_pattern & 1) {
                 video_unit->pixels.pixels[0].all ^= 0x0fff;
                 video_unit->pixels.pixels[1].all ^= 0x0fff;
             }
-        } else {
-            if (m_state.crtc_last_output.display &&
-                m_state.crtc_last_output.raster < 8) {
-                m_state.video_ula.EmitPixels(&video_unit->pixels);
 
-                if (m_state.cursor_pattern & 1) {
-                    video_unit->pixels.values[0] ^= 0x0fff0fff0fff0fffull;
-                    video_unit->pixels.values[1] ^= 0x0fff0fff0fff0fffull;
-                }
+            m_state.video_ula.cursor_pattern >>= 1;
+        } else {
+            if (m_state.crtc_last_output.display && m_state.crtc_last_output.raster < 8) {
+                m_state.video_ula.EmitPixels(&video_unit->pixels);
             } else {
-                if (m_state.cursor_pattern & 1) {
-                    video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0x0fff0fff0fff0fffull;
-                } else {
-                    video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0;
-                }
+                m_state.video_ula.EmitBlank(&video_unit->pixels);
             }
         }
 

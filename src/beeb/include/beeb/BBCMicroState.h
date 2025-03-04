@@ -222,7 +222,6 @@ class BBCMicroState {
 
     // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
     uint16_t shadow_select_mask = 0x0000;
-    uint8_t cursor_pattern = 0;
 
   public:
     SN76489 sn76489;

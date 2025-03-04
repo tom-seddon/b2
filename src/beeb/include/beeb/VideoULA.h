@@ -57,6 +57,9 @@ class VideoULA {
 
     VideoDataPixel output_palette[16] = {};
 
+    // Public because the Mode 7 handling works differently.
+    uint8_t cursor_pattern = 0;
+
     static void WriteControlRegister(void *ula, M6502Word a, uint8_t value);
     static void WritePalette(void *ula, M6502Word a, uint8_t value);
 
@@ -67,9 +70,10 @@ class VideoULA {
 
     void DisplayEnabled();
 
-    void Byte(uint8_t byte);
+    void Byte(uint8_t byte, uint8_t cudisp);
 
     void EmitPixels(VideoDataUnitPixels *pixels);
+    void EmitBlank(VideoDataUnitPixels *pixels);
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
@@ -118,6 +122,7 @@ class VideoULA {
     void EmitNuLAAttributeTextMode4(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeTextMode0(VideoDataUnitPixels *pixels);
     void EmitNothing(VideoDataUnitPixels *pixels);
+
 
     typedef void (VideoULA::*EmitMFn)(VideoDataUnitPixels *);
     static const EmitMFn EMIT_MFNS[4][2][4];

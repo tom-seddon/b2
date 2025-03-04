@@ -15,6 +15,58 @@ LOG_TAGGED_DEFINE(VU, "video", "VIDULA", &log_printer_stdout_and_debugger, false
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The cursor pattern is spread over the next 4 displayed columns.
+//
+// <pre>
+// b7 b6 b5  Shape
+// -- -- --  -----
+//  0  0  0  <none>
+//  0  0  1    __
+//  0  1  0   _
+//  0  1  1   ___
+//  1  0  0  _
+//  1  0  1  _ __
+//  1  1  0  __
+//  1  1  1  ____
+// </pre>
+//
+// Bit 7 control the first column, bit 6 controls the second column, and bit 5
+// controls the 3rd and 4th.
+//
+// 2 (identical) bits per column as this simplifies shifting the data out.
+
+static constexpr uint8_t GetCursorPattern(uint8_t index) {
+    uint8_t result = 0;
+
+    if (index & 1) {
+        result |= 3 << 4 | 3 << 6;
+    }
+
+    if (index & 2) {
+        result |= 3 << 2;
+    }
+
+    if (index & 4) {
+        result |= 3 << 0;
+    }
+
+    return result;
+}
+
+static constexpr uint8_t CURSOR_PATTERNS[8] = {
+    GetCursorPattern(0),
+    GetCursorPattern(1),
+    GetCursorPattern(2),
+    GetCursorPattern(3),
+    GetCursorPattern(4),
+    GetCursorPattern(5),
+    GetCursorPattern(6),
+    GetCursorPattern(7),
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void VideoULA::WriteControlRegister(void *ula_, M6502Word a, uint8_t value) {
     auto ula = (VideoULA *)ula_;
     (void)a;
@@ -175,9 +227,13 @@ void VideoULA::DisplayEnabled() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Byte(uint8_t byte) {
+void VideoULA::Byte(uint8_t byte, uint8_t cudisp) {
     m_work_byte = byte;
     m_original_byte = byte;
+
+    if (cudisp) {
+        this->cursor_pattern = CURSOR_PATTERNS[this->control.bits.cursor];
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -186,11 +242,22 @@ void VideoULA::Byte(uint8_t byte) {
 void VideoULA::EmitPixels(VideoDataUnitPixels *pixels) {
     (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(pixels);
 
+    this->cursor_pattern >>= 1 + this->control.bits.fast_6845;
+
     if (m_blanking_counter > 0) {
         m_blanking_counter -= 1 + this->control.bits.fast_6845;
 
         pixels->values[1] = pixels->values[0] = 0;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void VideoULA::EmitBlank(VideoDataUnitPixels *pixels) {
+    this->EmitNothing(pixels);
+
+    this->cursor_pattern >>= 1 + this->control.bits.fast_6845;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -329,6 +396,17 @@ void VideoULA::Emit2MHz(VideoDataUnitPixels *pixels) {
     dest[6] = pixel;
     dest[7] = pixel;
 
+    if (this->cursor_pattern & 1) {
+        dest[0].all ^= 0x0fff;
+        dest[1].all ^= 0x0fff;
+        dest[2].all ^= 0x0fff;
+        dest[3].all ^= 0x0fff;
+        dest[4].all ^= 0x0fff;
+        dest[5].all ^= 0x0fff;
+        dest[6].all ^= 0x0fff;
+        dest[7].all ^= 0x0fff;
+    }
+
     pixels->values[0] = m_pixel_buffer.values[0];
     pixels->values[1] = m_pixel_buffer.values[1];
 
@@ -359,6 +437,17 @@ void VideoULA::Emit4MHz(VideoDataUnitPixels *pixels) {
     dest[5] = pixel;
     dest[6] = pixel;
     dest[7] = pixel;
+
+    if (this->cursor_pattern & 1) {
+        dest[0].all ^= 0x0fff;
+        dest[1].all ^= 0x0fff;
+        dest[2].all ^= 0x0fff;
+        dest[3].all ^= 0x0fff;
+        dest[4].all ^= 0x0fff;
+        dest[5].all ^= 0x0fff;
+        dest[6].all ^= 0x0fff;
+        dest[7].all ^= 0x0fff;
+    }
 
     pixels->values[0] = m_pixel_buffer.values[0];
     pixels->values[1] = m_pixel_buffer.values[1];
@@ -394,6 +483,17 @@ void VideoULA::Emit8MHz(VideoDataUnitPixels *pixels) {
     pixel = this->Shift();
     dest[6] = pixel;
     dest[7] = pixel;
+
+    if (this->cursor_pattern & 1) {
+        dest[0].all ^= 0x0fff;
+        dest[1].all ^= 0x0fff;
+        dest[2].all ^= 0x0fff;
+        dest[3].all ^= 0x0fff;
+        dest[4].all ^= 0x0fff;
+        dest[5].all ^= 0x0fff;
+        dest[6].all ^= 0x0fff;
+        dest[7].all ^= 0x0fff;
+    }
 
     pixels->values[0] = m_pixel_buffer.values[0];
     pixels->values[1] = m_pixel_buffer.values[1];
@@ -437,6 +537,17 @@ void VideoULA::Emit16MHz(VideoDataUnitPixels *pixels) {
 
     pixel = this->Shift();
     dest[7] = pixel;
+
+    if (this->cursor_pattern & 1) {
+        dest[0].all ^= 0x0fff;
+        dest[1].all ^= 0x0fff;
+        dest[2].all ^= 0x0fff;
+        dest[3].all ^= 0x0fff;
+        dest[4].all ^= 0x0fff;
+        dest[5].all ^= 0x0fff;
+        dest[6].all ^= 0x0fff;
+        dest[7].all ^= 0x0fff;
+    }
 
     pixels->values[0] = m_pixel_buffer.values[0];
     pixels->values[1] = m_pixel_buffer.values[1];
@@ -571,6 +682,11 @@ void VideoULA::EmitNuLAAttributeTextMode0(VideoDataUnitPixels *pixels) {
 
 void VideoULA::EmitNothing(VideoDataUnitPixels *pixels) {
     pixels->values[1] = pixels->values[0] = 0;
+
+    if (this->cursor_pattern & 1) {
+        pixels->values[0] ^= 0x0fff0fff0fff0fffull;
+        pixels->values[1] ^= 0x0fff0fff0fff0fffull;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
