@@ -728,10 +728,7 @@ parasite_update_done:
 #endif
             }
 
-            // Do this even in teletext mode - the cursor flag then sets up the
-            // new cursor state. The byte value only sets some state.
             uint8_t value = m_ram[addr];
-            m_state.video_ula.Byte(value, output.cudisp & m_cursor_mask);
 
             if (!m_state.video_ula.control.bits.teletext) {
                 if (!m_state.crtc_last_output.display) {
@@ -744,12 +741,14 @@ parasite_update_done:
 #endif
             }
 
-#if VIDEO_TRACK_METADATA
-            // TODO - can't remember why this is stored off like this...
-            m_last_video_access_address = addr;
+            // Do this even in teletext mode - the cursor flag then sets up the
+            // new cursor state. The byte value only sets some state, so no harm
+            // in doing it.
+            m_state.video_ula.Byte(value, output.cudisp & m_cursor_mask);
 
+#if VIDEO_TRACK_METADATA
             video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress;
-            video_unit->metadata.address = m_last_video_access_address;
+            video_unit->metadata.address = addr;
             video_unit->metadata.crtc_address = output.address;
 #endif
 

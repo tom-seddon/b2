@@ -617,12 +617,6 @@ class BBCMicro : private WD1770Handler {
     // This doesn't need to be copied. It can be updated regularly.
     uint8_t m_cursor_mask = 1;
 
-#if VIDEO_TRACK_METADATA
-    // This doesn't need to be copied. If it becomes stale, it'll be
-    // refreshed within 1 cycle...
-    uint16_t m_last_video_access_address = 0;
-#endif
-
 #if BBCMICRO_TRACE
     // Event trace stuff.
     //
