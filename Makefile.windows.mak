@@ -24,7 +24,7 @@ _newer_vs:
 ##########################################################################
 ##########################################################################
 
-.PHONY:run_tests_vs2019
+.PHONY: run_tests_vs2019
 run_tests_vs2019: CONFIG=$(error Must specify CONFIG)
 run_tests_vs2019:
 	$(MAKE) _run_tests VSYEAR=2019 VSVER=16 CONFIG=$(CONFIG)
