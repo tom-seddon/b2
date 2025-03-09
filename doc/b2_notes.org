@@ -2293,4 +2293,422 @@ Noticed this because llhttp stopped building properly after upgrading
 libcurl. Something about the exact way that these 2 libraries make
 decisions based on options and variables.
 
+* Video NuLA tests
+
+** some output
+
+test_beeb help output:
+
+#+begin_example
+  Options:
+
+    --help            display help
+    -t TEST, --test=TEST
+                      run test(s) matching TEST, a case-insensitive string
+    -T TEST, --test-regexp=TEST
+                      run test(s) matching TEST, a case-insensitive regular expression
+    -l, --list        list all test names
+    --infer-wanted-images
+                      wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path
+    --wip             include WIP tests that aren't finished or passing yet
+#+end_example
+
+Test list (including WIP):
+
+- dp111.6502timing
+- dp111.6502timing1M
+- dp111.65C12timing
+- dp111.65C12timing1M
+- kevin_edwards.Alien8
+- kevin_edwards.Jetman
+- kevin_edwards.Nightsh
+- standard.TIMINGS
+- standard.VIA.AC1
+- standard.VIA.AC2
+- standard.VIA.AC3
+- standard.VIA.AC4
+- standard.VIA.AC5
+- standard.VIA.AC6
+- standard.VIA.AC7
+- standard.VIA.C1
+- standard.VIA.C2
+- standard.VIA.C3
+- standard.VIA.C4
+- standard.VIA.I1
+- standard.VIA.I2
+- standard.VIA.PB2
+- standard.VIA.PB6
+- standard.VIA.PB7
+- standard.VIA.T11
+- standard.VIA.T21
+- standard.VIA.T22
+- standard.VPOLL
+- standard.VTIMEOU
+- standard.VTIMERS
+- teletext.ENGTEST
+- teletext.RED
+- teletext.TELETST
+- tube.itu_prst
+- tube.xtu_prst
+- tube.xtu_r124
+- tube.xtu_r3
+- video_nula.blank1.N.3-BLANK-1.M0.N00
+- video_nula.blank1.N.3-BLANK-1.M0.N01
+- video_nula.blank1.N.3-BLANK-1.M0.N02
+- video_nula.blank1.N.3-BLANK-1.M0.N03
+- video_nula.blank1.N.3-BLANK-1.M0.N04
+- video_nula.blank1.N.3-BLANK-1.M0.N05
+- video_nula.blank1.N.3-BLANK-1.M0.N06
+- video_nula.blank1.N.3-BLANK-1.M0.N07
+- video_nula.blank1.N.3-BLANK-1.M0.N08
+- video_nula.blank1.N.3-BLANK-1.M0.N09
+- video_nula.blank1.N.3-BLANK-1.M0.N10
+- video_nula.blank1.N.3-BLANK-1.M0.N11
+- video_nula.blank1.N.3-BLANK-1.M0.N12
+- video_nula.blank1.N.3-BLANK-1.M0.N13
+- video_nula.blank1.N.3-BLANK-1.M0.N14
+- video_nula.blank1.N.3-BLANK-1.M0.N15
+- video_nula.blank1.N.3-BLANK-1.M1.N00
+- video_nula.blank1.N.3-BLANK-1.M1.N01
+- video_nula.blank1.N.3-BLANK-1.M1.N02
+- video_nula.blank1.N.3-BLANK-1.M1.N03
+- video_nula.blank1.N.3-BLANK-1.M1.N04
+- video_nula.blank1.N.3-BLANK-1.M1.N05
+- video_nula.blank1.N.3-BLANK-1.M1.N06
+- video_nula.blank1.N.3-BLANK-1.M1.N07
+- video_nula.blank1.N.3-BLANK-1.M1.N08
+- video_nula.blank1.N.3-BLANK-1.M1.N09
+- video_nula.blank1.N.3-BLANK-1.M1.N10
+- video_nula.blank1.N.3-BLANK-1.M1.N11
+- video_nula.blank1.N.3-BLANK-1.M1.N12
+- video_nula.blank1.N.3-BLANK-1.M1.N13
+- video_nula.blank1.N.3-BLANK-1.M1.N14
+- video_nula.blank1.N.3-BLANK-1.M1.N15
+- video_nula.blank1.N.3-BLANK-1.M2.N00
+- video_nula.blank1.N.3-BLANK-1.M2.N01
+- video_nula.blank1.N.3-BLANK-1.M2.N02
+- video_nula.blank1.N.3-BLANK-1.M2.N03
+- video_nula.blank1.N.3-BLANK-1.M2.N04
+- video_nula.blank1.N.3-BLANK-1.M2.N05
+- video_nula.blank1.N.3-BLANK-1.M2.N06
+- video_nula.blank1.N.3-BLANK-1.M2.N07
+- video_nula.blank1.N.3-BLANK-1.M2.N08
+- video_nula.blank1.N.3-BLANK-1.M2.N09
+- video_nula.blank1.N.3-BLANK-1.M2.N10
+- video_nula.blank1.N.3-BLANK-1.M2.N11
+- video_nula.blank1.N.3-BLANK-1.M2.N12
+- video_nula.blank1.N.3-BLANK-1.M2.N13
+- video_nula.blank1.N.3-BLANK-1.M2.N14
+- video_nula.blank1.N.3-BLANK-1.M2.N15
+- video_nula.blank1.N.3-BLANK-1.M3.N00
+- video_nula.blank1.N.3-BLANK-1.M3.N01
+- video_nula.blank1.N.3-BLANK-1.M3.N02
+- video_nula.blank1.N.3-BLANK-1.M3.N03
+- video_nula.blank1.N.3-BLANK-1.M3.N04
+- video_nula.blank1.N.3-BLANK-1.M3.N05
+- video_nula.blank1.N.3-BLANK-1.M3.N06
+- video_nula.blank1.N.3-BLANK-1.M3.N07
+- video_nula.blank1.N.3-BLANK-1.M3.N08
+- video_nula.blank1.N.3-BLANK-1.M3.N09
+- video_nula.blank1.N.3-BLANK-1.M3.N10
+- video_nula.blank1.N.3-BLANK-1.M3.N11
+- video_nula.blank1.N.3-BLANK-1.M3.N12
+- video_nula.blank1.N.3-BLANK-1.M3.N13
+- video_nula.blank1.N.3-BLANK-1.M3.N14
+- video_nula.blank1.N.3-BLANK-1.M3.N15
+- video_nula.blank1.N.3-BLANK-1.M4.N00
+- video_nula.blank1.N.3-BLANK-1.M4.N01
+- video_nula.blank1.N.3-BLANK-1.M4.N02
+- video_nula.blank1.N.3-BLANK-1.M4.N03
+- video_nula.blank1.N.3-BLANK-1.M4.N04
+- video_nula.blank1.N.3-BLANK-1.M4.N05
+- video_nula.blank1.N.3-BLANK-1.M4.N06
+- video_nula.blank1.N.3-BLANK-1.M4.N07
+- video_nula.blank1.N.3-BLANK-1.M4.N08
+- video_nula.blank1.N.3-BLANK-1.M4.N09
+- video_nula.blank1.N.3-BLANK-1.M4.N10
+- video_nula.blank1.N.3-BLANK-1.M4.N11
+- video_nula.blank1.N.3-BLANK-1.M4.N12
+- video_nula.blank1.N.3-BLANK-1.M4.N13
+- video_nula.blank1.N.3-BLANK-1.M4.N14
+- video_nula.blank1.N.3-BLANK-1.M4.N15
+- video_nula.blank1.N.3-BLANK-1.M5.N00
+- video_nula.blank1.N.3-BLANK-1.M5.N01
+- video_nula.blank1.N.3-BLANK-1.M5.N02
+- video_nula.blank1.N.3-BLANK-1.M5.N03
+- video_nula.blank1.N.3-BLANK-1.M5.N04
+- video_nula.blank1.N.3-BLANK-1.M5.N05
+- video_nula.blank1.N.3-BLANK-1.M5.N06
+- video_nula.blank1.N.3-BLANK-1.M5.N07
+- video_nula.blank1.N.3-BLANK-1.M5.N08
+- video_nula.blank1.N.3-BLANK-1.M5.N09
+- video_nula.blank1.N.3-BLANK-1.M5.N10
+- video_nula.blank1.N.3-BLANK-1.M5.N11
+- video_nula.blank1.N.3-BLANK-1.M5.N12
+- video_nula.blank1.N.3-BLANK-1.M5.N13
+- video_nula.blank1.N.3-BLANK-1.M5.N14
+- video_nula.blank1.N.3-BLANK-1.M5.N15
+- video_nula.blank1.N.3-BLANK-1.M6.N00
+- video_nula.blank1.N.3-BLANK-1.M6.N01
+- video_nula.blank1.N.3-BLANK-1.M6.N02
+- video_nula.blank1.N.3-BLANK-1.M6.N03
+- video_nula.blank1.N.3-BLANK-1.M6.N04
+- video_nula.blank1.N.3-BLANK-1.M6.N05
+- video_nula.blank1.N.3-BLANK-1.M6.N06
+- video_nula.blank1.N.3-BLANK-1.M6.N07
+- video_nula.blank1.N.3-BLANK-1.M6.N08
+- video_nula.blank1.N.3-BLANK-1.M6.N09
+- video_nula.blank1.N.3-BLANK-1.M6.N10
+- video_nula.blank1.N.3-BLANK-1.M6.N11
+- video_nula.blank1.N.3-BLANK-1.M6.N12
+- video_nula.blank1.N.3-BLANK-1.M6.N13
+- video_nula.blank1.N.3-BLANK-1.M6.N14
+- video_nula.blank1.N.3-BLANK-1.M6.N15
+- video_nula.blank1.N.3-BLANK-1.M7.N00
+- video_nula.blank1.N.3-BLANK-1.M7.N01
+- video_nula.blank1.N.3-BLANK-1.M7.N02
+- video_nula.blank1.N.3-BLANK-1.M7.N03
+- video_nula.blank1.N.3-BLANK-1.M7.N04
+- video_nula.blank1.N.3-BLANK-1.M7.N05
+- video_nula.blank1.N.3-BLANK-1.M7.N06
+- video_nula.blank1.N.3-BLANK-1.M7.N07
+- video_nula.blank1.N.3-BLANK-1.M7.N08
+- video_nula.blank1.N.3-BLANK-1.M7.N09
+- video_nula.blank1.N.3-BLANK-1.M7.N10
+- video_nula.blank1.N.3-BLANK-1.M7.N11
+- video_nula.blank1.N.3-BLANK-1.M7.N12
+- video_nula.blank1.N.3-BLANK-1.M7.N13
+- video_nula.blank1.N.3-BLANK-1.M7.N14
+- video_nula.blank1.N.3-BLANK-1.M7.N15
+- video_nula.blank1.N.3-BLANK-1.M8.N00
+- video_nula.blank1.N.3-BLANK-1.M8.N01
+- video_nula.blank1.N.3-BLANK-1.M8.N02
+- video_nula.blank1.N.3-BLANK-1.M8.N03
+- video_nula.blank1.N.3-BLANK-1.M8.N04
+- video_nula.blank1.N.3-BLANK-1.M8.N05
+- video_nula.blank1.N.3-BLANK-1.M8.N06
+- video_nula.blank1.N.3-BLANK-1.M8.N07
+- video_nula.blank1.N.3-BLANK-1.M8.N08
+- video_nula.blank1.N.3-BLANK-1.M8.N09
+- video_nula.blank1.N.3-BLANK-1.M8.N10
+- video_nula.blank1.N.3-BLANK-1.M8.N11
+- video_nula.blank1.N.3-BLANK-1.M8.N12
+- video_nula.blank1.N.3-BLANK-1.M8.N13
+- video_nula.blank1.N.3-BLANK-1.M8.N14
+- video_nula.blank1.N.3-BLANK-1.M8.N15
+- video_nula.scroll1.N.2-SCROLL-1.M0.O00
+- video_nula.scroll1.N.2-SCROLL-1.M0.O01
+- video_nula.scroll1.N.2-SCROLL-1.M0.O02
+- video_nula.scroll1.N.2-SCROLL-1.M0.O03
+- video_nula.scroll1.N.2-SCROLL-1.M0.O04
+- video_nula.scroll1.N.2-SCROLL-1.M0.O05
+- video_nula.scroll1.N.2-SCROLL-1.M0.O06
+- video_nula.scroll1.N.2-SCROLL-1.M0.O07
+- video_nula.scroll1.N.2-SCROLL-1.M0.O08
+- video_nula.scroll1.N.2-SCROLL-1.M0.O09
+- video_nula.scroll1.N.2-SCROLL-1.M0.O10
+- video_nula.scroll1.N.2-SCROLL-1.M0.O11
+- video_nula.scroll1.N.2-SCROLL-1.M0.O12
+- video_nula.scroll1.N.2-SCROLL-1.M0.O13
+- video_nula.scroll1.N.2-SCROLL-1.M0.O14
+- video_nula.scroll1.N.2-SCROLL-1.M0.O15
+- video_nula.scroll1.N.2-SCROLL-1.M1.O00
+- video_nula.scroll1.N.2-SCROLL-1.M1.O01
+- video_nula.scroll1.N.2-SCROLL-1.M1.O02
+- video_nula.scroll1.N.2-SCROLL-1.M1.O03
+- video_nula.scroll1.N.2-SCROLL-1.M1.O04
+- video_nula.scroll1.N.2-SCROLL-1.M1.O05
+- video_nula.scroll1.N.2-SCROLL-1.M1.O06
+- video_nula.scroll1.N.2-SCROLL-1.M1.O07
+- video_nula.scroll1.N.2-SCROLL-1.M1.O08
+- video_nula.scroll1.N.2-SCROLL-1.M1.O09
+- video_nula.scroll1.N.2-SCROLL-1.M1.O10
+- video_nula.scroll1.N.2-SCROLL-1.M1.O11
+- video_nula.scroll1.N.2-SCROLL-1.M1.O12
+- video_nula.scroll1.N.2-SCROLL-1.M1.O13
+- video_nula.scroll1.N.2-SCROLL-1.M1.O14
+- video_nula.scroll1.N.2-SCROLL-1.M1.O15
+- video_nula.scroll1.N.2-SCROLL-1.M2.O00
+- video_nula.scroll1.N.2-SCROLL-1.M2.O01
+- video_nula.scroll1.N.2-SCROLL-1.M2.O02
+- video_nula.scroll1.N.2-SCROLL-1.M2.O03
+- video_nula.scroll1.N.2-SCROLL-1.M2.O04
+- video_nula.scroll1.N.2-SCROLL-1.M2.O05
+- video_nula.scroll1.N.2-SCROLL-1.M2.O06
+- video_nula.scroll1.N.2-SCROLL-1.M2.O07
+- video_nula.scroll1.N.2-SCROLL-1.M2.O08
+- video_nula.scroll1.N.2-SCROLL-1.M2.O09
+- video_nula.scroll1.N.2-SCROLL-1.M2.O10
+- video_nula.scroll1.N.2-SCROLL-1.M2.O11
+- video_nula.scroll1.N.2-SCROLL-1.M2.O12
+- video_nula.scroll1.N.2-SCROLL-1.M2.O13
+- video_nula.scroll1.N.2-SCROLL-1.M2.O14
+- video_nula.scroll1.N.2-SCROLL-1.M2.O15
+- video_nula.scroll1.N.2-SCROLL-1.M3.O00
+- video_nula.scroll1.N.2-SCROLL-1.M3.O01
+- video_nula.scroll1.N.2-SCROLL-1.M3.O02
+- video_nula.scroll1.N.2-SCROLL-1.M3.O03
+- video_nula.scroll1.N.2-SCROLL-1.M3.O04
+- video_nula.scroll1.N.2-SCROLL-1.M3.O05
+- video_nula.scroll1.N.2-SCROLL-1.M3.O06
+- video_nula.scroll1.N.2-SCROLL-1.M3.O07
+- video_nula.scroll1.N.2-SCROLL-1.M3.O08
+- video_nula.scroll1.N.2-SCROLL-1.M3.O09
+- video_nula.scroll1.N.2-SCROLL-1.M3.O10
+- video_nula.scroll1.N.2-SCROLL-1.M3.O11
+- video_nula.scroll1.N.2-SCROLL-1.M3.O12
+- video_nula.scroll1.N.2-SCROLL-1.M3.O13
+- video_nula.scroll1.N.2-SCROLL-1.M3.O14
+- video_nula.scroll1.N.2-SCROLL-1.M3.O15
+- video_nula.scroll1.N.2-SCROLL-1.M4.O00
+- video_nula.scroll1.N.2-SCROLL-1.M4.O01
+- video_nula.scroll1.N.2-SCROLL-1.M4.O02
+- video_nula.scroll1.N.2-SCROLL-1.M4.O03
+- video_nula.scroll1.N.2-SCROLL-1.M4.O04
+- video_nula.scroll1.N.2-SCROLL-1.M4.O05
+- video_nula.scroll1.N.2-SCROLL-1.M4.O06
+- video_nula.scroll1.N.2-SCROLL-1.M4.O07
+- video_nula.scroll1.N.2-SCROLL-1.M4.O08
+- video_nula.scroll1.N.2-SCROLL-1.M4.O09
+- video_nula.scroll1.N.2-SCROLL-1.M4.O10
+- video_nula.scroll1.N.2-SCROLL-1.M4.O11
+- video_nula.scroll1.N.2-SCROLL-1.M4.O12
+- video_nula.scroll1.N.2-SCROLL-1.M4.O13
+- video_nula.scroll1.N.2-SCROLL-1.M4.O14
+- video_nula.scroll1.N.2-SCROLL-1.M4.O15
+- video_nula.scroll1.N.2-SCROLL-1.M5.O00
+- video_nula.scroll1.N.2-SCROLL-1.M5.O01
+- video_nula.scroll1.N.2-SCROLL-1.M5.O02
+- video_nula.scroll1.N.2-SCROLL-1.M5.O03
+- video_nula.scroll1.N.2-SCROLL-1.M5.O04
+- video_nula.scroll1.N.2-SCROLL-1.M5.O05
+- video_nula.scroll1.N.2-SCROLL-1.M5.O06
+- video_nula.scroll1.N.2-SCROLL-1.M5.O07
+- video_nula.scroll1.N.2-SCROLL-1.M5.O08
+- video_nula.scroll1.N.2-SCROLL-1.M5.O09
+- video_nula.scroll1.N.2-SCROLL-1.M5.O10
+- video_nula.scroll1.N.2-SCROLL-1.M5.O11
+- video_nula.scroll1.N.2-SCROLL-1.M5.O12
+- video_nula.scroll1.N.2-SCROLL-1.M5.O13
+- video_nula.scroll1.N.2-SCROLL-1.M5.O14
+- video_nula.scroll1.N.2-SCROLL-1.M5.O15
+- video_nula.scroll1.N.2-SCROLL-1.M6.O00
+- video_nula.scroll1.N.2-SCROLL-1.M6.O01
+- video_nula.scroll1.N.2-SCROLL-1.M6.O02
+- video_nula.scroll1.N.2-SCROLL-1.M6.O03
+- video_nula.scroll1.N.2-SCROLL-1.M6.O04
+- video_nula.scroll1.N.2-SCROLL-1.M6.O05
+- video_nula.scroll1.N.2-SCROLL-1.M6.O06
+- video_nula.scroll1.N.2-SCROLL-1.M6.O07
+- video_nula.scroll1.N.2-SCROLL-1.M6.O08
+- video_nula.scroll1.N.2-SCROLL-1.M6.O09
+- video_nula.scroll1.N.2-SCROLL-1.M6.O10
+- video_nula.scroll1.N.2-SCROLL-1.M6.O11
+- video_nula.scroll1.N.2-SCROLL-1.M6.O12
+- video_nula.scroll1.N.2-SCROLL-1.M6.O13
+- video_nula.scroll1.N.2-SCROLL-1.M6.O14
+- video_nula.scroll1.N.2-SCROLL-1.M6.O15
+- video_nula.scroll1.N.2-SCROLL-1.M7.O00
+- video_nula.scroll1.N.2-SCROLL-1.M7.O01
+- video_nula.scroll1.N.2-SCROLL-1.M7.O02
+- video_nula.scroll1.N.2-SCROLL-1.M7.O03
+- video_nula.scroll1.N.2-SCROLL-1.M7.O04
+- video_nula.scroll1.N.2-SCROLL-1.M7.O05
+- video_nula.scroll1.N.2-SCROLL-1.M7.O06
+- video_nula.scroll1.N.2-SCROLL-1.M7.O07
+- video_nula.scroll1.N.2-SCROLL-1.M7.O08
+- video_nula.scroll1.N.2-SCROLL-1.M7.O09
+- video_nula.scroll1.N.2-SCROLL-1.M7.O10
+- video_nula.scroll1.N.2-SCROLL-1.M7.O11
+- video_nula.scroll1.N.2-SCROLL-1.M7.O12
+- video_nula.scroll1.N.2-SCROLL-1.M7.O13
+- video_nula.scroll1.N.2-SCROLL-1.M7.O14
+- video_nula.scroll1.N.2-SCROLL-1.M7.O15
+- video_ula.ULAMODE.C0F0M0
+- video_ula.ULAMODE.C0F0M1
+- video_ula.ULAMODE.C0F0M2
+- video_ula.ULAMODE.C0F0M3
+- video_ula.ULAMODE.C0F1M0
+- video_ula.ULAMODE.C0F1M1
+- video_ula.ULAMODE.C0F1M2
+- video_ula.ULAMODE.C0F1M3
+- video_ula.ULAMODE.C1F0M0
+- video_ula.ULAMODE.C1F0M1
+- video_ula.ULAMODE.C1F0M2
+- video_ula.ULAMODE.C1F0M3
+- video_ula.ULAMODE.C1F1M0
+- video_ula.ULAMODE.C1F1M1
+- video_ula.ULAMODE.C1F1M2
+- video_ula.ULAMODE.C1F1M3
+
+** timings (before)
+
+| Test                         |  Time |
+|------------------------------+-------|
+| 6502_basic_tests             |  0.23 |
+| b2/test_http                 |  0.08 |
+| b2/test_JobQueue             |  0.15 |
+| b2/test_UTF8                 |  0.12 |
+| klaus                        |  5.93 |
+| lorenz                       | 40.48 |
+| test_6522                    |  0.05 |
+| test_basic                   |  0.08 |
+| test_beeb_dp111              |  8.51 |
+| test_beeb_kevin_edwards      | 18.77 |
+| test_beeb_standard           | 22.66 |
+| test_beeb_teletext           |  2.67 |
+| test_beeb_tube               | 37.17 |
+| test_beeb_video_ula          | 19.64 |
+| test_CommandLineParser       |  0.03 |
+| test_enum                    |  0.04 |
+| test_load_store              |  0.03 |
+| test_log                     |  0.05 |
+| test_OutputDataBuffer        |  0.13 |
+| test_path                    |  0.05 |
+| test_relacy_OutputDataBuffer |  0.13 |
+| test_sha1                    |  0.03 |
+| tom_seddon_6502_tests        | 23.92 |
+| visual6502                   | 25.97 |
+
+** failure
+
+10:
+
+1113203 cycles
+1243251 cycles
+1374323 cycles
+1504371 cycles
+1635443 cycles
+1657971 cycles
+1737843 cycles
+1817715 cycles
+1897587 cycles
+1977459 cycles
+
+5:
+
+1113203 cycles
+1243251 cycles
+1374323 cycles
+1504371 cycles
+1635443 cycles
+
+
+* Video NuLA fixes
+
+Mode 0/3/4/6
+
+Input data:
+
+:  byte -1                          byte 0
+: +---+---+---+---+---+---+---+---++---+---+---+---+---+---+---+---+
+: | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 || 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+: +---+---+---+---+---+---+---+---++---+---+---+---+---+---+---+---+
+:       |                       |    |
+:       |                       |    +- left pixel if offset=0
+:       |                       +- left pixel if offset=1
+:       +- left pixel if offset=7
+
+Shifted right to produce screen data.
+
 * eof.

@@ -222,6 +222,17 @@ void VideoULA::DisplayEnabled() {
 
     m_pixel_buffer.values[0] = 0;
     m_pixel_buffer.values[1] = 0;
+
+    if (m_scroll_offset > 0) {
+        VideoDataUnitPixels pixels;
+        (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(&pixels);
+        if (!this->control.bits.fast_6845) {
+            (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(&pixels);
+        }
+
+        // The cursor address may have matched when the byte was being fetched,
+        // but the cursor isn't included in any byte remnant.
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
