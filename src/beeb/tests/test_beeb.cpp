@@ -1645,7 +1645,7 @@ class VideoULATest : public Test {
     }
 
     std::string GetFullName() const override {
-        return "video_ula.ULAMODE.C" + std::to_string((int)m_clock) + "F" + std::to_string((int)m_flash) + "M" + std::to_string(m_mode);
+        return "video_ula.ulamode.C" + std::to_string((int)m_clock) + ".F" + std::to_string((int)m_flash) + ".M" + std::to_string(m_mode);
     }
 
     void Run() override {
