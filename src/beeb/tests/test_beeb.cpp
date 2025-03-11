@@ -1717,7 +1717,7 @@ class VideoNuLATest : public Test {
     std::vector<std::pair<std::string, std::string>> m_vars;
 
     std::string GetNameStem() const {
-        return "video_nula." + m_category2 + "." + m_basic_name;
+        return "video_nula." + m_category2;
     }
 };
 
