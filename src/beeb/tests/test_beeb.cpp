@@ -1672,6 +1672,58 @@ class VideoULATest : public Test {
     uint8_t m_mode = 0;
 };
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class VideoNuLADetectTest : public Test {
+  public:
+    VideoNuLADetectTest(std::string full_name, bool has_nula, std::string paste_text, bool should_detect)
+        : m_full_name(std::move(full_name))
+        , m_has_nula(has_nula)
+        , m_paste_text(std::move(paste_text))
+        , m_should_detect(should_detect) {
+    }
+
+    std::string GetFullName() const override {
+        return m_full_name;
+    }
+
+    void Run() override {
+        TestBBCMicroArgs args;
+        if (m_has_nula) {
+            args.flags |= TestBBCMicroFlags_VideoNuLA;
+        }
+
+        TestBBCMicro bbc(TestBBCMicroType_BTape, args);
+
+        bbc.StartCaptureOSWRCH();
+        bbc.RunUntilOSWORD0(10.0);
+
+        bbc.LoadFile(GetTestFileName(GetBeebLinkVolumePath(), "5", "$.DETECTNULA"), 0x1900);
+
+        if (!m_paste_text.empty()) {
+            bbc.Paste(m_paste_text);
+            bbc.RunUntilOSWORD0(10.0);
+        }
+
+        bbc.Paste("OLD\rRUN\r");
+        bbc.RunUntilOSWORD0(10.0);
+
+        const uint8_t *ram = bbc.GetRAM();
+        TEST_EQ_II(m_should_detect, ram[0x8f] != 0);
+    }
+
+  protected:
+  private:
+    std::string m_full_name;
+    bool m_has_nula;
+    std::string m_paste_text;
+    bool m_should_detect;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class VideoNuLATest : public Test {
   public:
     VideoNuLATest(std::string category2, std::string basic_name, std::vector<std::pair<std::string, std::string>> vars)
@@ -1834,6 +1886,10 @@ int main(int argc, char *argv[]) {
             all_tests.push_back(std::unique_ptr<VideoNuLATest>(test));
         }
     }
+
+    all_tests.push_back(std::make_unique<VideoNuLADetectTest>("video_ula.detect_nula", false, "", false));
+    all_tests.push_back(std::make_unique<VideoNuLADetectTest>("video_nula.detect_nula.enabled", false, "", false));
+    all_tests.push_back(std::make_unique<VideoNuLADetectTest>("video_nula.detect_nula.disabled", false, "?&FE22=&50\r", false));
 
     if (options.list) {
         std::set<std::string> names;
