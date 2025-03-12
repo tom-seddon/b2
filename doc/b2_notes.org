@@ -2694,6 +2694,28 @@ Test list (including WIP):
 1635443 cycles
 
 
+** Logical palette tests for ULAMODE
+
+See https://github.com/tom-seddon/b2/issues/418
+
+Additional test cases (that currently fail):
+
+#+begin_src c++
+  if (options.wip) {
+      for (int p = 0; p < 2; ++p) {
+          std::string extra_paste = strprintf("?&FE22=&%x", 0x10 + p);
+          for (int c = 0; c < 2; ++c) {
+              for (int f = 0; f < 2; ++f) {
+                  for (int m = 0; m < 4; ++m) {
+                      auto test = new VideoNuLATest(strprintf("ulamode.P%d", p), "ULAMODE", {{"C", std::to_string(c)}, {"F", std::to_string(f)}, {"M", std::to_string(m)}});
+                      all_tests.push_back(std::unique_ptr<VideoNuLATest>(test));
+                  }
+              }
+          }
+      }
+  }
+#+end_src
+
 * Video NuLA fixes
 
 Mode 0/3/4/6
