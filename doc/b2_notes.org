@@ -2733,4 +2733,24 @@ Input data:
 
 Shifted right to produce screen data.
 
+* inline =BBCMicro::GetRAM=
+
+Looks like it will be called a lot in the test BBCMicro derived class.
+See =TestBBCMicro::Update1=. But is that enough to make it a
+worthwhile change?
+
+3 runs with non inlined:
+
+: test_beeb_standard ...............   Passed   20.82 sec
+: test_beeb_standard ...............   Passed   21.60 sec
+: test_beeb_standard ...............   Passed   20.81 sec
+
+3 runs with inlined:
+
+: test_beeb_standard ...............   Passed   21.76 sec
+: test_beeb_standard ...............   Passed   21.38 sec
+: test_beeb_standard ...............   Passed   21.49 sec
+
+Not obviously!
+
 * eof.
