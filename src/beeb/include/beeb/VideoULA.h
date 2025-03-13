@@ -91,7 +91,7 @@ class VideoULA {
     uint8_t m_flash[16] = {};
     uint8_t m_nula_palette_write_state = 0;
     uint8_t m_nula_palette_write_buffer = 0;
-    uint8_t m_direct_palette = 0;
+    uint8_t m_logical_mode = 0;
     uint8_t m_disable_a1 = 0;
     uint8_t m_scroll_offset = 0;
     uint8_t m_pixel_buffer_offset = 0;

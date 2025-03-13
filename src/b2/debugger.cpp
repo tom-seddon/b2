@@ -2240,7 +2240,7 @@ class VideoULADebugWindow : public DebugUI {
             if (ImGui::CollapsingHeader("Video NuLA", nula_section_flags)) {
                 ImGui::Text("Enabled: %s", BOOL_STR(!u->m_disable_a1));
 
-                ImGui::Text("Direct palette mode: %s", BOOL_STR(u->m_direct_palette));
+                ImGui::Text("Palette mode: %s", u->m_logical_mode ? "Logical" : "Physical");
                 ImGui::Text("Scroll offset: %u", u->m_scroll_offset);
                 ImGui::Text("Blanking size: %u", u->m_blanking_size);
                 ImGui::Text("Attribute mode: %s", BOOL_STR(u->m_attribute_mode.bits.enabled));

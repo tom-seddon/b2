@@ -1636,30 +1636,58 @@ class TeletextTest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class VideoULATest : public Test {
+class VideoULAModeTest : public Test {
   public:
-    VideoULATest(bool clock, bool flash, uint8_t mode)
+    VideoULAModeTest(bool clock, bool flash, uint8_t mode, bool nula, bool nula_logical_mode)
         : m_clock(clock)
         , m_flash(flash)
-        , m_mode(mode) {
+        , m_mode(mode)
+        , m_nula(nula)
+        , m_nula_logical_mode(nula_logical_mode) {
+        TEST_FALSE(!nula && nula_logical_mode);
     }
 
     std::string GetFullName() const override {
-        return "video_ula.ulamode.C" + std::to_string((int)m_clock) + ".F" + std::to_string((int)m_flash) + ".M" + std::to_string(m_mode);
+        std::string name;
+        name += this->GetDeviceName();
+        name += ".ulamode.C" + std::to_string((int)m_clock) + ".F" + std::to_string((int)m_flash) + ".M" + std::to_string(m_mode);
+        if (m_nula) {
+            if (m_nula_logical_mode) {
+                name += ".logical";
+            } else {
+                name += ".physical";
+            }
+        }
+
+        return name;
     }
 
     void Run() override {
-        TestBBCMicro bbc(TestBBCMicroType_Master128MOS320);
+        TestBBCMicroArgs args;
+        if (m_nula) {
+            args.flags |= TestBBCMicroFlags_VideoNuLA;
+        }
+        TestBBCMicro bbc(TestBBCMicroType_Master128MOS320, args);
 
         bbc.RunUntilOSWORD0(10.0);
 
         bbc.LoadFile(GetTestFileName(GetBeebLinkVolumePath(), "5", "$.ULAMODE"), 0xe00);
 
-        bbc.Paste("C%=" + std::to_string(m_clock) + "\rF%=" + std::to_string(m_flash) + "\rM%=" + std::to_string(m_mode) + "\rOLD\rRUN\r");
+        std::string paste_text = "C%=" + std::to_string(m_clock) + "\rF%=" + std::to_string(m_flash) + "\rM%=" + std::to_string(m_mode) + "\r";
+
+        if (m_nula) {
+            if (m_nula_logical_mode) {
+                paste_text += "?&FE22=&11\r";
+            }
+        }
+
+        paste_text += "OLD\rRUN\r";
+
+        bbc.Paste(paste_text);
 
         bbc.RunUntilOSWORD0(10);
 
-        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/video_ula.ULAMODE/" + this->GetFullName() + ".png");
+        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->GetDeviceName() + ".ulamode/" + this->GetFullName() + ".png");
         RunImageTest(wanted_image_path,
                      this->GetFullName(),
                      &bbc);
@@ -1670,6 +1698,16 @@ class VideoULATest : public Test {
     bool m_clock = false;
     bool m_flash = false;
     uint8_t m_mode = 0;
+    bool m_nula = false;
+    bool m_nula_logical_mode = false;
+
+    std::string GetDeviceName() const {
+        if (m_nula) {
+            return "video_nula";
+        } else {
+            return "video_ula";
+        }
+    }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1758,7 +1796,7 @@ class VideoNuLATest : public Test {
         bbc.RunUntilOSWORD0(10);
 
         std::string png_name = this->GetFullName();
-        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->GetNameStem() + "/" + png_name + ".png");
+        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->GetNameStem() + ".ulamode/" + png_name + ".png");
         RunImageTest(wanted_image_path, png_name, &bbc);
     }
 
@@ -1865,10 +1903,26 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TeletextTest>("ENGTEST", 0x7c00, "", "engtest.png"));
     all_tests.push_back(std::make_unique<TeletextTest>("RED", 0x7c00, "", "red.png"));
     all_tests.push_back(std::make_unique<TeletextTest>("TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"));
-    for (int c = 0; c < 2; ++c) {
-        for (int f = 0; f < 2; ++f) {
-            for (int m = 0; m < 4; ++m) {
-                all_tests.push_back(std::make_unique<VideoULATest>(c != 0, f != 0, m));
+
+    for (int nula = 0; nula < 2; ++nula) {
+        for (int nula_logical = 0; nula_logical < 2; ++nula_logical) {
+            if (!nula && nula_logical) {
+                // Irrelevant case. The ordinary Video ULA only has one palette
+                // mode.
+                continue;
+            }
+
+            if (nula && nula_logical && !options.wip) {
+                // TODO...
+                continue;
+            }
+
+            for (int c = 0; c < 2; ++c) {
+                for (int f = 0; f < 2; ++f) {
+                    for (int m = 0; m < 4; ++m) {
+                        all_tests.push_back(std::make_unique<VideoULAModeTest>(c != 0, f != 0, m, nula != 0, nula_logical != 0));
+                    }
+                }
             }
         }
     }

@@ -107,8 +107,8 @@ void VideoULA::WriteNuLAControlRegister(void *ula_, M6502Word a, uint8_t value) 
         switch (code) {
         case 1:
             // Toggle direct palette mode.
-            ula->m_direct_palette = param;
-            TRACEF(ula->m_trace, "NuLA Control: Direct Palette=%s\n", BOOL_STR(ula->m_direct_palette));
+            ula->m_logical_mode = param & 1;
+            TRACEF(ula->m_trace, "NuLA Control: Logical Mode=%s\n", BOOL_STR(ula->m_logical_mode));
             break;
 
         case 2:
@@ -312,8 +312,8 @@ void VideoULA::ResetNuLAState() {
     m_scroll_offset = 0;
     m_blanking_size = 0;
 
-    // Don't use direct palette.
-    m_direct_palette = 0;
+    // Use physical mode mapping by default.
+    m_logical_mode = 0;
 
     // Reset palette write state.
     m_nula_palette_write_state = 0;
@@ -326,7 +326,7 @@ void VideoULA::ResetNuLAState() {
 //////////////////////////////////////////////////////////////////////////
 
 VideoDataPixel VideoULA::GetPalette(uint8_t index) {
-    if (!m_direct_palette) {
+    if (!m_logical_mode) {
         index = m_palette[index];
 
         if (m_flash[index]) {
