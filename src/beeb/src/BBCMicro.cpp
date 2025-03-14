@@ -2383,6 +2383,8 @@ void BBCMicro::InitStuff() {
         m_state.fdc.SetHandler(nullptr);
     }
 
+    m_state.video_ula.InitStuff();
+
     m_state.system_via.SetID(BBCMicroVIAID_SystemVIA, "SystemVIA");
     m_state.user_via.SetID(BBCMicroVIAID_UserVIA, "UserVIA");
 

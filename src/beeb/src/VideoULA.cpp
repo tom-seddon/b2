@@ -77,6 +77,8 @@ void VideoULA::WriteControlRegister(void *ula_, M6502Word a, uint8_t value) {
         TRACEF(ula->m_trace, "ULA Control: Flash=%s Teletext=%s Line Width=%d Fast6845=%s Cursor=%d\n", BOOL_STR(ula->control.bits.flash), BOOL_STR(ula->control.bits.teletext), ula->control.bits.line_width, BOOL_STR(ula->control.bits.fast_6845), ula->control.bits.cursor);
 
         ula->UpdatePixelBufferOffset();
+
+        ula->UpdateEmitMFn();
     }
 }
 
@@ -138,12 +140,14 @@ void VideoULA::WriteNuLAControlRegister(void *ula_, M6502Word a, uint8_t value) 
             // Attribute modes on/off.
             ula->m_attribute_mode.bits.enabled = !!param;
             TRACEF(ula->m_trace, "NuLA Control: Attribute Mode=%s\n", BOOL_STR(ula->m_attribute_mode.bits.enabled));
+            ula->UpdateEmitMFn();
             break;
 
         case 7:
             // Text attribute modes on/off.
             ula->m_attribute_mode.bits.text = !!param;
             TRACEF(ula->m_trace, "NuLA Control: Text Attribute Mode=%s\n", BOOL_STR(ula->m_attribute_mode.bits.text));
+            ula->UpdateEmitMFn();
             break;
 
         case 8:
@@ -216,6 +220,13 @@ VideoULA::VideoULA() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void VideoULA::InitStuff() {
+    this->UpdateEmitMFn();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void VideoULA::DisplayEnabled() {
     // 1 fractional bit - it counts halves in slow clock mode.
     m_blanking_counter = m_blanking_size << 1;
@@ -251,7 +262,7 @@ void VideoULA::Byte(uint8_t byte, uint8_t cudisp) {
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::EmitPixels(VideoDataUnitPixels *pixels) {
-    (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(pixels);
+    (this->*m_emit_mfn)(pixels);
 
     this->cursor_pattern >>= 1 + this->control.bits.fast_6845;
 
@@ -698,6 +709,13 @@ void VideoULA::EmitNothing(VideoDataUnitPixels *pixels) {
         pixels->values[0] ^= 0x0fff0fff0fff0fffull;
         pixels->values[1] ^= 0x0fff0fff0fff0fffull;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void VideoULA::UpdateEmitMFn() {
+    m_emit_mfn = EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width];
 }
 
 //////////////////////////////////////////////////////////////////////////

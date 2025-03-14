@@ -53,6 +53,7 @@ class VideoULA {
     // be handled.)
     bool nula = false;
 
+    // For reading only. Writes must be performed through WriteControlRegister.
     Control control = {};
 
     VideoDataPixel output_palette[16] = {};
@@ -68,6 +69,11 @@ class VideoULA {
 
     VideoULA();
 
+    // Not a great name, but it's called from BBCMicro::InitStuff, soooo...
+    //
+    // Could do with rationalizing this a bit, maybe.
+    void InitStuff();
+
     void DisplayEnabled();
 
     void Byte(uint8_t byte, uint8_t cudisp);
@@ -80,6 +86,8 @@ class VideoULA {
 #endif
   protected:
   private:
+    typedef void (VideoULA::*EmitMFn)(VideoDataUnitPixels *);
+
     union PixelBuffer {
         uint64_t values[8];
         VideoDataPixel pixels[32];
@@ -102,6 +110,7 @@ class VideoULA {
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
 #endif
+    EmitMFn m_emit_mfn = nullptr;
 
     void UpdatePixelBufferOffset();
 
@@ -123,8 +132,8 @@ class VideoULA {
     void EmitNuLAAttributeTextMode0(VideoDataUnitPixels *pixels);
     void EmitNothing(VideoDataUnitPixels *pixels);
 
+    void UpdateEmitMFn();
 
-    typedef void (VideoULA::*EmitMFn)(VideoDataUnitPixels *);
     static const EmitMFn EMIT_MFNS[4][2][4];
     //static const EmitMFn NULA_EMIT_MFNS[2][4];
 
