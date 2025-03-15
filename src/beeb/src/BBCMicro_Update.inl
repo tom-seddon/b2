@@ -476,11 +476,7 @@ parasite_update_done:
                     this->UpdateMapperRegion(m_state.cpu.abus.w & 0xf);
                 }
             } else {
-#ifdef _MSC_VER
-                // TODO can probably perform this check without relying
-                // on VC++'s non-standard template instantiation...
-                static_assert(false, "unhandled ROMType");
-#endif
+                unhandled_ROMType_case;
             }
 
             M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - 0xfc00u)};
