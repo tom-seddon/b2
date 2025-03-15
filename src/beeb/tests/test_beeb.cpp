@@ -1796,7 +1796,7 @@ class VideoNuLATest : public Test {
         bbc.RunUntilOSWORD0(10);
 
         std::string png_name = this->GetFullName();
-        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->GetNameStem() + ".ulamode/" + png_name + ".png");
+        std::string wanted_image_path = PathJoined(b2_SOURCE_DIR, "etc", "b2_tests/5/wanted_images/" + this->GetNameStem() + "/" + png_name + ".png");
         RunImageTest(wanted_image_path, png_name, &bbc);
     }
 
