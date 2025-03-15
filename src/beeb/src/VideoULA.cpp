@@ -15,6 +15,11 @@ LOG_TAGGED_DEFINE(VU, "video", "VIDULA", &log_printer_stdout_and_debugger, false
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const uint64_t ULA_CURSOR_XOR = 0x0fff0fff0fff0fffull;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // The cursor pattern is spread over the next 4 displayed columns.
 //
 // <pre>
@@ -236,9 +241,9 @@ void VideoULA::DisplayEnabled() {
 
     if (m_scroll_offset > 0) {
         VideoDataUnitPixels pixels;
-        (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(&pixels);
+        (this->*m_emit_mfn)(&pixels);
         if (!this->control.bits.fast_6845) {
-            (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(&pixels);
+            (this->*m_emit_mfn)(&pixels);
         }
 
         // The cursor address may have matched when the byte was being fetched,
@@ -353,14 +358,35 @@ VideoDataPixel VideoULA::GetPalette(uint8_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-VideoDataPixel VideoULA::Shift() {
+VideoDataPixel VideoULA::ShiftNuLAPhysical() {
     uint8_t index = m_work_byte;
     index = ((index >> 1) & 1) | ((index >> 2) & 2) | ((index >> 3) & 4) | ((index >> 4) & 8);
 
     m_work_byte <<= 1;
     m_work_byte |= 1;
 
-    return this->GetPalette(index);
+    index = m_palette[index];
+
+    if (m_flash[index]) {
+        if (this->control.bits.flash) {
+            index ^= 7;
+        }
+    }
+
+    return this->output_palette[index];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint16_t VideoULA::ShiftULA() {
+    uint8_t index = m_work_byte;
+    index = ((index >> 1) & 1) | ((index >> 2) & 2) | ((index >> 3) & 4) | ((index >> 4) & 8);
+
+    m_work_byte <<= 1;
+    m_work_byte |= 1;
+
+    return ULA_PALETTE[this->control.bits.flash][index];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -404,19 +430,10 @@ VideoDataPixel VideoULA::ShiftAttributeText() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit2MHz(VideoDataUnitPixels *pixels) {
+void VideoULA::EmitNuLAPhysical2MHz(VideoDataUnitPixels *pixels) {
     VideoDataPixel *dest = &m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
-    VideoDataPixel pixel = this->Shift();
-
-    dest[0] = pixel;
-    dest[1] = pixel;
-    dest[2] = pixel;
-    dest[3] = pixel;
-    dest[4] = pixel;
-    dest[5] = pixel;
-    dest[6] = pixel;
-    dest[7] = pixel;
+    dest[7] = dest[6] = dest[5] = dest[4] = dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLAPhysical();
 
     if (this->cursor_pattern & 1) {
         dest[0].all ^= 0x0fff;
@@ -443,22 +460,11 @@ void VideoULA::Emit2MHz(VideoDataUnitPixels *pixels) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit4MHz(VideoDataUnitPixels *pixels) {
+void VideoULA::EmitNuLAPhysical4MHz(VideoDataUnitPixels *pixels) {
     VideoDataPixel *dest = &m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
-    VideoDataPixel pixel;
-
-    pixel = this->Shift();
-    dest[0] = pixel;
-    dest[1] = pixel;
-    dest[2] = pixel;
-    dest[3] = pixel;
-
-    pixel = this->Shift();
-    dest[4] = pixel;
-    dest[5] = pixel;
-    dest[6] = pixel;
-    dest[7] = pixel;
+    dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLAPhysical();
+    dest[7] = dest[6] = dest[5] = dest[4] = this->ShiftNuLAPhysical();
 
     if (this->cursor_pattern & 1) {
         dest[0].all ^= 0x0fff;
@@ -485,26 +491,13 @@ void VideoULA::Emit4MHz(VideoDataUnitPixels *pixels) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit8MHz(VideoDataUnitPixels *pixels) {
+void VideoULA::EmitNuLAPhysical8MHz(VideoDataUnitPixels *pixels) {
     VideoDataPixel *dest = &m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
-    VideoDataPixel pixel;
-
-    pixel = this->Shift();
-    dest[0] = pixel;
-    dest[1] = pixel;
-
-    pixel = this->Shift();
-    dest[2] = pixel;
-    dest[3] = pixel;
-
-    pixel = this->Shift();
-    dest[4] = pixel;
-    dest[5] = pixel;
-
-    pixel = this->Shift();
-    dest[6] = pixel;
-    dest[7] = pixel;
+    dest[1] = dest[0] = this->ShiftNuLAPhysical();
+    dest[3] = dest[2] = this->ShiftNuLAPhysical();
+    dest[5] = dest[4] = this->ShiftNuLAPhysical();
+    dest[7] = dest[6] = this->ShiftNuLAPhysical();
 
     if (this->cursor_pattern & 1) {
         dest[0].all ^= 0x0fff;
@@ -531,34 +524,17 @@ void VideoULA::Emit8MHz(VideoDataUnitPixels *pixels) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit16MHz(VideoDataUnitPixels *pixels) {
+void VideoULA::EmitNuLAPhysical16MHz(VideoDataUnitPixels *pixels) {
     VideoDataPixel *dest = &m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
-    VideoDataPixel pixel;
-
-    pixel = this->Shift();
-    dest[0] = pixel;
-
-    pixel = this->Shift();
-    dest[1] = pixel;
-
-    pixel = this->Shift();
-    dest[2] = pixel;
-
-    pixel = this->Shift();
-    dest[3] = pixel;
-
-    pixel = this->Shift();
-    dest[4] = pixel;
-
-    pixel = this->Shift();
-    dest[5] = pixel;
-
-    pixel = this->Shift();
-    dest[6] = pixel;
-
-    pixel = this->Shift();
-    dest[7] = pixel;
+    dest[0] = this->ShiftNuLAPhysical();
+    dest[1] = this->ShiftNuLAPhysical();
+    dest[2] = this->ShiftNuLAPhysical();
+    dest[3] = this->ShiftNuLAPhysical();
+    dest[4] = this->ShiftNuLAPhysical();
+    dest[5] = this->ShiftNuLAPhysical();
+    dest[6] = this->ShiftNuLAPhysical();
+    dest[7] = this->ShiftNuLAPhysical();
 
     if (this->cursor_pattern & 1) {
         dest[0].all ^= 0x0fff;
@@ -714,87 +690,206 @@ void VideoULA::EmitNothing(VideoDataUnitPixels *pixels) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::UpdateEmitMFn() {
-    m_emit_mfn = EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width];
+void VideoULA::EmitULA2MHz(VideoDataUnitPixels *pixels) {
+    pixels->pixels[7].all = pixels->pixels[6].all = pixels->pixels[5].all = pixels->pixels[4].all = pixels->pixels[3].all = pixels->pixels[2].all = pixels->pixels[1].all = pixels->pixels[0].all = this->ShiftULA();
+
+    if (this->cursor_pattern & 1) {
+        pixels->values[0] ^= ULA_CURSOR_XOR;
+        pixels->values[1] ^= ULA_CURSOR_XOR;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const VideoULA::EmitMFn VideoULA::EMIT_MFNS[4][2][4] = {
-    // Not attribute mode, not text attribute mode
-    {
-        // Slow 6845
-        {
-            &VideoULA::Emit2MHz,
-            &VideoULA::Emit4MHz,
-            &VideoULA::Emit8MHz,
-            &VideoULA::Emit16MHz,
-        },
+void VideoULA::EmitULA4MHz(VideoDataUnitPixels *pixels) {
+    pixels->pixels[3].all = pixels->pixels[2].all = pixels->pixels[1].all = pixels->pixels[0].all = this->ShiftULA();
+    pixels->pixels[7].all = pixels->pixels[5].all = pixels->pixels[6].all = pixels->pixels[4].all = this->ShiftULA();
 
-        // Fast 6845
-        {
-            &VideoULA::Emit2MHz,
-            &VideoULA::Emit4MHz,
-            &VideoULA::Emit8MHz,
-            &VideoULA::Emit16MHz,
-        },
+    if (this->cursor_pattern & 1) {
+        pixels->values[0] ^= ULA_CURSOR_XOR;
+        pixels->values[1] ^= ULA_CURSOR_XOR;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void VideoULA::EmitULA8MHz(VideoDataUnitPixels *pixels) {
+    pixels->pixels[1].all = pixels->pixels[0].all = this->ShiftULA();
+    pixels->pixels[3].all = pixels->pixels[2].all = this->ShiftULA();
+    pixels->pixels[5].all = pixels->pixels[4].all = this->ShiftULA();
+    pixels->pixels[7].all = pixels->pixels[6].all = this->ShiftULA();
+
+    if (this->cursor_pattern & 1) {
+        pixels->values[0] ^= ULA_CURSOR_XOR;
+        pixels->values[1] ^= ULA_CURSOR_XOR;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void VideoULA::EmitULA16MHz(VideoDataUnitPixels *pixels) {
+    pixels->pixels[0].all = this->ShiftULA();
+    pixels->pixels[1].all = this->ShiftULA();
+    pixels->pixels[2].all = this->ShiftULA();
+    pixels->pixels[3].all = this->ShiftULA();
+    pixels->pixels[4].all = this->ShiftULA();
+    pixels->pixels[5].all = this->ShiftULA();
+    pixels->pixels[6].all = this->ShiftULA();
+    pixels->pixels[7].all = this->ShiftULA();
+
+    if (this->cursor_pattern & 1) {
+        pixels->values[0] ^= ULA_CURSOR_XOR;
+        pixels->values[1] ^= ULA_CURSOR_XOR;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void VideoULA::UpdateEmitMFn() {
+    if (this->nula) {
+        // TODO: first subscript is intended to be m_logical_mode
+        m_emit_mfn = NULA_EMIT_MFNS[0][m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width];
+    } else {
+        m_emit_mfn = ULA_EMIT_MFNS[this->control.bits.line_width];
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const uint16_t VideoULA::ULA_PALETTE[2][16] = {
+    {
+        0x0000,
+        0x0f00,
+        0x00f0,
+        0x0ff0,
+        0x000f,
+        0x0f0f,
+        0x00ff,
+        0x0fff,
+        0x0000,
+        0x0f00,
+        0x00f0,
+        0x0ff0,
+        0x000f,
+        0x0f0f,
+        0x00ff,
+        0x0fff,
     },
-
-    // Attribute mode, not text attribute mode
     {
-        // Slow 6845
-        {
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNuLAAttributeMode4,
-            &VideoULA::EmitNothing,
-        },
-
-        // Fast 6845
-        {
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNuLAAttributeMode1,
-            &VideoULA::EmitNuLAAttributeMode0,
-        },
+        0x0000,
+        0x0f00,
+        0x00f0,
+        0x0ff0,
+        0x000f,
+        0x0f0f,
+        0x00ff,
+        0x0fff,
+        0x0fff,
+        0x00ff,
+        0x0f0f,
+        0x000f,
+        0x0ff0,
+        0x00f0,
+        0x0f00,
+        0x0000,
     },
+};
 
-    // Not attribute mode, text attribute mode
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const VideoULA::EmitMFn VideoULA::ULA_EMIT_MFNS[4] = {
+    &VideoULA::EmitULA2MHz,
+    &VideoULA::EmitULA4MHz,
+    &VideoULA::EmitULA8MHz,
+    &VideoULA::EmitULA16MHz,
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const VideoULA::EmitMFn VideoULA::NULA_EMIT_MFNS[2][4][2][4] = {
+    // Physical palette mode
     {
-        // Slow 6845
+        // Not attribute mode, not text attribute mode
         {
-            &VideoULA::Emit2MHz,
-            &VideoULA::Emit4MHz,
-            &VideoULA::Emit8MHz,
-            &VideoULA::Emit16MHz,
+            // Slow 6845
+            {
+                &VideoULA::EmitNuLAPhysical2MHz,
+                &VideoULA::EmitNuLAPhysical4MHz,
+                &VideoULA::EmitNuLAPhysical8MHz,
+                &VideoULA::EmitNuLAPhysical16MHz,
+            },
+
+            // Fast 6845
+            {
+                &VideoULA::EmitNuLAPhysical2MHz,
+                &VideoULA::EmitNuLAPhysical4MHz,
+                &VideoULA::EmitNuLAPhysical8MHz,
+                &VideoULA::EmitNuLAPhysical16MHz,
+            },
         },
 
-        // Fast 6845
+        // Attribute mode, not text attribute mode
         {
-            &VideoULA::Emit2MHz,
-            &VideoULA::Emit4MHz,
-            &VideoULA::Emit8MHz,
-            &VideoULA::Emit16MHz,
-        },
-    },
+            // Slow 6845
+            {
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNuLAAttributeMode4,
+                &VideoULA::EmitNothing,
+            },
 
-    // Attribute mode, text attribute mode
-    {
-        // Slow 6845
-        {
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNuLAAttributeTextMode4,
-            &VideoULA::EmitNothing,
+            // Fast 6845
+            {
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNuLAAttributeMode1,
+                &VideoULA::EmitNuLAAttributeMode0,
+            },
         },
 
-        // Fast 6845
+        // Not attribute mode, text attribute mode
         {
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNothing,
-            &VideoULA::EmitNuLAAttributeTextMode0,
+            // Slow 6845
+            {
+                &VideoULA::EmitNuLAPhysical2MHz,
+                &VideoULA::EmitNuLAPhysical4MHz,
+                &VideoULA::EmitNuLAPhysical8MHz,
+                &VideoULA::EmitNuLAPhysical16MHz,
+            },
+
+            // Fast 6845
+            {
+                &VideoULA::EmitNuLAPhysical2MHz,
+                &VideoULA::EmitNuLAPhysical4MHz,
+                &VideoULA::EmitNuLAPhysical8MHz,
+                &VideoULA::EmitNuLAPhysical16MHz,
+            },
+        },
+
+        // Attribute mode, text attribute mode
+        {
+            // Slow 6845
+            {
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNuLAAttributeTextMode4,
+                &VideoULA::EmitNothing,
+            },
+
+            // Fast 6845
+            {
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNothing,
+                &VideoULA::EmitNuLAAttributeTextMode0,
+            },
         },
     },
 };

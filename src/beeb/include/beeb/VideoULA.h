@@ -48,9 +48,6 @@ class VideoULA {
     // The NuLA/non-NuLA differences are handled by simply never mapping the
     // NuLA control registers in non-NuLA. This flag exists just so the debug
     // window can query it and hide the NuLA state.
-    //
-    // (Eventually, maybe the slightly different NuLA cursor handling should
-    // be handled.)
     bool nula = false;
 
     // For reading only. Writes must be performed through WriteControlRegister.
@@ -116,26 +113,32 @@ class VideoULA {
 
     void ResetNuLAState();
     VideoDataPixel GetPalette(uint8_t index);
-    VideoDataPixel Shift();
+    VideoDataPixel ShiftNuLAPhysical();
+    uint16_t ShiftULA();
     VideoDataPixel ShiftAttributeMode0();
     VideoDataPixel ShiftAttributeMode1();
     VideoDataPixel ShiftAttributeText();
 
-    void Emit2MHz(VideoDataUnitPixels *pixels);
-    void Emit4MHz(VideoDataUnitPixels *pixels);
-    void Emit8MHz(VideoDataUnitPixels *pixels);
-    void Emit16MHz(VideoDataUnitPixels *pixels);
+    void EmitNuLAPhysical2MHz(VideoDataUnitPixels *pixels);
+    void EmitNuLAPhysical4MHz(VideoDataUnitPixels *pixels);
+    void EmitNuLAPhysical8MHz(VideoDataUnitPixels *pixels);
+    void EmitNuLAPhysical16MHz(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode0(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode1(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode4(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeTextMode4(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeTextMode0(VideoDataUnitPixels *pixels);
     void EmitNothing(VideoDataUnitPixels *pixels);
+    void EmitULA2MHz(VideoDataUnitPixels *pixels);
+    void EmitULA4MHz(VideoDataUnitPixels *pixels);
+    void EmitULA8MHz(VideoDataUnitPixels *pixels);
+    void EmitULA16MHz(VideoDataUnitPixels *pixels);
 
     void UpdateEmitMFn();
 
-    static const EmitMFn EMIT_MFNS[4][2][4];
-    //static const EmitMFn NULA_EMIT_MFNS[2][4];
+    static const uint16_t ULA_PALETTE[2][16];
+    static const EmitMFn ULA_EMIT_MFNS[4];
+    static const EmitMFn NULA_EMIT_MFNS[2][4][2][4];
 
 #if BBCMICRO_DEBUGGER
     friend class VideoULADebugWindow;
