@@ -1912,11 +1912,6 @@ int main(int argc, char *argv[]) {
                 continue;
             }
 
-            if (nula && nula_logical && !options.wip) {
-                // TODO...
-                continue;
-            }
-
             for (int c = 0; c < 2; ++c) {
                 for (int f = 0; f < 2; ++f) {
                     for (int m = 0; m < 4; ++m) {
