@@ -1830,10 +1830,10 @@ static Options GetOptions(int argc, char *argv[]) {
     bool help;
     p.AddHelpOption(&help);
 
-    std::vector<std::string> test_name_regex_strs;
+    std::vector<std::string> test_name_patterns;
 
     p.AddOption('t', "test").Meta("TEST").AddArgToList(&options.test_name_strs).Help("run test(s) matching TEST, a case-insensitive string");
-    p.AddOption('T', "test-regexp").Meta("TEST").AddArgToList(&test_name_regex_strs).Help("run test(s) matching TEST, a case-insensitive regular expression");
+    p.AddOption('T', "test-pattern").Meta("TEST").AddArgToList(&test_name_patterns).Help("run test(s) matching TEST, a case-insensitive glob pattern");
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
@@ -1846,7 +1846,21 @@ static Options GetOptions(int argc, char *argv[]) {
         exit(0);
     }
 
-    for (const std::string &test_name_regex_str : test_name_regex_strs) {
+    for (const std::string &test_name_pattern : test_name_patterns) {
+        std::string test_name_regex_str;
+        for (char c : test_name_pattern) {
+            if (isdigit(c) || isalpha(c) || c == '_') {
+                test_name_regex_str.push_back(c);
+            } else if (c == '.') {
+                test_name_regex_str += "\\.";
+            } else if (c == '*') {
+                test_name_regex_str += ".*";
+            } else {
+                fprintf(stderr, "FATAL: unsupported pattern: %s\n", test_name_pattern.c_str());
+                exit(1);
+            }
+        }
+
         try {
             options.test_name_regexes.push_back(std::regex(test_name_regex_str, std::regex_constants::icase | std::regex_constants::extended));
         } catch (const std::regex_error &e) {
