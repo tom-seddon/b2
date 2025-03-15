@@ -113,16 +113,15 @@ class VideoULA {
 
     void ResetNuLAState();
     VideoDataPixel GetPalette(uint8_t index);
-    VideoDataPixel ShiftNuLAPhysical();
+    template <bool LOGICAL, int BPP>
+    VideoDataPixel ShiftNuLA();
     uint16_t ShiftULA();
     VideoDataPixel ShiftAttributeMode0();
     VideoDataPixel ShiftAttributeMode1();
     VideoDataPixel ShiftAttributeText();
 
-    void EmitNuLAPhysical2MHz(VideoDataUnitPixels *pixels);
-    void EmitNuLAPhysical4MHz(VideoDataUnitPixels *pixels);
-    void EmitNuLAPhysical8MHz(VideoDataUnitPixels *pixels);
-    void EmitNuLAPhysical16MHz(VideoDataUnitPixels *pixels);
+    template <bool LOGICAL, int MHz, bool FAST>
+    void EmitNuLA(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode0(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode1(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode4(VideoDataUnitPixels *pixels);

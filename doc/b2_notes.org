@@ -2716,7 +2716,7 @@ Additional test cases (that currently fail):
   }
 #+end_src
 
-* Video NuLA fixes
+* Video NuLA scrolling fixes
 
 Mode 0/3/4/6
 
@@ -2732,6 +2732,8 @@ Input data:
 :       +- left pixel if offset=7
 
 Shifted right to produce screen data.
+
+
 
 * inline =BBCMicro::GetRAM=
 
@@ -2752,5 +2754,18 @@ worthwhile change?
 : test_beeb_standard ...............   Passed   21.49 sec
 
 Not obviously!
+
+* Video NuLA modes
+
+| Fast | Rate | BPP |
+|------+------+-----|
+|    0 |    2 |   4 |
+|    0 |    4 |   2 |
+|    0 |    8 |   1 |
+|    0 |   16 |   1 |
+|    1 |    2 |   4 |
+|    1 |    4 |   4 |
+|    1 |    8 |   2 |
+|    1 |   16 |   1 |
 
 * eof.
