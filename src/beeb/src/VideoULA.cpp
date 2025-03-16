@@ -7,6 +7,14 @@
 #include <shared/log.h>
 #include <beeb/Trace.h>
 
+#include <shared/enum_decl.h>
+#include "VideoULA_private.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "VideoULA_private.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -144,15 +152,15 @@ void VideoULA::WriteNuLAControlRegister(void *ula_, M6502Word a, uint8_t value) 
 
         case 6:
             // Attribute modes on/off.
-            ula->m_attribute_mode.bits.enabled = !!param;
-            TRACEF(ula->m_trace, "NuLA Control: Attribute Mode=%s\n", BOOL_STR(ula->m_attribute_mode.bits.enabled));
+            ula->m_attribute_mode = param & 3;
+            TRACEF(ula->m_trace, "NuLA Control: Attribute Mode=%d\n", ula->m_attribute_mode);
             ula->UpdateEmitMFn();
             break;
 
         case 7:
             // Text attribute modes on/off.
-            ula->m_attribute_mode.bits.text = !!param;
-            TRACEF(ula->m_trace, "NuLA Control: Text Attribute Mode=%s\n", BOOL_STR(ula->m_attribute_mode.bits.text));
+            ula->m_text_attribute_mode = param & 1;
+            TRACEF(ula->m_trace, "NuLA Control: Text Attribute Mode=%s\n", BOOL_STR(ula->m_text_attribute_mode));
             ula->UpdateEmitMFn();
             break;
 
@@ -451,14 +459,20 @@ VideoDataPixel VideoULA::ShiftAttributeText() {
 // CRTC clock, 16 MHz shift rate), only bit 7 of the shifted byte is used - and
 // so on. But the resulting combinations aren't quite regular, as the bits per
 // pixel is now a function of the CRTC clock rate too.
-template <bool LOGICAL, int MHz, bool FAST>
+//
+// TODO though I'm probably just not quite modelling this right...
+template <uint32_t FLAGS> //bool LOGICAL, int MHz, bool FAST>
 void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
     VideoDataPixel *dest = &m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
-    if constexpr (MHz == 2) {
+    static constexpr uint32_t MODE = FLAGS >> VideoNuLAModeFlag_ModeShift & VideoNuLAModeFlag_ModeMask;
+    static constexpr bool FAST = !!(FLAGS & VideoNuLAModeFlag_Fast6845);
+    static constexpr bool LOGICAL = !!(FLAGS & VideoNuLAModeFlag_LogicalPalette);
+
+    if constexpr (MODE == 0) {
         // 80 px
         dest[7] = dest[6] = dest[5] = dest[4] = dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 4>();
-    } else if constexpr (MHz == 4) {
+    } else if constexpr (MODE == 1) {
         // 160 px
         if constexpr (FAST) {
             dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 4>();
@@ -467,7 +481,7 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
             dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 2>();
             dest[7] = dest[6] = dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 2>();
         }
-    } else if constexpr (MHz == 8) {
+    } else if constexpr (MODE == 2) {
         // 320 px
         if constexpr (FAST) {
             dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 2>();
@@ -480,7 +494,7 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
             dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 1>();
             dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 1>();
         }
-    } else if constexpr (MHz == 16) {
+    } else if constexpr (MODE == 3) {
         // 640 px
         if constexpr (FAST) {
             dest[0] = this->ShiftNuLA<LOGICAL, 1>();
@@ -515,7 +529,7 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
             dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 1>();
         }
     } else {
-        unhandled_EmitNuLALogical_case;
+        unhandled_EmitNuLA_case;
     }
 
     if (this->cursor_pattern & 1) {
@@ -733,7 +747,13 @@ void VideoULA::EmitULA16MHz(VideoDataUnitPixels *pixels) {
 
 void VideoULA::UpdateEmitMFn() {
     if (this->nula) {
-        m_emit_mfn = NULA_EMIT_MFNS[m_logical_mode][m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width];
+        uint32_t index = 0;
+        index |= this->control.bits.line_width << VideoNuLAModeFlag_ModeShift;
+        index |= this->control.bits.fast_6845 << VideoNuLAModeFlag_Fast6845Shift;
+        index |= m_attribute_mode << VideoNuLAModeFlag_AttributeModeShift;
+        index |= m_text_attribute_mode << VideoNuLAModeFlag_TextAttributeModeShift;
+        index |= m_logical_mode << VideoNuLAModeFlag_LogicalPaletteShift;
+        m_emit_mfn = NULA_EMIT_MFNS[index];
     } else {
         m_emit_mfn = ULA_EMIT_MFNS[this->control.bits.line_width];
     }
@@ -796,58 +816,16 @@ const VideoULA::EmitMFn VideoULA::ULA_EMIT_MFNS[4] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const VideoULA::EmitMFn VideoULA::NULA_EMIT_MFNS[2][4][2][4] = {
-    // Physical palette mode
-    {
-        // Not attribute mode, not text attribute mode
-        {
-            {&VideoULA::EmitNuLA<false, 2, false>, &VideoULA::EmitNuLA<false, 4, false>, &VideoULA::EmitNuLA<false, 8, false>, &VideoULA::EmitNuLA<false, 16, false>}, // Slow 6845
-            {&VideoULA::EmitNuLA<false, 2, true>, &VideoULA::EmitNuLA<false, 4, true>, &VideoULA::EmitNuLA<false, 8, true>, &VideoULA::EmitNuLA<false, 16, true>},     // Fast 6845
-        },
+#define EMIT1(N) &VideoULA::EmitNuLA<N>,
+#define EMIT4(BASE) \
+    EMIT1(BASE + 0) \
+    EMIT1(BASE + 1) \
+    EMIT1(BASE + 2) \
+    EMIT1(BASE + 3)
+#define EMIT16(BASE) \
+    EMIT4(BASE + 0)  \
+    EMIT4(BASE + 4)  \
+    EMIT4(BASE + 8)  \
+    EMIT4(BASE + 12)
 
-        // Attribute mode, not text attribute mode
-        {
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeMode4, &VideoULA::EmitNothing},            // Slow 6845
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeMode1, &VideoULA::EmitNuLAAttributeMode0}, // Fast 6845
-        },
-
-        // Not attribute mode, text attribute mode
-        {
-            {&VideoULA::EmitNuLA<false, 2, false>, &VideoULA::EmitNuLA<false, 4, false>, &VideoULA::EmitNuLA<false, 8, false>, &VideoULA::EmitNuLA<false, 16, false>}, // Slow 6845
-            {&VideoULA::EmitNuLA<false, 2, true>, &VideoULA::EmitNuLA<false, 4, true>, &VideoULA::EmitNuLA<false, 8, true>, &VideoULA::EmitNuLA<false, 16, true>},     // Fast 6845
-        },
-
-        // Attribute mode, text attribute mode
-        {
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeTextMode4, &VideoULA::EmitNothing}, // Slow 6845
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeTextMode0}, // Fast 6845
-        },
-    },
-
-    // Logical palette mode
-    {
-        // Not attribute mode, not text attribute mode
-        {
-            {&VideoULA::EmitNuLA<true, 2, false>, &VideoULA::EmitNuLA<true, 4, false>, &VideoULA::EmitNuLA<true, 8, false>, &VideoULA::EmitNuLA<true, 16, false>}, // Slow 6845
-            {&VideoULA::EmitNuLA<true, 2, true>, &VideoULA::EmitNuLA<true, 4, true>, &VideoULA::EmitNuLA<true, 8, true>, &VideoULA::EmitNuLA<true, 16, true>},     // Fast 6845
-        },
-
-        // Attribute mode, not text attribute mode
-        {
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeMode4, &VideoULA::EmitNothing},            // Slow 6845
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeMode1, &VideoULA::EmitNuLAAttributeMode0}, // Fast 6845
-        },
-
-        // Not attribute mode, text attribute mode
-        {
-            {&VideoULA::EmitNuLA<true, 2, false>, &VideoULA::EmitNuLA<true, 4, false>, &VideoULA::EmitNuLA<true, 8, false>, &VideoULA::EmitNuLA<true, 16, false>}, // Slow 6845
-            {&VideoULA::EmitNuLA<true, 2, true>, &VideoULA::EmitNuLA<true, 4, true>, &VideoULA::EmitNuLA<true, 8, true>, &VideoULA::EmitNuLA<true, 16, true>},     // Fast 6845
-        },
-
-        // Attribute mode, text attribute mode
-        {
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeTextMode4, &VideoULA::EmitNothing}, // Slow 6845
-            {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeTextMode0}, // Fast 6845
-        },
-    },
-};
+const VideoULA::EmitMFn VideoULA::NULA_EMIT_MFNS[128] = {EMIT16(0) EMIT16(16) EMIT16(32) EMIT16(48) EMIT16(64) EMIT16(80) EMIT16(96) EMIT16(112)};

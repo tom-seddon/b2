@@ -2243,8 +2243,8 @@ class VideoULADebugWindow : public DebugUI {
                 ImGui::Text("Palette mode: %s", u->m_logical_mode ? "Logical" : "Physical");
                 ImGui::Text("Scroll offset: %u", u->m_scroll_offset);
                 ImGui::Text("Blanking size: %u", u->m_blanking_size);
-                ImGui::Text("Attribute mode: %s", BOOL_STR(u->m_attribute_mode.bits.enabled));
-                ImGui::Text("Text attribute mode: %s", BOOL_STR(u->m_attribute_mode.bits.text));
+                ImGui::Text("Attribute mode: %d", u->m_attribute_mode);
+                ImGui::Text("Text attribute mode: %s", BOOL_STR(u->m_text_attribute_mode));
 
                 for (uint8_t i = 0; i < 16; i += 4) {
                     ImGui::Text("Palette:");

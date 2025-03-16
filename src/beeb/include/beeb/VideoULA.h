@@ -30,16 +30,6 @@ class VideoULA {
     };
 #include <shared/popwarn.h>
 
-    struct NuLAAttributeModeBits {
-        uint8_t enabled : 1;
-        uint8_t text : 1;
-    };
-
-    union NuLAAttributeMode {
-        uint8_t value;
-        NuLAAttributeModeBits bits;
-    };
-
     union Control {
         uint8_t value;
         ControlBits bits;
@@ -102,7 +92,8 @@ class VideoULA {
     uint8_t m_pixel_buffer_offset = 0;
     uint8_t m_blanking_size = 0;
     uint8_t m_blanking_counter = 0;
-    NuLAAttributeMode m_attribute_mode = {};
+    uint8_t m_attribute_mode = 0;
+    uint8_t m_text_attribute_mode = 0;
     PixelBuffer m_pixel_buffer = {};
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
@@ -120,7 +111,7 @@ class VideoULA {
     VideoDataPixel ShiftAttributeMode1();
     VideoDataPixel ShiftAttributeText();
 
-    template <bool LOGICAL, int MHz, bool FAST>
+    template <uint32_t FLAGS>
     void EmitNuLA(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode0(VideoDataUnitPixels *pixels);
     void EmitNuLAAttributeMode1(VideoDataUnitPixels *pixels);
@@ -137,7 +128,7 @@ class VideoULA {
 
     static const uint16_t ULA_PALETTE[2][16];
     static const EmitMFn ULA_EMIT_MFNS[4];
-    static const EmitMFn NULA_EMIT_MFNS[2][4][2][4];
+    static const EmitMFn NULA_EMIT_MFNS[];
 
 #if BBCMICRO_DEBUGGER
     friend class VideoULADebugWindow;

@@ -18,7 +18,7 @@ set(SRCS
   ${S}/SaveTrace.cpp ${I}/SaveTrace.h ${I}/SaveTrace.inl ${S}/SaveTrace_private.inl
   ${S}/TVOutput.cpp ${I}/TVOutput.h ${I}/TVOutput.inl
   ${S}/Trace.cpp ${I}/Trace.h
-  ${S}/VideoULA.cpp ${I}/VideoULA.h
+  ${S}/VideoULA.cpp ${I}/VideoULA.h ${S}/VideoULA_private.inl
   ${S}/conf.cpp ${I}/conf.h
   ${S}/crtc.cpp ${I}/crtc.h ${I}/crtc.inl
   ${S}/keys.cpp ${I}/keys.h ${I}/keys.inl
