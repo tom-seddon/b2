@@ -98,5 +98,5 @@ where the program somehow cycles through all the possible outputs. I
 use this when first putting the test together. To activate this
 option, store a specific value in zero page using `!`, then run - then
 press Return to see the next image. (See the code for the magic value
-to use.)
-
+to use. This slightly odd arrangement exists so that the loop flag can
+survive a round trip through The BASIC Editor.)

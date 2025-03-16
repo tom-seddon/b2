@@ -1638,13 +1638,19 @@ class TeletextTest : public Test {
 
 class VideoULAModeTest : public Test {
   public:
-    VideoULAModeTest(bool clock, bool flash, uint8_t mode, bool nula, bool nula_logical_mode)
+    VideoULAModeTest(bool clock, bool flash, uint8_t mode, bool nula, bool nula_logical_mode, uint8_t nula_attribute_mode, bool nula_text_attribute_mode)
         : m_clock(clock)
         , m_flash(flash)
         , m_mode(mode)
         , m_nula(nula)
-        , m_nula_logical_mode(nula_logical_mode) {
-        TEST_FALSE(!nula && nula_logical_mode);
+        , m_nula_logical_mode(nula_logical_mode)
+        , m_nula_text_attribute_mode(nula_text_attribute_mode) {
+        if (!nula) {
+            TEST_FALSE(nula_logical_mode);
+            TEST_EQ_UU(nula_attribute_mode, 0);
+        } else {
+            TEST_LT_UU(nula_attribute_mode, 4);
+        }
     }
 
     std::string GetFullName() const override {
@@ -1652,11 +1658,9 @@ class VideoULAModeTest : public Test {
         name += this->GetDeviceName();
         name += ".ulamode.C" + std::to_string((int)m_clock) + ".F" + std::to_string((int)m_flash) + ".M" + std::to_string(m_mode);
         if (m_nula) {
-            if (m_nula_logical_mode) {
-                name += ".logical";
-            } else {
-                name += ".physical";
-            }
+            name += ".L" + std::to_string((int)m_nula_logical_mode);
+            name += ".A" + std::to_string(m_nula_attribute_mode);
+            name += ".T" + std::to_string((int)m_nula_text_attribute_mode);
         }
 
         return name;
@@ -1679,6 +1683,12 @@ class VideoULAModeTest : public Test {
             if (m_nula_logical_mode) {
                 paste_text += "?&FE22=&11\r";
             }
+
+            paste_text += strprintf("?&FE22=&%02X\r", 0x60 | m_nula_attribute_mode);
+
+            if (m_nula_text_attribute_mode) {
+                paste_text += "?&FE22=&71\r";
+            }
         }
 
         paste_text += "OLD\rRUN\r";
@@ -1700,6 +1710,8 @@ class VideoULAModeTest : public Test {
     uint8_t m_mode = 0;
     bool m_nula = false;
     bool m_nula_logical_mode = false;
+    uint8_t m_nula_attribute_mode = 0;
+    bool m_nula_text_attribute_mode = false;
 
     std::string GetDeviceName() const {
         if (m_nula) {
@@ -1920,16 +1932,42 @@ int main(int argc, char *argv[]) {
 
     for (int nula = 0; nula < 2; ++nula) {
         for (int nula_logical = 0; nula_logical < 2; ++nula_logical) {
-            if (!nula && nula_logical) {
-                // Irrelevant case. The ordinary Video ULA only has one palette
-                // mode.
-                continue;
-            }
+            for (uint8_t nula_attribute_mode = 0; nula_attribute_mode < 4; ++nula_attribute_mode) {
+                for (int nula_text_attribute_mode = 0; nula_text_attribute_mode < 2; ++nula_text_attribute_mode) {
+                    if (!nula) {
+                        if (nula_logical || nula_attribute_mode > 0 || nula_text_attribute_mode) {
+                            // Irrelevant cases. The ordinary Video ULA only has one
+                            // palette, no attribute mode, etc.
+                            continue;
+                        }
+                    } else {
+                        if (nula_attribute_mode == 1) {
+                            if (!options.wip) {
+                                continue;
+                            }
+                        } else if (nula_attribute_mode > 2) {
+                            // TODO...
+                            continue;
+                        }
 
-            for (int c = 0; c < 2; ++c) {
-                for (int f = 0; f < 2; ++f) {
-                    for (int m = 0; m < 4; ++m) {
-                        all_tests.push_back(std::make_unique<VideoULAModeTest>(c != 0, f != 0, m, nula != 0, nula_logical != 0));
+                        if (nula_text_attribute_mode) {
+                            // TODO...
+                            continue;
+                        }
+                    }
+
+                    for (int clock = 0; clock < 2; ++clock) {
+                        for (int flash = 0; flash < 2; ++flash) {
+                            for (int mode = 0; mode < 4; ++mode) {
+                                all_tests.push_back(std::make_unique<VideoULAModeTest>(clock != 0,
+                                                                                       flash != 0,
+                                                                                       mode,
+                                                                                       nula != 0,
+                                                                                       nula_logical != 0,
+                                                                                       nula_attribute_mode,
+                                                                                       nula_text_attribute_mode != 0));
+                            }
+                        }
                     }
                 }
             }
