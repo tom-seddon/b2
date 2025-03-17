@@ -279,12 +279,6 @@ void VideoULA::EmitPixels(VideoDataUnitPixels *pixels) {
     (this->*m_emit_mfn)(pixels);
 
     this->cursor_pattern >>= 1 + this->control.bits.fast_6845;
-
-    if (m_blanking_counter > 0) {
-        m_blanking_counter -= 1 + this->control.bits.fast_6845;
-
-        pixels->values[1] = pixels->values[0] = 0;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -367,18 +361,28 @@ VideoDataPixel VideoULA::GetPalette(uint8_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <bool LOGICAL, int BPP>
+template <bool LOGICAL, uint8_t ATTRIBUTE_MODE, int BPP>
 VideoDataPixel VideoULA::ShiftNuLA() {
     uint8_t index = m_work_byte;
 
-    if constexpr (LOGICAL && BPP == 1) {
-        index >>= 7;
-    } else if constexpr (LOGICAL && BPP == 2) {
-        index = index >> 6 & 2 | index >> 3 & 1;
-    } else if constexpr (!LOGICAL || BPP == 4) {
-        index = ((index >> 4) & 8) | ((index >> 3) & 4) | ((index >> 2) & 2) | ((index >> 1) & 1);
+    if constexpr (ATTRIBUTE_MODE == 1) {
+        if constexpr (BPP == 1) {
+            index = index >> 7 | (m_original_byte & 0x03) << 2;
+        } else if constexpr (BPP == 2) {
+            index = (m_original_byte >> 1 & 8) | (m_original_byte << 2 & 4) | (m_work_byte >> 6 & 2) | (m_work_byte >> 3 & 1);
+        } else {
+            unhandled_ShiftNuLA_case;
+        }
     } else {
-        unhandled_ShiftNuLA_case;
+        if constexpr (LOGICAL && BPP == 1) {
+            index >>= 7;
+        } else if constexpr (LOGICAL && BPP == 2) {
+            index = index >> 6 & 2 | index >> 3 & 1;
+        } else if constexpr (!LOGICAL || BPP == 4) {
+            index = ((index >> 4) & 8) | ((index >> 3) & 4) | ((index >> 2) & 2) | ((index >> 1) & 1);
+        } else {
+            unhandled_ShiftNuLA_case;
+        }
     }
 
     m_work_byte <<= 1;
@@ -413,32 +417,6 @@ uint16_t VideoULA::ShiftULA() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-VideoDataPixel VideoULA::ShiftAttributeMode0() {
-    uint8_t attribute = m_original_byte & 0x03;
-
-    uint8_t index = m_work_byte >> 7 | attribute << 2;
-
-    m_work_byte <<= 1;
-    m_work_byte |= 1;
-
-    return this->GetPalette(index);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-VideoDataPixel VideoULA::ShiftAttributeMode1() {
-    uint8_t index = (m_original_byte >> 1 & 8) | (m_original_byte << 2 & 4) | (m_work_byte >> 6 & 2) | (m_work_byte >> 3 & 1);
-
-    m_work_byte <<= 1;
-    m_work_byte |= 1;
-
-    return this->GetPalette(index);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 VideoDataPixel VideoULA::ShiftAttributeText() {
     uint8_t index = (m_work_byte >> 7 | m_original_byte << 1) & 0xf;
 
@@ -468,65 +446,114 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
     static constexpr uint32_t MODE = FLAGS >> VideoNuLAModeFlag_ModeShift & VideoNuLAModeFlag_ModeMask;
     static constexpr bool FAST = !!(FLAGS & VideoNuLAModeFlag_Fast6845);
     static constexpr bool LOGICAL = !!(FLAGS & VideoNuLAModeFlag_LogicalPalette);
+    static constexpr uint32_t ATTRIBUTE_MODE = FLAGS >> VideoNuLAModeFlag_AttributeModeShift & VideoNuLAModeFlag_AttributeModeMask;
 
     if constexpr (MODE == 0) {
-        // 80 px
-        dest[7] = dest[6] = dest[5] = dest[4] = dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 4>();
-    } else if constexpr (MODE == 1) {
-        // 160 px
-        if constexpr (FAST) {
-            dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 4>();
-            dest[7] = dest[6] = dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 4>();
+        if constexpr (ATTRIBUTE_MODE == 1) {
+            dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 2>();
+            dest[7] = dest[6] = dest[5] = dest[4] = dest[3] = dest[2] = {};
+
+            m_work_byte = m_original_byte = 0;
         } else {
-            dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 2>();
-            dest[7] = dest[6] = dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 2>();
+            // 80 px
+            dest[7] = dest[6] = dest[5] = dest[4] = dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, false, 4>();
+        }
+    } else if constexpr (MODE == 1) {
+        if constexpr (ATTRIBUTE_MODE == 1) {
+            // Nothing
+            pixels->values[1] = pixels->values[0] = 0;
+        } else {
+            // 160 px
+            if constexpr (FAST) {
+                dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 0, 4>();
+                dest[7] = dest[6] = dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 0, 4>();
+            } else {
+                dest[3] = dest[2] = dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 0, 2>();
+                dest[7] = dest[6] = dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 0, 2>();
+            }
         }
     } else if constexpr (MODE == 2) {
-        // 320 px
-        if constexpr (FAST) {
-            dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 2>();
-            dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 2>();
-            dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 2>();
-            dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 2>();
+        if constexpr (ATTRIBUTE_MODE == 1) {
+            // 240 px
+            if constexpr (FAST) {
+                dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 1, 2>();
+                dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 1, 2>();
+                dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 1, 2>();
+            } else {
+                dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 1, 1>();
+            }
         } else {
-            dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 1>();
+            // 320 px
+            if constexpr (FAST) {
+                dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 0, 2>();
+                dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 0, 2>();
+                dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 0, 2>();
+                dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 0, 2>();
+            } else {
+                dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 0, 1>();
+                dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 0, 1>();
+                dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 0, 1>();
+                dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 0, 1>();
+            }
         }
     } else if constexpr (MODE == 3) {
-        // 640 px
-        if constexpr (FAST) {
-            dest[0] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[1] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[2] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[3] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[4] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[5] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[6] = this->ShiftNuLA<LOGICAL, 1>();
-            dest[7] = this->ShiftNuLA<LOGICAL, 1>();
+        if constexpr (ATTRIBUTE_MODE == 1) {
+            // 480 px
+            if constexpr (FAST) {
+                dest[0] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[1] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[2] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[3] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[4] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[5] = this->ShiftNuLA<LOGICAL, 1, 1>();
+            } else {
+                // unlike the non-attribute mode, this looks like the full 480 px?
+                dest[0] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[1] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[2] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[3] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[4] = this->ShiftNuLA<LOGICAL, 1, 1>();
+                dest[5] = this->ShiftNuLA<LOGICAL, 1, 1>();
+
+                // Apparently different from the MODE=0 ATTRIBUTE_MODE=1 case?
+                m_work_byte = 0;
+            }
         } else {
-            // actually still 320 px output in this mode, it seems?
+            // 640 px
+            if constexpr (FAST) {
+                dest[0] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+                dest[1] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+                dest[2] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+                dest[3] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+                dest[4] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+                dest[5] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+                dest[6] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+                dest[7] = this->ShiftNuLA<LOGICAL, ATTRIBUTE_MODE, 1>();
+            } else {
+                // actually still 320 px output in this mode, it seems?
 
-            m_work_byte <<= 1;
-            m_work_byte |= 1;
+                m_work_byte <<= 1;
+                m_work_byte |= 1;
 
-            dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 1>();
+                dest[1] = dest[0] = this->ShiftNuLA<LOGICAL, 0, 1>();
 
-            m_work_byte <<= 1;
-            m_work_byte |= 1;
+                m_work_byte <<= 1;
+                m_work_byte |= 1;
 
-            dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 1>();
+                dest[3] = dest[2] = this->ShiftNuLA<LOGICAL, 0, 1>();
 
-            m_work_byte <<= 1;
-            m_work_byte |= 1;
+                m_work_byte <<= 1;
+                m_work_byte |= 1;
 
-            dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 1>();
+                dest[5] = dest[4] = this->ShiftNuLA<LOGICAL, 0, 1>();
 
-            m_work_byte <<= 1;
-            m_work_byte |= 1;
+                m_work_byte <<= 1;
+                m_work_byte |= 1;
 
-            dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 1>();
+                dest[7] = dest[6] = this->ShiftNuLA<LOGICAL, 0, 1>();
+            }
         }
     } else {
         unhandled_EmitNuLA_case;
@@ -543,8 +570,18 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
         dest[7].all ^= PIXEL_VALUE_CURSOR_XOR;
     }
 
-    pixels->values[0] = m_pixel_buffer.values[0];
-    pixels->values[1] = m_pixel_buffer.values[1];
+    if (m_blanking_counter > 0) {
+        m_blanking_counter -= 1 + (int)FAST; //this->control.bits.fast_6845;
+
+        pixels->values[1] = pixels->values[0] = 0;
+    } else {
+        pixels->values[0] = m_pixel_buffer.values[0];
+        pixels->values[1] = m_pixel_buffer.values[1];
+
+        if constexpr (ATTRIBUTE_MODE == 1) {
+            pixels->pixels[0].bits.x = VideoDataType_Bitmap12MHz;
+        }
+    }
 
     m_pixel_buffer.values[0] = m_pixel_buffer.values[2];
     m_pixel_buffer.values[1] = m_pixel_buffer.values[3];
@@ -552,123 +589,6 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
     m_pixel_buffer.values[3] = m_pixel_buffer.values[5];
     m_pixel_buffer.values[4] = m_pixel_buffer.values[6];
     m_pixel_buffer.values[5] = m_pixel_buffer.values[7];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void VideoULA::EmitNuLAAttributeMode0(VideoDataUnitPixels *pixels) {
-    VideoDataPixel pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[0] = pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[1] = pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[2] = pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[3] = pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[4] = pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[5] = pixel;
-
-    pixels->pixels[0].bits.x = VideoDataType_Bitmap12MHz;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void VideoULA::EmitNuLAAttributeMode1(VideoDataUnitPixels *pixels) {
-    VideoDataPixel pixel;
-
-    pixel = this->ShiftAttributeMode1();
-    pixels->pixels[0] = pixel;
-    pixels->pixels[1] = pixel;
-
-    pixel = this->ShiftAttributeMode1();
-    pixels->pixels[2] = pixel;
-    pixels->pixels[3] = pixel;
-
-    pixel = this->ShiftAttributeMode1();
-    pixels->pixels[4] = pixel;
-    pixels->pixels[5] = pixel;
-
-    pixels->pixels[0].bits.x = VideoDataType_Bitmap12MHz;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void VideoULA::EmitNuLAAttributeMode4(VideoDataUnitPixels *pixels) {
-    VideoDataPixel pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[0] = pixel;
-    pixels->pixels[1] = pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[2] = pixel;
-    pixels->pixels[3] = pixel;
-
-    pixel = this->ShiftAttributeMode0();
-    pixels->pixels[4] = pixel;
-    pixels->pixels[5] = pixel;
-
-    pixels->pixels[0].bits.x = VideoDataType_Bitmap12MHz;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void VideoULA::EmitNuLAAttributeTextMode4(VideoDataUnitPixels *pixels) {
-    VideoDataPixel pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[0] = pixel;
-    pixels->pixels[1] = pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[2] = pixel;
-    pixels->pixels[3] = pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[4] = pixel;
-    pixels->pixels[5] = pixel;
-
-    pixels->pixels[0].bits.x = VideoDataType_Bitmap12MHz;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void VideoULA::EmitNuLAAttributeTextMode0(VideoDataUnitPixels *pixels) {
-    VideoDataPixel pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[0] = pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[1] = pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[2] = pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[3] = pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[4] = pixel;
-
-    pixel = this->ShiftAttributeText();
-    pixels->pixels[5] = pixel;
-
-    pixels->pixels[0].bits.x = VideoDataType_Bitmap12MHz;
 }
 
 //////////////////////////////////////////////////////////////////////////

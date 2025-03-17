@@ -104,20 +104,13 @@ class VideoULA {
 
     void ResetNuLAState();
     VideoDataPixel GetPalette(uint8_t index);
-    template <bool LOGICAL, int BPP>
+    template <bool LOGICAL, uint8_t ATTRIBUTE_MODE, int BPP>
     VideoDataPixel ShiftNuLA();
     uint16_t ShiftULA();
-    VideoDataPixel ShiftAttributeMode0();
-    VideoDataPixel ShiftAttributeMode1();
     VideoDataPixel ShiftAttributeText();
 
     template <uint32_t FLAGS>
     void EmitNuLA(VideoDataUnitPixels *pixels);
-    void EmitNuLAAttributeMode0(VideoDataUnitPixels *pixels);
-    void EmitNuLAAttributeMode1(VideoDataUnitPixels *pixels);
-    void EmitNuLAAttributeMode4(VideoDataUnitPixels *pixels);
-    void EmitNuLAAttributeTextMode4(VideoDataUnitPixels *pixels);
-    void EmitNuLAAttributeTextMode0(VideoDataUnitPixels *pixels);
     void EmitNothing(VideoDataUnitPixels *pixels);
     void EmitULA2MHz(VideoDataUnitPixels *pixels);
     void EmitULA4MHz(VideoDataUnitPixels *pixels);

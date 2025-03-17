@@ -2768,4 +2768,62 @@ Not obviously!
 |    1 |    8 |   2 |
 |    1 |   16 |   1 |
 
+NuLA mode combinations:
+
+- Logical :: bool
+- AttributeMode :: 0-3
+- TextAttributeMode :: bool
+- Fast6845 :: bool
+- Mode :: 0-3
+
+(* 2 4 2 2 4) = 128
+
+:   6   5   4   3   2   1   0
+: +---+---+---+---+---+---+---+
+: | L | AttrM | T | F | Mode  |
+: +---+---+---+---+---+---+---+
+
+Attribute mode 0 output:
+
+| Fast | Mode | What   |
+|------+------+--------|
+|    0 |    0 | -      |
+|    0 |    1 | -      |
+|    0 |    2 | Mode 4 |
+|    0 |    3 | -      |
+|    1 |    0 | -      |
+|    1 |    1 | -      |
+|    1 |    2 | Mode 1 |
+|    1 |    3 | Mode 0 |
+
+#+begin_src c++
+  // Logical palette mode
+      {
+          // Not attribute mode, not text attribute mode
+          {
+              {&VideoULA::EmitNuLA<true, 2, false>, &VideoULA::EmitNuLA<true, 4, false>, &VideoULA::EmitNuLA<true, 8, false>, &VideoULA::EmitNuLA<true, 16, false>}, // Slow 6845
+              {&VideoULA::EmitNuLA<true, 2, true>, &VideoULA::EmitNuLA<true, 4, true>, &VideoULA::EmitNuLA<true, 8, true>, &VideoULA::EmitNuLA<true, 16, true>},     // Fast 6845
+                  },
+
+              // Attribute mode, not text attribute mode
+          {
+              {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeMode4, &VideoULA::EmitNothing},            // Slow 6845
+              {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeMode1, &VideoULA::EmitNuLAAttributeMode0}, // Fast 6845
+                  },
+
+              // Not attribute mode, text attribute mode
+          {
+              {&VideoULA::EmitNuLA<true, 2, false>, &VideoULA::EmitNuLA<true, 4, false>, &VideoULA::EmitNuLA<true, 8, false>, &VideoULA::EmitNuLA<true, 16, false>}, // Slow 6845
+              {&VideoULA::EmitNuLA<true, 2, true>, &VideoULA::EmitNuLA<true, 4, true>, &VideoULA::EmitNuLA<true, 8, true>, &VideoULA::EmitNuLA<true, 16, true>},     // Fast 6845
+                  },
+
+              // Attribute mode, text attribute mode
+          {
+              {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeTextMode4, &VideoULA::EmitNothing}, // Slow 6845
+              {&VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNothing, &VideoULA::EmitNuLAAttributeTextMode0}, // Fast 6845
+                  },
+              },
+          };
+#+end_src
+
 * eof.
