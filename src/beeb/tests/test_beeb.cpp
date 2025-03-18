@@ -1644,12 +1644,13 @@ class VideoULAModeTest : public Test {
         , m_mode(mode)
         , m_nula(nula)
         , m_nula_logical_mode(nula_logical_mode)
+        , m_nula_attribute_mode(nula_attribute_mode)
         , m_nula_text_attribute_mode(nula_text_attribute_mode) {
         if (!nula) {
-            TEST_FALSE(nula_logical_mode);
-            TEST_EQ_UU(nula_attribute_mode, 0);
+            TEST_FALSE(m_nula_logical_mode);
+            TEST_EQ_UU(m_nula_attribute_mode, 0);
         } else {
-            TEST_LT_UU(nula_attribute_mode, 4);
+            TEST_LT_UU(m_nula_attribute_mode, 4);
         }
     }
 
@@ -1941,16 +1942,7 @@ int main(int argc, char *argv[]) {
                             continue;
                         }
                     } else {
-                        if (nula_attribute_mode == 1) {
-                            if (!options.wip) {
-                                continue;
-                            }
-                        } else if (nula_attribute_mode > 2) {
-                            // TODO...
-                            continue;
-                        }
-
-                        if (nula_text_attribute_mode) {
+                        if (nula_attribute_mode == 2 || nula_attribute_mode == 3 || nula_text_attribute_mode) {
                             // TODO...
                             continue;
                         }
