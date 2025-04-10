@@ -1719,7 +1719,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                             break;
 
                         case SDLEventType_Count:
-                            // only here avoid incomplete switch warning.
+                            // only here to avoid incomplete switch warning.
                             ASSERT(false);
                             break;
                         }
