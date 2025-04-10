@@ -15,6 +15,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <vector>
+#include <string>
 
 struct ImGuiStyle;
 struct ImDrawList;
@@ -94,6 +96,22 @@ class HexEditorHandler {
     //
     // Default impl is enough chars for any size_t, in hex.
     virtual int GetNumAddressChars();
+
+    // Get translation table for byte->char. Max 256 entries, indexed by byte
+    // value. Each char is assumed to be 1 column wide. Empty or out of range
+    // entries are treated as non-printable.
+    //
+    // If nullptr, print 32-126 as ASCII and treat everything else as
+    // unprintable.
+    //
+    // Default impl returns nullptr.
+    virtual const std::vector<std::string> *GetCharFromByteTranslationTable();
+
+    // Translate non-0 unicode char value into a byte value. Return 0-255 to have char
+    // treated as that byte, or out of range to have it ignored.
+    //
+    // Default impl returns ch for ch>=32&&ch<127, and -1 for other values.
+    virtual int GetByteForWchar(uint32_t ch);
 
   protected:
   private:

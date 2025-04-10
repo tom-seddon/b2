@@ -160,6 +160,24 @@ int HexEditorHandler::GetNumAddressChars() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const std::vector<std::string> *HexEditorHandler::GetCharFromByteTranslationTable() {
+    return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HexEditorHandler::GetByteForWchar(uint32_t ch) {
+    if (ch >= 32 && ch < 127) {
+        return (int)ch;
+    } else {
+        return -1;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 HexEditorHandlerWithBufferData::HexEditorHandlerWithBufferData(void *buffer, size_t buffer_size) {
     this->Construct(buffer, buffer, buffer_size);
 }
@@ -772,6 +790,8 @@ void HexEditor::DoHexPart(size_t num_skip_columns, size_t begin_offset, size_t e
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const std::string UNPRINTABLE_CHAR = ".";
+
 void HexEditor::DoAsciiPart(size_t begin_offset, size_t end_offset) {
     ImGui::PushID((void *)begin_offset);
     ImGui::PushID("ascii");
@@ -780,27 +800,45 @@ void HexEditor::DoAsciiPart(size_t begin_offset, size_t end_offset) {
     ImGui::SameLine(x);
     ImVec2 screen_pos = ImGui::GetCursorScreenPos();
 
+    const std::vector<std::string> *char_from_byte = m_handler->GetCharFromByteTranslationTable();
+
     ImGui::PushItemWidth(m_metrics.glyph_width);
 
     {
         TextColourHandler tch;
 
+        // only ever 1 byte, so should benefit from small string optimisation.
+        std::string display_char_buffer;
+
         const HexEditorByte *byte = m_bytes;
         for (size_t offset = begin_offset; offset != end_offset; ++offset, ++byte) {
             bool editable = byte->got_value && byte->can_write;
 
-            bool wasprint;
-            char display_char[2];
+            const std::string *display_char = nullptr;
 
-            if (byte->got_value && byte->value >= 32 && byte->value < 127) {
-                wasprint = true;
-                display_char[0] = (char)byte->value;
-            } else {
-                wasprint = false;
-                display_char[0] = '.';
+            if (byte->got_value) {
+                if (char_from_byte) {
+                    if (byte->value < char_from_byte->size()) {
+                        display_char = &(*char_from_byte)[byte->value];
+                        if (display_char->empty()) {
+                            display_char = nullptr;
+                        }
+                    }
+                } else {
+                    if (byte->value >= 32 && byte->value < 127) {
+                        display_char_buffer.assign(1, (char)byte->value);
+                        display_char = &display_char_buffer;
+                    }
+                }
             }
 
-            display_char[1] = 0;
+            bool wasprint;
+            if (display_char) {
+                wasprint = true;
+            } else {
+                wasprint = false;
+                display_char = &UNPRINTABLE_CHAR;
+            }
 
             if (offset == m_offset) {
                 m_draw_list->AddRectFilled(screen_pos, ImVec2(screen_pos.x + m_metrics.glyph_width, screen_pos.y + m_metrics.line_height), m_highlight_colour);
@@ -814,9 +852,14 @@ void HexEditor::DoAsciiPart(size_t begin_offset, size_t end_offset) {
                 ImGui::SameLine(x);
                 this->GetChar(&ch, &editing, "ascii_input");
 
+                int new_value = -1;
+                if (ch != 0) {
+                    new_value = m_handler->GetByteForWchar(ch);
+                }
+
                 if (editing) {
-                    if (ch >= 32 && ch < 127) {
-                        m_handler->WriteByte(m_offset, (uint8_t)ch);
+                    if (new_value >= 0 && new_value < 256) {
+                        m_handler->WriteByte(m_offset, (uint8_t)new_value);
 
                         this->SetNewOffset(m_offset, 1, true);
                         m_hex = false;
@@ -837,7 +880,7 @@ void HexEditor::DoAsciiPart(size_t begin_offset, size_t end_offset) {
                 tch.BeginColour(byte->colour);
             }
 
-            ImGui::TextUnformatted(display_char);
+            ImGui::TextUnformatted(display_char->c_str());
 
             if (!editing) {
                 if (ImGui::IsMouseClicked(0)) {

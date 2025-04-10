@@ -64,12 +64,13 @@ LOG_TAGGED_DEFINE(DBG, "debugger", "DBG   ", &log_printer_stdout_and_debugger, t
 
 static const std::string STRING_EMPTY;
 static const std::string STRING_1_SPACE = " ";
-static std::string g_byte_strings_bbc[95], g_byte_strings_escaped[95];
+static std::vector<std::string> g_byte_strings_bbc, g_byte_strings_escaped;
 
 static bool InitByteStrings() {
+    g_byte_strings_bbc.resize(256);
+    g_byte_strings_escaped.resize(256);
     for (uint8_t value = 32; value < 127; ++value) {
-        size_t index = value - 32;
-        std::string *bbc = &g_byte_strings_bbc[index], *escaped = &g_byte_strings_escaped[index];
+        std::string *bbc = &g_byte_strings_bbc[value], *escaped = &g_byte_strings_escaped[value];
 
         std::string ch;
         if (value == '`') {
@@ -89,9 +90,9 @@ static bool InitByteStrings() {
 
 static const bool g_call_InitByteStrings = InitByteStrings();
 
-static const std::string *GetByteString(const std::string *byte_strings, uint8_t value, const std::string *default_unprintable) {
+static const std::string *GetByteString(const std::vector<std::string> &byte_strings, uint8_t value, const std::string *default_unprintable) {
     if (value >= 32 && value < 127) {
-        return &byte_strings[value - 32];
+        return &byte_strings[value];
     } else {
         return default_unprintable;
     }
@@ -1274,6 +1275,21 @@ class MemoryDebugWindow : public DebugUI,
             // 012345678
             // xx`$xxxxx
             return 8;
+        }
+
+        const std::vector<std::string> *GetCharFromByteTranslationTable() override {
+            return &g_byte_strings_bbc;
+        }
+
+        int GetByteForWchar(uint32_t ch) override {
+            if (ch == 0xa3) {
+                // Translate BRITISH POUND SIGN into 96.
+                return 96;
+            } else {
+                // This will pass GRAVE ACCENT through as 96 too. But that's OK.
+                // b2 does try to work ok with US layout keyboards.
+                return this->HexEditorHandler::GetByteForWchar(ch);
+            }
         }
 
       protected:
