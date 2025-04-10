@@ -162,6 +162,67 @@ if(MSVC)
   set(RELACY_EXAMPLE ${RELACY}/example)
 
   add_library(relacy_lib INTERFACE)
+
+  # This does make a bit of a mess, but makes Visual Studio's Find In
+  # Files a bit more useful.
+  target_sources(relacy_lib INTERFACE
+    ${RELACY}/relacy/atomic.hpp
+    ${RELACY}/relacy/atomic_events.hpp
+    ${RELACY}/relacy/atomic_fence.hpp
+    ${RELACY}/relacy/backoff.hpp
+    ${RELACY}/relacy/base.hpp
+    ${RELACY}/relacy/cli.hpp
+    ${RELACY}/relacy/cli_interlocked.hpp
+    ${RELACY}/relacy/cli_var.hpp
+    ${RELACY}/relacy/cli_volatile.hpp
+    ${RELACY}/relacy/context.hpp
+    ${RELACY}/relacy/context_addr_hash.hpp
+    ${RELACY}/relacy/context_base.hpp
+    ${RELACY}/relacy/context_base_impl.hpp
+    ${RELACY}/relacy/context_bound_scheduler.hpp
+    ${RELACY}/relacy/defs.hpp
+    ${RELACY}/relacy/dyn_thread.hpp
+    ${RELACY}/relacy/dyn_thread_ctx.hpp
+    ${RELACY}/relacy/foreach.hpp
+    ${RELACY}/relacy/full_search_scheduler.hpp
+    ${RELACY}/relacy/history.hpp
+    ${RELACY}/relacy/java.hpp
+    ${RELACY}/relacy/java_atomic.hpp
+    ${RELACY}/relacy/java_var.hpp
+    ${RELACY}/relacy/java_volatile.hpp
+    ${RELACY}/relacy/memory.hpp
+    ${RELACY}/relacy/memory_order.hpp
+    ${RELACY}/relacy/pch.hpp
+    ${RELACY}/relacy/platform.hpp
+    ${RELACY}/relacy/pthread.h
+    ${RELACY}/relacy/random.hpp
+    ${RELACY}/relacy/random_scheduler.hpp
+    ${RELACY}/relacy/relacy.hpp
+    ${RELACY}/relacy/relacy_cli.hpp
+    ${RELACY}/relacy/relacy_java.hpp
+    ${RELACY}/relacy/relacy_std.hpp
+    ${RELACY}/relacy/rmw.hpp
+    ${RELACY}/relacy/scheduler.hpp
+    ${RELACY}/relacy/signature.hpp
+    ${RELACY}/relacy/slab_allocator.hpp
+    ${RELACY}/relacy/sync_var.hpp
+    ${RELACY}/relacy/test_params.hpp
+    ${RELACY}/relacy/test_result.hpp
+    ${RELACY}/relacy/test_suite.hpp
+    ${RELACY}/relacy/thread.hpp
+    ${RELACY}/relacy/thread_base.hpp
+    ${RELACY}/relacy/thread_local.hpp
+    ${RELACY}/relacy/thread_local_ctx.hpp
+    ${RELACY}/relacy/var.hpp
+    ${RELACY}/relacy/volatile.hpp
+    ${RELACY}/relacy/waitset.hpp
+    ${RELACY}/relacy/windows.h
+    ${RELACY}/relacy/stdlib/condition_variable.hpp
+    ${RELACY}/relacy/stdlib/event.hpp
+    ${RELACY}/relacy/stdlib/mutex.hpp
+    ${RELACY}/relacy/stdlib/pthread.hpp
+    ${RELACY}/relacy/stdlib/semaphore.hpp
+    ${RELACY}/relacy/stdlib/windows.hpp)
   target_include_directories(relacy_lib INTERFACE ${RELACY})
 
   add_executable(relacy_test
