@@ -62,6 +62,52 @@ LOG_TAGGED_DEFINE(DBG, "debugger", "DBG   ", &log_printer_stdout_and_debugger, t
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const std::string STRING_EMPTY;
+static const std::string STRING_1_SPACE = " ";
+static std::string g_byte_strings_bbc[95], g_byte_strings_escaped[95];
+
+static bool InitByteStrings() {
+    for (uint8_t value = 32; value < 127; ++value) {
+        size_t index = value - 32;
+        std::string *bbc = &g_byte_strings_bbc[index], *escaped = &g_byte_strings_escaped[index];
+
+        std::string ch;
+        if (value == '`') {
+            ch = POUND_SIGN_UTF8;
+        } else {
+            ch = std::string(1, (char)value);
+        }
+
+        *bbc = ch;
+        *escaped = "'" + ch + "'";
+    }
+
+    // TODO should there be a default representation for the other values?
+
+    return true;
+}
+
+static const bool g_call_InitByteStrings = InitByteStrings();
+
+static const std::string *GetByteString(const std::string *byte_strings, uint8_t value, const std::string *default_unprintable) {
+    if (value >= 32 && value < 127) {
+        return &byte_strings[value - 32];
+    } else {
+        return default_unprintable;
+    }
+}
+
+static const std::string *GetByteStringBBC(uint8_t value, const std::string *default_unprintable = &STRING_EMPTY) {
+    return GetByteString(g_byte_strings_bbc, value, default_unprintable);
+}
+
+static const std::string *GetByteStringEscaped(uint8_t value, const std::string *default_unprintable = &STRING_EMPTY) {
+    return GetByteString(g_byte_strings_escaped, value, default_unprintable);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct FnName {
     std::string name;
     std::vector<const char *> names;
@@ -1003,7 +1049,7 @@ class M6502DebugWindow : public DebugUI {
         ImGui::Text("Opcode = $%02X %03d - %s %s", opcode, opcode, mnemonic, mode_name);
         ImGui::Text("tfn = %s", GetFnName(cpu->tfn));
         ImGui::Text("ifn = %s", GetFnName(cpu->ifn));
-        ImGui::Text("Address = $%04x; Data = $%02x %03d %s %s", cpu->abus.w, cpu->dbus, cpu->dbus, BINARY_BYTE_STRINGS[cpu->dbus], ASCII_BYTE_STRINGS[cpu->dbus]);
+        ImGui::Text("Address = $%04x; Data = $%02x %03d %s %s", cpu->abus.w, cpu->dbus, cpu->dbus, BINARY_BYTE_STRINGS[cpu->dbus], GetByteStringEscaped(cpu->dbus)->c_str());
         ImGui::Text("Access = %s", M6502ReadType_GetName(cpu->read));
 
         char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
@@ -1509,6 +1555,7 @@ class DisassemblyDebugWindow : public DebugUI,
 
         m_num_lines = 0;
         uint16_t addr = m_addr;
+        std::string ascii;
         while (ImGui::GetCursorPosY() <= maxY) {
             ++m_num_lines;
             M6502Word line_addr = {addr};
@@ -1524,7 +1571,8 @@ class DisassemblyDebugWindow : public DebugUI,
                            &opcode_byte_flags,
                            addr++,
                            false);
-            char ascii[4];
+
+            ascii.clear();
 
             const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[opcode];
 
@@ -1564,11 +1612,7 @@ class DisassemblyDebugWindow : public DebugUI,
 
             this->TextWithBreakpointBackground(opcode_addr_flags, opcode_byte_flags, "%02x", opcode);
             this->DoBytePopupGui(line_dbp, line_addr);
-            if (opcode >= 32 && opcode < 127) {
-                ascii[0] = (char)opcode;
-            } else {
-                ascii[0] = ' ';
-            }
+            ascii += *GetByteStringBBC(opcode, &STRING_1_SPACE);
 
             ImGui::SameLine();
 
@@ -1579,14 +1623,10 @@ class DisassemblyDebugWindow : public DebugUI,
                 const DebugBigPage *operand_l_dbp = this->GetDebugBigPageForAddress(operand_l_addr, false);
                 this->DoBytePopupGui(operand_l_dbp, operand_l_addr);
 
-                if (operand.b.l >= 32 && operand.b.l < 127) {
-                    ascii[1] = (char)operand.b.l;
-                } else {
-                    ascii[1] = ' ';
-                }
+                ascii += *GetByteStringBBC(operand.b.l, &STRING_1_SPACE);
             } else {
                 ImGui::TextUnformatted("  ");
-                ascii[1] = ' ';
+                ascii += STRING_1_SPACE;
             }
 
             ImGui::SameLine();
@@ -1598,14 +1638,10 @@ class DisassemblyDebugWindow : public DebugUI,
                 const DebugBigPage *operand_h_dbp = this->GetDebugBigPageForAddress(operand_h_addr, false);
                 this->DoBytePopupGui(operand_h_dbp, operand_h_addr);
 
-                if (operand.b.h >= 32 && operand.b.h < 127) {
-                    ascii[2] = (char)operand.b.h;
-                } else {
-                    ascii[2] = ' ';
-                }
+                ascii += *GetByteStringBBC(operand.b.h, &STRING_1_SPACE);
             } else {
                 ImGui::TextUnformatted("  ");
-                ascii[2] = ' ';
+                ascii += STRING_1_SPACE;
             }
 
             ImGui::SameLine();
@@ -1614,8 +1650,7 @@ class DisassemblyDebugWindow : public DebugUI,
 
             ImGui::SameLine();
 
-            ascii[3] = 0;
-            ImGui::TextUnformatted(ascii);
+            ImGui::TextUnformatted(ascii.c_str());
 
             ImGui::SameLine();
 
@@ -3036,17 +3071,9 @@ class PixelMetadataUI : public DebugUI {
             if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasValue) {
                 uint8_t x = unit->metadata.value;
 
-                char str[4];
-                if (x >= 32 && x < 127) {
-                    str[0] = '\'';
-                    str[1] = (char)x;
-                    str[2] = '\'';
-                } else {
-                    str[2] = str[1] = str[0] = '-';
-                }
-                str[3] = 0;
+                const std::string *str = GetByteStringEscaped(x);
 
-                ImGui::Text("Value: %s %-3u ($%02x) (%%%s)", str, x, x, BINARY_BYTE_STRINGS[x]);
+                ImGui::Text("Value: %-4s %-3u ($%02x) (%%%s)", str->c_str(), x, x, BINARY_BYTE_STRINGS[x]);
             } else {
                 ImGui::TextUnformatted("Value:");
             }
@@ -3135,9 +3162,7 @@ class StackDebugWindow : public DebugUI {
                 ImGui::Text("%3u", value);
 
                 ImGui::TableNextColumn();
-                if (value >= 32 && value < 127) {
-                    ImGui::Text("%c", (char)value);
-                }
+                ImGui::TextUnformatted(GetByteStringBBC(value)->c_str());
 
                 ImGui::TableNextColumn();
                 ImGui::Text("$%02x", value);
@@ -3294,6 +3319,7 @@ class TubeDebugWindow : public DebugUI {
     static constexpr size_t FIFO1_STRING_SIZE = TUBE_FIFO1_SIZE_BYTES * 3 + 1;
     char m_fifo1_header[FIFO1_STRING_SIZE];
     bool m_sort_by_index = true;
+    std::string m_ascii_buffer; //will size itself to fit automatically.
 
     void DoFIFO1P2HGui(const Tube *t) {
         this->Header(1, true);
@@ -3301,8 +3327,8 @@ class TubeDebugWindow : public DebugUI {
         this->DoStatusImGui(1, true, t->pstatus1, t->hstatus1);
 
         char hex_buffer[FIFO1_STRING_SIZE], *hex = hex_buffer;
-        char ascii_buffer[FIFO1_STRING_SIZE], *ascii = ascii_buffer;
 
+        m_ascii_buffer.clear();
         for (unsigned i = 0; i < t->p2h1_n; ++i) {
             uint8_t byte = t->p2h1[(t->p2h1_rindex + i) % TUBE_FIFO1_SIZE_BYTES];
 
@@ -3310,20 +3336,17 @@ class TubeDebugWindow : public DebugUI {
             *hex++ = HEX_CHARS_LC[byte & 0xf];
             *hex++ = ' ';
 
-            *ascii++ = byte >= 32 && byte < 127 ? (char)byte : ' ';
-            *ascii++ = ' ';
-            *ascii++ = ' ';
+            m_ascii_buffer += *GetByteStringBBC(byte, &STRING_1_SPACE);
+            m_ascii_buffer.push_back(' ');
+            m_ascii_buffer.push_back(' ');
         }
 
         ASSERT(hex <= hex_buffer + sizeof hex_buffer);
         *hex = 0;
 
-        ASSERT(ascii <= ascii_buffer + sizeof ascii_buffer);
-        *ascii = 0;
-
         ImGui::TextUnformatted(m_fifo1_header);
         ImGui::TextUnformatted(hex_buffer);
-        ImGui::TextUnformatted(ascii_buffer);
+        ImGui::TextUnformatted(m_ascii_buffer.c_str());
     }
 
     void DoFIFO1H2PGui(const Tube *t) {
@@ -3406,14 +3429,9 @@ class TubeDebugWindow : public DebugUI {
     }
 
     void DoDataImGui(const char *prefix, uint8_t value) {
-        char ch[5];
-        if (value >= 32 && value <= 126) {
-            snprintf(ch, sizeof ch, " '%c'", value);
-        } else {
-            ch[0] = 0;
-        }
+        const std::string *ch = GetByteStringEscaped(value);
 
-        ImGui::Text("%s: %3d %3uu%s ($%02x) (%%%s)", prefix, (int8_t)value, value, ch, value, BINARY_BYTE_STRINGS[value]);
+        ImGui::Text("%s: %3d %3uu%s ($%02x) (%%%s)", prefix, (int8_t)value, value, ch->c_str(), value, BINARY_BYTE_STRINGS[value]);
     }
 
     void Header(int fifo, bool parasite) {
