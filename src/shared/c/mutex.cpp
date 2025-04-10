@@ -238,7 +238,7 @@ const MutexMetadata *Mutex::GetMetadata() const {
 void Mutex::lock() {
     const bool assume_free_uncontended_locks = g_assume_free_uncontended_locks.load(std::memory_order_acquire);
 
-    uint64_t lock_start_ticks;
+    uint64_t lock_start_ticks = 0; //spurious initialization to inhibit warning
     if (!assume_free_uncontended_locks) {
         lock_start_ticks = GetCurrentTickCount();
     }
