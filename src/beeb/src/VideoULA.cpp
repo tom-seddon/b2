@@ -371,7 +371,7 @@ VideoDataPixel VideoULA::ShiftNuLA() {
         } else if constexpr (BPP == 2) {
             index = (m_original_byte >> 1 & 8) | (m_original_byte << 2 & 4) | (m_work_byte >> 6 & 2) | (m_work_byte >> 3 & 1);
         } else {
-            unhandled_ShiftNuLA_case;
+            static_assert(AlwaysFalseUInt<LOGICAL>::value);
         }
     } else {
         if constexpr (LOGICAL && BPP == 1) {
@@ -381,7 +381,7 @@ VideoDataPixel VideoULA::ShiftNuLA() {
         } else if constexpr (!LOGICAL || BPP == 4) {
             index = ((index >> 4) & 8) | ((index >> 3) & 4) | ((index >> 2) & 2) | ((index >> 1) & 1);
         } else {
-            unhandled_ShiftNuLA_case;
+            static_assert(AlwaysFalseUInt<LOGICAL>::value);
         }
     }
 
@@ -556,7 +556,7 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
             }
         }
     } else {
-        unhandled_EmitNuLA_case;
+        static_assert(AlwaysFalseUInt<LOGICAL>::value);
     }
 
     if (this->cursor_pattern & 1) {

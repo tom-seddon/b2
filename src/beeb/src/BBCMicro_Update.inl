@@ -476,7 +476,7 @@ parasite_update_done:
                     this->UpdateMapperRegion(m_state.cpu.abus.w & 0xf);
                 }
             } else {
-                unhandled_ROMType_case;
+                static_assert(AlwaysFalseUInt<UPDATE_FLAGS>::value);
             }
 
             M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - 0xfc00u)};
