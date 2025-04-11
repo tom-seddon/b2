@@ -500,7 +500,7 @@ void HexEditor::DoImGui() {
             HexEditorByte byte;
             m_handler->ReadByte(&byte, m_offset);
 
-            if (byte.got_value && byte.can_write) {
+            if (byte.got_value) {
                 m_got_edit_value = true;
                 m_edit_value = byte.value;
             } else {
@@ -656,10 +656,19 @@ void HexEditor::DoHexPart(size_t num_skip_columns, size_t begin_offset, size_t e
         const HexEditorByte *byte = m_bytes;
         for (size_t offset = begin_offset; offset != end_offset; ++offset, ++byte) {
             bool editing;
-            bool editable = byte->got_value && byte->can_write;
 
             if (offset == m_offset) {
                 m_draw_list->AddRectFilled(screen_pos, ImVec2(screen_pos.x + m_metrics.glyph_width * 2.f, screen_pos.y + m_metrics.line_height), m_highlight_colour);
+            }
+
+            if (!byte->got_value || (byte->colour == 0 && !byte->can_write)) {
+                tch.BeginColour(m_metrics.disabled_colour);
+            } else if (byte->colour == 0 && (!byte->got_value || (byte->value == 0 && this->options.grey_00s))) {
+                tch.BeginColour(m_metrics.grey_colour);
+            } else if (byte->colour == 0) {
+                tch.BeginColour(m_metrics.text_colour);
+            } else {
+                tch.BeginColour(byte->colour);
             }
 
             if (offset == m_offset && m_hex) {
@@ -672,14 +681,21 @@ void HexEditor::DoHexPart(size_t num_skip_columns, size_t begin_offset, size_t e
                     ImGui::SameLine(x + m_metrics.glyph_width);
                 }
 
+                const bool editable = byte->got_value && byte->can_write;
+
                 // Quickly check for a couple of keys it's a pain to
                 // handle.
                 if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
                     commit = true;
                     editing = false;
-                } else if (editable) {
+                } else {
                     ImWchar ch;
+
                     this->GetChar(&ch, &editing, "hex_input");
+
+                    if (!editable) {
+                        editing = false;
+                    }
 
                     if (editing) {
                         if (ch != 0) {
@@ -707,8 +723,6 @@ void HexEditor::DoHexPart(size_t num_skip_columns, size_t begin_offset, size_t e
                             m_handler->DebugPrint("%zu - got char: %u, 0x%04X, '%c'\n", m_num_calls, ch, ch, ch >= 32 && ch < 127 ? (char)ch : '?');
                         }
                     }
-                } else {
-                    editing = false;
                 }
 
                 if (commit) {
@@ -752,16 +766,6 @@ void HexEditor::DoHexPart(size_t num_skip_columns, size_t begin_offset, size_t e
                 text[3] = 0;
 
                 ImGui::SameLine(x);
-
-                if (!byte->got_value || (byte->colour == 0 && !byte->can_write)) {
-                    tch.BeginColour(m_metrics.disabled_colour);
-                } else if (byte->colour == 0 && (!byte->got_value || (byte->value == 0 && this->options.grey_00s))) {
-                    tch.BeginColour(m_metrics.grey_colour);
-                } else if (byte->colour == 0) {
-                    tch.BeginColour(m_metrics.text_colour);
-                } else {
-                    tch.BeginColour(byte->colour);
-                }
 
                 ImGui::TextUnformatted(text, text + sizeof text - 1);
 
