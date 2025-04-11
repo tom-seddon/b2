@@ -80,6 +80,39 @@ if(WIN32)
   target_link_libraries(shared_lib INTERFACE rpcrt4.lib)
 endif()
 
+target_compile_definitions(shared_lib PUBLIC
+  BUILD_TYPE_$<CONFIG>=1
+  ASSERT_ENABLED=$<NOT:$<CONFIG:Final>>)
+
+set(MUTEX_DEBUGGING_ENABLED 1)
+if(OSX)
+  # At some point, I introduced something that's only present in 10.12
+  # and later. So when explicitly targeting a specific version, switch
+  # this stuff off when appropriate.
+  #
+  # If not explicitly targeting a specific version, you just get
+  # whatever you get.
+  #
+  # Going by the docs, it seems you should be able to test DEFINED
+  # CMAKE_OSX_DEPLOYMENT_TARGET, but it seems that can be true when
+  # running from release.py even though CMAKE_OSX_DEPLOYMENT_TARGET is
+  # actually blank. I haven't figured out why.
+  if(NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
+    message(STATUS "OS X deployment target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    if(${CMAKE_OSX_DEPLOYMENT_TARGET} VERSION_LESS 10.12)
+      message(STATUS "Mutex debugging disabled")
+      set(MUTEX_DEBUGGING_ENABLED 0)
+    endif()
+  endif()
+endif()
+
+if(MUTEX_DEBUGGING_ENABLED)
+  target_compile_definitions(shared_lib PUBLIC
+    MUTEX_DEBUGGING=0)
+else()
+  target_compile_definitions(shared_lib PUBLIC
+    MUTEX_DEBUGGING=$<NOT:$<CONFIG:Final>>)
+endif()
+
 add_subdirectory("t")
-add_sanitizers(shared_lib)
-add_config_define(shared_lib)
+b2_target_boilerplate(shared_lib SANITIZERS)

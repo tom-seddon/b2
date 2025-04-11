@@ -10,7 +10,7 @@ project(6502)
 
 add_executable(6502_gen
   6502_gen.cpp 6502_gen.inl)
-add_sanitizers(6502_gen)
+b2_target_boilerplate(6502_gen SANITIZERS)
 target_link_libraries(6502_gen shared_lib)
 
 add_library(6502_lib STATIC
@@ -27,6 +27,6 @@ add_custom_command(
 
 target_include_directories(6502_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(6502_lib PUBLIC h)
-add_sanitizers(6502_lib)
+b2_target_boilerplate(6502_lib SANITIZERS)
 
 add_subdirectory(t)

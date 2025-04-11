@@ -23,6 +23,13 @@ extern "C" void __nop(void);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if (BUILD_TYPE_Debug + BUILD_TYPE_Release + BUILD_TYPE_RelWithDebInfo + BUILD_TYPE_Final) != 1
+#error Must set one of: BUILD_TYPE_Debug, BUILD_TYPE_Release, BUILD_TYPE_RelWithDebInfo, BUILD_TYPE_Final
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #ifdef _WIN32
 
 #define SYSTEM_WINDOWS 1
@@ -290,9 +297,9 @@ int IsDebuggerAttached(void);
 //
 // See https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2593r0.html
 
-template<uint64_t N>
+template <uint64_t N>
 struct AlwaysFalseUInt {
-    static constexpr bool value=false;
+    static constexpr bool value = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -369,8 +376,8 @@ size_t GetNumSetBits64(uint64_t value);
 // TODO: somewhere better for these, surely?
 #define BOOL_STR(X) ((X) ? "true" : "false")
 
-extern const char BINARY_BYTE_STRINGS[256][9]; //8 binary digits
-extern const char *const ASCII_BYTE_STRINGS[256];  //"" or "'x'" if isprint
+extern const char BINARY_BYTE_STRINGS[256][9];    //8 binary digits
+extern const char *const ASCII_BYTE_STRINGS[256]; //"" or "'x'" if isprint
 extern const char HEX_CHARS_UC[];
 extern const char HEX_CHARS_LC[];
 

@@ -43,8 +43,7 @@ if(MSVC)
 endif()
 
 add_library(beeb_lib ${SRCS})
-add_sanitizers(beeb_lib)
-add_config_define(beeb_lib)
+b2_target_boilerplate(beeb_lib SANITIZERS)
 
 target_include_directories(beeb_lib PUBLIC include)
 target_link_libraries(beeb_lib PUBLIC shared_lib 6502_lib salieri_lib)

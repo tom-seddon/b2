@@ -7,7 +7,7 @@ function(add_shared_test stem)
   set(options DONT_RUN CPP)
   cmake_parse_arguments(TEST "${options}" "" "ARGS" ${ARGN})
   add_executable(${stem} ${stem}.cpp)
-  add_sanitizers(${stem})
+  b2_target_boilerplate(${stem} SANITIZERS)
   target_link_libraries(${stem} PRIVATE shared_lib)
   if(NOT ${TEST_DONT_RUN})
     add_test(
@@ -43,7 +43,7 @@ endif()
 ##########################################################################
 
 add_executable(test_path test_path.cpp)
-add_sanitizers(test_path)
+b2_target_boilerplate(test_path SANITIZERS)
 target_link_libraries(test_path PRIVATE shared_lib)
 add_test(
   NAME test_path

@@ -4,19 +4,20 @@ set(CMAKE_CXX_STANDARD 17)
 ##########################################################################
 ##########################################################################
 
-# Use this to add a BUILD_TYPE_Debug=1 (etc.) to the project's
-# defines. Seems that generator expressions only operate in the
-# context of a particular project.
-function(add_config_define TARGET)
-  target_compile_definitions(${TARGET} PRIVATE -DBUILD_TYPE_$<CONFIG>=1)
-endfunction()
+# Specify additional arguments to add specific boilerplate bits:
 
-##########################################################################
-##########################################################################
+# SANITIZERS - set up sanitizers for that target
+function(b2_target_boilerplate TARGET)
+  set(options SANITIZERS)
+  cmake_parse_arguments(PARSE_ARGV 1 arg_b2_target_boilerplate "${options}" "" "")
 
-function(target_boilerplate TARGET)
-  add_config_define(${TARGET})
-  add_sanitizers(${TARGET})
+  if(DEFINED arg_b2_target_boilerplate_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR "b2_target_boilerplate: ${TARGET}: unparsed arguments: ${arg_b2_target_boilerplate_UNPARSED_ARGUMENTS}")
+  endif()
+  
+  if(${arg_b2_target_boilerplate_SANITIZERS})
+    add_sanitizers(${TARGET})
+  endif()
 endfunction()
 
 ##########################################################################
@@ -25,45 +26,6 @@ endfunction()
 # It's not very neat to just set the various CMake globals, but this
 # stuff ideally wants to apply to all projects without requiring any
 # project-specific action.
-
-##########################################################################
-##########################################################################
-
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DASSERT_ENABLED=1")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASSERT_ENABLED=1")
-
-##########################################################################
-##########################################################################
-
-# This will just make a huge mess if it's inconsistent. Rather than add
-# BUILD_TYPE_$<CONFIG>=1 to every project, which thanks to the generator
-# expression appears to be basically rocket science, just set the define
-# for Final build only and have a #ifdef in the code.
-#
-# The mutex debugging stuff only ever affects C++.
-
-set(CMAKE_CXX_FLAGS_FINAL "${CMAKE_CXX_FLAGS_FINAL} -DMUTEX_DEBUGGING=0")
-
-if(OSX)
-  # At some point, I introduced something that's only present in 10.12
-  # and later. So when explicitly targeting a specific version, switch
-  # this stuff off when appropriate.
-  #
-  # If not explicitly targeting a specific version, you just get
-  # whatever you get.
-  #
-  # Going by the docs, it seems you should be able to test DEFINED
-  # CMAKE_OSX_DEPLOYMENT_TARGET, but it seems that can be true when
-  # running from release.py even though CMAKE_OSX_DEPLOYMENT_TARGET is
-  # actually blank. I haven't figured out why.
-  if(NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
-    message(STATUS "OS X deployment target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
-    if(${CMAKE_OSX_DEPLOYMENT_TARGET} VERSION_LESS 10.12)
-      message(STATUS "Mutex debugging disabled")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMUTEX_DEBUGGING=0")
-    endif()
-  endif()
-endif()
 
 ##########################################################################
 ##########################################################################

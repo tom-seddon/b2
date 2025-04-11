@@ -4,8 +4,7 @@ cmake_minimum_required(VERSION 3.5)
 ##########################################################################
 
 add_executable(test_6522 test_6522.cpp)
-add_config_define(test_6522)
-add_sanitizers(test_6522)
+b2_target_boilerplate(test_6522 SANITIZERS)
 target_link_libraries(test_6522 PRIVATE shared_lib 6502_lib beeb_lib)
 add_test(
   NAME test_6522
@@ -15,8 +14,7 @@ add_test(
 ##########################################################################
 
 add_executable(test_OutputDataBuffer test_OutputDataBuffer.cpp)
-add_config_define(test_OutputDataBuffer)
-add_sanitizers(test_OutputDataBuffer)
+b2_target_boilerplate(test_OutputDataBuffer SANITIZERS)
 target_link_libraries(test_OutputDataBuffer PRIVATE shared_lib beeb_lib)
 add_test(
   NAME test_OutputDataBuffer
@@ -27,7 +25,7 @@ add_test(
 
 if(MSVC)
   add_executable(test_relacy_OutputDataBuffer test_relacy_OutputDataBuffer.cpp)
-  add_config_define(test_relacy_OutputDataBuffer)
+  b2_target_boilerplate(test_relacy_OutputDataBuffer)
   target_link_libraries(test_relacy_OutputDataBuffer PRIVATE shared_lib beeb_lib relacy_lib)
   add_test(
     NAME test_relacy_OutputDataBuffer
@@ -44,7 +42,7 @@ target_compile_definitions(test_beeb PRIVATE
   -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
   -DBBC_TESTS_OUTPUT_FOLDER="${CMAKE_BINARY_DIR}/b2_tests_output")
 target_link_libraries(test_beeb PRIVATE shared_lib beeb_lib stb_image_lib)
-target_boilerplate(test_beeb)
+b2_target_boilerplate(test_beeb SANITIZERS)
 
 function(add_test_beeb_category category)
   add_test(NAME test_beeb_${category}

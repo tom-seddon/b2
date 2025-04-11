@@ -2826,4 +2826,15 @@ Attribute mode 0 output:
           };
 #+end_src
 
+* Improve compiler options setup
+
+https://github.com/tom-seddon/b2/issues/65
+
+common.cmake included by:
+
+- experimental/CMakeLists.txt
+- src/CMakeLists.txt
+
+
+
 * eof.

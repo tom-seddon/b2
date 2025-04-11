@@ -59,7 +59,7 @@ endif()
 ##########################################################################
 ##########################################################################
 
-add_config_define(b2)
+b2_target_boilerplate(b2 SANITIZERS)
 
 ##########################################################################
 ##########################################################################
@@ -290,10 +290,6 @@ endif()
 ##########################################################################
 ##########################################################################
 
-add_sanitizers(b2)
-
-##########################################################################
-##########################################################################
 
 target_link_libraries(b2 PRIVATE
   beeb_lib
@@ -423,7 +419,7 @@ add_executable(test_JobQueue
   test_JobQueue.cpp
   JobQueue.cpp JobQueue.h
   )
-add_sanitizers(test_JobQueue)
+b2_target_boilerplate(test_JobQueue SANITIZERS)
 target_link_libraries(test_JobQueue PRIVATE shared_lib)
 add_test(
   NAME b2/test_JobQueue
@@ -439,7 +435,7 @@ add_executable(test_http
   HTTPServer.cpp HTTPServer.h
   Messages.cpp Messages.h
   )
-add_sanitizers(test_http)
+b2_target_boilerplate(test_http SANITIZERS)
 target_link_libraries(test_http PRIVATE shared_lib ${LibUV_LIBRARIES} llhttp_static ${LIBCURL_TARGET})
 add_test(
   NAME b2/test_http
@@ -455,8 +451,7 @@ add_executable(test_UTF8
   misc.inl misc.h
   Messages.cpp Messages.h
   )
-add_sanitizers(test_UTF8)
-add_config_define(test_UTF8)
+b2_target_boilerplate(test_UTF8 SANITIZERS)
 target_link_libraries(test_UTF8 PRIVATE shared_lib beeb_lib ${SDL2_LIBRARY})
 add_test(
   NAME b2/test_UTF8
