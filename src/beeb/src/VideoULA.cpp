@@ -377,7 +377,7 @@ VideoDataPixel VideoULA::ShiftNuLA() {
         if constexpr (LOGICAL && BPP == 1) {
             index >>= 7;
         } else if constexpr (LOGICAL && BPP == 2) {
-            index = index >> 6 & 2 | index >> 3 & 1;
+            index = (index >> 6 & 2) | (index >> 3 & 1);
         } else if constexpr (!LOGICAL || BPP == 4) {
             index = ((index >> 4) & 8) | ((index >> 3) & 4) | ((index >> 2) & 2) | ((index >> 1) & 1);
         } else {

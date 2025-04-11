@@ -489,9 +489,9 @@ static bool ParseROMSuffixChar(uint32_t *dso, char c) {
         return HandleROMSuffixChar(dso, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
         return HandleROMSuffixChar(dso, (uint8_t)(c - 'a' + 10));
-    } else if (c >= 'A' && c < 'A' + NUM_MAPPER_REGIONS) {
+    } else if (c >= 'A' && c < (char)('A' + NUM_MAPPER_REGIONS)) {
         *dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
-        *dso |= BBCMicroDebugStateOverride_OverrideMapperRegion | (c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
+        *dso |= BBCMicroDebugStateOverride_OverrideMapperRegion | (uint32_t)(c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
 
         return true;
     } else {

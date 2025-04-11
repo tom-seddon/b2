@@ -1094,7 +1094,7 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         rom_type = ROMType_ABE;
     }
 
-    flags = flags & ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift) | rom_type << BBCMicroUpdateFlag_ROMTypeShift;
+    flags = (flags & ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift)) | rom_type << BBCMicroUpdateFlag_ROMTypeShift;
 
     return flags;
 }

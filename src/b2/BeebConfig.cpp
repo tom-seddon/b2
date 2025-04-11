@@ -549,10 +549,12 @@ bool BeebLoadedConfig::Load(
         dest->os = os;
 
         for (size_t i = sideways_roms_end; i < 16; ++i) {
-            dest->roms[i] = std::make_shared<std::vector<uint8_t>>(data.begin() + offset, data.begin() + offset + 16384);
+            // the values involved will not be large enough to cause
+            // problems if casted to ptrdiff_t.
+            dest->roms[i] = std::make_shared<std::vector<uint8_t>>(data.begin() + (ptrdiff_t)offset, data.begin() + (ptrdiff_t)offset + 16384);
             offset += 16384;
         }
-        ASSERT(offset - metadata->rom_offset == metadata->rom_size_bytes);
+        ASSERT((size_t)(offset - metadata->rom_offset) == metadata->rom_size_bytes);
     }
 
     for (size_t i = 0; i < sideways_roms_end; ++i) {
