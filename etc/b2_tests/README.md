@@ -18,7 +18,7 @@ watches OSCLI for that * command, stepping in to handle the comparison
 of the emulated results with those previously saved from the real
 system. No need for an emulated filing system.
 
-* commands supported so far:
+Commands supported so far:
 
 * `*SPOOL` - test output is whatever gets spooled
 
