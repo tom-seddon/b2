@@ -1905,6 +1905,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<StandardTest>("VIA.C2"));
     all_tests.push_back(std::make_unique<StandardTest>("VIA.C3"));
     all_tests.push_back(std::make_unique<StandardTest>("VIA.C4", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C5"));
     all_tests.push_back(std::make_unique<StandardTest>("VIA.I1"));
     all_tests.push_back(std::make_unique<StandardTest>("VIA.I2"));
     all_tests.push_back(std::make_unique<StandardTest>("VIA.PB2"));
