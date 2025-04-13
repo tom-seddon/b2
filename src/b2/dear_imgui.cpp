@@ -583,7 +583,7 @@ void ImGuiStuff::AddMouseButtonEvent(uint32_t mouse_id, uint8_t button, bool sta
     }
 
     if (imgui_button >= 0) {
-        printf("%s: button=%d state=%s\n", __func__, imgui_button, BOOL_STR(state));
+        //printf("%s: button=%d state=%s\n", __func__, imgui_button, BOOL_STR(state));
         AddMouseSourceEvent(&io, mouse_id);
         io.AddMouseButtonEvent(imgui_button, state);
     }
