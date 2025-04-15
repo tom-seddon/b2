@@ -461,6 +461,10 @@ void BeebWindow::OptionsUI::DoImGui() {
         if (ImGui::Checkbox("Power-on tone", &settings->power_on_tone)) {
             beeb_thread->SetPowerOnTone(settings->power_on_tone);
         }
+
+        if (ImGui::SliderInt("Sound cutoff", &settings->cutoff_hz, 100, 20000, "%d Hz")) {
+            beeb_thread->SetSoundCutoff(settings->cutoff_hz);
+        }
     }
 
     ImGui::NewLine();
@@ -563,6 +567,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
     m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
+    m_beeb_thread->SetSoundCutoff(m_settings.cutoff_hz);
     m_beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(m_init_arguments.limit_speed));
 
     m_blend_amt = 1.f;

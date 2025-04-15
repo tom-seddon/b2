@@ -71,6 +71,7 @@ struct BeebWindowSettings {
     float bbc_volume = 0.f;
     float disc_volume = 0.f;
     bool power_on_tone = true;
+    int cutoff_hz = 8000;
 
     bool display_auto_scale = true;
     bool correct_aspect_ratio = true;

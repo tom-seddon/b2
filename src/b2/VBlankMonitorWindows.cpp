@@ -261,7 +261,7 @@ class VBlankMonitorWindows : public VBlankMonitor {
             //
             // Assume a 50 Hz frame time if the display is asleep. It's as good
             // a guess as any.
-            
+
             uint64_t start_ticks = GetCurrentTickCount();
             HRESULT hr = display->output->WaitForVBlank();
             if (FAILED(hr)) {

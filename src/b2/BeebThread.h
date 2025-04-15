@@ -244,6 +244,7 @@ class BeebThread {
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
         void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
       protected:
       private:
         bool m_shift_up = true;
@@ -1021,6 +1022,8 @@ class BeebThread {
     void SetDiscVolume(float db);
 
     void SetPowerOnTone(bool power_on_tone);
+
+    void SetSoundCutoff(int hz);
 
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;

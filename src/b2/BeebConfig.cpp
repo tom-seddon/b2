@@ -603,7 +603,7 @@ void BeebLoadedConfig::ReuseROMs(const BeebLoadedConfig &oth) {
                             this->roms[i] = oth.roms[j];
                             break;
                         }
-                    }\
+                    }
                 }
             }
         }
