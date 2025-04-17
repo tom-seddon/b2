@@ -19,7 +19,6 @@
 #include "VBlankMonitor.h"
 #include "b2.h"
 #include <inttypes.h>
-#include "filters.h"
 #include "misc.h"
 #include "TimelineUI.h"
 #include "BeebState.h"
@@ -462,8 +461,14 @@ void BeebWindow::OptionsUI::DoImGui() {
             beeb_thread->SetPowerOnTone(settings->power_on_tone);
         }
 
-        if (ImGui::SliderInt("Sound cutoff", &settings->cutoff_hz, 100, 20000, "%d Hz")) {
-            beeb_thread->SetSoundCutoff(settings->cutoff_hz);
+        if (ImGui::Checkbox("Low pass filter", &settings->low_pass_filter)) {
+            beeb_thread->SetLowPassFilter(settings->low_pass_filter);
+        }
+
+        // 20,000 Hz should hopefully be more than enough for the b2 user
+        // demographic: people, mostly older.
+        if (ImGui::SliderInt("Low pass filter cutoff", &settings->low_pass_filter_cutoff_hz, 100, 20000, "%d Hz")) {
+            beeb_thread->SetLowPassFilterCutoff(settings->low_pass_filter_cutoff_hz);
         }
     }
 
@@ -567,7 +572,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
     m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
-    m_beeb_thread->SetSoundCutoff(m_settings.cutoff_hz);
+    m_beeb_thread->SetLowPassFilter(m_settings.low_pass_filter);
+    m_beeb_thread->SetLowPassFilterCutoff(m_settings.low_pass_filter_cutoff_hz);
     m_beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(m_init_arguments.limit_speed));
 
     m_blend_amt = 1.f;

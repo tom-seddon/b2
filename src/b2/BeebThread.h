@@ -1008,14 +1008,9 @@ class BeebThread {
     // the thread it can run forward forever.
     //
     // Returns number of samples actually produced.
-    //
-    // (FN, if non-null, is called back with the float audio data
-    // produced, at the sound chip rate of 250KHz... see the code.)
     size_t AudioThreadFillAudioBuffer(float *samples,
                                       size_t num_samples,
-                                      bool perfect,
-                                      void (*fn)(int, float, void *) = nullptr,
-                                      void *fn_context = nullptr);
+                                      bool perfect);
 
     // Set sound/disc volume as attenuation in decibels.
     void SetBBCVolume(float db);
@@ -1023,7 +1018,8 @@ class BeebThread {
 
     void SetPowerOnTone(bool power_on_tone);
 
-    void SetSoundCutoff(int hz);
+    void SetLowPassFilter(bool low_pass_filter);
+    void SetLowPassFilterCutoff(int hz);
 
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;

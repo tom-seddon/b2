@@ -14,7 +14,7 @@ If using macOS 12 (Monterey) or later, download the
 
 If using OS X 10.9 (Mavericks) or later, download the
 `b2-macos-10.9-intel-XXX.pmg` file. The 10.9 version does not support
-video writing, but is otherwise fully-featured.
+writing compressed videos, but is otherwise fully-featured.
 
 You don't need to download any of the other files; the dmg contains
 everything required.

@@ -18,79 +18,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define WAV 0
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if WAV
-static void AddChunkHeader(std::vector<uint8_t> *data, const char *fourcc) {
-    ASSERT(strlen(fourcc) == 4);
-
-    size_t size = data->size();
-    ASSERT(size <= UINT32_MAX);
-
-    data->insert(data->begin(), 8, 0);
-    memcpy(data->data() + 0, fourcc, 4);
-    Store32LE(data->data() + 4, (uint32_t)size);
-}
-#endif
-
-#if WAV
-static void SaveWAV(
-    const std::string &file_name,
-    const char *ext,
-    const std::vector<uint8_t> data,
-    SDL_AudioFormat format,
-    uint8_t channels,
-    int freq,
-    uint16_t wFormatTag,
-    Messages *msg) {
-    std::vector<uint8_t> wav = data;
-    AddChunkHeader(&wav, "data");
-
-    uint16_t nChannels = channels;
-    uint32_t nSamplesPerSec = freq;
-    uint16_t wBitsPerSample = SDL_AUDIO_BITSIZE(format);
-    uint16_t nBlockAlign = nChannels * wBitsPerSample / 8;
-    uint32_t nAvgBytesPerSec = nSamplesPerSec * nBlockAlign;
-
-    {
-        std::vector<uint8_t> fmt_chunk;
-        fmt_chunk.resize(18);
-
-        uint8_t *p = fmt_chunk.data();
-        Store16LE(p + 0, wFormatTag);
-        Store16LE(p + 2, nChannels);
-        Store32LE(p + 4, nSamplesPerSec);
-        Store32LE(p + 8, nAvgBytesPerSec);
-        Store16LE(p + 12, nBlockAlign);
-        Store16LE(p + 14, wBitsPerSample);
-        Store16LE(p + 16, 0);
-
-        AddChunkHeader(&fmt_chunk, "fmt ");
-
-        wav.insert(wav.begin(), fmt_chunk.begin(), fmt_chunk.end());
-    }
-
-    for (size_t i = 0; i < 4; ++i) {
-        wav.insert(wav.begin(), "EVAW"[i]);
-    }
-
-    AddChunkHeader(&wav, "RIFF");
-
-    std::string f = PathWithoutExtension(file_name) + ext;
-
-    SaveFile(wav, f, msg);
-
-    free(f);
-    f = nullptr;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 WriteVideoJob::WriteVideoJob(BeebThread::TimelineEventList event_list,
                              std::unique_ptr<VideoWriter> writer)
     : m_event_list(std::move(event_list))
@@ -164,23 +91,6 @@ void WriteVideoJob::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if WAV
-static const int NUM_CHANNELS = 4;
-
-static void PushBackFloat(int index, float f, void *context) {
-    ASSERT(index >= -1 && index < NUM_CHANNELS);
-    auto vec = (std::vector<uint8_t> *)context;
-    vec += index + 1;
-
-    uint8_t tmp[4];
-    memcpy(tmp, &f, 4);
-
-    for (size_t i = 0; i < 4; ++i) {
-        vec->push_back(tmp[i]);
-    }
-}
-#endif
-
 void WriteVideoJob::ThreadExecute() {
     //OutputData *video_output_data=m_beeb_thread->GetVideoOutputData();
 
@@ -207,10 +117,6 @@ void WriteVideoJob::ThreadExecute() {
     if (!m_writer->BeginWrite()) {
         goto done;
     }
-
-#if WAV
-    std::vector<uint8_t> wav_float_data, wav_pcm_data, wav_full_float_data[1 + NUM_CHANNELS];
-#endif
 
     int vwidth, vheight;
     {
@@ -293,20 +199,11 @@ void WriteVideoJob::ThreadExecute() {
             {
                 BeebThread *tmp = beeb_thread.get();
                 float *dest = (float *)audio_buf.data();
-                num_samples = tmp->AudioThreadFillAudioBuffer(dest, NUM_SAMPLES, true,
-#if WAV
-                                                              &PushBackFloat, &wav_full_float_data
-#else
-                                                              nullptr, nullptr
-#endif
-                );
+                num_samples = tmp->AudioThreadFillAudioBuffer(dest, NUM_SAMPLES, true);
             }
 
             ASSERT(num_samples == 0 || num_samples == NUM_SAMPLES);
             if (num_samples == NUM_SAMPLES) {
-#if WAV
-                wav_float_data.insert(wav_float_data.end(), cvt.buf, cvt.buf + cvt.len);
-#endif
                 size_t num_bytes;
                 if (cvt.needed) {
                     SDL_ConvertAudio(&cvt);
@@ -320,10 +217,6 @@ void WriteVideoJob::ThreadExecute() {
                 if (!m_writer->WriteSound(cvt.buf, num_bytes)) {
                     goto done;
                 }
-
-#if WAV
-                wav_pcm_data.insert(wav_pcm_data.end(), cvt.buf, cvt.buf + num_bytes);
-#endif
             }
 
             const VideoDataUnit *vp[2];
@@ -371,16 +264,6 @@ void WriteVideoJob::ThreadExecute() {
     m_success = true;
 
 done:
-
-#if WAV
-    SaveWAV(m_file_name, ".pcm.wav", wav_pcm_data, afmt.format, afmt.channels, afmt.freq, 1, &m_msg);      //1 = WAVE_FORMAT_PCM
-    SaveWAV(m_file_name, ".float.wav", wav_float_data, AUDIO_F32SYS, afmt.channels, afmt.freq, 3, &m_msg); //3 = WAVE_FORMAT_IEEE_FLOAT
-
-    for (int i = -1; i < NUM_CHANNELS; ++i) {
-        std::string ext = strprintf(".float.ch%d.wav", i);
-        SaveWAV(m_file_name, ext.c_str(), wav_full_float_data[1 + i], AUDIO_F32SYS, afmt.channels, SOUND_CLOCK_HZ, 3, &m_msg); //3 = WAVE_FORMAT_IEEE_FLOAT
-    }
-#endif
 
     m_writer = nullptr;
 }

@@ -571,6 +571,19 @@ static bool FindBoolMember(bool *value, rapidjson::Value *object, const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool FindIntMember(int *value, rapidjson::Value *object, const char *key, Messages *msg) {
+    rapidjson::Value tmp;
+    if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
+        return false;
+    }
+
+    *value = tmp.GetInt();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool FindFloatMember(float *value, rapidjson::Value *object, const char *key, Messages *msg) {
     rapidjson::Value tmp;
     if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
@@ -968,6 +981,8 @@ static const char MOUSE[] = "mouse";
 static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
 static const char OS_ROM_TYPE[] = "os_rom_type";
 static const char HIDE_CURSOR_WHEN_UNFOCUSED[] = "hide_cursor_when_unfocused";
+static const char LOW_PASS_FILTER[] = "low_pass_filter";
+static const char LOW_PASS_FILTER_CUTOFF_HZ[] = "low_pass_filter_cutoff_hz";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1822,6 +1837,8 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     LoadCopySettings(&BeebWindows::defaults.printer_copy_settings, windows, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE, "Printe copy mode", msg);
     FindBoolMember(&BeebWindows::defaults.capture_mouse_on_click, windows, CAPTURE_MOUSE_ON_CLICK, nullptr);
     FindBoolMember(&BeebWindows::defaults.hide_cursor_when_unfocused, windows, HIDE_CURSOR_WHEN_UNFOCUSED, nullptr);
+    FindBoolMember(&BeebWindows::defaults.low_pass_filter, windows, LOW_PASS_FILTER, nullptr);
+    FindIntMember(&BeebWindows::defaults.low_pass_filter_cutoff_hz, windows, LOW_PASS_FILTER_CUTOFF_HZ, nullptr);
 
     {
         std::string keymap_name;
@@ -1926,6 +1943,12 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(HIDE_CURSOR_WHEN_UNFOCUSED);
         writer->Bool(BeebWindows::defaults.hide_cursor_when_unfocused);
+
+        writer->Key(LOW_PASS_FILTER);
+        writer->Bool(BeebWindows::defaults.low_pass_filter);
+
+        writer->Key(LOW_PASS_FILTER_CUTOFF_HZ);
+        writer->Int(BeebWindows::defaults.low_pass_filter_cutoff_hz);
 
         if (!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);

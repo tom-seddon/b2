@@ -217,42 +217,40 @@ class TimelineUI : public SettingsUI {
                         beeb_thread->Send(std::make_shared<BeebThread::StartReplayMessage>(state));
                     }
 
-                    if (CanCreateVideoWriter()) {
-                        ImGui::SameLine();
+                    ImGui::SameLine();
 
-                        if (ImGui::Button("Video")) {
-                            ImGui::OpenPopup(VIDEO_FORMATS_POPUP);
-                        }
+                    if (ImGui::Button("Video")) {
+                        ImGui::OpenPopup(VIDEO_FORMATS_POPUP);
+                    }
 
-                        if (ImGui::BeginPopup(VIDEO_FORMATS_POPUP)) {
-                            for (size_t format_index = 0; format_index < GetNumVideoWriterFormats(); ++format_index) {
-                                const VideoWriterFormat *format = GetVideoWriterFormatByIndex(format_index);
-                                if (ImGui::Button(format->description.c_str())) {
-                                    ImGui::CloseCurrentPopup();
+                    if (ImGui::BeginPopup(VIDEO_FORMATS_POPUP)) {
+                        for (size_t format_index = 0; format_index < GetNumVideoWriterFormats(); ++format_index) {
+                            const VideoWriterFormat *format = GetVideoWriterFormatByIndex(format_index);
+                            if (ImGui::Button(format->description.c_str())) {
+                                ImGui::CloseCurrentPopup();
 
-                                    SaveFileDialog fd(RECENT_PATHS_VIDEO);
-                                    fd.AddFilter(format->description, {format->extension});
+                                SaveFileDialog fd(RECENT_PATHS_VIDEO);
+                                fd.AddFilter(format->description, {format->extension});
 
-                                    std::string path;
-                                    if (fd.Open(&path)) {
-                                        fd.AddLastPathToRecentPaths();
+                                std::string path;
+                                if (fd.Open(&path)) {
+                                    fd.AddLastPathToRecentPaths();
 
-                                        if (PathGetExtension(path).empty()) {
-                                            path += format->extension;
-                                        }
-
-                                        std::unique_ptr<VideoWriter> video_writer = CreateVideoWriter(m_beeb_window->GetMessageList(),
-                                                                                                      std::move(path),
-                                                                                                      format_index);
-                                        auto message = std::make_shared<BeebThread::CreateTimelineVideoMessage>(state,
-                                                                                                                std::move(video_writer));
-                                        m_beeb_window->GetBeebThread()->Send(std::move(message));
+                                    if (PathGetExtension(path).empty()) {
+                                        path += format->extension;
                                     }
+
+                                    std::unique_ptr<VideoWriter> video_writer = CreateVideoWriter(m_beeb_window->GetMessageList(),
+                                                                                                  std::move(path),
+                                                                                                  format_index);
+                                    auto message = std::make_shared<BeebThread::CreateTimelineVideoMessage>(state,
+                                                                                                            std::move(video_writer));
+                                    m_beeb_window->GetBeebThread()->Send(std::move(message));
                                 }
                             }
-
-                            ImGui::EndPopup();
                         }
+
+                        ImGui::EndPopup();
                     }
 
                     char cycles_str[MAX_UINT64_THOUSANDS_SIZE];

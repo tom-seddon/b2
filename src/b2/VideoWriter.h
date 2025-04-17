@@ -44,6 +44,7 @@ class VideoWriter {
     VideoWriter(const VideoWriter &) = delete;
     VideoWriter &operator=(const VideoWriter &) = delete;
 
+    // Only intended for UI purposes.
     const std::string &GetFileName() const;
 
     virtual bool BeginWrite() = 0;
@@ -77,7 +78,6 @@ struct VideoWriterFormat {
 
 size_t GetNumVideoWriterFormats();
 const VideoWriterFormat *GetVideoWriterFormatByIndex(size_t index);
-bool CanCreateVideoWriter();
 std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> message_list,
                                                std::string file_name,
                                                size_t format_index);

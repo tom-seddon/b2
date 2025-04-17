@@ -4,6 +4,7 @@
 #include "VideoWriterMF.h"
 #include "VideoWriterFFmpeg.h"
 #include "VideoWriterAVFoundation.h"
+#include "VideoWriterTGA.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -39,32 +40,19 @@ std::shared_ptr<MessageList> VideoWriter::GetMessageList() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CanCreateVideoWriter() {
-#if HAVE_FFMPEG
-
-    if (!CanCreateVideoWriterFFmpeg()) {
-        return false;
-    }
-
-    return true;
-
-#elif SYSTEM_WINDOWS
-
-    return true;
-
-#else
-
-    return false;
-
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> message_list,
                                                std::string file_name,
                                                size_t format_index) {
+
+    size_t num_tga = GetNumVideoWriterTGAFormats();
+    if (format_index < num_tga) {
+        return CreateVideoWriterTGA(std::move(message_list),
+                                    std::move(file_name),
+                                    format_index);
+    }
+
+    format_index -= num_tga;
+
 #if SYSTEM_WINDOWS
 
     return CreateVideoWriterMF(std::move(message_list),
@@ -96,23 +84,23 @@ std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> mess
 //////////////////////////////////////////////////////////////////////////
 
 size_t GetNumVideoWriterFormats() {
+    size_t n = GetNumVideoWriterTGAFormats();
+
 #if SYSTEM_WINDOWS
 
-    return GetNumVideoWriterMFFormats();
+    n += GetNumVideoWriterMFFormats();
 
 //#elif SYSTEM_OSX
 //
-//    return GetNumVideoWriterAVFoundationFormats();
+//    n+=GetNumVideoWriterAVFoundationFormats();
 //
 #elif HAVE_FFMPEG
 
-    return GetNumVideoWriterFFmpegFormats();
-
-#else
-
-    return 0;
+    n += GetNumVideoWriterFFmpegFormats();
 
 #endif
+
+    return n;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -120,6 +108,13 @@ size_t GetNumVideoWriterFormats() {
 
 const VideoWriterFormat *GetVideoWriterFormatByIndex(size_t index) {
     ASSERT(index < GetNumVideoWriterFormats());
+
+    size_t num_tga = GetNumVideoWriterTGAFormats();
+    if (index < num_tga) {
+        return GetVideoWriterTGAFormatByIndex(index);
+    }
+
+    index -= num_tga;
 
 #if SYSTEM_WINDOWS
 

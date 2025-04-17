@@ -155,9 +155,15 @@ Having recorded a timeline, click the `Video` button to produce a
 video starting from that point. Select the combination of resolution
 and audio bitrate from the popup.
 
-You'll always get two resolution options: 1:1 BBC pixels, and 2:1 BBC
-pixels. (Both are 50 Hz.) The 2:1 option doesn't do anything remotely
-clever, and exists only so that when uploaded to YouTube the video
+The uncompressed options save out a sequence of numbered TGA files and
+WAV files for stitching with something like ffmpeg. 250 KHz audio is
+recommended as this will let the video processing tool do its own
+processing, probably better quality than that provided by b2.
+
+For compressed video, when available, you'll always get two resolution
+options: lower res 1:1 BBC pixels, and higher res 2:1 BBC pixels.
+(Both are 50 Hz.) The 2:1 option just does a very basic upscale,
+nothing fancy; it exists so that when uploaded to YouTube the video
 comes out as HD 1080p50.
 
 Depending on system, you may get multiple audio bitrate and/or output

@@ -2836,5 +2836,12 @@ common.cmake included by:
 - src/CMakeLists.txt
 
 
+* TGA/WAV writer
+
+Max WAV data chunk: 4294967295
+
+44.1 KHz 16 bit PCM = 88,200 bytes/sec
+
+~13.5 hours
 
 * eof.

@@ -21,7 +21,6 @@
 #include <string.h>
 #include <inttypes.h>
 #include "Remapper.h"
-#include "filters.h"
 #include "conf.h"
 #include <math.h>
 #include "WriteVideoJob.h"
@@ -185,7 +184,8 @@ struct BeebThread::AudioThreadData {
     size_t record0_index = 0;
     uint64_t sound_buffer_size_samples = 0;
     float last_filtered_sample = 0.f;
-    std::atomic<int> cutoff_hz{8000};
+    std::atomic<bool> low_pass_filter = true;
+    std::atomic<int> low_pass_filter_cutoff_hz{8000};
     float fs[LOW_PASS_FILTER_ORDER] = {};
 
 #if LOGGING
@@ -2089,11 +2089,7 @@ static void Filter(float value, float *fs, float alpha) {
 
 size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
                                               size_t num_samples,
-                                              bool perfect,
-                                              void (*fn)(int,
-                                                         float,
-                                                         void *),
-                                              void *fn_context) {
+                                              bool perfect) {
     AudioThreadData *const atd = m_audio_thread_data;
     uint64_t now_ticks = GetCurrentTickCount();
 
@@ -2189,28 +2185,16 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
 #define MIXCH(CH) (VOLUMES_TABLE[unit->sn_output.ch[CH]])
 #define MIXSN (sn_scale * (MIXCH(0) + MIXCH(1) + MIXCH(2) + MIXCH(3)))
 #define MIXALL (disc_sound_scale * unit->disc_drive_sound + MIXSN)
-    //#define MIX (alpha * MIXALL + (1.f - alpha) * fs)
-
-    //#define MIX()                                       \
-//    do {                                            \
-//for(size_t i=0;i<
-    //        fs0 = alpha * MIXALL + (1.f - alpha) * fs0; \
-//        fs1 = alpha * fs0 + (1.f - alpha) * fs1;    \
-//        /*output += fs;*/                           \
-//    } while (false)
-
-    // This functionality may return.
-    (void)fn, (void)fn_context;
-    ASSERT(!fn);
-    ASSERT(!fn_context);
 
     float *fs = atd->fs;
     size_t num_units_left = num_sa;
     const SoundDataUnit *unit = sa;
     uint64_t num_consumed_sound_units = 0;
 
+    bool low_pass_filter = atd->low_pass_filter.load(std::memory_order_acquire);
+
     float dt = 1.f / SOUND_CLOCK_HZ;
-    float rc = (float)(1. / (2 * M_PI * atd->cutoff_hz.load(std::memory_order_acquire)));
+    float rc = (float)(1. / (2 * M_PI * atd->low_pass_filter_cutoff_hz.load(std::memory_order_acquire)));
     float alpha = dt / (rc + dt);
 
     for (size_t sample_idx = 0; sample_idx < num_samples; ++sample_idx) {
@@ -2218,17 +2202,20 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
         ASSERT(num_units_ <= SIZE_MAX);
         size_t num_units = (size_t)num_units_;
 
-        if (num_units > 0) {
-            const float *filter;
-            size_t filter_width;
-            GetFilterForWidth(&filter, &filter_width, (size_t)num_units);
-            ASSERT(filter_width <= num_units);
+        // Nasty sample with no low pass filter. TODO: it's a bit wasteful to do
+        // both... the code could do with a bit of restructuring to eliminate
+        // the duplication.
+        float sample2 = 0.f;
+        float mix = 0.f;
 
+        if (num_units > 0) {
             if (num_units <= num_units_left) {
                 // consume NUM_UNITS contiguous units from part A or
                 // part B
                 for (size_t i = 0; i < num_units; ++i, ++unit) {
-                    Filter(MIXALL, fs, alpha);
+                    mix = MIXALL;
+                    Filter(mix, fs, alpha);
+                    sample2 += mix;
                 }
 
                 num_units_left -= num_units;
@@ -2240,7 +2227,9 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
                 // contiguous units from the start of part B.
 
                 while (i < num_units_left) {
-                    Filter(MIXALL, fs, alpha);
+                    mix = MIXALL;
+                    Filter(mix, fs, alpha);
+                    sample2 += mix;
 
                     ++i;
                     ++unit;
@@ -2253,18 +2242,22 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
                 unit = sb;
 
                 while (i < num_units) {
-                    Filter(MIXALL, fs, alpha);
+                    mix = MIXALL;
+                    Filter(mix, fs, alpha);
+                    sample2 += mix;
 
                     ++i;
                     ++unit;
                 }
             }
 
+            sample2 /= num_units;
+
             m_sound_output.Consume(num_units);
             num_consumed_sound_units += num_units;
         }
 
-        dest[sample_idx] = fs[LOW_PASS_FILTER_ORDER - 1];
+        dest[sample_idx] = low_pass_filter ? fs[LOW_PASS_FILTER_ORDER - 1] : sample2;
     }
 
     atd->num_consumed_sound_units += num_consumed_sound_units;
@@ -2297,9 +2290,16 @@ void BeebThread::SetPowerOnTone(bool power_on_tone) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SetSoundCutoff(int hz) {
+void BeebThread::SetLowPassFilter(bool low_pass_filter) {
+    m_audio_thread_data->low_pass_filter.store(low_pass_filter, std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetLowPassFilterCutoff(int hz) {
     if (hz >= 1) {
-        m_audio_thread_data->cutoff_hz.store(hz, std::memory_order_release);
+        m_audio_thread_data->low_pass_filter_cutoff_hz.store(hz, std::memory_order_release);
     }
 }
 

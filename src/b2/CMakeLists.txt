@@ -33,6 +33,7 @@ add_executable(b2 MACOSX_BUNDLE
   VBlankMonitor.cpp VBlankMonitor.h
   VBlankMonitorDefault.cpp VBlankMonitorDefault.h
   VideoWriter.cpp VideoWriter.h
+  VideoWriterTGA.cpp VideoWriterTGA.h
   WriteVideoJob.cpp WriteVideoJob.h
   b2.cpp b2.h b2.inl
   commands.cpp commands.h
@@ -40,7 +41,6 @@ add_executable(b2 MACOSX_BUNDLE
   dear_imgui.cpp dear_imgui.h
   debugger.cpp debugger.h
   discs.cpp discs.h
-  filters.cpp filters.h
   keymap.cpp keymap.h
   keys.cpp keys.h keys.inl
   load_save.cpp load_save.h
