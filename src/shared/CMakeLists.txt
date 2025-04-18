@@ -26,7 +26,8 @@ set(SRCS
   c/sha1.cpp ${H}/sha1.h
   c/path.cpp ${H}/path.h
   c/load_store.cpp ${H}/load_store.h
-  ${H}/enum_decl.h  ${H}/enum_def.h  ${H}/enum_end.h  ${H}/system_specific.h
+  c/enums.cpp ${H}/enums.h ${H}/enum_decl.h  ${H}/enum_def.h  ${H}/enum_end.h
+  ${H}/system_specific.h
   ${H}/popwarn.h ${H}/pushwarn_bitfields.h ${H}/pushwarn_flexible_struct_member.h ${H}/pushwarn_padded_struct.h
   c/relacy.cpp ${H}/relacy.h
   c/mutex.cpp ${H}/mutex.h ${H}/mutex.inl

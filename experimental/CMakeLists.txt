@@ -17,3 +17,4 @@ endif()
 
 add_subdirectory(test_SDL_keyboard)
 add_subdirectory(test_locks)
+add_subdirectory(test_nlohmann_json)

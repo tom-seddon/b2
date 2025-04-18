@@ -6,10 +6,12 @@
 
 #define EEND_EXTRA()
 
-#define EBEGIN__BODY(TYPE)                                                 \
-    EPREFIX UNUSED const char *CONCAT3(Get, ENAME, EnumName)(TYPE value) { \
-        switch (value) {                                                   \
-        default:                                                           \
+#define EBEGIN__BODY(TYPE)                                                                                       \
+    const typename EnumTraits<ENAME>::GetNameFn EnumTraits<ENAME>::GET_NAME_FN = &CONCAT3(Get, ENAME, EnumName); \
+    const char EnumTraits<ENAME>::NAME[] = STRINGIZE(ENAME);                                                       \
+    EPREFIX UNUSED const char *CONCAT3(Get, ENAME, EnumName)(TYPE value) {                                       \
+        switch (value) {                                                                                         \
+        default:                                                                                                 \
             return "?" STRINGIZE(ENAME) "?";
 
 #define EBEGIN() EBEGIN__BODY(int)

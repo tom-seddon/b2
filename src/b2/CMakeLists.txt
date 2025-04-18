@@ -290,7 +290,6 @@ endif()
 ##########################################################################
 ##########################################################################
 
-
 target_link_libraries(b2 PRIVATE
   beeb_lib
   shared_lib
@@ -303,6 +302,7 @@ target_link_libraries(b2 PRIVATE
   IconFontCppHeaders_lib
   dear_imgui_hex_editor_lib
   stb_image_lib
+  nlohmann_json::nlohmann_json
   )
 
 ##########################################################################

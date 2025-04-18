@@ -365,3 +365,14 @@ target_include_directories(stb_image_lib INTERFACE
 target_sources(stb_image_lib INTERFACE
   ${STB_SRC_FOLDER}/stb_image.h
   ${STB_SRC_FOLDER}/stb_image_write.h)
+
+##########################################################################
+##########################################################################
+
+# https://github.com/nlohmann/json?tab=readme-ov-file#cmake
+
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+set(JSON_MultipleHeaders OFF CACHE INTERNAL "")
+set(JSON_Diagnostics ON CACHE INTERNAL "")
+set(JSON_Diagnostic_Positions ON CACHE INTERNAL "")
+add_subdirectory(json)

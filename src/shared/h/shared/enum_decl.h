@@ -1,3 +1,5 @@
+#include "enums.h"
+
 #if EINTERNAL
 #define EPREFIX static
 #else
@@ -5,6 +7,7 @@
 #endif
 
 #define EBEGIN__BODY(COLON_BASE_TYPE, BASE_TYPE)                               \
+    typedef BASE_TYPE CONCAT2(ENAME, BaseType); /*ugh*/                        \
     EPREFIX const char *UNUSED CONCAT3(Get, ENAME, EnumName)(BASE_TYPE value); \
     enum ENAME COLON_BASE_TYPE {
 
@@ -22,10 +25,23 @@
 #define EQPN(NAME) EPN(NAME)
 #define EQPNV(NAME, VALUE) EPNV(NAME, VALUE)
 
-#define EEND() \
-    }          \
-    ;          \
-    typedef enum ENAME ENAME;
+#define EEND()                                                                \
+    }                                                                         \
+    ;                                                                         \
+    typedef enum ENAME ENAME;                                                 \
+                                                                              \
+    template <>                                                               \
+    struct EnumBaseType<ENAME> {                                              \
+        typedef CONCAT2(ENAME, BaseType) Type;                                \
+    };                                                                        \
+                                                                              \
+    template <>                                                               \
+    struct EnumTraits<ENAME> {                                                \
+        typedef const char *(*GetNameFn)(typename EnumBaseType<ENAME>::Type); \
+        static const GetNameFn GET_NAME_FN;                                   \
+        static const char NAME[];                                             \
+    };
+
 //#define EOVERLOAD() const char *GetEnumValueName(ENAME value);
 
 #define NBEGIN(NAME) EPREFIX const char *UNUSED CONCAT3(Get, NAME, EnumName)(ENAME value);

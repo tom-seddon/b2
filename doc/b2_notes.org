@@ -2203,12 +2203,12 @@ In slightly bogus C++ terms...
       float bbc_volume,disc_volume;
       bool filter_bbc;
       bool correct_aspect_ratio;
-      bool screenshot_filtery
-      bool screenshot_correct_aspect_ratioy
-      bool screenshot_last_vsyncy
-      bool full_screeny
-      bool prefer_shortcutsy
-      bool auto_scaley
+      bool screenshot_filter;
+      bool screenshot_correct_aspect_ratio;
+      bool screenshot_last_vsync;
+      bool full_screen;
+      bool prefer_shortcuts;
+      bool auto_scale;
 
       float manual_scale;
       bool power_on_tone;
@@ -2222,6 +2222,8 @@ In slightly bogus C++ terms...
       bool capture_mouse_on_click;
       bool hide_cursor_when_unfocused;
       string config;/*must be one of the keys of new_configs*/
+      bool low_pass_filter;
+      int low_pass_filter_cutoff_hz;
   };
 
   struct Trace {
@@ -2243,6 +2245,12 @@ In slightly bogus C++ terms...
 
   struct Beeblink {
       vector<string> urls;
+  };
+
+  // Old-style NVRAM config. Inconsistent naming.
+  struct NVRAM {
+      string Master;
+      string MasterCompact;
   };
 
   struct Config {
