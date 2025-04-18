@@ -76,3 +76,6 @@
 [submodule "submodules/SDL_GameControllerDB"]
 	path = submodules/SDL_GameControllerDB
 	url = https://github.com/gabomdq/SDL_GameControllerDB
+[submodule "submodules/json"]
+	path = submodules/json
+	url = https://github.com/nlohmann/json
