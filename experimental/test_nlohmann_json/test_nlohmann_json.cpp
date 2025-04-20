@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <SDL.h>
 
 #include <shared/enum_decl.h>
 #include "test_nlohmann_json.inl"
@@ -37,7 +38,9 @@ static void HandleEnumToJSON(nlohmann::json &j, const EnumType *value, const cha
 }
 
 template <class EnumType, class EnumBaseType>
-static void HandleEnumFromJSON(nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+static void HandleEnumFromJSON(const nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+    (void)enum_type_name;
+
     std::string str = j.get<std::string>();
 
     EnumBaseType i = 0;
@@ -56,19 +59,18 @@ static void HandleEnumFromJSON(nlohmann::json &j, EnumType *value, const char *e
         ++i;
     }
 
-    throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
+    //throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
 }
 
 template <class T>
-struct nlohmann::adl_serializer<Enum<T>> {
-    static void to_json(nlohmann::json &j, const Enum<T> &value) {
-        HandleEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-    }
+void to_json(nlohmann::json &j, const Enum<T> &value) {
+    HandleEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+}
 
-    static void from_json(nlohmann::json &j, Enum<T> &value) {
-        HandleEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-    }
-};
+template <class T>
+void from_json(const nlohmann::json &j, Enum<T> &value) {
+    HandleEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -98,12 +100,18 @@ static void HandleFlagsEnumToJSON(nlohmann::json &j, const EnumType *value, cons
 }
 
 template <class EnumType, class EnumBaseType>
-static void HandleFlagsEnumFromJSON(nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+static void HandleFlagsEnumFromJSON(const nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+    (void)enum_type_name;
+
     if (!j.is_array()) {
-        throw nlohmann::json::type_error::create(302, "not an array", nullptr);
+        // Should really warn here. But the options for passing logging stuff
+        // into the deserialization functions seem a bit limited.
+        *value = (EnumType)0;
+        //throw nlohmann::json::type_error::create(302, enum_type_name + std::string(" value must be an array"), nullptr);
+        return;
     }
 
-    for (size_t i = 0; i < j.size(); ++j) {
+    for (size_t i = 0; i < j.size(); ++i) {
         if (!j[i].is_string()) {
             const std::string &j_name = j[i].get<std::string>();
             bool found = false;
@@ -116,31 +124,115 @@ static void HandleFlagsEnumFromJSON(nlohmann::json &j, EnumType *value, const ch
 
                 if (j_name == name) {
                     found = true;
-                    *value |= (EnumBaseType)mask;
+                    *value = (EnumType)((EnumBaseType)*value | mask);
                     break;
                 }
             }
 
-            if (!found) {
-                throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
-            }
+            //if (!found) {
+            //    throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
+            //}
         }
     }
 }
 
 template <class T>
-struct nlohmann::adl_serializer<FlagsEnum<T>> {
-    static void to_json(nlohmann::json &j, const FlagsEnum<T> &value) {
-        HandleFlagsEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-    }
+void to_json(nlohmann::json &j, const FlagsEnum<T> &value) {
+    HandleFlagsEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+}
 
-    static void from_json(nlohmann::json &j, FlagsEnum<T> &value) {
-        HandleFlagsEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-    }
+template <class T>
+void from_json(const nlohmann::json &j, FlagsEnum<T> &value) {
+    HandleFlagsEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Poorly-designed serialization format, easy to deal with using rapidjson but
+// rather inconvenient with nlohmann::json...
+struct KeymapKey {
+    uint32_t keycode = 0;
+    uint32_t scancode = 0;
 };
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+static const char KEYCODE[] = "keycode";
+
+static const uint32_t PCKeyModifier_All = PCKeyModifier_Shift | PCKeyModifier_Ctrl | PCKeyModifier_Alt | PCKeyModifier_Gui | PCKeyModifier_AltGr | PCKeyModifier_NumLock;
+
+void to_json(nlohmann::json &j, const KeymapKey &value) {
+    if (value.keycode != 0) {
+        j = nlohmann::json{};
+        for (uint32_t mask = PCKeyModifier_Begin;
+             mask != PCKeyModifier_End;
+             mask <<= 1) {
+            if (value.keycode & mask) {
+                j[GetPCKeyModifierEnumName((int)mask)] = true;
+            }
+
+            SDL_Keycode keycode = (SDL_Keycode)(value.keycode & ~PCKeyModifier_All);
+            const char *key_name = SDL_GetKeyName(keycode);
+            if (key_name) {
+                j[KEYCODE] = key_name;
+            } else {
+                j[KEYCODE] = keycode;
+            }
+        }
+    } else {
+        const char *scancode_name = SDL_GetScancodeName((SDL_Scancode)value.scancode);
+        if (scancode_name) {
+            j = scancode_name;
+        } else {
+            j = value.scancode;
+        }
+    }
+}
+
+void from_json(const nlohmann::json &j, KeymapKey &value) {
+    if (j.is_object()) {
+        // Assume the worst... it'll be ignored if the effective keycode is
+        // 0.
+        value.keycode = 0;
+
+        if (j.count(KEYCODE) > 0) {
+            const nlohmann::json &j_keycode = j.at(KEYCODE);
+            if (j_keycode.is_string()) {
+                std::string keycode_name = j_keycode.template get<std::string>();
+                value.keycode = SDL_GetKeyFromName(keycode_name.c_str());
+            } else if (j_keycode.is_number()) {
+                value.keycode = (SDL_Keycode)j_keycode.template get<std::uint32_t>();
+            }
+        }
+
+        for (uint32_t mask = PCKeyModifier_Begin;
+             mask != PCKeyModifier_End;
+             mask <<= 1) {
+            const char *mask_name = GetPCKeyModifierEnumName((int)mask);
+            if (j.count(mask_name) > 0) {
+                bool set = j.at(mask_name).template get<bool>();
+                if (set) {
+                    value.keycode |= mask;
+                }
+            }
+        }
+    } else if (j.is_number()) {
+        value.scancode = j.template get<uint32_t>();
+    } else if (j.is_string()) {
+        std::string str = j.template get<std::string>();
+        value.scancode = SDL_GetScancodeFromName(str.c_str());
+    } else {
+        value = {};
+        //throw nlohmann::json::type_error::create(302, std::string("NewKeymapKey must be object, number or  string"), nullptr);
+    }
+}
+
+struct NewKeymap {
+    std::string name;
+    bool keysyms = false;
+    bool prefer_shortcuts = false;
+    std::map<std::string, std::vector<KeymapKey>> keys;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(NewKeymap, name, keysyms, prefer_shortcuts, keys);
 
 struct Trace {
     FlagsEnum<TraceOutputFlags> output_flags;
@@ -174,8 +266,10 @@ struct Root {
     std::map<std::string, std::map<std::string, std::vector<Shortcut>>> shortcuts;
     std::vector<Config> configs;
     Trace trace;
+    std::vector<NewKeymap> new_keymaps;
+    std::vector<NewKeymap> keymaps;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Root, shortcuts, configs, trace);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Root, shortcuts, configs, trace, new_keymaps, keymaps);
 
 static std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...) {
     char *tmp;
@@ -190,7 +284,14 @@ static std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...) {
     return result;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    (void)argc, (void)argv;
+
+    if (SDL_Init(0) != 0) {
+        fprintf(stderr, "FATAL: SDL_Init failed: %s\n", SDL_GetError());
+        return 1;
+    }
+
     printf("SRC_FOLDER: %s\n", SRC_FOLDER);
     printf("DEST_FOLDER: %s\n", DEST_FOLDER);
 
@@ -237,7 +338,34 @@ int main() {
 
     test.trace.output_flags.value = (TraceOutputFlags)(TraceOutputFlags_RegisterNames | TraceOutputFlags_ROMMapper);
 
-    nlohmann::json test_j = test;
-    std::string test_str = test_j.dump(4);
-    fputs(test_str.c_str(), stdout);
+    {
+        NewKeymap k;
+
+        k.keysyms = false;
+        k.name = "test_keymap";
+        k.prefer_shortcuts = false;
+        k.keys["f0"].push_back({SDLK_UNKNOWN, SDL_SCANCODE_F10});
+        k.keys["f1"].push_back({SDLK_F10 | PCKeyModifier_Shift});
+
+        test.keymaps.push_back(k);
+    }
+
+    nlohmann::json j_test = test;
+    std::string serialize1 = j_test.dump(4);
+    //fputs(serialize1.c_str(), stdout);
+
+    Root test2;
+    try {
+        nlohmann::json j_deserialize1 = nlohmann::json::parse(serialize1);
+        test2 = j_deserialize1.template get<Root>();
+    } catch (nlohmann::json::parse_error &ex) {
+        fprintf(stderr, "FATAL: parse error: %s\n", ex.what());
+        return 1;
+    }
+
+    nlohmann::json j_test2 = test2;
+    std::string serialize2 = j_test.dump(4);
+    TEST_EQ_SS(serialize1, serialize2);
+
+    return 0;
 }

@@ -66,3 +66,21 @@ EPNV(ROMMapper, 8)
 
 EEND()
 #undef ENAME
+
+#define ENAME PCKeyModifier
+EBEGIN()
+EPNV(Shift, 1 << 24)
+EPNV(Ctrl, 1 << 25)
+EPNV(Alt, 1 << 26)
+EPNV(Gui, 1 << 27)
+EPNV(AltGr, 1 << 28)
+
+// not sure if I'm going to bother to support this, since it's
+// effectively got 3 states (on/off/don't care)
+EPNV(NumLock, 1 << 29)
+
+EQPNV(Begin, 1 << 24)
+EQPNV(End, 1 << 30)
+// Don't use 1<<30 - it's SDLK_SCANCODE_MASK
+EEND()
+#undef ENAME

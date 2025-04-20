@@ -6,8 +6,10 @@
 #define EPREFIX
 #endif
 
+// The ENAME##BaseType thing is a bit ugly, but at this point the actual type
+// isn't available. And when an ordinary enum, it can't be forward declared.
 #define EBEGIN__BODY(COLON_BASE_TYPE, BASE_TYPE)                               \
-    typedef BASE_TYPE CONCAT2(ENAME, BaseType); /*ugh*/                        \
+    typedef BASE_TYPE CONCAT2(ENAME, BaseType);                                \
     EPREFIX const char *UNUSED CONCAT3(Get, ENAME, EnumName)(BASE_TYPE value); \
     enum ENAME COLON_BASE_TYPE {
 

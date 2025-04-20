@@ -7,3 +7,4 @@ target_link_libraries(test_nlohmann_json PRIVATE shared_lib nlohmann_json::nlohm
 target_compile_definitions(test_nlohmann_json PRIVATE
   SRC_FOLDER="${CMAKE_CURRENT_SOURCE_DIR}"
   DEST_FOLDER="${CMAKE_BINARY_DIR}/test_nlohmann_json")
+target_link_libraries(test_nlohmann_json PRIVATE ${SDL2_LIBRARY})

@@ -2142,150 +2142,155 @@ In slightly bogus C++ terms...
 - =Flags<T>= is a bitfield. See the referenced enum
 
 #+begin_src c++
-  struct b2 {
-      Globals globals;
-      map<string,RecentPaths> recent_paths;
-      vector<NewKeymap> new_keymaps;
-      map<string/*window name*/,map<string/*command name*/,vector<Shortcut>>> shortcuts;
-      Windows windows;
-      Trace trace;
-      BeebLink beeblink;
+      struct b2 {
+          Globals globals;
+          map<string,RecentPaths> recent_paths;
+          // keymaps and new_keymaps have the same syntax; the only
+          // difference is whether default keymaps are added to the set
+          // before loading the config keymaps.
+          vector<OldKeymap> keymaps;
+          vector<NewKeymap> new_keymaps;
+          map<string/*window name*/,map<string/*command name*/,vector<Shortcut>>> shortcuts;
+          Windows windows;
+          Trace trace;
+          BeebLink beeblink;
 
-      // The formats of these two are the same.
-      //
-      // If configs is present, that is used. The default configs are
-      // force added first and anything in configs overrides them.
-      //
-      // Otherwise, new_configs is used. Everything in there is loaded,
-      // and then the default configs are added afterwards, based on the
-      // feature flags seen.
-      vector<Config> configs;
-      vector<Config> new_configs;
-      Joysticks joysticks;
-  };
+          // The formats of these two are the same.
+          //
+          // If configs is present, that is used. The default configs are
+          // force added first and anything in configs overrides them.
+          //
+          // Otherwise, new_configs is used. Everything in there is loaded,
+          // and then the default configs are added afterwards, based on the
+          // feature flags seen.
+          vector<Config> configs;
+          vector<Config> new_configs;
+          Joysticks joysticks;
+      };
 
-  struct Globals {
-      bool vsync;
-      Flags<BeebConfigFeatureFlag> feature_flags;
-  };
+      struct Globals {
+          bool vsync;
+          Flags<BeebConfigFeatureFlag> feature_flags;
+      };
 
-  struct RecentPaths {
-      vector<string> paths;
-  };
+      struct RecentPaths {
+          vector<string> paths;
+      };
 
-  struct NewKeymap {
-      string name;
-      bool keysyms;
-      bool prefer_shortcuts;
-      map<string,NewKeymapKey> keys;
-  };
+      struct NewKeymap {
+          string name;
+          bool keysyms;
+          bool prefer_shortcuts;
+          // keys are BeebKeySym if keysyms, or BeebKey otherwise
+          map<string,vector<NewKeymapKey>> keys;
+      };
 
-  union NewKeymapKey {
-      string;//name
-      int;//number;
-      vector<NewKeymapKeySym>;//sym;
-  };
+      union NewKeymapKey {
+          string;//name of SDL key
+          int;//scancode, if no string for this key
+          NewKeymapKeySym;//sym;
+      };
 
-  struct NewKeymapKeySym {
-      bool Shift;
-      string keycode;
-  };
+      struct NewKeymapKeySym {
+          bool Shift;
+          string keycode;
+      };
 
-  struct Shortcut {
-      bool Shift,Ctrl,Alt;
-      string keycode;
-  };
+      struct Shortcut {
+          bool Shift,Ctrl,Alt;
+          string keycode;
+      };
 
-  struct Windows {
-      string window_placement;
-      vector<string> popups;
-      string keymap;
-      float bbc_volume,disc_volume;
-      bool filter_bbc;
-      bool correct_aspect_ratio;
-      bool screenshot_filter;
-      bool screenshot_correct_aspect_ratio;
-      bool screenshot_last_vsync;
-      bool full_screen;
-      bool prefer_shortcuts;
-      bool auto_scale;
+      struct Windows {
+          string window_placement;
+          vector<string> popups;
+          string keymap;
+          float bbc_volume,disc_volume;
+          bool filter_bbc;
+          bool correct_aspect_ratio;
+          bool screenshot_filter;
+          bool screenshot_correct_aspect_ratio;
+          bool screenshot_last_vsync;
+          bool full_screen;
+          bool prefer_shortcuts;
+          bool auto_scale;
 
-      float manual_scale;
-      bool power_on_tone;
-      bool interlace;
-      LEDsPopupMode leds_popup_mode;
-      int gui_font_size;
-      UTF8ConvertMode text_utf8_convert_mode;
-      bool text_handle_delete;
-      UTF8ConvertMode "printer_utf8_convert_mode;
-      bool printer_handle_delete;
-      bool capture_mouse_on_click;
-      bool hide_cursor_when_unfocused;
-      string config;/*must be one of the keys of new_configs*/
-      bool low_pass_filter;
-      int low_pass_filter_cutoff_hz;
-  };
+          float manual_scale;
+          bool power_on_tone;
+          bool interlace;
+          LEDsPopupMode leds_popup_mode;
+          int gui_font_size;
+          UTF8ConvertMode text_utf8_convert_mode;
+          bool text_handle_delete;
+          UTF8ConvertMode "printer_utf8_convert_mode;
+          bool printer_handle_delete;
+          bool capture_mouse_on_click;
+          bool hide_cursor_when_unfocused;
+          string config;/*must be one of the keys of new_configs*/
+          bool low_pass_filter;
+          int low_pass_filter_cutoff_hz;
+      };
 
-  struct Trace {
-      Flags<BBCMicroTraceFlag> flags;
-      Flags<TraceOutputFlags> output_flags;
-      TraceUIStartCondition start;
-      TraceUIStopCondition stop;
-      bool unlimited;
-      uint64_t start_instruction_address;
-      uint64_t start_write_address;
-      uint64_t stop_write_address;
-      uint64_t stop_num_cycles;
-      bool auto_save;
-      string auto_save_path;
-  #if SYSTEM_WINDOWS
-      bool unix_line_endings;
-  #endif
-  };
+      struct Trace {
+          Flags<BBCMicroTraceFlag> flags;
+          Flags<TraceOutputFlags> output_flags;
+          TraceUIStartCondition start;
+          TraceUIStopCondition stop;
+          bool unlimited;
+          uint64_t start_instruction_address;
+          uint64_t start_write_address;
+          uint64_t stop_write_address;
+          uint64_t stop_num_cycles;
+          bool auto_save;
+          string auto_save_path;
+      #if SYSTEM_WINDOWS
+          bool unix_line_endings;
+      #endif
+      };
 
-  struct Beeblink {
-      vector<string> urls;
-  };
+      struct Beeblink {
+          vector<string> urls;
+      };
 
-  // Old-style NVRAM config. Inconsistent naming.
-  struct NVRAM {
-      string Master;
-      string MasterCompact;
-  };
+      // Old-style NVRAM config. Inconsistent naming.
+      struct NVRAM {
+          string Master;
+          string MasterCompact;
+      };
 
-  struct Config {
-      string name;
-      ROM *os;
-      OSROMType os_rom_type;
-      BBCMicroTypeID type;
-      string disc_interface;
-      ROM *roms[16];
-      bool ext_mem;
-      bool beeblink;
-      bool adji;
-      unsigned adji_dip_switches;
-      bool mouse;
-      BBCMicroParasiteType parasite_type;
-      ROM *parasite_os;
-      BeebConfigNVRAMType nvram_type;
-      string nvram;
-  };
+      struct Config {
+          string name;
+          ROM *os;
+          OSROMType os_rom_type;
+          BBCMicroTypeID type;
+          string disc_interface;
+          ROM *roms[16];
+          bool ext_mem;
+          bool beeblink;
+          bool adji;
+          unsigned adji_dip_switches;
+          bool mouse;
+          BBCMicroParasiteType parasite_type;
+          ROM *parasite_os;
+          BeebConfigNVRAMType nvram_type;
+          string nvram;
+      };
 
-  struct ROM {
-      bool writeable;
-      union {
-          StandardROMEnum standard_rom;
-          struct {
-              string file_name;
-              ROMType type;
+      struct ROM {
+          bool writeable;
+          union {
+              StandardROMEnum standard_rom;
+              struct {
+                  string file_name;
+                  ROMType type;
+              };
           };
       };
-  };
 
-  struct Joysticks {
-      vector<string> device_names;
-      bool swap_joysticks_when_shared;
-  };
+      struct Joysticks {
+          vector<string> device_names;
+          bool swap_joysticks_when_shared;
+      };
 #+end_src
 
 * libcurl vs llhttp
