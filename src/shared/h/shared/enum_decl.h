@@ -27,21 +27,17 @@
 #define EQPN(NAME) EPN(NAME)
 #define EQPNV(NAME, VALUE) EPNV(NAME, VALUE)
 
-#define EEND()                                                                \
-    }                                                                         \
-    ;                                                                         \
-    typedef enum ENAME ENAME;                                                 \
-                                                                              \
-    template <>                                                               \
-    struct EnumBaseType<ENAME> {                                              \
-        typedef CONCAT2(ENAME, BaseType) Type;                                \
-    };                                                                        \
-                                                                              \
-    template <>                                                               \
-    struct EnumTraits<ENAME> {                                                \
-        typedef const char *(*GetNameFn)(typename EnumBaseType<ENAME>::Type); \
-        static const GetNameFn GET_NAME_FN;                                   \
-        static const char NAME[];                                             \
+#define EEND()                                      \
+    }                                               \
+    ;                                               \
+    typedef enum ENAME ENAME;                       \
+                                                    \
+    template <>                                     \
+    struct EnumTraits<ENAME> {                      \
+        typedef CONCAT2(ENAME, BaseType) BaseType;  \
+        typedef const char *(*GetNameFn)(BaseType); \
+        static const GetNameFn GET_NAME_FN;         \
+        static const char NAME[];                   \
     };
 
 //#define EOVERLOAD() const char *GetEnumValueName(ENAME value);
