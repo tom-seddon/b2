@@ -22,6 +22,8 @@
 #include "joysticks.h"
 #include <shared/file_io.h>
 #include "commands.h"
+#include <nlohmann/json.hpp>
+#include "load_save_config_nlohmann_json.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -623,6 +625,117 @@ static const char OS_ROM_TYPE[] = "os_rom_type";
 static const char HIDE_CURSOR_WHEN_UNFOCUSED[] = "hide_cursor_when_unfocused";
 static const char LOW_PASS_FILTER[] = "low_pass_filter";
 static const char LOW_PASS_FILTER_CUTOFF_HZ[] = "low_pass_filter_cutoff_hz";
+static const char EXTRA[] = "extra"; // any late addition that's handled separately
+                                     // by the nlohmann::json stuff
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Some bits for handing JSON parts off to nlohmann::json. RapidJSON is fine and
+// all but manually writing the deserialization/serialization code is a big
+// pain.
+//
+// It'd be nice to move everything over to nlohmann::json, but the schema
+// (insofar as there ever was one...) wasn't really designed (to the extent the
+// term applies...) in such a way to make that easy. And the existing code is
+// already written, including various bits for handling cross version config
+// format changes to an extent. So the rapidjson stuff will probably remain as
+// it is forever, with nlohmann::json bits tacked on.
+
+static nlohmann::json LoadNLohmannJSON(const rapidjson::Value &value) {
+    nlohmann::json j;
+
+    if (value.IsArray()) {
+        j = nlohmann::json::array_t{};
+        for (rapidjson::SizeType i = 0; i < value.Size(); ++i) {
+            j.push_back(LoadNLohmannJSON(value[i]));
+        }
+    } else if (value.IsObject()) {
+        j = nlohmann::json::object_t{};
+        for (rapidjson::Value::ConstMemberIterator it = value.MemberBegin(); it != value.MemberEnd(); ++it) {
+            const char *key = it->name.GetString();
+            if (!key) {
+                // Is this even possible???
+            } else {
+                j[key] = LoadNLohmannJSON(it->value);
+            }
+        }
+    } else if (value.IsBool()) {
+        j = value.GetBool();
+    } else if (value.IsDouble()) {
+        j = value.GetDouble();
+    } else if (value.IsUint64()) {
+        j = value.GetUint64();
+    } else if (value.IsInt64()) {
+        j = value.GetInt64();
+    } else if (value.IsString()) {
+        j = value.GetString();
+    }
+
+    return j;
+}
+
+static void SaveNLohmannJSON(JSONWriter<StringStream> *writer, const nlohmann::json &j) {
+    if (j.is_array()) {
+        writer->StartArray();
+        for (size_t i = 0; i < j.size(); ++i) {
+            SaveNLohmannJSON(writer, j[i]);
+        }
+        writer->EndArray();
+    } else if (j.is_object()) {
+        writer->StartObject();
+        for (nlohmann::json::const_iterator it = j.begin(); it != j.end(); ++it) {
+            writer->Key(it.key().c_str());
+            SaveNLohmannJSON(writer, it.value());
+        }
+        writer->EndObject();
+    } else if (j.is_boolean()) {
+        writer->Bool(j.template get<bool>());
+    } else if (j.is_number_float()) {
+        writer->Double(j.template get<double>());
+    } else if (j.is_number_unsigned()) {
+        writer->Uint64(j.template get<uint64_t>());
+    } else if (j.is_number_integer()) {
+        writer->Int64(j.template get<int64_t>());
+    } else if (j.is_string()) {
+        writer->String(j.template get<std::string>().c_str());
+    } else if (j.is_null()) {
+        writer->Null();
+    } else {
+        // ...
+        writer->Null();
+    }
+}
+
+// Load an optional object field called "extra", intended to provide extra data
+// for setting the supplied value.
+//
+// If it's present, convert the JSON to an nlohmann::json, and pass it to the
+// given callback, which should modify *value as appropriate.
+//
+// If not present, a no-op. The extra field is optional.
+template <class T>
+static bool LoadExtra(bool (*load_fn)(T *, const nlohmann::json &, Messages *), T *value, rapidjson::Value *object, Messages *msg) {
+    rapidjson::Value value_json;
+    if (!FindObjectMember(&value_json, object, EXTRA, msg)) {
+        // Not an error - the extra values keep their existing values.
+        return true;
+    }
+
+    nlohmann::json j = LoadNLohmannJSON(value_json);
+    if (!(*load_fn)(value, j, msg)) {
+        return false;
+    }
+
+    return true;
+}
+
+// Save an object field called "extra". Contents are the supplied
+// nlohmann::json. 
+static void SaveExtra(JSONWriter<StringStream> *writer, const nlohmann::json &j) {
+    writer->Key(EXTRA);
+    SaveNLohmannJSON(writer, j);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1292,6 +1405,10 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
+        if (!LoadExtra(&LoadConfigExtra, &config, config_json, msg)) {
+            continue;
+        }
+
         BeebWindows::AddConfig(std::move(config));
     }
 
@@ -1364,6 +1481,8 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
                 writer->Key(NVRAM);
                 writer->String(GetHexStringFromData(config->nvram).c_str());
             }
+
+            SaveExtra(writer, SaveConfigExtra(*config));
         }
     }
 }

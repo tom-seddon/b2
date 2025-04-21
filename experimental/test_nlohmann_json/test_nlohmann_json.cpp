@@ -24,11 +24,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class T>
-struct Enum {
-    T value{};
-};
-
 template <class EnumType, class EnumBaseType>
 static void HandleEnumToJSON(nlohmann::json &j, const EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
     (void)enum_type_name;
@@ -74,11 +69,6 @@ void from_json(const nlohmann::json &j, Enum<T> &value) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-template <class T>
-struct FlagsEnum {
-    T value{};
-};
 
 template <class EnumType, class EnumBaseType>
 static void HandleFlagsEnumToJSON(nlohmann::json &j, const EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
@@ -137,12 +127,12 @@ static void HandleFlagsEnumFromJSON(const nlohmann::json &j, EnumType *value, co
 }
 
 template <class T>
-void to_json(nlohmann::json &j, const FlagsEnum<T> &value) {
+void to_json(nlohmann::json &j, const EnumFlags<T> &value) {
     HandleFlagsEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
 }
 
 template <class T>
-void from_json(const nlohmann::json &j, FlagsEnum<T> &value) {
+void from_json(const nlohmann::json &j, EnumFlags<T> &value) {
     HandleFlagsEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
 }
 
@@ -235,7 +225,7 @@ struct NewKeymap {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(NewKeymap, name, keysyms, prefer_shortcuts, keys);
 
 struct Trace {
-    FlagsEnum<TraceOutputFlags> output_flags;
+    EnumFlags<TraceOutputFlags> output_flags;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Trace, output_flags);
 
@@ -282,6 +272,50 @@ static std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...) {
     free(tmp), tmp = nullptr;
 
     return result;
+}
+
+struct OptionalTest2 {
+    int x = 0, y = 0, z = 0;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OptionalTest2, x, y, z);
+
+struct OptionalTest {
+    std::optional<OptionalTest2> test;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OptionalTest, test);
+
+struct OptionalTest3 {
+    int x = 0, y = 0, z = 0;
+    std::string str = "fred";
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(OptionalTest3, x, y, z, str);
+
+struct NonOptionalTest {
+    OptionalTest3 test;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(NonOptionalTest, test);
+
+static std::string TestOptionalStuff2(const char *msg, const OptionalTest &value) {
+    nlohmann::json j_value = value;
+    std::string str = j_value.dump(4);
+    printf("%s:\n---8<---\n%s\n---8<---\n", msg, str.c_str());
+    return str;
+}
+
+static void TestOptionalStuff() {
+    OptionalTest test1;
+    std::string test1_str = TestOptionalStuff2("test1", test1);
+    OptionalTest test2;
+    test2.test = {1, 2, 3};
+    std::string test2_str = TestOptionalStuff2("test2", test2);
+    NonOptionalTest test3;
+    try {
+        nlohmann::json j = nlohmann::json::parse(test1_str);
+        test3 = j.template get<NonOptionalTest>();
+    } catch (nlohmann::json::exception &ex) {
+        fprintf(stderr, "FATAL: error: %s\n", ex.what());
+    }
+    printf("%d %d %d %s\n", test3.test.x, test3.test.y, test3.test.z,test3.test.str.c_str());
 }
 
 int main(int argc, char *argv[]) {
@@ -366,6 +400,8 @@ int main(int argc, char *argv[]) {
     nlohmann::json j_test2 = test2;
     std::string serialize2 = j_test.dump(4);
     TEST_EQ_SS(serialize1, serialize2);
+
+    TestOptionalStuff();
 
     return 0;
 }

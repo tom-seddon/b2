@@ -2293,6 +2293,969 @@ In slightly bogus C++ terms...
       };
 #+end_src
 
+https://stackoverflow.com/questions/31930041/using-jq-or-alternative-command-line-tools-to-compare-json-files
+
+** updated code, attempt 1
+
+#+begin_src c++
+  struct ConfigGlobals {
+      bool vsync = false;
+      EnumFlags<BeebConfigFeatureFlag> feature_flags;
+  };
+
+  struct ConfigKeymapKey {
+      uint32_t keycode = 0, scancode = 0;
+  };
+
+  struct ConfigKeymap {
+      std::string name;
+      bool keysyms = false;
+      bool prefer_shortcut = false;
+      std::map<std::string, std::vector<ConfigKeymapKey>> keys;
+  };
+
+  struct ConfigShortcut {
+      uint32_t keycode = 0;
+  };
+
+  struct ConfigWindows {
+      std::string window_placement;
+      std::vector<std::string> popups;
+      std::string keymap;
+      float bbc_volume = 0.f;
+      float disc_volume = 0.f;
+      bool filter_bbc = false;
+      bool correct_aspect_ratio = false;
+      bool screenshot_filter = false;
+      bool screenshot_correct_aspect_ratio = false;
+      bool screenshot_last_vsync = false;
+      bool full_screen = false;
+      bool prefer_shortcuts = false;
+      bool auto_scale = false;
+
+      float manual_scale;
+      bool power_on_tone;
+      bool interlace;
+      Enum<BeebWindowLEDsPopupMode> leds_popup_mode;
+      unsigned gui_font_size;
+      Enum<BBCUTF8ConvertMode> text_utf8_convert_mode;
+      bool text_handle_delete;
+      Enum<BBCUTF8ConvertMode> printer_utf8_convert_mode;
+      bool printer_handle_delete;
+      bool capture_mouse_on_click;
+      bool hide_cursor_when_unfocused;
+      std::string config; /*must be one of the keys of new_configs*/
+      bool low_pass_filter;
+      int low_pass_filter_cutoff_hz;
+  };
+
+  struct ConfigTrace {
+      EnumFlags<BBCMicroTraceFlag> flags;
+      EnumFlags<TraceOutputFlags> output_flags;
+      Enum<TraceUIStartCondition> start;
+      Enum<TraceUIStopCondition> stop;
+      bool unlimited = false;
+      uint16_t start_instruction_address;
+      uint16_t start_write_address;
+      uint16_t stop_write_address;
+      uint64_t stop_num_cycles;
+      bool auto_save;
+      std::string auto_save_path;
+  #if SYSTEM_WINDOWS
+      bool unix_line_endings;
+  #endif
+  };
+
+  struct ConfigBeebLink {
+      std::vector<std::string> urls;
+  };
+
+  struct ConfigROM {
+      bool writeable = false;
+      Enum<StandardROM> standard_rom{StandardROM_None};
+      std::optional<std::string> file_name;
+      Enum<ROMType> rom_type{ROMType_16KB};
+  };
+
+  struct ConfigConfig {
+      std::string name;
+      std::optional<ConfigROM> os;
+      Enum<OSROMType> os_rom_type;
+      Enum<BBCMicroTypeID> type;
+      std::optional<ConfigROM> roms[16];
+      bool ext_mem = false;
+      bool beeblink = false;
+      bool adji = false;
+      unsigned adji_dip_switches = 0;
+      bool mouse = false;
+      Enum<BBCMicroParasiteType> parasite_type;
+      std::optional<ConfigROM> parasite_os;
+      Enum<BeebConfigNVRAMType> nvram_type;
+      std::string nvram;
+  };
+
+  struct ConfigJoysticks {
+      std::vector<std::string> device_names;
+      bool swap_joysticks_when_shared = false;
+  };
+
+  struct ConfigRecentPaths {
+      std::vector<std::string> paths;
+  };
+
+  struct Config {
+      ConfigGlobals globals;
+      std::map<std::string, ConfigRecentPaths> recent_paths;
+      std::vector<ConfigKeymap> keymaps;
+      std::vector<ConfigKeymap> new_keymaps;
+      std::map<std::string, std::map<std::string, std::vector<ConfigShortcut>>> shortcuts;
+      ConfigWindows windows;
+      ConfigTrace trace;
+      ConfigBeebLink beeblink;
+
+      std::vector<ConfigConfig> configs;
+      std::vector<ConfigConfig> new_configs;
+      ConfigJoysticks joysticks;
+  };
+
+  enum SyncMode {
+      SyncMode_Load,
+      SyncMode_Save,
+  };
+
+  template <class T>
+  static void Sync(T *config_copy, T *loaded_copy, SyncMode mode) {
+      if (mode == SyncMode_Load) {
+          ,*loaded_copy = *config_copy;
+      } else if (mode == SyncMode_Save) {
+          ,*config_copy = *loaded_copy;
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  template <class T>
+  static void Sync(Enum<T> *config_copy, T *loaded_copy, SyncMode mode) {
+      Sync(&config_copy->value, loaded_copy, mode);
+  }
+
+  static void SyncCopySettings(Enum<BBCUTF8ConvertMode> *config_convert_mode,
+                               bool *config_handle_delete,
+                               BeebWindowSettings::CopySettings *loaded_settings,
+                               SyncMode mode) {
+      Sync(&config_convert_mode->value, &loaded_settings->convert_mode, mode);
+      Sync(config_handle_delete, &loaded_settings->handle_delete, mode);
+  }
+
+  static void SyncWindows(ConfigWindows *windows, SyncMode mode) {
+      if (mode == SyncMode_Load) {
+          std::vector<uint8_t> placement_data;
+          if (GetDataFromHexString(&placement_data, windows->window_placement)) {
+              BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
+          }
+      } else {
+          windows->window_placement = GetHexStringFromData(BeebWindows::GetLastWindowPlacementData());
+      }
+
+      // TODO: there's a generic mechanism hiding in here somewhere, but (so
+      // far...) the popups are the only case of enums holding bit indexes rather
+      // than the flag values proper.
+      if (mode == SyncMode_Load) {
+          BeebWindows::defaults.popups = 0;
+      }
+      for (int i = 0; i < 64; ++i) {
+          uint64_t mask = (uint64_t)1 << i;
+          const char *name = GetBeebWindowPopupTypeEnumName(i);
+          if (name[0] == '?') {
+              continue;
+          }
+
+          if (mode == SyncMode_Load) {
+              if (std::find(windows->popups.begin(), windows->popups.end(), name) != windows->popups.end()) {
+                  BeebWindows::defaults.popups |= mask;
+              }
+          } else {
+              if (BeebWindows::defaults.popups & mask) {
+                  windows->popups.push_back(name);
+              }
+          }
+      }
+
+      if (mode == SyncMode_Load) {
+          if (const BeebKeymap *keymap = BeebWindows::FindBeebKeymapByName(windows->keymap)) {
+              BeebWindows::defaults.keymap = keymap;
+          }
+      } else {
+          if (BeebWindows::defaults.keymap) {
+              windows->keymap = BeebWindows::defaults.keymap->GetName();
+          }
+      }
+      Sync(&windows->bbc_volume, &BeebWindows::defaults.bbc_volume, mode);
+      Sync(&windows->disc_volume, &BeebWindows::defaults.disc_volume, mode);
+      Sync(&windows->filter_bbc, &BeebWindows::defaults.display_filter, mode);
+      Sync(&windows->correct_aspect_ratio, &BeebWindows::defaults.correct_aspect_ratio, mode);
+      Sync(&windows->screenshot_filter, &BeebWindows::defaults.screenshot_filter, mode);
+      Sync(&windows->screenshot_correct_aspect_ratio, &BeebWindows::defaults.screenshot_correct_aspect_ratio, mode);
+      Sync(&windows->screenshot_last_vsync, &BeebWindows::defaults.screenshot_last_vsync, mode);
+  #if ENABLE_SDL_FULL_SCREEN
+      Sync(&windows->full_screen, &BeebWindows::defaults.full_screen, mode);
+  #endif
+      Sync(&windows->prefer_shortcuts, &BeebWindows::defaults.prefer_shortcuts, mode);
+      Sync(&windows->auto_scale, &BeebWindows::defaults.display_auto_scale, mode);
+      Sync(&windows->manual_scale, &BeebWindows::defaults.display_manual_scale, mode);
+      Sync(&windows->power_on_tone, &BeebWindows::defaults.power_on_tone, mode);
+      Sync(&windows->interlace, &BeebWindows::defaults.display_interlace, mode);
+      Sync(&windows->leds_popup_mode.value, &BeebWindows::defaults.leds_popup_mode, mode);
+      Sync(&windows->gui_font_size, &BeebWindows::defaults.gui_font_size, mode);
+      SyncCopySettings(&windows->text_utf8_convert_mode,
+                       &windows->text_handle_delete,
+                       &BeebWindows::defaults.text_copy_settings,
+                       mode);
+      Sync(&windows->capture_mouse_on_click, &BeebWindows::defaults.capture_mouse_on_click, mode);
+      Sync(&windows->hide_cursor_when_unfocused, &BeebWindows::defaults.hide_cursor_when_unfocused, mode);
+      Sync(&windows->low_pass_filter, &BeebWindows::defaults.low_pass_filter, mode);
+      Sync(&windows->low_pass_filter_cutoff_hz, &BeebWindows::defaults.low_pass_filter_cutoff_hz, mode);
+      Sync(&windows->config, &BeebWindows::default_config_name, mode);
+  }
+
+  static void SyncTrace(ConfigTrace *trace, SyncMode mode) {
+      TraceUISettings settings;
+      if (mode == SyncMode_Save) {
+          settings = GetDefaultTraceUISettings();
+      }
+
+      Sync(&trace->start, &settings.start, mode);
+      Sync(&trace->stop, &settings.stop, mode);
+      Sync(&trace->unlimited, &settings.unlimited, mode);
+      Sync(&trace->start_instruction_address, &settings.start_instruction_address, mode);
+      Sync(&trace->start_write_address, &settings.start_write_address, mode);
+      Sync(&trace->stop_write_address, &settings.stop_write_address, mode);
+      Sync(&trace->stop_num_cycles, &settings.stop_num_2MHz_cycles, mode);
+
+  }
+
+  static Config GetConfig() {
+      Config config;
+
+      config.globals.vsync = g_option_vsync;
+      config.globals.feature_flags.value = BeebWindows::GetBeebConfigFeatureFlags();
+
+      ForEachRecentPaths(
+          [&config](const std::string &tag, const RecentPaths &recents) {
+              ConfigRecentPaths *config_recents = &config.recent_paths[tag];
+              for (size_t i = 0; i < recents.GetNumPaths(); ++i) {
+                  const std::string &path = recents.GetPathByIndex(i);
+                  config_recents->paths.push_back(path);
+              }
+          });
+
+      for (size_t i = 0; i < BeebWindows::GetNumBeebKeymaps(); ++i) {
+          const BeebKeymap *keymap = BeebWindows::GetBeebKeymapByIndex(i);
+
+          ConfigKeymap config_keymap;
+          config_keymap.name = keymap->GetName();
+          config_keymap.keysyms = keymap->IsKeySymMap();
+          config_keymap.prefer_shortcut = keymap->GetPreferShortcuts();
+
+          for (int key = 0; key < 128; ++key) {
+              const char *name;
+              if (config_keymap.keysyms) {
+                  name = GetBeebKeySymName((BeebKeySym)key);
+              } else {
+                  name = GetBeebKeyName((BeebKey)key);
+              }
+              if (!name) {
+                  continue;
+              }
+
+              const uint32_t *pc_keys = keymap->GetPCKeysForValue((int8_t)i);
+              if (!pc_keys) {
+                  continue;
+              }
+
+              for (const uint32_t *pc_key = pc_keys; *pc_key != 0; ++pc_key) {
+                  ConfigKeymapKey config_key;
+
+                  if (config_keymap.keysyms) {
+                      config_key.keycode = *pc_key;
+                  } else {
+                      config_key.scancode = *pc_key;
+                  }
+              }
+          }
+      }
+
+      ForEachCommandTable2([&config](CommandTable2 *table) {
+          table->ForEachCommand([&config, table](Command2 *command) {
+              bool are_defaults;
+              const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&are_defaults, command);
+              if (pc_keys && !are_defaults) {
+                  std::vector<ConfigShortcut> *shortcuts = &config.shortcuts[table->GetName()][command->GetName()];
+                  for (uint32_t pc_key : *pc_keys) {
+                      shortcuts->push_back({pc_key});
+                  }
+              }
+          });
+      });
+
+      SyncWindows(&config.windows, SyncMode_Save);
+
+      SyncTrace(&config.trace, SyncMode_Save);
+
+      return config;
+  }
+#+end_src
+
+** updated code, attempt 2
+
+Just feels like it'll be too much hassle to reproduce the existing
+config with nlohmann::json :(
+
+It's probably possible, but it wasn't designed with this sort of
+approach in mind and the testing will be a pain.
+
+The Sync thing is probably worth doing. Worth being a bit principled
+about introducing serializable structs.
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT looks like it'll avoid
+the worst of the problems though.
+
+#+begin_src c++
+  #include <shared/system.h>
+  #include "load_save_config_nlohmann_json.h"
+  #include <nlohmann/json.hpp>
+  #include <map>
+  #include <string>
+  #include "BeebWindow.h"
+  #include "BeebWindows.h"
+  #include "TraceUI.h"
+  #include <beeb/BBCMicro.h>
+  #include "load_save.h"
+  #include "BeebLinkHTTPHandler.h"
+  #include "b2.h"
+  #include "joysticks.h"
+  #include <beeb/DiscInterface.h>
+
+  #include <shared/enum_decl.h>
+  #include "load_save_config_nlohmann_json.inl"
+  #include <shared/enum_end.h>
+
+  #include <shared/enum_def.h>
+  #include "load_save_config_nlohmann_json.inl"
+  #include <shared/enum_end.h>
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  // The original config saving code was designed to be easy(ish) to code up using
+  // rapidjson, so it's not always as nlohmann::json-friendly as it should be.
+  //
+  // For saving out most stuff, there's a bunch of structs that map to the old
+  // config format, all NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE-friendly, plus some
+  // boilerplate to copy value into those structs from the actual data used
+  // internally (none of which was designed with serialization in mind).
+  //
+  // Future stuff will do a better job.
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  class Syncer {
+    public:
+      const SyncMode mode;
+
+      explicit Syncer(SyncMode mode_)
+          : mode(mode_) {
+      }
+
+      template <class CT, class LT>
+      void Sync(CT *config_copy, LT *loaded_copy) const {
+          if (this->mode == SyncMode_Load) {
+              ,*loaded_copy = *config_copy;
+          } else if (this->mode == SyncMode_Save) {
+              ,*config_copy = *loaded_copy;
+          } else {
+              ASSERT(false);
+          }
+      }
+
+      template <class ConfigType, class GetterType, class SetterType>
+      void Sync(ConfigType *config_copy, const GetterType &getter_fun, const SetterType &setter_fun) {
+          if (this->mode == SyncMode_Load) {
+              setter_fun(*config_copy);
+          } else if (this->mode == SyncMode_Save) {
+              ,*config_copy = getter_fun();
+          } else {
+              ASSERT(false);
+          }
+      }
+
+      template <class StructType, class GetterType>
+      void PreSync(StructType *config, const GetterType &getter_fun) {
+          if (this->mode == SyncMode_Load) {
+              // nothing...
+          } else if (this->mode == SyncMode_Save) {
+              ,*config = getter_fun();
+          } else {
+              ASSERT(false);
+          }
+      }
+
+      template <class StructType, class SetterType>
+      void PostSync(StructType *config, const SetterType &setter_fun) {
+          if (this->mode == SyncMode_Load) {
+              setter_fun(*config);
+          } else if (this->mode == SyncMode_Save) {
+              // nothing...
+          } else {
+              ASSERT(false);
+          }
+      }
+
+    protected:
+    private:
+  };
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  struct ConfigGlobals {
+      bool vsync = false;
+      EnumFlags<BeebConfigFeatureFlag> feature_flags;
+  };
+
+  static void SyncGlobals(Syncer *s, ConfigGlobals *cg) {
+      s->Sync(&cg->vsync, &g_option_vsync);
+      s->Sync(&cg->feature_flags.value, &BeebWindows::GetBeebConfigFeatureFlags, &BeebWindows::SetBeebConfigFeatureFlags);
+  }
+
+  struct ConfigKeymapKey {
+      uint32_t keycode = 0, scancode = 0;
+  };
+
+  struct ConfigKeymap {
+      std::string name;
+      bool keysyms = false;
+      bool prefer_shortcut = false;
+      std::map<std::string, std::vector<ConfigKeymapKey>> keys;
+  };
+
+  struct ConfigShortcut {
+      uint32_t keycode = 0;
+  };
+
+  struct ConfigWindows {
+      std::string window_placement;
+      std::vector<std::string> popups;
+      std::string keymap;
+      float bbc_volume = 0.f;
+      float disc_volume = 0.f;
+      bool filter_bbc = false;
+      bool correct_aspect_ratio = false;
+      bool screenshot_filter = false;
+      bool screenshot_correct_aspect_ratio = false;
+      bool screenshot_last_vsync = false;
+      bool full_screen = false;
+      bool prefer_shortcuts = false;
+      bool auto_scale = false;
+
+      float manual_scale;
+      bool power_on_tone;
+      bool interlace;
+      Enum<BeebWindowLEDsPopupMode> leds_popup_mode;
+      unsigned gui_font_size;
+      Enum<BBCUTF8ConvertMode> text_utf8_convert_mode;
+      bool text_handle_delete;
+      Enum<BBCUTF8ConvertMode> printer_utf8_convert_mode;
+      bool printer_handle_delete;
+      bool capture_mouse_on_click;
+      bool hide_cursor_when_unfocused;
+      std::string config; /*must be one of the keys of new_configs*/
+      bool low_pass_filter;
+      int low_pass_filter_cutoff_hz;
+  };
+
+  #if 0
+      if (s->mode == SyncMode_Load) {
+      } else if (s->mode == SyncMode_Save) {
+      } else {
+          ASSERT(false);
+      }
+  #endif
+  static void SyncCopySettings(Syncer *s,
+                               Enum<BBCUTF8ConvertMode> *config_convert_mode,
+                               bool *config_handle_delete,
+                               BeebWindowSettings::CopySettings *loaded_settings) {
+      s->Sync(&config_convert_mode->value, &loaded_settings->convert_mode);
+      s->Sync(config_handle_delete, &loaded_settings->handle_delete);
+  }
+
+  static void SyncWindows(Syncer *s, ConfigWindows *cw) {
+      ASSERT(s->mode == SyncMode_Load || s->mode == SyncMode_Save);
+
+      if (s->mode == SyncMode_Load) {
+          std::vector<uint8_t> placement_data;
+          if (GetDataFromHexString(&placement_data, cw->window_placement)) {
+              BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
+          }
+      } else if (s->mode == SyncMode_Save) {
+          cw->window_placement = GetHexStringFromData(BeebWindows::GetLastWindowPlacementData());
+      } else {
+          ASSERT(false);
+      }
+
+      // TODO: there's a generic mechanism hiding in here somewhere, but (so
+      // far...) the popups are the only case of enums holding bit indexes rather
+      // than the flag values proper.
+      if (s->mode == SyncMode_Load) {
+          BeebWindows::defaults.popups = 0;
+      }
+      for (int i = 0; i < 64; ++i) {
+          uint64_t mask = (uint64_t)1 << i;
+          const char *name = GetBeebWindowPopupTypeEnumName(i);
+          if (name[0] == '?') {
+              continue;
+          }
+
+          if (s->mode == SyncMode_Load) {
+              if (std::find(cw->popups.begin(), cw->popups.end(), name) != cw->popups.end()) {
+                  BeebWindows::defaults.popups |= mask;
+              }
+          } else if (s->mode == SyncMode_Save) {
+              if (BeebWindows::defaults.popups & mask) {
+                  cw->popups.push_back(name);
+              }
+          } else {
+              ASSERT(false);
+          }
+      }
+
+      if (s->mode == SyncMode_Load) {
+          if (const BeebKeymap *keymap = BeebWindows::FindBeebKeymapByName(cw->keymap)) {
+              BeebWindows::defaults.keymap = keymap;
+          }
+      } else if (s->mode == SyncMode_Save) {
+          if (BeebWindows::defaults.keymap) {
+              cw->keymap = BeebWindows::defaults.keymap->GetName();
+          }
+      } else {
+          ASSERT(false);
+      }
+
+      s->Sync(&cw->bbc_volume, &BeebWindows::defaults.bbc_volume);
+      s->Sync(&cw->disc_volume, &BeebWindows::defaults.disc_volume);
+      s->Sync(&cw->filter_bbc, &BeebWindows::defaults.display_filter);
+      s->Sync(&cw->correct_aspect_ratio, &BeebWindows::defaults.correct_aspect_ratio);
+      s->Sync(&cw->screenshot_filter, &BeebWindows::defaults.screenshot_filter);
+      s->Sync(&cw->screenshot_correct_aspect_ratio, &BeebWindows::defaults.screenshot_correct_aspect_ratio);
+      s->Sync(&cw->screenshot_last_vsync, &BeebWindows::defaults.screenshot_last_vsync);
+  #if ENABLE_SDL_FULL_SCREEN
+      s->Sync(&cw->full_screen, &BeebWindows::defaults.full_screen);
+  #endif
+      s->Sync(&cw->prefer_shortcuts, &BeebWindows::defaults.prefer_shortcuts);
+      s->Sync(&cw->auto_scale, &BeebWindows::defaults.display_auto_scale);
+      s->Sync(&cw->manual_scale, &BeebWindows::defaults.display_manual_scale);
+      s->Sync(&cw->power_on_tone, &BeebWindows::defaults.power_on_tone);
+      s->Sync(&cw->interlace, &BeebWindows::defaults.display_interlace);
+      s->Sync(&cw->leds_popup_mode.value, &BeebWindows::defaults.leds_popup_mode);
+      s->Sync(&cw->gui_font_size, &BeebWindows::defaults.gui_font_size);
+      SyncCopySettings(s,
+                       &cw->text_utf8_convert_mode,
+                       &cw->text_handle_delete,
+                       &BeebWindows::defaults.text_copy_settings);
+      s->Sync(&cw->capture_mouse_on_click, &BeebWindows::defaults.capture_mouse_on_click);
+      s->Sync(&cw->hide_cursor_when_unfocused, &BeebWindows::defaults.hide_cursor_when_unfocused);
+      s->Sync(&cw->low_pass_filter, &BeebWindows::defaults.low_pass_filter);
+      s->Sync(&cw->low_pass_filter_cutoff_hz, &BeebWindows::defaults.low_pass_filter_cutoff_hz);
+      s->Sync(&cw->config, &BeebWindows::default_config_name);
+  }
+
+  struct ConfigTrace {
+      EnumFlags<BBCMicroTraceFlag> flags;
+      EnumFlags<TraceOutputFlags> output_flags;
+      Enum<TraceUIStartCondition> start;
+      Enum<TraceUIStopCondition> stop;
+      bool unlimited = false;
+      uint16_t start_instruction_address;
+      uint16_t start_write_address;
+      uint16_t stop_write_address;
+      uint64_t stop_num_cycles;
+      bool auto_save;
+      std::string auto_save_path;
+  #if SYSTEM_WINDOWS
+      bool unix_line_endings;
+  #endif
+  };
+
+  static void SyncTrace(Syncer *s, ConfigTrace *ct) {
+      TraceUISettings settings;
+      s->PreSync(&settings, &GetDefaultTraceUISettings);
+      s->Sync(&ct->flags.value, &settings.flags);
+      s->Sync(&ct->output_flags.value, &settings.output_flags);
+      s->Sync(&ct->start.value, &settings.start);
+      s->Sync(&ct->stop.value, &settings.stop);
+      s->Sync(&ct->unlimited, &settings.unlimited);
+      s->Sync(&ct->start_instruction_address, &settings.start_instruction_address);
+      s->Sync(&ct->start_write_address, &settings.start_write_address);
+      s->Sync(&ct->stop_write_address, &settings.stop_write_address);
+      s->Sync(&ct->stop_num_cycles, &settings.stop_num_2MHz_cycles);
+      s->PostSync(&settings, &SetDefaultTraceUISettings);
+  }
+
+  struct ConfigBeebLink {
+      std::vector<std::string> urls;
+  };
+
+
+  static void SyncBeebLink(Syncer *s, ConfigBeebLink *cb) {
+      if (s->mode == SyncMode_Load) {
+          BeebLinkHTTPHandler::SetServerURLs(cb->urls);
+      } else if (s->mode == SyncMode_Save) {
+          cb->urls = BeebLinkHTTPHandler::GetServerURLs();
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  struct ConfigROM {
+      bool writeable = false;
+      Enum<StandardROM> standard_rom{StandardROM_None};
+      std::optional<std::string> file_name;
+      std::optional<Enum<ROMType>> rom_type; //{ROMType_16KB};
+  };
+
+  static void SyncROM(Syncer *s, std::optional<ConfigROM> *cr_optional, BeebConfig::ROM *rom) {
+      if (s->mode == SyncMode_Load) {
+          if (cr_optional->has_value()) {
+              ConfigROM *cr = &cr_optional->value();
+              rom->file_name = cr->file_name.value_or(std::string());
+              rom->standard_rom = FindBeebROM(cr->standard_rom.value);
+          } else {
+              rom->file_name.clear();
+              rom->standard_rom = nullptr;
+          }
+      } else if (s->mode == SyncMode_Save) {
+          ConfigROM cr;
+          if (!rom->file_name.empty()) {
+              cr.file_name = rom->file_name;
+          }
+
+          if (rom->standard_rom) {
+              cr.standard_rom.value = rom->standard_rom->rom;
+          }
+          ,*cr_optional = cr;
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  static void SyncSidewaysROM(Syncer *s, std::optional<ConfigROM> *cr_optional, BeebConfig::SidewaysROM *rom) {
+      SyncROM(s, cr_optional, rom);
+
+      if (s->mode == SyncMode_Load) {
+          if (cr_optional->has_value()) {
+              ConfigROM *cr = &cr_optional->value();
+              rom->writeable = cr->writeable;
+              rom->type = cr->rom_type.value_or(Enum<ROMType>()).value;
+          } else {
+              rom->writeable = false;
+              rom->type = ROMType_16KB;
+          }
+      } else if (s->mode == SyncMode_Save) {
+          ASSERT(cr_optional->has_value()); //SyncROM should have done this...
+          ConfigROM *cr = &cr_optional->value();
+          if (rom->standard_rom) {
+              cr->rom_type.reset();
+          } else {
+              Enum<ROMType> value{rom->type};
+              cr->rom_type = value;
+          }
+          cr->writeable = rom->writeable;
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  struct ConfigConfig {
+      std::string name;
+      std::optional<ConfigROM> os;
+      Enum<OSROMType> os_rom_type;
+      Enum<BBCMicroTypeID> type;
+      std::optional<ConfigROM> roms[16];
+      std::string disc_interface;
+      bool video_nula = false;
+      bool ext_mem = false;
+      bool beeblink = false;
+      bool adji = false;
+      uint8_t adji_dip_switches = 0;
+      bool mouse = false;
+      bool parasite = false;
+      Enum<BBCMicroParasiteType> parasite_type;
+      std::optional<ConfigROM> parasite_os;
+      Enum<BeebConfigNVRAMType> nvram_type;
+      std::string nvram;
+  };
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ConfigConfig, name, os, os_rom_type, type, roms, disc_interface, video_nula, ext_mem, beeblink, adji, adji_dip_switches, mouse, parasite, parasite_type, parasite_os, nvram_type, nvram);
+
+  struct ConfigJoysticks {
+      std::vector<std::string> device_names;
+      bool swap_joysticks_when_shared = false;
+  };
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ConfigJoysticks, device_names, swap_joysticks_when_shared);
+
+  static void SyncJoysticks(Syncer *s, ConfigJoysticks *cj) {
+      JoysticksConfig config;
+      s->PreSync(&config, &GetJoysticksConfig);
+      if (s->mode == SyncMode_Load) {
+          for (uint8_t i = 0; i < cj->device_names.size() && i < NUM_BEEB_JOYSTICKS; ++i) {
+              config.device_names[i] = cj->device_names[i];
+          }
+      } else if (s->mode == SyncMode_Save) {
+          cj->device_names.resize(NUM_BEEB_JOYSTICKS);
+          for (uint8_t i = 0; i < NUM_BEEB_JOYSTICKS; ++i) {
+              cj->device_names[i] = config.device_names[i];
+          }
+      } else {
+          ASSERT(false);
+      }
+      s->Sync(&cj->swap_joysticks_when_shared, &config.swap_joysticks_when_shared);
+      s->PostSync(&config, &SetJoysticksConfig);
+  }
+
+  struct ConfigRecentPaths {
+      std::vector<std::string> paths;
+  };
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ConfigRecentPaths, paths);
+
+  struct Config {
+      ConfigGlobals globals;
+      std::map<std::string, ConfigRecentPaths> recent_paths;
+      std::vector<ConfigKeymap> keymaps;
+      std::vector<ConfigKeymap> new_keymaps;
+      std::map<std::string, std::map<std::string, std::vector<ConfigShortcut>>> shortcuts;
+      ConfigWindows windows;
+      ConfigTrace trace;
+      ConfigBeebLink beeblink;
+
+      std::vector<ConfigConfig> configs;
+      std::vector<ConfigConfig> new_configs;
+      ConfigJoysticks joysticks;
+  };
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Config, globals, recent_paths, keymaps, new_keymaps, shortcuts, windows, trace, beeblink, configs, new_configs, joysticks);
+
+  static void SyncConfig(Syncer *s, ConfigConfig *cc, BeebConfig *config) {
+      s->Sync(&cc->name, &config->name);
+      SyncROM(s, &cc->os, &config->os);
+      s->Sync(&cc->os_rom_type.value, &config->os_rom_type);
+      s->Sync(&cc->type.value, &config->type_id);
+      if (s->mode == SyncMode_Load) {
+          config->disc_interface = FindDiscInterfaceByConfigName(cc->disc_interface.c_str());
+      } else if (s->mode == SyncMode_Save) {
+          if (config->disc_interface) {
+              cc->disc_interface = config->disc_interface->config_name;
+          }
+      } else {
+          ASSERT(false);
+      }
+
+      for (size_t i = 0; i < 16; ++i) {
+          SyncROM(s, &cc->roms[i], &config->roms[i]);
+      }
+
+      s->Sync(&cc->video_nula, &config->video_nula);
+      s->Sync(&cc->ext_mem, &config->ext_mem);
+      s->Sync(&cc->beeblink, &config->beeblink);
+      s->Sync(&cc->adji, &config->adji);
+      s->Sync(&cc->adji_dip_switches, &config->adji_dip_switches);
+      s->Sync(&cc->mouse, &config->mouse);
+
+      s->Sync(&cc->parasite_type.value, &config->parasite_type);
+
+      // workaround for loading old config type.
+      if (s->mode == SyncMode_Load) {
+          if (config->parasite_type == BBCMicroParasiteType_None && cc->parasite) {
+              config->parasite_type = BBCMicroParasiteType_MasterTurbo;
+          }
+      }
+
+      SyncROM(s, &cc->parasite_os, &config->parasite_os);
+
+      s->Sync(&cc->nvram_type.value, &config->nvram_type);
+      if (s->mode == SyncMode_Load) {
+          if (!GetDataFromHexString(&config->nvram, cc->nvram)) {
+              config->nvram.clear();
+          }
+      } else if (s->mode == SyncMode_Save) {
+          cc->nvram = GetHexStringFromData(config->nvram);
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  static void SyncConfigs2(Syncer *s, std::vector<ConfigConfig> *ccs) {
+      if (s->mode == SyncMode_Load) {
+          for (ConfigConfig &cc : *ccs) {
+              BeebConfig config;
+              SyncConfig(s, &cc, &config);
+              if (config.name.empty()) {
+                  // something went wrong... nothing to see here...
+                  continue;
+              }
+
+              BeebWindows::AddConfig(std::move(config));
+          }
+      } else if (s->mode == SyncMode_Save) {
+          for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
+              ConfigConfig cc;
+              BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
+              SyncConfig(s, &cc, config);
+          }
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  static void SyncConfigs(Syncer *s, Config *c) {
+      if (s->mode == SyncMode_Load) {
+          if (!c->configs.empty()) {
+              AddDefaultBeebConfigs(true);
+              SyncConfigs2(s, &c->configs);
+          } else {
+              SyncConfigs2(s, &c->new_configs);
+              AddDefaultBeebConfigs(false);
+          }
+      } else if (s->mode == SyncMode_Save) {
+          SyncConfigs2(s, &c->new_configs);
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  static void SyncRecentPaths(Syncer *s, std::map<std::string, ConfigRecentPaths> *c_recent_paths) {
+      if (s->mode == SyncMode_Load) {
+          for (const auto &tag_and_path : *c_recent_paths) {
+              RecentPaths recents;
+
+              for (const std::string &path : tag_and_path.second.paths) {
+                  recents.AddPath(path);
+              }
+
+              SetRecentPathsByTag(tag_and_path.first, std::move(recents));
+          }
+      } else if (s->mode == SyncMode_Save) {
+          ForEachRecentPaths(
+              [c_recent_paths](const std::string &tag, const RecentPaths &recents) {
+                  ConfigRecentPaths *crp = &(*c_recent_paths)[tag];
+                  for (size_t i = 0; i < recents.GetNumPaths(); ++i) {
+                      const std::string &path = recents.GetPathByIndex(i);
+                      crp->paths.push_back(path);
+                  }
+              });
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  static void SyncKeymaps2(Syncer *s, std::vector<ConfigKeymap> *cks) {
+      if (s->mode == SyncMode_Load) {
+          for (const ConfigKeymap &ck : *cks) {
+              if (ck.name.empty() || ck.keys.empty()) {
+                  continue;
+              }
+
+              BeebKeymap keymap(ck.name, ck.keysyms);
+              for (const auto &beeb_key_name_and_keys : ck.keys) {
+                  int8_t beeb_key;
+                  if (ck.keysyms) {
+                      beeb_key = (int8_t)GetBeebKeySymByName(beeb_key_name_and_keys.first.c_str());
+                  } else {
+                      beeb_key = (int8_t)GetBeebKeyByName(beeb_key_name_and_keys.first.c_str());
+                  }
+                  if (beeb_key < 0) {
+                      continue;
+                  }
+
+                  for (const ConfigKeymapKey &ckk : beeb_key_name_and_keys.second) {
+                      uint32_t key;
+                      if (ck.keysyms) {
+                          key = ckk.keycode;
+                      } else {
+                          key = ckk.scancode;
+                      }
+
+                      keymap.SetMapping(key, beeb_key, true);
+                  }
+              }
+
+              keymap.SetPreferShortcuts(ck.prefer_shortcut);
+
+              BeebWindows::AddBeebKeymap(std::move(keymap));
+          }
+      } else if (s->mode == SyncMode_Save) {
+          for (size_t i = 0; i < BeebWindows::GetNumBeebKeymaps(); ++i) {
+              const BeebKeymap *keymap = BeebWindows::GetBeebKeymapByIndex(i);
+
+              ConfigKeymap ck;
+              ck.name = keymap->GetName();
+              ck.keysyms = keymap->IsKeySymMap();
+              ck.prefer_shortcut = keymap->GetPreferShortcuts();
+
+              for (int key = 0; key < 128; ++key) {
+                  const char *name;
+                  if (ck.keysyms) {
+                      name = GetBeebKeySymName((BeebKeySym)key);
+                  } else {
+                      name = GetBeebKeyName((BeebKey)key);
+                  }
+
+                  if (!name) {
+                      continue;
+                  }
+
+                  const uint32_t *pc_keys = keymap->GetPCKeysForValue((int8_t)i);
+                  if (!pc_keys) {
+                      continue;
+                  }
+
+                  std::vector<ConfigKeymapKey> *ckks = &ck.keys[name];
+
+                  for (const uint32_t *pc_key = pc_keys; *pc_key != 0; ++pc_keys) {
+                      ConfigKeymapKey ckk;
+
+                      if (ck.keysyms) {
+                          ckk.keycode = *pc_key;
+                      } else {
+                          ckk.scancode = *pc_key;
+                      }
+
+                      ckks->push_back(ckk);
+                  }
+              }
+
+              cks->push_back(std::move(ck));
+          }
+      } else {
+          ASSERT(false);
+      }
+  }
+
+  static void SyncKeymaps(Syncer *s, Config *c) {
+      if (s->mode == SyncMode_Load) {
+          if (!c->keymaps.empty()) {
+              AddDefaultBeebKeymaps();
+              SyncKeymaps2(s, &c->keymaps);
+          } else {
+              SyncKeymaps2(s, &c->new_keymaps);
+          }
+      } else if (s->mode == SyncMode_Save) {
+          // saving only ever filled out new_keymaps.
+          SyncKeymaps2(s, &c->new_keymaps);
+      } else {
+          ASSERT(false);
+      }
+  }
+#+end_src
+
+
 * libcurl vs llhttp
 
 Both have a =BUILD_STATIC_LIBS= CMake option...

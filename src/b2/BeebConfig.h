@@ -49,9 +49,10 @@ class BeebConfig {
     ROM os;
     SidewaysROM roms[16];
     ROM parasite_os;
-    uint8_t keyboard_links = 0;
+    //uint8_t keyboard_links = 0;//TODO?
     const DiscInterface *disc_interface = nullptr;
-    bool video_nula = true;
+    static constexpr bool DEFAULT_VIDEO_NULA = true;
+    bool video_nula = DEFAULT_VIDEO_NULA;
     bool ext_mem = false;
     bool beeblink = false;
     bool adji = false;
