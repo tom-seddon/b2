@@ -43,6 +43,9 @@ std::string GetConfigPath(const std::string &path);
 // Linux: XDG_CACHE_HOME (but do see: https://wiki.debian.org/XDGBaseDirectorySpecification#state)
 std::string GetCachePath(const std::string &path);
 
+// Get actual file name of b2 config file.
+std::string GetConfigFileName();
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

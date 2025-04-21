@@ -44,6 +44,7 @@ add_executable(b2 MACOSX_BUNDLE
   keymap.cpp keymap.h
   keys.cpp keys.h keys.inl
   load_save.cpp load_save.h
+  load_save_config_rapidjson.cpp load_save_config_rapidjson.h
   misc.cpp misc.h misc.inl
   native_ui.cpp native_ui.h
   roms.cpp roms.h

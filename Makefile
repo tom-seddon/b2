@@ -116,3 +116,13 @@ _set_submodule_upstream: UPSTREAM=$(error must supply UPSTREAM)
 _set_submodule_upstream:
 	-cd "submodules/$(SUBMODULE)" && git remote remove upstream
 	cd "submodules/$(SUBMODULE)" && git remote add upstream "$(UPSTREAM)"
+
+##########################################################################
+##########################################################################
+
+.PHONY:backup_b2_json
+backup_b2_json: B2_JSON_PATH?=$(error B2_JSON_PATH not set!)
+backup_b2_json: _DEST_PATH:=$(BUILD_FOLDER)/b2.$(shell $(SHELLCMD) strftime --UTC -d _ _Y_m_dT_H_M_SZ).json
+backup_b2_json:
+	$(SHELLCMD) mkdir "$(BUILD_FOLDER)"
+	$(SHELLCMD) copy-file "$(B2_JSON_PATH)" "$(_DEST_PATH)"

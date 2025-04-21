@@ -41,3 +41,10 @@ _run_tests:
 .PHONY:github_ci_windows
 github_ci_windows:
 	$(PYTHON3) "./etc/release/release.py" --verbose --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) --gh-release $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
+
+##########################################################################
+##########################################################################
+
+ifdef LOCALAPPDATA
+B2_JSON_PATH:=$(subst \,/,$(LOCALAPPDATA)/b2/b2.json)
+endif
