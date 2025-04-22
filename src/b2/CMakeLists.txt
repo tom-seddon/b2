@@ -52,6 +52,7 @@ add_executable(b2 MACOSX_BUNDLE
   profiler.cpp profiler.h
   joysticks.cpp joysticks.h
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
+  json.cpp json.h
   )
 
 if(OSX)

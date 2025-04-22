@@ -1,0 +1,23 @@
+#ifndef HEADER_D12F1E923F7147199D459D8DEBE1B1B4 // -*- mode:c++ -*-
+#define HEADER_D12F1E923F7147199D459D8DEBE1B1B4
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// If json.hpp has been included, JSON_SERIALIZE expands to
+// NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE; otherwise, a no-op.
+
+#ifdef NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
+
+#define JSON_SERIALIZE NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT
+
+#else
+
+#define JSON_SERIALIZE(...) static_assert(true)
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#endif

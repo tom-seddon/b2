@@ -1,6 +1,10 @@
 #include <shared/system.h>
-#include "load_save_config_nlohmann_json.h"
 #include <nlohmann/json.hpp>
+#include <shared/enums.h>
+
+// Extra fluff to handle enum serialization here?
+
+#include "load_save_config_nlohmann_json.h"
 #include <map>
 #include <string>
 #include "BeebWindow.h"
@@ -59,3 +63,18 @@ nlohmann::json SaveConfigExtra(const BeebConfig &config) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+bool LoadWindowsExtra(const nlohmann::json &j, Messages *msg) {
+    if (!TryGet(&BeebWindows::defaults.persistent, j, msg)) {
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+nlohmann::json SaveWindowsExtra() {
+    return BeebWindows::defaults.persistent;
+}

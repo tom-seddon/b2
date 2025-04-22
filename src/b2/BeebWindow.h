@@ -47,6 +47,7 @@ class ImGuiStuff;
 #include "misc.h"
 #include <condition_variable>
 #include <thread>
+#include "json.h"
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -62,6 +63,14 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Separate struct to take advantage of simplified nlohmann::json serialization.
+struct PersistentBeebWindowSettings {
+    bool low_pass_filter = true;
+    int low_pass_filter_cutoff_hz = 8000;
+    bool hide_cursor_when_unfocused = false;
+};
+JSON_SERIALIZE(PersistentBeebWindowSettings, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused);
+
 // The config name isn't part of this, because then there'd be two copies
 // of the initial config name in BeebWindowInitArguments. Something needs
 // fixing...
@@ -71,8 +80,6 @@ struct BeebWindowSettings {
     float bbc_volume = 0.f;
     float disc_volume = 0.f;
     bool power_on_tone = true;
-    bool low_pass_filter = true;
-    int low_pass_filter_cutoff_hz = 8000;
 
     bool display_auto_scale = true;
     bool correct_aspect_ratio = true;
@@ -106,7 +113,7 @@ struct BeebWindowSettings {
 
     bool capture_mouse_on_click = false;
 
-    bool hide_cursor_when_unfocused = false;
+    PersistentBeebWindowSettings persistent;
 };
 
 //////////////////////////////////////////////////////////////////////////
