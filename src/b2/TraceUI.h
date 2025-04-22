@@ -8,8 +8,10 @@
 
 #include <string>
 
-//#include <beeb/Trace.h>
+#include <beeb/BBCMicro.h>
 #include <beeb/SaveTrace.h>
+
+#include "json.h"
 
 #include <shared/enum_decl.h>
 #include "TraceUI.inl"
@@ -23,27 +25,35 @@
 
 struct TraceUISettings {
     // Start condition and any arguments.
-    TraceUIStartCondition start = TraceUIStartCondition_Now;
+    Enum<TraceUIStartCondition> start{TraceUIStartCondition_Now};
     uint16_t start_instruction_address = 0;
     uint16_t start_write_address = 0;
 
     // Stop condition and any arguments.
-    TraceUIStopCondition stop = TraceUIStopCondition_ByRequest;
+    Enum<TraceUIStopCondition> stop{TraceUIStopCondition_ByRequest};
     uint64_t stop_num_2MHz_cycles = 0;
     uint16_t stop_write_address = 0;
 
     // Other stuff.
-    uint32_t flags = 0;
+    EnumFlags<BBCMicroTraceFlag> flags{0};
     bool unlimited = false;
-#if SYSTEM_WINDOWS
+
+    // Only relevant on Windows.
     bool unix_line_endings = false;
-#endif
-    uint32_t output_flags = DEFAULT_TRACE_OUTPUT_FLAGS;
+
+    EnumFlags<TraceOutputFlags> output_flags{DEFAULT_TRACE_OUTPUT_FLAGS};
 
     // Auto-save settings.
     bool auto_save = false;
     std::string auto_save_path;
 };
+JSON_SERIALIZE(TraceUISettings,
+               start, start_instruction_address, start_write_address,
+               stop, stop_num_2MHz_cycles, stop_write_address,
+               flags, unlimited,
+               unix_line_endings,
+               output_flags,
+               auto_save, auto_save_path);
 
 TraceUISettings GetDefaultTraceUISettings();
 void SetDefaultTraceUISettings(const TraceUISettings &settings);

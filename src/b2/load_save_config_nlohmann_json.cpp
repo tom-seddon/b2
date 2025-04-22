@@ -1,9 +1,6 @@
 #include <shared/system.h>
 #include <nlohmann/json.hpp>
 #include <shared/enums.h>
-
-// Extra fluff to handle enum serialization here?
-
 #include "load_save_config_nlohmann_json.h"
 #include <map>
 #include <string>
@@ -77,4 +74,22 @@ bool LoadWindowsExtra(const nlohmann::json &j, Messages *msg) {
 
 nlohmann::json SaveWindowsExtra() {
     return BeebWindows::defaults.persistent;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool LoadTrace(TraceUISettings *settings, const nlohmann::json &j, Messages *msg) {
+    if (!TryGet(settings, j, msg)) {
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+nlohmann::json SaveTrace() {
+    return GetDefaultTraceUISettings();
 }

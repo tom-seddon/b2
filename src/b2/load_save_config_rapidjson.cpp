@@ -173,10 +173,6 @@ static bool FindObjectMember(rapidjson::Value *obj, rapidjson::Value *src, const
     return FindMember(obj, src, key, msg, &rapidjson::Value::IsObject, "object");
 }
 
-//static bool FindStringMember(rapidjson::Value *value,rapidjson::Value *object,const char *key,Messages *msg) {
-//    return FindMember(value,object,key,msg,&rapidjson::Value::IsString,"string");
-//}
-
 static bool FindStringMember(std::string *value, rapidjson::Value *object, const char *key, Messages *msg) {
     rapidjson::Value tmp;
     if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsString, "string")) {
@@ -196,32 +192,6 @@ static bool FindBoolMember(bool *value, rapidjson::Value *object, const char *ke
     *value = tmp.GetBool();
     return true;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//static bool FindDoubleMember(double *value,rapidjson::Value *object,const char *key,Messages *msg) {
-//    rapidjson::Value tmp;
-//    if(!FindMember(&tmp,object,key,msg,&rapidjson::Value::IsNumber,"number")) {
-//        return false;
-//    }
-//
-//    *value=tmp.GetDouble();
-//    return true;
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//static bool FindIntMember(int *value, rapidjson::Value *object, const char *key, Messages *msg) {
-//    rapidjson::Value tmp;
-//    if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
-//        return false;
-//    }
-//
-//    *value = tmp.GetInt();
-//    return true;
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -259,18 +229,6 @@ static bool FindUIntMember(unsigned *value, rapidjson::Value *object, const char
     }
 
     *value = tmp.GetUint();
-    return true;
-}
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool FindUInt16Member(uint16_t *value, rapidjson::Value *object, const char *key, Messages *msg) {
-    uint64_t tmp;
-    if (!FindUInt64Member(&tmp, object, key, msg)) {
-        return false;
-    }
-
-    *value = (uint16_t)tmp;
     return true;
 }
 
@@ -370,6 +328,11 @@ static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const ch
     }
 }
 
+template <class T>
+static void SaveFlags(JSONWriter<StringStream> *writer, EnumFlags<T> flags) {
+    SaveFlags(writer, flags.value, EnumTraits<T>::GET_NAME_FN);
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -410,6 +373,12 @@ static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const cha
     return good;
 }
 
+template <class T>
+static bool FindFlagsMember(EnumFlags<T> &flags, rapidjson::Value *object, const char *key, const char *what, Messages *msg) {
+    bool good = FindFlagsMember(&flags.value, object, key, what, EnumTraits<T>::GET_NAME_FN, msg);
+    return good;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -422,6 +391,11 @@ static void SaveEnum(JSONWriter<StringStream> *writer, EnumType value, const cha
         // Have to save something...
         writer->String("?");
     }
+}
+
+template <class T>
+static void SaveEnum(JSONWriter<StringStream> *writer, Enum<T> value) {
+    SaveEnum(writer, value.value, EnumTraits<T>::GET_NAME_FN);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -465,6 +439,12 @@ static bool FindEnumMember(EnumType *value, rapidjson::Value *object, const char
     }
 
     return true;
+}
+
+template <class T>
+static bool FindEnumMember(Enum<T> &value, rapidjson::Value *object, const char *key, const char *what, Messages *msg) {
+    bool good = FindEnumMember(&value.value, object, key, what, EnumTraits<T>::GET_NAME_FN, msg);
+    return good;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -559,9 +539,6 @@ static const char FILE_NAME[] = "file_name";
 static const char NAME[] = "name";
 static const char DISC_INTERFACE[] = "disc_interface";
 static const char TRACE[] = "trace";
-static const char FLAGS[] = "flags";
-static const char START[] = "start";
-static const char STOP[] = "stop";
 static const char WINDOWS[] = "windows";
 static const char KEYMAP[] = "keymap";
 static const char KEYSYMS[] = "keysyms";
@@ -571,7 +548,6 @@ static const char DISC_VOLUME[] = "disc_volume";
 static const char FILTER_BBC[] = "filter_bbc";
 static const char SHORTCUTS[] = "shortcuts";
 static const char PREFER_SHORTCUTS[] = "prefer_shortcuts";
-//static const char DOCK_CONFIG[]="dock_config";
 static const char CORRECT_ASPECT_RATIO[] = "correct_aspect_ratio";
 static const char AUTO_SCALE[] = "auto_scale";
 static const char MANUAL_SCALE[] = "manual_scale";
@@ -579,15 +555,9 @@ static const char POPUPS[] = "popups";
 static const char GLOBALS[] = "globals";
 static const char VSYNC[] = "vsync";
 static const char EXT_MEM[] = "ext_mem";
-static const char UNLIMITED[] = "unlimited";
 static const char BEEBLINK[] = "beeblink";
 static const char URLS[] = "urls";
 static const char NVRAM[] = "nvram";
-static const char START_INSTRUCTION_ADDRESS[] = "start_address"; //yes, inconsistent naming...
-static const char START_WRITE_ADDRESS[] = "start_write_address";
-static const char STOP_WRITE_ADDRESS[] = "stop_write_address";
-static const char STOP_NUM_CYCLES[] = "stop_num_cycles";
-static const char OUTPUT_FLAGS[] = "output_flags";
 static const char POWER_ON_TONE[] = "power_on_tone";
 static const char STANDARD_ROM[] = "standard_rom";
 static const char CONFIG[] = "config";
@@ -596,11 +566,6 @@ static const char LEDS_POPUP_MODE[] = "leds_popup_mode";
 static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
 static const char NVRAM_TYPE[] = "nvram_type";
-static const char AUTO_SAVE[] = "auto_save";
-static const char AUTO_SAVE_PATH[] = "auto_save_path";
-#if SYSTEM_WINDOWS
-static const char UNIX_LINE_ENDINGS[] = "unix_line_endings";
-#endif
 static const char FEATURE_FLAGS[] = "feature_flags";
 static const char PARASITE_TYPE[] = "parasite_type";
 static const char JOYSTICKS[] = "joysticks";
@@ -1761,20 +1726,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 static bool LoadTrace(rapidjson::Value *trace_json, Messages *msg) {
     TraceUISettings settings;
 
-    FindFlagsMember(&settings.flags, trace_json, FLAGS, "trace flag", &GetBBCMicroTraceFlagEnumName, msg);
-    FindEnumMember(&settings.start, trace_json, START, "start condition", &GetTraceUIStartConditionEnumName, msg);
-    FindEnumMember(&settings.stop, trace_json, STOP, "stop condition", &GetTraceUIStopConditionEnumName, msg);
-    FindBoolMember(&settings.unlimited, trace_json, UNLIMITED, nullptr);
-    FindFlagsMember(&settings.output_flags, trace_json, OUTPUT_FLAGS, "output flags", &GetTraceOutputFlagsEnumName, msg);
-    FindUInt64Member(&settings.stop_num_2MHz_cycles, trace_json, STOP_NUM_CYCLES, nullptr);
-    FindUInt16Member(&settings.start_instruction_address, trace_json, START_INSTRUCTION_ADDRESS, nullptr);
-    FindUInt16Member(&settings.start_write_address, trace_json, START_WRITE_ADDRESS, nullptr);
-    FindUInt16Member(&settings.stop_write_address, trace_json, STOP_WRITE_ADDRESS, nullptr);
-    FindBoolMember(&settings.auto_save, trace_json, AUTO_SAVE, nullptr);
-    FindStringMember(&settings.auto_save_path, trace_json, AUTO_SAVE_PATH, nullptr);
-#if SYSTEM_WINDOWS
-    FindBoolMember(&settings.unix_line_endings, trace_json, UNIX_LINE_ENDINGS, nullptr);
-#endif
+    if (!LoadTrace(&settings, LoadNLohmannJSON(*trace_json), msg)) {
+        return false;
+    }
 
     SetDefaultTraceUISettings(settings);
 
@@ -1782,55 +1736,8 @@ static bool LoadTrace(rapidjson::Value *trace_json, Messages *msg) {
 }
 
 static void SaveTrace(JSONWriter<StringStream> *writer) {
-    const TraceUISettings &settings = GetDefaultTraceUISettings();
-
-    {
-        auto trace_json = ObjectWriter(writer, TRACE);
-
-        {
-            auto default_flags_json = ArrayWriter(writer, FLAGS);
-
-            SaveFlags(writer, settings.flags, &GetBBCMicroTraceFlagEnumName);
-        }
-
-        writer->Key(START);
-        SaveEnum(writer, settings.start, &GetTraceUIStartConditionEnumName);
-
-        writer->Key(STOP);
-        SaveEnum(writer, settings.stop, &GetTraceUIStopConditionEnumName);
-
-        writer->Key(UNLIMITED);
-        writer->Bool(settings.unlimited);
-
-        writer->Key(START_INSTRUCTION_ADDRESS);
-        writer->Uint64(settings.start_instruction_address);
-
-        writer->Key(START_WRITE_ADDRESS);
-        writer->Uint64(settings.start_write_address);
-
-        writer->Key(STOP_WRITE_ADDRESS);
-        writer->Uint64(settings.stop_write_address);
-
-        writer->Key(STOP_NUM_CYCLES);
-        writer->Uint64(settings.stop_num_2MHz_cycles);
-
-        {
-            auto output_flags_json = ArrayWriter(writer, OUTPUT_FLAGS);
-
-            SaveFlags(writer, settings.output_flags, &GetTraceOutputFlagsEnumName);
-        }
-
-        writer->Key(AUTO_SAVE);
-        writer->Bool(settings.auto_save);
-
-        writer->Key(AUTO_SAVE_PATH);
-        writer->String(settings.auto_save_path.c_str());
-
-#if SYSTEM_WINDOWS
-        writer->Key(UNIX_LINE_ENDINGS);
-        writer->Bool(settings.unix_line_endings);
-#endif
-    }
+    writer->Key(TRACE);
+    SaveNLohmannJSON(writer, GetDefaultTraceUISettings());
 }
 
 //////////////////////////////////////////////////////////////////////////

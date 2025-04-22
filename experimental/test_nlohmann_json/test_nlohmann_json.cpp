@@ -1,7 +1,7 @@
 #include <shared/system.h>
+#include <nlohmann/json.hpp>
 #include <shared/testing.h>
 #include <shared/path.h>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <variant>
 #include <map>
@@ -24,117 +24,117 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class EnumType, class EnumBaseType>
-static void HandleEnumToJSON(nlohmann::json &j, const EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
-    (void)enum_type_name;
-
-    const char *name = (*get_name_fn)(*value);
-    j = name;
-}
-
-template <class EnumType, class EnumBaseType>
-static void HandleEnumFromJSON(const nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
-    (void)enum_type_name;
-
-    std::string str = j.get<std::string>();
-
-    EnumBaseType i = 0;
-    for (;;) {
-        const char *name = (*get_name_fn)(i);
-        if (name[0] == '?') {
-            // Reached end of list.
-            break;
-        }
-
-        if (str == name) {
-            *value = (EnumType)i;
-            return;
-        }
-
-        ++i;
-    }
-
-    //throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
-}
-
-template <class T>
-void to_json(nlohmann::json &j, const Enum<T> &value) {
-    HandleEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-}
-
-template <class T>
-void from_json(const nlohmann::json &j, Enum<T> &value) {
-    HandleEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-}
+//template <class EnumType, class EnumBaseType>
+//static void HandleEnumToJSON(nlohmann::json &j, const EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+//    (void)enum_type_name;
+//
+//    const char *name = (*get_name_fn)(*value);
+//    j = name;
+//}
+//
+//template <class EnumType, class EnumBaseType>
+//static void HandleEnumFromJSON(const nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+//    (void)enum_type_name;
+//
+//    std::string str = j.get<std::string>();
+//
+//    EnumBaseType i = 0;
+//    for (;;) {
+//        const char *name = (*get_name_fn)(i);
+//        if (name[0] == '?') {
+//            // Reached end of list.
+//            break;
+//        }
+//
+//        if (str == name) {
+//            *value = (EnumType)i;
+//            return;
+//        }
+//
+//        ++i;
+//    }
+//
+//    //throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
+//}
+//
+//template <class T>
+//void to_json(nlohmann::json &j, const Enum<T> &value) {
+//    HandleEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+//}
+//
+//template <class T>
+//void from_json(const nlohmann::json &j, Enum<T> &value) {
+//    HandleEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class EnumType, class EnumBaseType>
-static void HandleFlagsEnumToJSON(nlohmann::json &j, const EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
-    (void)enum_type_name;
-
-    j = nlohmann::json::array_t{};
-    for (typename std::make_unsigned<EnumBaseType>::type mask = 1; mask != 0; mask <<= 1) {
-        const char *name = (*get_name_fn)((EnumBaseType)mask);
-        if (name[0] == '?') {
-            continue;
-        }
-
-        if (!(*value & (EnumBaseType)mask)) {
-            continue;
-        }
-
-        j.push_back(name);
-    }
-}
-
-template <class EnumType, class EnumBaseType>
-static void HandleFlagsEnumFromJSON(const nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
-    (void)enum_type_name;
-
-    if (!j.is_array()) {
-        // Should really warn here. But the options for passing logging stuff
-        // into the deserialization functions seem a bit limited.
-        *value = (EnumType)0;
-        //throw nlohmann::json::type_error::create(302, enum_type_name + std::string(" value must be an array"), nullptr);
-        return;
-    }
-
-    for (size_t i = 0; i < j.size(); ++i) {
-        if (!j[i].is_string()) {
-            const std::string &j_name = j[i].get<std::string>();
-            bool found = false;
-
-            for (typename std::make_unsigned<EnumBaseType>::type mask = 1; mask != 0; mask <<= 1) {
-                const char *name = (*get_name_fn)((EnumBaseType)mask);
-                if (name[0] == '?') {
-                    continue;
-                }
-
-                if (j_name == name) {
-                    found = true;
-                    *value = (EnumType)((EnumBaseType)*value | mask);
-                    break;
-                }
-            }
-
-            //if (!found) {
-            //    throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
-            //}
-        }
-    }
-}
-
-template <class T>
-void to_json(nlohmann::json &j, const EnumFlags<T> &value) {
-    HandleFlagsEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-}
-
-template <class T>
-void from_json(const nlohmann::json &j, EnumFlags<T> &value) {
-    HandleFlagsEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
-}
+//template <class EnumType, class EnumBaseType>
+//static void HandleFlagsEnumToJSON(nlohmann::json &j, const EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+//    (void)enum_type_name;
+//
+//    j = nlohmann::json::array_t{};
+//    for (typename std::make_unsigned<EnumBaseType>::type mask = 1; mask != 0; mask <<= 1) {
+//        const char *name = (*get_name_fn)((EnumBaseType)mask);
+//        if (name[0] == '?') {
+//            continue;
+//        }
+//
+//        if (!(*value & (EnumBaseType)mask)) {
+//            continue;
+//        }
+//
+//        j.push_back(name);
+//    }
+//}
+//
+//template <class EnumType, class EnumBaseType>
+//static void HandleFlagsEnumFromJSON(const nlohmann::json &j, EnumType *value, const char *enum_type_name, const char *(*get_name_fn)(EnumBaseType)) {
+//    (void)enum_type_name;
+//
+//    if (!j.is_array()) {
+//        // Should really warn here. But the options for passing logging stuff
+//        // into the deserialization functions seem a bit limited.
+//        *value = (EnumType)0;
+//        //throw nlohmann::json::type_error::create(302, enum_type_name + std::string(" value must be an array"), nullptr);
+//        return;
+//    }
+//
+//    for (size_t i = 0; i < j.size(); ++i) {
+//        if (!j[i].is_string()) {
+//            const std::string &j_name = j[i].get<std::string>();
+//            bool found = false;
+//
+//            for (typename std::make_unsigned<EnumBaseType>::type mask = 1; mask != 0; mask <<= 1) {
+//                const char *name = (*get_name_fn)((EnumBaseType)mask);
+//                if (name[0] == '?') {
+//                    continue;
+//                }
+//
+//                if (j_name == name) {
+//                    found = true;
+//                    *value = (EnumType)((EnumBaseType)*value | mask);
+//                    break;
+//                }
+//            }
+//
+//            //if (!found) {
+//            //    throw nlohmann::json::type_error::create(302, std::string("unrecognised ") + enum_type_name, nullptr);
+//            //}
+//        }
+//    }
+//}
+//
+//template <class T>
+//void to_json(nlohmann::json &j, const EnumFlags<T> &value) {
+//    HandleFlagsEnumToJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+//}
+//
+//template <class T>
+//void from_json(const nlohmann::json &j, EnumFlags<T> &value) {
+//    HandleFlagsEnumFromJSON(j, &value.value, EnumTraits<T>::NAME, EnumTraits<T>::GET_NAME_FN);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
