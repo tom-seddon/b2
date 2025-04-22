@@ -147,6 +147,9 @@ class HexEditorHandlerWithBufferData : public HexEditorHandler {
 
 class HexEditor {
   public:
+    static constexpr size_t INVALID_OFFSET = ~(size_t)0;
+    static constexpr size_t DEFAULT_NUM_COLUMNS = 16;
+
     struct Options {
         bool headers = true;
         bool hex = true;
@@ -162,14 +165,14 @@ class HexEditor {
 
     void DoImGui();
 
+    size_t GetOffset() const;
     void SetOffset(size_t offset);
 
+    size_t GetNumColumns() const;
     void SetNumColumns(size_t num_columns);
 
   protected:
   private:
-    static const size_t INVALID_OFFSET = ~(size_t)0;
-
     struct Metrics {
         int num_addr_chars = 0;
         float line_height = 0.f;

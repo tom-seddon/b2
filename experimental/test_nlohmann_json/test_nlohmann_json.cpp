@@ -258,8 +258,11 @@ struct Root {
     Trace trace;
     std::vector<NewKeymap> new_keymaps;
     std::vector<NewKeymap> keymaps;
+    std::string test_string;
+    //char test_string[50] = {};
+    std::vector<char> test_char_array;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Root, shortcuts, configs, trace, new_keymaps, keymaps);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Root, shortcuts, configs, trace, new_keymaps, keymaps, test_string, test_char_array);
 
 static std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...) {
     char *tmp;
@@ -315,7 +318,7 @@ static void TestOptionalStuff() {
     } catch (nlohmann::json::exception &ex) {
         fprintf(stderr, "FATAL: error: %s\n", ex.what());
     }
-    printf("%d %d %d %s\n", test3.test.x, test3.test.y, test3.test.z,test3.test.str.c_str());
+    printf("%d %d %d %s\n", test3.test.x, test3.test.y, test3.test.z, test3.test.str.c_str());
 }
 
 int main(int argc, char *argv[]) {
@@ -384,6 +387,13 @@ int main(int argc, char *argv[]) {
         test.keymaps.push_back(k);
     }
 
+    //strcpy(test.test_string, "test_string");
+    test.test_string = "test_string";
+
+    for (char c : "test_char_array") {
+        test.test_char_array.push_back(c);
+    }
+
     nlohmann::json j_test = test;
     std::string serialize1 = j_test.dump(4);
     //fputs(serialize1.c_str(), stdout);
@@ -392,8 +402,8 @@ int main(int argc, char *argv[]) {
     try {
         nlohmann::json j_deserialize1 = nlohmann::json::parse(serialize1);
         test2 = j_deserialize1.template get<Root>();
-    } catch (nlohmann::json::parse_error &ex) {
-        fprintf(stderr, "FATAL: parse error: %s\n", ex.what());
+    } catch (nlohmann::json::exception &ex) {
+        fprintf(stderr, "FATAL: exception: %s\n", ex.what());
         return 1;
     }
 
@@ -402,6 +412,8 @@ int main(int argc, char *argv[]) {
     TEST_EQ_SS(serialize1, serialize2);
 
     TestOptionalStuff();
+
+    fputs(serialize2.c_str(), stdout);
 
     return 0;
 }

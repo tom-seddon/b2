@@ -114,6 +114,7 @@ struct BeebWindowSettings {
     bool capture_mouse_on_click = false;
 
     PersistentBeebWindowSettings persistent;
+    std::shared_ptr<JSON> popup_persistent_data[BeebWindowPopupType_MaxValue];
 };
 
 //////////////////////////////////////////////////////////////////////////

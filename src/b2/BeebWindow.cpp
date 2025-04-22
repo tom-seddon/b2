@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <nlohmann/json.hpp>
 #include <shared/system_specific.h>
 #include "BeebWindow.h"
 #include <beeb/OutputData.h>
@@ -1540,6 +1541,10 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 
                 if (m_popups[type]) {
                     m_popups[type]->SetName(popup_metadata->command.GetText());
+
+                    if (std::shared_ptr<JSON> j = BeebWindows::defaults.popup_persistent_data[type]) {
+                        m_popups[type]->LoadPersistentData(*j);
+                    }
                 }
             }
 
@@ -2797,6 +2802,19 @@ void BeebWindow::SaveSettings() {
     BeebWindows::default_config_name = m_init_arguments.default_config.config.name;
 
     this->SavePosition();
+
+    for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
+        if (m_popups[i]) {
+            std::shared_ptr<JSON> j_ptr = BeebWindows::defaults.popup_persistent_data[i];
+            if (!j_ptr) {
+                j_ptr = std::make_shared<JSON>();
+            }
+
+            m_popups[i]->SavePersistentData(j_ptr.get());
+
+            BeebWindows::defaults.popup_persistent_data[i] = std::move(j_ptr);
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -6,6 +6,7 @@
 
 class CommandStateTable;
 class CommandTable2;
+struct JSON;
 
 #include <string>
 #include "dear_imgui.h"
@@ -46,6 +47,9 @@ class SettingsUI {
 
     ImVec2 GetDefaultSize() const;
     void SetDefaultSize(ImVec2 default_size);
+
+    virtual void LoadPersistentData(const JSON &j);
+    virtual void SavePersistentData(JSON *j);
 
   protected:
   private:

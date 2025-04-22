@@ -1,4 +1,6 @@
 #include <shared/system.h>
+#include <nlohmann/json.hpp>
+#include "json.h"
 #include "debugger.h"
 #include "commands.h"
 #include <SDL.h>
@@ -263,6 +265,28 @@ class DebugUI : public SettingsUI {
                                       const char *popup_name,
                                       uint32_t override_flag,
                                       uint32_t flag);
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template <class PersistentDataType>
+class DebugUIWithPersistentData : public DebugUI {
+  public:
+    using DebugUI::DebugUI;
+
+    void LoadPersistentData(const JSON &j) override {
+        j.Load(&m_persistent);
+    }
+
+    void SavePersistentData(JSON *j) override {
+        j->Save(m_persistent);
+    }
+
+  protected:
+    PersistentDataType m_persistent;
+
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1086,7 +1110,19 @@ std::unique_ptr<SettingsUI> CreateParasite6502DebugWindow(BeebWindow *beeb_windo
 
 LOG_DEFINE(HEXEDIT, "HEXEDIT", &log_printer_stdout_and_debugger, true);
 
-class MemoryDebugWindow : public DebugUI,
+JSON_SERIALIZE(HexEditor::Options, headers, hex, ascii, grey_00s, upper_case, grey_nonprintables);
+
+struct MemoryDebugWindowPersistentData {
+    HexEditor::Options hex_editor_options;
+    std::string save_begin;
+    std::string save_end;
+    bool specify_end = false;
+    size_t num_columns = HexEditor::DEFAULT_NUM_COLUMNS;
+    size_t offset = HexEditor::INVALID_OFFSET;
+};
+JSON_SERIALIZE(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, offset);
+
+class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPersistentData>,
                           public RevealTargetUI {
   public:
     MemoryDebugWindow()
@@ -1106,6 +1142,26 @@ class MemoryDebugWindow : public DebugUI,
     virtual void RevealByte(const DebugUI::DebugBigPage *dbp, M6502Word addr) override {
         this->ApplyOverridesForDebugBigPage(dbp);
         this->RevealAddress(addr);
+    }
+
+    void LoadPersistentData(const JSON &j) override {
+        this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::LoadPersistentData(j);
+        m_hex_editor.options = m_persistent.hex_editor_options;
+        m_hex_editor.SetNumColumns(m_persistent.num_columns);
+        if (m_persistent.offset != HexEditor::INVALID_OFFSET) {
+            m_hex_editor.SetOffset(m_persistent.offset);
+        }
+        strlcpy(m_handler.m_save_begin_buffer, m_persistent.save_begin.c_str(), sizeof m_handler.m_save_begin_buffer);
+        strlcpy(m_handler.m_save_end_buffer, m_persistent.save_end.c_str(), sizeof m_handler.m_save_end_buffer);
+    }
+
+    void SavePersistentData(JSON *j) override {
+        m_persistent.hex_editor_options = m_hex_editor.options;
+        m_persistent.num_columns = m_hex_editor.GetNumColumns();
+        m_persistent.offset = m_hex_editor.GetOffset();
+        m_persistent.save_begin = m_handler.m_save_begin_buffer;
+        m_persistent.save_end = m_handler.m_save_end_buffer;
+        this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::SavePersistentData(j);
     }
 
   protected:
@@ -1182,14 +1238,14 @@ class MemoryDebugWindow : public DebugUI,
 
             ImGui::InputText("Save Begin", m_save_begin_buffer, sizeof m_save_begin_buffer);
 
-            const char *label = m_specify_end ? "Save End" : "Save Size";
+            const char *label = m_window->m_persistent.specify_end ? "Save End" : "Save Size";
             ImGui::InputText(label, m_save_end_buffer, sizeof m_save_end_buffer);
 
-            if (ImGui::Checkbox("Specify End", &m_specify_end)) {
+            if (ImGui::Checkbox("Specify End", &m_window->m_persistent.specify_end)) {
                 uint16_t begin;
                 uint32_t end_or_size;
                 if (this->GetSaveParameters(&begin, &end_or_size)) {
-                    if (m_specify_end) {
+                    if (m_window->m_persistent.specify_end) {
                         // end_or_size was size
                         snprintf(m_save_end_buffer, sizeof m_save_end_buffer, "0x%x", begin + end_or_size);
                     } else {
@@ -1203,7 +1259,7 @@ class MemoryDebugWindow : public DebugUI,
             uint32_t end_or_size;
             bool save_enabled = this->GetSaveParameters(&begin, &end_or_size);
             if (save_enabled) {
-                if (m_specify_end && end_or_size < begin) {
+                if (m_window->m_persistent.specify_end && end_or_size < begin) {
                     save_enabled = false;
                 }
             }
@@ -1219,7 +1275,7 @@ class MemoryDebugWindow : public DebugUI,
                     std::string path;
                     if (fd.Open(&path)) {
                         uint32_t end;
-                        if (m_specify_end) {
+                        if (m_window->m_persistent.specify_end) {
                             end = end_or_size;
                         } else {
                             end = begin + end_or_size;
@@ -1296,7 +1352,6 @@ class MemoryDebugWindow : public DebugUI,
       private:
         char m_save_begin_buffer[50] = {};
         char m_save_end_buffer[50] = {};
-        bool m_specify_end = false;
         MemoryDebugWindow *const m_window;
 
         bool GetSaveParameters(uint16_t *begin, uint32_t *end_or_size) const {
@@ -1310,6 +1365,8 @@ class MemoryDebugWindow : public DebugUI,
 
             return true;
         }
+
+        friend class MemoryDebugWindow;
     };
 
     bool m_show_mos_toggle = false;
@@ -1397,11 +1454,16 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class DisassemblyDebugWindow : public DebugUI,
+struct DisassemblyDebugWindowPersistentData {
+    bool track_pc = false;
+};
+JSON_SERIALIZE(DisassemblyDebugWindowPersistentData, track_pc);
+
+class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebugWindowPersistentData>,
                                public RevealTargetUI {
   public:
     DisassemblyDebugWindow()
-        : DebugUI(&g_disassembly_table) {
+        : DebugUIWithPersistentData<DisassemblyDebugWindowPersistentData>(&g_disassembly_table) {
         this->SetDefaultSize(ImVec2(450, 500));
     }
 
@@ -1414,7 +1476,7 @@ class DisassemblyDebugWindow : public DebugUI,
     }
 
     void RevealAddress(M6502Word addr) override {
-        m_track_pc = false;
+        m_persistent.track_pc = false;
         m_addr = addr.w;
     }
 
@@ -1424,7 +1486,7 @@ class DisassemblyDebugWindow : public DebugUI,
     }
 
     void SetTrackPC(bool track_pc) {
-        m_track_pc = track_pc;
+        m_persistent.track_pc = track_pc;
     }
 
   protected:
@@ -1464,11 +1526,11 @@ class DisassemblyDebugWindow : public DebugUI,
         //    m->DebugGetMemBigPageIsMOSTable(pc_is_mos, m_dso);
         //}
 
-        this->cst->SetTicked(g_toggle_track_pc_command, m_track_pc);
+        this->cst->SetTicked(g_toggle_track_pc_command, m_persistent.track_pc);
         if (this->cst->WasActioned(g_toggle_track_pc_command)) {
-            m_track_pc = !m_track_pc;
+            m_persistent.track_pc = !m_persistent.track_pc;
 
-            if (m_track_pc) {
+            if (m_persistent.track_pc) {
                 // force snap to current PC if it's halted.
                 m_old_pc = -1;
             }
@@ -1477,27 +1539,27 @@ class DisassemblyDebugWindow : public DebugUI,
         this->cst->SetEnabled(g_back_command, !m_history.empty());
         if (this->cst->WasActioned(g_back_command)) {
             ASSERT(!m_history.empty());
-            m_track_pc = false;
+            m_persistent.track_pc = false;
             m_addr = m_history.back();
             m_history.pop_back();
         }
 
-        this->cst->SetEnabled(g_up_command, !m_track_pc);
+        this->cst->SetEnabled(g_up_command, !m_persistent.track_pc);
         if (this->cst->WasActioned(g_up_command)) {
             this->Up(cpu->config, 1);
         }
 
-        this->cst->SetEnabled(g_down_command, !m_track_pc);
+        this->cst->SetEnabled(g_down_command, !m_persistent.track_pc);
         if (this->cst->WasActioned(g_down_command)) {
             this->Down(cpu->config, 1);
         }
 
-        this->cst->SetEnabled(g_page_up_command, !m_track_pc);
+        this->cst->SetEnabled(g_page_up_command, !m_persistent.track_pc);
         if (this->cst->WasActioned(g_page_up_command)) {
             this->Up(cpu->config, m_num_lines - 2);
         }
 
-        this->cst->SetEnabled(g_page_down_command, !m_track_pc);
+        this->cst->SetEnabled(g_page_down_command, !m_persistent.track_pc);
         if (this->cst->WasActioned(g_page_down_command)) {
             this->Down(cpu->config, m_num_lines - 2);
         }
@@ -1557,7 +1619,7 @@ class DisassemblyDebugWindow : public DebugUI,
         ImGui::SameLine();
         this->cst->DoButton(g_step_in_command);
 
-        if (m_track_pc) {
+        if (m_persistent.track_pc) {
             if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
                 if (m_old_pc != cpu->opcode_pc.w) {
                     // well, *something* happened since last time...
@@ -1828,7 +1890,6 @@ class DisassemblyDebugWindow : public DebugUI,
     static const char IND_PREFIX[];
 
     uint16_t m_addr = 0;
-    bool m_track_pc = true;
     int32_t m_old_pc = -1;
     char m_address_text[100] = {};
     //std::vector<uint16_t> m_line_addrs;
@@ -1995,7 +2056,7 @@ class DisassemblyDebugWindow : public DebugUI,
         if (m_history.empty() || m_addr != m_history.back()) {
             m_history.push_back(m_addr);
         }
-        m_track_pc = false;
+        m_persistent.track_pc = false;
         m_addr = address;
     }
 

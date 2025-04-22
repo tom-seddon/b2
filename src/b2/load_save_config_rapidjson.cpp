@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <nlohmann/json.hpp>
 #include "load_save_config_rapidjson.h"
 #include "load_save.h"
 #include <rapidjson/rapidjson.h>
@@ -22,7 +23,6 @@
 #include "joysticks.h"
 #include <shared/file_io.h>
 #include "commands.h"
-#include <nlohmann/json.hpp>
 #include "load_save_config_nlohmann_json.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -624,6 +624,7 @@ static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
 static const char OS_ROM_TYPE[] = "os_rom_type";
 static const char EXTRA[] = "extra"; // any late addition that's handled separately
                                      // by the nlohmann::json stuff
+static const char POPUP_PERSISTENT_DATA[] = "popup_persistent_data";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1624,6 +1625,25 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
 
     LoadExtra(&LoadWindowsExtra, windows, msg);
 
+    rapidjson::Value popup_persistent_data;
+    if (FindObjectMember(&popup_persistent_data, windows, POPUP_PERSISTENT_DATA, msg)) {
+        for (rapidjson::Value::ConstMemberIterator it = popup_persistent_data.MemberBegin(); it != popup_persistent_data.MemberEnd(); ++it) {
+            const char *name = it->name.GetString();
+            BeebWindowPopupType type = BeebWindowPopupType_MaxValue;
+
+            for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
+                if (strcmp(name, GetBeebWindowPopupTypeEnumName(i)) == 0) {
+                    type = (BeebWindowPopupType)i;
+                    break;
+                }
+            }
+
+            if (type != BeebWindowPopupType_MaxValue) {
+                BeebWindows::defaults.popup_persistent_data[type] = std::make_shared<JSON>(LoadNLohmannJSON(it->value));
+            }
+        }
+    }
+
     return true;
 }
 
@@ -1718,6 +1738,20 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(EXTRA);
         SaveNLohmannJSON(writer, SaveWindowsExtra());
+
+        {
+            auto popup_persistent_data_json = ObjectWriter(writer, POPUP_PERSISTENT_DATA);
+
+            for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
+                if (std::shared_ptr<JSON> j_ptr = BeebWindows::defaults.popup_persistent_data[i]) {
+                    const nlohmann::json &j = j_ptr->AsNLohmannJSON();
+                    if (!j.is_null()) {
+                        writer->Key(GetBeebWindowPopupTypeEnumName(i));
+                        SaveNLohmannJSON(writer, j);
+                    }
+                }
+            }
+        }
     }
 }
 
