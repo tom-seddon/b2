@@ -165,11 +165,13 @@ class HexEditor {
 
     void DoImGui();
 
-    size_t GetOffset() const;
     void SetOffset(size_t offset);
 
     size_t GetNumColumns() const;
     void SetNumColumns(size_t num_columns);
+
+    float GetLastFrameScrollY() const;
+    void SetNextFrameScrollY(float scroll_y);
 
   protected:
   private:
@@ -194,6 +196,7 @@ class HexEditor {
     bool m_hex = true;
     bool m_input_take_focus_next_frame = true;
     float m_next_frame_scroll_y = -1.f;
+    float m_last_frame_scroll_y = -1.f;
 
     bool m_got_edit_value = false;
     uint8_t m_edit_value = 0;

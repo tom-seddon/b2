@@ -1118,9 +1118,9 @@ struct MemoryDebugWindowPersistentData {
     std::string save_end;
     bool specify_end = false;
     size_t num_columns = HexEditor::DEFAULT_NUM_COLUMNS;
-    size_t offset = HexEditor::INVALID_OFFSET;
+    float scroll_y = -1.f;
 };
-JSON_SERIALIZE(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, offset);
+JSON_SERIALIZE(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, scroll_y);
 
 class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPersistentData>,
                           public RevealTargetUI {
@@ -1148,8 +1148,8 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
         this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::LoadPersistentData(j);
         m_hex_editor.options = m_persistent.hex_editor_options;
         m_hex_editor.SetNumColumns(m_persistent.num_columns);
-        if (m_persistent.offset != HexEditor::INVALID_OFFSET) {
-            m_hex_editor.SetOffset(m_persistent.offset);
+        if (m_persistent.scroll_y >= 0.f) {
+            m_hex_editor.SetNextFrameScrollY(m_persistent.scroll_y);
         }
         strlcpy(m_handler.m_save_begin_buffer, m_persistent.save_begin.c_str(), sizeof m_handler.m_save_begin_buffer);
         strlcpy(m_handler.m_save_end_buffer, m_persistent.save_end.c_str(), sizeof m_handler.m_save_end_buffer);
@@ -1158,7 +1158,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
     void SavePersistentData(JSON *j) override {
         m_persistent.hex_editor_options = m_hex_editor.options;
         m_persistent.num_columns = m_hex_editor.GetNumColumns();
-        m_persistent.offset = m_hex_editor.GetOffset();
+        m_persistent.scroll_y = m_hex_editor.GetLastFrameScrollY();
         m_persistent.save_begin = m_handler.m_save_begin_buffer;
         m_persistent.save_end = m_handler.m_save_end_buffer;
         this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::SavePersistentData(j);
