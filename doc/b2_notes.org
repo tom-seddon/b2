@@ -3825,4 +3825,15 @@ Max WAV data chunk: 4294967295
 
 ~13.5 hours
 
+* Testing with alternative compiler on Linux
+
+https://stackoverflow.com/questions/17275348/how-to-specify-new-gcc-path-for-cmake
+
+Something like:
+
+: CC=$(which gcc-13)
+: CXX=$(which g++-13)
+
+Then =make init= and it should detect them.
+
 * eof.
