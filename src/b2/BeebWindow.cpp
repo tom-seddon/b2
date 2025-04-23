@@ -379,6 +379,8 @@ void BeebWindow::OptionsUI::DoImGui() {
     //    }
 
     {
+        ImGuiHeader("Speed");
+
         float speed_scale = beeb_thread->GetSpeedScale();
         bool limit_speed = beeb_thread->IsSpeedLimited();
 
@@ -404,6 +406,8 @@ void BeebWindow::OptionsUI::DoImGui() {
                 beeb_thread->Send(std::make_shared<BeebThread::SetSpeedScaleMessage>(speed_scale));
             }
         }
+
+        ImGui::Checkbox("Background economy mode", &settings->background_economy_mode);
     }
 
     ImGui::NewLine();
@@ -2649,6 +2653,17 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
+    uint64_t update_mask = 0;
+    if (m_settings.background_economy_mode) {
+        if (SDL_GetKeyboardFocus() != m_window && SDL_GetMouseFocus() != m_window) {
+            // 1/8 updates
+            update_mask = 7;
+        }
+    }
+    if ((m_vblank_counter++ & update_mask) != 0) {
+        return true;
+    }
+
     PROFILE_SCOPE(PROFILER_COLOUR_DEEP_PINK, "HandleVBlank");
     ImGuiContextSetter setter(m_imgui_stuff);
 

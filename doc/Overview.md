@@ -190,7 +190,19 @@ Ubuntu, and probably on most other distributions too.)
 Use `Tools` > `Options...` to bring up the options dialog, letting you
 fiddle with screen size, emulated speed, and so on.
 
-### Display options
+### Speed
+
+Tick `Limit Speed` to have the emulated BBC run at a fixed rate. By
+default this is exact BBC Micro speed, or near enough, but you can use
+the `Speed scale` slider to adjust this. (Tick the `1x` button to get
+back to normal speed.)
+
+Tick `Background economy mode` to have the emulator try to use fewer
+CPU and GPU resources when it doesn't have keyboard or mouse focus.
+(The emulated BBC may run slowly in this case, but if it's not
+producing any sound then it shouldn't be too objectionable...!)
+
+### Display
 
 Tick `Auto scale` to have the Beeb display automatically scaled based
 on the window size, or untick it and use the `Manual scale` filter to
@@ -218,12 +230,12 @@ input focus. This makes the emulated BBC behave a bit more like an
 ordinary GUI program, in that flashing cursor implies it's where
 keyboard input will go.
 
-### Screenshot options
+### Screenshot
 
 `Correct aspect ratio` and `Filter display` have the same effect as
 the corresponding Display options, but apply to screenshots only.
 
-### Sound options
+### Sound
 
 `BBC volume` controls BBC sound chip volume. `Disc volume` controls
 volume of the disc drive noises.
@@ -233,15 +245,20 @@ silenced. This is not very authentic! - but it might make things a bit
 less annoying when you find yourself hearing it a lot. (You will still
 get the beep.)
 
-### UI options
+### UI
 
 If you find the UI text a bit small, use the GUI Font Size setting to
 make it larger. (This only affects the emulator UI, not the BBC
 display.)
 
-### HTTP Server options
+### HTTP Server
 
 See [the file association section](./File-Association.md).
+
+### Debug
+
+Present in the debug version - see [the debug version
+section](./Debug-version.md).
 
 ## Customize keyboard keys
 

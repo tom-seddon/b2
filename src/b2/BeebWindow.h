@@ -108,11 +108,12 @@ struct BeebWindowSettings {
     bool low_pass_filter = true;
     int low_pass_filter_cutoff_hz = 8000;
     bool hide_cursor_when_unfocused = false;
+    bool background_economy_mode = false;
 
     std::shared_ptr<JSON> popup_persistent_data[BeebWindowPopupType_MaxValue]; //json:annoying one-off data type
 };
 JSON_SERIALIZE(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
-JSON_SERIALIZE(BeebWindowSettings, bbc_volume, disc_volume, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, gui_font_size, full_screen, prefer_shortcuts, leds_popup_mode, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused);
+JSON_SERIALIZE(BeebWindowSettings, bbc_volume, disc_volume, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, gui_font_size, full_screen, prefer_shortcuts, leds_popup_mode, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -349,6 +350,7 @@ class BeebWindow {
     std::vector<VBlankRecord> m_vblank_records;
     size_t m_vblank_index = 0;
     uint64_t m_last_vblank_ticks = 0;
+    uint64_t m_vblank_counter = 0;
 
     // TV output.
     TVOutput m_tv;
