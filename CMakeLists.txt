@@ -179,9 +179,6 @@ else()
   option(BUILD_CURL_EXE "" OFF)
   option(BUILD_SHARED_LIBS "" OFF)
   option(BUILD_TESTING "" OFF)
-
-  # Set this explicitly to ON as it also covers the variable of the
-  # same name used by llhttp.
   option(BUILD_STATIC_LIBS "" ON)
 
   # libcurl finds zlib using find_package, which is annoying:

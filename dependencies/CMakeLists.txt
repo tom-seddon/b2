@@ -1,9 +1,9 @@
 ##########################################################################
 ##########################################################################
 
-option(BUILD_STATIC_LIBS "" ON)
-option(BUILD_SHARED_LIBS "" OFF)
-add_subdirectory(llhttp-release-v9.1.3)
+option(LLHTTP_BUILD_STATIC_LIBS "" ON)
+option(LLHTTP_BUILD_SHARED_LIBS "" OFF)
+add_subdirectory(llhttp-release-0.0.647)
 
 ##########################################################################
 ##########################################################################
