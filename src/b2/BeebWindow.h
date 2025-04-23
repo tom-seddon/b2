@@ -63,48 +63,40 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Separate struct to take advantage of simplified nlohmann::json serialization.
-struct PersistentBeebWindowSettings {
-    bool low_pass_filter = true;
-    int low_pass_filter_cutoff_hz = 8000;
-    bool hide_cursor_when_unfocused = false;
-};
-JSON_SERIALIZE(PersistentBeebWindowSettings, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused);
-
 // The config name isn't part of this, because then there'd be two copies
 // of the initial config name in BeebWindowInitArguments. Something needs
 // fixing...
+//
+// This is only partially serialized by the JSON_SERIALIZE mechanism.
 struct BeebWindowSettings {
-    uint64_t popups = 0;
+    uint64_t popups = 0; //json:annoying one-off data type
 
     float bbc_volume = 0.f;
     float disc_volume = 0.f;
     bool power_on_tone = true;
 
-    bool display_auto_scale = true;
+    bool display_auto_scale = true; //json:called "auto_scale"
     bool correct_aspect_ratio = true;
-    float display_manual_scale = 1.f;
-    bool display_filter = true;
+    float display_manual_scale = 1.f; //json:called "manual_scale"
+    bool display_filter = true;       //json:called "filter_bbc"
     bool display_interlace = false;
 
     bool screenshot_last_vsync = true;
     bool screenshot_correct_aspect_ratio = true;
     bool screenshot_filter = true;
 
-    const BeebKeymap *keymap = nullptr;
+    const BeebKeymap *keymap = nullptr; //json:annoying one-off data type
 
     unsigned gui_font_size = 0;
 
-#if ENABLE_SDL_FULL_SCREEN
-    bool full_screen = false;
-#endif
+    bool full_screen = false; // ignored if !ENABLE_SDL_FULL_SCREEN
 
     bool prefer_shortcuts = false;
 
-    BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
+    Enum<BeebWindowLEDsPopupMode> leds_popup_mode{BeebWindowLEDsPopupMode_Auto};
 
     struct CopySettings {
-        BBCUTF8ConvertMode convert_mode = BBCUTF8ConvertMode_OnlyGBP;
+        Enum<BBCUTF8ConvertMode> convert_mode{BBCUTF8ConvertMode_OnlyGBP};
         bool handle_delete = true;
     };
 
@@ -113,9 +105,14 @@ struct BeebWindowSettings {
 
     bool capture_mouse_on_click = false;
 
-    PersistentBeebWindowSettings persistent;
-    std::shared_ptr<JSON> popup_persistent_data[BeebWindowPopupType_MaxValue];
+    bool low_pass_filter = true;
+    int low_pass_filter_cutoff_hz = 8000;
+    bool hide_cursor_when_unfocused = false;
+
+    std::shared_ptr<JSON> popup_persistent_data[BeebWindowPopupType_MaxValue]; //json:annoying one-off data type
 };
+JSON_SERIALIZE(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
+JSON_SERIALIZE(BeebWindowSettings, bbc_volume, disc_volume, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, gui_font_size, full_screen, prefer_shortcuts, leds_popup_mode, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

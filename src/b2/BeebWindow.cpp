@@ -423,7 +423,7 @@ void BeebWindow::OptionsUI::DoImGui() {
 
         ImGui::Checkbox("Emulate interlace", &settings->display_interlace);
 
-        ImGui::Checkbox("Hide CRTC cursor when unfocused", &settings->persistent.hide_cursor_when_unfocused);
+        ImGui::Checkbox("Hide CRTC cursor when unfocused", &settings->hide_cursor_when_unfocused);
 
 #if 1 //BUILD_TYPE_Debug
         if (ImGui::Checkbox("Threaded texture update", &m_beeb_window->m_update_tv_texture_thread_enabled)) {
@@ -462,14 +462,14 @@ void BeebWindow::OptionsUI::DoImGui() {
             beeb_thread->SetPowerOnTone(settings->power_on_tone);
         }
 
-        if (ImGui::Checkbox("Low pass filter", &settings->persistent.low_pass_filter)) {
-            beeb_thread->SetLowPassFilter(settings->persistent.low_pass_filter);
+        if (ImGui::Checkbox("Low pass filter", &settings->low_pass_filter)) {
+            beeb_thread->SetLowPassFilter(settings->low_pass_filter);
         }
 
         // 20,000 Hz should hopefully be more than enough for the b2 user
         // demographic: people, mostly older.
-        if (ImGui::SliderInt("Low pass filter cutoff", &settings->persistent.low_pass_filter_cutoff_hz, 100, 20000, "%d Hz")) {
-            beeb_thread->SetLowPassFilterCutoff(settings->persistent.low_pass_filter_cutoff_hz);
+        if (ImGui::SliderInt("Low pass filter cutoff", &settings->low_pass_filter_cutoff_hz, 100, 20000, "%d Hz")) {
+            beeb_thread->SetLowPassFilterCutoff(settings->low_pass_filter_cutoff_hz);
         }
     }
 
@@ -573,8 +573,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
     m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
-    m_beeb_thread->SetLowPassFilter(m_settings.persistent.low_pass_filter);
-    m_beeb_thread->SetLowPassFilterCutoff(m_settings.persistent.low_pass_filter_cutoff_hz);
+    m_beeb_thread->SetLowPassFilter(m_settings.low_pass_filter);
+    m_beeb_thread->SetLowPassFilterCutoff(m_settings.low_pass_filter_cutoff_hz);
     m_beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(m_init_arguments.limit_speed));
 
     m_blend_amt = 1.f;
@@ -1183,7 +1183,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     if (SDL_GetKeyboardFocus() == m_window) {
         beeb_actually_got_focus = beeb_got_imgui_focus;
     }
-    m_beeb_thread->SetShowCursor(beeb_actually_got_focus || !m_settings.persistent.hide_cursor_when_unfocused);
+    m_beeb_thread->SetShowCursor(beeb_actually_got_focus || !m_settings.hide_cursor_when_unfocused);
 
     return !close_window; // sigh, inverted logic
 }

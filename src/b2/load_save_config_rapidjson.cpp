@@ -33,59 +33,6 @@ LOG_EXTERN(LOADSAVE);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static int GetHexCharValue(char c) {
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    } else if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    } else if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    } else {
-        return -1;
-    }
-}
-
-static std::string GetHexStringFromData(const std::vector<uint8_t> &data) {
-    std::string hex;
-
-    hex.reserve(data.size() * 2);
-
-    for (uint8_t byte : data) {
-        hex.append(1, HEX_CHARS_LC[byte >> 4]);
-        hex.append(1, HEX_CHARS_LC[byte & 15]);
-    }
-
-    return hex;
-}
-
-// TODO - should really clear the vector out if there's an error...
-static bool GetDataFromHexString(std::vector<uint8_t> *data, const std::string &str) {
-    if (str.size() % 2 != 0) {
-        return false;
-    }
-
-    data->reserve(str.size() / 2);
-
-    for (size_t i = 0; i < str.size(); i += 2) {
-        int a = GetHexCharValue(str[i + 0]);
-        if (a < 0) {
-            return false;
-        }
-
-        int b = GetHexCharValue(str[i + 1]);
-        if (b < 0) {
-            return false;
-        }
-
-        data->push_back((uint8_t)a << 4 | (uint8_t)b);
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // (sigh)
 #define PRIsizetype "u"
 CHECK_SIZEOF(rapidjson::SizeType, sizeof(unsigned));
@@ -196,19 +143,6 @@ static bool FindBoolMember(bool *value, rapidjson::Value *object, const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool FindFloatMember(float *value, rapidjson::Value *object, const char *key, Messages *msg) {
-    rapidjson::Value tmp;
-    if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
-        return false;
-    }
-
-    *value = tmp.GetFloat();
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static bool FindUInt64Member(uint64_t *value, rapidjson::Value *object, const char *key, Messages *msg) {
     rapidjson::Value tmp;
     if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
@@ -216,19 +150,6 @@ static bool FindUInt64Member(uint64_t *value, rapidjson::Value *object, const ch
     }
 
     *value = tmp.GetUint64();
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool FindUIntMember(unsigned *value, rapidjson::Value *object, const char *key, Messages *msg) {
-    rapidjson::Value tmp;
-    if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
-        return false;
-    }
-
-    *value = tmp.GetUint();
     return true;
 }
 
@@ -243,71 +164,6 @@ static bool FindUInt8Member(uint8_t *value, rapidjson::Value *object, const char
 
     *value = (uint8_t)tmp;
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Bit-indexed flags are flags where the enum values relate to the bit
-// indexes rather than the mask values.
-//
-// This is indeed some crappy naming.
-
-template <class T>
-static void SaveBitIndexedFlags(JSONWriter<StringStream> *writer, T flags, const char *(*get_name_fn)(int)) {
-    for (int i = 0; i < (int)(sizeof(T) * CHAR_BIT); ++i) {
-        const char *name = (*get_name_fn)(i);
-        if (name[0] == '?') {
-            continue;
-        }
-
-        if (!(flags & (T)1 << i)) {
-            continue;
-        }
-
-        writer->String(name);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-template <class T>
-static bool FindBitIndexedFlagsMember(T *flags, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(int), Messages *msg) {
-    rapidjson::Value array;
-    if (!FindArrayMember(&array, object, key, msg)) {
-        return false;
-    }
-
-    bool good = true;
-    *flags = 0;
-
-    for (rapidjson::SizeType i = 0; i < array.Size(); ++i) {
-        if (array[i].IsString()) {
-            bool found = false;
-            const char *bit_name = array[i].GetString();
-
-            for (int j = 0; j < (int)(sizeof(T) * CHAR_BIT); ++j) {
-                const char *name = (*get_name_fn)(j);
-                if (name[0] == '?') {
-                    continue;
-                }
-
-                if (strcmp(bit_name, name) == 0) {
-                    found = true;
-                    *flags |= (T)1 << j;
-                    break;
-                }
-            }
-
-            if (!found) {
-                msg->e.f("unknown %s: %s\n", what, bit_name);
-                good = false;
-            }
-        }
-    }
-
-    return good;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -528,7 +384,6 @@ static const char PATHS[] = "paths";
 static const char OLD_KEYMAPS[] = "keymaps";
 static const char NEW_KEYMAPS[] = "new_keymaps";
 static const char KEYS[] = "keys";
-static const char PLACEMENT[] = "window_placement";
 static const char OLD_CONFIGS[] = "configs";
 static const char NEW_CONFIGS[] = "new_configs";
 static const char OS[] = "os";
@@ -543,14 +398,8 @@ static const char WINDOWS[] = "windows";
 static const char KEYMAP[] = "keymap";
 static const char KEYSYMS[] = "keysyms";
 static const char KEYCODE[] = "keycode";
-static const char BBC_VOLUME[] = "bbc_volume";
-static const char DISC_VOLUME[] = "disc_volume";
-static const char FILTER_BBC[] = "filter_bbc";
 static const char SHORTCUTS[] = "shortcuts";
 static const char PREFER_SHORTCUTS[] = "prefer_shortcuts";
-static const char CORRECT_ASPECT_RATIO[] = "correct_aspect_ratio";
-static const char AUTO_SCALE[] = "auto_scale";
-static const char MANUAL_SCALE[] = "manual_scale";
 static const char POPUPS[] = "popups";
 static const char GLOBALS[] = "globals";
 static const char VSYNC[] = "vsync";
@@ -558,11 +407,7 @@ static const char EXT_MEM[] = "ext_mem";
 static const char BEEBLINK[] = "beeblink";
 static const char URLS[] = "urls";
 static const char NVRAM[] = "nvram";
-static const char POWER_ON_TONE[] = "power_on_tone";
 static const char STANDARD_ROM[] = "standard_rom";
-static const char CONFIG[] = "config";
-static const char INTERLACE[] = "interlace";
-static const char LEDS_POPUP_MODE[] = "leds_popup_mode";
 static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
 static const char NVRAM_TYPE[] = "nvram_type";
@@ -570,14 +415,7 @@ static const char FEATURE_FLAGS[] = "feature_flags";
 static const char PARASITE_TYPE[] = "parasite_type";
 static const char JOYSTICKS[] = "joysticks";
 static const char DEVICE_NAMES[] = "device_names";
-static const char GUI_FONT_SIZE[] = "gui_font_size";
-static const char SCREENSHOT_FILTER[] = "screenshot_filter";
-static const char SCREENSHOT_CORRECT_ASPECT_RATIO[] = "screenshot_correct_aspect_ratio";
-static const char SCREENSHOT_LAST_VSYNC[] = "screenshot_last_vsync";
 static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
-#if ENABLE_SDL_FULL_SCREEN
-static const char FULL_SCREEN[] = "full_screen";
-#endif
 static const char ADJI[] = "adji";
 static const char ADJI_DIP_SWITCHES[] = "adji_dip_switches";
 static const char TEXT_UTF8_CONVERT_MODE[] = "text_utf8_convert_mode";
@@ -589,7 +427,6 @@ static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
 static const char OS_ROM_TYPE[] = "os_rom_type";
 static const char EXTRA[] = "extra"; // any late addition that's handled separately
                                      // by the nlohmann::json stuff
-static const char POPUP_PERSISTENT_DATA[] = "popup_persistent_data";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -687,21 +524,6 @@ static bool LoadExtra(bool (*load_fn)(T *, const nlohmann::json &, Messages *), 
 
     nlohmann::json j = LoadNLohmannJSON(value_json);
     if (!(*load_fn)(value, j, msg)) {
-        return false;
-    }
-
-    return true;
-}
-
-static bool LoadExtra(bool (*load_fn)(const nlohmann::json &, Messages *), rapidjson::Value *object, Messages *msg) {
-    rapidjson::Value value_json;
-    if (!FindObjectMember(&value_json, object, EXTRA, msg)) {
-        // Not an error - the extra values keep their existing values.
-        return true;
-    }
-
-    nlohmann::json j = LoadNLohmannJSON(value_json);
-    if (!(*load_fn)(j, msg)) {
         return false;
     }
 
@@ -1533,191 +1355,16 @@ static void SaveJoysticks(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void LoadCopySettings(BeebWindowSettings::CopySettings *settings, rapidjson::Value *windows, const char *convert_mode_key, const char *handle_delete_key, const char *what, Messages *msg) {
-    FindEnumMember(&settings->convert_mode, windows, convert_mode_key, what, &GetBBCUTF8ConvertModeEnumName, msg);
-    FindBoolMember(&settings->handle_delete, windows, handle_delete_key, msg);
-}
-
 static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
-    {
-        std::string placement_str;
-        if (FindStringMember(&placement_str, windows, PLACEMENT, nullptr)) {
-            std::vector<uint8_t> placement_data;
-            if (!GetDataFromHexString(&placement_data, placement_str)) {
-                msg->e.f("invalid placement data\n");
-            } else {
-                BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
-            }
-        }
-    }
+    nlohmann::json j = LoadNLohmannJSON(*windows);
 
-    FindBitIndexedFlagsMember(&BeebWindows::defaults.popups, windows, POPUPS, "Active popups", &GetBeebWindowPopupTypeEnumName, msg);
-    FindFloatMember(&BeebWindows::defaults.bbc_volume, windows, BBC_VOLUME, msg);
-    FindFloatMember(&BeebWindows::defaults.disc_volume, windows, DISC_VOLUME, msg);
-    FindBoolMember(&BeebWindows::defaults.display_filter, windows, FILTER_BBC, nullptr);
-    FindBoolMember(&BeebWindows::defaults.correct_aspect_ratio, windows, CORRECT_ASPECT_RATIO, nullptr);
-    FindBoolMember(&BeebWindows::defaults.display_auto_scale, windows, AUTO_SCALE, nullptr);
-    FindFloatMember(&BeebWindows::defaults.display_manual_scale, windows, MANUAL_SCALE, nullptr);
-    FindBoolMember(&BeebWindows::defaults.power_on_tone, windows, POWER_ON_TONE, nullptr);
-    FindBoolMember(&BeebWindows::defaults.display_interlace, windows, INTERLACE, nullptr);
-    FindStringMember(&BeebWindows::default_config_name, windows, CONFIG, nullptr);
-    FindEnumMember(&BeebWindows::defaults.leds_popup_mode, windows, LEDS_POPUP_MODE, "LEDs popup mode", &GetBeebWindowLEDsPopupModeEnumName, msg);
-    FindUIntMember(&BeebWindows::defaults.gui_font_size, windows, GUI_FONT_SIZE, nullptr);
-    FindBoolMember(&BeebWindows::defaults.screenshot_filter, windows, SCREENSHOT_FILTER, nullptr);
-    FindBoolMember(&BeebWindows::defaults.screenshot_correct_aspect_ratio, windows, SCREENSHOT_CORRECT_ASPECT_RATIO, nullptr);
-    FindBoolMember(&BeebWindows::defaults.screenshot_last_vsync, windows, SCREENSHOT_LAST_VSYNC, nullptr);
-#if ENABLE_SDL_FULL_SCREEN
-    FindBoolMember(&BeebWindows::defaults.full_screen, windows, FULL_SCREEN, nullptr);
-#endif
-    FindBoolMember(&BeebWindows::defaults.prefer_shortcuts, windows, PREFER_SHORTCUTS, nullptr);
-    LoadCopySettings(&BeebWindows::defaults.text_copy_settings, windows, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE, "Text copy mode", msg);
-    LoadCopySettings(&BeebWindows::defaults.printer_copy_settings, windows, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE, "Printe copy mode", msg);
-    FindBoolMember(&BeebWindows::defaults.capture_mouse_on_click, windows, CAPTURE_MOUSE_ON_CLICK, nullptr);
-
-    {
-        std::string keymap_name;
-        if (FindStringMember(&keymap_name, windows, KEYMAP, msg)) {
-            if (const BeebKeymap *keymap = BeebWindows::FindBeebKeymapByName(keymap_name)) {
-                BeebWindows::defaults.keymap = keymap;
-            } else {
-                msg->w.f("default keymap unknown: %s\n", keymap_name.c_str());
-
-                // But it's OK - a sensible one will be selected.
-                BeebWindows::defaults.keymap = BeebWindows::GetDefaultBeebKeymap();
-            }
-        }
-    }
-
-    LoadExtra(&LoadWindowsExtra, windows, msg);
-
-    rapidjson::Value popup_persistent_data;
-    if (FindObjectMember(&popup_persistent_data, windows, POPUP_PERSISTENT_DATA, msg)) {
-        for (rapidjson::Value::ConstMemberIterator it = popup_persistent_data.MemberBegin(); it != popup_persistent_data.MemberEnd(); ++it) {
-            const char *name = it->name.GetString();
-            BeebWindowPopupType type = BeebWindowPopupType_MaxValue;
-
-            for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
-                if (strcmp(name, GetBeebWindowPopupTypeEnumName(i)) == 0) {
-                    type = (BeebWindowPopupType)i;
-                    break;
-                }
-            }
-
-            if (type != BeebWindowPopupType_MaxValue) {
-                BeebWindows::defaults.popup_persistent_data[type] = std::make_shared<JSON>(LoadNLohmannJSON(it->value));
-            }
-        }
-    }
-
-    return true;
-}
-
-static void SaveCopySettings(JSONWriter<StringStream> *writer, const BeebWindowSettings::CopySettings &settings, const char *convert_mode_key, const char *handle_delete_key) {
-    writer->Key(convert_mode_key);
-    SaveEnum(writer, settings.convert_mode, &GetBBCUTF8ConvertModeEnumName);
-
-    writer->Key(handle_delete_key);
-    writer->Bool(settings.handle_delete);
+    bool good = LoadWindows(j, msg);
+    return good;
 }
 
 static void SaveWindows(JSONWriter<StringStream> *writer) {
-    {
-        auto windows_json = ObjectWriter(writer, WINDOWS);
-
-        {
-            const std::vector<uint8_t> &placement_data = BeebWindows::GetLastWindowPlacementData();
-            if (!placement_data.empty()) {
-                writer->Key(PLACEMENT);
-                writer->String(GetHexStringFromData(placement_data).c_str());
-            }
-        }
-
-        {
-            auto ui_flags_json = ArrayWriter(writer, POPUPS);
-
-            SaveBitIndexedFlags(writer, BeebWindows::defaults.popups, &GetBeebWindowPopupTypeEnumName);
-        }
-
-        if (BeebWindows::defaults.keymap) {
-            writer->Key(KEYMAP);
-            writer->String(BeebWindows::defaults.keymap->GetName().c_str());
-        }
-
-        writer->Key(BBC_VOLUME);
-        writer->Double(BeebWindows::defaults.bbc_volume);
-
-        writer->Key(DISC_VOLUME);
-        writer->Double(BeebWindows::defaults.disc_volume);
-
-        writer->Key(FILTER_BBC);
-        writer->Bool(BeebWindows::defaults.display_filter);
-
-        writer->Key(CORRECT_ASPECT_RATIO);
-        writer->Bool(BeebWindows::defaults.correct_aspect_ratio);
-
-        writer->Key(SCREENSHOT_FILTER);
-        writer->Bool(BeebWindows::defaults.screenshot_filter);
-
-        writer->Key(SCREENSHOT_CORRECT_ASPECT_RATIO);
-        writer->Bool(BeebWindows::defaults.screenshot_correct_aspect_ratio);
-
-        writer->Key(SCREENSHOT_LAST_VSYNC);
-        writer->Bool(BeebWindows::defaults.screenshot_last_vsync);
-
-#if ENABLE_SDL_FULL_SCREEN
-        writer->Key(FULL_SCREEN);
-        writer->Bool(BeebWindows::defaults.full_screen);
-#endif
-
-        writer->Key(PREFER_SHORTCUTS);
-        writer->Bool(BeebWindows::defaults.prefer_shortcuts);
-
-        writer->Key(AUTO_SCALE);
-        writer->Bool(BeebWindows::defaults.display_auto_scale);
-
-        writer->Key(MANUAL_SCALE);
-        writer->Double(BeebWindows::defaults.display_manual_scale);
-
-        writer->Key(POWER_ON_TONE);
-        writer->Bool(BeebWindows::defaults.power_on_tone);
-
-        writer->Key(INTERLACE);
-        writer->Bool(BeebWindows::defaults.display_interlace);
-
-        writer->Key(LEDS_POPUP_MODE);
-        SaveEnum(writer, BeebWindows::defaults.leds_popup_mode, &GetBeebWindowLEDsPopupModeEnumName);
-
-        writer->Key(GUI_FONT_SIZE);
-        writer->Uint(BeebWindows::defaults.gui_font_size);
-
-        SaveCopySettings(writer, BeebWindows::defaults.text_copy_settings, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE);
-        SaveCopySettings(writer, BeebWindows::defaults.printer_copy_settings, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE);
-
-        writer->Key(CAPTURE_MOUSE_ON_CLICK);
-        writer->Bool(BeebWindows::defaults.capture_mouse_on_click);
-
-        if (!BeebWindows::default_config_name.empty()) {
-            writer->Key(CONFIG);
-            writer->String(BeebWindows::default_config_name.c_str());
-        }
-
-        writer->Key(EXTRA);
-        SaveNLohmannJSON(writer, SaveWindowsExtra());
-
-        {
-            auto popup_persistent_data_json = ObjectWriter(writer, POPUP_PERSISTENT_DATA);
-
-            for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
-                if (std::shared_ptr<JSON> j_ptr = BeebWindows::defaults.popup_persistent_data[i]) {
-                    const nlohmann::json &j = j_ptr->AsNLohmannJSON();
-                    if (!j.is_null()) {
-                        writer->Key(GetBeebWindowPopupTypeEnumName(i));
-                        SaveNLohmannJSON(writer, j);
-                    }
-                }
-            }
-        }
-    }
+    writer->Key(WINDOWS);
+    SaveNLohmannJSON(writer, SaveWindows());
 }
 
 //////////////////////////////////////////////////////////////////////////

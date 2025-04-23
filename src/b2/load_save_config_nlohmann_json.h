@@ -15,11 +15,14 @@ struct TraceUISettings;
 bool LoadConfigExtra(BeebConfig *config, const nlohmann::json &j, Messages *msg);
 nlohmann::json SaveConfigExtra(const BeebConfig &config);
 
-bool LoadWindowsExtra(const nlohmann::json &j, Messages *msg);
-nlohmann::json SaveWindowsExtra();
+//bool LoadWindowsExtra(const nlohmann::json &j, Messages *msg);
+//nlohmann::json SaveWindowsExtra();
 
 bool LoadTrace(TraceUISettings *settings, const nlohmann::json &j, Messages *msg);
 nlohmann::json SaveTrace();
+
+bool LoadWindows(const nlohmann::json &j, Messages *msg);
+nlohmann::json SaveWindows();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

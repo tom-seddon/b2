@@ -3255,6 +3255,11 @@ the worst of the problems though.
   }
 #+end_src
 
+** what will go missing...
+
+- some Trace settings
+- display interlace
+- text mode/delete handling settings for printer and copy to clipboard
 
 * libcurl vs llhttp
 

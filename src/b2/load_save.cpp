@@ -374,6 +374,59 @@ unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_ou
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static int GetHexCharValue(char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    } else if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    } else {
+        return -1;
+    }
+}
+
+std::string GetHexStringFromData(const std::vector<uint8_t> &data) {
+    std::string hex;
+
+    hex.reserve(data.size() * 2);
+
+    for (uint8_t byte : data) {
+        hex.append(1, HEX_CHARS_LC[byte >> 4]);
+        hex.append(1, HEX_CHARS_LC[byte & 15]);
+    }
+
+    return hex;
+}
+
+// TODO - should really clear the vector out if there's an error...
+bool GetDataFromHexString(std::vector<uint8_t> *data, const std::string &str) {
+    if (str.size() % 2 != 0) {
+        return false;
+    }
+
+    data->reserve(str.size() / 2);
+
+    for (size_t i = 0; i < str.size(); i += 2) {
+        int a = GetHexCharValue(str[i + 0]);
+        if (a < 0) {
+            return false;
+        }
+
+        int b = GetHexCharValue(str[i + 1]);
+        if (b < 0) {
+            return false;
+        }
+
+        data->push_back((uint8_t)a << 4 | (uint8_t)b);
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool LoadGlobalConfig(Messages *messages) {
     bool good = LoadGlobalConfigRapidJSON(messages);
     return good;
