@@ -188,9 +188,9 @@ void from_json(const nlohmann::json &j, KeymapKey &value) {
             const nlohmann::json &j_keycode = j.at(KEYCODE);
             if (j_keycode.is_string()) {
                 std::string keycode_name = j_keycode.template get<std::string>();
-                value.keycode = SDL_GetKeyFromName(keycode_name.c_str());
+                value.keycode = (uint32_t)SDL_GetKeyFromName(keycode_name.c_str());
             } else if (j_keycode.is_number()) {
-                value.keycode = (SDL_Keycode)j_keycode.template get<std::uint32_t>();
+                value.keycode = (uint32_t)j_keycode.template get<std::uint32_t>();
             }
         }
 

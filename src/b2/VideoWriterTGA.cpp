@@ -20,19 +20,19 @@
 // large.
 static const uint32_t MAX_WAV_FILE_DATA_SIZE_BYTES = 1u << 31;
 
-static const int AUDIO_HZ = 48000;
+static const uint32_t AUDIO_HZ = 48000;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 struct VideoWriterFormatTGA {
     VideoWriterFormat fmt;
-    int audio_hz;
+    uint32_t audio_hz;
     SDL_AudioFormat sdl_audio_format;
     uint16_t wFormatTag;
 };
 
-static VideoWriterFormatTGA GetVideoWriterFormatTGA(int hz, SDL_AudioFormat sdl_audio_format, uint16_t wFormatTag, const char *audio_format_description) {
+static VideoWriterFormatTGA GetVideoWriterFormatTGA(uint32_t hz, SDL_AudioFormat sdl_audio_format, uint16_t wFormatTag, const char *audio_format_description) {
     VideoWriterFormatTGA f;
     f.fmt.extension = ".tga";
     f.fmt.description = strprintf("%dx%d uncompressed (TGA; %.1f KHz %s mono WAV)", TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, hz / 1000.f, audio_format_description);
@@ -56,10 +56,10 @@ static const VideoWriterFormatTGA TGA_FORMATS[] = {
 //////////////////////////////////////////////////////////////////////////
 
 static void AddFOURCC(std::vector<unsigned char> *dest, const char *fourcc) {
-    dest->push_back(fourcc[0]);
-    dest->push_back(fourcc[1]);
-    dest->push_back(fourcc[2]);
-    dest->push_back(fourcc[3]);
+    dest->push_back((uint8_t)fourcc[0]);
+    dest->push_back((uint8_t)fourcc[1]);
+    dest->push_back((uint8_t)fourcc[2]);
+    dest->push_back((uint8_t)fourcc[3]);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -97,7 +97,7 @@ class VideoWriterTGA : public VideoWriter {
     bool GetAudioFormat(SDL_AudioSpec *spec) const override {
         ASSERT(m_format_index < sizeof TGA_FORMATS / sizeof TGA_FORMATS[0]);
         const VideoWriterFormatTGA *fmt = &TGA_FORMATS[m_format_index];
-        spec->freq = fmt->audio_hz;
+        spec->freq = (int)fmt->audio_hz;
         spec->format = fmt->sdl_audio_format;
         spec->channels = 1;
         return true;
@@ -266,7 +266,7 @@ class VideoWriterTGA : public VideoWriter {
             fclose(m_wav_f), m_wav_f = nullptr;
         }
 
-        return true;
+        return good;
     }
 
     bool WriteSize(long offset, uint32_t value, const char *what) {
