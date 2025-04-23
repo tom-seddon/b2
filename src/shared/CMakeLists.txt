@@ -1,5 +1,4 @@
 project(shared)
-cmake_minimum_required(VERSION 3.5)
 
 if(UNIX)
   find_package(Threads REQUIRED)

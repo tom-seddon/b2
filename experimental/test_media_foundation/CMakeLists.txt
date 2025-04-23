@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
 project(test_media_foundation)
 
 add_executable(test_media_foundation

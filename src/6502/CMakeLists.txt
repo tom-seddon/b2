@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
-
 project(6502)
 
 # add_custom_command(

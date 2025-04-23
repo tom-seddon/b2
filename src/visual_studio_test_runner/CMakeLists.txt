@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
 project(visual_studio_test_runner)
 
 STRING(REGEX REPLACE "\\\\" "/" DIR ${b2_BINARY_DIR})

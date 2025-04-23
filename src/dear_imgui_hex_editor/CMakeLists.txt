@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
 project(dear_imgui_hex_editor)
 
 add_library(dear_imgui_hex_editor_lib STATIC

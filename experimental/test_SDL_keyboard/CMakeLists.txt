@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
 project(test_SDL_keyboard)
 
 add_executable(test_SDL_keyboard test_SDL_keyboard.cpp)

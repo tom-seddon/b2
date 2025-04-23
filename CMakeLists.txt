@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.20...3.31)
+
 ##########################################################################
 ##########################################################################
 
@@ -16,7 +18,6 @@ progress_message("Starting...")
 ##########################################################################
 ##########################################################################
 
-cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Final)
 project(b2)
 set(CMAKE_SKIP_INSTALL_RULES YES)
