@@ -143,32 +143,6 @@ static bool FindBoolMember(bool *value, rapidjson::Value *object, const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool FindUInt64Member(uint64_t *value, rapidjson::Value *object, const char *key, Messages *msg) {
-    rapidjson::Value tmp;
-    if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
-        return false;
-    }
-
-    *value = tmp.GetUint64();
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool FindUInt8Member(uint8_t *value, rapidjson::Value *object, const char *key, Messages *msg) {
-    uint64_t tmp;
-    if (!FindUInt64Member(&tmp, object, key, msg)) {
-        return false;
-    }
-
-    *value = (uint8_t)tmp;
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const char *(*get_name_fn)(uint32_t)) {
     for (uint32_t mask = 1; mask != 0; mask <<= 1) {
         const char *name = (*get_name_fn)(mask);
@@ -403,30 +377,20 @@ static const char PREFER_SHORTCUTS[] = "prefer_shortcuts";
 static const char POPUPS[] = "popups";
 static const char GLOBALS[] = "globals";
 static const char VSYNC[] = "vsync";
-static const char EXT_MEM[] = "ext_mem";
 static const char BEEBLINK[] = "beeblink";
 static const char URLS[] = "urls";
 static const char NVRAM[] = "nvram";
 static const char STANDARD_ROM[] = "standard_rom";
 static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
-static const char NVRAM_TYPE[] = "nvram_type";
 static const char FEATURE_FLAGS[] = "feature_flags";
-static const char PARASITE_TYPE[] = "parasite_type";
 static const char JOYSTICKS[] = "joysticks";
 static const char DEVICE_NAMES[] = "device_names";
 static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
-static const char ADJI[] = "adji";
-static const char ADJI_DIP_SWITCHES[] = "adji_dip_switches";
 static const char TEXT_UTF8_CONVERT_MODE[] = "text_utf8_convert_mode";
 static const char PRINTER_UTF8_CONVERT_MODE[] = "printer_utf8_convert_mode";
 static const char TEXT_HANDLE_DELETE[] = "text_handle_delete";
 static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
-static const char MOUSE[] = "mouse";
-static const char CAPTURE_MOUSE_ON_CLICK[] = "capture_mouse_on_click";
-static const char OS_ROM_TYPE[] = "os_rom_type";
-static const char EXTRA[] = "extra"; // any late addition that's handled separately
-                                     // by the nlohmann::json stuff
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -513,36 +477,6 @@ static void SaveNLohmannJSON(JSONWriter<StringStream> *writer, const nlohmann::j
         // ...
         writer->Null();
     }
-}
-
-// Load an optional object field called "extra", intended to provide extra data
-// for setting the supplied value.
-//
-// If it's present, convert the JSON to an nlohmann::json, and pass it to the
-// given callback, which should modify *value as appropriate.
-//
-// If not present, a no-op. The extra field is optional.
-template <class T>
-static bool LoadExtra(bool (*load_fn)(T *, const nlohmann::json &, Messages *), T *value, rapidjson::Value *object, Messages *msg) {
-    rapidjson::Value value_json;
-    if (!FindObjectMember(&value_json, object, EXTRA, msg)) {
-        // Not an error - the extra values keep their existing values.
-        return true;
-    }
-
-    nlohmann::json j = LoadNLohmannJSON(value_json);
-    if (!(*load_fn)(value, j, msg)) {
-        return false;
-    }
-
-    return true;
-}
-
-// Save an object field called "extra". Contents are the supplied
-// nlohmann::json.
-static void SaveExtra(JSONWriter<StringStream> *writer, const nlohmann::json &j) {
-    writer->Key(EXTRA);
-    SaveNLohmannJSON(writer, j);
 }
 
 //////////////////////////////////////////////////////////////////////////
