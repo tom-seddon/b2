@@ -411,7 +411,7 @@ uint16_t VideoULA::ShiftULA() {
     m_work_byte <<= 1;
     m_work_byte |= 1;
 
-    return ULA_PALETTE[this->control.bits.flash][index];
+    return ULA_PALETTE[this->control.bits.flash][m_palette[index]];
 }
 
 //////////////////////////////////////////////////////////////////////////
