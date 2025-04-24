@@ -291,6 +291,10 @@ void ConfigsUI::DoEditConfigGui() {
     uint8_t action_bank = 0;
 
     uint8_t sideways_roms_end = 16 - GetNumNonOSSidewaysROMs(config->os_rom_type);
+    uint8_t sideways_roms_begin = 0;
+    if (Has4ROMSlots(config->type_id) && !config->rom_board) {
+        sideways_roms_begin = 12;
+    }
 
     for (uint8_t i = 0; i < 16; ++i) {
         uint8_t bank = 15 - i;
@@ -310,7 +314,9 @@ void ConfigsUI::DoEditConfigGui() {
                 rom_edit_flags |= ROMEditFlag_ContainedInOSROM;
             }
 
-            if (bank > 0 && bank < sideways_roms_end) {
+            if (bank < sideways_roms_begin) {
+                rom_edit_flags |= ROMEditFlag_NotAccessibleWithoutROMBoard;
+            } else if (bank > sideways_roms_begin && bank < sideways_roms_end) {
                 rom_edit_flags |= ROMEditFlag_CanMoveDown;
             }
 
@@ -386,6 +392,12 @@ void ConfigsUI::DoEditConfigGui() {
 
     if (ImGui::Checkbox("Mouse", &config->mouse)) {
         edited = true;
+    }
+
+    if (Has4ROMSlots(config->type_id)) {
+        if (ImGui::Checkbox("ROM board", &config->rom_board)) {
+            edited = true;
+        }
     }
 
     if (HasTube(config->type_id)) {
@@ -674,7 +686,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
     ImGui::NextColumn();
 
-    if (writeable && !(rom_edit_flags & ROMEditFlag_ContainedInOSROM)) {
+    if (writeable && !(rom_edit_flags & (ROMEditFlag_ContainedInOSROM | ROMEditFlag_NotAccessibleWithoutROMBoard))) {
         ImGui::BeginDisabled(!type || *type != ROMType_16KB);
         if (ImGui::Checkbox("##ram", writeable)) {
             edited = true;
@@ -697,6 +709,8 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
         if (rom_edit_flags & ROMEditFlag_ContainedInOSROM) {
             ImGui::Text("(contained in OS ROM)");
+        } else if (rom_edit_flags & ROMEditFlag_NotAccessibleWithoutROMBoard) {
+            ImGui::Text("(inaccessible without ROM board)");
         } else if (rom->standard_rom) {
             ImGui::TextUnformatted(rom->standard_rom->name.c_str());
         } else {

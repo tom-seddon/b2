@@ -704,6 +704,28 @@ uint8_t BBCMicro::ReadROMSEL(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Handle the BBC B non-ROM board case. This is a bit different from the
+// standrad case, as the sockets are typically treated as banks 12-15 - so
+// there's a couple of bits that need setting.
+
+void BBCMicro::WriteROMSEL2Bit(void *m_, M6502Word a, uint8_t value) {
+    auto m = (BBCMicro *)m_;
+    (void)a;
+
+    if ((m->m_state.paging.romsel.value ^ value) & 3) {
+        m->m_state.paging.romsel.value = value & 3 | 0xc;
+
+        m->UpdatePaging();
+        m->UpdateCPUDataBusFn();
+
+#if BBCMICRO_TRACE
+        if (m->m_trace) {
+            m->m_trace->AllocWriteROMSELEvent(m->m_state.paging.romsel);
+        }
+#endif
+    }
+}
+
 void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
@@ -713,7 +735,6 @@ void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
 
         m->UpdatePaging();
         m->UpdateCPUDataBusFn();
-        //(*m->m_update_romsel_pages_fn)(m);
 
 #if BBCMICRO_TRACE
         if (m->m_trace) {
@@ -2411,8 +2432,16 @@ void BBCMicro::InitStuff() {
     }
 
     if (m_acccon_mask == 0) {
+        WriteMMIOFn write_romsel_fn = &WriteROMSEL;
+
+        if (Has4ROMSlots(m_state.type->type_id)) {
+            if (!(m_state.init_flags & BBCMicroInitFlag_ROMBoard)) {
+                write_romsel_fn = &WriteROMSEL2Bit;
+            }
+        }
+
         for (uint16_t i = 0; i < 16; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, this, &WriteROMSEL, this);
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadUnmappedMMIO, this, write_romsel_fn, this);
         }
     } else {
         for (uint16_t i = 0; i < 4; ++i) {

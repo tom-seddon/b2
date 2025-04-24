@@ -61,6 +61,7 @@ class BeebConfig {
     Enum<BeebConfigNVRAMType> nvram_type{BeebConfigNVRAMType_Unknown};
     std::vector<uint8_t> nvram;
     bool mouse = false;
+    bool rom_board = true;
 
     Enum<BBCMicroParasiteType> parasite_type{BBCMicroParasiteType_None};
 
@@ -76,7 +77,7 @@ class BeebConfig {
 // This only handles some of the BeebConfig properties. The remainder are dealt
 // with manually, for one reason or another (usually name mismatches or
 // inconvenient schema).
-JSON_SERIALIZE(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type);
+JSON_SERIALIZE(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type, rom_board);
 
 void InitDefaultBeebConfigs();
 

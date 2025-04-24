@@ -640,6 +640,10 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= BBCMicroInitFlag_Mouse;
     }
 
+    if (ts->current_config.config.rom_board) {
+        init_flags |= BBCMicroInitFlag_ROMBoard;
+    }
+
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
         rom_types[i] = ts->current_config.config.roms[i].type;

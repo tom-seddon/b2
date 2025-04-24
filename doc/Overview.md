@@ -400,6 +400,11 @@ Items of optional hardware are as follows:
   Select the DIP switch settings from the list box. The ADJI will use
   the digital joystick selected in the joysticks menu.
   
+- For model B, untick the `ROM board` option to limit the ROMs to
+  using only the onboard 4 sockets, corresponding to banks 12-15. (The
+  other sideways ROM banks will become hidden, as their contents
+  aren't accessible in this state)
+  
 There are also some second processor options, for models that support
 this:
 

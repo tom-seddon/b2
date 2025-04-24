@@ -27,6 +27,7 @@ EPNV(ParasiteROMs, 1 << 8)
 EPNV(MasterCompactSidewaysROMs, 1 << 9)
 EPNV(MasterCompactOSROMs, 1 << 10)
 EPNV(ContainedInOSROM, 1 << 11)
+EPNV(NotAccessibleWithoutROMBoard, 1 << 12)
 EEND()
 #undef ENAME
 

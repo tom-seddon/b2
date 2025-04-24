@@ -670,6 +670,7 @@ class BBCMicro : private WD1770Handler {
     static uint8_t ReadUnmappedMMIO(void *m_, M6502Word a);
     static uint8_t ReadROMMMIO(void *m_, M6502Word a);
     static uint8_t ReadROMSEL(void *m_, M6502Word a);
+    static void WriteROMSEL2Bit(void *m_, M6502Word a, uint8_t value);
     static void WriteROMSEL(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadACCCON(void *m_, M6502Word a);
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);

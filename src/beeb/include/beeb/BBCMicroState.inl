@@ -66,6 +66,10 @@ EPNV(ADJI, 1 << 4)
 // If ADJI bit set, there's a 2-bit value encoding the base address.
 EQPNV(ADJIDIPSwitchesShift, 5)
 
+// BBC B only - if set, has a 16 slot ROM board rather than just the onboard 4
+// banks.
+EPNV(ROMBoard, 1 << 7)
+
 EEND()
 #undef ENAME
 
