@@ -11,6 +11,7 @@
 #include "roms.h"
 #include <beeb/BBCMicroParasiteType.h>
 #include <beeb/type.h>
+#include "json.h"
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -45,7 +46,7 @@ class BeebConfig {
 
     std::string name;
 
-    BBCMicroTypeID type_id = BBCMicroTypeID_B;
+    Enum<BBCMicroTypeID> type_id{BBCMicroTypeID_B};
     ROM os;
     SidewaysROM roms[16];
     ROM parasite_os;
@@ -57,25 +58,25 @@ class BeebConfig {
     bool beeblink = false;
     bool adji = false;
     uint8_t adji_dip_switches = 0;
-    BeebConfigNVRAMType nvram_type = BeebConfigNVRAMType_Unknown;
+    Enum<BeebConfigNVRAMType> nvram_type{BeebConfigNVRAMType_Unknown};
     std::vector<uint8_t> nvram;
     bool mouse = false;
 
-    BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
+    Enum<BBCMicroParasiteType> parasite_type{BBCMicroParasiteType_None};
 
     uint32_t feature_flags = 0; //combination of BeebConfigFeatureFlag
 
-    // Sigh... got the arrangement a bit wrong here.
-    //
-    // If set, the OS is a 128/64 KB image for Master 128 or Compact. First 16
-    // KB is the OS area, then banks 9-15 or 13-15 in that order.
-    OSROMType os_rom_type = OSROMType_16KB;
+    Enum<OSROMType> os_rom_type{OSROMType_16KB};
 
     void ResetNVRAM();
 
   protected:
   private:
 };
+// This only handles some of the BeebConfig properties. The remainder are dealt
+// with manually, for one reason or another (usually name mismatches or
+// inconvenient schema).
+JSON_SERIALIZE(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type);
 
 void InitDefaultBeebConfigs();
 

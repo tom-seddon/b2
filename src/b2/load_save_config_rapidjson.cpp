@@ -475,6 +475,17 @@ static nlohmann::json LoadNLohmannJSON(const rapidjson::Value &value) {
     return j;
 }
 
+static void SaveNLohmannJSON(JSONWriter<StringStream> *writer, const nlohmann::json &j);
+
+static void SaveNLohmannJSONObjectContents(JSONWriter<StringStream> *writer, const nlohmann::json &j) {
+    ASSERT(j.is_object());
+
+    for (nlohmann::json::const_iterator it = j.begin(); it != j.end(); ++it) {
+        writer->Key(it.key().c_str());
+        SaveNLohmannJSON(writer, it.value());
+    }
+}
+
 static void SaveNLohmannJSON(JSONWriter<StringStream> *writer, const nlohmann::json &j) {
     if (j.is_array()) {
         writer->StartArray();
@@ -484,10 +495,7 @@ static void SaveNLohmannJSON(JSONWriter<StringStream> *writer, const nlohmann::j
         writer->EndArray();
     } else if (j.is_object()) {
         writer->StartObject();
-        for (nlohmann::json::const_iterator it = j.begin(); it != j.end(); ++it) {
-            writer->Key(it.key().c_str());
-            SaveNLohmannJSON(writer, it.value());
-        }
+        SaveNLohmannJSONObjectContents(writer, j);
         writer->EndObject();
     } else if (j.is_boolean()) {
         writer->Bool(j.template get<bool>());
@@ -1119,7 +1127,11 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
 
         BeebConfig config;
 
-        if (!FindStringMember(&config.name, config_json, NAME, msg)) {
+        if (!LoadConfigPartial(&config, LoadNLohmannJSON(*config_json), msg)) {
+            continue;
+        }
+
+        if (config.name.empty()) {
             continue;
         }
 
@@ -1132,8 +1144,6 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
                 continue;
             }
         }
-
-        FindEnumMember(&config.os_rom_type, config_json, OS_ROM_TYPE, "OS ROM type", &GetOSROMTypeEnumName, nullptr);
 
         if (!FindEnumMember(&config.type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, msg)) {
             continue;
@@ -1167,22 +1177,12 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
-        FindBoolMember(&config.ext_mem, config_json, EXT_MEM, msg);
-        FindBoolMember(&config.beeblink, config_json, BEEBLINK, msg);
-        FindBoolMember(&config.adji, config_json, ADJI, msg);
-        FindUInt8Member(&config.adji_dip_switches, config_json, ADJI_DIP_SWITCHES, msg);
-        FindBoolMember(&config.mouse, config_json, MOUSE, msg);
-
-        if (FindEnumMember(&config.parasite_type, config_json, PARASITE_TYPE, "parasite type", &GetBBCMicroParasiteTypeEnumName, msg)) {
-            // ...
-        } else {
-            bool parasite;
-            if (FindBoolMember(&parasite, config_json, PARASITE, msg)) {
-                if (parasite) {
-                    config.parasite_type = BBCMicroParasiteType_MasterTurbo;
-                } else {
-                    config.parasite_type = BBCMicroParasiteType_None;
-                }
+        bool parasite;
+        if (FindBoolMember(&parasite, config_json, PARASITE, msg)) {
+            if (parasite) {
+                config.parasite_type = BBCMicroParasiteType_MasterTurbo;
+            } else {
+                config.parasite_type = BBCMicroParasiteType_None;
             }
         }
 
@@ -1196,17 +1196,11 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
-        FindEnumMember(&config.nvram_type, config_json, NVRAM_TYPE, "NVRAM type", &GetBeebConfigNVRAMTypeEnumName, msg);
-
         std::string nvram_hex;
         if (FindStringMember(&nvram_hex, config_json, NVRAM, msg)) {
             if (!GetDataFromHexString(&config.nvram, nvram_hex)) {
                 config.nvram.clear();
             }
-        }
-
-        if (!LoadExtra(&LoadConfigExtra, &config, config_json, msg)) {
-            continue;
         }
 
         BeebWindows::AddConfig(std::move(config));
@@ -1224,14 +1218,10 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             auto config_json = ObjectWriter(writer);
 
-            writer->Key(NAME);
-            writer->String(config->name.c_str());
+            SaveNLohmannJSONObjectContents(writer, SaveConfigPartial(*config));
 
             writer->Key(OS);
             SaveROM(writer, config->os);
-
-            writer->Key(OS_ROM_TYPE);
-            SaveEnum(writer, config->os_rom_type, &GetOSROMTypeEnumName);
 
             writer->Key(TYPE);
             SaveEnum(writer, config->type_id, &GetBBCMicroTypeIDEnumName);
@@ -1251,38 +1241,13 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
                 }
             }
 
-            writer->Key(EXT_MEM);
-            writer->Bool(config->ext_mem);
-
-            writer->Key(BEEBLINK);
-            writer->Bool(config->beeblink);
-
-            writer->Key(ADJI);
-            writer->Bool(config->adji);
-
-            if (config->adji) {
-                writer->Key(ADJI_DIP_SWITCHES);
-                writer->Uint(config->adji_dip_switches);
-            }
-
-            writer->Key(MOUSE);
-            writer->Bool(config->mouse);
-
-            writer->Key(PARASITE_TYPE);
-            SaveEnum(writer, config->parasite_type, &GetBBCMicroParasiteTypeEnumName);
-
             writer->Key(PARASITE_OS);
             SaveROM(writer, config->parasite_os);
-
-            writer->Key(NVRAM_TYPE);
-            SaveEnum(writer, config->nvram_type, &GetBeebConfigNVRAMTypeEnumName);
 
             if (!config->nvram.empty()) {
                 writer->Key(NVRAM);
                 writer->String(GetHexStringFromData(config->nvram).c_str());
             }
-
-            SaveExtra(writer, SaveConfigExtra(*config));
         }
     }
 }

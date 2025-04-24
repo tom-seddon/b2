@@ -12,8 +12,8 @@ struct TraceUISettings;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadConfigExtra(BeebConfig *config, const nlohmann::json &j, Messages *msg);
-nlohmann::json SaveConfigExtra(const BeebConfig &config);
+bool LoadConfigPartial(BeebConfig *config, const nlohmann::json &j, Messages *msg);
+nlohmann::json SaveConfigPartial(const BeebConfig &config);
 
 //bool LoadWindowsExtra(const nlohmann::json &j, Messages *msg);
 //nlohmann::json SaveWindowsExtra();
