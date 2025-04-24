@@ -452,8 +452,34 @@ mouse motion.
 
 # Other debug-related options #
 
-Additional debug options can be found in `Tools` > `Options` in the
-`Display Debug Flags` section.
+Additional debug options can be found in `Tools` > `Options`.
+
+## Debugger options
+
+`Debugger syntax` controls the syntax used for displaying hex and
+binary values in the debugger GUI.
+
+| Syntax    | Hex prefix | Binary prefix |
+|-----------|------------|---------------|
+| BBC BASIC | `&`        | `0b`          |
+| Assembler | `$`        | `%`           |
+| C         | `0x`       | `0b`          |
+
+Notes:
+
+- BBC BASIC syntax will still print lower case hex digits, even though
+  that isn't actually valid syntax in real BBC BASIC
+- Currently, this setting only applies to values the debugger prints
+  in the debugger GUI. When entering a number in a debugger GUI input
+  box, you may use any of the above syntaxes, regardless of the
+  current setting
+- This setting does not affect trace output (see above), which always
+  uses assembler syntax
+
+## Debug options
+
+Non-persistent debug options that can be switched on for the current
+session.
 
 `Teletext debug` will overlay the teletext display with the value of
 the character in each cell.
@@ -461,10 +487,16 @@ the character in each cell.
 `Show TV beam position` will indicate where the TV beam is, with a
 line starting just after its current position.
 
-# Other debugger stuff
+`1.0 microsec` and `0.5 microsec` display blue lines on the display
+indicating each 1.0 microsecond of display output and red lines
+indicating each 0.5 microsecond.
 
-There may be other debug stuff that I haven't got round to documenting
-yet.
+`6845 rows` shows yellow lines indicating CRTC row boundaries.
+
+`6845 DISPEN` shows purple shading for periods corresponding to CRTC
+display enable.
+
+There'll also be some other undocumented stuff.
 
 # HTTP API
 

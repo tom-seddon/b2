@@ -64,6 +64,9 @@ LOG_TAGGED_DEFINE(DBG, "debugger", "DBG   ", &log_printer_stdout_and_debugger, t
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char *g_hex;
+static const char *g_bin;
+
 static const std::string STRING_EMPTY;
 static const std::string STRING_1_SPACE = " ";
 static std::vector<std::string> g_byte_strings_bbc, g_byte_strings_escaped;
@@ -321,6 +324,23 @@ void DebugUI::DoImGui() {
     m_beeb_thread->DebugGetState(&m_beeb_state, &m_beeb_debug_state);
 
     m_popup_id = 0;
+
+    switch (m_beeb_window->GetSettings().debugger_syntax) {
+    case DebuggerSyntax_BBCBASIC:
+        g_hex = "&";
+        g_bin = "0b"; //there's no actual syntax for this, so I just made one up.
+        break;
+
+    case DebuggerSyntax_Assembler:
+        g_hex = "$";
+        g_bin = "%";
+        break;
+
+    case DebuggerSyntax_C:
+        g_hex = "0x";
+        g_bin = "0b";
+        break;
+    }
 
     this->DoImGui2();
 }
@@ -616,7 +636,7 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
     ImGuiStyleColourPusher pusher;
     pusher.PushDefault(ImGuiCol_Text);
 
-    ImGui::Text("Address: $%04x (%s)", addr.w, cpu);
+    ImGui::Text("Address: %s%04x (%s)", g_hex, addr.w, cpu);
 
     if (!dbp) {
         ImGui::Separator();
@@ -624,7 +644,7 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
     } else {
         if (dbp->bp.address_debug_flags) {
             char addr_str[50];
-            snprintf(addr_str, sizeof addr_str, "$%04x (%s)", addr.w, cpu);
+            snprintf(addr_str, sizeof addr_str, "%s%04x (%s)", g_hex, addr.w, cpu);
 
             uint8_t addr_flags = dbp->bp.address_debug_flags[addr.p.o];
             if (this->DoDebugByteFlagsGui(addr_str, &addr_flags)) {
@@ -640,8 +660,8 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
         ImGui::Separator();
 
         char byte_str[10];
-        snprintf(byte_str, sizeof byte_str, "$%04x%c%s",
-                 addr.w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+        snprintf(byte_str, sizeof byte_str, "%s%04x%c%s",
+                 g_hex, addr.w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
 
         ImGui::Text("Byte: %s (%s)",
                     byte_str,
@@ -664,7 +684,7 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
 
         if (dbp->bp.r) {
             uint8_t value = dbp->bp.r[addr.p.o];
-            ImGui::Text("Value: %3d %3uu ($%02x) (%%%s)", (int8_t)value, value, value, BINARY_BYTE_STRINGS[value]);
+            ImGui::Text("Value: %3d %3uu (%s%02x) (%s%s)", (int8_t)value, value, g_hex, value, g_bin, BINARY_BYTE_STRINGS[value]);
         } else {
             ImGui::TextUnformatted("Value: --");
         }
@@ -1061,20 +1081,20 @@ class M6502DebugWindow : public DebugUI {
         this->Reg("A", cpu->a);
         this->Reg("X", cpu->x);
         this->Reg("Y", cpu->y);
-        ImGui::Text("PC = $%04x", cpu->opcode_pc.w);
-        ImGui::Text("S = $01%02X", cpu->s.b.l);
+        ImGui::Text("PC = %s%04x", g_hex, cpu->opcode_pc.w);
+        ImGui::Text("S = %s01%02x", g_hex, cpu->s.b.l);
         uint8_t opcode = M6502_GetOpcode(cpu);
         const char *mnemonic = cpu->config->disassembly_info[opcode].mnemonic;
         const char *mode_name = M6502AddrMode_GetName(cpu->config->disassembly_info[opcode].mode);
 
         M6502P p = M6502_GetP(cpu);
         char pstr[9];
-        ImGui::Text("P = $%02x %s", p.value, M6502P_GetString(pstr, p));
+        ImGui::Text("P = %s%02x %s", g_hex, p.value, M6502P_GetString(pstr, p));
 
-        ImGui::Text("Opcode = $%02X %03d - %s %s", opcode, opcode, mnemonic, mode_name);
+        ImGui::Text("Opcode = %s%02x %03d - %s %s", g_hex, opcode, opcode, mnemonic, mode_name);
         ImGui::Text("tfn = %s", GetFnName(cpu->tfn));
         ImGui::Text("ifn = %s", GetFnName(cpu->ifn));
-        ImGui::Text("Address = $%04x; Data = $%02x %03d %s %s", cpu->abus.w, cpu->dbus, cpu->dbus, BINARY_BYTE_STRINGS[cpu->dbus], GetByteStringEscaped(cpu->dbus)->c_str());
+        ImGui::Text("Address = %s%04x; Data = %s%02x %03d %s%s %s", g_hex, cpu->abus.w, g_hex, cpu->dbus, cpu->dbus, g_bin, BINARY_BYTE_STRINGS[cpu->dbus], GetByteStringEscaped(cpu->dbus)->c_str());
         ImGui::Text("Access = %s", M6502ReadType_GetName(cpu->read));
 
         char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
@@ -1093,7 +1113,7 @@ class M6502DebugWindow : public DebugUI {
 
   private:
     void Reg(const char *name, uint8_t value) {
-        ImGui::Text("%s = $%02x %03d %s", name, value, value, BINARY_BYTE_STRINGS[value]);
+        ImGui::Text("%s = %s%02x %03d %s%s", name, g_hex, value, value, g_bin, BINARY_BYTE_STRINGS[value]);
     }
 };
 
@@ -1308,7 +1328,8 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
 
             snprintf(text,
                      text_size,
-                     upper_case ? "$%04X%c%s" : "$%04x%c%s",
+                     upper_case ? "%s%04X%c%s" : "%s%04x%c%s",
+                     g_hex,
                      (unsigned)offset,
                      ADDRESS_SUFFIX_SEPARATOR,
                      dbp->bp.metadata->aligned_codes);
@@ -1443,7 +1464,7 @@ class ExtMemoryDebugWindow : public DebugUI {
     }
 
     void Reg(const char *name, uint8_t value) {
-        ImGui::Text("%s = $%02x %03d %s", name, value, value, BINARY_BYTE_STRINGS[value]);
+        ImGui::Text("%s = %s%02x %03d %s%s", name, g_hex, value, value, g_bin, BINARY_BYTE_STRINGS[value]);
     }
 };
 
@@ -1679,7 +1700,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             }
 
             const DebugBigPage *line_dbp = this->GetDebugBigPageForAddress(line_addr, false);
-            ImGui::Text("$%04x%c%s", line_addr.w, ADDRESS_SUFFIX_SEPARATOR, line_dbp->bp.metadata->aligned_codes);
+            ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, line_dbp->bp.metadata->aligned_codes);
             this->DoBytePopupGui(line_dbp, line_addr);
 
             ImGui::SameLine();
@@ -1776,7 +1797,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
                     M6502Word imm_addr = {operand.b.l};
                     const DebugBigPage *imm_dbp = this->GetDebugBigPageForAddress(imm_addr, false);
-                    this->DoClickableAddress("#$", label, "", imm_dbp, imm_addr);
+                    this->DoClickableAddress("#", label, "", imm_dbp, imm_addr);
                 }
                 break;
 
@@ -1983,7 +2004,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         const DebugBigPage *dbp = this->GetDebugBigPageForAddress({w}, mos);
 
         char label[100];
-        snprintf(label, sizeof label, "$%04x%c%s", w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+        snprintf(label, sizeof label, "%s%04x%c%s", g_hex, w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
 
         //static_assert(sizeof dbp->bp.metadata->codes == 3);
         //char label[] = {
@@ -2005,7 +2026,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         const DebugBigPage *dbp = this->GetDebugBigPageForAddress({value}, mos);
 
         char label[100];
-        snprintf(label, sizeof label, "$%02x%c%s", value, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+        snprintf(label, sizeof label, "%s%02x%c%s", g_hex, value, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
 
         //static_assert(sizeof dbp->bp.metadata->codes == 3);
         //char label[] = {
@@ -2101,7 +2122,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     void ByteRegUI(const char *name, uint8_t value) {
         ImGui::Text("%s=", name);
         ImGui::SameLine(0, 0);
-        ImGui::Text("$%02x", value);
+        ImGui::Text("%s%02x", g_hex, value);
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             this->ByteRegPopupContentsUI(value);
@@ -2110,13 +2131,13 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     }
 
     void ByteRegPopupContentsUI(uint8_t value) {
-        ImGui::Text("% 3d %3uu $%02x %s", (int8_t)value, value, value, BINARY_BYTE_STRINGS[value]);
+        ImGui::Text("% 3d %3uu %s%02x %s%s", (int8_t)value, value, g_hex, value, g_bin, BINARY_BYTE_STRINGS[value]);
     }
 
     void WordRegUI(const char *name, M6502Word value) {
         ImGui::Text("%s=", name);
         ImGui::SameLine(0, 0);
-        ImGui::Text("$%04x", value.w);
+        ImGui::Text("%s%04x", g_hex, value.w);
     }
 
     void StepOver() {
@@ -2132,7 +2153,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     }
 };
 
-const char DisassemblyDebugWindow::IND_PREFIX[] = " --> $";
+const char DisassemblyDebugWindow::IND_PREFIX[] = " --> ";
 
 std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindow(BeebWindow *beeb_window,
                                                              bool initial_track_pc) {
@@ -2168,9 +2189,9 @@ class CRTCDebugWindow : public DebugUI {
         uint16_t next_line_addr = this->GetBeebAddressFromCRTCAddress(c->m_st.next_line_addr.b.h, c->m_st.next_line_addr.b.l);
 
         if (ImGui::CollapsingHeader("Register Values")) {
-            ImGui::Text("Address = $%02x %03u", c->m_address, c->m_address);
+            ImGui::Text("Address = %s%02x %03u", g_hex, c->m_address, c->m_address);
             for (size_t i = 0; i < 18; ++i) {
-                ImGui::Text("R%zu = $%02x %03u %s", i, c->m_registers.values[i], c->m_registers.values[i], BINARY_BYTE_STRINGS[c->m_registers.values[i]]);
+                ImGui::Text("R%zu = %s%02x %03u %s%s", i, g_hex, c->m_registers.values[i], c->m_registers.values[i], g_bin, BINARY_BYTE_STRINGS[c->m_registers.values[i]]);
             }
             ImGui::Separator();
         }
@@ -2178,8 +2199,8 @@ class CRTCDebugWindow : public DebugUI {
         ImGui::Text("H Displayed = %u, Total = %u", c->m_registers.bits.nhd, c->m_registers.bits.nht);
         ImGui::Text("V Displayed = %u, Total = %u", c->m_registers.bits.nvd, c->m_registers.bits.nvt);
         ImGui::Text("Scanlines = %u * %u + %u = %u", c->m_registers.bits.nvd, c->m_registers.bits.nr + 1, c->m_registers.bits.nadj, c->m_registers.bits.nvd * (c->m_registers.bits.nr + 1) + c->m_registers.bits.nadj);
-        ImGui::Text("Address = $%04x", display_address);
-        ImGui::Text("(Wrap Adjustment = $%04x)", BBCMicro::SCREEN_WRAP_ADJUSTMENTS[m_beeb_state->addressable_latch.bits.screen_base] << 3);
+        ImGui::Text("Address = %s%04x", g_hex, display_address);
+        ImGui::Text("(Wrap Adjustment = %s%04x)", g_hex, BBCMicro::SCREEN_WRAP_ADJUSTMENTS[m_beeb_state->addressable_latch.bits.screen_base] << 3);
         ImGui::Separator();
         ImGui::Text("HSync Pos = %u, Width = %u", c->m_registers.bits.nhsp, c->m_registers.bits.nsw.bits.wh);
         ImGui::Text("VSync Pos = %u, Width = %u", c->m_registers.bits.nvsp, c->m_registers.bits.nsw.bits.wv);
@@ -2188,15 +2209,15 @@ class CRTCDebugWindow : public DebugUI {
         ImGui::Separator();
         ImGui::Text("Cursor Start = %u, End = %u, Mode = %s", c->m_registers.bits.ncstart.bits.start, c->m_registers.bits.ncend, GetCRTCCursorModeEnumName(c->m_registers.bits.ncstart.bits.mode));
         ImGui::Text("Cursor Delay Mode = %s", DELAY_NAMES[c->m_registers.bits.r8.bits.c]);
-        ImGui::Text("Cursor Address = $%04x", cursor_address);
+        ImGui::Text("Cursor Address = %s%04x", g_hex, cursor_address);
         ImGui::Separator();
         ImGui::Text("Column = %u, hdisp=%s", c->m_st.column, BOOL_STR(c->m_st.hdisp));
         ImGui::Text("Row = %u, Raster = %u, vdisp=%s", c->m_st.row, c->m_st.raster, BOOL_STR(c->m_st.vdisp));
-        ImGui::Text("Char address = $%04X (CRTC) / $%04X (BBC)", c->m_st.char_addr.w, char_addr);
-        ImGui::Text("Line address = $%04X (CRTC) / $%04X (BBC)", c->m_st.line_addr.w, line_addr);
-        ImGui::Text("Next line address = $%04X (CRTC) / $%04X (BBC)", c->m_st.next_line_addr.w, next_line_addr);
-        ImGui::Text("DISPEN queue = %%%s", BINARY_BYTE_STRINGS[c->m_st.skewed_display]);
-        ImGui::Text("CUDISP queue = %%%s", BINARY_BYTE_STRINGS[c->m_st.skewed_cudisp]);
+        ImGui::Text("Char address = %s%04X (CRTC) / %s%04X (BBC)", g_hex, c->m_st.char_addr.w, g_hex, char_addr);
+        ImGui::Text("Line address = %s%04X (CRTC) / %s%04X (BBC)", g_hex, c->m_st.line_addr.w, g_hex, line_addr);
+        ImGui::Text("Next line address = %s%04X (CRTC) / %s%04X (BBC)", g_hex, c->m_st.next_line_addr.w, g_hex, next_line_addr);
+        ImGui::Text("DISPEN queue = %s%s", g_bin, BINARY_BYTE_STRINGS[c->m_st.skewed_display]);
+        ImGui::Text("CUDISP queue = %s%s", g_bin, BINARY_BYTE_STRINGS[c->m_st.skewed_cudisp]);
         ImGui::Text("VSync counter = %d", c->m_st.vsync_counter);
         ImGui::Text("HSync counter = %d", c->m_st.hsync_counter);
         ImGui::Text("VAdj counter = %d", c->m_st.vadj_counter);
@@ -2288,10 +2309,10 @@ class VideoULADebugWindow : public DebugUI {
         const VideoULA *u = &m_beeb_state->video_ula;
 
         if (ImGui::CollapsingHeader("Register Values")) {
-            ImGui::Text("Control = $%02x %03u %s", u->control.value, u->control.value, BINARY_BYTE_STRINGS[u->control.value]);
+            ImGui::Text("Control = %s%02x %03u %s%s", g_hex, u->control.value, u->control.value, g_bin, BINARY_BYTE_STRINGS[u->control.value]);
             for (size_t i = 0; i < 16; ++i) {
                 uint8_t p = u->m_palette[i];
-                ImGui::Text("Palette[%zu] = $%01x %02u %s ", i, p, p, BINARY_BYTE_STRINGS[p] + 4);
+                ImGui::Text("Palette[%zu] = %s%01x %02u %s%s ", i, g_hex, p, p, g_bin, BINARY_BYTE_STRINGS[p] + 4);
 
                 uint8_t colour = p & 7;
                 if (p & 8) {
@@ -2438,10 +2459,10 @@ class R6522DebugWindow : public DebugUI {
         t1l.b.l = via.m_t1ll;
         t1l.b.h = via.m_t1lh;
 
-        ImGui::Text("T1 : $%04x %05d %s%s", via.m_t1, via.m_t1, BINARY_BYTE_STRINGS[via.m_t1 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t1 & 0xff]);
-        ImGui::Text("T1L: $%04x %05d %s%s", t1l.w, t1l.w, BINARY_BYTE_STRINGS[t1l.b.h], BINARY_BYTE_STRINGS[t1l.b.l]);
-        ImGui::Text("T2 : $%04x %05d %s%s", via.m_t2, via.m_t2, BINARY_BYTE_STRINGS[via.m_t2 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t2 & 0xff]);
-        ImGui::Text("SR : $%02x %03d %s", via.m_sr, via.m_sr, BINARY_BYTE_STRINGS[via.m_sr]);
+        ImGui::Text("T1 : %s%04x %05d %s%s%s", g_hex, via.m_t1, via.m_t1, g_bin, BINARY_BYTE_STRINGS[via.m_t1 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t1 & 0xff]);
+        ImGui::Text("T1L: %s%04x %05d %s%s%s", g_hex, t1l.w, t1l.w, g_bin, BINARY_BYTE_STRINGS[t1l.b.h], BINARY_BYTE_STRINGS[t1l.b.l]);
+        ImGui::Text("T2 : %s%04x %05d %s%s%s", g_hex, via.m_t2, via.m_t2, g_bin, BINARY_BYTE_STRINGS[via.m_t2 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t2 & 0xff]);
+        ImGui::Text("SR : %s%02x %03d %s%s", g_hex, via.m_sr, via.m_sr, g_bin, BINARY_BYTE_STRINGS[via.m_sr]);
         ImGui::Text("ACR: PA latching = %s", BOOL_STR(via.m_acr.bits.pa_latching));
         ImGui::Text("ACR: PB latching = %s", BOOL_STR(via.m_acr.bits.pb_latching));
         ImGui::Text("ACR: Shift mode = %s", ACR_SHIFT_MODES[via.m_acr.bits.sr]);
@@ -2493,9 +2514,9 @@ class R6522DebugWindow : public DebugUI {
 
   private:
     void DoPortRegisterValuesGui(char port, const R6522::Port &p) {
-        ImGui::Text("Port %c: Pins = $%02x %03d %s", port, p.p, p.p, BINARY_BYTE_STRINGS[p.p]);
-        ImGui::Text("Port %c: DDR%c = $%02x %03d %s", port, port, p.ddr, p.ddr, BINARY_BYTE_STRINGS[p.ddr]);
-        ImGui::Text("Port %c: OR%c  = $%02x %03d %s", port, port, p.or_, p.or_, BINARY_BYTE_STRINGS[p.or_]);
+        ImGui::Text("Port %c: Pins = %s%02x %03d %s%s", port, g_hex, p.p, p.p, g_bin, BINARY_BYTE_STRINGS[p.p]);
+        ImGui::Text("Port %c: DDR%c = %s%02x %03d %s%s", port, port, g_hex, p.ddr, p.ddr, g_bin, BINARY_BYTE_STRINGS[p.ddr]);
+        ImGui::Text("Port %c: OR%c  = %s%02x %03d %s%s", port, port, g_hex, p.or_, p.or_, g_bin, BINARY_BYTE_STRINGS[p.or_]);
         ImGui::Text("Port %c: C%c1 = %s C%c2 = %s", port, port, BOOL_STR(p.c1), port, BOOL_STR(p.c2));
     }
 
@@ -2578,18 +2599,18 @@ class SystemVIADebugWindow : public R6522DebugWindow {
             ImGui::BulletText("(FYI: RTC address register value = %u)", rtc->GetAddress());
         } else if (eeprom) {
             ImGui::BulletText("EEPROM clock = %u, data = %u", pb.mcompact_bits.clk, pb.mcompact_bits.data);
-            ImGui::BulletText("(FYI: EEPROM address: %u ($%02X))", eeprom->addr, eeprom->addr);
+            ImGui::BulletText("(FYI: EEPROM address: %u (%s%02X))", eeprom->addr, g_hex, eeprom->addr);
         }
 
         ImGui::Separator();
 
         BBCMicroState::AddressableLatch latch = m_beeb_state->addressable_latch;
         ImGui::Text("Addressable latch:");
-        ImGui::Text("Value: %%%s ($%02x) (%03u)", BINARY_BYTE_STRINGS[latch.value], latch.value, latch.value);
+        ImGui::Text("Value: %s%s (%s%02x) (%03u)", g_bin, BINARY_BYTE_STRINGS[latch.value], g_hex, latch.value, latch.value);
 
         ImGui::BulletText("Keyboard Write = %s", BOOL_STR(!latch.bits.not_kb_write));
         ImGui::BulletText("Sound Write = %s", BOOL_STR(!latch.bits.not_sound_write));
-        ImGui::BulletText("Screen Wrap Size = $%04x", BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base] << 3);
+        ImGui::BulletText("Screen Wrap Size = %s%04x", g_hex, BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base] << 3);
         ImGui::BulletText("Caps Lock LED = %s", BOOL_STR(latch.bits.caps_lock_led));
         ImGui::BulletText("Shift Lock LED = %s", BOOL_STR(latch.bits.shift_lock_led));
 
@@ -2646,17 +2667,17 @@ class NVRAMDebugWindow : public DebugUI {
         if (ImGui::CollapsingHeader("NVRAM contents")) {
             for (size_t i = 0; i < nvram_size_bytes; ++i) {
                 uint8_t value = nvram[i];
-                ImGui::Text("%3zu. %3d %3uu $%02x %%%s", i, value, value, value, BINARY_BYTE_STRINGS[value]);
+                ImGui::Text("%3zu. %3d %3uu %s%02x %s%s", i, value, value, g_hex, value, g_bin, BINARY_BYTE_STRINGS[value]);
             }
         }
         ImGui::Separator();
 
         if (nvram_size_bytes >= 50) {
-            ImGui::Text("Econet station number: $%02X\n", nvram[0]);
-            ImGui::Text("File server station number: $%02X\n", nvram[1]);
-            ImGui::Text("File server network number: $%02X\n", nvram[2]);
-            ImGui::Text("Printer server station number: $%02X\n", nvram[3]);
-            ImGui::Text("Printer server station number: $%02X\n", nvram[4]);
+            ImGui::Text("Econet station number: %s%02X\n", g_hex, nvram[0]);
+            ImGui::Text("File server station number: %s%02X\n", g_hex, nvram[1]);
+            ImGui::Text("File server network number: %s%02X\n", g_hex, nvram[2]);
+            ImGui::Text("Printer server station number: %s%02X\n", g_hex, nvram[3]);
+            ImGui::Text("Printer server station number: %s%02X\n", g_hex, nvram[4]);
             ImGui::Text("Default ROMs: Filing system: %d\n", nvram[5] & 15);
             ImGui::Text("              Language: %d\n", nvram[5] >> 4);
             {
@@ -2671,8 +2692,8 @@ class NVRAMDebugWindow : public DebugUI {
 
                 ImGui::Text("Inserted ROMs: %s", roms_str);
             }
-            ImGui::Text("EDIT ROM byte: $%02X (%d)\n", nvram[8], nvram[8]);
-            ImGui::Text("Telecommunication applications byte: $%02X (%d)\n", nvram[9], nvram[9]);
+            ImGui::Text("EDIT ROM byte: %s%02X (%d)\n", g_hex, nvram[8], nvram[8]);
+            ImGui::Text("Telecommunication applications byte: %s%02X (%d)\n", g_hex, nvram[9], nvram[9]);
             ImGui::Text("Default MODE: %d\n", nvram[10] & 7);
             ImGui::Text("Default Shadow RAM: %s\n", BOOL_STR(nvram[10] & 8));
             ImGui::Text("Default Interlace: %s\n", BOOL_STR((nvram[10] & 16) == 0));
@@ -2697,10 +2718,10 @@ class NVRAMDebugWindow : public DebugUI {
             ImGui::Text("Default scrolling: %s\n", nvram[16] & 8 ? "protected" : "enabled");
             ImGui::Text("Default boot mode: %s\n", nvram[16] & 16 ? "auto boot" : "no boot");
             ImGui::Text("Default serial data format: %d\n", nvram[16] >> 5 & 7);
-            ImGui::Text("Unused byte 17: %u ($%02X)", nvram[17], nvram[17]);
+            ImGui::Text("Unused byte 17: %u (%s%02X)", nvram[17], g_hex, nvram[17]);
             ImGui::Text("Compact joystick mode: %s", nvram[18] & 0x20 ? "Switched" : "Proportional");
             ImGui::Text("Compact STICK value: %d", nvram[18] & 0xf);
-            ImGui::Text("Compact country code: %u ($%02X)", nvram[19], nvram[19]);
+            ImGui::Text("Compact country code: %u (%s%02X)", nvram[19], g_hex, nvram[19]);
         }
     }
 };
@@ -2763,8 +2784,9 @@ class SN76489DebugWindow : public DebugUI {
             ImGui::Text("Noise : vol=%-2d freq=%-5u (0x%04x) (%uHz)",
                         sn->m_state.channels[3].values.vol, sn_freq, sn_freq, GetHz(sn_freq));
             ImGui::Text("        %s%s", type, suffix);
-            ImGui::Text("        seed: $%04x %%%s%s",
-                        sn->m_state.noise_seed, BINARY_BYTE_STRINGS[sn->m_state.noise_seed >> 8], BINARY_BYTE_STRINGS[sn->m_state.noise_seed & 0xff]);
+            ImGui::Text("        seed: %s%04x %s%s%s",
+                        g_hex, sn->m_state.noise_seed,
+                        g_bin, BINARY_BYTE_STRINGS[sn->m_state.noise_seed >> 8], BINARY_BYTE_STRINGS[sn->m_state.noise_seed & 0xff]);
         }
     }
 
@@ -2852,7 +2874,7 @@ class PagingDebugWindow : public DebugUI {
                         regions += "; ";
                     }
 
-                    regions += strprintf("$%04zx - $%04zx", a << 12, (b << 12) - 1);
+                    regions += strprintf("%s%04zx - %s%04zx", g_hex, a << 12, g_hex, (b << 12) - 1);
                     a = b;
                 } else {
                     ++a;
@@ -2940,13 +2962,13 @@ class BreakpointsDebugWindow : public DebugUI {
                     Breakpoint *bp = &m_breakpoints[(size_t)i];
 
                     if (bp->big_page.i == HOST_ADDRESS_BREAKPOINT_BIG_PAGE) {
-                        if (uint8_t *flags = this->Row(bp, "$%04x Host", bp->offset)) {
+                        if (uint8_t *flags = this->Row(bp, "%s%04x Host", g_hex, bp->offset)) {
 
                             M6502Word addr = {bp->offset};
                             m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, 0, *flags));
                         }
                     } else if (bp->big_page.i == PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE) {
-                        if (uint8_t *flags = this->Row(bp, "$%04x Parasite", bp->offset)) {
+                        if (uint8_t *flags = this->Row(bp, "%s%04x Parasite", g_hex, bp->offset)) {
 
                             M6502Word addr = {bp->offset};
                             m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, BBCMicroDebugStateOverride_Parasite, *flags));
@@ -2960,7 +2982,8 @@ class BreakpointsDebugWindow : public DebugUI {
                         const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[bp->big_page.i];
 
                         if (uint8_t *flags = this->Row(bp,
-                                                       "$%04x%c%s",
+                                                       "%s%04x%c%s",
+                                                       g_hex,
                                                        metadata->addr + bp->offset,
                                                        ADDRESS_SUFFIX_SEPARATOR,
                                                        metadata->aligned_codes)) {
@@ -3136,8 +3159,8 @@ class PixelMetadataUI : public DebugUI {
 
                 M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
 
-                ImGui::Text("Address: $%04x%c%s", cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, metadata->minimal_codes);
-                ImGui::Text("CRTC Address: $%04x", unit->metadata.crtc_address);
+                ImGui::Text("Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, metadata->minimal_codes);
+                ImGui::Text("CRTC Address: %s%04x", g_hex, unit->metadata.crtc_address);
 
                 const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);
                 this->DoBytePopupGui(cpu_dbp, cpu_addr);
@@ -3150,7 +3173,7 @@ class PixelMetadataUI : public DebugUI {
 
                 const std::string *str = GetByteStringEscaped(x);
 
-                ImGui::Text("Value: %-4s %-3u ($%02x) (%%%s)", str->c_str(), x, x, BINARY_BYTE_STRINGS[x]);
+                ImGui::Text("Value: %-4s %-3u (%s%02x) (%s%s)", str->c_str(), x, g_hex, x, g_bin, BINARY_BYTE_STRINGS[x]);
             } else {
                 ImGui::TextUnformatted("Value:");
             }
@@ -3229,7 +3252,7 @@ class StackDebugWindow : public DebugUI {
                 uint8_t value = value_dbp->bp.r[value_addr.w];
 
                 ImGui::TableNextColumn();
-                ImGui::Text("$%04x", value_addr.w);
+                ImGui::Text("%s%04x", g_hex, value_addr.w);
                 this->DoBytePopupGui(value_dbp, value_addr);
 
                 ImGui::TableNextColumn();
@@ -3242,10 +3265,10 @@ class StackDebugWindow : public DebugUI {
                 ImGui::TextUnformatted(GetByteStringBBC(value)->c_str());
 
                 ImGui::TableNextColumn();
-                ImGui::Text("$%02x", value);
+                ImGui::Text("%s%02x", g_hex, value);
 
                 ImGui::TableNextColumn();
-                ImGui::TextUnformatted(BINARY_BYTE_STRINGS[value]);
+                ImGui::Text("%s%s", g_bin, BINARY_BYTE_STRINGS[value]);
 
                 M6502Word addr;
                 addr.b.l = value;
@@ -3297,7 +3320,7 @@ class StackDebugWindow : public DebugUI {
 
         uint16_t actual_addr = (uint16_t)(addr.w + delta);
 
-        ImGui::Text("$%04x", actual_addr);
+        ImGui::Text("%s%04x", g_hex, actual_addr);
 
         if (ImGui::IsMouseClicked(1)) {
             if (ImGui::IsItemHovered()) {
@@ -3357,8 +3380,10 @@ class TubeDebugWindow : public DebugUI {
 
         ImGui::BulletText("Parasite: IRQ=%d NMI=%d", tube->pirq.bits.pirq, tube->pirq.bits.pnmi);
         ImGui::BulletText("Host: IRQ=%d", tube->hirq.bits.hirq);
-        ImGui::Text("Status: $%02x (%%%s) (T=%d P=%d V=%d M=%d J=%d I=%d Q=%d)",
+        ImGui::Text("Status: %s%02x (%s%s) (T=%d P=%d V=%d M=%d J=%d I=%d Q=%d)",
+                    g_hex,
                     tube->status.value,
+                    g_bin,
                     BINARY_BYTE_STRINGS[tube->status.value],
                     tube->status.bits.t,
                     tube->status.bits.p,
@@ -3508,7 +3533,7 @@ class TubeDebugWindow : public DebugUI {
     void DoDataImGui(const char *prefix, uint8_t value) {
         const std::string *ch = GetByteStringEscaped(value);
 
-        ImGui::Text("%s: %3d %3uu%s ($%02x) (%%%s)", prefix, (int8_t)value, value, ch->c_str(), value, BINARY_BYTE_STRINGS[value]);
+        ImGui::Text("%s: %3d %3uu%s (%s%02x) (%s%s)", prefix, (int8_t)value, value, ch->c_str(), g_hex, value, g_bin, BINARY_BYTE_STRINGS[value]);
     }
 
     void Header(int fifo, bool parasite) {
@@ -3554,16 +3579,16 @@ class ADCDebugWindow : public DebugUI {
             return;
         }
 
-        ImGui::Text("ADC address: $%04x", m_beeb_state->type->adc_addr);
+        ImGui::Text("ADC address: %s%04x", g_hex, m_beeb_state->type->adc_addr);
 
         ImGuiHeader("\"Analogue\" values");
         for (int ch = 0; ch < 4; ++ch) {
             uint16_t avalue = m_beeb_state->analogue_channel_values[ch];
-            ImGui::BulletText("%d: %-4u $%03x %.5f", ch, avalue, avalue, avalue / 65535.);
+            ImGui::BulletText("%d: %-4u %s%03x %.5f", ch, avalue, g_hex, avalue, avalue / 65535.);
         }
 
         ImGuiHeader("Status");
-        ImGui::Text("Status: %3u $%02x %%%s", adc->m_status.value, adc->m_status.value, BINARY_BYTE_STRINGS[adc->m_status.value]);
+        ImGui::Text("Status: %3u %s%02x %s%s", adc->m_status.value, g_hex, adc->m_status.value, g_bin, BINARY_BYTE_STRINGS[adc->m_status.value]);
         ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, adc->m_timer);
         ImGui::BulletText("Sampled value: %u", adc->m_avalue);
         ImGui::BulletText("Channel: %u", adc->m_status.bits.channel);
@@ -3591,7 +3616,7 @@ class DigitalJoystickDebugWindow : public DebugUI {
         int adji_dip = m_beeb_state->DebugGetADJIDIPSwitches();
         if (adji_dip >= 0) {
             ImGuiHeader("Retro Hardware ADJI cartridge");
-            ImGui::Text("Address: $%04x", BBCMicro::ADJI_ADDRESSES[adji_dip & 3]);
+            ImGui::Text("Address: %s%04x", g_hex, BBCMicro::ADJI_ADDRESSES[adji_dip & 3]);
             this->State();
         } else if (m_beeb_state->type->type_id == BBCMicroTypeID_MasterCompact) {
             ImGuiHeader("Master Compact digital joystick");
@@ -3633,15 +3658,15 @@ class KeyboardDebugWindow : public DebugUI {
         ImGui::Text("Auto scan: %s", BOOL_STR(m_beeb_state->addressable_latch.bits.not_kb_write));
         ImGui::Text("Auto scan column: %u (0x%x)", m_beeb_state->key_scan_column, m_beeb_state->key_scan_column);
         ImGuiHeader("Keyboard Matrix");
-        ImGui::TextUnformatted("    | 0 1 2 3 4 5 6 7 8 9 A B C D E F");
-        ImGui::TextUnformatted("----+--------------------------------");
+
+        ImGui::TextUnformatted("   | 0 1 2 3 4 5 6 7 8 9 A B C D E F");
+        ImGui::TextUnformatted("---+--------------------------------");
 
         char text[100];
         for (uint8_t row = 0; row < 8; ++row) {
             char *p = text;
-            *p++ = '$';
             *p++ = (char)('0' + row);
-            *p++ = 'x';
+            *p++ = '_';
             *p++ = ' ';
             *p++ = '|';
 
@@ -3659,7 +3684,7 @@ class KeyboardDebugWindow : public DebugUI {
             for (uint8_t col = 0; col < 16; ++col) {
                 if (m_beeb_state->key_columns[col] & 1 << row) {
                     uint8_t code = row << 4 | col;
-                    ImGui::BulletText("$%02x: %s", code, GetBeebKeyEnumName(code));
+                    ImGui::BulletText("%s%02x: %s", g_hex, code, GetBeebKeyEnumName(code));
                     any = true;
                 }
             }
@@ -3836,7 +3861,7 @@ class WD1770DebugWindow : public DebugUI {
     }
 
     static void Register(const char *name, uint8_t value) {
-        ImGui::Text("%s: $%02x %-3d %%%s", name, value, value, BINARY_BYTE_STRINGS[value]);
+        ImGui::Text("%s: %s%02x %-3d %s%s", name, g_hex, value, value, g_bin, BINARY_BYTE_STRINGS[value]);
     }
 };
 

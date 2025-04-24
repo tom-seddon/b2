@@ -111,9 +111,11 @@ struct BeebWindowSettings {
     bool background_economy_mode = false;
 
     std::shared_ptr<JSON> popup_persistent_data[BeebWindowPopupType_MaxValue]; //json:annoying one-off data type
+
+    DebuggerSyntax debugger_syntax{DebuggerSyntax_BBCBASIC};
 };
 JSON_SERIALIZE(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
-JSON_SERIALIZE(BeebWindowSettings, bbc_volume, disc_volume, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, gui_font_size, full_screen, prefer_shortcuts, leds_popup_mode, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode);
+JSON_SERIALIZE(BeebWindowSettings, bbc_volume, disc_volume, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, gui_font_size, full_screen, prefer_shortcuts, leds_popup_mode, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -313,6 +315,8 @@ class BeebWindow {
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateImGuiDebugWindow(BeebWindow *beeb_window);
+
+    const BeebWindowSettings &GetSettings() const;
 
   protected:
   private:

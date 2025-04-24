@@ -511,6 +511,15 @@ void BeebWindow::OptionsUI::DoImGui() {
 
 #if BBCMICRO_DEBUGGER
     {
+        ImGuiHeader("Debugger Options");
+
+        ImGui::TextUnformatted("Syntax");
+        ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_BBCBASIC, "BBC BASIC");
+        ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_Assembler, "Assembler");
+        ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_C, "C");
+    }
+
+    {
         ImGuiHeader("Debug Options");
 
         std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
@@ -533,9 +542,9 @@ void BeebWindow::OptionsUI::DoImGui() {
 
         ImGui::Checkbox("Fill window (overrides auto scale/correct aspect ratio)", &m_beeb_window->m_display_fill);
 
-        ImGui::Checkbox("1.0 usec", &m_beeb_window->m_tv.show_usec_markers);
+        ImGui::Checkbox("1.0 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_usec_markers);
         ImGui::SameLine();
-        ImGui::Checkbox("0.5 usec", &m_beeb_window->m_tv.show_half_usec_markers);
+        ImGui::Checkbox("0.5 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_half_usec_markers);
 
         ImGui::Checkbox("6845 rows", &m_beeb_window->m_tv.show_6845_row_markers);
         ImGui::SameLine();
@@ -3387,6 +3396,13 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_win
 
 std::unique_ptr<SettingsUI> BeebWindow::CreateImGuiDebugWindow(BeebWindow *beeb_window) {
     return std::make_unique<ImGuiDebugUI>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BeebWindowSettings &BeebWindow::GetSettings() const {
+    return m_settings;
 }
 
 //////////////////////////////////////////////////////////////////////////

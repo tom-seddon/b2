@@ -459,11 +459,14 @@ static bool GetUIntValueFromString(T *value, const char *str, int radix, const c
     }
 
     if (radix == 0) {
-        // Handle &/$.
+        // Handle non-standard base prefixes.
 
         if (*c == '$' || *c == '&') {
             c++;
             radix = 16;
+        } else if (c[0] == '0' && c[1] == 'b') {
+            c += 2;
+            radix = 2;
         }
     }
 
