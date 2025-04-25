@@ -524,8 +524,82 @@ void BBCMicro::InitPaging() {
         }
 
         if (!bp->w) {
+            // Always set unwriteable regions to go somewhere.
             bp->w = g_unmapped_writes;
         }
+    }
+
+    // Fix up the ROM types.
+    for (uint8_t bank = 0; bank < 16; ++bank) {
+        BBCMicroUpdateROMType update_rom_type;
+
+        switch (m_state.sideways_roms[bank].type) {
+        default:
+            ASSERT(false);
+            [[fallthrough]];
+        case ROMType_16KB:
+            {
+                bool all_unmapped = true;
+                size_t index = ROM0_BIG_PAGE_INDEX.i + bank * NUM_ROM_BIG_PAGES;
+                for (size_t i = 0; i < NUM_ROM_BIG_PAGES; ++i) {
+                    if (m_big_pages[index + i].r != g_unmapped_reads) {
+                        all_unmapped = false;
+                    }
+                }
+
+                if (all_unmapped) {
+                    update_rom_type = BBCMicroUpdateROMType_EmptySocket;
+
+                    // And fix up the r fields, since a null pointer is marginally more efficient to test for.
+                    for (size_t i = 0; i < NUM_ROM_BIG_PAGES; ++i) {
+                        ASSERT(m_big_pages[index + i].r == g_unmapped_reads);
+                        m_big_pages[index + i].r = nullptr;
+                    }
+                } else {
+                    update_rom_type = BBCMicroUpdateROMType_16KB;
+                }
+            }
+            break;
+
+        case ROMType_CCIWORD:
+            update_rom_type = BBCMicroUpdateROMType_CCIWORD;
+            break;
+
+        case ROMType_CCIBASE:
+            update_rom_type = BBCMicroUpdateROMType_CCIBASE;
+            break;
+
+        case ROMType_CCISPELL:
+            update_rom_type = BBCMicroUpdateROMType_CCISPELL;
+            break;
+
+        case ROMType_PALQST:
+            update_rom_type = BBCMicroUpdateROMType_PALQST;
+            break;
+
+        case ROMType_PALWAP:
+            update_rom_type = BBCMicroUpdateROMType_PALWAP;
+            break;
+
+        case ROMType_PALTED:
+            update_rom_type = BBCMicroUpdateROMType_PALTED;
+            break;
+
+        case ROMType_ABEP:
+        case ROMType_ABE:
+            update_rom_type = BBCMicroUpdateROMType_ABEP_OR_ABE;
+            break;
+
+        case ROMType_Trilogy:
+            update_rom_type = BBCMicroUpdateROMType_Trilogy;
+            break;
+
+        case ROMType_MO2:
+            update_rom_type = BBCMicroUpdateROMType_MO2;
+            break;
+        }
+
+        m_state.update_rom_types[bank] = update_rom_type;
     }
 
 #if BBCMICRO_DEBUGGER
@@ -2824,21 +2898,6 @@ float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static BBCMicroUpdateROMType UPDATE_ROM_TYPE_BY_ROM_TYPE[] = {
-    BBCMicroUpdateROMType_16KB,        //16KB
-    BBCMicroUpdateROMType_CCIWORD,     //CCIWORD
-    BBCMicroUpdateROMType_CCIBASE,     //CCIBASE
-    BBCMicroUpdateROMType_CCISPELL,    //CCISPELL
-    BBCMicroUpdateROMType_PALQST,      //PALQST
-    BBCMicroUpdateROMType_PALWAP,      //PALWAP
-    BBCMicroUpdateROMType_PALTED,      //PALTED
-    BBCMicroUpdateROMType_ABEP_OR_ABE, //ABEP
-    BBCMicroUpdateROMType_ABEP_OR_ABE, //ABE
-    BBCMicroUpdateROMType_Trilogy,     //Trilogy
-    BBCMicroUpdateROMType_MO2,         //MO2
-};
-static_assert(sizeof UPDATE_ROM_TYPE_BY_ROM_TYPE / sizeof UPDATE_ROM_TYPE_BY_ROM_TYPE[0] == ROMType_Count); //and hopefully they're even in the right order too
-
 void BBCMicro::UpdateCPUDataBusFn() {
     uint32_t update_flags = 0;
 
@@ -2913,7 +2972,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 #endif
 
-    update_flags |= (uint32_t)UPDATE_ROM_TYPE_BY_ROM_TYPE[m_state.sideways_roms[m_state.paging.romsel.b_bits.pr].type] << BBCMicroUpdateFlag_UpdateROMTypeShift;
+    update_flags |= (uint32_t)m_state.update_rom_types[m_state.paging.romsel.b_bits.pr] << BBCMicroUpdateFlag_UpdateROMTypeShift;
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_flags = update_flags;

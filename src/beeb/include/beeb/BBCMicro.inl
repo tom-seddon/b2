@@ -122,8 +122,8 @@ EEND()
 // ROM types from the perspective of BBCMicro::Update. Related to ROMType, but
 // not identical.
 #define ENAME BBCMicroUpdateROMType
-EBEGIN()
-//EPN(EmptySocket)//TODO...
+EBEGIN_DERIVED(uint8_t)
+EPN(EmptySocket)
 EPN(16KB)
 EPN(CCIWORD)
 EPN(CCIBASE)

@@ -320,7 +320,8 @@ parasite_update_done:
                 }
             }
 
-            if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_16KB) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_16KB ||
+                          GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_EmptySocket) {
                 // nothing extra to do here
             } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_CCIWORD) {
                 switch (m_state.cpu.abus.w & 0xffe0) {
@@ -486,7 +487,19 @@ parasite_update_done:
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
                     m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
                 } else {
-                    m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
+                    if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) == 0 &&
+                                  GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_EmptySocket) {
+                        const uint8_t *r = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p];
+                        if (r) {
+                            m_state.cpu.dbus = r[m_state.cpu.abus.p.o];
+                        } else {
+                            // Leave the previous value in place. The CPU data
+                            // bus is buffered so it'll read whatever was last
+                            // written.
+                        }
+                    } else {
+                        m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
+                    }
                 }
 
 #if BBCMICRO_DEBUGGER

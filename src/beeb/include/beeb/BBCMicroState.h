@@ -31,6 +31,7 @@ class Log;
 #include <shared/enum_end.h>
 
 class DiscImage;
+enum BBCMicroUpdateROMType : uint8_t;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -260,6 +261,10 @@ class BBCMicroState {
   public:
     PagingState paging;
 
+  private:
+    BBCMicroUpdateROMType update_rom_types[16] = {};
+
+  public:
     // Key states
     uint8_t key_columns[16] = {};
     uint8_t key_scan_column = 0;
