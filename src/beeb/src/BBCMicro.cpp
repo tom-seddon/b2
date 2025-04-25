@@ -431,12 +431,12 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
         size_t rom_big_page_index = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) % 4;
         ASSERT(rom_big_page_index < 4);
 
-        size_t offset = GetROMOffset(state->paging.rom_types[bank], (uint8_t)rom_big_page_index, (uint8_t)region);
-        ASSERT(offset < GetROMTypeMetadata(state->paging.rom_types[bank])->num_bytes);
+        size_t offset = GetROMOffset(state->sideways_roms[bank].type, (uint8_t)rom_big_page_index, (uint8_t)region);
+        ASSERT(offset < GetROMTypeMetadata(state->sideways_roms[bank].type)->num_bytes);
         //size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
-        if (!!state->sideways_rom_buffers[bank]) {
-            bp->r = &state->sideways_rom_buffers[bank]->at(offset);
+        if (!!state->sideways_roms[bank].data) {
+            bp->r = &state->sideways_roms[bank].data->at(offset);
         } else if (!!state->sideways_ram_buffers[bank]) {
             bp->r = &state->sideways_ram_buffers[bank]->at(offset);
             bp->writeable = true;
@@ -1002,8 +1002,8 @@ void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<ui
     // No sideways RAM in this bank.
     m_state.sideways_ram_buffers[bank].reset();
 
-    m_state.sideways_rom_buffers[bank] = std::move(data);
-    m_state.paging.rom_types[bank] = type;
+    m_state.sideways_roms[bank].data = std::move(data);
+    m_state.sideways_roms[bank].type = type;
     m_state.paging.rom_regions[bank] = 0;
 
     this->InitPaging();
@@ -1024,7 +1024,7 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::vector<ui
     }
 
     // No sideways ROM in this bank.
-    m_state.sideways_rom_buffers[bank] = {};
+    m_state.sideways_roms[bank] = {};
 
     this->InitPaging();
 }
@@ -2913,7 +2913,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 #endif
 
-    update_flags |= (uint32_t)UPDATE_ROM_TYPE_BY_ROM_TYPE[m_state.paging.rom_types[m_state.paging.romsel.b_bits.pr]] << BBCMicroUpdateFlag_UpdateROMTypeShift;
+    update_flags |= (uint32_t)UPDATE_ROM_TYPE_BY_ROM_TYPE[m_state.sideways_roms[m_state.paging.romsel.b_bits.pr].type] << BBCMicroUpdateFlag_UpdateROMTypeShift;
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_flags = update_flags;

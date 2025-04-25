@@ -135,12 +135,8 @@ struct PagingState {
 
     // Current ROM mapper region for each ROM.
     uint8_t rom_regions[16] = {};
-
-    // ROM type for each ROM.
-    ROMType rom_types[16] = {};
 };
-
-static_assert(sizeof(PagingState) == 34);
+static_assert(sizeof(PagingState) == 18);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

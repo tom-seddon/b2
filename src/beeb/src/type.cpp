@@ -208,10 +208,9 @@ static uint32_t GetROMDSO(const PagingState &paging) {
     dso |= paging.romsel.b_bits.pr;
     dso |= BBCMicroDebugStateOverride_OverrideROM;
 
-    if (paging.rom_types[paging.romsel.b_bits.pr] != ROMType_16KB) {
-        dso |= BBCMicroDebugStateOverride_OverrideMapperRegion;
-        dso |= (uint32_t)(paging.rom_regions[paging.romsel.b_bits.pr] << BBCMicroDebugStateOverride_MapperRegionShift);
-    }
+    // The ROM region is irrelevant for non-mapper ROMs.
+    dso |= BBCMicroDebugStateOverride_OverrideMapperRegion;
+    dso |= (uint32_t)(paging.rom_regions[paging.romsel.b_bits.pr] << BBCMicroDebugStateOverride_MapperRegionShift);
 
     return dso;
 }

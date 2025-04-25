@@ -320,7 +320,13 @@ class BBCMicroState {
     std::shared_ptr<std::vector<uint8_t>> ram_buffer;
 
     std::shared_ptr<const std::array<uint8_t, 16384>> os_buffer;
-    std::shared_ptr<const std::vector<uint8_t>> sideways_rom_buffers[16];
+
+    struct SidewaysROM {
+        std::shared_ptr<const std::vector<uint8_t>> data;
+        ROMType type{ROMType_16KB};
+    };
+    SidewaysROM sideways_roms[16];
+
     // Each element is either a copy of the ROMData contents, or null.
     std::shared_ptr<std::array<uint8_t, 16384>> sideways_ram_buffers[16];
 
