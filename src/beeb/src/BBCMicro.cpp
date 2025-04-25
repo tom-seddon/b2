@@ -1856,7 +1856,7 @@ std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
     std::string expr;
 
     // ROMType is dealt with separately.
-    uint32_t flags = flags_ & ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift);
+    uint32_t flags = flags_ & ~(BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift);
     uint32_t mask = 1;
     while (flags != 0) {
         if (flags & mask) {
@@ -1877,15 +1877,15 @@ std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
         mask <<= 1;
     }
 
-    ROMType type = (ROMType)(flags_ >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
+    ROMType type = (ROMType)(flags_ >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
     if (type != ROMType_16KB) {
-        const char *type_name = GetROMTypeEnumName(type);
+        const char *type_name = GetBBCMicroUpdateROMTypeEnumName(type);
         if (type_name[0] == '?') {
-            expr += "(ROMType)" + std::to_string((int)type);
+            expr += "(BBCMicroUpdateROMType)" + std::to_string((int)type);
         } else {
             expr += type_name;
         }
-        expr += "<<ROMTypeShift";
+        expr += "<<UpdateROMTypeShift";
     }
 
     if (expr.empty()) {
@@ -2824,6 +2824,21 @@ float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static BBCMicroUpdateROMType UPDATE_ROM_TYPE_BY_ROM_TYPE[] = {
+    BBCMicroUpdateROMType_16KB,        //16KB
+    BBCMicroUpdateROMType_CCIWORD,     //CCIWORD
+    BBCMicroUpdateROMType_CCIBASE,     //CCIBASE
+    BBCMicroUpdateROMType_CCISPELL,    //CCISPELL
+    BBCMicroUpdateROMType_PALQST,      //PALQST
+    BBCMicroUpdateROMType_PALWAP,      //PALWAP
+    BBCMicroUpdateROMType_PALTED,      //PALTED
+    BBCMicroUpdateROMType_ABEP_OR_ABE, //ABEP
+    BBCMicroUpdateROMType_ABEP_OR_ABE, //ABE
+    BBCMicroUpdateROMType_Trilogy,     //Trilogy
+    BBCMicroUpdateROMType_MO2,         //MO2
+};
+static_assert(sizeof UPDATE_ROM_TYPE_BY_ROM_TYPE / sizeof UPDATE_ROM_TYPE_BY_ROM_TYPE[0] == ROMType_Count); //and hopefully they're even in the right order too
+
 void BBCMicro::UpdateCPUDataBusFn() {
     uint32_t update_flags = 0;
 
@@ -2898,7 +2913,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 #endif
 
-    update_flags |= (uint32_t)m_state.paging.rom_types[m_state.paging.romsel.b_bits.pr] << BBCMicroUpdateFlag_ROMTypeShift;
+    update_flags |= (uint32_t)UPDATE_ROM_TYPE_BY_ROM_TYPE[m_state.paging.rom_types[m_state.paging.romsel.b_bits.pr]] << BBCMicroUpdateFlag_UpdateROMTypeShift;
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_flags = update_flags;

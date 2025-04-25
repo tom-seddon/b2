@@ -38,8 +38,8 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-constexpr ROMType GetBBCMicroUpdateFlagsROMType(uint32_t update_flags) {
-    return (ROMType)(update_flags >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
+constexpr BBCMicroUpdateROMType GetBBCMicroUpdateFlagsUpdateROMType(uint32_t update_flags) {
+    return (BBCMicroUpdateROMType)(update_flags >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -320,9 +320,9 @@ parasite_update_done:
                 }
             }
 
-            if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_16KB) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_16KB) {
                 // nothing extra to do here
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_CCIWORD) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_CCIWORD) {
                 switch (m_state.cpu.abus.w & 0xffe0) {
                 case 0x8060:
                 case 0xbfc0:
@@ -335,7 +335,7 @@ parasite_update_done:
                     this->UpdateMapperRegion(1);
                     break;
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_CCIBASE) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_CCIBASE) {
                 switch (m_state.cpu.abus.w & 0xffe0) {
                 case 0xbf80:
                     this->UpdateMapperRegion(0);
@@ -353,7 +353,7 @@ parasite_update_done:
                     this->UpdateMapperRegion(3);
                     break;
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_CCISPELL) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_CCISPELL) {
                 if (m_state.cpu.abus.w == 0xbfe0) {
                     this->UpdateMapperRegion(0);
                 } else if (m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] == 0) {
@@ -387,7 +387,7 @@ parasite_update_done:
                         break;
                     }
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_PALQST) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_PALQST) {
                 switch (m_state.cpu.abus.w & 0xffe0) {
                 case 0x8820:
                     this->UpdateMapperRegion(2);
@@ -405,7 +405,7 @@ parasite_update_done:
                     this->UpdateMapperRegion(0);
                     break;
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_PALWAP) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_PALWAP) {
                 switch (m_state.cpu.abus.w & 0xffe0) {
                 case 0x9f00:
                     this->UpdateMapperRegion(0);
@@ -439,7 +439,7 @@ parasite_update_done:
                     this->UpdateMapperRegion(7);
                     break;
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_PALTED) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_PALTED) {
                 switch (m_state.cpu.abus.w & 0xffe0) {
                 case 0x9f80:
                     this->UpdateMapperRegion(0);
@@ -457,7 +457,7 @@ parasite_update_done:
                     this->UpdateMapperRegion(3);
                     break;
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_ABE) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ABEP_OR_ABE) {
                 switch (m_state.cpu.abus.w & 0xfffc) {
                 case 0xbff8:
                     this->UpdateMapperRegion(0);
@@ -467,11 +467,11 @@ parasite_update_done:
                     this->UpdateMapperRegion(1);
                     break;
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_Trilogy) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_Trilogy) {
                 if ((m_state.cpu.abus.w & 0xfff8) == 0xbff8) {
                     this->UpdateMapperRegion(m_state.cpu.abus.w & 3);
                 }
-            } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_MO2) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_MO2) {
                 if ((m_state.cpu.abus.w & 0xfff0) == 0xa000) {
                     this->UpdateMapperRegion(m_state.cpu.abus.w & 0xf);
                 }
@@ -1079,22 +1079,14 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         flags &= ~(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
     }
 
-    ROMType rom_type = (ROMType)((flags >> BBCMicroUpdateFlag_ROMTypeShift) & BBCMicroUpdateFlag_ROMTypeMask);
+    BBCMicroUpdateROMType update_rom_type = (BBCMicroUpdateROMType)((flags >> BBCMicroUpdateFlag_UpdateROMTypeShift) & BBCMicroUpdateFlag_UpdateROMTypeMask);
 
-    if (rom_type >= ROMType_Count) {
+    if (update_rom_type >= BBCMicroUpdateROMType_Count) {
         // out of bounds ROMType... reset to 0.
-        rom_type = (ROMType)0;
-    } else if (rom_type == ROMType_ABEP) {
-        // This is a bit of a bodge, in the interests of ~0.91x as many
-        // BBCMicro::UpdateTemplated instantations. (The difference between ABE
-        // and ABEP can be dealt with at the GetROMOffset.)
-        //
-        // There should really be a proper mapping from ROMType to some other
-        // enum that actually controls BBCMicro::UpdateTemplated.
-        rom_type = ROMType_ABE;
+        update_rom_type = (BBCMicroUpdateROMType)0;
     }
 
-    flags = (flags & ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift)) | rom_type << BBCMicroUpdateFlag_ROMTypeShift;
+    flags = (flags & ~(BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift)) | update_rom_type << BBCMicroUpdateFlag_UpdateROMTypeShift;
 
     return flags;
 }

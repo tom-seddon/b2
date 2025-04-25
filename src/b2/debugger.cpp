@@ -1005,15 +1005,15 @@ class SystemDebugWindow : public DebugUI {
         ImGuiHeader("Update Flags");
         {
             uint32_t flags = m_beeb_thread->GetUpdateFlags();
-            ROMType type = (ROMType)(flags >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
-            flags &= ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift);
+            auto update_rom_type = (BBCMicroUpdateROMType)(flags >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
+            flags &= ~(BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift);
             for (uint32_t mask = 1; mask != 0; mask <<= 1) {
                 if (flags & mask) {
                     const char *flag = GetBBCMicroUpdateFlagEnumName(mask);
                     ImGui::BulletText("%s", flag);
                 }
             }
-            ImGui::BulletText("ROM Type: %s", GetROMTypeEnumName(type));
+            ImGui::BulletText("ROM Type: %s", GetBBCMicroUpdateROMTypeEnumName(update_rom_type));
         }
 
         ImGuiHeader("Debugger State");

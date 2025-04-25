@@ -119,6 +119,30 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// ROM types from the perspective of BBCMicro::Update. Related to ROMType, but
+// not identical.
+#define ENAME BBCMicroUpdateROMType
+EBEGIN()
+//EPN(EmptySocket)//TODO...
+EPN(16KB)
+EPN(CCIWORD)
+EPN(CCIBASE)
+EPN(CCISPELL)
+EPN(PALQST)
+EPN(PALWAP)
+EPN(PALTED)
+EPN(ABEP_OR_ABE)
+EPN(Trilogy)
+EPN(MO2)
+
+// Must be last.
+EPN(Count)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // There are actually private, but at some point I realised it would be useful
 // to have them displayed in the debugging UI.
 //
@@ -161,8 +185,8 @@ EPNV(ParallelPrinter, 1 << 9)
 // - mouse (if present) is Compact type
 EPNV(IsMasterCompact, 1 << 10)
 
-EQPNV(ROMTypeShift, 11)
-EQPNV(ROMTypeMask, 15)
+EQPNV(UpdateROMTypeShift, 11)
+EQPNV(UpdateROMTypeMask, 15)
 // next free bit is 1<<15
 
 EPNV(IsMaster128, 1 << 15)
