@@ -704,34 +704,13 @@ uint8_t BBCMicro::ReadROMSEL(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Handle the BBC B non-ROM board case. This is a bit different from the
-// standrad case, as the sockets are typically treated as banks 12-15 - so
-// there's a couple of bits that need setting.
-
-void BBCMicro::WriteROMSEL2Bit(void *m_, M6502Word a, uint8_t value) {
-    auto m = (BBCMicro *)m_;
-    (void)a;
-
-    if ((m->m_state.paging.romsel.value ^ value) & 3) {
-        m->m_state.paging.romsel.value = value & 3 | 0xc;
-
-        m->UpdatePaging();
-        m->UpdateCPUDataBusFn();
-
-#if BBCMICRO_TRACE
-        if (m->m_trace) {
-            m->m_trace->AllocWriteROMSELEvent(m->m_state.paging.romsel);
-        }
-#endif
-    }
-}
-
+template <uint8_t AND_VALUE, uint8_t OR_VALUE>
 void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    if ((m->m_state.paging.romsel.value ^ value) & m->m_romsel_mask) {
-        m->m_state.paging.romsel.value = value & m->m_romsel_mask;
+    if ((m->m_state.paging.romsel.value ^ value) & AND_VALUE) {
+        m->m_state.paging.romsel.value = value & AND_VALUE | OR_VALUE;
 
         m->UpdatePaging();
         m->UpdateCPUDataBusFn();
@@ -757,12 +736,13 @@ uint8_t BBCMicro::ReadACCCON(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+template <uint8_t AND_VALUE>
 void BBCMicro::WriteACCCON(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    if ((m->m_state.paging.acccon.value ^ value) & m->m_acccon_mask) {
-        m->m_state.paging.acccon.value = value & m->m_acccon_mask;
+    if ((m->m_state.paging.acccon.value ^ value) & AND_VALUE) {
+        m->m_state.paging.acccon.value = value & AND_VALUE;
         m->UpdatePaging();
 
 #if BBCMICRO_TRACE
@@ -2420,9 +2400,6 @@ void BBCMicro::InitStuff() {
 
     this->UpdateCPUDataBusFn();
 
-    m_romsel_mask = m_state.type->romsel_mask;
-    m_acccon_mask = m_state.type->acccon_mask;
-
     if (CanDisplayTeletextAt3C00(m_state.type->type_id)) {
         m_teletext_bases[0] = 0x3c00;
         m_teletext_bases[1] = 0x7c00;
@@ -2431,23 +2408,29 @@ void BBCMicro::InitStuff() {
         m_teletext_bases[1] = 0x7c00;
     }
 
-    if (m_acccon_mask == 0) {
-        WriteMMIOFn write_romsel_fn = &WriteROMSEL;
-
-        if (Has4ROMSlots(m_state.type->type_id)) {
-            if (!(m_state.init_flags & BBCMicroInitFlag_ROMBoard)) {
-                write_romsel_fn = &WriteROMSEL2Bit;
-            }
-        }
-
+    switch (m_state.type->type_id) {
+    case BBCMicroTypeID_B:
+        // The non-zero ROMSEL OR_VALUE will end up reflected in any reads, but:
+        // no problem. You can't read ROMSEL on the B.
         for (uint16_t i = 0; i < 16; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadUnmappedMMIO, this, write_romsel_fn, this);
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadUnmappedMMIO, this, m_state.init_flags & BBCMicroInitFlag_ROMBoard ? &WriteROMSEL<0xf, 0x0> : &WriteROMSEL<0x3, 0xc>, this);
         }
-    } else {
+        break;
+
+    case BBCMicroTypeID_BPlus:
         for (uint16_t i = 0; i < 4; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, this, &WriteROMSEL, this);
-            this->SetSIO((uint16_t)(0xfe34 + i), &ReadACCCON, this, &WriteACCCON, this);
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadUnmappedMMIO, this, &WriteROMSEL<0x8f, 0x0>, this);
+            this->SetSIO((uint16_t)(0xfe34 + i), &ReadUnmappedMMIO, this, &WriteACCCON<0x80>, this);
         }
+        break;
+
+    case BBCMicroTypeID_Master:
+    case BBCMicroTypeID_MasterCompact:
+        for (uint16_t i = 0; i < 4; ++i) {
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, this, &WriteROMSEL<0x8f, 0x0>, this);
+            this->SetSIO((uint16_t)(0xfe34 + i), &ReadACCCON, this, &WriteACCCON<0xff>, this);
+        }
+        break;
     }
 
     //

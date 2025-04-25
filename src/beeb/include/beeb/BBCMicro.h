@@ -581,9 +581,6 @@ class BBCMicro : private WD1770Handler {
     //// Whether IFJ mode is currently on or not.
     //bool m_ifj = false;
 
-    uint8_t m_romsel_mask = 0;
-    uint8_t m_acccon_mask = 0;
-
     // teletext_bases[0] is used when 6845 address bit 11 is clear;
     // teletext_bases[1] when it's set.
     uint16_t m_teletext_bases[2] = {};
@@ -670,9 +667,10 @@ class BBCMicro : private WD1770Handler {
     static uint8_t ReadUnmappedMMIO(void *m_, M6502Word a);
     static uint8_t ReadROMMMIO(void *m_, M6502Word a);
     static uint8_t ReadROMSEL(void *m_, M6502Word a);
-    static void WriteROMSEL2Bit(void *m_, M6502Word a, uint8_t value);
+    template <uint8_t AND_VALUE, uint8_t OR_VALUE>
     static void WriteROMSEL(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadACCCON(void *m_, M6502Word a);
+    template <uint8_t AND_VALUE>
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadADJI(void *m_, M6502Word a);
 #if BBCMICRO_DEBUGGER

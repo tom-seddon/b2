@@ -245,12 +245,6 @@ struct BBCMicroType {
     uint32_t (*get_dso_fn)(const PagingState &paging);
 #endif
 
-    // Mask for ROMSEL bits.
-    uint8_t romsel_mask;
-
-    // Mask for ACCCON bits. If 0x00, the system has no ACCCON register.
-    uint8_t acccon_mask;
-
     struct SHEILACycleStretchRegion {
         uint8_t first, last; //both inclusive
     };

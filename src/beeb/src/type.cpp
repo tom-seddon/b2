@@ -1094,27 +1094,6 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
     }
 #endif
 
-    switch (type->type_id) {
-    default:
-        ASSERT(false);
-        [[fallthrough]];
-    case BBCMicroTypeID_B:
-        type->romsel_mask = 0x0f;
-        type->acccon_mask = 0x00;
-        break;
-
-    case BBCMicroTypeID_BPlus:
-        type->romsel_mask = 0x8f;
-        type->acccon_mask = 0x80;
-        break;
-
-    case BBCMicroTypeID_Master:
-    case BBCMicroTypeID_MasterCompact:
-        type->romsel_mask = 0x8f;
-        type->acccon_mask = 0xff;
-        break;
-    }
-
     if (IsMaster(type->type_id)) {
         type->sheila_cycle_stretch_regions = {
             {0x00, 0x1f},
