@@ -681,6 +681,8 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
 
     beeb_thread->ThreadReplaceBeeb(ts, std::move(beeb), replace_flags);
 
+    beeb_thread->m_config_name = ts->current_config.config.name;
+
 #if BBCMICRO_DEBUGGER
     if (m_flags & BeebThreadHardResetFlag_Run) {
         ts->beeb->DebugRun();
@@ -1290,6 +1292,7 @@ bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 
     //init_arguments.initially_paused=false;
     init_arguments.initial_state = beeb_thread->ThreadSaveState(ts);
+    init_arguments.default_config = ts->current_config;
 
     PushNewWindowMessage(init_arguments);
 
@@ -2423,6 +2426,15 @@ bool BeebThread::GetShowCursor() const {
 
 void BeebThread::SetShowCursor(bool show_cursor) {
     m_show_cursor.store(show_cursor, std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string BeebThread::GetConfigName() const {
+    LockGuard<Mutex> lock(m_mutex);
+
+    return m_config_name;
 }
 
 //////////////////////////////////////////////////////////////////////////

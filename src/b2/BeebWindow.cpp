@@ -2823,7 +2823,7 @@ void BeebWindow::SaveSettings() {
 #endif
 
     BeebWindows::defaults = m_settings;
-    BeebWindows::default_config_name = m_init_arguments.default_config.config.name;
+    BeebWindows::default_config_name = this->GetConfigName();
 
     this->SavePosition();
 
@@ -3353,13 +3353,12 @@ bool BeebWindow::HardReset(const BeebConfig &config, uint32_t flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::string &BeebWindow::GetConfigName() const {
-    return m_init_arguments.default_config.config.name;
+std::string BeebWindow::GetConfigName() const {
+    return m_beeb_thread->GetConfigName();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
     std::shared_ptr<MemoryDiscImage> disc_image = LoadMemoryDiscImage(arguments.file_path, m_msg);
     if (!disc_image) {
@@ -3452,11 +3451,13 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
+    std::string current_config_name = this->GetConfigName();
+
     // Fetch config from the global list again.
     for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
         BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
 
-        if (config->name == m_init_arguments.default_config.config.name) {
+        if (config->name == current_config_name) {
             this->HardReset(*config, 0);
             return;
         }

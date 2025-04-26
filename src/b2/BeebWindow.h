@@ -298,7 +298,7 @@ class BeebWindow {
 
     bool HardReset(const BeebConfig &config, uint32_t flags);
 
-    const std::string &GetConfigName() const;
+    std::string GetConfigName() const;
 
 #if BBCMICRO_DEBUGGER
     bool DebugIsStopEnabled() const;

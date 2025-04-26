@@ -113,6 +113,8 @@ class BeebThread {
                                       bool success,
                                       const char *message);
 
+        // Called on Beeb thread with m_mutex locked.
+        //
         // Translate this, incoming message, into the message that will be
         // recorded into the timeline. *PTR points to this (and may be the only
         // pointer to it - exercise care when resetting).
@@ -135,14 +137,12 @@ class BeebThread {
         //
         // Return false to reject the message. The completion_fun will be called
         // with false, and the message will be discarded.
-        //
-        // Called on Beeb thread.
         virtual bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                                    CompletionFun *completion_fun,
                                    BeebThread *beeb_thread,
                                    ThreadState *ts);
 
-        // Called on the Beeb thread.
+        // Called on the Beeb thread with m_mutex locked.
         //
         // Default impl does nothing.
         virtual void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const;
@@ -1060,6 +1060,8 @@ class BeebThread {
     bool GetShowCursor() const;
     void SetShowCursor(bool show_cursor);
 
+    std::string GetConfigName() const;
+
   protected:
   private:
     struct AudioThreadData;
@@ -1138,11 +1140,11 @@ class BeebThread {
 
     // Controlled by m_mutex.
     std::vector<TimelineBeebStateEvent> m_timeline_beeb_state_events_copy;
-    std::string m_config_name;
 
     mutable Mutex m_mutex;
 
-    //bool m_paused=true;
+    // Controlled by m_mutex.
+    std::string m_config_name;
 
     // Main thread must take mutex to access.
     ThreadState *m_thread_state = nullptr;
