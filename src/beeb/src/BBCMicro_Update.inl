@@ -487,15 +487,22 @@ parasite_update_done:
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
                     m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
                 } else {
-                    if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) == 0 &&
-                                  GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_EmptySocket) {
+                    if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_EmptySocket) {
                         const uint8_t *r = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p];
                         if (r) {
                             m_state.cpu.dbus = r[m_state.cpu.abus.p.o];
                         } else {
-                            // Leave the previous value in place. The CPU data
-                            // bus is buffered so it'll read whatever was last
-                            // written.
+                            if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) == 0) {
+                                // For B/B+, leave the previous value in place.
+                                // The CPU data bus is buffered so it'll read
+                                // whatever was last written.
+                            } else {
+                                // For Master, use the last read video data
+                                // byte. The CPU data bus is not buffered but
+                                // the video data seems to hang around for long
+                                // enough.
+                                m_state.cpu.dbus = m_state.last_fetched_video_byte;
+                            }
                         }
                     } else {
                         m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
@@ -738,6 +745,14 @@ parasite_update_done:
             }
 
             uint8_t value = m_ram[addr];
+
+            // The condition here isn't as clever as it could be, as it's
+            // currently only relevant for empty ROM sockets. But eventually
+            // this behaviour will support write-only I/O registers too, so
+            // it'll apply regardless of selected ROM bank.
+            if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) != 0) {
+                m_state.last_fetched_video_byte = value;
+            }
 
             if (!m_state.video_ula.control.bits.teletext) {
                 if (!m_state.crtc_last_output.display) {
