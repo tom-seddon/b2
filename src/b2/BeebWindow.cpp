@@ -2054,7 +2054,7 @@ void BeebWindow::DoHardwareMenu() {
             BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
 
             if (ImGui::MenuItem(config->name.c_str(), nullptr, config->name == config_name)) {
-                this->HardReset(*config);
+                this->HardReset(*config, BeebThreadHardResetFlag_Run);
             }
         }
 
@@ -3334,13 +3334,13 @@ SettingsUI *BeebWindow::GetPopupByType(BeebWindowPopupType type) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::HardReset(const BeebConfig &config) {
+bool BeebWindow::HardReset(const BeebConfig &config, uint32_t flags) {
     BeebLoadedConfig tmp;
 
     if (BeebLoadedConfig::Load(&tmp, config, &m_msg)) {
         m_init_arguments.default_config = std::move(tmp);
 
-        auto message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0, m_init_arguments.default_config);
+        auto message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags, m_init_arguments.default_config);
 
         m_beeb_thread->Send(std::move(message));
 
@@ -3457,7 +3457,7 @@ void BeebWindow::HardReset() {
         BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
 
         if (config->name == m_init_arguments.default_config.config.name) {
-            this->HardReset(*config);
+            this->HardReset(*config, 0);
             return;
         }
     }

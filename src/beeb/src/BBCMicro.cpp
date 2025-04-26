@@ -2223,12 +2223,11 @@ void BBCMicro::UpdateDebugState() {
         }
     }
 
-    //    // Update the debug page pointers.
-    //    if(m_shadow_mem_big_pages) {
-    //        this->UpdateDebugBigPages(m_shadow_mem_big_pages);
-    //    }
-    //
-    //    this->UpdateDebugBigPages(&m_main_mem_big_pages);
+    if (m_debug) {
+        m_debug_is_halted = m_debug->is_halted;
+    } else {
+        m_debug_is_halted = false;
+    }
 }
 #endif
 

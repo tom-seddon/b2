@@ -296,7 +296,7 @@ class BeebWindow {
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 
-    bool HardReset(const BeebConfig &config);
+    bool HardReset(const BeebConfig &config, uint32_t flags);
 
     const std::string &GetConfigName() const;
 
