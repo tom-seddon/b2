@@ -66,7 +66,7 @@ nlohmann::json SaveConfigPartial(const BeebConfig &config) {
 //////////////////////////////////////////////////////////////////////////
 
 bool LoadTrace(TraceUISettings *settings, const nlohmann::json &j, Messages *msg) {
-    return TryGet(settings,j,msg);
+    return TryGet(settings, j, msg);
 }
 
 //////////////////////////////////////////////////////////////////////////
