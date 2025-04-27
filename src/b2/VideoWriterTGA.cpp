@@ -13,12 +13,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// ~1.5 GBytes
-//
-// WAV chunks are limited to 4 GBytes, but long is 32 bits on VC++ and there's
-// no wrapper for _ftelli64/off_t/etc. - yet. So don't let the file get too
-// large.
-static const uint32_t MAX_WAV_FILE_DATA_SIZE_BYTES = 1u << 31;
+// The WAV file total size is limited to 4 GBytes+8 bytes, so make sure the data
+// chunk can't get so large there's not room for everything else.
+static const uint32_t MAX_WAV_FILE_DATA_SIZE_BYTES = (uint32_t)4.2e9;
 
 static const uint32_t AUDIO_HZ = 48000;
 
@@ -30,15 +27,17 @@ struct VideoWriterFormatTGA {
     uint32_t audio_hz;
     SDL_AudioFormat sdl_audio_format;
     uint16_t wFormatTag;
+    bool rle;
 };
 
-static VideoWriterFormatTGA GetVideoWriterFormatTGA(uint32_t hz, SDL_AudioFormat sdl_audio_format, uint16_t wFormatTag, const char *audio_format_description) {
+static VideoWriterFormatTGA GetVideoWriterFormatTGA(uint32_t hz, SDL_AudioFormat sdl_audio_format, uint16_t wFormatTag, const char *audio_format_description, bool rle) {
     VideoWriterFormatTGA f;
     f.fmt.extension = ".tga";
-    f.fmt.description = strprintf("%dx%d uncompressed (TGA; %.1f KHz %s mono WAV)", TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, hz / 1000.f, audio_format_description);
+    f.fmt.description = strprintf("%dx%d lossless (%s; %.1f KHz %s mono WAV)", TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, rle ? "TGA (RLE)" : "TGA", hz / 1000.f, audio_format_description);
     f.audio_hz = hz;
     f.sdl_audio_format = sdl_audio_format;
     f.wFormatTag = wFormatTag;
+    f.rle = rle;
 
     return f;
 }
@@ -47,9 +46,11 @@ static const uint16_t PCM_WAVE_FORMAT = 1;        //WAVE_FORMAT_PCM
 static const uint16_t IEEE_FLOAT_WAVE_FORMAT = 3; //WAVE_FORMAT_IEEE_FLOAT
 
 static const VideoWriterFormatTGA TGA_FORMATS[] = {
-    GetVideoWriterFormatTGA(AUDIO_HZ, AUDIO_S16LSB, PCM_WAVE_FORMAT, "16-bit"),
-    GetVideoWriterFormatTGA(AUDIO_HZ, AUDIO_F32LSB, IEEE_FLOAT_WAVE_FORMAT, "float"),
-    GetVideoWriterFormatTGA(SOUND_CLOCK_HZ, AUDIO_F32LSB, IEEE_FLOAT_WAVE_FORMAT, "float"),
+    // Any reason to keep these? Don't think so.
+    //GetVideoWriterFormatTGA(AUDIO_HZ, AUDIO_S16LSB, PCM_WAVE_FORMAT, "16-bit", true),
+    //GetVideoWriterFormatTGA(AUDIO_HZ, AUDIO_F32LSB, IEEE_FLOAT_WAVE_FORMAT, "float", true),
+
+    GetVideoWriterFormatTGA(SOUND_CLOCK_HZ, AUDIO_F32LSB, IEEE_FLOAT_WAVE_FORMAT, "float", true),
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -185,14 +186,22 @@ class VideoWriterTGA : public VideoWriter {
     }
 
     bool WriteVideo(const void *data) override {
+        ASSERT(m_format_index < sizeof TGA_FORMATS / sizeof TGA_FORMATS[0]);
+        const VideoWriterFormatTGA *fmt = &TGA_FORMATS[m_format_index];
+
         // 18 byte header.
         m_tga_data.clear();
         m_tga_data.resize(18);
 
         // +0 - No image ID field is included.
         // +1 - No colour map data is included.
-        // +2 - Uncompressed true colour.
-        m_tga_data[2] = 2;
+        if (fmt->rle) {
+            // +2 - RLE true colour.
+            m_tga_data[2] = 10;
+        } else {
+            // +2 - Uncompressed true colour.
+            m_tga_data[2] = 2;
+        }
         // +3, +4, +5, +6, +7 - Irrelevant due to lack of colour map.
         // +8, +9 - X origin
         // +10, +11 - Y origin
@@ -206,17 +215,91 @@ class VideoWriterTGA : public VideoWriter {
         m_tga_data[17] = 2 << 4; //origin is top left
 
         size_t index = m_tga_data.size();
-        m_tga_data.resize(m_tga_data.size() + TV_TEXTURE_HEIGHT * TV_TEXTURE_WIDTH * 3);
-        {
-            auto src = (const unsigned char *)data;
-            unsigned char *dest = &m_tga_data[index];
-            for (size_t i = 0; i < TV_TEXTURE_HEIGHT * TV_TEXTURE_WIDTH; ++i) {
-                *dest++ = *src++;
-                *dest++ = *src++;
-                *dest++ = *src++;
-                ++src; //skip alpha
+        if (fmt->rle) {
+#if !CPU_LITTLE_ENDIAN
+#error
+#endif
+            // Worst case: every pixel its own packet.
+            m_tga_data.resize(m_tga_data.size() + TV_TEXTURE_HEIGHT * TV_TEXTURE_WIDTH * 4);
+
+            uint8_t *dest = &m_tga_data[index];
+            for (size_t y = 0; y < TV_TEXTURE_HEIGHT; ++y) {
+                auto const src = (const uint32_t *)((const char *)data + y * TV_TEXTURE_WIDTH * 4);
+                size_t x0 = 0;
+                while (x0 < TV_TEXTURE_WIDTH) {
+                    size_t x1 = x0 + 1;
+                    while (x1 < TV_TEXTURE_WIDTH && (src[x0] & 0xffffff) == (src[x1] & 0xffffff)) {
+                        ++x1;
+                    }
+                    if (x1 - x0 > 1) {
+                        // Run of 2+ identical pixels.
+                        size_t num_left = x1 - x0;
+                        while (num_left > 0) {
+                            size_t packet_size = num_left;
+                            if (packet_size > 128) {
+                                packet_size = 128;
+                            }
+                            *dest++ = 0x80 | (uint8_t)(packet_size - 1);
+                            *dest++ = src[x0] >> 0 & 0xff;
+                            *dest++ = src[x0] >> 8 & 0xff;
+                            *dest++ = src[x0] >> 16 & 0xff;
+
+                            num_left -= packet_size;
+                        }
+                    } else {
+                        // 2 adjacent non-identical pixels.
+                        if (x1 < TV_TEXTURE_WIDTH) {
+                            do {
+                                ++x1;
+                            } while (x1 < TV_TEXTURE_WIDTH && (src[x1] & 0xffffff) != (src[x1 - 1] & 0xffffff));
+
+                            // Found two matching pixels. Back up one to ensure
+                            // they're recorded as a run.
+                            //
+                            // (There's going to be a -1 somewhere. Here it is.)
+                            --x1;
+                        }
+
+                        size_t num_left = x1 - x0;
+                        while (num_left > 0) {
+                            size_t packet_size = num_left;
+                            if (packet_size > 128) {
+                                packet_size = 128;
+                            }
+
+                            *dest++ = (uint8_t)(packet_size - 1);
+                            for (size_t i = 0; i < packet_size; ++i) {
+                                *dest++ = src[x0] >> 0 & 0xff;
+                                *dest++ = src[x0] >> 8 & 0xff;
+                                *dest++ = src[x0] >> 16 & 0xff;
+                                ++x0;
+                            }
+
+                            num_left -= packet_size;
+                        }
+                        ASSERT(x0 == x1);
+                    }
+
+                    x0 = x1;
+                }
+                ASSERT(x0 == TV_TEXTURE_WIDTH);
             }
-            ASSERT(dest == &m_tga_data[m_tga_data.size()]);
+
+            ASSERT(dest <= m_tga_data.data() + m_tga_data.size());
+            m_tga_data.resize(dest - m_tga_data.data());
+        } else {
+            m_tga_data.resize(m_tga_data.size() + TV_TEXTURE_HEIGHT * TV_TEXTURE_WIDTH * 3);
+            {
+                auto src = (const unsigned char *)data;
+                unsigned char *dest = &m_tga_data[index];
+                for (size_t i = 0; i < TV_TEXTURE_HEIGHT * TV_TEXTURE_WIDTH; ++i) {
+                    *dest++ = *src++;
+                    *dest++ = *src++;
+                    *dest++ = *src++;
+                    ++src; //skip alpha
+                }
+                ASSERT(dest == &m_tga_data[m_tga_data.size()]);
+            }
         }
 
         // 1e7 frames = ~55 hours
@@ -264,6 +347,7 @@ class VideoWriterTGA : public VideoWriter {
             }
 
             fclose(m_wav_f), m_wav_f = nullptr;
+            m_wav_data_size_bytes = 0;
         }
 
         return good;

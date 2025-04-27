@@ -3825,6 +3825,8 @@ Max WAV data chunk: 4294967295
 
 ~13.5 hours
 
+
+
 * Testing with alternative compiler on Linux
 
 https://stackoverflow.com/questions/17275348/how-to-specify-new-gcc-path-for-cmake
@@ -3835,5 +3837,56 @@ Something like:
 : CXX=$(which g++-13)
 
 Then =make init= and it should detect them.
+
+* ffmpeg!
+
+CORRECT_ASPECT_RATIO_X_SCALE = 1.2 / 1.25 = 0.96 - so resize to
+707x576 then upscale to whatever.
+
+-framerate 50
+
+Use image file list? See https://www.reddit.com/r/ffmpeg/comments/yjorap/how_to_create_a_video_from_images_using_ffmpeg/
+
+Scaling stuff: 
+
+Convert images to a video:
+
+#+begin_src shell
+  ffmpeg -y -framerate 50 -i ".\play_robo.%%07d.tga" ..\play_robo.mp4
+#+end_src
+
+Resize to 0.96:1, then to clsest to 720p res preserving aspect ratio:
+
+#+begin_src shell
+: ffmpeg -y -framerate 50 -i ".\play_robo.%%07d.tga" -vf "scale=iw*0.96:ih" -vf "scale=1280:720:force_original_aspect_ratio=1" ..\play_robo.mp4
+#+end_src
+
+Workingish:
+
+#+begin_src shell
+  ffmpeg -y -i ".\play_robo.000.wav" -framerate 50 -i ".\play_robo.%%07d.tga" -vf "scale=iw*0.96:ih,scale=1280:720:force_original_aspect_ratio=1,pad=width=1280:height=720:x=(out_w-in_w)/2:y=(out_h-in_h)/2:color=red" -acodec flac ..\play_robo.mp4
+#+end_src
+
+Multiple WAV files:
+
+#+begin_src shell
+  ffmpeg -y -framerate 50 -i ".\play_robo_2.%%07d.tga" -f concat -safe 0 -i ".\play_robo_2_wav.txt" -map 0:v:0 -map 1:a:0 -vf "scale=iw*0.96:ih,scale=1280:720:force_original_aspect_ratio=1,pad=width=1280:height=720:x=(out_w-in_w)/2:y=(out_h-in_h)/2:color=red" -acodec flac ..\play_robo_2.mp4
+#+end_src
+Detect crop size:
+
+#+begin_src shell
+ffmpeg -y -i ".\play_robo.%%07d.tga" -vf "cropdetect=mode=black:limit=0" -f null -
+#+end_src
+
+## Crop output
+
+#+begin_example
+  [Parsed_cropdetect_0 @ 000001976a3ba940] x1:66 x2:605 y1:64 y2:377 w:528 h:304 x:72 y:70 pts:2 t:0.080000 limit:0.000000 crop=528:304:72:70
+  [Parsed_cropdetect_0 @ 000001976a3ba940] x1:66 x2:605 y1:64 y2:377 w:528 h:304 x:72 y:70 pts:3 t:0.120000 limit:0.000000 crop=528:304:72:70
+  [Parsed_cropdetect_0 @ 000001976a3ba940] x1:66 x2:605 y1:64 y2:377 w:528 h:304 x:72 y:70 pts:4 t:0.160000 limit:0.000000 crop=528:304:72:70
+  [Parsed_cropdetect_0 @ 000001976a3ba940] x1:66 x2:605 y1:64 y2:377 w:528 h:304 x:72 y:70 pts:5 t:0.200000 limit:0.000000 crop=528:304:72:70
+  [Parsed_cropdetect_0 @ 000001976a3ba940] x1:66 x2:605 y1:64 y2:377 w:528 h:304 x:72 y:70 pts:6 t:0.240000 limit:0.000000 crop=528:304:72:70
+#+end_example
+
 
 * eof.

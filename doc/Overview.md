@@ -155,10 +155,11 @@ Having recorded a timeline, click the `Video` button to produce a
 video starting from that point. Select the combination of resolution
 and audio bitrate from the popup.
 
-The uncompressed options save out a sequence of numbered TGA files and
-WAV files for stitching with something like ffmpeg. 250 KHz audio is
-recommended as this will let the video processing tool do its own
-processing, probably better quality than that provided by b2.
+The lossless option saves out a sequence of numbered TGA files and WAV
+files, completely unprocessed, for stitching with something like
+ffmpeg. The audio is 250 KHz float, as used by b2 internally; the
+video is 50 fps, 736x576. (To accurately reproduce BBC output, have
+the video processing tool resize these to 707x576.)
 
 For compressed video, when available, you'll always get two resolution
 options: lower res 1:1 BBC pixels, and higher res 2:1 BBC pixels.
