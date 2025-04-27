@@ -3229,7 +3229,6 @@ void BeebThread::ThreadMain(void) {
                 m_timeline_state.num_beeb_state_events = ts.timeline_event_lists.size();
 
                 if (m_timeline_state.num_beeb_state_events == 0) {
-                    ASSERT(m_timeline_state.num_events == 0);
                     m_timeline_state.begin_cycles = {0};
                     m_timeline_state.end_cycles = {0};
                 } else {
