@@ -223,7 +223,7 @@ std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
 
     return DoFileDialogWindows(filters,
                                default_path,
-                               OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR,
+                               OFN_NOVALIDATE | OFN_NOCHANGEDIR,
                                got_default_ext ? GetWideString(default_ext) : L"",
                                &GetSaveFileNameW);
 }
