@@ -118,6 +118,7 @@ void WriteVideoJob::ThreadExecute() {
         goto done;
     }
 
+    bool low_pass_filter = true;
     int vwidth, vheight;
     {
         if (!m_writer->GetAudioFormat(&afmt)) {
@@ -128,6 +129,13 @@ void WriteVideoJob::ThreadExecute() {
         if (SDL_BuildAudioCVT(&cvt, AUDIO_FORMAT, AUDIO_NUM_CHANNELS, afmt.freq, afmt.format, afmt.channels, afmt.freq) < 0) {
             this->Error("SDL_BuildAudioCVT failed: %s", SDL_GetError());
             goto done;
+        }
+
+        // When saving out full rate sound data, skip the low pass filter.
+        // Presumably the output is destined for some video processing tool,
+        // which can do a better job of it.
+        if (afmt.freq == SOUND_CLOCK_HZ) {
+            low_pass_filter = false;
         }
 
         uint32_t vformat;
@@ -163,6 +171,8 @@ void WriteVideoJob::ThreadExecute() {
                                                NUM_SAMPLES,
                                                BeebLoadedConfig(),
                                                std::move(event_lists));
+
+    beeb_thread->SetLowPassFilter(low_pass_filter);
 
     if (!beeb_thread->Start()) {
         this->Error("couldn't start BBC thread");
