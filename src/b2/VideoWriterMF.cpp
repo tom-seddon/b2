@@ -515,26 +515,24 @@ bool InitMF(Messages *messages) {
     }
 
     for (UINT vscale = 1; vscale <= 2; ++vscale) {
-        for (int lossless_audio = 0; lossless_audio < 2; ++lossless_audio) {
-            VideoWriterMFFormat f;
+        VideoWriterMFFormat f;
 
-            f.width = TV_TEXTURE_WIDTH * vscale;
-            f.height = TV_TEXTURE_HEIGHT * vscale;
-            f.lossless_audio = !!lossless_audio;
+        f.width = TV_TEXTURE_WIDTH * vscale;
+        f.height = TV_TEXTURE_HEIGHT * vscale;
+        f.lossless_audio = true;
 
-            f.vwf.extension = ".mp4";
-            f.vwf.description = strprintf("%dx%d MPEG-4 (H264 %.1f Mb/sec; ", f.width, f.height, VIDEO_AVG_BITRATE / 1.e6);
+        f.vwf.extension = ".mp4";
+        f.vwf.description = strprintf("%dx%d MPEG-4 (H264 %.1f Mb/sec; ", f.width, f.height, VIDEO_AVG_BITRATE / 1.e6);
 
-            if (f.lossless_audio) {
-                f.vwf.description += "FLAC";
-            } else {
-                f.vwf.description += strprintf("MP3 %.1f Kb/sec)", AUDIO_AVG_BYTES_PER_SECOND * 8 / 1.e3);
-            }
-
-            f.vwf.description += ")";
-
-            g_formats.push_back(f);
+        if (f.lossless_audio) {
+            f.vwf.description += "FLAC";
+        } else {
+            f.vwf.description += strprintf("MP3 %.1f Kb/sec)", AUDIO_AVG_BYTES_PER_SECOND * 8 / 1.e3);
         }
+
+        f.vwf.description += ")";
+
+        g_formats.push_back(f);
     }
 
     return true;
