@@ -737,6 +737,14 @@ int main(int argc, char *argv[]) {
             LOGF(OUT, "configuration: %s\n", avformat_configuration());
             LOGF(OUT, "licence: %s\n", avformat_license());
         }
+        
+        LOGF(OUT,"libswscale: ");
+        {
+            LOGI(OUT);
+            LOGF(OUT,"version: %u.%u.%u\n",AV_VERSION_MAJOR(swscale_version()),AV_VERSION_MINOR(swscale_version()),AV_VERSION_MICRO(swscale_version()));
+            LOGF(OUT,"configuration: %s\n",swscale_configuration());
+            LOGF(OUT,"licence: %s\n",swscale_license());
+        }
     }
 
     if (options.dump_codecs) {
