@@ -17,7 +17,7 @@
 // chunk can't get so large there's not room for everything else.
 static const uint32_t MAX_WAV_FILE_DATA_SIZE_BYTES = (uint32_t)4.2e9;
 
-static const uint32_t AUDIO_HZ = 48000;
+//static const uint32_t AUDIO_HZ = 48000;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ static VideoWriterFormatTGA GetVideoWriterFormatTGA(uint32_t hz, SDL_AudioFormat
     return f;
 }
 
-static const uint16_t PCM_WAVE_FORMAT = 1;        //WAVE_FORMAT_PCM
+//static const uint16_t PCM_WAVE_FORMAT = 1;        //WAVE_FORMAT_PCM
 static const uint16_t IEEE_FLOAT_WAVE_FORMAT = 3; //WAVE_FORMAT_IEEE_FLOAT
 
 static const VideoWriterFormatTGA TGA_FORMATS[] = {
@@ -285,8 +285,8 @@ class VideoWriterTGA : public VideoWriter {
                 ASSERT(x0 == TV_TEXTURE_WIDTH);
             }
 
-            ASSERT(dest <= m_tga_data.data() + m_tga_data.size());
-            m_tga_data.resize(dest - m_tga_data.data());
+            ASSERT(dest >= m_tga_data.data() && dest <= m_tga_data.data() + m_tga_data.size());
+            m_tga_data.resize((size_t)(dest - m_tga_data.data()));
         } else {
             m_tga_data.resize(m_tga_data.size() + TV_TEXTURE_HEIGHT * TV_TEXTURE_WIDTH * 3);
             {
