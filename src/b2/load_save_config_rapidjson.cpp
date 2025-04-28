@@ -369,12 +369,10 @@ static const char NAME[] = "name";
 static const char DISC_INTERFACE[] = "disc_interface";
 static const char TRACE[] = "trace";
 static const char WINDOWS[] = "windows";
-static const char KEYMAP[] = "keymap";
 static const char KEYSYMS[] = "keysyms";
 static const char KEYCODE[] = "keycode";
 static const char SHORTCUTS[] = "shortcuts";
 static const char PREFER_SHORTCUTS[] = "prefer_shortcuts";
-static const char POPUPS[] = "popups";
 static const char GLOBALS[] = "globals";
 static const char VSYNC[] = "vsync";
 static const char BEEBLINK[] = "beeblink";
@@ -387,10 +385,6 @@ static const char FEATURE_FLAGS[] = "feature_flags";
 static const char JOYSTICKS[] = "joysticks";
 static const char DEVICE_NAMES[] = "device_names";
 static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
-static const char TEXT_UTF8_CONVERT_MODE[] = "text_utf8_convert_mode";
-static const char PRINTER_UTF8_CONVERT_MODE[] = "printer_utf8_convert_mode";
-static const char TEXT_HANDLE_DELETE[] = "text_handle_delete";
-static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

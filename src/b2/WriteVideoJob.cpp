@@ -118,7 +118,7 @@ void WriteVideoJob::ThreadExecute() {
         goto done;
     }
 
-    bool low_pass_filter = true;
+    bool low_pass_filter;
     int vwidth, vheight;
     {
         if (!m_writer->GetAudioFormat(&afmt)) {
@@ -134,6 +134,7 @@ void WriteVideoJob::ThreadExecute() {
         // When saving out full rate sound data, skip the low pass filter.
         // Presumably the output is destined for some video processing tool,
         // which can do a better job of it.
+        low_pass_filter = true;
         if (afmt.freq == SOUND_CLOCK_HZ) {
             low_pass_filter = false;
         }

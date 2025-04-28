@@ -668,11 +668,11 @@ void VideoULA::EmitULA16MHz(VideoDataUnitPixels *pixels) {
 void VideoULA::UpdateEmitMFn() {
     if (this->nula) {
         uint32_t index = 0;
-        index |= this->control.bits.line_width << VideoNuLAModeFlag_ModeShift;
-        index |= this->control.bits.fast_6845 << VideoNuLAModeFlag_Fast6845Shift;
-        index |= m_attribute_mode << VideoNuLAModeFlag_AttributeModeShift;
-        index |= m_text_attribute_mode << VideoNuLAModeFlag_TextAttributeModeShift;
-        index |= m_logical_mode << VideoNuLAModeFlag_LogicalPaletteShift;
+        index |= (uint32_t)(this->control.bits.line_width) << VideoNuLAModeFlag_ModeShift;
+        index |= (uint32_t)(this->control.bits.fast_6845) << VideoNuLAModeFlag_Fast6845Shift;
+        index |= (uint32_t)(m_attribute_mode) << VideoNuLAModeFlag_AttributeModeShift;
+        index |= (uint32_t)(m_text_attribute_mode) << VideoNuLAModeFlag_TextAttributeModeShift;
+        index |= (uint32_t)(m_logical_mode) << VideoNuLAModeFlag_LogicalPaletteShift;
         m_emit_mfn = NULA_EMIT_MFNS[index];
     } else {
         m_emit_mfn = ULA_EMIT_MFNS[this->control.bits.line_width];

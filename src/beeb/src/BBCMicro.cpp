@@ -784,7 +784,7 @@ void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
     (void)a;
 
     if ((m->m_state.paging.romsel.value ^ value) & AND_VALUE) {
-        m->m_state.paging.romsel.value = value & AND_VALUE | OR_VALUE;
+        m->m_state.paging.romsel.value = (value & AND_VALUE) | OR_VALUE;
 
         m->UpdatePaging();
         m->UpdateCPUDataBusFn();
