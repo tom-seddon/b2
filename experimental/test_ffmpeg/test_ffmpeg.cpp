@@ -563,7 +563,9 @@ static bool DoOptions(Options *o, int argc, char *argv[]) {
 
     std::vector<std::string> other_args;
     if (!p.Parse(argc, argv, &other_args) || help) {
-        p.Help(argv[0]);
+        if (!help) {
+            p.Help(argv[0]);
+        }
 
         // not great to return exit code 1 on -h, but it's only test code
         return false;
