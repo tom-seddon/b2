@@ -3888,5 +3888,44 @@ ffmpeg -y -i ".\play_robo.%%07d.tga" -vf "cropdetect=mode=black:limit=0" -f null
   [Parsed_cropdetect_0 @ 000001976a3ba940] x1:66 x2:605 y1:64 y2:377 w:528 h:304 x:72 y:70 pts:6 t:0.240000 limit:0.000000 crop=528:304:72:70
 #+end_example
 
+* Building ffmpeg on macOS
+
+** libx264
+
+https://www.videolan.org/developers/x264.html
+
+Macports stuff to install:
+
+- nasm
+
+Macports stuff to uninstall:
+
+- ffmpeg-devel
+- x264
+
+#+begin_src shell
+./configure --prefix=$HOME/usr --enable-shared --enable-static --enable-debug
+#+end_src
+
+** FFmpeg
+
+Compilation guide: https://trac.ffmpeg.org/wiki/CompilationGuide/macOS
+
+GitHub mirror: https://github.com/FFmpeg/FFmpeg
+
+Ordinary configure:
+
+#+begin_src shell
+./configure --prefix=$HOME/usr --disable-stripping --enable-libx264 
+--enable-gpl
+#+end_src
+
+Debug build with more asserts:
+
+#+begin_src shell
+  ./configure --prefix=$HOME/usr --disable-stripping --enable-libx264 --enable-gpl --disable-optimizations --assert-level=2
+#+end_src
+
+* ffmpeg memory stomp (??)
 
 * eof.

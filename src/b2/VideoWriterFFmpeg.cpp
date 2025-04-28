@@ -605,15 +605,18 @@ static bool IsSampleFormatSupported(const AVCodec *codec,
 static int FindBestSampleRate(const AVCodec *codec,
                               int rate) {
     int best = rate;
-    int64_t best_error = INT64_MAX;
 
-    for (const int *f = codec->supported_samplerates; *f != -1; ++f) {
-        int64_t error = *f - rate;
-        error *= error;
+    if (codec->supported_samplerates) {
+        int64_t best_error = INT64_MAX;
 
-        if (error < best_error) {
-            best_error = error;
-            best = *f;
+        for (const int *f = codec->supported_samplerates; *f != -1; ++f) {
+            int64_t error = *f - rate;
+            error *= error;
+
+            if (error < best_error) {
+                best_error = error;
+                best = *f;
+            }
         }
     }
 
@@ -636,18 +639,31 @@ bool InitFFmpeg(Messages *messages) {
         return true;
     }
 
+    const AVCodec *flac_codec = avcodec_find_encoder(AV_CODEC_ID_FLAC);
+    if (flac_codec) {
+        g_acodec = flac_codec;
+    }
+
     if (output_format->flags & AVFMT_NOFILE) {
         messages->e.f("FFmpeg: %s format doesn't support writing to file\n",
                       output_format->long_name);
         goto bad;
     }
 
-    if (IsSampleFormatSupported(g_acodec, AV_SAMPLE_FMT_FLTP)) {
+    if (IsSampleFormatSupported(g_acodec, AV_SAMPLE_FMT_S16P)) {
+        g_aformat = AV_SAMPLE_FMT_S16P;
+        g_audio_spec.format=AUDIO_S16SYS;
+    } else if (IsSampleFormatSupported(g_acodec, AV_SAMPLE_FMT_S16)) {
+        g_aformat = AV_SAMPLE_FMT_S16;
+        g_audio_spec.format=AUDIO_S16SYS;
+    }else if(IsSampleFormatSupported(g_acodec,AV_SAMPLE_FMT_FLTP)){
         g_aformat = AV_SAMPLE_FMT_FLTP;
-    } else if (IsSampleFormatSupported(g_acodec, AV_SAMPLE_FMT_FLT)) {
+        g_audio_spec.format=AUDIO_F32SYS;
+    }else if(IsSampleFormatSupported(g_acodec,AV_SAMPLE_FMT_FLT)){
         g_aformat = AV_SAMPLE_FMT_FLT;
+        g_audio_spec.format=AUDIO_F32SYS;
     } else {
-        messages->e.f("FFmpeg: %s codec doesn't support float audio\n", g_acodec->name);
+        messages->e.f("FFmpeg: %s codec doesn't support either float or 16-bit PCM audio\n", g_acodec->name);
         goto bad;
     }
 
@@ -662,7 +678,6 @@ bool InitFFmpeg(Messages *messages) {
     }
 
     g_audio_spec.freq = FindBestSampleRate(g_acodec, 48000);
-    g_audio_spec.format = AUDIO_F32SYS;
     g_audio_spec.channels = 1;
 
     LOGF(FFMPEG, "Audio format: %dHz\n", g_audio_spec.freq);
@@ -670,28 +685,30 @@ bool InitFFmpeg(Messages *messages) {
     LOGF(FFMPEG, "Video output formats:\n");
 
     for (int vscale = 1; vscale <= 2; ++vscale) {
-        for (int ascale = 1; ascale <= 2; ++ascale) {
-            VideoWriterFFmpegFormat f;
+        VideoWriterFFmpegFormat f;
 
-            f.vwidth = TV_TEXTURE_WIDTH * vscale;
-            f.vheight = TV_TEXTURE_HEIGHT * vscale;
-            f.vbitrate = 4000000;
-            f.abitrate = 128000 * ascale;
+        f.vwidth = TV_TEXTURE_WIDTH * vscale;
+        f.vheight = TV_TEXTURE_HEIGHT * vscale;
+        f.vbitrate = 4000000;
+        f.abitrate = 256000;
 
-            f.vwf.extension = std::string(".") + FORMAT;
-            f.vwf.description = strprintf("%dx%d %s (%s %.1fMb/sec; %s %.1fKb/sec)",
-                                          f.vwidth,
-                                          f.vheight,
-                                          output_format->name,
-                                          g_vcodec->name,
-                                          f.vbitrate / 1e6,
-                                          g_acodec->name,
-                                          f.abitrate / 1e3);
+        f.vwf.extension = std::string(".") + FORMAT;
+        f.vwf.description = strprintf("%dx%d %s (", f.vwidth, f.vheight, output_format->name);
 
-            LOGF(FFMPEG, "    %zu. %s\n", g_formats.size() + 1, f.vwf.description.c_str());
+        f.vwf.description += strprintf("%s %.1f Mb/sec; ", g_vcodec->name, f.vbitrate / 1e6);
 
-            g_formats.push_back(std::move(f));
+        const AVCodecDescriptor *acodec_desc = avcodec_descriptor_get(g_acodec->id);
+        if (acodec_desc && acodec_desc->props & AV_CODEC_PROP_LOSSY) {
+            f.vwf.description += strprintf("%s %.1f Kb/sec", g_acodec->name, f.abitrate / 1e3);
+        } else {
+            f.vwf.description += strprintf("%.1f KHz %s", g_audio_spec.freq / 1e3, g_acodec->name);
         }
+
+        f.vwf.description += ")";
+
+        LOGF(FFMPEG, "    %zu. %s\n", g_formats.size() + 1, f.vwf.description.c_str());
+
+        g_formats.push_back(std::move(f));
     }
 
     g_can_write_video = true;
