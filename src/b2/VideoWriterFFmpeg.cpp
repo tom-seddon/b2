@@ -256,11 +256,6 @@ class VideoWriterFFmpeg : public VideoWriter {
             return false;
         }
 
-        // m_vframe_rgba=this->CreateVideoFrame(AV_PIX_FMT_BGRA,"BGRA");
-        // if(!m_vframe_rgba) {
-        //     return false;
-        // }
-
         m_astream = avformat_new_stream(m_ofcontext, g_acodec);
         if (!m_astream) {
             return this->Error(0, "avformat_new_stream (audio)");
@@ -353,8 +348,6 @@ class VideoWriterFFmpeg : public VideoWriter {
             return this->Error(0, "avformat_write_header");
         }
 
-        //m_remapper=Remapper(FPS,m_acontext->sample_rate);
-
         return true;
     }
 
@@ -374,13 +367,6 @@ class VideoWriterFFmpeg : public VideoWriter {
             int num_bytes = (m_aframe->nb_samples - m_aframe_index) * sample_size_bytes;
             ASSERT(num_bytes >= 0);
             memset(data + m_aframe_index * sample_size_bytes, 0, (size_t)num_bytes);
-            m_aframe_index = m_aframe->nb_samples;
-
-            // auto dest = (float *)m_aframe->data[0];
-
-            // while (m_aframe_index < m_aframe->nb_samples) {
-            //     dest[m_aframe_index++] = 0.f;
-            // }
 
             if (!this->Write(m_acontext, m_astream, m_aframe, "audio (final)")) {
                 return false;
@@ -416,48 +402,52 @@ class VideoWriterFFmpeg : public VideoWriter {
     }
 
     bool WriteSound(const void *data, size_t data_size_bytes) override {
-        if (SDL_AUDIO_BITSIZE(g_audio_spec.format) == 8) {
-            return this->WriteSound2<uint8_t>(data, data_size_bytes);
-        } else if (SDL_AUDIO_BITSIZE(g_audio_spec.format) == 16) {
-            return this->WriteSound2<uint16_t>(data, data_size_bytes);
-        } else if (SDL_AUDIO_BITSIZE(g_audio_spec.format) == 32) {
-            return this->WriteSound2<uint32_t>(data, data_size_bytes);
+        size_t audio_bitsize = SDL_AUDIO_BITSIZE(g_audio_spec.format);
+        if (audio_bitsize == 8 || audio_bitsize == 16 || audio_bitsize == 32) {
+            size_t sample_size_bytes = audio_bitsize / 8;
+            auto src = (const uint8_t *)data;
+            uint8_t *dest = m_aframe->data[0];
+            size_t num_src_samples_left = data_size_bytes / sample_size_bytes;
+            while (num_src_samples_left > 0) {
+                if (m_aframe_index == 0) {
+                    int rc = av_frame_make_writable(m_aframe);
+                    if (rc < 0) {
+                        return this->Error(rc, "av_frame_make_writable (audio)");
+                    }
+
+                    m_aframe->pts = m_apts;
+                    m_apts += m_aframe->nb_samples;
+                }
+
+                ASSERT(m_aframe->nb_samples > m_aframe_index);
+                size_t num_dest_samples = (size_t)(m_aframe->nb_samples - m_aframe_index);
+
+                size_t n = num_src_samples_left;
+                if (n > num_dest_samples) {
+                    n = num_dest_samples;
+                }
+
+                ASSERT(m_aframe_index >= 0);
+                memcpy(dest + (size_t)m_aframe_index * sample_size_bytes, src, n * sample_size_bytes);
+
+                src += n * sample_size_bytes;
+                num_src_samples_left -= n;
+
+                m_aframe_index += n;
+                ASSERT(m_aframe_index <= m_aframe->nb_samples);
+                if (m_aframe_index == m_aframe->nb_samples) {
+                    if (!this->Write(m_acontext, m_astream, m_aframe, "audio")) {
+                        return false;
+                    }
+
+                    m_aframe_index = 0;
+                }
+            }
+
+            return true;
         } else {
             return this->Error(0, "unsupported audio bit depth: %d", SDL_AUDIO_BITSIZE(g_audio_spec.format));
         }
-    }
-
-    template <class T>
-    bool WriteSound2(const void *data, size_t data_size_bytes) {
-        ASSERT(data_size_bytes % sizeof(T) == 0);
-        size_t num_src_samples = data_size_bytes / sizeof(T);
-        auto src = (const T *)data;
-
-        auto dest = (T *)m_aframe->data[0];
-
-        for (size_t i = 0; i < num_src_samples; ++i) {
-            if (m_aframe_index == 0) {
-                int rc = av_frame_make_writable(m_aframe);
-                if (rc < 0) {
-                    return this->Error(rc, "av_frame_make_writable (audio)");
-                }
-
-                m_aframe->pts = m_apts;
-                m_apts += m_aframe->nb_samples;
-            }
-
-            dest[m_aframe_index++] = src[i];
-
-            if (m_aframe_index == m_aframe->nb_samples) {
-                if (!this->Write(m_acontext, m_astream, m_aframe, "audio")) {
-                    return false;
-                }
-
-                m_aframe_index = 0;
-            }
-        }
-
-        return true;
     }
 
     bool WriteVideo(const void *data) override {
