@@ -17,7 +17,10 @@
 // chunk can't get so large there's not room for everything else.
 static const uint32_t MAX_WAV_FILE_DATA_SIZE_BYTES = (uint32_t)4.2e9;
 
-//static const uint32_t AUDIO_HZ = 48000;
+static const double HNS_PER_SECOND = 1e7;
+
+// https://ffmpeg.org/ffmpeg-formats.html#Syntax
+static const char FFCONCAT_HEADER[] = "ffconcat version 1.0";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -84,12 +87,39 @@ class VideoWriterTGA : public VideoWriter {
             return false;
         }
 
+        std::string audio_list_path = strprintf("%s.audio_list.txt", m_stem.c_str());
+        m_audio_list_f = fopenUTF8(audio_list_path.c_str(), "wt");
+        if (!m_audio_list_f) {
+            m_msg.e.f("Failed to open audio list file: %s\n", audio_list_path.c_str());
+            return false;
+        }
+
+        std::string video_list_path = strprintf("%s.video_list.txt", m_stem.c_str());
+        m_video_list_f = fopenUTF8(video_list_path.c_str(), "wt");
+        if (!m_video_list_f) {
+            m_msg.e.f("Failed to open video list file: %s\n", audio_list_path.c_str());
+            return false;
+        }
+
+        fprintf(m_audio_list_f, "%s\n", FFCONCAT_HEADER);
+        fprintf(m_video_list_f, "%s\n", FFCONCAT_HEADER);
+
+        m_list_file_stem = PathGetName(m_stem);
+
         return true;
     }
 
     bool EndWrite() override {
         if (!this->CloseWAVFile()) {
             return false;
+        }
+
+        if (m_audio_list_f) {
+            fclose(m_audio_list_f), m_audio_list_f = nullptr;
+        }
+
+        if (m_video_list_f) {
+            fclose(m_video_list_f), m_video_list_f = nullptr;
         }
 
         return true;
@@ -120,13 +150,17 @@ class VideoWriterTGA : public VideoWriter {
         }
 
         if (!m_wav_f) {
-            m_wav_path = strprintf("%s.%03" PRIu64 ".wav", m_stem.c_str(), m_wav_counter++);
+            std::string suffix = strprintf(".%03" PRIu64 ".wav", m_wav_counter++);
+
+            m_wav_path = m_stem + suffix;
 
             m_wav_f = fopenUTF8(m_wav_path.c_str(), "wb");
             if (!m_wav_f) {
                 m_msg.e.f("Failed to open wav file: %s\n", m_wav_path.c_str());
                 return false;
             }
+
+            fprintf(m_audio_list_f, "file '%s%s'\n", m_list_file_stem.c_str(), suffix.c_str());
 
             ASSERT(m_format_index < sizeof TGA_FORMATS / sizeof TGA_FORMATS[0]);
             const VideoWriterFormatTGA *fmt = &TGA_FORMATS[m_format_index];
@@ -186,6 +220,8 @@ class VideoWriterTGA : public VideoWriter {
     }
 
     bool WriteVideo(const void *data, int64_t timestamp_hns) override {
+        ASSERT(timestamp_hns >= m_last_timestamp_hns);
+
         ASSERT(m_format_index < sizeof TGA_FORMATS / sizeof TGA_FORMATS[0]);
         const VideoWriterFormatTGA *fmt = &TGA_FORMATS[m_format_index];
 
@@ -303,7 +339,8 @@ class VideoWriterTGA : public VideoWriter {
         }
 
         // 1e7 frames = ~55 hours
-        std::string path = strprintf("%s.%07" PRIu64 ".tga", m_stem.c_str(), m_frame_counter++);
+        std::string suffix = strprintf(".%07" PRIu64 ".tga", m_frame_counter++);
+        std::string path = m_stem + suffix;
 
         FILE *f = fopenUTF8(path.c_str(), "wb");
         if (!f) {
@@ -320,6 +357,11 @@ class VideoWriterTGA : public VideoWriter {
             return false;
         }
 
+        int64_t duration_hns = timestamp_hns - m_last_timestamp_hns;
+        fprintf(m_video_list_f, "file '%s%s'\nduration %f\n", m_list_file_stem.c_str(), suffix.c_str(), duration_hns / HNS_PER_SECOND);
+
+        m_last_timestamp_hns = timestamp_hns;
+
         return true;
     }
 
@@ -329,6 +371,7 @@ class VideoWriterTGA : public VideoWriter {
     std::vector<uint8_t> m_tga_data;
     uint64_t m_frame_counter = 0;
     std::string m_stem;
+    std::string m_list_file_stem;
 
     uint64_t m_wav_counter = 0;
     std::string m_wav_path;
@@ -336,6 +379,11 @@ class VideoWriterTGA : public VideoWriter {
     uint32_t m_wav_header_size_bytes = 0;
     uint32_t m_wav_data_size_bytes = 0;
     long m_wav_data_size_offset = 0;
+
+    int64_t m_last_timestamp_hns = 0;
+
+    FILE *m_audio_list_f = nullptr;
+    FILE *m_video_list_f = nullptr;
 
     bool CloseWAVFile() {
         bool good = true;

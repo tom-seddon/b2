@@ -4047,4 +4047,15 @@ Components with versions:
 Each component lives in a folder named as above, with a version.h and
 version_major.h in it.
 
+* ffmpeg with file lists
+
+Along these lines:
+
+#+begin_src shell
+  ffmpeg -y -f concat -i b2_tga_3.video_list.txt -f concat -i b2_tga_3.audio_list.txt -map 0:v:0 -map 1:a:0 -acodec flac ..\b2_tga_3.mp4
+#+end_src
+
+Then poke at options as required. But fingers crossed, it should be
+about right.
+
 * eof.
