@@ -292,11 +292,20 @@ class VideoWriterFFmpeg : public VideoWriter {
 
         // Pad any partial frame with silence, and submit it.
         if (m_aframe_index > 0) {
-            auto dest = (float *)m_aframe->data[0];
+            uint8_t *data=m_aframe->data[0];
+            ASSERT(SDL_AUDIO_BITSIZE(g_audio_spec.format)%8==0);
+            int sample_size_bytes=SDL_AUDIO_BITSIZE(g_audio_spec.format)/8;
 
-            while (m_aframe_index < m_aframe->nb_samples) {
-                dest[m_aframe_index++] = 0.f;
-            }
+            int num_bytes=(m_aframe->nb_samples-m_aframe_index)*sample_size_bytes;
+            ASSERT(num_bytes>=0);
+            memset(data+m_aframe_index*sample_size_bytes, 0, (size_t)num_bytes);
+            m_aframe_index=m_aframe->nb_samples;
+            
+            // auto dest = (float *)m_aframe->data[0];
+
+            // while (m_aframe_index < m_aframe->nb_samples) {
+            //     dest[m_aframe_index++] = 0.f;
+            // }
 
             if (!this->Write(m_acontext, m_astream, m_aframe, "audio (final)")) {
                 return false;
@@ -331,19 +340,29 @@ class VideoWriterFFmpeg : public VideoWriter {
         return true;
     }
 
-    bool WriteSound(const void *data_, size_t data_size_bytes) override {
-        int rc;
+    bool WriteSound(const void *data, size_t data_size_bytes) override {
+        if(SDL_AUDIO_BITSIZE(g_audio_spec.format)==8){
+            return this->WriteSound2<uint8_t>(data,data_size_bytes);
+        }else if(SDL_AUDIO_BITSIZE(g_audio_spec.format)==16){
+            return this->WriteSound2<uint16_t>(data,data_size_bytes);
+        }else if(SDL_AUDIO_BITSIZE(g_audio_spec.format)==32){
+            return this->WriteSound2<uint32_t>(data,data_size_bytes);
+        }else{
+            return this->Error(0,"unsupported audio bit depth: %d",SDL_AUDIO_BITSIZE(g_audio_spec.format));
+        }
+    }
 
-        auto src = (const float *)data_;
+    template<class T>
+    bool WriteSound2(const void *data,size_t data_size_bytes){
+        ASSERT(data_size_bytes%sizeof(T)==0);
+        size_t num_src_samples = data_size_bytes/sizeof(T);
+        auto src=(const T*)data;
 
-        ASSERT(data_size_bytes % 4 == 0);
-        size_t num_src_samples = data_size_bytes / 4;
-
-        auto dest = (float *)m_aframe->data[0];
+        auto dest = (T *)m_aframe->data[0];
 
         for (size_t i = 0; i < num_src_samples; ++i) {
             if (m_aframe_index == 0) {
-                rc = av_frame_make_writable(m_aframe);
+                int rc = av_frame_make_writable(m_aframe);
                 if (rc < 0) {
                     return this->Error(rc, "av_frame_make_writable (audio)");
                 }
@@ -365,6 +384,7 @@ class VideoWriterFFmpeg : public VideoWriter {
 
         return true;
     }
+    
 
     bool WriteVideo(const void *data) override {
         int rc;
