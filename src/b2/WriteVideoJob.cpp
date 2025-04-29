@@ -244,9 +244,10 @@ void WriteVideoJob::ThreadExecute() {
 
                         bool is_vblank = tv_output.IsInVerticalBlank();
                         if (is_vblank && !was_vblank) {
-                            const void *data = tv_output.GetTexturePixels(nullptr);
-
-                            if (!m_writer->WriteVideo(data)) {
+                            VideoDataUnitCount vsync_time;
+                            const void *data = tv_output.GetTexturePixels(&vsync_time);
+                            
+                            if (!m_writer->WriteVideo(data,(int64_t)vsync_time.n*5)) {
                                 goto done;
                             }
 

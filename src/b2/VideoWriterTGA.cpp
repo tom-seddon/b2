@@ -185,7 +185,7 @@ class VideoWriterTGA : public VideoWriter {
         return true;
     }
 
-    bool WriteVideo(const void *data) override {
+    bool WriteVideo(const void *data,int64_t timestamp_hns) override {
         ASSERT(m_format_index < sizeof TGA_FORMATS / sizeof TGA_FORMATS[0]);
         const VideoWriterFormatTGA *fmt = &TGA_FORMATS[m_format_index];
 

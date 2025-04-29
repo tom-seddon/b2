@@ -52,8 +52,6 @@ extern "C" {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const int FPS = 50;
-
 static const char FORMAT[] = "mp4";
 
 // Should really copy this arrangement for the Windows version...
@@ -218,7 +216,7 @@ class VideoWriterFFmpeg : public VideoWriter {
             return this->Error(0, "avformat_new_stream (video)");
         }
 
-        m_vstream->time_base = av_make_q(1, FPS);
+        m_vstream->time_base = av_make_q(1, (int)1e7);
 
         m_vcontext = avcodec_alloc_context3(g_vcodec);
         if (!m_vcontext) {
@@ -450,7 +448,7 @@ class VideoWriterFFmpeg : public VideoWriter {
         }
     }
 
-    bool WriteVideo(const void *data) override {
+    bool WriteVideo(const void *data,int64_t timestamp_ns) override {
         int rc;
 
         rc = av_frame_make_writable(m_vframe);
@@ -470,13 +468,11 @@ class VideoWriterFFmpeg : public VideoWriter {
                   src_slices, src_strides, 0, TV_TEXTURE_HEIGHT,
                   m_vframe->data, m_vframe->linesize);
 
-        m_vframe->pts = m_vpts;
+        m_vframe->pts = timestamp_ns;
 
         if (!this->Write(m_vcontext, m_vstream, m_vframe, "video")) {
             return false;
         }
-
-        ++m_vpts;
 
         return true;
     }
@@ -495,9 +491,6 @@ class VideoWriterFFmpeg : public VideoWriter {
 
     SwsContext *m_swscontext = nullptr;
 
-    //Remapper m_remapper;
-
-    int64_t m_vpts = 0;
     int64_t m_apts = 0;
 
     bool Write(AVCodecContext *ccontext,

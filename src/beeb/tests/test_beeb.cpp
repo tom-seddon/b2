@@ -852,7 +852,7 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
 std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
     TVOutput tv;
 
-    uint64_t version;
+    VideoDataUnitCount version;
     const uint32_t *pixels = tv.GetTexturePixels(&version);
 
     size_t num_frames_got = 0;
@@ -876,9 +876,9 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
 
         tv.Update(&m_video_data_units[a], m_video_data_unit_idx - a);
 
-        uint64_t new_version;
+        VideoDataUnitCount new_version;
         pixels = tv.GetTexturePixels(&new_version);
-        if (new_version > version) {
+        if (new_version.n != version.n) {
             version = new_version;
             ++num_frames_got;
         }

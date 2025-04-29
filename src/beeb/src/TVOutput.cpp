@@ -22,6 +22,14 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const uint64_t NUM_UNITS_PER_SECOND = (uint64_t)2e6;
+
+static const uint64_t MIN_UNITS_BETWEEN_VERTICAL_RETRACE = NUM_UNITS_PER_SECOND / 45;
+static const uint64_t MAX_UNITS_BETWEEN_VERTICAL_RETRACE = NUM_UNITS_PER_SECOND / 65;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 TVOutput::TVOutput() {
     // +1 to accommodate writing an extra row when emulating interlace. (This
     // extra row is ignored.)
@@ -120,6 +128,8 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                        m_texture_pixels.size() * sizeof m_texture_pixels[0]);
             }
 
+            m_last_retrace_start_time.n = m_total.n + i;
+
             // With interlaced output, odd fields start 1 scanline lower.
             //
             // If interlace flag off: draw odd fields at y=0, so they start
@@ -165,8 +175,15 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
         case TVOutputState_Scanout:
             {
                 if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_VSync) {
-                    m_state = TVOutputState_VerticalRetrace;
-                    break;
+                    uint64_t units_last_last_retrace = m_total.n + i - m_last_retrace_start_time.n;
+                    if (units_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE &&
+                        units_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE) 
+                    {
+                        m_state = TVOutputState_VerticalRetrace;
+                        break;
+                    }
+
+                    // Otherwise - the sync didn't take. Better luck next time.
                 }
 
                 if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_HSync) {
@@ -424,6 +441,8 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
             break;
         }
     }
+
+    m_total.n+=num_units;
 }
 
 #if BUILD_TYPE_Debug
@@ -508,9 +527,9 @@ void TVOutput::FillWithTestPattern() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint32_t *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
-    if (texture_data_version) {
-        *texture_data_version = m_texture_data_version;
+uint32_t *TVOutput::GetTexturePixels(VideoDataUnitCount *vsync_time_ptr) const {
+    if(vsync_time_ptr){
+        *vsync_time_ptr=m_last_retrace_start_time;
     }
 
     return m_texture_pixels.data();

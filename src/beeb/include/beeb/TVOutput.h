@@ -35,6 +35,18 @@ struct VideoDataUnit;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The TVOutput does track time elapsed, as each VideoDataUnit corresponds to
+// 0.5 microseconds, but it does so independently of the rest of the system.
+// So the CycleCount struct isn't used.
+struct VideoDataUnitCount {
+    uint64_t n;
+};
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TVOutput {
   public:
     bool show_usec_markers = false;
@@ -60,12 +72,12 @@ class TVOutput {
     void FillWithTestPattern();
 #endif
 
-    // *data_version (optional) is set to texture data version, incremented on
-    // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame,
-    // with no guarantees of anything.)
+    // *cycle_count (optional) is set to the vblank point at which the snapshot
+    // was taken. (Between vblanks, the buffer contains a partially scanned-out
+    // frame, with no guarantees of anything.)
     //
     // The pointer is not const. Any modifications will just eventually get overwritten.
-    uint32_t *GetTexturePixels(uint64_t *texture_data_version) const;
+    uint32_t *GetTexturePixels(VideoDataUnitCount *vsync_time_ptr) const;
 
     // There's no versioning for this - you just get whatever was there last time.
     // There is however a mutex, to ensure the data doesn't get overwritten while
@@ -109,6 +121,9 @@ class TVOutput {
 #if BBCMICRO_DEBUGGER
     bool m_texture_dirty = false;
 #endif
+
+    VideoDataUnitCount m_total{0};
+    VideoDataUnitCount m_last_retrace_start_time{0};
 
     // TV - output texture and its properties
     mutable std::vector<uint32_t> m_texture_pixels;
