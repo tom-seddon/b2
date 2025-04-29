@@ -109,7 +109,6 @@ static std::wstring GetWideStringFromUTF8String(const char *str) {
 
 static const UINT32 FPS = 50;
 static const double TICKS_PER_SEC = 1e7;
-static const LONGLONG TICKS_PER_FRAME = (LONGLONG)(TICKS_PER_SEC / FPS);
 static const UINT32 VIDEO_AVG_BITRATE = 4000000;
 
 // 24000 bytes/sec is the max allowed for AAC. See
@@ -325,9 +324,11 @@ class VideoWriterMF : public VideoWriter {
         return true;
     }
 
-    bool WriteVideo(const void *data) override {
+    bool WriteVideo(const void *data, int64_t timestamp_hns) override {
         HRESULT hr;
 
+        ASSERT(timestamp_hns >= 0);
+        ASSERT(timestamp_hns >= m_last_video_timestamp_hns);
         ASSERT(m_video_stream_index != MAXDWORD);
 
         CComPtr<IMFMediaBuffer> buffer = this->CreateBuffer(TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT * 4, "video");
@@ -350,11 +351,11 @@ class VideoWriterMF : public VideoWriter {
             return false;
         }
 
-        if (!this->AddSample(buffer, m_video_stream_index, m_video_ticks, (LONGLONG)TICKS_PER_FRAME, "video")) {
+        if (!this->AddSample(buffer, m_video_stream_index, timestamp_hns, timestamp_hns - m_last_video_timestamp_hns, "video")) {
             return false;
         }
 
-        m_video_ticks += TICKS_PER_FRAME;
+        m_last_video_timestamp_hns = timestamp_hns;
 
         return true;
     }
@@ -367,6 +368,7 @@ class VideoWriterMF : public VideoWriter {
     LONGLONG m_video_ticks = 0;
     DWORD m_audio_stream_index = MAXDWORD;
     DWORD m_video_stream_index = MAXDWORD;
+    int64_t m_last_video_timestamp_hns = 0;
 
     CComPtr<IMFMediaType> CreateMediaType(const std::vector<MFAttribute> &attributes, const char *what) {
         HRESULT hr;

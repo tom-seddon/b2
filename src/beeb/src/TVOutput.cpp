@@ -24,8 +24,9 @@
 
 static const uint64_t NUM_UNITS_PER_SECOND = (uint64_t)2e6;
 
-static const uint64_t MIN_UNITS_BETWEEN_VERTICAL_RETRACE = NUM_UNITS_PER_SECOND / 45;
-static const uint64_t MAX_UNITS_BETWEEN_VERTICAL_RETRACE = NUM_UNITS_PER_SECOND / 65;
+static constexpr uint64_t MIN_UNITS_BETWEEN_VERTICAL_RETRACE = NUM_UNITS_PER_SECOND / 65;
+static constexpr uint64_t MAX_UNITS_BETWEEN_VERTICAL_RETRACE = NUM_UNITS_PER_SECOND / 45;
+static_assert(MIN_UNITS_BETWEEN_VERTICAL_RETRACE < MAX_UNITS_BETWEEN_VERTICAL_RETRACE); // help me computer... I cannot maths
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -105,6 +106,8 @@ static const int MAX_NUM_SCANNED_LINES = 500;
 
 #if BUILD_TYPE_Debug
 #ifdef _MSC_VER
+// VC++ -O0 codegen is pretty terrible, and TVOutput::Update happens on the main
+// thread so it can interfere with general input responsiveness.
 #pragma optimize("tsg", on)
 #endif
 #endif
@@ -175,10 +178,11 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
         case TVOutputState_Scanout:
             {
                 if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_VSync) {
-                    uint64_t units_last_last_retrace = m_total.n + i - m_last_retrace_start_time.n;
-                    if (units_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE &&
-                        units_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE) 
-                    {
+                    // If it's the first vsync ever, assume it's a good one.
+                    // GenerateThumbnailJob needs this.
+                    uint64_t units_since_last_last_retrace = m_total.n + i - m_last_retrace_start_time.n;
+                    if (units_since_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE && units_since_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE ||
+                        m_last_retrace_start_time.n == 0) {
                         m_state = TVOutputState_VerticalRetrace;
                         break;
                     }
@@ -442,7 +446,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
         }
     }
 
-    m_total.n+=num_units;
+    m_total.n += num_units;
 }
 
 #if BUILD_TYPE_Debug
@@ -528,8 +532,8 @@ void TVOutput::FillWithTestPattern() {
 //////////////////////////////////////////////////////////////////////////
 
 uint32_t *TVOutput::GetTexturePixels(VideoDataUnitCount *vsync_time_ptr) const {
-    if(vsync_time_ptr){
-        *vsync_time_ptr=m_last_retrace_start_time;
+    if (vsync_time_ptr) {
+        *vsync_time_ptr = m_last_retrace_start_time;
     }
 
     return m_texture_pixels.data();

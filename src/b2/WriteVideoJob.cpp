@@ -246,8 +246,8 @@ void WriteVideoJob::ThreadExecute() {
                         if (is_vblank && !was_vblank) {
                             VideoDataUnitCount vsync_time;
                             const void *data = tv_output.GetTexturePixels(&vsync_time);
-                            
-                            if (!m_writer->WriteVideo(data,(int64_t)vsync_time.n*5)) {
+
+                            if (!m_writer->WriteVideo(data, (int64_t)vsync_time.n * 5)) {
                                 goto done;
                             }
 

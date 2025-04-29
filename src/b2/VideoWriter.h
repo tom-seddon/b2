@@ -56,12 +56,12 @@ class VideoWriter {
     virtual bool GetVideoFormat(uint32_t *format_ptr, int *width_ptr, int *height_ptr) const = 0;
 
     virtual bool WriteSound(const void *data, size_t data_size_bytes) = 0;
-    
+
     // Timestamp is in 100 ns units, as per Media Foundation.
     //
     // The timestamp will never be negative, but both Media Foundation and
     // ffmpeg expect a signed value for the corresponding parameter, so...
-    virtual bool WriteVideo(const void *data,int64_t timestamp_hns) = 0;
+    virtual bool WriteVideo(const void *data, int64_t timestamp_hns) = 0;
 
     std::shared_ptr<MessageList> GetMessageList() const;
 

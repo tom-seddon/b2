@@ -448,7 +448,7 @@ class VideoWriterFFmpeg : public VideoWriter {
         }
     }
 
-    bool WriteVideo(const void *data,int64_t timestamp_ns) override {
+    bool WriteVideo(const void *data, int64_t timestamp_ns) override {
         int rc;
 
         rc = av_frame_make_writable(m_vframe);
