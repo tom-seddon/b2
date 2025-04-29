@@ -181,7 +181,8 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                     // If it's the first vsync ever, assume it's a good one.
                     // GenerateThumbnailJob needs this.
                     uint64_t units_since_last_last_retrace = m_total.n + i - m_last_retrace_start_time.n;
-                    if (units_since_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE && units_since_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE ||
+                    if ((units_since_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE &&
+                         units_since_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE) ||
                         m_last_retrace_start_time.n == 0) {
                         m_state = TVOutputState_VerticalRetrace;
                         break;
