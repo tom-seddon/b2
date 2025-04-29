@@ -38,6 +38,15 @@ extern "C" {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 19, 0)
+#define USE_AVCODEC_GET_SUPPORTED_CONFIG 1
+#else
+#define USE_AVCODEC_GET_SUPPORTED_CONFIG 0
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static int g_last_av = 0;
 
 #define TEST_AV(X) TEST_TRUE((g_last_av = (X)) >= 0)
@@ -51,17 +60,6 @@ static void PrintLastAVResult(const TestFailArgs *tfa) {
 
     LOGF(ERR, "Last FFmpeg result: %d (%s)\n", g_last_av, tmp);
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//static std::string av_strerror(int result) {
-//    char tmp[AV_ERROR_MAX_STRING_SIZE];
-//
-//    av_strerror(result,tmp,sizeof tmp);
-//
-//    return tmp;
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -300,6 +298,59 @@ static void PrintFlags(T value, const char *(*get_name_fn)(T)) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+template <class T>
+static const T *GetCodecConfigs(const AVCodec *codec, AVCodecConfig config) {
+    const void *data;
+    if (avcodec_get_supported_config(nullptr, codec, config, 0, &data, nullptr) < 0) {
+        data = nullptr;
+    }
+
+    return (const T *)data;
+}
+#endif
+
+// terminated by 0
+static const int *GetCodecSampleRates(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<int>(codec, AV_CODEC_CONFIG_SAMPLE_RATE);
+#else
+    return codec->supported_samplerates;
+#endif
+}
+
+#if LIBAVUTIL_VERSION_MAJOR >= 57
+// terminated by {0}
+static const AVChannelLayout *GetCodecChannelLayouts(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<AVChannelLayout>(codec, AV_CODEC_CONFIG_CHANNEL_LAYOUT);
+#else
+    return codec->ch_layouts;
+#endif
+}
+#endif
+
+// terminated by AV_SAMPLE_FMT_NONE
+static const AVSampleFormat *GetCodecSampleFormats(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<AVSampleFormat>(codec, AV_CODEC_CONFIG_SAMPLE_FORMAT);
+#else
+    return codec->sample_fmts;
+#endif
+}
+
+// terminated by AV_PIX_FMT_NONE
+static const AVPixelFormat *GetCodecPixelFormats(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<AVPixelFormat>(codec, AV_CODEC_CONFIG_PIX_FORMAT);
+#else
+    return codec->pix_fmts;
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void DumpCodecsBrief(const char *type_name, AVMediaType type) {
     std::vector<const char *> names;
 
@@ -371,11 +422,13 @@ static void DumpChLayouts(const AVCodec *c) {
     LOGF(OUT, "Channel Layouts: ");
     LOGI(OUT);
 
-    if (!c->ch_layouts) {
+    const AVChannelLayout *ch_layouts = GetCodecChannelLayouts(c);
+
+    if (!ch_layouts) {
         LOGF(OUT, "NULL\n");
     } else {
-        for (const AVChannelLayout *l = c->ch_layouts; l->order != 0; ++l) {
-            LOGF(OUT, "%zd. ", l - c->ch_layouts);
+        for (const AVChannelLayout *l = ch_layouts; l->order != 0; ++l) {
+            LOGF(OUT, "%zd. ", l - ch_layouts);
             LOGI(OUT);
             LOGF(OUT, "order=%d (%s)\n", (int)l->order, GetAVChannelOrderEnumName(l->order));
             LOGF(OUT, "nb_channels=%d\n", l->nb_channels);
@@ -402,13 +455,13 @@ static void DumpCodecVerbose(const AVCodec *c) {
 
         //LOGF(OUT,"Codec ID: %s\n",GetAVCodecName(c->id));
 
-        DumpCodecFormats(c->pix_fmts,
+        DumpCodecFormats(GetCodecPixelFormats(c),
                          "Pixel Formats",
                          &av_get_pix_fmt_string,
                          true,
                          (AVPixelFormat)-1);
 
-        DumpCodecFormats(c->sample_fmts,
+        DumpCodecFormats(GetCodecSampleFormats(c),
                          "Sample Formats",
                          &av_get_sample_fmt_string,
                          true,
@@ -428,7 +481,7 @@ static void DumpCodecVerbose(const AVCodec *c) {
 
 #endif
 
-        DumpCodecFormats(c->supported_samplerates,
+        DumpCodecFormats(GetCodecSampleRates(c),
                          "Sample Rates",
                          &GetSampleRateString,
                          false,
@@ -737,13 +790,13 @@ int main(int argc, char *argv[]) {
             LOGF(OUT, "configuration: %s\n", avformat_configuration());
             LOGF(OUT, "licence: %s\n", avformat_license());
         }
-        
-        LOGF(OUT,"libswscale: ");
+
+        LOGF(OUT, "libswscale: ");
         {
             LOGI(OUT);
-            LOGF(OUT,"version: %u.%u.%u\n",AV_VERSION_MAJOR(swscale_version()),AV_VERSION_MINOR(swscale_version()),AV_VERSION_MICRO(swscale_version()));
-            LOGF(OUT,"configuration: %s\n",swscale_configuration());
-            LOGF(OUT,"licence: %s\n",swscale_license());
+            LOGF(OUT, "version: %u.%u.%u\n", AV_VERSION_MAJOR(swscale_version()), AV_VERSION_MINOR(swscale_version()), AV_VERSION_MICRO(swscale_version()));
+            LOGF(OUT, "configuration: %s\n", swscale_configuration());
+            LOGF(OUT, "licence: %s\n", swscale_license());
         }
     }
 
@@ -918,11 +971,12 @@ int main(int argc, char *argv[]) {
     AVPixelFormat pix_fmt = AV_PIX_FMT_NONE;
 
     if (vcodec) {
-        pix_fmt = vcodec->pix_fmts[0];
+        const AVPixelFormat *pix_fmts = GetCodecPixelFormats(vcodec);
+        pix_fmt = pix_fmts[0];
 
         // But if the codec supports the stb_image pixel format, do use
         // that.
-        for (const AVPixelFormat *p = vcodec->pix_fmts; *p != -1; ++p) {
+        for (const AVPixelFormat *p = pix_fmts; *p != -1; ++p) {
             if (*p == stb_pix_fmt) {
                 pix_fmt = stb_pix_fmt;
                 break;
@@ -935,7 +989,7 @@ int main(int argc, char *argv[]) {
         bool found;
 
         found = false;
-        for (const AVSampleFormat *p = acodec->sample_fmts; *p != -1; ++p) {
+        for (const AVSampleFormat *p = GetCodecSampleFormats(acodec); *p != -1; ++p) {
             if (*p == AV_SAMPLE_FMT_FLTP) {
                 found = true;
                 break;
@@ -947,10 +1001,10 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        if (acodec->supported_samplerates) {
+        if (const int *supported_samplerates = GetCodecSampleRates(acodec)) {
             found = false;
 
-            for (const int *p = acodec->supported_samplerates; *p != 0; ++p) {
+            for (const int *p = supported_samplerates; *p != 0; ++p) {
                 if (*p == (int)wav_fmt->nSamplesPerSec) {
                     found = true;
                     break;

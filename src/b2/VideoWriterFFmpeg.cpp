@@ -25,12 +25,28 @@ extern "C" {
 #include <libavutil/opt.h>
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
+#include <libavcodec/avcodec.h>
 }
 
 #ifdef __clang__
 
 #pragma GCC diagnostic pop
 
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 19, 0)
+#define USE_AVCODEC_GET_SUPPORTED_CONFIG 1
+#else
+#define USE_AVCODEC_GET_SUPPORTED_CONFIG 0
+#endif
+
+#if LIBAVUTIL_VERSION_MAJOR >= 57
+#define AVCHANNELLAYOUT_STRUCT 1
+#else
+#define AVCHANNELLAYOUT_STRUCT 0
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,13 +70,13 @@ static std::vector<VideoWriterFFmpegFormat> g_formats;
 static bool g_can_write_video = false;
 
 static const AVCodec *g_acodec;
-static AVSampleFormat g_aformat;
+static AVSampleFormat g_aformat = AV_SAMPLE_FMT_NONE;
 
 static const AVCodec *g_vcodec;
 
 static SDL_AudioSpec g_audio_spec;
 
-#if LIBAVUTIL_VERSION_MAJOR >= 57
+#if AVCHANNELLAYOUT_STRUCT
 static const AVChannelLayout CHANNEL_LAYOUT_MONO = AV_CHANNEL_LAYOUT_MONO;
 #endif
 
@@ -68,6 +84,59 @@ static const AVChannelLayout CHANNEL_LAYOUT_MONO = AV_CHANNEL_LAYOUT_MONO;
 //////////////////////////////////////////////////////////////////////////
 
 LOG_TAGGED_DEFINE(FFMPEG, "ffmpeg", "FFMPEG", &log_printer_stdout_and_debugger, false);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+template <class T>
+static const T *GetCodecConfigs(const AVCodec *codec, AVCodecConfig config) {
+    const void *data;
+    if (avcodec_get_supported_config(nullptr, codec, config, 0, &data, nullptr) < 0) {
+        data = nullptr;
+    }
+
+    return (const T *)data;
+}
+#endif
+
+// terminated by 0
+static const int *GetCodecSampleRates(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<int>(codec, AV_CODEC_CONFIG_SAMPLE_RATE);
+#else
+    return codec->supported_samplerates;
+#endif
+}
+
+#if AVCHANNELLAYOUT_STRUCT
+// terminated by {0}
+static const AVChannelLayout *GetCodecChannelLayouts(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<AVChannelLayout>(codec, AV_CODEC_CONFIG_CHANNEL_LAYOUT);
+#else
+    return codec->channel_layouts;
+#endif
+}
+#endif
+
+// terminated by AV_SAMPLE_FMT_NONE
+static const AVSampleFormat *GetCodecSampleFormats(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<AVSampleFormat>(codec, AV_CODEC_CONFIG_SAMPLE_FORMAT);
+#else
+    return codec->sample_fmts;
+#endif
+}
+
+// terminated by AV_PIX_FMT_NONE
+static const AVPixelFormat *GetCodecPixelFormats(const AVCodec *codec) {
+#if USE_AVCODEC_GET_SUPPORTED_CONFIG
+    return GetCodecConfigs<AVPixelFormat>(codec, AV_CODEC_CONFIG_PIX_FORMAT);
+#else
+    return codec->pix_fmts;
+#endif
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -161,8 +230,14 @@ class VideoWriterFFmpeg : public VideoWriter {
         m_vcontext->height = format->vheight;
         m_vcontext->time_base = m_vstream->time_base;
         m_vcontext->gop_size = 12; //???
-        m_vcontext->pix_fmt = g_vcodec->pix_fmts[0];
+        {
+            const AVPixelFormat *pix_fmts = GetCodecPixelFormats(g_vcodec);
+            if (!pix_fmts || pix_fmts[0] == AV_PIX_FMT_NONE) {
+                return this->Error(0, "codec appears to have no pixel formats (video)");
+            }
 
+            m_vcontext->pix_fmt = pix_fmts[0];
+        }
         m_vcontext->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
         m_vcontext->flags |= context_flags;
 
@@ -199,7 +274,7 @@ class VideoWriterFFmpeg : public VideoWriter {
         m_acontext->bit_rate = format->abitrate;
         m_acontext->sample_rate = g_audio_spec.freq;
         m_acontext->sample_fmt = g_aformat;
-#if LIBAVUTIL_VERSION_MAJOR < 57
+#if !AVCHANNELLAYOUT_STRUCT
         m_acontext->channel_layout = AV_CH_LAYOUT_MONO;
         m_acontext->channels = 1;
 #else
@@ -212,7 +287,7 @@ class VideoWriterFFmpeg : public VideoWriter {
 
         {
             char channel_desc[1000];
-#if LIBAVUTIL_VERSION_MAJOR < 57
+#if !AVCHANNELLAYOUT_STRUCT
             av_get_channel_layout_string(channel_desc, sizeof channel_desc, m_acontext->channels, m_acontext->channel_layout);
 #else
             av_channel_layout_describe(&m_acontext->ch_layout, channel_desc, sizeof channel_desc);
@@ -245,7 +320,7 @@ class VideoWriterFFmpeg : public VideoWriter {
         m_aframe->format = m_acontext->sample_fmt;
         m_aframe->nb_samples = m_acontext->frame_size;
         m_aframe->sample_rate = m_acontext->sample_rate;
-#if LIBAVUTIL_VERSION_MAJOR < 57
+#if !AVCHANNELLAYOUT_STRUCT
         m_aframe->channel_layout = m_acontext->channel_layout;
 #else
         rc = av_channel_layout_copy(&m_aframe->ch_layout, &m_acontext->ch_layout);
@@ -292,15 +367,15 @@ class VideoWriterFFmpeg : public VideoWriter {
 
         // Pad any partial frame with silence, and submit it.
         if (m_aframe_index > 0) {
-            uint8_t *data=m_aframe->data[0];
-            ASSERT(SDL_AUDIO_BITSIZE(g_audio_spec.format)%8==0);
-            int sample_size_bytes=SDL_AUDIO_BITSIZE(g_audio_spec.format)/8;
+            uint8_t *data = m_aframe->data[0];
+            ASSERT(SDL_AUDIO_BITSIZE(g_audio_spec.format) % 8 == 0);
+            int sample_size_bytes = SDL_AUDIO_BITSIZE(g_audio_spec.format) / 8;
 
-            int num_bytes=(m_aframe->nb_samples-m_aframe_index)*sample_size_bytes;
-            ASSERT(num_bytes>=0);
-            memset(data+m_aframe_index*sample_size_bytes, 0, (size_t)num_bytes);
-            m_aframe_index=m_aframe->nb_samples;
-            
+            int num_bytes = (m_aframe->nb_samples - m_aframe_index) * sample_size_bytes;
+            ASSERT(num_bytes >= 0);
+            memset(data + m_aframe_index * sample_size_bytes, 0, (size_t)num_bytes);
+            m_aframe_index = m_aframe->nb_samples;
+
             // auto dest = (float *)m_aframe->data[0];
 
             // while (m_aframe_index < m_aframe->nb_samples) {
@@ -341,22 +416,22 @@ class VideoWriterFFmpeg : public VideoWriter {
     }
 
     bool WriteSound(const void *data, size_t data_size_bytes) override {
-        if(SDL_AUDIO_BITSIZE(g_audio_spec.format)==8){
-            return this->WriteSound2<uint8_t>(data,data_size_bytes);
-        }else if(SDL_AUDIO_BITSIZE(g_audio_spec.format)==16){
-            return this->WriteSound2<uint16_t>(data,data_size_bytes);
-        }else if(SDL_AUDIO_BITSIZE(g_audio_spec.format)==32){
-            return this->WriteSound2<uint32_t>(data,data_size_bytes);
-        }else{
-            return this->Error(0,"unsupported audio bit depth: %d",SDL_AUDIO_BITSIZE(g_audio_spec.format));
+        if (SDL_AUDIO_BITSIZE(g_audio_spec.format) == 8) {
+            return this->WriteSound2<uint8_t>(data, data_size_bytes);
+        } else if (SDL_AUDIO_BITSIZE(g_audio_spec.format) == 16) {
+            return this->WriteSound2<uint16_t>(data, data_size_bytes);
+        } else if (SDL_AUDIO_BITSIZE(g_audio_spec.format) == 32) {
+            return this->WriteSound2<uint32_t>(data, data_size_bytes);
+        } else {
+            return this->Error(0, "unsupported audio bit depth: %d", SDL_AUDIO_BITSIZE(g_audio_spec.format));
         }
     }
 
-    template<class T>
-    bool WriteSound2(const void *data,size_t data_size_bytes){
-        ASSERT(data_size_bytes%sizeof(T)==0);
-        size_t num_src_samples = data_size_bytes/sizeof(T);
-        auto src=(const T*)data;
+    template <class T>
+    bool WriteSound2(const void *data, size_t data_size_bytes) {
+        ASSERT(data_size_bytes % sizeof(T) == 0);
+        size_t num_src_samples = data_size_bytes / sizeof(T);
+        auto src = (const T *)data;
 
         auto dest = (T *)m_aframe->data[0];
 
@@ -384,7 +459,6 @@ class VideoWriterFFmpeg : public VideoWriter {
 
         return true;
     }
-    
 
     bool WriteVideo(const void *data) override {
         int rc;
@@ -577,38 +651,33 @@ std::unique_ptr<VideoWriter> CreateVideoWriterFFmpeg(std::shared_ptr<MessageList
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class T>
-static bool IsSupported(T value,
-                        const T *values,
-                        T terminator) {
-    if (values) {
-        for (const T *p = values; *p != terminator; ++p) {
-            if (*p == value) {
-                return true;
-            }
-        }
-
-        return false;
-    } else {
+#if !AVCHANNELLAYOUT_STRUCT
+static bool IsChannelLayoutSupported(const AVCodec *codec,
+                                     uint64_t requested_layout) {
+    if (!codec->channel_layouts) {
         return true;
     }
-}
 
-#if LIBAVUTIL_VERSION_MAJOR < 57
-static bool IsChannelLayoutSupported(const AVCodec *codec,
-                                     uint64_t channel_layout) {
-    return IsSupported(channel_layout, codec->channel_layouts, (uint64_t)0);
+    for (const uint64_t *codec_layout = codec->channel_layouts; *codec_layout != 0; ++codec_layout) {
+        if (codec_layout == requested_layout) {
+            return true;
+        }
+    }
+
+    return false;
 }
 #else
 static bool IsChannelLayoutSupported(const AVCodec *codec,
-                                     const AVChannelLayout *ch_layout) {
-    if (!codec->ch_layouts) {
+                                     const AVChannelLayout *requested_layout) {
+    const AVChannelLayout *codec_layouts = GetCodecChannelLayouts(codec);
+
+    if (!codec_layouts) {
         // Judging by the encode_audio example, if ch_layouts is NULL, anything goes?
         return true;
     }
 
-    for (const AVChannelLayout *l = codec->ch_layouts; l->order != 0; ++l) {
-        if (av_channel_layout_compare(l, ch_layout) == 0) {
+    for (const AVChannelLayout *codec_layout = codec_layouts; codec_layout->order != 0; ++codec_layout) {
+        if (av_channel_layout_compare(requested_layout, codec_layout) == 0) {
             return true;
         }
     }
@@ -618,29 +687,52 @@ static bool IsChannelLayoutSupported(const AVCodec *codec,
 #endif
 
 static bool IsSampleFormatSupported(const AVCodec *codec,
-                                    AVSampleFormat fmt) {
-    return IsSupported(fmt, codec->sample_fmts, (AVSampleFormat)-1);
+                                    AVSampleFormat requested_fmt) {
+    //AV_CODEC_CONFIG_SAMPLE_FORMAT,  ///< AVSampleFormat, terminated by AV_SAMPLE_FMT_NONE
+    //return IsSupported(fmt, codec->sample_fmts, (AVSampleFormat)-1);
+
+    const AVSampleFormat *codec_fmts = GetCodecSampleFormats(codec);
+
+    if (!codec_fmts) {
+        return true;
+    }
+
+    for (const AVSampleFormat *codec_fmt = codec_fmts; *codec_fmt != AV_SAMPLE_FMT_NONE; ++codec_fmt) {
+        if (*codec_fmt == requested_fmt) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static int FindBestSampleRate(const AVCodec *codec,
-                              int rate) {
-    int best = rate;
+                              int requested_rate) {
+    int best_rate = requested_rate;
 
-    if (codec->supported_samplerates) {
+    if (const int *codec_rates = GetCodecSampleRates(codec)) {
         int64_t best_error = INT64_MAX;
-
-        for (const int *f = codec->supported_samplerates; *f != -1; ++f) {
-            int64_t error = *f - rate;
+        for (const int *codec_rate = codec_rates; *codec_rate != 0; ++codec_rate) {
+            int64_t error = *codec_rate - requested_rate;
             error *= error;
 
             if (error < best_error) {
                 best_error = error;
-                best = *f;
+                best_rate = *codec_rate;
             }
         }
     }
 
-    return best;
+    return best_rate;
+}
+
+static void CheckSampleFormatSupported(AVSampleFormat av_format, SDL_AudioFormat sdl_format) {
+    if (g_aformat == AV_SAMPLE_FMT_NONE) {
+        if (IsSampleFormatSupported(g_acodec, av_format)) {
+            g_aformat = av_format;
+            g_audio_spec.format = sdl_format;
+        }
+    }
 }
 
 bool InitFFmpeg(Messages *messages) {
@@ -670,24 +762,16 @@ bool InitFFmpeg(Messages *messages) {
         goto bad;
     }
 
-    if (IsSampleFormatSupported(g_acodec, AV_SAMPLE_FMT_S16P)) {
-        g_aformat = AV_SAMPLE_FMT_S16P;
-        g_audio_spec.format=AUDIO_S16SYS;
-    } else if (IsSampleFormatSupported(g_acodec, AV_SAMPLE_FMT_S16)) {
-        g_aformat = AV_SAMPLE_FMT_S16;
-        g_audio_spec.format=AUDIO_S16SYS;
-    }else if(IsSampleFormatSupported(g_acodec,AV_SAMPLE_FMT_FLTP)){
-        g_aformat = AV_SAMPLE_FMT_FLTP;
-        g_audio_spec.format=AUDIO_F32SYS;
-    }else if(IsSampleFormatSupported(g_acodec,AV_SAMPLE_FMT_FLT)){
-        g_aformat = AV_SAMPLE_FMT_FLT;
-        g_audio_spec.format=AUDIO_F32SYS;
-    } else {
+    CheckSampleFormatSupported(AV_SAMPLE_FMT_S16, AUDIO_S16SYS);
+    CheckSampleFormatSupported(AV_SAMPLE_FMT_S16P, AUDIO_S16SYS);
+    CheckSampleFormatSupported(AV_SAMPLE_FMT_FLT, AUDIO_S16SYS);
+    CheckSampleFormatSupported(AV_SAMPLE_FMT_FLTP, AUDIO_S16SYS);
+    if (g_aformat == AV_SAMPLE_FMT_NONE) {
         messages->e.f("FFmpeg: %s codec doesn't support either float or 16-bit PCM audio\n", g_acodec->name);
         goto bad;
     }
 
-#if LIBAVUTIL_VERSION_MAJOR < 57
+#if !AVCHANNELLAYOUT_STRUCT
     const bool is_mono_supported = IsChannelLayoutSupported(g_acodec, AV_CH_LAYOUT_MONO);
 #else
     const bool is_mono_supported = IsChannelLayoutSupported(g_acodec, &CHANNEL_LAYOUT_MONO);

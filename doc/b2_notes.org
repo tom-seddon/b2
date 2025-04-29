@@ -3916,8 +3916,7 @@ GitHub mirror: https://github.com/FFmpeg/FFmpeg
 Ordinary configure:
 
 #+begin_src shell
-./configure --prefix=$HOME/usr --disable-stripping --enable-libx264 
---enable-gpl
+./configure --prefix=$HOME/usr --disable-stripping --enable-libx264 --enable-gpl
 #+end_src
 
 Debug build with more asserts:
@@ -3926,6 +3925,126 @@ Debug build with more asserts:
   ./configure --prefix=$HOME/usr --disable-stripping --enable-libx264 --enable-gpl --disable-optimizations --assert-level=2
 #+end_src
 
-* ffmpeg memory stomp (??)
+* ffmpeg deprecation stuff (stage 2/INF)
+
+Lib versions table:
+
+| Release | Lib           | Major.Minor.Micro |
+|---------+---------------+-------------------|
+|     4.0 | libavcodec    |         58.18.100 |
+|     4.1 | libavcodec    |         58.35.100 |
+|     4.2 | libavcodec    |         58.54.100 |
+|     4.3 | libavcodec    |         58.91.100 |
+|     4.4 | libavcodec    |        58.134.100 |
+|     5.0 | libavcodec    |         59.18.100 |
+|     5.1 | libavcodec    |         59.37.100 |
+|     6.0 | libavcodec    |          60.3.100 |
+|     6.1 | libavcodec    |         60.31.102 |
+|     7.0 | libavcodec    |          61.3.100 |
+|     7.1 | libavcodec    |         61.19.101 |
+|     4.0 | libavdevice   |          58.3.100 |
+|     4.1 | libavdevice   |          58.5.100 |
+|     4.2 | libavdevice   |          58.8.100 |
+|     4.3 | libavdevice   |         58.10.100 |
+|     4.4 | libavdevice   |         58.13.100 |
+|     5.0 | libavdevice   |          59.4.100 |
+|     5.1 | libavdevice   |          59.7.100 |
+|     6.0 | libavdevice   |          60.1.100 |
+|     6.1 | libavdevice   |          60.3.100 |
+|     7.0 | libavdevice   |          61.1.100 |
+|     7.1 | libavdevice   |          61.3.100 |
+|     4.0 | libavfilter   |          7.16.100 |
+|     4.1 | libavfilter   |          7.40.101 |
+|     4.2 | libavfilter   |          7.57.100 |
+|     4.3 | libavfilter   |          7.85.100 |
+|     4.4 | libavfilter   |         7.110.100 |
+|     5.0 | libavfilter   |          8.24.100 |
+|     5.1 | libavfilter   |          8.44.100 |
+|     6.0 | libavfilter   |           9.3.100 |
+|     6.1 | libavfilter   |          9.12.100 |
+|     7.0 | libavfilter   |          10.1.100 |
+|     7.1 | libavfilter   |          10.4.100 |
+|     4.0 | libavformat   |         58.12.100 |
+|     4.1 | libavformat   |         58.20.100 |
+|     4.2 | libavformat   |         58.29.100 |
+|     4.3 | libavformat   |         58.45.100 |
+|     4.4 | libavformat   |         58.76.100 |
+|     5.0 | libavformat   |         59.16.100 |
+|     5.1 | libavformat   |         59.27.100 |
+|     6.0 | libavformat   |          60.3.100 |
+|     6.1 | libavformat   |         60.16.100 |
+|     7.0 | libavformat   |          61.1.100 |
+|     7.1 | libavformat   |          61.7.100 |
+|     4.0 | libavresample |             4.0.0 |
+|     4.1 | libavresample |             4.0.0 |
+|     4.2 | libavresample |             4.0.0 |
+|     4.3 | libavresample |             4.0.0 |
+|     4.4 | libavresample |             4.0.0 |
+|     4.0 | libavutil     |         56.14.100 |
+|     4.1 | libavutil     |         56.22.100 |
+|     4.2 | libavutil     |         56.31.100 |
+|     4.3 | libavutil     |         56.51.100 |
+|     4.4 | libavutil     |         56.70.100 |
+|     5.0 | libavutil     |         57.17.100 |
+|     5.1 | libavutil     |         57.28.100 |
+|     6.0 | libavutil     |          58.2.100 |
+|     6.1 | libavutil     |         58.29.100 |
+|     7.0 | libavutil     |          59.8.100 |
+|     7.1 | libavutil     |         59.39.100 |
+|     4.0 | libpostproc   |          55.1.100 |
+|     4.1 | libpostproc   |          55.3.100 |
+|     4.2 | libpostproc   |          55.5.100 |
+|     4.3 | libpostproc   |          55.7.100 |
+|     4.4 | libpostproc   |          55.9.100 |
+|     5.0 | libpostproc   |          56.3.100 |
+|     5.1 | libpostproc   |          56.6.100 |
+|     6.0 | libpostproc   |          57.1.100 |
+|     6.1 | libpostproc   |          57.3.100 |
+|     7.0 | libpostproc   |          58.1.100 |
+|     7.1 | libpostproc   |          58.3.100 |
+|     4.0 | libswresample |           3.1.100 |
+|     4.1 | libswresample |           3.3.100 |
+|     4.2 | libswresample |           3.5.100 |
+|     4.3 | libswresample |           3.7.100 |
+|     4.4 | libswresample |           3.9.100 |
+|     5.0 | libswresample |           4.3.100 |
+|     5.1 | libswresample |           4.7.100 |
+|     6.0 | libswresample |          4.10.100 |
+|     6.1 | libswresample |          4.12.100 |
+|     7.0 | libswresample |           5.1.100 |
+|     7.1 | libswresample |           5.3.100 |
+|     4.0 | libswscale    |           5.1.100 |
+|     4.1 | libswscale    |           5.3.100 |
+|     4.2 | libswscale    |           5.5.100 |
+|     4.3 | libswscale    |           5.7.100 |
+|     4.4 | libswscale    |           5.9.100 |
+|     5.0 | libswscale    |           6.4.100 |
+|     5.1 | libswscale    |           6.7.100 |
+|     6.0 | libswscale    |           7.1.100 |
+|     6.1 | libswscale    |           7.5.100 |
+|     7.0 | libswscale    |           8.1.100 |
+|     7.1 | libswscale    |           8.3.100 |
+
+To do a version check, compare =<<COMPONENT>>_VERSION_INT= against
+=AV_VERSION_INT(MAJOR,MINOR,MICRO)=.
+
+** get FFmpeg releases code
+
+Do =make _ffmpeg_releases= to get a bunch of working copies in /tmp
+corresponding to 4.0+ releases of FFmpeg libs. Uses ~1.4 GB on macOS.
+
+Components with versions:
+
+- libavcodec
+- libavdevice
+- libavfilter
+- libavformat
+- libavutil
+- libpostproc
+- libswresample
+- libswscale
+
+Each component lives in a folder named as above, with a version.h and
+version_major.h in it.
 
 * eof.
