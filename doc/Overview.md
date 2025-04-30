@@ -159,11 +159,29 @@ Having recorded a timeline, click the `Video` button to produce a
 video starting from that point. Select the combination of resolution
 and audio bitrate from the popup.
 
+#### Lossless
+
 The lossless option saves out a sequence of numbered TGA files and WAV
 files, completely unprocessed, plus concat files that you can use with
-ffmpeg for stitching them together. The audio is 250 KHz float, as
-used by b2 internally; each frame is 736x576, timestamp as per the
-concat file. 
+command line FFmpeg for stitching them together. The audio is 250 KHz
+float, as used by b2 internally; each frame is 736x576, timestamp as
+per the concat file.
+
+(Bear in mind this can in theory use a lot of disk space for longer
+videos - each emulated second results in 50 images and 1 MByte of
+sound data! The lossless TGA compression generally works well for BBC
+Micro output but it can't do a perfect job on every image.)
+
+Enter the file name prefix to save to, which will be used at the
+prefix for all the various files it saves out. For example, if
+entering `test`, the WAV files will be called `test.000.wav`,
+`test.001.wav`, etc.; the video files will be called
+`test.0000000.tga`,`test.0000001.tga`, etc.
+
+The output files are designed for processing using ffmpeg. For some
+FFmpeg command line examples, see [the FFmpeg notes](./ffmpeg.md).
+
+#### Compressed
 
 For compressed video, when available, you'll get two resolution
 options: lower res 1:1 BBC pixels (736x576), and higher res 2:1 BBC

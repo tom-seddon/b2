@@ -3888,6 +3888,11 @@ ffmpeg -y -i ".\play_robo.%%07d.tga" -vf "cropdetect=mode=black:limit=0" -f null
   [Parsed_cropdetect_0 @ 000001976a3ba940] x1:66 x2:605 y1:64 y2:377 w:528 h:304 x:72 y:70 pts:6 t:0.240000 limit:0.000000 crop=528:304:72:70
 #+end_example
 
+Bleargh... cropdetect can end up eating too much of the video? And I
+don't understand why it chooses the values it does.
+
+To be continued.
+
 * Building ffmpeg on macOS
 
 ** libx264
