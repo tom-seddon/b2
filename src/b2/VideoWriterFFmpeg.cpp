@@ -448,7 +448,7 @@ class VideoWriterFFmpeg : public VideoWriter {
         }
     }
 
-    bool WriteVideo(const void *data, int64_t timestamp_ns) override {
+    bool WriteVideo(const void *data, int64_t timestamp_hns) override {
         int rc;
 
         rc = av_frame_make_writable(m_vframe);
@@ -468,7 +468,7 @@ class VideoWriterFFmpeg : public VideoWriter {
                   src_slices, src_strides, 0, TV_TEXTURE_HEIGHT,
                   m_vframe->data, m_vframe->linesize);
 
-        m_vframe->pts = timestamp_ns;
+        m_vframe->pts = timestamp_hns;
 
         if (!this->Write(m_vcontext, m_vstream, m_vframe, "video")) {
             return false;
