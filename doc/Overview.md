@@ -151,29 +151,26 @@ along with occasional saved states. Reload a saved state from the
 timeline to rewind the timeline back to that point and continue
 recording.
 
+Click `Replay` to play the timeline back. 
+
+### Saving a video
+
 Having recorded a timeline, click the `Video` button to produce a
 video starting from that point. Select the combination of resolution
 and audio bitrate from the popup.
 
 The lossless option saves out a sequence of numbered TGA files and WAV
-files, completely unprocessed, for stitching with something like
-ffmpeg. The audio is 250 KHz float, as used by b2 internally; the
-video is 50 fps, 736x576. (To accurately reproduce BBC output, have
-the video processing tool resize these to 707x576.)
+files, completely unprocessed, plus concat files that you can use with
+ffmpeg for stitching them together. The audio is 250 KHz float, as
+used by b2 internally; each frame is 736x576, timestamp as per the
+concat file. 
 
-For compressed video, when available, you'll always get two resolution
-options: lower res 1:1 BBC pixels, and higher res 2:1 BBC pixels.
-(Both are 50 Hz.) The 2:1 option just does a very basic upscale,
-nothing fancy; it exists so that when uploaded to YouTube the video
-comes out as HD 1080p50.
-
-Depending on system, you may get multiple audio bitrate and/or output
-format options (apologies for inconsistency - I hope to improve this).
-FLAC is best quality, and failing that higher Kb/sec = better. Pick
-the best output that works with whichever program you're using to play
-back.
-
-Click `Replay` to play the timeline back. 
+For compressed video, when available, you'll get two resolution
+options: lower res 1:1 BBC pixels (736x576), and higher res 2:1 BBC
+pixels (1472x1152). Both are variable frame rate, typically 50 fps.
+The 2:1 option just does a very basic upscale, nothing fancy; it
+exists so that when uploaded to YouTube the video comes out as HD
+1080p50. Audio is FLAC when possible.
 
 ## Screenshot
 
