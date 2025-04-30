@@ -513,6 +513,19 @@ applies.
 
 **The HTTP API is a work in progress, and may change.**
 
+## Using the HTTP API with `curl`
+
+`curl` is the intended way of using the HTTP API from a build process,
+or the command line in general, and the endpoints are generally
+designed to be fairly easy to use in this way.
+
+It's a good idea (though not mandatory!) to specify `--fail` or
+`--fail-with-body` on the `curl` command line, so that it reports any
+non-success HTTP server status by exiting with a non-zero status.
+
+`--fail` discards any response body in the error case, and
+`--fail-with-body` processes it as normal despite the error.
+
 ## HTTP endpoints
 
 Names in capitals are argument placeholders. When listed as part of
@@ -530,10 +543,13 @@ Parameters expecting numbers are typically hex values, e.g., `ffff`
 
 Unless otherwise specified, the HTTP server assumes the request body's
 `Content-Type` is `application/octet-stream`. And unless otherwise
-specified, the response is an HTTP status code with no content.
-Generally this will be one of `200 OK` (success), `400 Bad Request` or
-`404 Not Found` (invalid request), or `503 Service Unavailable` (request
-was valid but couldn't be fulfilled).
+specified, the response is an HTTP status code, with no content in the
+success case, and a text error message in any failure case.
+
+Generally the status code will be one of `200 OK` (success - no
+content), `400 Bad Request` or `404 Not Found` (invalid request), or
+`503 Service Unavailable` (request was valid but couldn't be
+fulfilled).
 
 ### `launch?path=PATH`
 

@@ -132,6 +132,14 @@ class HTTPMethodsHandler : public HTTPHandler {
         LogPrinterString log_printer_string(&log_string);
         Log log("", &log_printer_string);
 
+        // I got this wrong! Instead of having varargs, a mix of query
+        // parameters and URL parts, should be a bit more organised about it and
+        // have separate tables for query parameters and URL parts. Then any
+        // unrecognised query parts can be found when encountered (as the name
+        // won't be found in the query parameter table), rather than having to
+        // do this stupid thing.
+        std::vector<bool> query_argument_handled(request.query.size());
+
         for (const char *fmt = fmt0; fmt; fmt = va_arg(v, const char *)) {
             const char *name = va_arg(v, const char *);
 
@@ -139,9 +147,11 @@ class HTTPMethodsHandler : public HTTPHandler {
             if (name) {
                 value = nullptr;
 
-                for (const HTTPQueryParameter &q : request.query) {
-                    if (q.key == name) {
-                        value = &q.value;
+                for (size_t i = 0; i < request.query.size(); ++i) {
+                    const HTTPQueryParameter *q = &request.query[i];
+                    if (q->key == name) {
+                        value = &q->value;
+                        query_argument_handled[i] = true;
                         break;
                     }
                 }
@@ -239,6 +249,13 @@ class HTTPMethodsHandler : public HTTPHandler {
             else { //<-- note
                 ASSERT(false);
                 server->SendResponse(request, HTTPResponse());
+                return false;
+            }
+        }
+
+        for (size_t i = 0; i < query_argument_handled.size(); ++i) {
+            if (!query_argument_handled[i]) {
+                server->SendResponse(request, HTTPResponse::BadRequest(request, "no such query parameter: %s", request.query[i].key.c_str()));
                 return false;
             }
         }
