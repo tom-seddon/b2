@@ -155,8 +155,9 @@ uint64_t Get3MHzCycleCount(CycleCount n);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr int CORRECT_ASPECT_RATIO_NUMERATOR = 120;
-static constexpr int CORRECT_ASPECT_RATIO_DENOMINATOR = 125;
+// Numerator = width; denominator = height.
+static constexpr int CORRECT_ASPECT_RATIO_NUMERATOR = 24;
+static constexpr int CORRECT_ASPECT_RATIO_DENOMINATOR = 25;
 
 static constexpr double CORRECT_ASPECT_RATIO_X_SCALE = (double)CORRECT_ASPECT_RATIO_NUMERATOR / CORRECT_ASPECT_RATIO_DENOMINATOR;
 

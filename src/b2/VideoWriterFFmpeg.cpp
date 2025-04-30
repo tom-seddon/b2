@@ -238,6 +238,7 @@ class VideoWriterFFmpeg : public VideoWriter {
         }
         m_vcontext->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
         m_vcontext->flags |= context_flags;
+        m_vcontext->sample_aspect_ratio = av_make_q(CORRECT_ASPECT_RATIO_NUMERATOR, CORRECT_ASPECT_RATIO_DENOMINATOR);
 
         rc = avcodec_open2(m_vcontext, g_vcodec, nullptr);
         if (rc < 0) {
