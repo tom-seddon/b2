@@ -15,8 +15,6 @@ struct VideoWriterFormat;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CanCreateVideoWriterFFmpeg();
-
 std::unique_ptr<VideoWriter> CreateVideoWriterFFmpeg(std::shared_ptr<MessageList> message_list,
                                                      std::string file_name,
                                                      size_t format_index);

@@ -608,21 +608,10 @@ class VideoWriterFFmpeg : public VideoWriter {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CanCreateVideoWriterFFmpeg() {
-    if (!g_can_write_video) {
-        return false;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::unique_ptr<VideoWriter> CreateVideoWriterFFmpeg(std::shared_ptr<MessageList> message_list,
                                                      std::string file_name,
                                                      size_t format_index) {
-    if (!CanCreateVideoWriterFFmpeg()) {
+    if (!g_can_write_video) {
         return nullptr;
     }
 
