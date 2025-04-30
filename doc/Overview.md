@@ -184,11 +184,16 @@ FFmpeg command line examples, see [the FFmpeg notes](./ffmpeg.md).
 #### Compressed
 
 For compressed video, when available, you'll get two resolution
-options: lower res 1:1 BBC pixels (736x576), and higher res 2:1 BBC
-pixels (1472x1152). Both are variable frame rate, typically 50 fps.
-The 2:1 option just does a very basic upscale, nothing fancy; it
-exists so that when uploaded to YouTube the video comes out as HD
-1080p50. Audio is FLAC when possible.
+options: lower res 1:1 BBC pixels (736x576, 0.96:1 pixel aspect
+ratio), and higher res 2:1 BBC pixels (1472x1152, 0.96:1 pixel aspect
+ratio). Both are variable frame rate, but typically 50 fps.
+
+Audio is FLAC.
+
+For best results, use [VLC](https://www.videolan.org/).
+
+The 2:1 option doesn't do anything special - it exists so that when
+uploaded to YouTube the video gets the HD 1080p50 option.
 
 ## Screenshot
 

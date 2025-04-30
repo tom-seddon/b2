@@ -262,7 +262,6 @@ static int g_unbind_opengl = 0;
 
 static const double MESSAGES_POPUP_TIME_SECONDS = 2.5;
 static const double LEDS_POPUP_TIME_SECONDS = 1.;
-static constexpr double CORRECT_ASPECT_RATIO_X_SCALE = 1.2 / 1.25;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

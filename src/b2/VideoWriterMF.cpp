@@ -174,7 +174,7 @@ class VideoWriterMF : public VideoWriter {
             MFAttributeUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive),
             MFAttributeSize(MF_MT_FRAME_SIZE, format->width, format->height),
             MFAttributeRatio(MF_MT_FRAME_RATE, FPS, 1),
-            MFAttributeRatio(MF_MT_PIXEL_ASPECT_RATIO, 1, 1),
+            MFAttributeRatio(MF_MT_PIXEL_ASPECT_RATIO, CORRECT_ASPECT_RATIO_NUMERATOR, CORRECT_ASPECT_RATIO_DENOMINATOR),
         };
         CComPtr<IMFMediaType> video_output_type = this->CreateMediaType(video_output_attributes, "video output");
 
@@ -185,7 +185,7 @@ class VideoWriterMF : public VideoWriter {
             MFAttributeSize(MF_MT_FRAME_SIZE, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT),
             MFAttributeUINT32(MF_MT_DEFAULT_STRIDE, TV_TEXTURE_WIDTH * 4),
             MFAttributeRatio(MF_MT_FRAME_RATE, FPS, 1),
-            MFAttributeRatio(MF_MT_PIXEL_ASPECT_RATIO, 1, 1),
+            MFAttributeRatio(MF_MT_PIXEL_ASPECT_RATIO, CORRECT_ASPECT_RATIO_NUMERATOR, CORRECT_ASPECT_RATIO_DENOMINATOR),
         };
         CComPtr<IMFMediaType> video_input_type = this->CreateMediaType(video_input_attributes, "video input");
 
