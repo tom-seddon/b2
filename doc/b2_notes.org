@@ -4063,4 +4063,112 @@ Along these lines:
 Then poke at options as required. But fingers crossed, it should be
 about right.
 
+* Debugger expression evaluator ideas
+
+Would be nice to have multiple syntaxes, same as the hex/bin notation.
+But not immediately vital.
+
+Extras required for BBC BASIC syntax:
+
+- word indirection operator
+
+Extras required for C/asm syntax:
+
+- <<insert ideas here>>
+
+* Debugger symbols
+
+Goal here is just to make the disassembly and trace output slightly
+easier to read, and provide useful support for any situations that are
+easy. This is not intended to handle every case. Can assume the
+debugged program is cooperating.
+
+Stretch goals might be something like expression support, so if you
+want to view `some_symbol+other_symbol` then you can do that.
+
+Non-goals:
+
+- dealing with source files
+- anything that's at all complicated to do!
+- anything that's a UI rabbithole
+
+** Ideas
+
+- Not all symbols will be relevant for all paging states. For example,
+  if you've created a ROM, its symbols are probably only relevant when
+  its bank is selected. Should be able to configure this somehow
+
+- If an address doesn't have a symbol, guess at a symbol that seems
+  close enough?
+
+- Need to be able to reload symbols
+
+- Should record expression used to set address in disassembly
+  view/memory editor, and if it is still watching that same address
+  when that symbol is reloaded then the address should change. The UI
+  is kind of already in place for this
+
+- Breakpoints should behave similarly... there's no UI for this at all
+  currently though! See https://github.com/tom-seddon/b2/issues/133
+
+- Auto guess structures/nesting - just(??) follow the dots. This can
+  be improved later
+
+- Named/numbered symbol groups. This is only metadata, and doesn't
+  appear in the UI or affect symbol names. It's a way to let multiple
+  sets of symbols coexist, so they can be reloaded/enabled/disabled
+  independently
+
+- Numbered symbol groups would permit runtime enable/disable from 6502
+  code, exactly what you'd want when loading a program in multiple
+  parts. Enabling should prompt a possible reload. There should be a
+  disable-all option for use in =!BOOT=, possibly with some kind of
+  masking-type behaviour so that your program's =!BOOT= doesn't
+  interfere with symbols for loaded ROMs or the MOS or whatever
+
+- As with ROMs, symbols should reload automatically on File > Power-on
+  Reset
+
+** Assembler support
+
+*** BeebAsm
+
+Can output Swift format. Like JSON, it looks like, but single quotes
+and L suffixes on the numbers. Neither rapidjson nor nlohmann::json
+will support this. But it is at least fairly structured, so parseable
+in principle.
+
+*** 64tass
+
+Listing file is comprehensive, but a degree of parsing will be
+required to fish out any nested constructs.
+
+Can output a labels file: just NAME=VALUE pairs, one per line. But
+this also includes constants, and excludes private/nested names.
+
+--export-labels is no better: same limitations, and it include unused
+.procs too.
+
+The --dump-labels option is pretty comprehensive, but each line starts
+with a FILE:LINE:COLUMN: prefix - so what if FILE contains a colon?
+Luckily, it looks line-based, so problem lines can be ignored and the
+rest of the file interpreted.
+
+*** Generic???
+
+Some kind of regular expression-based thing would be an option. Needs
+UI for experimenting though... the sort of aforementioned UI
+rabbithole it'd be nice to avoid.
+
+HTTP API is probably the easiest thing. Now the whole thing is fully
+extensible, and the problem is punted. (Can add a query option too!
+nlohmann::json to the rescue!)
+
+(This might even completely cover the above two options - provide some
+Python scripts somehow to handle all of this stuff? Or perhaps have a
+command line option for the emulator to talk to itself, so the label
+parsing code can be (in effect) its own standalone command line thing,
+and the actual symbol handling code can be generic. Would simplify
+development a bit.)
+
 * eof.
