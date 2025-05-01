@@ -448,7 +448,7 @@ processor. With a B/B+, be sure to install a ROM installed with the
 Tube host code in it, such as the Acorn 1770 DFS.)
 
 Changes to a configuration don't affect the running Beeb until you do
-a `File` > `Hard Reset` (if you're editing the current config) or
+a `File` > `Power-on Reset` (if you're editing the current config) or
 select the updated configuration from the `Hardware' menu.
 
 To create a new configuration, click the `New...` button to create one
@@ -464,15 +464,15 @@ use `File` > `Save CMOS/EEPROM contents` to save the current
 CMOS/EEPROM contents for the current config. (For technical reasons,
 this doesn't currently happen automatically - sorry!)
 
-These affect the values used when using `File` > `Hard reset` or when
-re-selecting the current config from the Hardware menu.
+These affect the values used when using `File` > `Power-on Reset` or
+when re-selecting the current config from the Hardware menu.
 
 (Each hardware config on the Hardware menu has its own independent
 set of CMOS/EEPROM contents.)
 
 Use `Tools` > `Reset CMOS/EEPROM` to reset the saved settings to
-reasonable default settings. Again, use `File` > `Hard reset` to see
-the effect.
+reasonable default settings. Again, use `File` > `Power-on Reset` to
+see the effect.
 
 ## Copy to clipboard
 

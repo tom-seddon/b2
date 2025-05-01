@@ -90,7 +90,7 @@ static Command2 g_toggle_console_command = Command2(&g_beeb_window_command_table
 static Command2 g_clear_console_command(&g_beeb_window_command_table, "clear_console", "Clear Win32 console");
 static Command2 g_print_separator_command(&g_beeb_window_command_table, "print_separator", "Print stdout separator");
 #endif
-static Command2 g_hard_reset_command(&g_beeb_window_command_table, "hard_reset", "Hard Reset");
+static Command2 g_hard_reset_command(&g_beeb_window_command_table, "hard_reset", "Power-on Reset");
 static Command2 g_save_state_command(&g_beeb_window_command_table, "save_state", "Save State");
 static Command2 g_exit_command = Command2(&g_beeb_window_command_table, "exit", "Exit").MustConfirm();
 static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_command_table, "clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm();
