@@ -47,6 +47,7 @@
 #include <dwmapi.h>
 #endif
 #include <shared/file_io.h>
+#include "b2client_http_api.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -3366,6 +3367,16 @@ void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
 
     m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
     m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Boot | BeebThreadHardResetFlag_Run));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+ClientResponse BeebWindow::HandleClientRequest(const ClientRequest &request) {
+    ClientResponse response;
+    response.has_debugger=!!BBCMICRO_DEBUGGER;
+
+    return response;
 }
 
 //////////////////////////////////////////////////////////////////////////

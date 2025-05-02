@@ -12,6 +12,7 @@
 #include "Messages.h"
 #include <shared/debug.h>
 #include <unordered_map>
+#include <shared/strings.h>
 
 #include <shared/enum_def.h>
 #include "misc.inl"
@@ -40,37 +41,6 @@ void DumpRendererInfo(Log *log, const SDL_RendererInfo *info) {
 
 void SetRenderScaleQualityHint(bool filter) {
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, filter ? "linear" : "nearest");
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string strprintf(const char *fmt, ...) {
-    va_list v;
-
-    va_start(v, fmt);
-    std::string result = strprintfv(fmt, v);
-    va_end(v);
-
-    return result;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string strprintfv(const char *fmt, va_list v) {
-    char *str;
-    if (vasprintf(&str, fmt, v) == -1) {
-        // Better suggestions welcome... please.
-        return std::string("vasprintf failed - ") + strerror(errno) + " (" + std::to_string(errno) + ")";
-    } else {
-        std::string result(str);
-
-        free(str);
-        str = NULL;
-
-        return result;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////

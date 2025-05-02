@@ -29,13 +29,16 @@
 
 struct JSON : private nlohmann::json {
     JSON() = default;
-    JSON(const nlohmann::json &j)
+    
+    explicit JSON(const nlohmann::json &j)
         : nlohmann::json(j) {
     }
+    
     JSON(nlohmann::json &&j)
-        : nlohmann::json(j) {
+        : nlohmann::json(std::move(j)) {
     }
 
+    // couldn't figure out how to make a conversion operator out of this one.
     const nlohmann::json &AsNLohmannJSON() const {
         return *this;
     }

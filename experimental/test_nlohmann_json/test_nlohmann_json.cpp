@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/strings.h>
 #include <nlohmann/json.hpp>
 #include <shared/testing.h>
 #include <shared/path.h>
@@ -263,19 +264,6 @@ struct Root {
     std::vector<char> test_char_array;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Root, shortcuts, configs, trace, new_keymaps, keymaps, test_string, test_char_array);
-
-static std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...) {
-    char *tmp;
-
-    va_list v;
-    va_start(v, fmt);
-    vasprintf(&tmp, fmt, v);
-
-    std::string result = tmp;
-    free(tmp), tmp = nullptr;
-
-    return result;
-}
 
 struct OptionalTest2 {
     int x = 0, y = 0, z = 0;

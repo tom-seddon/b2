@@ -249,6 +249,19 @@ bool CommandLineParser::Parse(int argc,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool CommandLineParser::Parse(const std::vector<std::string> argv, std::vector<std::string> *other_args) const {
+    if (argv.size() > INT_MAX) {
+        return false;
+    }
+
+    std::vector<const char *> argv_ptrs(argv.size());
+    for (size_t i = 0; i < argv.size(); ++i) {
+        argv_ptrs[i] = argv[i].c_str();
+    }
+
+    return this->Parse((int)argv.size(), argv_ptrs.data(), other_args);
+}
+
 bool CommandLineParser::Parse(int argc,
                               char *argv[],
                               std::vector<std::string> *other_args) const {

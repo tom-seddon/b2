@@ -407,19 +407,19 @@ std::string GetUTF8String(const std::wstring &str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::wstring GetWideString(const char *str, size_t len) {
+static std::wstring GetWideString(const char *str, size_t len, int code_page) {
     if (len > INT_MAX) {
         return L"";
     }
 
-    int n = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
+    int n = MultiByteToWideChar(code_page, 0, str, (int)len, nullptr, 0);
     if (n == 0) {
         return L"";
     }
 
     std::vector<wchar_t> buffer;
     buffer.resize(n);
-    MultiByteToWideChar(CP_UTF8, 0, str, (int)len, buffer.data(), (int)buffer.size());
+    MultiByteToWideChar(code_page, 0, str, (int)len, buffer.data(), (int)buffer.size());
 
     return std::wstring(buffer.begin(), buffer.end());
 }
@@ -429,12 +429,20 @@ static std::wstring GetWideString(const char *str, size_t len) {
 
 std::wstring GetWideString(const char *str) {
     size_t len = strlen(str);
-    return GetWideString(str, len);
+    return GetWideString(str, len, CP_UTF8);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::wstring GetWideString(const std::string &str) {
-    return GetWideString(str.data(), str.size());
+    return GetWideString(str.data(), str.size(), CP_UTF8);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetUTF8StringFromThreadACPString(const char *str) {
+    std::wstring wstr = GetWideString(str, strlen(str), CP_THREAD_ACP);
+    return GetUTF8String(wstr);
 }

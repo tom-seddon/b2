@@ -32,6 +32,7 @@ set(SRCS
   c/mutex.cpp ${H}/mutex.h ${H}/mutex.inl
   ${H}/pshpack1.h ${H}/pshpack4.h ${H}/pshpack8.h ${H}/poppack.h
   c/file_io.cpp ${H}/file_io.h ${H}/file_io.inl
+  c/strings.cpp ${H}/strings.h
   )
 
 if(APPLE)

@@ -32,6 +32,7 @@
 #include <shared/system_specific.h>
 #include "profiler.h"
 #include <system_error>
+#include <shared/strings.h>
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"

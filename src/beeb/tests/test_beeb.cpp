@@ -18,6 +18,7 @@
 #include <beeb/DiscImage.h>
 #include <shared/sha1.h>
 #include <shared/file_io.h>
+#include <shared/strings.h>
 
 #include <shared/enum_decl.h>
 #include "test_beeb.inl"
@@ -149,34 +150,6 @@ static constexpr size_t NUM_VIDEO_DATA_UNITS_LOG2 = 24;
 
 static constexpr size_t NUM_VIDEO_DATA_UNITS = 1 << NUM_VIDEO_DATA_UNITS_LOG2;
 static constexpr size_t VIDEO_DATA_UNIT_INDEX_MASK = (1 << NUM_VIDEO_DATA_UNITS_LOG2) - 1;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string strprintfv(const char *fmt, va_list v) {
-    char *str;
-    if (vasprintf(&str, fmt, v) == -1) {
-        // Better suggestions welcome... please.
-        return std::string("vasprintf failed - ") + strerror(errno) + " (" + std::to_string(errno) + ")";
-    } else {
-        std::string result(str);
-
-        free(str);
-        str = NULL;
-
-        return result;
-    }
-}
-
-std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...) {
-    va_list v;
-
-    va_start(v, fmt);
-    std::string result = strprintfv(fmt, v);
-    va_end(v);
-
-    return result;
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

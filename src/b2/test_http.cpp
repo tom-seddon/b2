@@ -2,6 +2,8 @@
 #include <shared/testing.h>
 #include <shared/mutex.h>
 #include "HTTPServer.h"
+#include "HTTPClient.h"
+#include "HTTP.h"
 #include "Messages.h"
 #include <set>
 

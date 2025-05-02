@@ -13,6 +13,7 @@
 #include <SDL.h>
 #include "conf.h"
 #include "misc.h"
+#include <shared/strings.h>
 
 #include <shared/enum_decl.h>
 #include "VideoWriterMF_private.inl"

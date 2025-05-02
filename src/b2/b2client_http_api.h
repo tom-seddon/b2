@@ -1,0 +1,56 @@
+#ifndef HEADER_79031FBEC47E43088272DC66BB449BD4 // -*- mode:c++ -*-
+#define HEADER_79031FBEC47E43088272DC66BB449BD4
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#include "json.h"
+#include <vector>
+#include <string>
+
+#include <shared/enum_decl.h>
+#include "b2client_http_api.inl"
+#include <shared/enum_end.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Not strictly part of the API, but you do need to know it.
+static const int HTTP_SERVER_PORT = 0xbbcb;
+
+extern const std::string CLIENT_PATH;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct ClientRequest {
+    // If not specified, pick the MRU one.
+    std::string window_name;
+
+    // Disks to load. Unspecified drives are left unchanged.
+    std::vector<std::string> drive_files;
+    std::vector<bool> drive_direct;
+
+    // If true, due a power-on reset with auto boot.
+    bool boot = false;
+
+    // If not specified, use current config, whatever it is.
+    std::string config_name;
+};
+JSON_SERIALIZE(ClientRequest, window_name, drive_files, drive_direct, config_name);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct ClientResponse {
+    // Value of server's BBCMICRO_DEBUGGER flag.
+    bool has_debugger = false;
+
+    // ...any other stuff?
+};
+JSON_SERIALIZE(ClientResponse, has_debugger);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#endif

@@ -4171,4 +4171,16 @@ parsing code can be (in effect) its own standalone command line thing,
 and the actual symbol handling code can be generic. Would simplify
 development a bit.)
 
+* b2launch
+
+| b2launch     | b2 (if different) |
+|--------------+-------------------|
+| -c, --config |                   |
+| -0           |                   |
+| -1           |                   |
+| --0-direct   |                   |
+| --1-direct   |                   |
+
+It will work!
+
 * eof.

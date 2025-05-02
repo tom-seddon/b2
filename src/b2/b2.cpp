@@ -36,6 +36,7 @@
 #include <atomic>
 #include <shared/system_specific.h>
 #include "HTTPServer.h"
+#include "HTTP.h"
 #include "HTTPMethodsHandler.h"
 #include <curl/curl.h>
 #include <beeb/DirectDiscImage.h>
@@ -50,6 +51,9 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #endif
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"
+#include <shared/strings.h>
+#include "b2client_http_api.h"
+#include "HTTPClient.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -117,8 +121,6 @@ static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " 
 static const int DEFAULT_AUDIO_HZ = 48000;
 
 static const int DEFAULT_AUDIO_BUFFER_SIZE = 1024;
-
-static const int HTTP_SERVER_PORT = 0xbbcb;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

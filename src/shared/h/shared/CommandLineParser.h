@@ -52,6 +52,7 @@ class CommandLineParser {
 
     void SetLogs(Log *help_log, Log *error_log);
 
+    bool Parse(const std::vector<std::string> argv, std::vector<std::string> *other_args = nullptr) const;
     bool Parse(int argc, const char *const argv[], std::vector<std::string> *other_args = nullptr) const;
     bool Parse(int argc, char *argv[], std::vector<std::string> *other_args = nullptr) const;
     void Help(const char *argv0) const;

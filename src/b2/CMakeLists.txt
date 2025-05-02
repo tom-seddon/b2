@@ -51,6 +51,9 @@ add_executable(b2 MACOSX_BUNDLE
   joysticks.cpp joysticks.h
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
   json.cpp json.h
+  HTTPClient.cpp HTTPClient.h
+  HTTP.cpp HTTP.h
+  b2client_http_api.cpp b2client_http_api.h b2client_http_api.inl
   )
 
 if(OSX)
@@ -434,6 +437,8 @@ add_test(
 add_executable(test_http
   test_http.cpp
   HTTPServer.cpp HTTPServer.h
+  HTTPClient.cpp HTTPClient.h
+  HTTP.cpp HTTP.h
   Messages.cpp Messages.h
   )
 b2_target_boilerplate(test_http SANITIZERS)
@@ -457,3 +462,20 @@ target_link_libraries(test_UTF8 PRIVATE shared_lib beeb_lib ${SDL2_LIBRARY})
 add_test(
   NAME b2/test_UTF8
   COMMAND $<TARGET_FILE:test_UTF8>)
+
+##########################################################################
+##########################################################################
+
+add_executable(b2client
+  b2client.cpp
+  b2client_http_api.cpp b2client_http_api.h b2client_http_api.inl
+  json.cpp json.h
+  HTTP.cpp HTTP.h
+  HTTPClient.cpp HTTPClient.h
+  Messages.cpp Messages.h
+  )
+b2_target_boilerplate(b2client,SANITIZERS)
+target_link_libraries(b2client PRIVATE shared_lib ${LIBCURL_TARGET} nlohmann_json::nlohmann_json)
+
+##########################################################################
+##########################################################################

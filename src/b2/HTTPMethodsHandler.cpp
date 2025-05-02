@@ -1,4 +1,6 @@
 #include <shared/system.h>
+#include <nlohmann/json.hpp>
+#include "json.h"
 #include "HTTPMethodsHandler.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -17,6 +19,8 @@
 #include "Messages.h"
 #include <shared/path.h>
 #include <beeb/DiscGeometry.h>
+#include "HTTP.h"
+#include "b2client_http_api.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -90,6 +94,14 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"run", &HTTPMethodsHandler::HandleRunRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
+
+        // For use by b2client. Sends and receives JSON message body, so that it
+        // can be a bit more open-ended - at the cost of not being very useable
+        // via curl on the command line.
+        //
+        // b2client is intended for use by b2 debug, but b2 non-debug will
+        // respond to it as well.
+        {CLIENT_PATH, &HTTPMethodsHandler::HandleClientRequest},
     };
 
     // Parse path parts.
@@ -469,6 +481,55 @@ class HTTPMethodsHandler : public HTTPHandler {
         beeb_window->Launch(arguments);
 
         server->SendResponse(request, HTTPResponse::OK());
+    }
+
+    void HandleClientRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        if (request.content_type != HTTP_JSON_CONTENT_TYPE) {
+            server->SendResponse(request, HTTPResponse::UnsupportedMediaType(request));
+            return;
+        }
+
+        if (!request.content_type_charset.empty() && request.content_type_charset != HTTP_UTF8_CHARSET) {
+            server->SendResponse(request, HTTPResponse::UnsupportedMediaType(request));
+            return;
+        }
+
+        nlohmann::json j_content;
+        try {
+            j_content = nlohmann::json::parse(request.body);
+        } catch (nlohmann::json::exception &exc) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "JSON parse error: %s", exc.what()));
+            return;
+        }
+
+        ClientRequest crequest;
+        try {
+            crequest = j_content.get<ClientRequest>();
+        } catch (nlohmann::json::exception &exc) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "JSON format error: %s", exc.what()));
+            return;
+        }
+
+        BeebWindow *beeb_window;
+        if (crequest.window_name.empty()) {
+            beeb_window = BeebWindows::FindMRUBeebWindow();
+        } else {
+            beeb_window = BeebWindows::FindBeebWindowByName(crequest.window_name);
+            if (!beeb_window) {
+                server->SendResponse(request, HTTPResponse::ServiceUnavailable());
+                return;
+            }
+        }
+
+        ClientResponse cresponse = beeb_window->HandleClientRequest(crequest);
+
+        j_content = cresponse;
+
+        HTTPResponse response;
+        response.content_type = HTTP_JSON_CONTENT_TYPE;
+        response.content_str = j_content.dump(4);
+
+        server->SendResponse(request, std::move(response));
     }
 
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {

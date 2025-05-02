@@ -36,7 +36,11 @@ int backtrace(void **array, int size);
 std::string GetUTF8String(const wchar_t *str);
 std::string GetUTF8String(const std::wstring &str);
 
+// Input string is UTF-8.
 std::wstring GetWideString(const char *str);
 std::wstring GetWideString(const std::string &str);
+
+// Input string is in thread's current code page. Intended for use with argv.
+std::string GetUTF8StringFromThreadACPString(const char *str);
 
 #endif
