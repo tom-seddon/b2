@@ -9,6 +9,7 @@
 #include "Remapper.h"
 #include <shared/log.h>
 #include "misc.h"
+#include <shared/strings.h>
 
 #ifdef __clang__
 
@@ -432,7 +433,7 @@ class VideoWriterFFmpeg : public VideoWriter {
                 src += n * sample_size_bytes;
                 num_src_samples_left -= n;
 
-                m_aframe_index += n;
+                m_aframe_index += (int)n;
                 ASSERT(m_aframe_index <= m_aframe->nb_samples);
                 if (m_aframe_index == m_aframe->nb_samples) {
                     if (!this->Write(m_acontext, m_astream, m_aframe, "audio")) {
