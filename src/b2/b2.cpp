@@ -36,7 +36,7 @@
 #include <atomic>
 #include <shared/system_specific.h>
 #include "HTTPServer.h"
-#include "HTTP.h"
+#include "http.h"
 #include "HTTPMethodsHandler.h"
 #include <curl/curl.h>
 #include <beeb/DirectDiscImage.h>

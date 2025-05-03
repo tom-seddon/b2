@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 #include <shared/debug.h>
-#include "HTTP.h"
+#include "http.h"
 #include "Messages.h"
 
 //////////////////////////////////////////////////////////////////////////

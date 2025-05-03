@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include "HTTP.h"
+#include "http.h"
 #include <shared/strings.h>
 #include <string.h>
 

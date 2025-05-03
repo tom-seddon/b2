@@ -19,7 +19,7 @@
 #include "Messages.h"
 #include <shared/path.h>
 #include <beeb/DiscGeometry.h>
-#include "HTTP.h"
+#include "http.h"
 #include "b2client_http_api.h"
 
 //////////////////////////////////////////////////////////////////////////

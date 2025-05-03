@@ -3,7 +3,7 @@
 #include <shared/mutex.h>
 #include "HTTPServer.h"
 #include "HTTPClient.h"
-#include "HTTP.h"
+#include "http.h"
 #include "Messages.h"
 #include <set>
 

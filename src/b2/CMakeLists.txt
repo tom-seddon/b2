@@ -52,7 +52,7 @@ add_executable(b2 MACOSX_BUNDLE
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
   json.cpp json.h
   HTTPClient.cpp HTTPClient.h
-  HTTP.cpp HTTP.h
+  http.cpp http.h
   b2client_http_api.cpp b2client_http_api.h b2client_http_api.inl
   )
 
@@ -438,7 +438,7 @@ add_executable(test_http
   test_http.cpp
   HTTPServer.cpp HTTPServer.h
   HTTPClient.cpp HTTPClient.h
-  HTTP.cpp HTTP.h
+  http.cpp http.h
   Messages.cpp Messages.h
   )
 b2_target_boilerplate(test_http SANITIZERS)
@@ -470,7 +470,7 @@ add_executable(b2client
   b2client.cpp
   b2client_http_api.cpp b2client_http_api.h b2client_http_api.inl
   json.cpp json.h
-  HTTP.cpp HTTP.h
+  http.cpp http.h
   HTTPClient.cpp HTTPClient.h
   Messages.cpp Messages.h
   )
