@@ -113,7 +113,7 @@ static const AVChannelLayout *GetCodecChannelLayouts(const AVCodec *codec) {
 #if USE_AVCODEC_GET_SUPPORTED_CONFIG
     return GetCodecConfigs<AVChannelLayout>(codec, AV_CODEC_CONFIG_CHANNEL_LAYOUT);
 #else
-    return codec->channel_layouts;
+    return codec->ch_layouts;
 #endif
 }
 #endif
