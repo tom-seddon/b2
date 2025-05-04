@@ -145,9 +145,14 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
 // N.B. - this is quite a large object.
 class Messages : public LogSet {
   public:
+    struct STDIOType {};
+    static const STDIOType STDIO;
+
     // When default-constructed, all three logs are disabled and go to
     // the nowhere printer.
     Messages();
+    Messages(const STDIOType &); // automatically create a MessageList with the
+                                 // PrintToStdio flag set.
     Messages(std::shared_ptr<MessageList> message_list);
     ~Messages();
 
