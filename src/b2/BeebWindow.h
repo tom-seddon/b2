@@ -30,8 +30,6 @@ struct SDL_ControllerButtonEvent;
 struct JoystickResult;
 class BeebKeymap;
 class ImGuiStuff;
-struct ClientRequest;
-struct ClientResponse;
 
 #include "keys.h"
 #include <string>
@@ -312,9 +310,6 @@ class BeebWindow {
 
     // Handle double click or drag'n'drop.
     void Launch(const BeebWindowLaunchArguments &arguments);
-
-    // Handle b2client request.
-    ClientResponse HandleClientRequest(const ClientRequest &request);
 
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);

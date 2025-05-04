@@ -4183,4 +4183,61 @@ development a bit.)
 
 It will work!
 
+** Old HTTP code
+
+Decided in the end to have the client make multiple requests using
+existing endpoints instead.
+
+#+begin_src c++
+      void HandleClientRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+          if (request.content_type != HTTP_JSON_CONTENT_TYPE) {
+              server->SendResponse(request, HTTPResponse::UnsupportedMediaType(request));
+              return;
+          }
+
+          if (!request.content_type_charset.empty() && request.content_type_charset != HTTP_UTF8_CHARSET) {
+              server->SendResponse(request, HTTPResponse::UnsupportedMediaType(request));
+              return;
+          }
+
+          nlohmann::json j_content;
+          try {
+              j_content = nlohmann::json::parse(request.body);
+          } catch (nlohmann::json::exception &exc) {
+              server->SendResponse(request, HTTPResponse::BadRequest(request, "JSON parse error: %s", exc.what()));
+              return;
+          }
+
+          ClientRequest crequest;
+          try {
+              crequest = j_content.get<ClientRequest>();
+          } catch (nlohmann::json::exception &exc) {
+              server->SendResponse(request, HTTPResponse::BadRequest(request, "JSON format error: %s", exc.what()));
+              return;
+          }
+
+          BeebWindow *beeb_window;
+          if (crequest.window_name.empty()) {
+              beeb_window = BeebWindows::FindMRUBeebWindow();
+          } else {
+              beeb_window = BeebWindows::FindBeebWindowByName(crequest.window_name);
+              if (!beeb_window) {
+                  server->SendResponse(request, HTTPResponse::ServiceUnavailable());
+                  return;
+              }
+          }
+
+          ClientResponse cresponse = beeb_window->HandleClientRequest(crequest);
+
+          j_content = cresponse;
+
+          HTTPResponse response;
+          response.content_type = HTTP_JSON_CONTENT_TYPE;
+          response.content_type_charset = HTTP_UTF8_CHARSET;
+          response.SetContentString(j_content.dump(4));
+
+          server->SendResponse(request, std::move(response));
+      }
+#+end_src
+
 * eof.

@@ -53,7 +53,6 @@ add_executable(b2 MACOSX_BUNDLE
   json.cpp json.h
   HTTPClient.cpp HTTPClient.h
   http.cpp http.h
-  b2client_http_api.cpp b2client_http_api.h b2client_http_api.inl
   )
 
 if(OSX)
@@ -468,7 +467,6 @@ add_test(
 
 add_executable(b2client
   b2client.cpp
-  b2client_http_api.cpp b2client_http_api.h b2client_http_api.inl
   json.cpp json.h
   http.cpp http.h
   HTTPClient.cpp HTTPClient.h

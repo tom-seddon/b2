@@ -52,7 +52,6 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"
 #include <shared/strings.h>
-#include "b2client_http_api.h"
 #include "HTTPClient.h"
 
 #include <shared/enum_decl.h>
@@ -96,6 +95,8 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 
 static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " STRINGIZE(RELEASE_NAME);
+
+static const int HTTP_SERVER_PORT = 0xbbcb;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
