@@ -229,8 +229,7 @@ class HTTPServerImpl : public HTTPServer {
         bool interim_response = false;
         std::string response_status;
         std::string response_prefix;
-        std::vector<uint8_t> response_body_data;
-        std::string response_body_str;
+        std::vector<uint8_t> response_body;
         uv_write_t write_response_req = {};
 
         size_t num_read = 0;
@@ -437,8 +436,7 @@ void HTTPServerImpl::ResetRequest(Connection *conn) {
     conn->value = nullptr;
     conn->request = HTTPRequest();
     conn->request.response_data.connection_id = conn->id;
-    conn->response_body_data.clear();
-    conn->response_body_str.clear();
+    conn->response_body.clear();
     conn->response_prefix.clear();
 }
 
@@ -485,21 +483,13 @@ void HTTPServerImpl::SendResponse(Connection *conn, bool dump, HTTPResponse &&re
 
     conn->interim_response = interim;
 
-    if (response.content_type.empty()) {
-        headers[CONTENT_TYPE] = DEFAULT_CONTENT_TYPE;
-    } else {
-        headers[CONTENT_TYPE] = response.content_type;
-    }
+    headers[CONTENT_TYPE]=GetContentTypeHeader(response.content_type,response.content_type_charset);
 
     std::vector<uv_buf_t> body_bufs;
-    if (!response.content_vec.empty()) {
-        conn->response_body_data = std::move(response.content_vec);
-        headers[CONTENT_LENGTH] = std::to_string(conn->response_body_data.size());
-        body_bufs = GetBufs(&conn->response_body_data);
-    } else if (!response.content_str.empty()) {
-        conn->response_body_str = std::move(response.content_str);
-        headers[CONTENT_LENGTH] = std::to_string(conn->response_body_str.size());
-        body_bufs = GetBufs(&conn->response_body_str);
+    if (!response.content.empty()) {
+        conn->response_body= std::move(response.content);
+        headers[CONTENT_LENGTH] = std::to_string(conn->response_body.size());
+        body_bufs = GetBufs(&conn->response_body);
     } else {
         headers[CONTENT_LENGTH] = "0";
     }
@@ -708,24 +698,7 @@ int HTTPServerImpl::HandleHeadersComplete(llhttp_t *parser) {
         query = nullptr;
     }
 
-    if (const std::string *content_type = conn->request.GetHeaderValue(CONTENT_TYPE)) {
-        // This is a bit scrappy. I got bored trying to code it up
-        // properly.
-        std::string::size_type index = content_type->find_first_of(";");
-        if (index == std::string::npos) {
-            conn->request.content_type = *content_type;
-        } else {
-            conn->request.content_type = content_type->substr(0, index);
-
-            std::string parameters = content_type->substr(index + 1);
-            index = parameters.find_first_not_of(" \t");
-            if (index != std::string::npos) {
-                if (parameters.substr(index, CHARSET_PREFIX.size()) == CHARSET_PREFIX) {
-                    conn->request.content_type_charset = parameters.substr(index + CHARSET_PREFIX.size());
-                }
-            }
-        }
-    }
+    GetContentType(&conn->request.content_type,&conn->request.content_type_charset,conn->request.GetHeaderValue(CONTENT_TYPE));
 
     if (const std::string *dump = conn->request.GetHeaderValue(DUMP)) {
         conn->request.response_data.dump = *dump == "1";

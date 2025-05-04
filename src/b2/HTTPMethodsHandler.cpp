@@ -527,7 +527,8 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         HTTPResponse response;
         response.content_type = HTTP_JSON_CONTENT_TYPE;
-        response.content_str = j_content.dump(4);
+        response.content_type_charset = HTTP_UTF8_CHARSET;
+        response.SetContentString(j_content.dump(4));
 
         server->SendResponse(request, std::move(response));
     }
@@ -617,7 +618,8 @@ class HTTPMethodsHandler : public HTTPHandler {
 
             if (!message.empty()) {
                 response.content_type = HTTP_TEXT_CONTENT_TYPE;
-                response.content_str = std::move(message);
+                response.content_type_charset = HTTP_UTF8_CHARSET;
+                response.SetContentString(message);
             }
 
             server->SendResponse(response_data, response);

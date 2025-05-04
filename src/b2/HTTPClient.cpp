@@ -146,14 +146,7 @@ class HTTPClientImpl : public HTTPClient {
             header_by_key[key_and_value.first] = key_and_value.first + ": " + key_and_value.second;
         }
 
-        // If there's an explicit Content-Type, pop that in. Also, the charset.
-        if (!request.content_type.empty()) {
-            std::string content_type_header = CONTENT_TYPE + ": " + request.content_type;
-            if (!request.content_type_charset.empty()) {
-                content_type_header += "; " + CHARSET_PREFIX + request.content_type_charset;
-            }
-            header_by_key[CONTENT_TYPE] = content_type_header;
-        }
+        header_by_key[CONTENT_TYPE] = GetContentTypeHeader(request.content_type, request.content_type_charset);
 
         // Form URL.
         std::string url = request.url;
@@ -208,7 +201,7 @@ class HTTPClientImpl : public HTTPClient {
         // Client->server data.
         ReadClientToServerState client_to_server_state = {};
         if (response) {
-            client_to_server_state.buffer = &response->content_vec;
+            client_to_server_state.buffer = &response->content;
         }
         curl_easy_setopt(m_curl, CURLOPT_READFUNCTION, &ReadClientToServerData);
         curl_easy_setopt(m_curl, CURLOPT_READDATA, &client_to_server_state);
@@ -245,10 +238,7 @@ class HTTPClientImpl : public HTTPClient {
             char *content_type;
             curl_easy_getinfo(m_curl, CURLINFO_CONTENT_TYPE, &content_type);
 
-            response->content_type.clear();
-            if (content_type) {
-                response->content_type = content_type;
-            }
+            GetContentType(&response->content_type, &response->content_type_charset, content_type);
 
             long status;
             curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &status);

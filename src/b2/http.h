@@ -33,6 +33,11 @@ extern const std::string CHARSET_PREFIX;
 
 std::string GetPercentEncoded(const std::string &str);
 
+void GetContentType(std::string *content_type, std::string *content_type_charset, const std::string *content_type_header);
+void GetContentType(std::string *content_type, std::string *content_type_charset, const char *content_type_header);
+
+std::string GetContentTypeHeader(const std::string &content_type, const std::string &content_type_charset);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -90,17 +95,15 @@ class HTTPRequest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Client only fills in content_vec.
 class HTTPResponse {
   public:
     std::string status;
 
-    std::vector<uint8_t> content_vec;
-    std::string content_str;
+    std::vector<uint8_t> content;
 
     // if content is non-empty but content_type is "", the assumed
     // content type is application/octet-stream.
-    std::string content_type;
+    std::string content_type, content_type_charset;
 
     static HTTPResponse OK();
     static HTTPResponse BadRequest();
@@ -122,10 +125,13 @@ class HTTPResponse {
     // An HTTPResponse with content and no status implicitly has a
     // status of 200 OK.
     HTTPResponse(std::string content_type, std::vector<uint8_t> content);
-    HTTPResponse(std::string content_type, std::string content);
+    HTTPResponse(std::string content_type, const std::string &content);
 
     HTTPResponse(std::string status, std::string content_type, std::vector<uint8_t> content);
-    HTTPResponse(std::string status, std::string content_type, std::string content);
+    HTTPResponse(std::string status, std::string content_type, const std::string &content);
+
+    std::string GetContentString() const;
+    void SetContentString(const std::string &content);
 
   protected:
   private:

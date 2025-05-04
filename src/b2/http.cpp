@@ -64,6 +64,55 @@ std::string GetPercentEncoded(const std::string &str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void GetContentType(std::string *content_type, std::string *content_type_charset, const char *content_type_header) {
+    content_type->clear();
+    content_type_charset->clear();
+
+    if (content_type_header) {
+        // This is a bit scrappy. I got bored trying to code it up
+        // properly.
+
+        const char *p = strchr(content_type_header, ';');
+        if (!p) {
+            *content_type = content_type_header;
+        } else {
+            content_type->assign(content_type_header, p - content_type_header);
+
+            ++p;
+            while (*p != 0 && (*p == ' ' || *p == '\t')) {
+                ++p;
+            }
+
+            if (*p != 0) {
+                if (strncmp(p, CHARSET_PREFIX.c_str(), CHARSET_PREFIX.size()) == 0) {
+                    content_type_charset->assign(p + CHARSET_PREFIX.size());
+                }
+            }
+        }
+    }
+}
+
+void GetContentType(std::string *content_type, std::string *content_type_charset, const std::string *content_type_header) {
+    if (!content_type_header) {
+        GetContentType(content_type, content_type_charset, (const char *)nullptr);
+    } else {
+        GetContentType(content_type, content_type_charset, content_type_header->c_str());
+    }
+}
+
+std::string GetContentTypeHeader(const std::string &content_type, const std::string &content_type_charset) {
+    if (content_type.empty()) {
+        return DEFAULT_CONTENT_TYPE;
+    } else if (content_type_charset.empty()) {
+        return content_type;
+    } else {
+        return content_type + " " + CHARSET_PREFIX + content_type_charset;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool HTTPHeaderNameComparer::operator()(const std::string &a, const std::string &b) const {
     return strcasecmp(a.c_str(), b.c_str()) < 0;
 }
@@ -203,25 +252,55 @@ HTTPResponse::HTTPResponse(std::string content_type, std::vector<uint8_t> conten
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HTTPResponse::HTTPResponse(std::string content_type, std::string content)
-    : HTTPResponse("200 OK", std::move(content_type), std::move(content)) {
+HTTPResponse::HTTPResponse(std::string content_type, const std::string &content)
+    : HTTPResponse("200 OK", std::move(content_type), content) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HTTPResponse::HTTPResponse(std::string status_, std::string content_type_, std::vector<uint8_t> content)
+HTTPResponse::HTTPResponse(std::string status_, std::string content_type_, std::vector<uint8_t> content_)
     : status(std::move(status_))
-    , content_vec(std::move(content))
+    , content(std::move(content_))
     , content_type(content_type_.empty() ? DEFAULT_CONTENT_TYPE : std::move(content_type_)) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HTTPResponse::HTTPResponse(std::string status_, std::string content_type_, std::string content)
+HTTPResponse::HTTPResponse(std::string status_, std::string content_type_, const std::string &content_)
     : status(std::move(status_))
-    , content_str(std::move(content))
     , content_type(std::move(content_type_)) {
+    this->SetContentString(content_);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool IsPrintable(const std::vector<uint8_t> &bytes) {
+    for (uint8_t byte : bytes) {
+        if (byte > 127) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::string HTTPResponse::GetContentString() const {
+    if (this->content_type == HTTP_JSON_CONTENT_TYPE) {
+        return std::string(this->content.begin(), this->content.end());
+    } else if (this->content_type == HTTP_TEXT_CONTENT_TYPE) {
+        if (content_type_charset == HTTP_UTF8_CHARSET || IsPrintable(this->content))
+            return std::string(this->content.begin(), this->content.end());
+    }
+
+    return "(unprintable Content-Type: " + GetContentTypeHeader(this->content_type, this->content_type_charset) + ")";
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPResponse::SetContentString(const std::string &content_) {
+    this->content.assign(content_.begin(), content_.end());
+}
