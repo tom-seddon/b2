@@ -533,9 +533,10 @@ the path, they are found by position, and are mandatory; those given
 as part of the query string are found by name, and are optional.
 
 Every method takes a window name, `WIN` - as seen in the title bar -
-indicating which window to send the request to. In most cases, this
-will probably be `b2`, the name of the initial window the emulator
-creates on startup.
+indicating which window to send the request to. In most cases,
+probably easiest to use `*`, which means the most recently used
+window, or `b2`, the name of the initial window the emulator creates
+on startup
 
 Parameters expecting numbers are typically hex values, e.g., `ffff`
 (65535), or C-style literals, e.g., `65535` (65535), `0xffff` (65535),

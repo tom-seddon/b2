@@ -219,7 +219,12 @@ class HTTPMethodsHandler : public HTTPHandler {
             } else if (strcmp(fmt, "window") == 0) {
                 auto ptr = va_arg(v, BeebWindow **);
                 if (value) {
-                    *ptr = BeebWindows::FindBeebWindowByName(*value);
+                    if (*value == "*") {
+                        *ptr = BeebWindows::FindMRUBeebWindow();
+                    } else {
+                        *ptr = BeebWindows::FindBeebWindowByName(*value);
+                    }
+
                     if (!*ptr) {
                         server->SendResponse(request, HTTPResponse::NotFound(request));
                         return false;
