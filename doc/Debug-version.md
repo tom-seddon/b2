@@ -634,6 +634,19 @@ Currently, onle one file type is supported: a BBC disc image, as per
 the list above. The image will be inserted in drive 0, as per `mount`,
 and the emulator reset.
 
+### `load-disc/WIN?path=PATH&drive=N&in_memory=FLAG`
+
+Load disk image from file `PATH`, which must be supplied.
+
+Optional `FLAG` specifies whether to make it an in-memory disk image
+(default false) and `N` is the drive to load it into - 0 or 1.
+
+This is roughly equivalent to going to the corresponding section of
+the `File` menu and picking the given file using the file selector.
+
+(There is also a `load-disk` endpoint, which behaves exactly the
+same.)
+
 ## Using the HTTP API for developing BBC software
 
 The process involves having the Makefile (or batch

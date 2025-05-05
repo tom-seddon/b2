@@ -20,6 +20,8 @@
 #include <shared/path.h>
 #include <beeb/DiscGeometry.h>
 #include "http.h"
+#include "LoadMemoryDiscImage.h"
+#include <beeb/DirectDiscImage.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -91,6 +93,8 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"peek", &HTTPMethodsHandler::HandlePeekRequest},
         {"mount", &HTTPMethodsHandler::HandleMountRequest},
         {"run", &HTTPMethodsHandler::HandleRunRequest},
+        {"load-disc", &HTTPMethodsHandler::HandleLoadDiskRequest},
+        {"load-disk", &HTTPMethodsHandler::HandleLoadDiskRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
@@ -465,6 +469,42 @@ class HTTPMethodsHandler : public HTTPHandler {
                                                                                      BeebThreadHardResetFlag_Boot);
         this->SendMessage(beeb_window, server, request, std::move(message));
         return;
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleLoadDiskRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        std::string path;
+        bool in_memory = false;
+        uint32_t drive = 0;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           "std::string", "path", &path,
+                                           "bool", "in_memory", &in_memory,
+                                           "u32", "drive", &drive,
+                                           nullptr)) {
+            return;
+        }
+
+        auto message_list = std::make_shared<MessageList>("HTTP load-disk request");
+        Messages messages(message_list);
+
+        std::shared_ptr<DiscImage> image;
+        if (in_memory) {
+            image = LoadMemoryDiscImage(path, messages);
+        } else {
+            image = DirectDiscImage::CreateForFile(path, messages);
+        }
+
+        if (!image) {
+            this->SendMessagesResponse(server, request, message_list);
+            return;
+        }
+
+        beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive, std::move(image), true));
+
+        server->SendResponse(request, HTTPResponse::OK());
     }
 #endif
 
