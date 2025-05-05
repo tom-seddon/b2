@@ -70,7 +70,7 @@ int main() {
             HTTPRequest request("http://127.0.0.1:" + std::to_string(PORT) + "/test_url");
 
             std::unique_ptr<HTTPClient> client = CreateHTTPClient();
-            client->SetMessages(&messages);
+            client->SetLogs(&messages);
             client->SetVerbose(true);
 
             HTTPResponse response;

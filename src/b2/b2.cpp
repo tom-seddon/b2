@@ -1178,7 +1178,7 @@ static bool BootDiskInExistingProcess(const std::string &path, Messages *message
     //Messages client_messages(client_message_list);
 
     std::unique_ptr<HTTPClient> client = CreateHTTPClient();
-    client->SetMessages(messages);
+    client->SetLogs(messages);
 
     HTTPRequest request;
     request.url = strprintf("http://127.0.0.1:%d/launch", HTTP_SERVER_PORT);

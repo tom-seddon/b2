@@ -6,7 +6,7 @@
 #include <string>
 #include <shared/debug.h>
 #include "http.h"
-#include "Messages.h"
+#include <shared/log.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -105,8 +105,8 @@ class HTTPClientImpl : public HTTPClient {
     ~HTTPClientImpl() {
     }
 
-    void SetMessages(Messages *messages) override {
-        m_messages = messages;
+    void SetLogs(LogSet *logs) override {
+        m_logs = logs;
     }
 
     void SetVerbose(bool verbose) override {
@@ -124,8 +124,8 @@ class HTTPClientImpl : public HTTPClient {
         if (!m_curl) {
             m_curl = curl_easy_init();
             if (!m_curl) {
-                if (m_messages) {
-                    m_messages->e.f("Failed to initialize libcurl\n");
+                if (m_logs) {
+                    m_logs->e.f("Failed to initialize libcurl\n");
                 }
                 return -1;
             }
@@ -207,7 +207,7 @@ class HTTPClientImpl : public HTTPClient {
         curl_easy_setopt(m_curl, CURLOPT_READDATA, &client_to_server_state);
 
         // Debug output.
-        if (m_messages) {
+        if (m_logs) {
             curl_easy_setopt(m_curl, CURLOPT_VERBOSE, (long)m_verbose);
             curl_easy_setopt(m_curl, CURLOPT_DEBUGFUNCTION, &ClientDebugFunction);
             curl_easy_setopt(m_curl, CURLOPT_DEBUGDATA, this);
@@ -228,8 +228,8 @@ class HTTPClientImpl : public HTTPClient {
         headers = nullptr;
 
         if (m_verbose) {
-            if (m_messages) {
-                m_messages->i.f("curl_easy_perform returned: %d\n", (int)perform_result);
+            if (m_logs) {
+                m_logs->i.f("curl_easy_perform returned: %d\n", (int)perform_result);
             }
         }
 
@@ -248,10 +248,10 @@ class HTTPClientImpl : public HTTPClient {
 
             return http_status;
         } else {
-            if (m_messages) {
-                m_messages->e.f("Request failed: %s: %s\n",
-                                curl_easy_strerror(perform_result),
-                                curl_error_buffer);
+            if (m_logs) {
+                m_logs->e.f("Request failed: %s: %s\n",
+                            curl_easy_strerror(perform_result),
+                            curl_error_buffer);
             }
 
             return -1;
@@ -261,7 +261,7 @@ class HTTPClientImpl : public HTTPClient {
   protected:
   private:
     CURL *m_curl = nullptr;
-    Messages *m_messages = nullptr;
+    LogSet *m_logs = nullptr;
     bool m_verbose = false;
 
     std::map<std::string, std::string> m_default_header_by_key;
@@ -274,7 +274,7 @@ class HTTPClientImpl : public HTTPClient {
         (void)handle;
 
         auto client = (HTTPClientImpl *)userptr;
-        Log *log = &client->m_messages->i;
+        Log *log = &client->m_logs->i;
 
         if (type == CURLINFO_TEXT) {
             // Judging by https://curl.haxx.se/libcurl/c/CURLOPT_DEBUGFUNCTION.html,

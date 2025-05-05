@@ -8,12 +8,11 @@
 #include <uv.h>
 #include <llhttp.h>
 #include <shared/mutex.h>
-//#include "misc.h"
 #include <set>
 #include <shared/debug.h>
 #include <map>
 #include <string>
-#include "Messages.h"
+#include <shared/log.h>
 #include <inttypes.h>
 #include <curl/curl.h>
 #include <string.h>
@@ -201,7 +200,7 @@ class HTTPServerImpl : public HTTPServer {
     HTTPServerImpl();
     ~HTTPServerImpl();
 
-    bool Start(int port, Messages *messages) override;
+    bool Start(int port, LogSet *logs) override;
     void SetHandler(std::shared_ptr<HTTPHandler> handler) override;
     void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) override;
 
@@ -314,12 +313,12 @@ HTTPServerImpl::~HTTPServerImpl() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HTTPServerImpl::Start(int port, Messages *messages) {
+bool HTTPServerImpl::Start(int port, LogSet *logs) {
     ASSERT(!m_sd.loop.data);
 
     int rc = uv_loop_init(&m_sd.loop);
     if (rc != 0) {
-        PrintLibUVError(&messages->e, rc, "uv_loop_init failed");
+        PrintLibUVError(&logs->e, rc, "uv_loop_init failed");
         return false;
     }
 
@@ -327,7 +326,7 @@ bool HTTPServerImpl::Start(int port, Messages *messages) {
 
     rc = uv_tcp_init(&m_sd.loop, &m_td.listen_tcp);
     if (rc != 0) {
-        PrintLibUVError(&messages->e, rc, "uv_tcp_init failed");
+        PrintLibUVError(&logs->e, rc, "uv_tcp_init failed");
         return false;
     }
 
@@ -341,7 +340,7 @@ bool HTTPServerImpl::Start(int port, Messages *messages) {
         uv_ip4_addr("127.0.0.1", port, &addr);
         rc = uv_tcp_bind(&m_td.listen_tcp, (struct sockaddr *)&addr, 0);
         if (rc != 0) {
-            PrintLibUVError(&messages->e, rc, "uv_tcp_bind failed");
+            PrintLibUVError(&logs->e, rc, "uv_tcp_bind failed");
             uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
             m_td.listen_tcp.data = nullptr;
             return false;
@@ -349,7 +348,7 @@ bool HTTPServerImpl::Start(int port, Messages *messages) {
 
         rc = uv_listen((uv_stream_t *)&m_td.listen_tcp, 10, &HandleNewConnection);
         if (rc != 0) {
-            PrintLibUVError(&messages->e, rc, "uv_listen failed");
+            PrintLibUVError(&logs->e, rc, "uv_listen failed");
             uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
             m_td.listen_tcp.data = nullptr;
             return false;
@@ -360,7 +359,7 @@ bool HTTPServerImpl::Start(int port, Messages *messages) {
         this->ThreadMain();
     });
 
-    messages->i.f("HTTP server listening on port %d (0x%x)\n", port, port);
+    logs->i.f("HTTP server listening on port %d (0x%x)\n", port, port);
 
     return true;
 }
@@ -483,11 +482,11 @@ void HTTPServerImpl::SendResponse(Connection *conn, bool dump, HTTPResponse &&re
 
     conn->interim_response = interim;
 
-    headers[CONTENT_TYPE]=GetContentTypeHeader(response.content_type,response.content_type_charset);
+    headers[CONTENT_TYPE] = GetContentTypeHeader(response.content_type, response.content_type_charset);
 
     std::vector<uv_buf_t> body_bufs;
     if (!response.content.empty()) {
-        conn->response_body= std::move(response.content);
+        conn->response_body = std::move(response.content);
         headers[CONTENT_LENGTH] = std::to_string(conn->response_body.size());
         body_bufs = GetBufs(&conn->response_body);
     } else {
@@ -698,7 +697,7 @@ int HTTPServerImpl::HandleHeadersComplete(llhttp_t *parser) {
         query = nullptr;
     }
 
-    GetContentType(&conn->request.content_type,&conn->request.content_type_charset,conn->request.GetHeaderValue(CONTENT_TYPE));
+    GetContentType(&conn->request.content_type, &conn->request.content_type_charset, conn->request.GetHeaderValue(CONTENT_TYPE));
 
     if (const std::string *dump = conn->request.GetHeaderValue(DUMP)) {
         conn->request.response_data.dump = *dump == "1";
