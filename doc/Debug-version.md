@@ -530,7 +530,8 @@ non-success HTTP server status by exiting with a non-zero status.
 
 Names in capitals are argument placeholders. When listed as part of
 the path, they are found by position, and are mandatory; those given
-as part of the query string are found by name, and are optional.
+as part of the query string are found by name, and are usually (but
+not always) optional.
 
 Every method takes a window name, `WIN` - as seen in the title bar -
 indicating which window to send the request to. In most cases,
@@ -554,7 +555,8 @@ fulfilled).
 
 ### `launch?path=PATH`
 
-Launch the given file as if double clicked in Explorer/Finder/etc.
+Launch the file `PATH` (which must be supplied) as if double clicked
+in Explorer/Finder/etc.
 
 This endpoint is the one used by the file association mechanism, so
 the same limitations apply. You don't get control over which window is
@@ -608,7 +610,7 @@ For info about `SUFFIX` and `MOS`, see the `peek` endpoint.
 
 ### `mount/WIN?drive=D&name=N` ###
 
-Mount an in-memory disc image. `D` (default 0) is the drive, and `N`
+Load an in-memory disc image. `D` (default 0) is the drive, and `N`
 (default "") is the file name of the disc image. The request body is
 the disc image.
 
