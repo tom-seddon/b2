@@ -151,9 +151,9 @@ class Messages : public LogSet {
     // When default-constructed, all three logs are disabled and go to
     // the nowhere printer.
     Messages();
-    Messages(const STDIOType &); // automatically create a MessageList with the
-                                 // PrintToStdio flag set.
-    Messages(std::shared_ptr<MessageList> message_list);
+    explicit Messages(const STDIOType &); // automatically create a MessageList
+                                          // with the PrintToStdio flag set.
+    explicit Messages(std::shared_ptr<MessageList> message_list);
     ~Messages();
 
     Messages(const Messages &) = delete;
