@@ -33,11 +33,11 @@ target_link_libraries(klaus PRIVATE shared_lib 6502_lib)
 b2_target_boilerplate(klaus SANITIZERS)
 
 add_test(
-  NAME 6502/klaus
+  NAME klaus
   COMMAND $<TARGET_FILE:klaus>)
 
 # Don't run this as part of the build. It takes way too long.
-set_tests_properties(6502/klaus PROPERTIES LABELS slow)
+set_tests_properties(klaus PROPERTIES LABELS slow)
 
 ##########################################################################
 ##########################################################################
