@@ -6,10 +6,9 @@
 #include <shared/CommandLineParser.h>
 #include <stdio.h>
 #include <shared/system_specific.h>
-#include "http.h"
-#include "HTTPClient.h"
+#include <http/http.h>
+#include <http/HTTPClient.h>
 #include <shared/log.h>
-#include "Messages.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -20,6 +19,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 LOG_DEFINE(VERBOSE, "", &log_printer_stderr, false);
+LOG_DEFINE(STDERR, "", &log_printer_stderr, true);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
     }
 
     LOG(VERBOSE).enabled = options.verbose;
-    Messages messages(Messages::STDIO);
+    LogSet logs{LOG(VERBOSE), LOG(STDERR), LOG(STDERR)};
 
     // 1. disk images
     // 2. config+hard reset+boot

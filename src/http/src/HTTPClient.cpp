@@ -1,11 +1,11 @@
 #include <shared/system.h>
-#include "HTTPClient.h"
+#include <http/HTTPClient.h>
 #include <curl/curl.h>
 #include <vector>
 #include <map>
 #include <string>
 #include <shared/debug.h>
-#include "http.h"
+#include <http/http.h>
 #include <shared/log.h>
 
 //////////////////////////////////////////////////////////////////////////

@@ -35,8 +35,8 @@
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include <shared/system_specific.h>
-#include "HTTPServer.h"
-#include "http.h"
+#include <http/HTTPServer.h>
+#include <http/http.h>
 #include "HTTPMethodsHandler.h"
 #include <curl/curl.h>
 #include <beeb/DirectDiscImage.h>
@@ -52,7 +52,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"
 #include <shared/strings.h>
-#include "HTTPClient.h"
+#include <http/HTTPClient.h>
 
 #include <shared/enum_decl.h>
 #include "b2.inl"

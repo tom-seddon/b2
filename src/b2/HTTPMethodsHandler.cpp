@@ -9,7 +9,7 @@
 #include "b2.h"
 #include <utility>
 #include <regex>
-#include "HTTPServer.h"
+#include <http/HTTPServer.h>
 #include "misc.h"
 #include "BeebWindows.h"
 #include "BeebWindow.h"
@@ -19,7 +19,7 @@
 #include "Messages.h"
 #include <shared/path.h>
 #include <beeb/DiscGeometry.h>
-#include "http.h"
+#include <http/http.h>
 #include "LoadMemoryDiscImage.h"
 #include <beeb/DirectDiscImage.h>
 

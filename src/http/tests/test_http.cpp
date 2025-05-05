@@ -1,16 +1,17 @@
 #include <shared/system.h>
 #include <shared/testing.h>
 #include <shared/mutex.h>
-#include "HTTPServer.h"
-#include "HTTPClient.h"
-#include "http.h"
-#include "Messages.h"
+#include <http/HTTPServer.h>
+#include <http/HTTPClient.h>
+#include <http/http.h>
+#include <shared/log.h>
 #include <set>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_EXTERN(HTTPSV);
+LOG_DEFINE(STDOUT, "", &log_printer_stdout_and_debugger, true);
+LOG_DEFINE(STDERR, "", &log_printer_stderr_and_debugger, true);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -50,18 +51,12 @@ static const int PORT = 0xbbcd;
 //////////////////////////////////////////////////////////////////////////
 
 int main() {
-
-    auto message_list = std::make_shared<MessageList>("test_http");
-    message_list->SetPrintToStdio(true);
-
-    Messages messages(message_list);
-
-    LOG(HTTPSV).enabled = true;
+    LogSet logs{LOG(STDOUT), LOG(STDERR), LOG(STDERR)};
 
     {
         std::unique_ptr<HTTPServer> server = CreateHTTPServer();
 
-        TEST_TRUE(server->Start(PORT, &messages));
+        TEST_TRUE(server->Start(PORT, &logs));
 
         auto handler = std::make_shared<HTTPTestHandler>();
         server->SetHandler(handler);
@@ -70,7 +65,7 @@ int main() {
             HTTPRequest request("http://127.0.0.1:" + std::to_string(PORT) + "/test_url");
 
             std::unique_ptr<HTTPClient> client = CreateHTTPClient();
-            client->SetLogs(&messages);
+            client->SetLogs(&logs);
             client->SetVerbose(true);
 
             HTTPResponse response;

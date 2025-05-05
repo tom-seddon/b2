@@ -34,7 +34,7 @@
 #include "CommandKeymapsUI.h"
 #include "DearImguiTestUI.h"
 #include "debugger.h"
-#include "HTTPServer.h"
+#include <http/HTTPServer.h>
 #include <beeb/DirectDiscImage.h>
 #include "SavedStatesUI.h"
 #include "BeebLinkUI.h"

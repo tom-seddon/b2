@@ -16,7 +16,6 @@ add_executable(b2 MACOSX_BUNDLE
   DearImguiTestUI.cpp DearImguiTestUI.h
   GenerateThumbnailJob.cpp GenerateThumbnailJob.h
   HTTPMethodsHandler.cpp HTTPMethodsHandler.h
-  HTTPServer.cpp HTTPServer.h
   JobQueue.cpp JobQueue.h
   KeymapsUI.cpp KeymapsUI.h
   MessageQueue.cpp MessageQueue.h
@@ -51,8 +50,6 @@ add_executable(b2 MACOSX_BUNDLE
   joysticks.cpp joysticks.h
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
   json.cpp json.h
-  HTTPClient.cpp HTTPClient.h
-  http.cpp http.h
   )
 
 if(OSX)
@@ -306,6 +303,7 @@ target_link_libraries(b2 PRIVATE
   dear_imgui_hex_editor_lib
   stb_image_lib
   nlohmann_json::nlohmann_json
+  http_lib
   )
 
 ##########################################################################
@@ -317,7 +315,7 @@ target_link_libraries(b2 PRIVATE ${OPENGL_LIBRARIES})
 ##########################################################################
 ##########################################################################
 
-target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET} ${LibUV_LIBRARIES} llhttp_static ${SDL2_LIBRARY})
+target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET} ${SDL2_LIBRARY})
 
 ##########################################################################
 ##########################################################################
@@ -431,24 +429,6 @@ add_test(
 ##########################################################################
 ##########################################################################
 
-# HTTP unit tests.
-
-add_executable(test_http
-  test_http.cpp
-  HTTPServer.cpp HTTPServer.h
-  HTTPClient.cpp HTTPClient.h
-  http.cpp http.h
-  Messages.cpp Messages.h
-  )
-b2_target_boilerplate(test_http SANITIZERS)
-target_link_libraries(test_http PRIVATE shared_lib ${LibUV_LIBRARIES} llhttp_static ${LIBCURL_TARGET})
-add_test(
-  NAME b2/test_http
-  COMMAND $<TARGET_FILE:test_http>)
-
-##########################################################################
-##########################################################################
-
 # Don't add misc.cpp. There doesn't seem to be any way to set the
 # HEADER_FILE_ONLY source file property on a per-target basis.
 add_executable(test_UTF8
@@ -465,15 +445,10 @@ add_test(
 ##########################################################################
 ##########################################################################
 
-add_executable(b2client
-  b2client.cpp
-  json.cpp json.h
-  http.cpp http.h
-  HTTPClient.cpp HTTPClient.h
-  Messages.cpp Messages.h
-  )
+add_executable(b2client b2client.cpp
+  json.cpp json.h)
 b2_target_boilerplate(b2client,SANITIZERS)
-target_link_libraries(b2client PRIVATE shared_lib ${LIBCURL_TARGET} nlohmann_json::nlohmann_json)
+target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohmann_json)
 
 ##########################################################################
 ##########################################################################
