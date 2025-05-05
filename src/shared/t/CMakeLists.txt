@@ -9,7 +9,7 @@ function(add_shared_test stem)
   target_link_libraries(${stem} PRIVATE shared_lib)
   if(NOT ${TEST_DONT_RUN})
     add_test(
-      NAME ${stem}
+      NAME shared/${stem}
       COMMAND $<TARGET_FILE:${stem}> ${TEST_ARGS})
   endif()
 endfunction()
@@ -44,5 +44,5 @@ add_executable(test_path test_path.cpp)
 b2_target_boilerplate(test_path SANITIZERS)
 target_link_libraries(test_path PRIVATE shared_lib)
 add_test(
-  NAME test_path
+  NAME shared/test_path
   COMMAND $<TARGET_FILE:test_path> $<TARGET_FILE:test_path> ${CMAKE_CURRENT_SOURCE_DIR})

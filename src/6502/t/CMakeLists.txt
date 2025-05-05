@@ -6,7 +6,7 @@ target_link_libraries(6502_basic_tests PRIVATE shared_lib 6502_lib)
 b2_target_boilerplate(6502_basic_tests SANITIZERS)
 
 add_test(
-  NAME 6502_basic_tests
+  NAME 6502/6502_basic_tests
   COMMAND $<TARGET_FILE:6502_basic_tests> ${CMAKE_CURRENT_LIST_DIR}/../../../etc/cmos_adc_sbc/)
 
 ##########################################################################
@@ -18,11 +18,11 @@ target_link_libraries(lorenz PRIVATE shared_lib 6502_lib)
 b2_target_boilerplate(lorenz SANITIZERS)
 
 add_test(
-  NAME lorenz
+  NAME 6502/lorenz
   COMMAND $<TARGET_FILE:lorenz>)
 
 # Don't run this as part of the build. It takes way too long.
-set_tests_properties(lorenz PROPERTIES LABELS slow)
+set_tests_properties(6502/lorenz PROPERTIES LABELS slow)
 
 ##########################################################################
 ##########################################################################
@@ -33,11 +33,11 @@ target_link_libraries(klaus PRIVATE shared_lib 6502_lib)
 b2_target_boilerplate(klaus SANITIZERS)
 
 add_test(
-  NAME klaus
+  NAME 6502/klaus
   COMMAND $<TARGET_FILE:klaus>)
 
 # Don't run this as part of the build. It takes way too long.
-set_tests_properties(klaus PROPERTIES LABELS slow)
+set_tests_properties(6502/klaus PROPERTIES LABELS slow)
 
 ##########################################################################
 ##########################################################################
@@ -48,9 +48,9 @@ target_link_libraries(visual6502 PRIVATE shared_lib 6502_lib perfect6502_lib)
 b2_target_boilerplate(visual6502 SANITIZERS)
 
 add_test(
- NAME visual6502
+ NAME 6502/visual6502
  COMMAND $<TARGET_FILE:visual6502>)
-set_tests_properties(visual6502 PROPERTIES LABELS slow)
+set_tests_properties(6502/visual6502 PROPERTIES LABELS slow)
 
 ##########################################################################
 ##########################################################################
@@ -61,6 +61,6 @@ target_link_libraries(tom_seddon_6502_tests PRIVATE shared_lib 6502_lib)
 b2_target_boilerplate(tom_seddon_6502_tests SANITIZERS)
 
 add_test(
-  NAME tom_seddon_6502_tests
+  NAME 6502/tom_seddon_6502_tests
   COMMAND $<TARGET_FILE:tom_seddon_6502_tests>)
-set_tests_properties(tom_seddon_6502_tests PROPERTIES LABELS slow)
+set_tests_properties(6502/tom_seddon_6502_tests PROPERTIES LABELS slow)
