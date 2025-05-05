@@ -671,35 +671,3 @@ that refers to the ROM you're building, then use `reset` to reboot the
 emulated BBC. `reset` will reload the paged ROMs from disk, so it'll
 be running with the updated code.
 
-# b2client
-
-b2client is a command line program intended to make it a bit more
-convenient to use the HTTP API from a Makefile or other build system.
-No need to specify a URL, pick the right encoding, call curl multiple
-times - b2client handles all of that for you.
-
-Its location is OS-dependent:
-
-* Windows: `b2client.exe` is in the distribution zip file
-* macOS: `b2client` is in the b2 Debug app bundle, so it'll probably
-be somewhere like `/Applications/b2 Debug.app/Contents/MacOS/b2client`
-* Linux: `b2client` is wherever `b2` is, either the build path or
-  install path
-
-There's a help summary available by running it with `b2client --help`,
-but the basic options are these:
-
-* `--0 FILE`, `--1 FILE` - load `FILE` into the given drive
-* `--0-in-memory, `--1-in-memory` - in conjunction with `--0` or
-  `--1`, load the corresponding file as an in-memory disk image
-* `--config CONFIG` - select the config named `CONFIG`, and do a
-  power-on reset
-* `--boot` - do a power-on reset and auto-boot the BBC
-
-These will try to find a running copy of b2 and send it the
-appropriate requests.
-
-If b2client couldn't send the request, or the running copy of b2
-rejected the request, b2client will end with a non-zero exit code and
-a message on stderr.
-

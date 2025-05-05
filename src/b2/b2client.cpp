@@ -34,7 +34,7 @@ struct Options {
     std::string disks[2];
     bool in_memory_disks[2] = {};
     std::string config;
-    std::string window_name;
+    std::string window_name{"*"};
     bool boot = false;
 
     // b2 path stuff
@@ -129,22 +129,6 @@ static bool HandleCommandLineOptions(Options *options, int argc, char *argv[]) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//static ClientRequest GetClientRequest(const Options &options) {
-//    ClientRequest crequest;
-//
-//    crequest.window_name = options.window_name;
-//    crequest.config_name = options.config;
-//    for (int i = 0; i < 2; ++i) {
-//        crequest.drive_files.push_back(options.disks[i]);
-//        crequest.drive_in_memory.push_back(options.in_memory_disks[i]);
-//    }
-//
-//    return crequest;
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 int main(int argc, char *argv[]) {
     Options options;
     if (!HandleCommandLineOptions(&options, argc, argv)) {
@@ -155,6 +139,9 @@ int main(int argc, char *argv[]) {
 
     LOG(VERBOSE).enabled = options.verbose;
     Messages messages(Messages::STDIO);
+
+    // 1. disk images
+    // 2. config+hard reset+boot
 
     //ClientRequest crequest = GetClientRequest(options);
 
