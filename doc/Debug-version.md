@@ -560,7 +560,7 @@ This endpoint is the one used by the file association mechanism, so
 the same limitations apply. You don't get control over which window is
 used, and the emulator auto-detects the file type from the name.
 
-### `reset/WIN?config=CONFIG` ###
+### `reset/WIN?config=CONFIG&boot=BOOT` ###
 
 Reset the BBC. This is equivalent to a power-on reset. Memory is wiped
 but mounted discs are retained.
@@ -568,6 +568,9 @@ but mounted discs are retained.
 `CONFIG`, if specified, is name of the config to used, as seen in the
 `File` > `Change config` menu. The current config is used if not
 specified.
+
+`BOOT`, if specified, can be `1` or `true` to attempt to auto-boot the
+disk by holding down SHIFT.
 
 Escaping the config name can be a pain. curl can do this for you on
 the command line with the `-G` and `--data-urlencode` options, e.g.:

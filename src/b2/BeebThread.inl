@@ -53,7 +53,10 @@ EEND()
 
 #define ENAME BeebThreadHardResetFlag
 EBEGIN()
+// Do SHIFT+BREAK.
 EPNV(Boot, 1 << 0)
+
+// Set the thing running, if it was stopped in the debugger.
 EPNV(Run, 1 << 1)
 EEND()
 #undef ENAME

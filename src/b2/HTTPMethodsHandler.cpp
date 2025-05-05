@@ -280,9 +280,11 @@ class HTTPMethodsHandler : public HTTPHandler {
     void HandleResetRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string config_name;
+        bool boot = false;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
                                            "std::string", "config", &config_name,
+                                           "bool", "boot", &boot,
                                            nullptr)) {
             return;
         }
@@ -302,7 +304,12 @@ class HTTPMethodsHandler : public HTTPHandler {
             beeb_window->GetBeebThread()->Send(std::move(config_message));
         }
 
-        auto reset_message = std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
+        uint32_t flags = BeebThreadHardResetFlag_Run;
+        if (boot) {
+            flags |= BeebThreadHardResetFlag_Boot;
+        }
+
+        auto reset_message = std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(flags);
 
         //        message->reload_config=true;
         //        message->run=true;
