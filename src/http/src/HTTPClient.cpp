@@ -103,6 +103,7 @@ class HTTPClientImpl : public HTTPClient {
     }
 
     ~HTTPClientImpl() {
+        curl_easy_cleanup(m_curl), m_curl = nullptr;
     }
 
     void SetLogs(LogSet *logs) override {
@@ -183,10 +184,7 @@ class HTTPClientImpl : public HTTPClient {
         curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, headers);
 
-        // CURLOPT_POST is weird: https://curl.se/libcurl/c/CURLOPT_POST.html
-        //
-        // Set it to 0 and do the method by hand.
-        curl_easy_setopt(m_curl, CURLOPT_POST, (long)0);
+        curl_easy_setopt(m_curl, CURLOPT_POST, (long)(request.method == "POST"));
         curl_easy_setopt(m_curl,
                          CURLOPT_CUSTOMREQUEST,
                          request.method.empty() ? "GET" : request.method.c_str());
@@ -194,21 +192,21 @@ class HTTPClientImpl : public HTTPClient {
         curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)request.body.size());
 
         // Server->client data.
-        std::vector<uint8_t> server_to_client_data_buffer;
+        response->content.clear();
         curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &WriteServerToClientData);
-        curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &server_to_client_data_buffer);
+        curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &response->content);
 
         // Client->server data.
         ReadClientToServerState client_to_server_state = {};
         if (response) {
-            client_to_server_state.buffer = &response->content;
+            client_to_server_state.buffer = &request.body;
         }
         curl_easy_setopt(m_curl, CURLOPT_READFUNCTION, &ReadClientToServerData);
         curl_easy_setopt(m_curl, CURLOPT_READDATA, &client_to_server_state);
 
         // Debug output.
-        if (m_logs) {
-            curl_easy_setopt(m_curl, CURLOPT_VERBOSE, (long)m_verbose);
+        if (m_logs && m_logs->i.enabled) {
+            curl_easy_setopt(m_curl, CURLOPT_VERBOSE, (long)1);
             curl_easy_setopt(m_curl, CURLOPT_DEBUGFUNCTION, &ClientDebugFunction);
             curl_easy_setopt(m_curl, CURLOPT_DEBUGDATA, this);
         } else {
@@ -224,8 +222,7 @@ class HTTPClientImpl : public HTTPClient {
         // Do the thing.
         CURLcode perform_result = curl_easy_perform(m_curl);
 
-        curl_slist_free_all(headers);
-        headers = nullptr;
+        curl_slist_free_all(headers), headers = nullptr;
 
         if (m_verbose) {
             if (m_logs) {
@@ -234,7 +231,8 @@ class HTTPClientImpl : public HTTPClient {
         }
 
         int http_status;
-        if (perform_result == CURLE_OK) {
+        if (perform_result == CURLE_OK ||
+            perform_result == CURLE_HTTP_RETURNED_ERROR) {
             char *content_type;
             curl_easy_getinfo(m_curl, CURLINFO_CONTENT_TYPE, &content_type);
 
@@ -248,9 +246,11 @@ class HTTPClientImpl : public HTTPClient {
 
             return http_status;
         } else {
+            response->status = curl_easy_strerror(perform_result);
+
             if (m_logs) {
                 m_logs->e.f("Request failed: %s: %s\n",
-                            curl_easy_strerror(perform_result),
+                            response->status.c_str(),
                             curl_error_buffer);
             }
 
