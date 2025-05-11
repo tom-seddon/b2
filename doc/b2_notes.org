@@ -4276,4 +4276,51 @@ existing endpoints instead.
   a message on stderr.
 #+end_src
 
+* Trace file binary format?
+
+
+
+For possible use with query tools that I haven't written yet. Rather
+than load in and parse a huge pile of ASCII, might as well load in and
+parse a (smaller, and ideally quicker to save) pile of binary instead.
+
+Host events:
+
+- R6522::IRQ_EVENT :: VIA IRQ
+- R6522::TIMER_TICK_EVENT :: VIA timer tick
+- SN76489::WRITE_EVENT :: SN76489 write
+- SN76489::UPDATE_EVENT :: SN76489 update (currently compiled out)
+- Trace::WRITE_ROMSEL_EVENT :: write ROMSEL
+- Trace::WRITE_ACCCON_EVENT :: write ACCCON
+- Trace::SET_MAPPER_REGION_EVENT :: set ROM mapper region
+
+Parasite events:
+
+- Trace::PARASITE_BOOT_MODE_EVENT :: indicate parasite boot mode
+
+Common events:
+
+- BBCMicro::INSTRUCTION_EVENT :: 6502 instruction
+- Trace::STRING_EVENT :: generic string event
+- Trace::DISCONTINUITY_EVENT :: bridge gap too large for delta bitfdield
+- TUBE_WRITE_STATUS_EVENT :: Tube event
+- TUBE_WRITE_FIFO1_EVENT :: Tube event
+- TUBE_READ_FIFO1_EVENT :: Tube event
+- TUBE_WRITE_FIFO2_EVENT :: Tube event
+- TUBE_READ_FIFO2_EVENT :: Tube event
+- TUBE_WRITE_FIFO3_EVENT :: Tube event
+- TUBE_READ_FIFO3_EVENT :: Tube event
+- TUBE_WRITE_FIFO4_EVENT :: Tube event
+- TUBE_READ_FIFO4_EVENT :: Tube event
+
+All have a struct attached, currently all pack1, hopefully.
+
+Each one has a name assigned - so no need for explicit IDs, provided
+each name is unique! Store the mapping somehow and off it goes.
+
+A sizeof check would be nice, just to trap any obvious changes in the
+format. For the versioning, have a file version number, which could
+cover changes to event header and event contents too. For event
+contents alone, adjusting the name will suffice.
+
 * eof.
