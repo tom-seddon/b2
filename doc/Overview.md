@@ -218,10 +218,10 @@ default this is exact BBC Micro speed, or near enough, but you can use
 the `Speed scale` slider to adjust this. (Tick the `1x` button to get
 back to normal speed.)
 
-Tick `Background economy mode` to have the emulator try to use fewer
-CPU and GPU resources when it doesn't have keyboard or mouse focus.
-(The emulated BBC may run slowly in this case, but if it's not
-producing any sound then it shouldn't be too objectionable...!)
+Tick `Background economy mode` to have the emulator update its display
+less frequently when it has neither keyboard nor mouse focus,
+hopefully making ituse fewer CPU and GPU resources when not being
+interacted with.
 
 ### Display
 

@@ -2662,15 +2662,17 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
-    uint64_t update_mask = 0;
+    bool economy = false;
+
     if (m_settings.background_economy_mode) {
         if (SDL_GetKeyboardFocus() != m_window && SDL_GetMouseFocus() != m_window) {
-            // 1/8 updates
-            update_mask = 7;
+            if (m_vblank_counter++ % 15 != 0) {
+                economy = true;
+            }
         }
     }
 
-    if ((m_vblank_counter++ & update_mask) != 0) {
+    if (economy) {
         // Economy mode update.
         //
         // Mostly do nothing, but do at least consume some video units, ideally
