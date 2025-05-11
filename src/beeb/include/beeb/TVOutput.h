@@ -104,9 +104,13 @@ class TVOutput {
     bool GetInterlace() const;
     void SetInterlace(bool interlace);
 
+    void SetEnableRender(bool enable_render);
+
   protected:
   private:
     TVOutputState m_state = TVOutputState_VerticalRetrace;
+    TVOutputState m_scanout_state = TVOutputState_Scanout;
+    TVOutputState m_next_frame_scanout_state = TVOutputState_Scanout;
     uint32_t *m_pixels_line = nullptr;
 #if VIDEO_TRACK_METADATA
     VideoDataUnit *m_units_line = nullptr;

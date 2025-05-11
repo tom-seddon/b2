@@ -170,7 +170,37 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                 // Ignore everything.
                 if (m_state_timer++ >= VERTICAL_RETRACE_SCANLINES * SCANLINE_CYCLES) {
                     m_state_timer = 0;
-                    m_state = TVOutputState_Scanout;
+                    m_scanout_state = m_next_frame_scanout_state;
+                    m_state = m_scanout_state;
+                }
+            }
+            break;
+
+        case TVOutputState_ScanoutNoRender:
+            {
+                if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_VSync) {
+                    // If it's the first vsync ever, assume it's a good one.
+                    // GenerateThumbnailJob needs this.
+                    uint64_t units_since_last_last_retrace = m_total.n + i - m_last_retrace_start_time.n;
+                    if ((units_since_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE &&
+                         units_since_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE) ||
+                        m_last_retrace_start_time.n == 0) {
+                        m_state = TVOutputState_VerticalRetrace;
+                        break;
+                    }
+
+                    // Otherwise - the sync didn't take. Better luck next time.
+                }
+
+                if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_HSync) {
+                    m_state = TVOutputState_HorizontalRetrace;
+                    break;
+                }
+
+                m_x += 8;
+
+                if (m_state_timer++ >= SCAN_OUT_CYCLES) {
+                    m_state = TVOutputState_HorizontalRetrace;
                 }
             }
             break;
@@ -440,7 +470,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                 ++m_state_timer;
                 if (m_state_timer >= BACK_PORCH_CYCLES) {
                     m_state_timer = 0;
-                    m_state = TVOutputState_Scanout;
+                    m_state = m_scanout_state;
                 }
             }
             break;
@@ -719,6 +749,17 @@ bool TVOutput::GetInterlace() const {
 
 void TVOutput::SetInterlace(bool interlace) {
     m_interlace = interlace;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TVOutput::SetEnableRender(bool enable_render) {
+    if (enable_render) {
+        m_next_frame_scanout_state = TVOutputState_Scanout;
+    } else {
+        m_next_frame_scanout_state = TVOutputState_ScanoutNoRender;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

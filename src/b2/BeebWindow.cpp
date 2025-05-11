@@ -2482,8 +2482,6 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest
 void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, void *dest_pixels, int dest_pitch) {
     Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
 
-    ASSERT(dest_pitch > 0);
-
     if (threaded) {
         UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
 
@@ -2502,7 +2500,10 @@ void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, 
 
         vblank_record->num_video_units = num_units_consumed;
 
-        m_tv.CopyTexturePixels(dest_pixels, (size_t)dest_pitch);
+        if (dest_pixels) {
+            ASSERT(dest_pitch > 0);
+            m_tv.CopyTexturePixels(dest_pixels, (size_t)dest_pitch);
+        }
     }
 }
 
@@ -2668,7 +2669,15 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             update_mask = 7;
         }
     }
+
     if ((m_vblank_counter++ & update_mask) != 0) {
+        // Economy mode update.
+        //
+        // Mostly do nothing, but do at least consume some video units, ideally
+        // without doing any rendering.
+        m_tv.SetEnableRender(false);
+        VBlankRecord *vblank_record = this->NewVBlankRecord(ticks);
+        this->EndUpdateTVTexture(false, vblank_record, nullptr, 0);
         return true;
     }
 
@@ -2678,6 +2687,8 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     Timer HandleVBlank_timer(&g_HandleVBlank_timer_def);
 
     bool keep_window = true;
+
+    m_tv.SetEnableRender(true);
 
     // don't use m_update_tv_texture_thread_enabled directly - it might change
     // during the DoImGui call.
