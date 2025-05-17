@@ -129,3 +129,61 @@ backup_b2_json:
 # copy/paste fodder
 	$(SHELLCMD) realpath "$(B2_JSON_PATH)"
 	$(SHELLCMD) realpath "$(_DEST_PATH)"
+
+##########################################################################
+##########################################################################
+
+MAGICK:=./etc/ImageMagick-7.0.5-4-portable-Q16-x64/magick.exe
+ICON_PNG:=./etc/icon/icon.png
+ICON_DEST:=./etc/icon/
+
+.PHONY:icons
+icons: _ICON_TEMP:=$(BUILD_FOLDER)/icons
+icons:
+	$(SHELLCMD) mkdir "$(_ICON_TEMP)"
+	$(SHELLCMD) mkdir "$(_ICON_DEST)/windows"
+
+# Windows
+	"${MAGICK}" "${ICON_PNG}" -resize 256x256 "$(_ICON_TEMP)/icon_256x256_32bpp.png"
+	"${MAGICK}" "${ICON_PNG}" -resize 16x16 "$(_ICON_TEMP)/icon_16x16_32bpp.png"
+	"${MAGICK}" "${ICON_PNG}" -resize 32x32 "$(_ICON_TEMP)/icon_32x32_32bpp.png"
+	"${MAGICK}" "${ICON_PNG}" -resize 48x48 "$(_ICON_TEMP)/icon_48x48_32bpp.png"
+	"${MAGICK}" "${ICON_PNG}" -resize 64x64 "$(_ICON_TEMP)/icon_64x64_32bpp.png"
+	"${MAGICK}" "${ICON_PNG}" -resize 16x16 -type palette "$(_ICON_TEMP)/icon_16x16_8bpp.bmp"
+	"${MAGICK}" "${ICON_PNG}" -resize 32x32 -type palette "$(_ICON_TEMP)/icon_32x32_8bpp.bmp"
+	"${MAGICK}" "${ICON_PNG}" -resize 48x48 -type palette "$(_ICON_TEMP)/icon_48x48_8bpp.bmp"
+	"${MAGICK}" \
+"$(_ICON_TEMP)/icon_256x256_32bpp.png"\
+"$(_ICON_TEMP)/icon_48x48_8bpp.bmp"\
+"$(_ICON_TEMP)/icon_32x32_8bpp.bmp"\
+"$(_ICON_TEMP)/icon_16x16_8bpp.bmp"\
+"$(_ICON_TEMP)/icon_256x256_32bpp.png"\
+"$(_ICON_TEMP)/icon_64x64_32bpp.png"\
+"$(_ICON_TEMP)/icon_48x48_32bpp.png"\
+"$(_ICON_TEMP)/icon_32x32_32bpp.png"\
+"$(_ICON_TEMP)/icon_16x16_32bpp.png"\
+"$(_ICON_DEST)/windows/b2_icons.ico"
+
+# macOS
+	$(MAKE) _icon_macos SIZE=16
+	$(MAKE) _icon_macos SIZE=32
+	$(MAKE) _icon_macos SIZE=64
+	$(MAKE) _icon_macos SIZE=128
+	$(MAKE) _icon_macos SIZE=256
+	$(MAKE) _icon_macos SIZE=512
+	$(MAKE) _icon_macos SIZE=1024
+	$(MAKE) _icon_macos_x2 SRC=32 DEST=16
+	$(MAKE) _icon_macos_x2 SRC=64 DEST=32
+	$(MAKE) _icon_macos_x2 SRC=128 DEST=64
+	$(MAKE) _icon_macos_x2 SRC=256 DEST=128
+
+.PHONY:_icon_macos:
+_icon_macos: SIZE=$(error Must specify SIZE)
+_icon_macos:
+	"$(MAGICK)" "$(ICON_PNG)" -resize $(SIZE)x$(SIZE) "$(ICON_DEST)/macos/icon_$(SIZE)x$(SIZE).png"
+
+.PHONY:_icon_macos_x2
+_icon_macos_x2: SRC=$(error Must specify SRC)
+_icon_macos_x2: DEST=$(error Must specify DEST)
+_icon_macos_x2:
+	$(SHELLCMD) copy-file "$(ICON_DEST)/macos/icon_$(SRC)x$(SRC).png" "$(ICON_DEST)/macos/icon_$(DEST)x$(DEST)@2x.png"

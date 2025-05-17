@@ -170,22 +170,8 @@ if(WIN32)
   
   set(MAGICK ${CMAKE_SOURCE_DIR}/etc/ImageMagick-7.0.5-4-portable-Q16-x64/magick.exe)
   set(ICON_PNG ${CMAKE_SOURCE_DIR}/etc/icon/icon.png)
-  set(ICON_ICO b2_icons.ico)
+  set(ICON_ICO ${CMAKE_SOURCE_DIR}/etc/icon/b2_icons.ico)
   
-  add_custom_command(
-    OUTPUT ${ICON_ICO} icon_16x16_32bpp.png icon_16x16_8bpp.bmp icon_32x32_32bpp.png icon_32x32_8bpp.bmp icon_48x48_32bpp.png icon_48x48_8bpp.bmp icon_64x64_32bpp.png icon_256x256_32bpp.png
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 256x256 icon_256x256_32bpp.png
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 16x16 icon_16x16_32bpp.png
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 32x32 icon_32x32_32bpp.png
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 48x48 icon_48x48_32bpp.png
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 64x64 icon_64x64_32bpp.png
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 16x16 -type palette icon_16x16_8bpp.bmp
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 32x32 -type palette icon_32x32_8bpp.bmp
-    COMMAND ${MAGICK} ${ICON_PNG} -resize 48x48 -type palette icon_48x48_8bpp.bmp
-    COMMAND ${MAGICK} icon_256x256_32bpp.png icon_48x48_8bpp.bmp icon_32x32_8bpp.bmp icon_16x16_8bpp.bmp icon_256x256_32bpp.png icon_64x64_32bpp.png icon_48x48_32bpp.png icon_32x32_32bpp.png icon_16x16_32bpp.png ${ICON_ICO}
-    DEPENDS ${ICON_PNG}
-    MAIN_DEPENDENCY ${ICON_PNG})
-
   add_custom_command(TARGET b2 POST_BUILD
     COMMAND $<TARGET_FILE:rcedit> $<TARGET_FILE:b2> --set-icon ${ICON_ICO} --set-version-string ProductVersion ${RELEASE_NAME})
   
