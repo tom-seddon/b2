@@ -86,31 +86,17 @@ if(APPLE)
   # work with generator expressions. Presumably it was written to work
   # with the pre-cmake 3.0 target property that has now disappeared.)
   set(BUNDLE_CONTENTS_FOLDER $<TARGET_FILE_DIR:b2>/..)
-  set(ICON_PNG ${CMAKE_SOURCE_DIR}/etc/icon/icon.png)
-  set(ICONS_TMP ${CMAKE_CURRENT_BINARY_DIR}/b2.iconset)
+  set(ICONS_MACOS ${CMAKE_SOURCE_DIR})
+  set(ICONSET ${CMAKE_CURRENT_BINARY_DIR}/etc/icon/macos/b2.iconset)
 
   # https://developer.apple.com/library/content/documentation/UserExperience/Conceptual/OSXHIGuidelines/Designing.html#//apple_ref/doc/uid/20000957-CH87-SW1
 
   # The icons could be different per configuration. The Final build
   # icon is the one used for the DMG.
   add_custom_command(
-    OUTPUT b2.icns ${ICONS_TMP}/icon_16x16.png ${ICONS_TMP}/icon_32x32.png ${ICONS_TMP}/icon_64x64.png ${ICONS_TMP}/icon_128x128.png ${ICONS_TMP}/icon_256x256.png ${ICONS_TMP}/icon_512x512.png ${ICONS_TMP}/icon_512x512@2x.png ${ICONS_TMP}/icon_16x16@2x.png ${ICONS_TMP}/icon_32x32@2x.png ${ICONS_TMP}/icon_128x128@2x.png ${ICONS_TMP}/icon_256x256@2x.png
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${ICONS_TMP}
-    COMMAND sips -z 16 16 ${ICON_PNG} --out ${ICONS_TMP}/icon_16x16.png
-    COMMAND sips -z 32 32 ${ICON_PNG} --out ${ICONS_TMP}/icon_32x32.png
-    COMMAND sips -z 64 64 ${ICON_PNG} --out ${ICONS_TMP}/icon_64x64.png
-    COMMAND sips -z 128 128 ${ICON_PNG} --out ${ICONS_TMP}/icon_128x128.png
-    COMMAND sips -z 256 256 ${ICON_PNG} --out ${ICONS_TMP}/icon_256x256.png
-    COMMAND sips -z 512 512 ${ICON_PNG} --out ${ICONS_TMP}/icon_512x512.png
-    COMMAND sips -z 1024 1024 ${ICON_PNG} --out ${ICONS_TMP}/icon_512x512@2x.png
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_32x32.png ${ICONS_TMP}/icon_16x16@2x.png
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_64x64.png ${ICONS_TMP}/icon_32x32@2x.png
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_256x256.png ${ICONS_TMP}/icon_128x128@2x.png
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_512x512.png ${ICONS_TMP}/icon_256x256@2x.png
-    COMMAND iconutil -c icns ${ICONS_TMP}
-    DEPENDS ${ICON_PNG}
-    MAIN_DEPENDENCY ${ICON_PNG}
-    )
+    OUTPUT b2.icns
+    COMMAND iconutil -c icns -o b2.icns ${ICONSET}
+    DEPENDS $(ICONSET)/icon_1024x1024.png $(ICONSET)/icon_128x128.png $(ICONSET)/icon_128x128@2x.png $(ICONSET)/icon_16x16.png $(ICONSET)/icon_16x16@2x.png $(ICONSET)/icon_256x256.png $(ICONSET)/icon_32x32.png $(ICONSET)/icon_32x32@2x.png $(ICONSET)/icon_512x512.png $(ICONSET)/icon_64x64.png $(ICONSET)/icon_64x64@2x.png)
 
   set(BUNDLE_IDENTIFIER "com.tom-seddon.b2")
   
