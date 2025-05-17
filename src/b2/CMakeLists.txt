@@ -168,9 +168,7 @@ endif()
 if(WIN32)
   add_dependencies(b2 rcedit)
   
-  set(MAGICK ${CMAKE_SOURCE_DIR}/etc/ImageMagick-7.0.5-4-portable-Q16-x64/magick.exe)
-  set(ICON_PNG ${CMAKE_SOURCE_DIR}/etc/icon/icon.png)
-  set(ICON_ICO ${CMAKE_SOURCE_DIR}/etc/icon/b2_icons.ico)
+  set(ICON_ICO ${CMAKE_SOURCE_DIR}/etc/icon/windows/b2_icons.ico)
   
   add_custom_command(TARGET b2 POST_BUILD
     COMMAND $<TARGET_FILE:rcedit> $<TARGET_FILE:b2> --set-icon ${ICON_ICO} --set-version-string ProductVersion ${RELEASE_NAME})
