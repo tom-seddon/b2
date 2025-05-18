@@ -127,7 +127,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
 #include <shared/pshpack1.h>
     struct ParasiteBootModeEvent {
-        bool parasite_boot_mode;
+        uint8_t parasite_boot_mode;
     };
 #include <shared/poppack.h>
 

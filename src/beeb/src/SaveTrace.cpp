@@ -773,7 +773,7 @@ class TraceSaver {
     void HandleParasiteBootModeEvent(const TraceEvent *e) {
         auto ev = (const Trace::ParasiteBootModeEvent *)e->event;
 
-        m_parasite_boot_mode = ev->parasite_boot_mode;
+        m_parasite_boot_mode = !!ev->parasite_boot_mode;
         m_output->f("Parasite boot mode: %s\n", BOOL_STR(m_parasite_boot_mode));
     }
 

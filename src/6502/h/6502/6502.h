@@ -186,8 +186,11 @@ typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 //////////////////////////////////////////////////////////////////////////
 
 struct M6502Config {
-    /* Name of this type of 6502. */
-    const char *name;
+    /* Serializable 8-byte id. */
+    char id[8];
+
+    /* User-facing description of this type of 6502. */
+    const char *description;
 
     /* Function to call to start interrupt processing. */
     M6502Fn interrupt_tfn;

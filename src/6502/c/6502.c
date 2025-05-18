@@ -2544,14 +2544,16 @@ static const char *FindNameByFn(const NamedFn *named_fns, M6502Fn fn) {
 //////////////////////////////////////////////////////////////////////////
 
 const M6502Config M6502_defined_config = {
-    .name = "6502 (defined instructions only)",
+    .id = "defined",
+    .description = "6502 (defined instructions only)",
     .fns = g_defined_fns,
     .interrupt_tfn = &Cycle0_Interrupt,
     .disassembly_info = g_defined_disassembly_info,
 };
 
 const M6502Config M6502_nmos6502_config = {
-    .name = "NMOS 6502",
+    .id = "nmos",
+    .description = "NMOS 6502",
     .xaa_magic = 0xee,
     .fns = g_nmos6502_fns,
     .interrupt_tfn = &Cycle0_Interrupt,
@@ -2559,14 +2561,16 @@ const M6502Config M6502_nmos6502_config = {
 };
 
 const M6502Config M6502_cmos6502_config = {
-    .name = "CMOS 65C02",
+    .id = "cmos",
+    .description = "CMOS 65C02",
     .fns = g_cmos6502_fns,
     .interrupt_tfn = &Cycle0_InterruptCMOS,
     .disassembly_info = g_cmos6502_disassembly_info,
 };
 
 const M6502Config M6502_rockwell65c02_config = {
-    .name = "Rockwell 65C02",
+    .id = "rockw",
+    .description = "Rockwell 65C02",
     .fns = g_rockwell65c02_fns,
     .interrupt_tfn = &Cycle0_InterruptCMOS,
     .disassembly_info = g_rockwell65c02_disassembly_info,

@@ -37,7 +37,7 @@ static int DoTest(const std::string &fname,
         memcpy(g_mem + load_address, data.data(), data.size());
 
         LOGF(DEBUG, "Test file: %s (%zu bytes)\n", path.c_str(), data.size());
-        LOGF(DEBUG, "CPU type: %s\n", config->name);
+        LOGF(DEBUG, "CPU type: %s (%s)\n", config->id, config->description);
     }
 
     auto s = new M6502;

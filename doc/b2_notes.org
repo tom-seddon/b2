@@ -4278,8 +4278,6 @@ existing endpoints instead.
 
 * Trace file binary format?
 
-
-
 For possible use with query tools that I haven't written yet. Rather
 than load in and parse a huge pile of ASCII, might as well load in and
 parse a (smaller, and ideally quicker to save) pile of binary instead.
@@ -4302,7 +4300,7 @@ Common events:
 
 - BBCMicro::INSTRUCTION_EVENT :: 6502 instruction
 - Trace::STRING_EVENT :: generic string event
-- Trace::DISCONTINUITY_EVENT :: bridge gap too large for delta bitfdield
+- Trace::DISCONTINUITY_EVENT :: bridge gap too large for delta bitfield
 - TUBE_WRITE_STATUS_EVENT :: Tube event
 - TUBE_WRITE_FIFO1_EVENT :: Tube event
 - TUBE_READ_FIFO1_EVENT :: Tube event
@@ -4322,6 +4320,285 @@ A sizeof check would be nice, just to trap any obvious changes in the
 format. For the versioning, have a file version number, which could
 cover changes to event header and event contents too. For event
 contents alone, adjusting the name will suffice.
+
+** Format ideas
+
+All values are little endian.
+
+*** Header
+
+| Offset | Type        | Name               | What                             |
+|--------+-------------+--------------------+----------------------------------|
+|      0 | char[8]     |                    | Header - must be "b2trace\x0"    |
+|      8 | uint8_t     | version            | Version number                   |
+|      9 | uint8_t     | num_events         | Number of event types            |
+|     13 | uint64_t    | freq               | Cycles per second                |
+|     14 | uint8_t     | romsel             | Initial ROMSEL value             |
+|     15 | uint8_t     | acccon             | Initial ACCCON value             |
+|     16 | uint8_t[16] | regions            | Initial ROM mapper regions       |
+|     32 | char[8]     | host_cpu           | Host CPU type                    |
+|     40 | char[8]     | parasite_cpu       | Parasite CPU type                |
+|     48 | uint8_t     | parasite_boot_mode | Initial parasite boot mode state |
+|--------+-------------+--------------------+----------------------------------|
+|     49 |             |                    |                                  |
+
+Probably pad to 64 or 128 bytes...?
+
+TODO: SaveTrace takes a BBCMicroType pointer, and it calls
+=get_mem_big_page_tables_fn=. This might be a faff to reproduce in a
+fully offline tool.
+
+CPU types are:
+
+- =none= :: No CPU (only relevant for parasite)
+- =defined= :: 6502 defined instructions only
+- =nmos= :: 6502, NMOS
+- =cmos= :: 65C02, CMOS
+- =rockw= :: Rockwell 65C02
+
+*** Event types
+
+Information about each event type ID. There are header:num_events of
+these.
+
+| Offset | Type      | Name      | What                            |
+|--------+-----------+-----------+---------------------------------|
+|      0 | uint8_t   | type:id   | Type id                         |
+|      1 | uint16_t  | type:size | Size of data, or 0 if per-event |
+|      3 | uint8_t[] | type:name | 0-terminated event type name    |
+|--------+-----------+-----------+---------------------------------|
+| 3+N    |           |           |                                 |
+
+*** Event header
+
+All events have a fixed 2-byte header.
+
+| Offset | Type    | Name        | What                                                  |
+|--------+---------+-------------+-------------------------------------------------------|
+|      0 | uint8_t | event:type  | Type id (matching type id from the event types table) |
+|      1 | uint8_t | event:flags | Flags (see below)                                     |
+|--------+---------+-------------+-------------------------------------------------------|
+|      2 |         |             |                                                       |
+
+Events with a =type:size= field of 0 have an additional 2-byte header
+indicating the size of the event.
+
+| Offset | Type     | Name       | What                    |
+|--------+----------+------------+-------------------------|
+|      0 | uint16_t | event:size | Size (in bytes) of data |
+|--------+----------+------------+-------------------------|
+|      2 |          |            |                         |
+
+=event:flags= is laid out as follows:
+
+:   7   6   5   4   3   2   1   0
+: +---+---+---+---+---+---+---+---+
+: | c | src   | time_delta        |
+: +---+---+---+---+---+---+---+---+
+
+=time_delta= is cycle count since previous event.
+
+=src= is event source, as follows:
+
+- 0 :: undefined
+- 1 :: host
+- 2 :: parasite
+- 3 :: reserved
+
+=c= is set if the event was cancelled. It still counts as a previous
+event for future time_delta purposes, but its contents must be
+ignored.
+
+*** R6522::IRQ_EVENT
+
+Name: =R6522IRQEvent=
+
+The 6522 generated an IRQ.
+
+| Offset | Type    | Name | What                     |
+|--------+---------+------+--------------------------|
+|      0 | uint8_t | id   | VIA id
+|      1 | uint8_t | ifr  | IFR value                |
+|      2 | uint8_t | ier  | IER value                |
+|--------+---------+------+--------------------------|
+|      3 |         |      |                          |
+
+Current VIA ids are:
+
+- 0 :: system VIA
+- 1 :: user VIA
+
+*** R6522::TIMER_TICK_EVENT
+
+Name: =R6522TimerTick=
+
+A timer tick occurred. This is a high frequency event...
+
+| Offset | Type     | Name   | What              |
+|--------+----------+--------+-------------------|
+|      0 | uint16_t | new_t1 | New T1 value      |
+|      2 | uint16_t | new_t2 | New T2 value      |
+|      4 | uint8_t  | flags  | Flags (see below) |
+|--------+----------+--------+-------------------|
+|      5 |          |        |                   |
+
+=flags= is laid out as follows:
+
+:   7   6   5   4   3   2   1   0
+: +---+---+---+---+---+---+---+---+
+: | 0 | 0 |t1 |t2 | id            |
+: +---+---+---+---+---+---+---+---+
+
+=t1= set if t1 ticked.
+
+=t2= set if t2 ticked.
+
+=id= is VIA id - see above.
+
+It's possible (but unlikely) that neither tick flag will be set..
+
+*** SN76489::WRITE_EVENT
+
+Name: =SN76489WriteEvent=
+
+A byte was written to the SN76489.
+
+| Offset | Type     | Name  | What          |
+|--------+----------+-------+---------------|
+|      0 | uint8_t  | value | Value written |
+|      2 | uint16_t | reg   | Register info |
+|--------+----------+-------+---------------|
+|      3 |          |       |               |
+
+=reg= is laid out as follows:
+
+:   f   e   d   c   b   a   9   8   7   6   5   4   3   2   1   0
+: +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+: |   |   |   | reg       | value                                 |
+: +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+=reg= is register index.
+
+=value= is entire new value for register.
+
+*** SN76489::UPDATE_EVENT
+
+Name: =SN76489UpdateEvent=
+
+TODO: includes some non-packed struct values! Need to sort this out...
+
+*** Trace::WRITE_ROMSEL_EVENT
+
+Name: =_write_romsel=
+
+Write ROMSEL value. 
+
+| Offset | Type    | Name  | What                 |
+|--------+---------+-------+----------------------|
+|      0 | uint8_t | value | ROMSEL value written |
+|--------+---------+-------+----------------------|
+|      1 |         |       |                      |
+
+*** Trace::WRITE_ACCCON_EVENT
+
+Name: =_write_acccon=
+
+Write ACCCON value.
+
+| Offset | Type    | Name  | What                 |
+|--------+---------+-------+----------------------|
+|      0 | uint8_t | value | ACCCON value written |
+|--------+---------+-------+----------------------|
+|      1 |         |       |                      |
+
+*** Trace::SET_MAPPER_REGION_EVENT
+
+Name: =_set_mapper_region=
+
+Set ROM mapper region.
+
+| Offset | Type    | Name  | What            |
+|--------+---------+-------+-----------------|
+|      0 | uint8_t | value | Region selected |
+|--------+---------+-------+-----------------|
+|      1 |         |       |                 |
+
+*** Trace::PARASITE_BOOT_MODE_EVENT
+
+Name: =_parasite_boot_mode=
+
+Set parasite boot mode.
+
+| Offset | Type    | Name  | What                    |
+|--------+---------+-------+-------------------------|
+|      0 | uint8_t | value | Parasite boot mode flag |
+|--------+---------+-------+-------------------------|
+|      1 |         |       |                         |
+
+*** BBCMicro::INSTRUCTION_EVENT
+
+Name: =Instruction=
+
+Indicate instruction was executed.
+
+The logic for this is a bit fiddly, and the 6502 type plays a part.
+
+| Offset | Type     | Name   | What              |
+|--------+----------+--------+-------------------|
+|      0 | uint8_t  | a      | Accumulato        |
+|      1 | uint8_t  | x      | X register        |
+|      2 | uint8_t  | y      | Y register        |
+|      3 | uint8_t  | p      | P register        |
+|      4 | uint8_t  | data   | Data value        |
+|      5 | uint8_t  | opcode | Opcode executed   |
+|      6 | uint8_t  | s      | S register        |
+|      7 | uint16_t | pc     | PC register       |
+|      9 | uint16_t | ad     | Effective address |
+|     11 | uint16_t | ia     | Indirect address  |
+|--------+----------+--------+-------------------|
+|     12 |          |        |                   |
+
+*** Trace::STRING_EVENT
+
+Name: =_string=
+
+Add an arbitrary string to the log.
+
+TODO: The string length is included in the header, but the string is
+0-terminated anyway. Is this really necessary?
+
+| Offset | Type   | Name | What                |
+|--------+--------+------+---------------------|
+|      0 | char[] | str  | 0-terminated string |
+
+*** Trace::DISCONTINUITY_EVENT
+
+Name: =_discontinuity=
+
+Indicate a passage of time too large for the =time_delta= bitfield.
+
+TODO: the new cycle count is an absolute value, not relative. Does it
+have to be like that?
+
+| Offset | Type     | Name     | What            |
+|--------+----------+----------+-----------------|
+|      0 | uint64_t | new_time | New cycle count |
+|--------+----------+----------+-----------------|
+|      8 |          |          |                 |
+
+** Tool ideas
+
+If it's a pain to deal with the logic in Python or whatever (and it
+looks like it might be...), then why not a command line tool that
+depends on beeb_lib and can use the SaveTrace code. The executive
+decision can be that the consuming tool doesn't promise to deal with
+files not saved out by the corresponding b2 version.
+
+This would simplify a few things. Some of the behaviour wouldn't have
+to be properly tied down, because the tool and emulator code would
+match. (Particularly relevant for the BBBCMicroType.) But there'd
+still be the option of running repeatedly with the same input data and
+different options.
 
 * Build times
 
