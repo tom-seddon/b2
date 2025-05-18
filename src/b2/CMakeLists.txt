@@ -87,7 +87,7 @@ if(APPLE)
   # with the pre-cmake 3.0 target property that has now disappeared.)
   set(BUNDLE_CONTENTS_FOLDER $<TARGET_FILE_DIR:b2>/..)
   set(ICONS_MACOS ${CMAKE_SOURCE_DIR})
-  set(ICONSET ${CMAKE_CURRENT_BINARY_DIR}/etc/icon/macos/b2.iconset)
+  set(ICONSET ${CMAKE_SOURCE_DIR}/etc/icon/macos/b2.iconset)
 
   # https://developer.apple.com/library/content/documentation/UserExperience/Conceptual/OSXHIGuidelines/Designing.html#//apple_ref/doc/uid/20000957-CH87-SW1
 
