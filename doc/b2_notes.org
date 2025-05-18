@@ -4323,4 +4323,137 @@ format. For the versioning, have a file version number, which could
 cover changes to event header and event contents too. For event
 contents alone, adjusting the name will suffice.
 
+* Build times
+
+Commits of interest:
+
+- 3ea66152c72cb2dd38c434a1481081853fa8f084 :: starting point
+- 92206050d22f2e4140b8f5093bea260186be3543 :: move icon stuff out of
+  build process
+- 7171d360a3153364d895e0e67e81cc921ff88cc8 :: first pass configurable
+  part count
+
+Scenarios:
+
+- Rebuild :: full rebuild
+- Touch BBCMicro.h :: rebuild BBCMicro update and everything it
+  depends on. Currently a poor case when iterating
+
+Didn't get this working on clang. Probably fixable, but is it worth
+it? The iteration time benefits seemed marginal enough compared to the
+existing setup. Full rebuild measurably quicker on desktop but still
+not exactly instant.
+
+** 4c/8t laptop (Windows, Visual Studio)
+
+Messed up this version of the script and didn't get 64-/128-part
+timings. But it looks like the graph was flattening out at that point
+anyway.
+
+The 3ea tests were done first so may have benefited from the system
+being cooler.
+
+Per-run Visual Studio startup overhead = 6 seconds.
+
+| Commit | Parts | Config | What             | Seconds |
+|--------+-------+--------+------------------+---------|
+|    922 |     0 | Debug  | Rebuild          |     107 |
+|    717 |     4 | Debug  | Rebuild          |     111 |
+|    717 |     8 | Debug  | Rebuild          |     111 |
+|    717 |    16 | Debug  | Rebuild          |     112 |
+|    717 |    32 | Debug  | Rebuild          |     112 |
+|    717 |     2 | Debug  | Rebuild          |     118 |
+|    3ea |     0 | Debug  | Rebuild          |     137 |
+|    717 |     1 | Debug  | Rebuild          |     137 |
+
+| Commit | Parts | Config | What             | Seconds |
+|--------+-------+--------+------------------+---------|
+|    922 |     0 | RWDI   | Rebuild          |     299 |
+|    717 |     8 | RWDI   | Rebuild          |     303 |
+|    717 |     4 | RWDI   | Rebuild          |     306 |
+|    717 |    16 | RWDI   | Rebuild          |     307 |
+|    717 |    32 | RWDI   | Rebuild          |     308 |
+|    717 |     2 | RWDI   | Rebuild          |     312 |
+|    3ea |     0 | RWDI   | Rebuild          |     330 |
+|    717 |     1 | RWDI   | Rebuild          |     352 |
+
+
+| Commit | Parts | Config | What             | Seconds |
+|--------+-------+--------+------------------+---------|
+|    3ea |     0 | Debug  | Touch BBCMicro.h |      57 |
+|    717 |     8 | Debug  | Touch BBCMicro.h |      59 |
+|    922 |     0 | Debug  | Touch BBCMicro.h |      60 |
+|    717 |    16 | Debug  | Touch BBCMicro.h |      60 |
+|    717 |     4 | Debug  | Touch BBCMicro.h |      62 |
+|    717 |    32 | Debug  | Touch BBCMicro.h |      62 |
+|    717 |     2 | Debug  | Touch BBCMicro.h |      69 |
+|    717 |     1 | Debug  | Touch BBCMicro.h |      88 |
+
+| Commit | Parts | Config | What             | Seconds |
+|--------+-------+--------+------------------+---------|
+|    3ea |     0 | RWDI   | Touch BBCMicro.h |     208 |
+|    922 |     0 | RWDI   | Touch BBCMicro.h |     208 |
+|    717 |     4 | RWDI   | Touch BBCMicro.h |     212 |
+|    717 |    16 | RWDI   | Touch BBCMicro.h |     214 |
+|    717 |     8 | RWDI   | Touch BBCMicro.h |     216 |
+|    717 |    32 | RWDI   | Touch BBCMicro.h |     220 |
+|    717 |     2 | RWDI   | Touch BBCMicro.h |     222 |
+|    717 |     1 | RWDI   | Touch BBCMicro.h |     277 |
+
+** 32c/64t desktop (Windows, Visual Studio)
+
+Per-run Visual Studio startup overhead = 6 seconds.
+
+| Commit | Parts | Config | What    | Seconds |
+|--------+-------+--------+---------+---------|
+|    717 |    16 | Debug  | Rebuild |      38 |
+|    717 |    32 | Debug  | Rebuild |      39 |
+|    717 |     8 | Debug  | Rebuild |      42 |
+|    922 |     0 | Debug  | Rebuild |      44 |
+|    717 |    64 | Debug  | Rebuild |      45 |
+|    717 |     4 | Debug  | Rebuild |      46 |
+|    717 |   128 | Debug  | Rebuild |      47 |
+|    717 |     2 | Debug  | Rebuild |      57 |
+|    717 |     1 | Debug  | Rebuild |      78 |
+|    3ea |     0 | Debug  | Rebuild |      95 |
+
+| Commit | Parts | Config | What    | Seconds |
+|--------+-------+--------+---------+---------|
+|    717 |    16 | RWDI   | Rebuild |      73 |
+|    717 |     8 | RWDI   | Rebuild |      77 |
+|    922 |     0 | RWDI   | Rebuild |      90 |
+|    717 |     2 | RWDI   | Rebuild |      91 |
+|    717 |    64 | RWDI   | Rebuild |      94 |
+|    717 |    32 | RWDI   | Rebuild |      98 |
+|    717 |     4 | RWDI   | Rebuild |     104 |
+|    717 |   128 | RWDI   | Rebuild |     119 |
+|    717 |     1 | RWDI   | Rebuild |     145 |
+|    3ea |     0 | RWDI   | Rebuild |     154 |
+
+| Commit | Parts | Config | What             | Seconds |
+|--------+-------+--------+------------------+---------|
+|    717 |    16 | Debug  | Touch BBCMicro.h |      25 |
+|    717 |    32 | Debug  | Touch BBCMicro.h |      25 |
+|    3ea |     0 | Debug  | Touch BBCMicro.h |      30 |
+|    717 |     8 | Debug  | Touch BBCMicro.h |      31 |
+|    717 |    64 | Debug  | Touch BBCMicro.h |      31 |
+|    717 |     4 | Debug  | Touch BBCMicro.h |      33 |
+|    717 |   128 | Debug  | Touch BBCMicro.h |      33 |
+|    922 |     0 | Debug  | Touch BBCMicro.h |      34 |
+|    717 |     2 | Debug  | Touch BBCMicro.h |      41 |
+|    717 |     1 | Debug  | Touch BBCMicro.h |      64 |
+
+| Commit | Parts | Config | What             | Seconds |
+|--------+-------+--------+------------------+---------|
+|    3ea |     0 | RWDI   | Touch BBCMicro.h |      61 |
+|    717 |    32 | RWDI   | Touch BBCMicro.h |      61 |
+|    922 |     0 | RWDI   | Touch BBCMicro.h |      62 |
+|    717 |    16 | RWDI   | Touch BBCMicro.h |      68 |
+|    717 |    64 | RWDI   | Touch BBCMicro.h |      70 |
+|    717 |     8 | RWDI   | Touch BBCMicro.h |      73 |
+|    717 |     2 | RWDI   | Touch BBCMicro.h |      74 |
+|    717 |     4 | RWDI   | Touch BBCMicro.h |      85 |
+|    717 |   128 | RWDI   | Touch BBCMicro.h |      99 |
+|    717 |     1 | RWDI   | Touch BBCMicro.h |     126 |
+
 * eof.
