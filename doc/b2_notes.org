@@ -4558,6 +4558,14 @@ The logic for this is a bit fiddly, and the 6502 type plays a part.
 |--------+----------+--------+-------------------|
 |     12 |          |        |                   |
 
+Probably want to preprocess this a bit. Don't just reproduce what gets
+recorded to the trace buffer - do a bit of preprocessing so that
+what's in the data is more like an encoded version of what gets saved
+to the text file. The logic is in the emulator already, so no need to
+have it in the tool as well.
+
+Need to define some representation for the mapper regions and so on.
+
 *** Trace::STRING_EVENT
 
 Name: =_string=
@@ -4586,19 +4594,6 @@ have to be like that?
 |--------+----------+----------+-----------------|
 |      8 |          |          |                 |
 
-** Tool ideas
-
-If it's a pain to deal with the logic in Python or whatever (and it
-looks like it might be...), then why not a command line tool that
-depends on beeb_lib and can use the SaveTrace code. The executive
-decision can be that the consuming tool doesn't promise to deal with
-files not saved out by the corresponding b2 version.
-
-This would simplify a few things. Some of the behaviour wouldn't have
-to be properly tied down, because the tool and emulator code would
-match. (Particularly relevant for the BBBCMicroType.) But there'd
-still be the option of running repeatedly with the same input data and
-different options.
 
 * Build times
 
