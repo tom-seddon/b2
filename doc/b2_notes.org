@@ -4556,7 +4556,7 @@ The logic for this is a bit fiddly, and the 6502 type plays a part.
 |      9 | uint16_t | ad     | Effective address |
 |     11 | uint16_t | ia     | Indirect address  |
 |--------+----------+--------+-------------------|
-|     12 |          |        |                   |
+|     13 |          |        |                   |
 
 Probably want to preprocess this a bit. Don't just reproduce what gets
 recorded to the trace buffer - do a bit of preprocessing so that
@@ -4564,7 +4564,47 @@ what's in the data is more like an encoded version of what gets saved
 to the text file. The logic is in the emulator already, so no need to
 have it in the tool as well.
 
-Need to define some representation for the mapper regions and so on.
+Need to define some representation for the mapper regions and so on:
+
+Addressing state bits for host:
+
+| Flag     | Bits | What              |
+|----------+------+-------------------|
+| 0-9, a-f |    4 | Sideways ROM      |
+| n        |    1 | ANDY              |
+| h        |    1 | HAZEL             |
+| s        |    1 | Shadow            |
+| A-P      |    4 | ROM mapper region |
+
+Addressing state bits for parasite:
+
+| Flag | Bits |
+|------+------|
+| r    |    1 |
+
+Ugh. But, since it's already over 1 byte, might as well just store the
+2 chars directly.
+
+: H        1597  $da4a`o : sta  $0200,X [$02d5`m]   ff d5 7e ff NvdIzC (ff)
+
+(Cycle count, PC, opcode, operand, actual address, a, x, y, s, p, data)
+
+| Offset | Type     | What              |
+|--------+----------+-------------------|
+|      0 | uint8_t  | a                 |
+|      1 | uint8_t  | x                 |
+|      2 | uint8_t  | y                 |
+|      3 | uint8_t  | p                 |
+|      4 | uint8_t  | data              |
+|      5 | uint8_t  | opcode            |
+|      6 | uint8_t  | s                 |
+|      7 | uint16_t | pc                |
+|      9 | char[2]  | pc addr flags     |
+|     11 | uint16_t | operand           |
+|     13 | uint16_t | actual addr       |
+|     15 | char[2]  | actual addr flags |
+|--------+----------+-------------------|
+|     17 |          |                   |
 
 *** Trace::STRING_EVENT
 
