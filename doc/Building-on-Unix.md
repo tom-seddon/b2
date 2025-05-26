@@ -4,7 +4,9 @@ The Unix build process covers building from the command line (or
 Emacs, vim, etc.) on Unix-type systems, currently macOS and Linux.
 
 I do some of the development on macOS, so that version should work
-well.
+well. [Building with Xcode](./Building-on-OSX.md) is recommended, but
+it works from the command line too, and the releases are prepared this
+way.
 
 The Linux version doesn't get much testing by me, though I do try it
 on a Ubuntu VM occasionally. But I've had few reports of problems.
@@ -13,50 +15,45 @@ necessary.)
 
 # Common prerequisites
 
-- [cmake](https://cmake.org/) version 3.20+ on the PATH (I built it from [the CMake github repo](https://github.com/Kitware/CMake))
-- [ninja](https://ninja-build.org/) (build from the [Ninja github repo](https://github.com/ninja-build/ninja), install from MacPorts, etc.)
 - Python 3.x
 
 # macOS prerequisites
 
-- Xcode
+- Xcode and its command line tools
 
-## Additional prerequisites for video writing
+Suitable versions of cmake and ninja are available from MacPorts:
 
-These are optional. b2 will build without them, but video writing
-won't be available.
+    sudo port install cmake
+	sudo port install ninja
+	
+You can optionally install the FFmpeg libs - b2 will build without
+these, but compressed video writing won't be available. Suitable
+versions are available from MacPorts:
 
-- FFmpeg libs (should work with FFmpeg 4 or above)
+    sudo port install ffmpeg-devel
 
-Yuu can get these from MacPorts or Homebrew.
+It is also possible to build b2 with Homebrew. See the GitHub Actions
+workflow.
 
 # Linux prerequisites
 
 - gcc and g++, or clang
 
-Additional apt package dependencies can be installed with:
+The dependencies can be installed via apt. Ubuntu 24 will install
+suitable versions of the packages mentioned.
 
-    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev
+Required dependencies can be installed with:
+
+    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev cmake ninja-build
 	
-b2 should build with any version of SDL2, the newer the better!
-
-SDL 2.0.16 or later will give slightly better-quality results from
+(SDL 2.0.16 or later will give slightly better-quality results from
 `File` > `Save screenshot` when the `Correct aspect ratio` option is
-ticked.
-	
-## Additional prerequisites for video writing
-	
-These are optional. b2 will build without them, but video writing
-won't be available.
+ticked.)
 
-- `libx264-dev` apt package
-- `FFmpeg` libs: libavcodec 58+, libavformat 58+, libavutil 56+,
-  libswresample 3+, libswscale 5+ (this corresponds to FFmpeg 4 or
-  later)
-  
-FFmpeg is easy enough to build from the [the FFmpeg github
-repo](https://github.com/FFmpeg/FFmpeg) if the package manager version
-doesn't suit.
+Optional dependencies for compressed video writing can be installed
+with:
+	
+	sudo apt-get -y install libswresample-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libx264-dev
 
 # Building
 
