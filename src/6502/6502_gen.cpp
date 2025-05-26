@@ -1470,6 +1470,17 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
         branch_conditions["bbs" + std::to_string(i)] = "BS" + std::to_string(i);
     }
 
+    std::map<std::string, std::string> stack_operations = {
+        {"rts", "Pop"},
+        {"rti", "Pop"},
+        {"jsr", "Push"},
+    };
+    for (char c : "paxy") {
+        std::string reg(1, c);
+        stack_operations["ph" + reg] = "Push";
+        stack_operations["pl" + reg] = "Pop";
+    }
+
     P("static const M6502DisassemblyInfo %s[256]={\n", di_name.c_str());
     for (size_t i = 0; i < 256; ++i) {
         const Instr *instr = instrs[i];
@@ -1490,15 +1501,26 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
             }
         }
 
+        std::string stack_operation;
+        {
+            auto &&it = stack_operations.find(mnemonic);
+            if (it == stack_operations.end()) {
+                stack_operation = "None";
+            } else {
+                stack_operation = it->second;
+            }
+        }
+
         ASSERT(mnemonic.size() <= 4);
-        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch_condition=M6502Condition_%s},\n",
+        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch_condition=M6502Condition_%s,.stack_operation=M6502StackOperation_%s},\n",
           i,
           mnemonic.c_str(),
           mode.c_str(),
           instr->GetNumBytes(),
           instr->undocumented,
           always_step_in,
-          condition.c_str());
+          condition.c_str(),
+          stack_operation.c_str());
     }
     P("};\n");
     P("\n");

@@ -247,7 +247,7 @@ class TraceSaver {
         }
     }
 
-    static char *AddByte(char *c, const char *prefix, uint8_t value, const char *suffix) {
+    [[nodiscard]] static char *AddByte(char *c, const char *prefix, uint8_t value, const char *suffix) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -262,7 +262,7 @@ class TraceSaver {
         return c;
     }
 
-    static char *AddWord(char *c, const char *prefix, uint16_t value, const char *suffix) {
+    [[nodiscard]] static char *AddWord(char *c, const char *prefix, uint16_t value, const char *suffix) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -279,7 +279,7 @@ class TraceSaver {
         return c;
     }
 
-    char *AddAddress(const TraceEvent *ev, char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix, bool align = false) {
+    [[nodiscard]] char *AddAddress(const TraceEvent *ev, char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix, bool align = false) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -337,6 +337,24 @@ class TraceSaver {
 
         while ((*c = *suffix++) != 0) {
             ++c;
+        }
+
+        return c;
+    }
+
+    [[nodiscard]] char *AddStackAddress(const TraceEvent *e, char *c, const BBCMicro::InstructionTraceEvent *ev, const M6502DisassemblyInfo *i, const char *prefix) {
+        switch ((M6502StackOperation)i->stack_operation) {
+        case M6502StackOperation_None:
+            ASSERT(false);
+            break;
+
+        case M6502StackOperation_Push:
+            c = this->AddAddress(e, c, prefix, ev->pc, 0x100 + (ev->s + 1 & 0xff), "]");
+            break;
+
+        case M6502StackOperation_Pop:
+            c = this->AddAddress(e, c, prefix, ev->pc, 0x100 + ev->s, "]");
+            break;
         }
 
         return c;
@@ -571,7 +589,7 @@ class TraceSaver {
             c += m_time_prefix_len;
         }
 
-        c = AddAddress(e, c, "", 0, ev->pc, ":", true); //true=align
+        c = this->AddAddress(e, c, "", 0, ev->pc, ":", true); //true=align
 
         *c++ = i->undocumented ? '*' : ' ';
 
@@ -586,6 +604,9 @@ class TraceSaver {
             ASSERT(0);
             // fall through
         case M6502AddrMode_IMP:
+            if (i->stack_operation != M6502StackOperation_None) {
+                c = this->AddStackAddress(e, c, ev, i, "[");
+            }
             break;
 
         case M6502AddrMode_REL:
@@ -609,49 +630,52 @@ class TraceSaver {
 
         case M6502AddrMode_ZPG:
             c = AddByte(c, "$", (uint8_t)ev->ad, "");
-            c = AddAddress(e, c, " [", ev->pc, (uint8_t)ev->ad, "]");
+            c = this->AddAddress(e, c, " [", ev->pc, (uint8_t)ev->ad, "]");
             break;
 
         case M6502AddrMode_ZPX:
             c = AddByte(c, "$", (uint8_t)ev->ad, ",X");
-            c = AddAddress(e, c, " [", ev->pc, (uint8_t)(ev->ad + ev->x), "]");
+            c = this->AddAddress(e, c, " [", ev->pc, (uint8_t)(ev->ad + ev->x), "]");
             break;
 
         case M6502AddrMode_ZPY:
             c = AddByte(c, "$", (uint8_t)ev->ad, ",Y");
-            c = AddAddress(e, c, " [", ev->pc, (uint8_t)(ev->ad + ev->y), "]");
+            c = this->AddAddress(e, c, " [", ev->pc, (uint8_t)(ev->ad + ev->y), "]");
             break;
 
         case M6502AddrMode_ABS:
             c = AddWord(c, "$", ev->ad, "");
             if (i->branch_condition != M6502Condition_None) {
-                // don't add the address for JSR/JMP - for
-                // consistency with Bxx and JMP indirect. The addresses
-                // aren't useful anyway, since the next line shows where
-                // execution ended up.
+                // don't add the target address for JSR/JMP - for consistency
+                // with Bxx and JMP indirect. The addresses aren't useful
+                // anyway, since the next line shows where execution ended up.
+
+                if (i->stack_operation != M6502StackOperation_None) {
+                    c = this->AddStackAddress(e, c, ev, i, " [");
+                }
             } else {
-                c = AddAddress(e, c, " [", ev->pc, ev->ad, "]");
+                c = this->AddAddress(e, c, " [", ev->pc, ev->ad, "]");
             }
             break;
 
         case M6502AddrMode_ABX:
             c = AddWord(c, "$", ev->ad, ",X");
-            c = AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->x), "]");
+            c = this->AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->x), "]");
             break;
 
         case M6502AddrMode_ABY:
             c = AddWord(c, "$", ev->ad, ",Y");
-            c = AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
+            c = this->AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
             break;
 
         case M6502AddrMode_INX:
             c = AddByte(c, "($", (uint8_t)ev->ia, ",X)");
-            c = AddAddress(e, c, " [", ev->pc, ev->ad, "]");
+            c = this->AddAddress(e, c, " [", ev->pc, ev->ad, "]");
             break;
 
         case M6502AddrMode_INY:
             c = AddByte(c, "($", (uint8_t)ev->ia, "),Y");
-            c = AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
+            c = this->AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
             break;
 
         case M6502AddrMode_IND:
@@ -668,12 +692,13 @@ class TraceSaver {
         case M6502AddrMode_INZ:
             {
                 c = AddByte(c, "($", (uint8_t)ev->ia, ")");
-                c = AddAddress(e, c, " [", ev->pc, ev->ad, "]");
+                c = this->AddAddress(e, c, " [", ev->pc, ev->ad, "]");
             }
             break;
 
         case M6502AddrMode_INDX:
             c = AddWord(c, "($", ev->ia, ",X)");
+            c = this->AddAddress(e, c, " [", ev->pc, ev->ia + ev->x, "]");
             // the effective address isn't stored anywhere - it's
             // loaded straight into the program counter. But it's not
             // really a problem... a JMP is easy to follow.
@@ -698,8 +723,8 @@ class TraceSaver {
         p.value = ev->p;
 
         // 0         1         2
-        // 0123456789012345678901234
-        // xxx ($xx),Y [$xxxx]
+        // 01234567890123456789012345
+        // xxx__($xxxx,X)_[$xxxx`mm]
 
         while (c - mnemonic_begin < 25) {
             *c++ = ' ';

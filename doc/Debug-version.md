@@ -236,18 +236,19 @@ The trace output is along these lines, here shown with relative cycle
 count and register names included:
 
 ```
-H      63  m`17cc: lda #$81                 A=81 X=65 Y=00 S=f0 P=Nvdizc (D=81)
-H      65  m`17ce: ldy #$ff                 A=81 X=65 Y=ff S=f0 P=Nvdizc (D=ff)
-H      67  m`17d0: jsr $1bba                A=81 X=65 Y=ff S=ee P=Nvdizc (D=17)
-H      73  m`1bba: stx $1b8f [m`1b8f]       A=81 X=65 Y=ff S=ee P=Nvdizc (D=65)
-H      77  m`1bbd: ldx #$04                 A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
-H      79  m`1bbf: jmp $1b75                A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
-H      82  m`1b75: sta $1b91 [m`1b91]       A=81 X=04 Y=ff S=ee P=nvdizc (D=81)
-H      86  m`1b78: lda $f4 [m`00f4]         A=04 X=04 Y=ff S=ee P=nvdizc (D=04)
-H      89  m`1b7a: pha                      A=04 X=04 Y=ff S=ed P=nvdizc (D=04)
-H      92  m`1b7b: lda #$05                 A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
-H      94  m`1b7d: sta $f4 [m`00f4]         A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
-H      97  m`1b7f: sta $fe30 [i`fe30]       A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+H           0  $e469`o : cmp  $02e1,X [$02e1`m]   A=e0 X=00 Y=0a S=ee P=nvdIZC (D=e0)
+H           4  $e46c`o : beq  $e4e0               A=e0 X=00 Y=0a S=ee P=nvdIZC (D=01)
+H           7  $e4e0`o : plp  [$01ef`m]           A=e0 X=00 Y=0a S=ef P=nvdiZC (D=33)
+H          11  $e4e1`o : sec                      A=e0 X=00 Y=0a S=ec P=nvdIZC (D=60)
+H          20  $dc1c`o : sta  $fc [$00fc`m]       A=e0 X=00 Y=0a S=ec P=nvdIZC (D=e0)
+H          23  $dc1e`o : pla  [$01ed`m]           A=23 X=00 Y=0a S=ed P=nvdIzC (D=23)
+H          27  $dc1f`o : pha  [$01ed`m]           A=23 X=00 Y=0a S=ec P=nvdIzC (D=23)
+H          30  $dc20`o : and  #$10                A=00 X=00 Y=0a S=ec P=nvdIZC (D=10)
+H          32  $dc22`o : bne  $dc27               A=00 X=00 Y=0a S=ec P=nvdIZC (D=00)
+H          34  $dc24`o : jmp  ($0204)             A=00 X=00 Y=0a S=ec P=nvdIZC (D=00)
+H          39  $dc93`o : cld                      A=00 X=00 Y=0a S=ec P=nvdIZC (D=a5)
+H          41  $dc94`o : lda  $fc [$00fc`m]       A=e0 X=00 Y=0a S=ec P=NvdIzC (D=e0)
+H          44  $dc96`o : pha  [$01ec`m]           A=e0 X=00 Y=0a S=eb P=NvdIzC (D=e0)
 ```
 
 `H`/`P` indicates whether this line relates to the host or parasite.
@@ -256,30 +257,42 @@ output, but offset so that it's easier... marginally... to scan by
 eye:
 
 ```
-P                                                                                       0  r`$f800: ldx #$00                 A=00 X=00 Y=00 S=fd P=nvdiZc (D=00)
-P                                                                                       2  r`$f802: lda $ff00,X [r`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
-P                                                                                       6  r`$f805: sta $ff00,X [r`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
-H       3  o`$e364: lda #$40                 A=40 X=00 Y=00 S=fd P=nvdizc (D=40)
-P                                                                                      11  r`$f808: dex                      A=ff X=ff Y=00 S=fd P=Nvdizc (D=d0)
-H       5  o`$e366: sta $0d00 [m`$0d00]      A=40 X=00 Y=00 S=fd P=nvdizc (D=40)
-P                                                                                      13  r`$f809: bne $f802                A=ff X=ff Y=00 S=fd P=Nvdizc (D=01)
-P                                                                                      16  r`$f802: lda $ff00,X [r`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
-H       9  o`$e369: sei                      A=40 X=00 Y=00 S=fd P=nvdIzc (D=a9)
-P                                                                                      20  r`$f805: sta $ff00,X [r`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
-H      11  o`$e36a: lda #$53                 A=53 X=00 Y=00 S=fd P=nvdIzc (D=53)
-P                                                                                      25  r`$f808: dex                      A=fc X=fe Y=00 S=fd P=Nvdizc (D=d0)
-P                                                                                      27  r`$f809: bne $f802                A=fc X=fe Y=00 S=fd P=Nvdizc (D=01)
-H      13  o`$e36c: sta $fe8e [i`$fe8e]      A=53 X=00 Y=00 S=fd P=nvdIzc (D=53)
-P                                                                                      30  r`$f802: lda $ff00,X [r`$fffe]    A=e6 X=fe Y=00 S=fd P=Nvdizc (D=e6)
-P                                                                                      34  r`$f805: sta $ff00,X [r`$fffe]    A=e6 X=fe Y=00 S=fd P=Nvdizc (D=e6)
-H      17  o`$e36f: jsr $e590                A=53 X=00 Y=00 S=fb P=nvdIzc (D=00)
-P                                                                                      39  r`$f808: dex                      A=e6 X=fd Y=00 S=fd P=Nvdizc (D=d0)
-P                                                                                      41  r`$f809: bne $f802                A=e6 X=fd Y=00 S=fd P=Nvdizc (D=01)
+P                                                                                           0  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
+H           1  $eac3`o : jsr  $e9f4 [$01f2`m]     A=00 X=00 Y=0a S=f1 P=nvdiZc (D=ea)
+P                                                                                           4  $f983`p: bpl  $f980               A=00 X=ff Y=00 S=f7 P=nVdiZC (D=01)
+P                                                                                           7  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
+P                                                                                          11  $f983`p: bpl  $f980               A=00 X=ff Y=00 S=f7 P=nVdiZC (D=01)
+P                                                                                          14  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
+H           7  $e9f4`o : clv                      A=00 X=00 Y=0a S=f1 P=nvdiZc (D=6c)
+P                                                                                          18  $f983`p: bpl  $f980               A=00 X=ff Y=00 S=f7 P=nVdiZC (D=01)
+H           9  $e9f5`o : jmp  ($022c)             A=00 X=00 Y=0a S=f1 P=nvdiZc (D=6c)
+P                                                                                          21  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
+P                                                                                          25  $f983`p: bpl  $f980               A=00 X=ff Y=00 S=f7 P=nVdiZC (D=01)
+P                                                                                          28  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
+H          15  $e9f8`o : php  [$01f1`m]           A=00 X=00 Y=0a S=f0 P=nvdiZc (D=32)
+P                                                                                          32  $f983`p: bpl  $f980               A=00 X=ff Y=00 S=f7 P=nVdiZC (D=01)
+P                                                                                          35  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
+H          18  $e9f9`o : sei                      A=00 X=00 Y=0a S=f0 P=nvdIZc (D=bd)
+P                                                                                          39  $f983`p: bpl  $f980               A=00 X=ff Y=00 S=f7 P=nVdiZC (D=01)
+H          20  $e9fa`o : lda  $02d7,X [$02d7`m]   A=e0 X=00 Y=0a S=f0 P=NvdIzc (D=e0)
+P                                                                                          42  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
+P                                                                                          46  $f983`p: bpl  $f980               A=00 X=ff Y=00 S=f7 P=nVdiZC (D=01)
+P                                                                                          49  $f980`p: bit  $fefa [$fefa`p]     A=00 X=ff Y=00 S=f7 P=nVdiZC (D=40)
 ```
 
 Host or parasite, the first column is the cycle count - then
-instruction address, instruction, effective address, and register
-values after the instruction is complete.
+instruction address, instruction, operand, square-bracketed address of
+bytes accessed (when applicable), and register values after the
+instruction is complete.
+
+(The bytes accessed don't necessarily match the effective address. For
+`jsr`, it's the lowest address of the bytes put on the stack; for
+65c02 `jmp` indirect indexed, it's the actual address the address was
+fetched from; and for general stack operations (`pha`, `rts`, etc.),
+which don't strictly speaking have an effective address at all, it's
+the lowest address of the bytes accessed from the stack. This is
+intended to increase the chance of simple text searches finding
+relevant accesses to that specific address.)
 
 The bracketed `D` value is the value of the emulated CPU's internal
 data register. For read or read-modify-write instructions, this is the

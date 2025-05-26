@@ -150,6 +150,16 @@ typedef enum M6502Condition M6502Condition;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+enum M6502StackOperation {
+    M6502StackOperation_None,
+    M6502StackOperation_Push,
+    M6502StackOperation_Pop,
+};
+typedef enum M6502StackOperation M6502StackOperation;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 typedef void (*M6502Fn)(struct M6502 *);
 
 typedef void (*M6502Callback)(struct M6502 *, void *);
@@ -167,15 +177,18 @@ struct M6502DisassemblyInfo {
     uint8_t num_bytes;
 
     // Set if undocumented.
-    uint8_t undocumented : 1;
+    uint16_t undocumented : 1;
 
     // Set if the debugger should actually do a step in when stepping
     // over this instruction.
-    uint8_t always_step_in : 1;
+    uint16_t always_step_in : 1;
 
-    // Condition for branch - 0=not a branch, otherwise one of the
-    // M6502Condition values.
-    uint8_t branch_condition : 5;
+    // Condition for branch - one of the M6502Condition values.
+    uint16_t branch_condition : 5;
+
+    // Stack operation performed by this instruction - one of the
+    // M6502StackOperation values.
+    uint16_t stack_operation : 2;
 
     // Mnemonic.
     char mnemonic[5];

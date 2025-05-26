@@ -1874,11 +1874,11 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                         uint8_t bit;
                         bool set;
                         if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
-                            bit = di->branch_condition - M6502Condition_BR0;
+                            bit = (uint8_t)(di->branch_condition - M6502Condition_BR0);
                             set = false;
                         } else {
                             ASSERT(di->branch_condition >= M6502Condition_BS0 && di->branch_condition <= M6502Condition_BS7);
-                            bit = di->branch_condition - M6502Condition_BS0;
+                            bit = (uint8_t)(di->branch_condition - M6502Condition_BS0);
                             set = true;
                         }
 
