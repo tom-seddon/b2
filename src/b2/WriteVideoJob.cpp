@@ -182,7 +182,7 @@ void WriteVideoJob::ThreadExecute() {
 
     // It's probably not what you want - but this should really be
     // configurable.
-    beeb_thread->SetDiscVolume(MIN_DB);
+    beeb_thread->SetDiscVolume(MIN_DB, false);
 
     {
         bool replaying = true;

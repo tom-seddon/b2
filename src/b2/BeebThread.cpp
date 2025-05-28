@@ -1853,8 +1853,8 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
     ASSERT(sound_freq >= 0);
     m_audio_thread_data = new AudioThreadData((uint64_t)sound_freq, (uint64_t)sound_buffer_size_samples, 100);
 
-    this->SetBBCVolume(MAX_DB);
-    this->SetDiscVolume(MAX_DB);
+    this->SetBBCVolume(MAX_DB, false);
+    this->SetDiscVolume(MAX_DB, false);
 
     MUTEX_SET_NAME(m_mutex, "BeebThread");
     MUTEX_SET_NAME(m_timeline_state_mutex, "BeebThread timeline_state");
@@ -2277,15 +2277,15 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SetBBCVolume(float db) {
-    this->SetVolume(&m_audio_thread_data->bbc_sound_scale, db);
+void BeebThread::SetBBCVolume(float db, bool mute) {
+    this->SetVolume(&m_audio_thread_data->bbc_sound_scale, db, mute);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SetDiscVolume(float db) {
-    this->SetVolume(&m_audio_thread_data->disc_sound_scale, db);
+void BeebThread::SetDiscVolume(float db, bool mute) {
+    this->SetVolume(&m_audio_thread_data->disc_sound_scale, db, mute);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3382,7 +3382,7 @@ done:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SetVolume(float *scale_var, float db) {
+void BeebThread::SetVolume(float *scale_var, float db, bool mute) {
     if (db > MAX_DB) {
         db = MAX_DB;
     }
@@ -3394,7 +3394,11 @@ void BeebThread::SetVolume(float *scale_var, float db) {
     {
         AudioDeviceLock lock(m_sound_device_id);
 
-        *scale_var = powf(10.f, db / 20.f);
+        if (mute) {
+            *scale_var = 0.f;
+        } else {
+            *scale_var = powf(10.f, db / 20.f);
+        }
     }
 }
 

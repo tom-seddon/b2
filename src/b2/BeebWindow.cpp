@@ -366,6 +366,26 @@ BeebWindow::OptionsUI::OptionsUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void ImGuiVolume(const char *caption, float *volume, bool *mute, const std::shared_ptr<BeebThread> &beeb_thread, void (BeebThread::*set_volume_mfn)(float, bool)) {
+    ImGuiIDPusher pusher(caption);
+
+    bool changed = false;
+
+    if (ImGui::SliderFloat(caption, volume, MIN_DB, MAX_DB, "%.1f dB")) {
+        changed = true;
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Checkbox("Mute", mute)) {
+        changed = true;
+    }
+
+    if (changed) {
+        (*beeb_thread.*set_volume_mfn)(*volume, *mute);
+    }
+}
+
 void BeebWindow::OptionsUI::DoImGui() {
     const std::shared_ptr<BeebThread> &beeb_thread = m_beeb_window->m_beeb_thread;
     BeebWindowSettings *settings = &m_beeb_window->m_settings;
@@ -453,13 +473,9 @@ void BeebWindow::OptionsUI::DoImGui() {
     {
         ImGuiHeader("Sound");
 
-        if (ImGui::SliderFloat("BBC volume", &settings->bbc_volume, MIN_DB, MAX_DB, "%.1f dB")) {
-            beeb_thread->SetBBCVolume(settings->bbc_volume);
-        }
+        ImGuiVolume("BBC volume", &settings->bbc_volume, &settings->bbc_mute, beeb_thread, &BeebThread::SetBBCVolume);
 
-        if (ImGui::SliderFloat("Disc volume", &settings->disc_volume, MIN_DB, MAX_DB, "%.1f dB")) {
-            beeb_thread->SetDiscVolume(settings->disc_volume);
-        }
+        ImGuiVolume("Disc volume", &settings->disc_volume, &settings->disc_mute, beeb_thread, &BeebThread::SetDiscVolume);
 
         if (ImGui::Checkbox("Power-on tone", &settings->power_on_tone)) {
             beeb_thread->SetPowerOnTone(settings->power_on_tone);
@@ -582,8 +598,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
         m_settings = BeebWindows::defaults;
     }
 
-    m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
-    m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
+    m_beeb_thread->SetBBCVolume(m_settings.bbc_volume, m_settings.bbc_mute);
+    m_beeb_thread->SetDiscVolume(m_settings.disc_volume, m_settings.disc_mute);
     m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
     m_beeb_thread->SetLowPassFilter(m_settings.low_pass_filter);
     m_beeb_thread->SetLowPassFilterCutoff(m_settings.low_pass_filter_cutoff_hz);

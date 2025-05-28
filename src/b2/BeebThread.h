@@ -1013,8 +1013,8 @@ class BeebThread {
                                       bool perfect);
 
     // Set sound/disc volume as attenuation in decibels.
-    void SetBBCVolume(float db);
-    void SetDiscVolume(float db);
+    void SetBBCVolume(float db, bool mute);
+    void SetDiscVolume(float db, bool mute);
 
     void SetPowerOnTone(bool power_on_tone);
 
@@ -1203,7 +1203,7 @@ class BeebThread {
     void ThreadStartPaste(ThreadState *ts, std::shared_ptr<const std::string> text);
     void ThreadStopCopy(ThreadState *ts);
     void ThreadMain();
-    void SetVolume(float *scale_var, float db);
+    void SetVolume(float *scale_var, float db, bool mute);
     bool ThreadRecordSaveState(ThreadState *ts, bool user_initiated);
     void ThreadStopRecording(ThreadState *ts);
     void ThreadClearRecording(ThreadState *ts);
