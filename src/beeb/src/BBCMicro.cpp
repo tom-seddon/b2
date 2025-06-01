@@ -2017,6 +2017,7 @@ void BBCMicro::PrintInfo(Log *log) {
     log->f("%zu/%zu normalized BBCMicroUpdateFlag combinations\n", normalized_flags.size(), num_update_mfns);
 
     size_t num_unique_overall = LogNumUniqueInstantiations(log, "ms_update_mfns", ms_update_mfns, sizeof ms_update_mfns / sizeof ms_update_mfns[0], nullptr);
+
 #if BBCMICRO_NUM_UPDATE_GROUPS > 1
     LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
     LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
@@ -3089,41 +3090,22 @@ void BBCMicro::UpdateMapperRegion(uint8_t region) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::EnsureUpdateMFnsTableIsReady() {
-#if BBCMICRO_NUM_UPDATE_GROUPS > 1
     if (!ms_update_mfns[0]) {
+        size_t group_idx = 0;
+        size_t group_fn_idx = 0;
         for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
-            const UpdateMFn *mfns = nullptr; //i % 2 == 0 ? ms_update_mfns0 : ms_update_mfns1;
-            switch (i % BBCMICRO_NUM_UPDATE_GROUPS) {
-            default:
-                ASSERT(false);
-            case 0:
-                mfns = ms_update_mfns0;
-                break;
+            ms_update_mfns[i] = ms_update_mfn_groups[group_idx][group_fn_idx];
 
-            case 1:
-                mfns = ms_update_mfns1;
-                break;
-
-#if BBCMICRO_NUM_UPDATE_GROUPS > 2
-            case 2:
-                mfns = ms_update_mfns2;
-                break;
-
-            case 3:
-                mfns = ms_update_mfns3;
-                break;
-#endif
+            ++group_idx;
+            if (!ms_update_mfn_groups[group_idx]) {
+                group_idx = 0;
+                ++group_fn_idx;
             }
-
-            ms_update_mfns[i] = mfns[i / BBCMICRO_NUM_UPDATE_GROUPS];
         }
     }
-#endif
 
-    for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+    for (uint32_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
         ASSERT(ms_update_mfns[i]);
+        ASSERT(ms_update_mfns[i] == ms_update_mfns[BBCMicro::GetNormalizedBBCMicroUpdateFlags(i)]);
     }
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////

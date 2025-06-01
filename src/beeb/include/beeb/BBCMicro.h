@@ -729,6 +729,10 @@ class BBCMicro : private WD1770Handler {
 
     static void EnsureUpdateMFnsTableIsReady();
 
+    // If 1 update group, empty; otherwise, terminated by nullptr - slightly odd
+    // arrangement that means the group count doesn't have to escape the
+    // generated code.
+    static const UpdateMFn *const ms_update_mfn_groups[];
 #if BBCMICRO_NUM_UPDATE_GROUPS == 1
     static const UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];
 #endif

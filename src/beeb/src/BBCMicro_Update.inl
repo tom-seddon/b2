@@ -1132,6 +1132,23 @@ uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#ifdef BBCMICRO_UPDATE_DEFINE_FUNCTIONS
+const BBCMicro::UpdateMFn *const BBCMicro::ms_update_mfn_groups[] = {
+#if BBCMICRO_NUM_UPDATE_GROUPS >= 2
+    ms_update_mfns0,
+    ms_update_mfns1,
+#endif
+#if BBCMICRO_NUM_UPDATE_GROUPS == 4
+    ms_update_mfns2,
+    ms_update_mfns3,
+#endif
+    nullptr,
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #ifdef BBCMICRO_UPDATE_GROUP
 
 #define UPDATE1(N) &BBCMicro::UpdateTemplated<::GetNormalizedBBCMicroUpdateFlags((N)*BBCMICRO_NUM_UPDATE_GROUPS + BBCMICRO_UPDATE_GROUP)>
