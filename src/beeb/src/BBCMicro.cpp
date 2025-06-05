@@ -1995,20 +1995,19 @@ struct std::hash<BBCMicro::UpdateMFn> {
     }
 };
 
-static size_t LogNumUniqueInstantiations(Log *log, const char *prefix, const BBCMicro::UpdateMFn *mfns, size_t num_mfns, const size_t *num_unique_overall) {
-    //std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
-    //for (size_t i = 0; i < num_mfns; ++i) {
-    //    update_mfns.insert(mfns[i]);
-    //}
+static size_t LogNumUniqueInstantiations(Log *log, const char *prefix, const BBCMicro::UpdateMFn *mfns, size_t num_mfns, const size_t *num_unique_overall, size_t num_update_groups) {
+    std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
+    for (size_t i = 0; i < num_mfns; ++i) {
+        update_mfns.insert(mfns[i]);
+    }
 
-    //log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplated instantiations", prefix, update_mfns.size(), num_mfns);
-    //if (num_unique_overall) {
-    //    log->f(" (%.2fx ideal)", (double)update_mfns.size() * BBCMICRO_NUM_UPDATE_GROUPS / *num_unique_overall);
-    //}
-    //log->f("\n");
+    log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplated instantiations", prefix, update_mfns.size(), num_mfns);
+    if (num_unique_overall) {
+        log->f(" (%.2fx ideal)", (double)update_mfns.size() * num_update_groups / *num_unique_overall);
+    }
+    log->f("\n");
 
-    //return update_mfns.size();
-    return 1;
+    return update_mfns.size();
 }
 
 void BBCMicro::PrintInfo(Log *log) {
@@ -2023,16 +2022,29 @@ void BBCMicro::PrintInfo(Log *log) {
 
     log->f("%zu/%zu normalized BBCMicroUpdateFlag combinations\n", normalized_flags.size(), num_update_mfns);
 
-    size_t num_unique_overall = LogNumUniqueInstantiations(log, "ms_update_mfns", ms_update_mfns, sizeof ms_update_mfns / sizeof ms_update_mfns[0], nullptr);
+    size_t num_update_groups = 0;
+    while (ms_update_mfn_groups[num_update_groups]) {
+        ++num_update_groups;
+    }
+    ASSERT(NUM_BBCMICRO_UPDATE_MFNS % num_update_groups == 0);
 
-//#if BBCMICRO_NUM_UPDATE_GROUPS > 1
-//    LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
-//    LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
-//#endif
-//#if BBCMICRO_NUM_UPDATE_GROUPS > 2
-//    LogNumUniqueInstantiations(log, "ms_update_mfns2", ms_update_mfns2, sizeof ms_update_mfns2 / sizeof ms_update_mfns2[0], &num_unique_overall);
-//    LogNumUniqueInstantiations(log, "ms_update_mfns3", ms_update_mfns3, sizeof ms_update_mfns3 / sizeof ms_update_mfns3[0], &num_unique_overall);
-//#endif
+    size_t num_unique_overall = LogNumUniqueInstantiations(log, "ms_update_mfns", ms_update_mfns, sizeof ms_update_mfns / sizeof ms_update_mfns[0], nullptr, num_update_groups);
+
+    for (size_t i = 0; i < num_update_groups; ++i) {
+        char prefix[1000];
+        snprintf(prefix, sizeof prefix, "ms_update_mfns%zu", i);
+
+        LogNumUniqueInstantiations(log, prefix, ms_update_mfn_groups[i], NUM_BBCMICRO_UPDATE_MFNS / num_update_groups, &num_unique_overall, num_update_groups);
+    }
+
+    //#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+    //    LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
+    //    LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
+    //#endif
+    //#if BBCMICRO_NUM_UPDATE_GROUPS > 2
+    //    LogNumUniqueInstantiations(log, "ms_update_mfns2", ms_update_mfns2, sizeof ms_update_mfns2 / sizeof ms_update_mfns2[0], &num_unique_overall);
+    //    LogNumUniqueInstantiations(log, "ms_update_mfns3", ms_update_mfns3, sizeof ms_update_mfns3 / sizeof ms_update_mfns3[0], &num_unique_overall);
+    //#endif
 
     uint32_t unused_bits = ~(uint32_t)0;
     for (uint32_t bit = 0; bit < 32; ++bit) {
