@@ -49,9 +49,7 @@ static const std::vector<float> DUMMY_DISC_DRIVE_SOUND(1, 0.f);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_NUM_UPDATE_GROUPS > 1
-BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS];
-#endif
+BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_BBCMICRO_UPDATE_MFNS];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -138,6 +136,14 @@ const uint16_t BBCMicro::ADJI_ADDRESSES[4] = {
     0xfcd0,
     0xfce0,
     0xfcf0,
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BBCMicro::UpdateMFn *const BBCMicro::ms_update_mfn_groups[] = {
+#include "../generated/BBCMicro.groups.generated.inl"
+    nullptr,
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1990,18 +1996,19 @@ struct std::hash<BBCMicro::UpdateMFn> {
 };
 
 static size_t LogNumUniqueInstantiations(Log *log, const char *prefix, const BBCMicro::UpdateMFn *mfns, size_t num_mfns, const size_t *num_unique_overall) {
-    std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
-    for (size_t i = 0; i < num_mfns; ++i) {
-        update_mfns.insert(mfns[i]);
-    }
+    //std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
+    //for (size_t i = 0; i < num_mfns; ++i) {
+    //    update_mfns.insert(mfns[i]);
+    //}
 
-    log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplated instantiations", prefix, update_mfns.size(), num_mfns);
-    if (num_unique_overall) {
-        log->f(" (%.2fx ideal)", (double)update_mfns.size() * BBCMICRO_NUM_UPDATE_GROUPS / *num_unique_overall);
-    }
-    log->f("\n");
+    //log->f("%s: %zu/%zu unique BBCMicro::UpdateTemplated instantiations", prefix, update_mfns.size(), num_mfns);
+    //if (num_unique_overall) {
+    //    log->f(" (%.2fx ideal)", (double)update_mfns.size() * BBCMICRO_NUM_UPDATE_GROUPS / *num_unique_overall);
+    //}
+    //log->f("\n");
 
-    return update_mfns.size();
+    //return update_mfns.size();
+    return 1;
 }
 
 void BBCMicro::PrintInfo(Log *log) {
@@ -2018,14 +2025,14 @@ void BBCMicro::PrintInfo(Log *log) {
 
     size_t num_unique_overall = LogNumUniqueInstantiations(log, "ms_update_mfns", ms_update_mfns, sizeof ms_update_mfns / sizeof ms_update_mfns[0], nullptr);
 
-#if BBCMICRO_NUM_UPDATE_GROUPS > 1
-    LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
-    LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
-#endif
-#if BBCMICRO_NUM_UPDATE_GROUPS > 2
-    LogNumUniqueInstantiations(log, "ms_update_mfns2", ms_update_mfns2, sizeof ms_update_mfns2 / sizeof ms_update_mfns2[0], &num_unique_overall);
-    LogNumUniqueInstantiations(log, "ms_update_mfns3", ms_update_mfns3, sizeof ms_update_mfns3 / sizeof ms_update_mfns3[0], &num_unique_overall);
-#endif
+//#if BBCMICRO_NUM_UPDATE_GROUPS > 1
+//    LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
+//    LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
+//#endif
+//#if BBCMICRO_NUM_UPDATE_GROUPS > 2
+//    LogNumUniqueInstantiations(log, "ms_update_mfns2", ms_update_mfns2, sizeof ms_update_mfns2 / sizeof ms_update_mfns2[0], &num_unique_overall);
+//    LogNumUniqueInstantiations(log, "ms_update_mfns3", ms_update_mfns3, sizeof ms_update_mfns3 / sizeof ms_update_mfns3[0], &num_unique_overall);
+//#endif
 
     uint32_t unused_bits = ~(uint32_t)0;
     for (uint32_t bit = 0; bit < 32; ++bit) {
@@ -3064,7 +3071,7 @@ void BBCMicro::SetDigitalJoystickState(uint8_t index, BBCMicroState::DigitalJoys
 #if BBCMICRO_DEBUGGER
 void BBCMicro::UpdateUpdateMFnData() {
     if (m_update_mfn) {
-        ASSERT(m_update_flags < NUM_UPDATE_MFNS);
+        ASSERT(m_update_flags < NUM_BBCMICRO_UPDATE_MFNS);
         m_update_mfn_data->update_mfn_cycle_count[m_update_flags].n += m_state.cycle_count.n - m_last_mfn_change_cycle_count.n;
         m_last_mfn_change_cycle_count = m_state.cycle_count;
     }
@@ -3093,7 +3100,7 @@ void BBCMicro::EnsureUpdateMFnsTableIsReady() {
     if (!ms_update_mfns[0]) {
         size_t group_idx = 0;
         size_t group_fn_idx = 0;
-        for (size_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+        for (size_t i = 0; i < NUM_BBCMICRO_UPDATE_MFNS; ++i) {
             ms_update_mfns[i] = ms_update_mfn_groups[group_idx][group_fn_idx];
 
             ++group_idx;
@@ -3104,7 +3111,7 @@ void BBCMicro::EnsureUpdateMFnsTableIsReady() {
         }
     }
 
-    for (uint32_t i = 0; i < NUM_UPDATE_MFNS; ++i) {
+    for (uint32_t i = 0; i < NUM_BBCMICRO_UPDATE_MFNS; ++i) {
         ASSERT(ms_update_mfns[i]);
         ASSERT(ms_update_mfns[i] == ms_update_mfns[BBCMicro::GetNormalizedBBCMicroUpdateFlags(i)]);
     }

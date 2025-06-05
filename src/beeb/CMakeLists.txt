@@ -5,7 +5,7 @@ set(SRCS
   ${S}/1770.cpp ${I}/1770.h ${I}/1770.inl
   ${S}/6502.cpp ${I}/6502.h
   ${S}/6522.cpp ${I}/6522.h ${I}/6522.inl
-  ${S}/BBCMicro.cpp ${S}/BBCMicro_Update.cpp ${S}/BBCMicro_Update.inl ${S}/BBCMicro_Update0.cpp ${S}/BBCMicro_Update1.cpp ${S}/BBCMicro_Update2.cpp ${S}/BBCMicro_Update3.cpp ${S}/BBCMicro_private.inl ${I}/BBCMicro.h ${I}/BBCMicro.inl
+  ${S}/BBCMicro.cpp ${S}/BBCMicro_Update.cpp ${S}/BBCMicro_Update.inl ${S}/BBCMicro_private.inl ${I}/BBCMicro.h ${I}/BBCMicro.inl
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   ${S}/DiscImage.cpp ${I}/DiscImage.h
   ${S}/DiscInterface.cpp ${I}/DiscInterface.h ${I}/DiscInterface.inl
@@ -39,6 +39,20 @@ set(SRCS
 if(MSVC)
   set(SRCS ${SRCS} beeb.natvis)
 endif()
+
+set(SRCS ${SRCS}
+  generated/BBCMicro.groups.generated.h
+  generated/BBCMicro.groups.generated.inl)
+
+# These files are automatically generated, so the set won't change
+# from run to run.
+#
+# The tool that creates them touches this file, so cmake will re-run
+# as required.
+file(GLOB UPDATE_GENERATED_SRCS
+  LIST_DIRECTORIES false
+  generated/BBCMicro.group*.generated.cpp)
+set(SRCS ${SRCS} ${UPDATE_GENERATED_SRCS})
 
 add_library(beeb_lib ${SRCS})
 b2_target_boilerplate(beeb_lib SANITIZERS)

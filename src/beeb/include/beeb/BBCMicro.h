@@ -28,9 +28,6 @@ class BeebLink;
 #include "BBCMicro.inl"
 #include <shared/enum_end.h>
 
-//
-#define BBCMICRO_NUM_UPDATE_GROUPS (4)
-
 #define BBCMicroLEDFlags_AllDrives (255u * BBCMicroLEDFlag_Drive0)
 
 constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
@@ -45,6 +42,8 @@ constexpr BBCMicroUpdateROMType GetBBCMicroUpdateFlagsUpdateROMType(uint32_t upd
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static constexpr size_t NUM_BBCMICRO_UPDATE_MFNS = 65536;
+
 class BBCMicro : private WD1770Handler {
   public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
@@ -55,15 +54,13 @@ class BBCMicro : private WD1770Handler {
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *, const ACCCON *);
     typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
 
-    static constexpr size_t NUM_UPDATE_MFNS = 65536;
-
     static std::string GetUpdateFlagExpr(const uint32_t flags_);
 
 #if BBCMICRO_DEBUGGER
 
     struct UpdateMFnData {
         // number of cycles spent in each state
-        CycleCount update_mfn_cycle_count[NUM_UPDATE_MFNS] = {};
+        CycleCount update_mfn_cycle_count[NUM_BBCMICRO_UPDATE_MFNS] = {};
 
         // Number of times the update mfn has changed
         uint64_t num_update_mfn_changes = 0;
@@ -721,33 +718,18 @@ class BBCMicro : private WD1770Handler {
 
     void UpdateMapperRegion(uint8_t region);
 
-#if !(BBCMICRO_NUM_UPDATE_GROUPS == 1 || BBCMICRO_NUM_UPDATE_GROUPS == 2 || BBCMICRO_NUM_UPDATE_GROUPS == 4)
-#error unsupported BBCMICRO_NUM_UPDATE_GROUPS value
-#endif
-
-    static_assert(NUM_UPDATE_MFNS % BBCMICRO_NUM_UPDATE_GROUPS == 0);
-
     static void EnsureUpdateMFnsTableIsReady();
 
     // If 1 update group, empty; otherwise, terminated by nullptr - slightly odd
     // arrangement that means the group count doesn't have to escape the
     // generated code.
     static const UpdateMFn *const ms_update_mfn_groups[];
-#if BBCMICRO_NUM_UPDATE_GROUPS == 1
-    static const UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];
-#endif
-#if BBCMICRO_NUM_UPDATE_GROUPS >= 2
-    // A bit wasteful, but it reduces the impact of changing
-    // BBCMICRO_NUM_UPDATE_GROUPS on the rest of the code.
-    static UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];
 
-    static const UpdateMFn ms_update_mfns0[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
-    static const UpdateMFn ms_update_mfns1[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
-#endif
-#if BBCMICRO_NUM_UPDATE_GROUPS == 4
-    static const UpdateMFn ms_update_mfns2[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
-    static const UpdateMFn ms_update_mfns3[NUM_UPDATE_MFNS / BBCMICRO_NUM_UPDATE_GROUPS];
-#endif
+    // A bit wasteful to have this in the BBCMICRO_NUM_UPDATE_GROUPS==1 case -
+    // but that's not the case that gets built, so, whatever.
+    static UpdateMFn ms_update_mfns[NUM_BBCMICRO_UPDATE_MFNS];
+
+#include "../generated/BBCMicro.groups.generated.h"
 };
 
 //////////////////////////////////////////////////////////////////////////

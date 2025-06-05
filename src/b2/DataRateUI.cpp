@@ -291,7 +291,7 @@ void DataRateUI::DoImGui() {
                     data->num_UpdatePaging_calls,
                     data->num_UpdatePaging_calls / ((double)beeb_thread->GetEmulatedCycles().n / CYCLES_PER_SECOND));
 
-        for (uint32_t i = 0; i < BBCMicro::NUM_UPDATE_MFNS; ++i) {
+        for (uint32_t i = 0; i < NUM_BBCMICRO_UPDATE_MFNS; ++i) {
             if (data->update_mfn_cycle_count[i].n > 0) {
                 char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
                 GetThousandsString(cycles_str, data->update_mfn_cycle_count[i].n);

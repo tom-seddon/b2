@@ -198,3 +198,11 @@ _icon_macos_x2: SRC=$(error Must specify SRC)
 _icon_macos_x2: DEST=$(error Must specify DEST)
 _icon_macos_x2:
 	$(SHELLCMD) copy-file "$(ICON_DEST_MACOS)/icon_$(SRC)x$(SRC).png" "$(ICON_DEST_MACOS)/icon_$(DEST)x$(DEST)@2x.png"
+
+##########################################################################
+##########################################################################
+
+.PHONY:update_mfns
+update_mfns: NUM_GROUPS:=8
+update_mfns:
+	$(PYTHON3) "src/beeb/bin/make_update_fn_stuff.py" -n "$(NUM_GROUPS)" .
