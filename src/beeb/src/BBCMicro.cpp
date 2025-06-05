@@ -2037,15 +2037,6 @@ void BBCMicro::PrintInfo(Log *log) {
         LogNumUniqueInstantiations(log, prefix, ms_update_mfn_groups[i], NUM_BBCMICRO_UPDATE_MFNS / num_update_groups, &num_unique_overall, num_update_groups);
     }
 
-    //#if BBCMICRO_NUM_UPDATE_GROUPS > 1
-    //    LogNumUniqueInstantiations(log, "ms_update_mfns0", ms_update_mfns0, sizeof ms_update_mfns0 / sizeof ms_update_mfns0[0], &num_unique_overall);
-    //    LogNumUniqueInstantiations(log, "ms_update_mfns1", ms_update_mfns1, sizeof ms_update_mfns1 / sizeof ms_update_mfns1[0], &num_unique_overall);
-    //#endif
-    //#if BBCMICRO_NUM_UPDATE_GROUPS > 2
-    //    LogNumUniqueInstantiations(log, "ms_update_mfns2", ms_update_mfns2, sizeof ms_update_mfns2 / sizeof ms_update_mfns2[0], &num_unique_overall);
-    //    LogNumUniqueInstantiations(log, "ms_update_mfns3", ms_update_mfns3, sizeof ms_update_mfns3 / sizeof ms_update_mfns3[0], &num_unique_overall);
-    //#endif
-
     uint32_t unused_bits = ~(uint32_t)0;
     for (uint32_t bit = 0; bit < 32; ++bit) {
         uint32_t mask = 1 << bit;
