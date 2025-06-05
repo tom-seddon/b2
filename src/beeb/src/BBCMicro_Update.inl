@@ -1093,6 +1093,10 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         // (the parasite-specific debug flags are dealt with below)
     }
 
+    if (flags & BBCMicroUpdateFlag_IsMaster128) {
+        flags &= ~BBCMicroUpdateFlag_IsMasterCompact;
+    }
+
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
         flags &= ~(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
     }

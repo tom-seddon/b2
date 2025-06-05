@@ -1,4 +1,4 @@
-.PHONY:default
+ .PHONY:default
 default:
 	$(error Must specify target)
 
@@ -203,6 +203,6 @@ _icon_macos_x2:
 ##########################################################################
 
 .PHONY:update_mfns
-update_mfns: NUM_GROUPS:=8
+update_mfns: NUM_GROUPS:=16
 update_mfns:
 	$(PYTHON3) "src/beeb/bin/make_update_fn_stuff.py" -n "$(NUM_GROUPS)" .
