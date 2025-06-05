@@ -146,9 +146,9 @@ EEND()
 // There are actually private, but at some point I realised it would be useful
 // to have them displayed in the debugging UI.
 //
-// Lower bits should ideally not include flags cleared by
+// Lower bits should ideally not include flags modified or tested by 
 // GetNormalizedBBCMicroUpdateFlags, because that will result in unnecessary
-// instantations when building with BBCMICRO_NUM_UPDATE_GROUPS>1.
+// instantations when building with BBCMICRO_NUM_UPDATE_GROUPS>1. 
 //
 // The update_mfns table is not accessed often enough for its layout to be a
 // pressing concern.
@@ -157,7 +157,7 @@ EEND()
 EBEGIN_DERIVED(uint32_t)
 EPNV(Mouse, 1 << 0)
 EPNV(Hacks, 1 << 1)
-EPNV(Debug, 1 << 2)
+EPNV(ParallelPrinter, 1 << 2)
 EPNV(Trace, 1 << 3)
 EPNV(Parasite, 1 << 4)
 
@@ -176,7 +176,7 @@ EPNV(DebugStepHost, 1 << 7)
 // out of every 4.
 EPNV(Parasite3MHzExternal, 1 << 8)
 
-EPNV(ParallelPrinter, 1 << 9)
+EPNV(Debug, 1 << 9)
 
 // Master Compact gets its own flag, as it implies multiple things:
 //
