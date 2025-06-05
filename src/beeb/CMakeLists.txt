@@ -54,6 +54,8 @@ file(GLOB UPDATE_GENERATED_SRCS
   generated/BBCMicro.group*.generated.cpp)
 set(SRCS ${SRCS} ${UPDATE_GENERATED_SRCS})
 
+source_group(generated REGULAR_EXPRESSION .*\.generated\..*)
+
 add_library(beeb_lib ${SRCS})
 b2_target_boilerplate(beeb_lib SANITIZERS)
 
