@@ -82,50 +82,6 @@ def main2(options):
 
     # touch appropriate CMakeLists.txt to force a rebuild.
     os.utime(os.path.join(options.b2_root,'src/beeb/CMakeLists.txt'))
-
-    # # header for inclusion into BBCMicro.h. 1 update mfns table per
-    # # update group, plus a table for all of them.
-    # with output_file(options.update_mfns_header_path) as f:
-    #     header(f)
-
-    #     if options.num_update_groups>1:
-    #         for i in range(options.num_update_groups):
-    #             f.write('static const UpdateMFn ms_update_mfns%d[%d];\n'%
-    #                     (i,
-    #                      options.num_update_mfns//options.num_update_groups))
-
-    #     f.write('static const UpdateMFn *ms_update_mfn_tables[%d];\n'%
-    #             (options.num_update_groups))
-
-    # # generic .cpp file for inclusion into the build.
-    # with output_file(options.update_mfns_cpp_path) as f:
-    #     header(f)
-
-    #     f.write('const UpdateMFn BBCMicro::ms_update_mfn_tables[%d]={\n'%(
-    #         options.num_update_groups))
-    #     if options.num_update_groups==1:
-    #         f.write('    BBCMicro::ms_update_mfns,\n')
-    #     else:
-    #         for i in range(options.num_update_groups):
-    #             f.write('    BBCMicro::ms_update_mfns%d,\n'%i)
-    #     f.write('};\n')
-
-    # for i in range(options.num_update_groups):
-    #     path=options.update_mfns_part_cpp_path
-    #     if path!='-':
-    #         if '__' not in path: fatal('no part index placeholder: %s'%path)
-    #         path=path.replace('__',str(i))
-    #     with output_file(path) as f:
-    #         header(f)
-    #         f.write('#include "BBCMicro_Update.inl"\n\n')
-    #         f.write('const Update MFn BBCMicro::ms_update_mfns%d[%d]={\n'%(
-    #             i,
-    #             options.num_update_mfns//options.num_update_groups))
-    #         j=i
-    #         while j<options.num_update_mfns:
-    #             f.write('    &BBCMicro::UpdateTemplated<GetNormalizedBBCMicroUpdateFlags(%d)>,\n'%j)
-    #             j+=options.num_update_groups
-    #         f.write('};\n')
     
 ##########################################################################
 ##########################################################################
