@@ -96,7 +96,7 @@ if(APPLE)
   add_custom_command(
     OUTPUT b2.icns
     COMMAND iconutil -c icns -o b2.icns ${ICONSET}
-    DEPENDS $(ICONSET)/icon_1024x1024.png $(ICONSET)/icon_128x128.png $(ICONSET)/icon_128x128@2x.png $(ICONSET)/icon_16x16.png $(ICONSET)/icon_16x16@2x.png $(ICONSET)/icon_256x256.png $(ICONSET)/icon_32x32.png $(ICONSET)/icon_32x32@2x.png $(ICONSET)/icon_512x512.png $(ICONSET)/icon_64x64.png $(ICONSET)/icon_64x64@2x.png)
+    DEPENDS ${ICONSET}/icon_1024x1024.png ${ICONSET}/icon_128x128.png ${ICONSET}/icon_128x128@2x.png ${ICONSET}/icon_16x16.png ${ICONSET}/icon_16x16@2x.png ${ICONSET}/icon_256x256.png ${ICONSET}/icon_32x32.png ${ICONSET}/icon_32x32@2x.png ${ICONSET}/icon_512x512.png ${ICONSET}/icon_64x64.png ${ICONSET}/icon_64x64@2x.png)
 
   set(BUNDLE_IDENTIFIER "com.tom-seddon.b2")
   
