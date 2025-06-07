@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "nlohmann_json_wrapper.h"
 
 #include <shared/strings.h>
 #include <shared/path.h>
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
     }
 
     LOG(VERBOSE).enabled = options.verbose;
-    LogSet logs{LOG(VERBOSE), LOG(STDERR), LOG(STDERR)};
+    // LogSet logs{LOG(VERBOSE), LOG(STDERR), LOG(STDERR)};
 
     // 1. disk images
     // 2. config+hard reset+boot

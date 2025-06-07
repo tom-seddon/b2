@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "nlohmann_json_wrapper.h"
 #include <shared/enums.h>
 #include "load_save_config_nlohmann_json.h"
 #include <map>

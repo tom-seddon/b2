@@ -1,6 +1,13 @@
 #include <shared/system.h>
 #include <shared/strings.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
 #include <nlohmann/json.hpp>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <shared/testing.h>
 #include <shared/path.h>
 #include <string>

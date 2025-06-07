@@ -547,7 +547,7 @@ void BBCMicro::InitPaging() {
         case ROMType_16KB:
             {
                 bool all_unmapped = true;
-                size_t index = ROM0_BIG_PAGE_INDEX.i + bank * NUM_ROM_BIG_PAGES;
+                size_t index = (size_t)(ROM0_BIG_PAGE_INDEX.i + bank * NUM_ROM_BIG_PAGES);
                 for (size_t i = 0; i < NUM_ROM_BIG_PAGES; ++i) {
                     if (m_big_pages[index + i].r != g_unmapped_reads) {
                         all_unmapped = false;

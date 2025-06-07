@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "nlohmann_json_wrapper.h"
 #include "load_save_config_rapidjson.h"
 #include "load_save.h"
 #include <rapidjson/rapidjson.h>

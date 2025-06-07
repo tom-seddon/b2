@@ -76,7 +76,8 @@ void GetContentType(std::string *content_type, std::string *content_type_charset
         if (!p) {
             *content_type = content_type_header;
         } else {
-            content_type->assign(content_type_header, p - content_type_header);
+            content_type->assign(content_type_header,
+                                 (size_t)(p - content_type_header));
 
             ++p;
             while (*p != 0 && (*p == ' ' || *p == '\t')) {

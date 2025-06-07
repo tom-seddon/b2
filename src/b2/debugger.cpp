@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "nlohmann_json_wrapper.h"
 #include "json.h"
 #include "debugger.h"
 #include "commands.h"
@@ -3858,7 +3858,9 @@ class WD1770DebugWindow : public DebugUI {
     }
 
     static void CommandName(const char *name) {
-        ImGui::BulletText("Command: %s", name);
+        // I think the null case is actually unreachable, but gcc
+        // moans about it and who am I to argue.
+        ImGui::BulletText("Command: %s", name ? name : "");
     }
 
     static void Register(const char *name, uint8_t value) {

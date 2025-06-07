@@ -349,7 +349,7 @@ class TraceSaver {
             break;
 
         case M6502StackOperation_Push:
-            c = this->AddAddress(e, c, prefix, ev->pc, 0x100 + (ev->s + 1 & 0xff), "]");
+            c = this->AddAddress(e, c, prefix, ev->pc, 0x100 + ((ev->s + 1) & 0xff), "]");
             break;
 
         case M6502StackOperation_Pop:

@@ -95,7 +95,7 @@ endif
 ##########################################################################
 
 .PHONY:tom_emacs
-tom_emacs: _BUILD_FOLDER=$(shell pwd)/$(BUILD_FOLDER)/d.$(OS)
+tom_emacs: _BUILD_FOLDER=$(shell pwd)/$(BUILD_FOLDER)/r.$(OS)
 tom_emacs:
 # let Emacs know where the build is actually taking place -
 # compilation mode watches the build output to figure out where

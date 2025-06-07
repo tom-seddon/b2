@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "nlohmann_json_wrapper.h"
 #include <shared/system_specific.h>
 #include "BeebWindow.h"
 #include <beeb/OutputData.h>
