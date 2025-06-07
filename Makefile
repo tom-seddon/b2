@@ -56,8 +56,10 @@ OS:=linux
 NPROC:=$(shell nproc)
 INSTALLER:=1
 
-# this is what it ends up called on Ubuntu 22, at any rate.
-CLANG_FORMAT:=clang-format-11
+# clang-format-16 = newest version that doesn't behave meaningfully
+# differently from the clang-format that comes with Visual Studio
+# 2019.
+CLANG_FORMAT:=clang-format-16
 
 include Makefile.unix.mak
 endif
@@ -88,7 +90,7 @@ clang-format:
 	$(SHELLCMD) cat experimental/clang-format.header.txt src/.clang-format experimental/clang-format.header.txt > experimental/.clang-format
 
 	$(SHELLCMD) mkdir $(BUILD_FOLDER)
-	$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" src experimental
+	$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" --ignore "src/beeb/generated/*" src experimental
 	$(MAKE) -f "$(BUILD_FOLDER)/clang-format.mak" -j $(NPROC)
 
 ##########################################################################

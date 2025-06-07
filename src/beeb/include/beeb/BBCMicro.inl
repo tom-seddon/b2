@@ -146,9 +146,9 @@ EEND()
 // There are actually private, but at some point I realised it would be useful
 // to have them displayed in the debugging UI.
 //
-// Lower bits should ideally not include flags modified or tested by 
+// Lower bits should ideally not include flags modified or tested by
 // GetNormalizedBBCMicroUpdateFlags, because that will result in unnecessary
-// instantations when building with BBCMICRO_NUM_UPDATE_GROUPS>1. 
+// instantations when building with BBCMICRO_NUM_UPDATE_GROUPS>1.
 //
 // The update_mfns table is not accessed often enough for its layout to be a
 // pressing concern.

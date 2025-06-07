@@ -14,6 +14,14 @@ def main3(f,options):
         '*.mm',
     ]
 
+    # only fix up patterns that clearly have a folder.
+    for i,ignore_pattern in enumerate(options.ignore_patterns):
+        if len(os.path.split(ignore_pattern)[0])>0:
+            options.ignore_patterns[i]=os.path.abspath(ignore_pattern)
+
+    for i in range(len(options.ignore_patterns)):
+        print('ignore %d: %s'%(i,options.ignore_patterns[i]))
+
     file_paths=set()
     for path in options.paths:
         for dirpath,dirnames,filenames in os.walk(os.path.abspath(path)):
@@ -24,11 +32,21 @@ def main3(f,options):
                         match=True
                         break
 
-                if match: file_paths.add(os.path.join(dirpath,filename))
+                if match:
+                    filename=os.path.join(dirpath,filename)
+                    for ignore_pattern in options.ignore_patterns:
+                        if fnmatch.fnmatch(filename,ignore_pattern):
+                            match=False
+                            break
+                    
+                    if match: file_paths.add(filename)
 
     file_paths=list(file_paths)
 
-    # group files into command lines of ~1500 chars each
+    # Group files into command lines of ~1500 chars each - this is 11
+    # groups for b2 at time of writing. Being cleverer about this
+    # doesn't seem to produce a useful speedup, even when it'd be
+    # possible to build more than 11 targets simultaneously.
     argvs=[]
     i=0
     argv=''
@@ -72,6 +90,7 @@ def main(argv):
 
     parser.add_argument('-o','--output',dest='output_path',metavar='PATH',help='''write output to %(metavar)s (stdout if not specified)''')
     parser.add_argument('-e','--exe',metavar='PATH',default='clang-format',help='''use %(metavar)s as clang-format. Default: %(default)s''')
+    parser.add_argument('-i','--ignore',metavar='PATTERN',action='append',dest='ignore_patterns',default=[],help='''ignore file(s) matching %(metavar)s''')
     parser.add_argument('paths',nargs='+',metavar='PATH',help='''process C++ file(s) in %(metavar)s''')
 
     main2(parser.parse_args(argv))

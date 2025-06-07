@@ -29,11 +29,11 @@
 
 struct JSON : private nlohmann::json {
     JSON() = default;
-    
+
     explicit JSON(const nlohmann::json &j)
         : nlohmann::json(j) {
     }
-    
+
     JSON(nlohmann::json &&j)
         : nlohmann::json(std::move(j)) {
     }
