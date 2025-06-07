@@ -29,6 +29,7 @@
 #include <set>
 #include <unordered_set>
 #include <shared/sha1.h>
+#include <unordered_map>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -2035,6 +2036,24 @@ void BBCMicro::PrintInfo(Log *log) {
         snprintf(prefix, sizeof prefix, "ms_update_mfns%zu", i);
 
         LogNumUniqueInstantiations(log, prefix, ms_update_mfn_groups[i], NUM_BBCMICRO_UPDATE_MFNS / num_update_groups, &num_unique_overall, num_update_groups);
+    }
+
+    // Every normalized flags combination should map to a unique instantation.
+    {
+        size_t num_surprises = 0;
+        std::unordered_map<BBCMicro::UpdateMFn, uint32_t> update_mfns;
+        for (uint32_t i : normalized_flags) {
+            auto it = update_mfns.find(ms_update_mfns[i]);
+            if (it == update_mfns.end()) {
+                update_mfns[ms_update_mfns[i]] = i;
+            } else {
+                if (it->second != i) {
+                    ++num_surprises;
+                }
+            }
+        }
+
+        log->f("%zu surprise duplicates\n", num_surprises);
     }
 
     uint32_t unused_bits = ~(uint32_t)0;
