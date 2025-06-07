@@ -4768,4 +4768,56 @@ Per-run Visual Studio startup overhead = 6 seconds.
 |    717 |   128 | RWDI   | Touch BBCMicro.h |      99 |
 |    717 |     1 | RWDI   | Touch BBCMicro.h |     126 |
 
+
+* Build times (2)
+
+Similar drill but slightly different code arrangement (that actually
+works with clang this time).
+
+The default of 16 looks a sensible default for now.
+
+Built commit: acbd5b17afebc456ec9d6b6e93e10c42c8993614
+
+Systems (all hyperthreaded):
+
+- 13" :: 2c, macOS Monterey, Xcode 14.2
+- TRW :: 32c, Windows 11, VS2019
+- TRgcc :: 32c, Linux Mint, gcc 13.3.0
+- TRclang :: 32c, Linux Mint, clang 19
+
+| Groups | Build          | Scenario         | 13" | TRW | TRgcc | TRclang |
+|--------+----------------+------------------+-----+-----+-------+---------|
+|      1 | Debug          | Rebuild          | 244 |  76 |   246 |     158 |
+|      1 | Debug          | Touch BBCMicro.h | 178 |  64 |   242 |     151 |
+|      1 | RelWithDebInfo | Rebuild          | 781 | 144 |   925 |     647 |
+|      1 | RelWithDebInfo | Touch BBCMicro.h | 690 | 131 |   909 |     630 |
+|      2 | Debug          | Rebuild          | 169 |  63 |   132 |      85 |
+|      2 | Debug          | Touch BBCMicro.h | 104 |  48 |   122 |      78 |
+|      2 | RelWithDebInfo | Rebuild          | 481 | 127 |   481 |     346 |
+|      2 | RelWithDebInfo | Touch BBCMicro.h | 401 |  95 |   470 |     327 |
+|      4 | Debug          | Rebuild          | 151 |  45 |    74 |      53 |
+|      4 | Debug          | Touch BBCMicro.h |  93 |  33 |    71 |      45 |
+|      4 | RelWithDebInfo | Rebuild          | 433 |  94 |   288 |     209 |
+|      4 | RelWithDebInfo | Touch BBCMicro.h | 354 |  71 |   276 |     193 |
+|      8 | Debug          | Rebuild          | 153 |  39 |    43 |      32 |
+|      8 | Debug          | Touch BBCMicro.h |  95 |  26 |    38 |      25 |
+|      8 | RelWithDebInfo | Rebuild          | 427 |  99 |   163 |     119 |
+|      8 | RelWithDebInfo | Touch BBCMicro.h | 356 |  69 |   145 |     103 |
+|     16 | Debug          | Rebuild          | 154 |  42 |    28 |      23 |
+|     16 | Debug          | Touch BBCMicro.h |  93 |  24 |    24 |      16 |
+|     16 | RelWithDebInfo | Rebuild          | 424 |  87 |    98 |      73 |
+|     16 | RelWithDebInfo | Touch BBCMicro.h | 348 |  62 |    84 |      60 |
+|     32 | Debug          | Rebuild          | 164 |  42 |    28 |      22 |
+|     32 | Debug          | Touch BBCMicro.h | 105 |  25 |    23 |      17 |
+|     32 | RelWithDebInfo | Rebuild          | 454 |  93 |    94 |      71 |
+|     32 | RelWithDebInfo | Touch BBCMicro.h | 375 |  58 |    81 |      57 |
+|     64 | Debug          | Rebuild          | 185 |  38 |    26 |      23 |
+|     64 | Debug          | Touch BBCMicro.h | 126 |  28 |    20 |      17 |
+|     64 | RelWithDebInfo | Rebuild          | 518 |  89 |    80 |      61 |
+|     64 | RelWithDebInfo | Touch BBCMicro.h | 428 |  65 |    66 |      47 |
+|    128 | Debug          | Rebuild          | 237 |  43 |    32 |      29 |
+|    128 | Debug          | Touch BBCMicro.h | 180 |  30 |    27 |      23 |
+|    128 | RelWithDebInfo | Rebuild          | 699 | 101 |   104 |      80 |
+|    128 | RelWithDebInfo | Touch BBCMicro.h | 610 |  90 |    89 |      65 |
+
 * eof.
