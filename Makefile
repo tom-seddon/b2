@@ -149,6 +149,7 @@ ICON_DEST_MACOS:=$(ICON_FOLDER)/macos/b2.iconset
 .PHONY:icons
 icons: _ICON_TEMP:=$(BUILD_FOLDER)/icons
 icons:
+	$(SHELLCMD) rm-tree "$(_ICON_TEMP)"
 	$(SHELLCMD) mkdir "$(_ICON_TEMP)"
 	$(SHELLCMD) mkdir "$(ICON_DEST_WINDOWS)"
 	$(SHELLCMD) mkdir "$(ICON_DEST_MACOS)"
@@ -156,21 +157,16 @@ icons:
 # Windows
 	"${MAGICK}" "${ICON_PNG}" -resize 256x256 "$(_ICON_TEMP)/icon_256x256_32bpp.png"
 	"${MAGICK}" "${ICON_PNG}" -resize 16x16 "$(_ICON_TEMP)/icon_16x16_32bpp.png"
+	"${MAGICK}" "${ICON_PNG}" -resize 24x24 "$(_ICON_TEMP)/icon_24x24_32bpp.png"
 	"${MAGICK}" "${ICON_PNG}" -resize 32x32 "$(_ICON_TEMP)/icon_32x32_32bpp.png"
 	"${MAGICK}" "${ICON_PNG}" -resize 48x48 "$(_ICON_TEMP)/icon_48x48_32bpp.png"
 	"${MAGICK}" "${ICON_PNG}" -resize 64x64 "$(_ICON_TEMP)/icon_64x64_32bpp.png"
-	"${MAGICK}" "${ICON_PNG}" -resize 16x16 -type palette "$(_ICON_TEMP)/icon_16x16_8bpp.bmp"
-	"${MAGICK}" "${ICON_PNG}" -resize 32x32 -type palette "$(_ICON_TEMP)/icon_32x32_8bpp.bmp"
-	"${MAGICK}" "${ICON_PNG}" -resize 48x48 -type palette "$(_ICON_TEMP)/icon_48x48_8bpp.bmp"
 	"${MAGICK}" \
-"$(_ICON_TEMP)/icon_256x256_32bpp.png" \
-"$(_ICON_TEMP)/icon_48x48_8bpp.bmp" \
-"$(_ICON_TEMP)/icon_32x32_8bpp.bmp" \
-"$(_ICON_TEMP)/icon_16x16_8bpp.bmp" \
 "$(_ICON_TEMP)/icon_256x256_32bpp.png" \
 "$(_ICON_TEMP)/icon_64x64_32bpp.png" \
 "$(_ICON_TEMP)/icon_48x48_32bpp.png" \
 "$(_ICON_TEMP)/icon_32x32_32bpp.png" \
+"$(_ICON_TEMP)/icon_24x24_32bpp.png" \
 "$(_ICON_TEMP)/icon_16x16_32bpp.png" \
 "$(ICON_DEST_WINDOWS)/b2_icons.ico"
 
