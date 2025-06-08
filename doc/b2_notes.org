@@ -4820,4 +4820,24 @@ Systems (all hyperthreaded):
 |    128 | RelWithDebInfo | Rebuild          | 699 | 101 |   104 |      80 |
 |    128 | RelWithDebInfo | Touch BBCMicro.h | 610 |  90 |    89 |      65 |
 
+* Challenger Bad Track Format
+
+Repro steps:
+
+1. insert .ddd
+
+2. =*CAT=
+
+3. =LOAD "P0"=
+
+4. =*CAT=
+
+One oddity noted: disk drive ends up on track 3 after this. Is that
+intentional? Shouldn't it be attempting to return to track 0 to read
+the catalogue?
+
+?&FFFF=0:*CAT
+LOAD"P0"
+*CAT
+
 * eof.
