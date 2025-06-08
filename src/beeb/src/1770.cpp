@@ -254,7 +254,7 @@ void WD1770::SetINTRQ(bool value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void WD1770::DoSpinUp(int h, WD1770State state) {
+void WD1770::DoSpinUp(int h, int step_rate_ms, WD1770State state) {
     if (h == 0 && !m_status.bits.motor_on) {
         this->SpinUp();
         m_wait_us = INDEX_PULSES_uS(6);
@@ -262,7 +262,19 @@ void WD1770::DoSpinUp(int h, WD1770State state) {
         m_next_state = state;
         m_status.bits.deleted_or_spinup = 0;
     } else {
-        this->SetState(state);
+        if (step_rate_ms >= 0) {
+            // Add initial step rate delay for Type I commands. I got the setup
+            // rather wrong, meaning it's inconvenient to insert the delay
+            // before every step (though that's probably how it should actually
+            // work).
+            //
+            // There needs to be at least some delay in every case, so that
+            // DDOS/Challenger can cancel the seek before it actually has any
+            // effect.
+            this->Wait(step_rate_ms * 1000, state);
+        } else {
+            this->SetState(state);
+        }
         m_status.bits.deleted_or_spinup = 1;
     }
 }
@@ -285,7 +297,8 @@ void WD1770::DoTypeI(WD1770State state) {
     m_status.bits.crc_error = 0;
     m_status.bits.rnf = 0;
 
-    this->DoSpinUp(m_command.bits_i.h, state);
+    int step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
+    this->DoSpinUp(m_command.bits_i.h, step_rate_ms, state);
 }
 
 void WD1770::DoTypeII(WD1770State state) {
@@ -310,7 +323,7 @@ void WD1770::DoTypeII(WD1770State state) {
     m_status.bits.crc_error = 0;
     m_offset = 0;
 
-    this->DoSpinUp(m_command.bits_ii.h, state);
+    this->DoSpinUp(m_command.bits_ii.h, -1, state);
 }
 
 void WD1770::DoTypeIII(WD1770State state) {
@@ -327,7 +340,7 @@ void WD1770::DoTypeIII(WD1770State state) {
     m_status.bits.busy = 1;
     this->SetDRQ(0);
 
-    this->DoSpinUp(m_command.bits_iii.h, state);
+    this->DoSpinUp(m_command.bits_iii.h, -1, state);
 }
 
 void WD1770::DoTypeIV() {
@@ -731,9 +744,11 @@ WD1770::Pins WD1770::Update() {
                 --m_track;
             }
         }
-        // fall through
+        [[fallthrough]];
     case WD1770State_Seek:
         {
+            TRACE_STATE(this, "");
+
             if (m_track < m_data) {
                 m_direction = STEP_IN;
                 this->SetState(WD1770State_Step);

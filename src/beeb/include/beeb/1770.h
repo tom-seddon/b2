@@ -215,7 +215,7 @@ struct WD1770 {
     void Print1770Registers(Log *log);
     void SetDRQ(bool value);
     void SetINTRQ(bool value);
-    void DoSpinUp(int h, WD1770State state);
+    void DoSpinUp(int h, int step_rate_ms, WD1770State state);
     void DoTypeI(WD1770State state);
     void DoTypeII(WD1770State state);
     void DoTypeIII(WD1770State state);
