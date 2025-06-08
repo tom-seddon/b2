@@ -46,6 +46,9 @@ struct TraceUISettings {
     // Auto-save settings.
     bool auto_save = false;
     std::string auto_save_path;
+
+    // UI stuff.
+    bool is_other_traces_ui_visible = true;
 };
 JSON_SERIALIZE(TraceUISettings,
                start, start_instruction_address, start_write_address,
@@ -53,7 +56,8 @@ JSON_SERIALIZE(TraceUISettings,
                flags, unlimited,
                unix_line_endings,
                output_flags,
-               auto_save, auto_save_path);
+               auto_save, auto_save_path,
+               is_other_traces_ui_visible);
 
 TraceUISettings GetDefaultTraceUISettings();
 void SetDefaultTraceUISettings(const TraceUISettings &settings);

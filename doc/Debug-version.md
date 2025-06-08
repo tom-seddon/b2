@@ -407,10 +407,10 @@ either CPU, meaning a breakpoint for one CPU could interrupt a step
 operation for the other. Debugging code on two CPUs simultaneously is
 inevitably going to be a little inconvenient.
 
-## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug` ##
+## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug`, `Disc Drive Debug` ##
 
 Activate a debug window for the corresponding piece of BBC hardware
-(if present), showing current register values and additional useful
+(if present), showing current state and any other additional useful
 info.
 
 ## `Paging debug`

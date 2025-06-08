@@ -252,6 +252,8 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
         m_beeblink->SetTrace(trace_flags & BBCMicroTraceFlag_BeebLink ? m_trace : nullptr);
     }
 
+    m_disk_drive_trace = trace_flags & BBCMicroTraceFlag_DiskDrive ? m_trace : nullptr;
+
     this->UpdateCPUDataBusFn();
 }
 #endif
@@ -2654,12 +2656,22 @@ bool BBCMicro::IsTrack0() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepOut(int step_rate_ms) {
-    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
+    int drive;
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive(&drive)) {
+#if BBCMICRO_TRACE
+        uint8_t old_track = dd->track;
+#endif
         if (dd->track > 0) {
             --dd->track;
 
             this->StepSound(dd, step_rate_ms);
         }
+
+#if BBCMICRO_TRACE
+        if (m_disk_drive_trace) {
+            m_disk_drive_trace->AllocStringf(TraceEventSource_Host, "DiskDrive - Step out drive %d: track was %u, now %u", drive, old_track, dd->track);
+        }
+#endif
     }
 }
 
@@ -2667,12 +2679,23 @@ void BBCMicro::StepOut(int step_rate_ms) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepIn(int step_rate_ms) {
-    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
+    int drive;
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive(&drive)) {
+#if BBCMICRO_TRACE
+        uint8_t old_track = dd->track;
+#endif
+
         if (dd->track < 255) {
             ++dd->track;
 
             this->StepSound(dd, step_rate_ms);
         }
+
+#if BBCMICRO_TRACE
+        if (m_disk_drive_trace) {
+            m_disk_drive_trace->AllocStringf(TraceEventSource_Host, "DiskDrive - Step in drive %d: track was %u, now %u", drive, old_track, dd->track);
+        }
+#endif
     }
 }
 
@@ -2779,8 +2802,11 @@ bool BBCMicro::GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uin
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicroState::DiscDrive *BBCMicro::GetDiscDrive() {
+BBCMicroState::DiscDrive *BBCMicro::GetDiscDrive(int *drive) {
     if (m_state.disc_control.drive >= 0 && m_state.disc_control.drive < NUM_DRIVES) {
+        if (drive) {
+            *drive = m_state.disc_control.drive;
+        }
         return &m_state.drives[m_state.disc_control.drive];
     } else {
         return nullptr;

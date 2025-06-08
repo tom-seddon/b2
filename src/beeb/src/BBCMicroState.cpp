@@ -232,6 +232,20 @@ bool BBCMicroState::DebugGetWD1770(const WD1770 **fdc_ptr, DiscInterfaceControl 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+const BBCMicroState::DiscDrive *BBCMicroState::DebugGetDrive(int drive) const {
+    if (this->disc_interface) {
+        if (drive >= 0 && drive < NUM_DRIVES) {
+            return &this->drives[drive];
+        }
+    }
+    return nullptr;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::shared_ptr<const DiscImage> BBCMicroState::GetDiscImage(int drive) const {
     if (drive >= 0 && drive < NUM_DRIVES) {
         return this->drives[drive].disc_image;

@@ -8,6 +8,7 @@
 #include "SettingsUI.h"
 #include <shared/file_io.h>
 #include <shared/strings.h>
+#include <beeb/DiscImage.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3875,6 +3876,49 @@ std::unique_ptr<SettingsUI> CreateWD1770DebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class DiskDriveDebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        if (!m_beeb_state->disc_interface) {
+            ImGui::TextUnformatted("No disk interface");
+            return;
+        }
+
+        for (int drive = 0; drive < NUM_DRIVES; ++drive) {
+            char text[100];
+            snprintf(text, sizeof text, "Drive %d", drive);
+            ImGuiHeader(text);
+
+            if (const BBCMicroState::DiscDrive *dd = m_beeb_state->DebugGetDrive(drive)) {
+                ImGui::BulletText("Motor: %s", dd->motor ? "on" : "off");
+                ImGui::BulletText("Track: %u", dd->track);
+                ImGui::BulletText("Drive write protect: %s", dd->is_write_protected ? "yes" : "no");
+                if (!!dd->disc_image) {
+                    DiscImageSummary image = dd->disc_image->GetSummary();
+                    ImGui::BulletText("Disc name: %s", image.name.c_str());
+                    ImGui::BulletText("Disc load method: %s", image.load_method.c_str());
+                    ImGui::BulletText("Disc description: %s", image.description.c_str());
+                    ImGui::BulletText("Disc hash: %s", image.hash.c_str());
+                    ImGui::BulletText("Disc write protect: %s", dd->disc_image->IsWriteProtected() ? "yes" : "no");
+                } else {
+                    ImGui::Text("(No disc present)");
+                }
+            } else {
+                ImGui::Text("(Not present)");
+            }
+        }
+    }
+
+  private:
+};
+
+std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<DiskDriveDebugWindow>(beeb_window, ImVec2(300, 300));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -3974,6 +4018,10 @@ std::unique_ptr<SettingsUI> CreateMouseDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateWD1770DebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *) {
     return nullptr;
 }
 

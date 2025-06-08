@@ -31,6 +31,7 @@ EPNV(UserVIAExtra, 1 << 11)
 EPNV(Tube, 1 << 12)
 EPNV(ADC, 1 << 13)
 EPNV(EEPROM, 1 << 14)
+EPNV(DiskDrive, 1 << 15)
 EEND()
 #undef ENAME
 

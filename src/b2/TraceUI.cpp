@@ -293,7 +293,7 @@ void TraceUI::DoImGui() {
         }
 
         ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Start condition");
+        ImGuiHeader("Start condition");
         {
             ImGuiIDPusher pusher("start conditions");
 
@@ -321,7 +321,7 @@ void TraceUI::DoImGui() {
         }
         ImGui::Spacing();
 
-        ImGui::TextUnformatted("Stop condition");
+        ImGuiHeader("Stop condition");
         {
             ImGuiIDPusher pusher("stop conditions");
 
@@ -353,38 +353,40 @@ void TraceUI::DoImGui() {
 
         ImGui::Spacing();
 
-        ImGui::TextUnformatted("Other traces");
+        ImGui::SetNextItemOpen(g_default_settings.is_other_traces_ui_visible);
+        g_default_settings.is_other_traces_ui_visible = ImGui::CollapsingHeader("Other traces");
+        if (g_default_settings.is_other_traces_ui_visible) {
+            uint32_t flags_seen = 0;
 
-        uint32_t flags_seen = 0;
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845, "6845");
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845Scanlines, "Scanlines");
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845ScanlinesSeparators, "Separators", true);
 
-        DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845, "6845");
-        DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845Scanlines, "Scanlines");
-        DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845ScanlinesSeparators, "Separators", true);
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_SystemVIA, "System VIA");
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_SystemVIAExtra, "Extra", true);
 
-        DoTraceFlag(&flags_seen, BBCMicroTraceFlag_SystemVIA, "System VIA");
-        DoTraceFlag(&flags_seen, BBCMicroTraceFlag_SystemVIAExtra, "Extra", true);
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_UserVIA, "User VIA");
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_UserVIAExtra, "Extra", true);
 
-        DoTraceFlag(&flags_seen, BBCMicroTraceFlag_UserVIA, "User VIA");
-        DoTraceFlag(&flags_seen, BBCMicroTraceFlag_UserVIAExtra, "Extra", true);
+            for (uint32_t i = 1; i != 0; i <<= 1) {
+                if (!(flags_seen & i)) {
+                    const char *name = GetBBCMicroTraceFlagEnumName(i);
+                    if (name[0] == '?') {
+                        continue;
+                    }
 
-        for (uint32_t i = 1; i != 0; i <<= 1) {
-            if (!(flags_seen & i)) {
-                const char *name = GetBBCMicroTraceFlagEnumName(i);
-                if (name[0] == '?') {
-                    continue;
+                    ImGui::CheckboxFlags(name, &g_default_settings.flags, i);
                 }
-
-                ImGui::CheckboxFlags(name, &g_default_settings.flags, i);
             }
-        }
 
-        // This isn't the same set of flags, but logically it's an additional
-        // trace.
-        ImGuiCheckboxFlags("ROM Mapper", &g_default_settings.output_flags, TraceOutputFlags_ROMMapper);
+            // This isn't the same set of flags, but logically it's an additional
+            // trace.
+            ImGuiCheckboxFlags("ROM Mapper", &g_default_settings.output_flags, TraceOutputFlags_ROMMapper);
+        }
 
         ImGui::Spacing();
 
-        ImGui::TextUnformatted("Other settings");
+        ImGuiHeader("Other settings");
         ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
 #if SYSTEM_WINDOWS
         ImGui::Checkbox("Unix line endings", &g_default_settings.unix_line_endings);

@@ -196,6 +196,7 @@ class BBCMicroState {
     int DebugGetADJIDIPSwitches() const;
     uint8_t DebugGetMouseButtons() const;
     bool DebugGetWD1770(const WD1770 **fdc_ptr, DiscInterfaceControl *disc_control_ptr) const;
+    const DiscDrive *DebugGetDrive(int drive) const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;

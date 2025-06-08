@@ -76,6 +76,7 @@ EPN(KeyboardDebug)
 EPN(SystemDebug)
 EPN(MouseDebug)
 EPN(WD1770Debug)
+EPN(DiskDriveDebug)
 
 // must be last
 EQPN(MaxValue)

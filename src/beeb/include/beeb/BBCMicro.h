@@ -621,6 +621,8 @@ class BBCMicro : private WD1770Handler {
     InstructionTraceEvent *m_trace_current_instruction = nullptr;
     uint32_t m_trace_flags = 0;
     InstructionTraceEvent *m_trace_parasite_current_instruction = nullptr;
+
+    Trace *m_disk_drive_trace = nullptr;
 #endif
 
     std::vector<std::pair<InstructionFn, void *>> m_host_instruction_fns;
@@ -697,7 +699,7 @@ class BBCMicro : private WD1770Handler {
     bool GetByte(uint8_t *value, uint8_t sector, size_t offset) override;
     bool SetByte(uint8_t sector, size_t offset, uint8_t value) override;
     bool GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uint8_t sector, bool double_density) override;
-    BBCMicroState::DiscDrive *GetDiscDrive();
+    BBCMicroState::DiscDrive *GetDiscDrive(int *drive = nullptr);
     void InitDiscDriveSounds(DiscDriveType type);
     void StepSound(BBCMicroState::DiscDrive *dd, int step_rate_ms);
     float UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd);
