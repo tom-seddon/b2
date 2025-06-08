@@ -172,7 +172,9 @@ There are multiple options for starting the recording, indicating what
 will happen when `Start` is clicked:
 
 * `Immediate` - recording will start straight away
-* `Return` - recording will start once the Return key is pressed
+* `Return` - recording will start once the Return key is pressed.
+  (Note that this tracks actual presses of the key only, and fake
+  Returns when doing `Edit` > `OSRDCH Paste` will be ignored)
 * `Reset or BREAK` - recording will start on the next hard reset (or
   equivalent - e.g., changing config from the Hardware menu) or the
   next time the BREAK key is pressed
