@@ -4784,41 +4784,43 @@ Systems (all hyperthreaded):
 - TRW :: 32c, Windows 11, VS2019
 - TRgcc :: 32c, Linux Mint, gcc 13.3.0
 - TRclang :: 32c, Linux Mint, clang 19
+- 15"L :: 3c, Ubuntu 24 VM, gcc
+- 15"W :: 4c/8t, Windows 10, Visual Studio 2019
 
-| Groups | Build          | Scenario         | 13" | TRW | TRgcc | TRclang |
-|--------+----------------+------------------+-----+-----+-------+---------|
-|      1 | Debug          | Rebuild          | 244 |  76 |   246 |     158 |
-|      1 | Debug          | Touch BBCMicro.h | 178 |  64 |   242 |     151 |
-|      1 | RelWithDebInfo | Rebuild          | 781 | 144 |   925 |     647 |
-|      1 | RelWithDebInfo | Touch BBCMicro.h | 690 | 131 |   909 |     630 |
-|      2 | Debug          | Rebuild          | 169 |  63 |   132 |      85 |
-|      2 | Debug          | Touch BBCMicro.h | 104 |  48 |   122 |      78 |
-|      2 | RelWithDebInfo | Rebuild          | 481 | 127 |   481 |     346 |
-|      2 | RelWithDebInfo | Touch BBCMicro.h | 401 |  95 |   470 |     327 |
-|      4 | Debug          | Rebuild          | 151 |  45 |    74 |      53 |
-|      4 | Debug          | Touch BBCMicro.h |  93 |  33 |    71 |      45 |
-|      4 | RelWithDebInfo | Rebuild          | 433 |  94 |   288 |     209 |
-|      4 | RelWithDebInfo | Touch BBCMicro.h | 354 |  71 |   276 |     193 |
-|      8 | Debug          | Rebuild          | 153 |  39 |    43 |      32 |
-|      8 | Debug          | Touch BBCMicro.h |  95 |  26 |    38 |      25 |
-|      8 | RelWithDebInfo | Rebuild          | 427 |  99 |   163 |     119 |
-|      8 | RelWithDebInfo | Touch BBCMicro.h | 356 |  69 |   145 |     103 |
-|     16 | Debug          | Rebuild          | 154 |  42 |    28 |      23 |
-|     16 | Debug          | Touch BBCMicro.h |  93 |  24 |    24 |      16 |
-|     16 | RelWithDebInfo | Rebuild          | 424 |  87 |    98 |      73 |
-|     16 | RelWithDebInfo | Touch BBCMicro.h | 348 |  62 |    84 |      60 |
-|     32 | Debug          | Rebuild          | 164 |  42 |    28 |      22 |
-|     32 | Debug          | Touch BBCMicro.h | 105 |  25 |    23 |      17 |
-|     32 | RelWithDebInfo | Rebuild          | 454 |  93 |    94 |      71 |
-|     32 | RelWithDebInfo | Touch BBCMicro.h | 375 |  58 |    81 |      57 |
-|     64 | Debug          | Rebuild          | 185 |  38 |    26 |      23 |
-|     64 | Debug          | Touch BBCMicro.h | 126 |  28 |    20 |      17 |
-|     64 | RelWithDebInfo | Rebuild          | 518 |  89 |    80 |      61 |
-|     64 | RelWithDebInfo | Touch BBCMicro.h | 428 |  65 |    66 |      47 |
-|    128 | Debug          | Rebuild          | 237 |  43 |    32 |      29 |
-|    128 | Debug          | Touch BBCMicro.h | 180 |  30 |    27 |      23 |
-|    128 | RelWithDebInfo | Rebuild          | 699 | 101 |   104 |      80 |
-|    128 | RelWithDebInfo | Touch BBCMicro.h | 610 |  90 |    89 |      65 |
+|   # | Build | Scenario   | 13" | TRW | TRgcc | TRclang | 15"L | 15"W |
+|-----+-------+------------+-----+-----+-------+---------+------+------|
+|   1 | Debug | Rebuild    | 244 |  76 |   246 |     158 |      |  147 |
+|   1 | Debug | BBCMicro.h | 178 |  64 |   242 |     151 |      |   92 |
+|   1 | RWDI  | Rebuild    | 781 | 144 |   925 |     647 |      |  356 |
+|   1 | RWDI  | BBCMicro.h | 690 | 131 |   909 |     630 |      |  276 |
+|   2 | Debug | Rebuild    | 169 |  63 |   132 |      85 |      |  115 |
+|   2 | Debug | BBCMicro.h | 104 |  48 |   122 |      78 |      |   69 |
+|   2 | RWDI  | Rebuild    | 481 | 127 |   481 |     346 |      |  311 |
+|   2 | RWDI  | BBCMicro.h | 401 |  95 |   470 |     327 |      |  218 |
+|   4 | Debug | Rebuild    | 151 |  45 |    74 |      53 |  524 |  109 |
+|   4 | Debug | BBCMicro.h |  93 |  33 |    71 |      45 |  434 |   59 |
+|   4 | RWDI  | Rebuild    | 433 |  94 |   288 |     209 | 1679 |  307 |
+|   4 | RWDI  | BBCMicro.h | 354 |  71 |   276 |     193 | 1457 |  209 |
+|   8 | Debug | Rebuild    | 153 |  39 |    43 |      32 |  466 |  108 |
+|   8 | Debug | BBCMicro.h |  95 |  26 |    38 |      25 |  390 |   56 |
+|   8 | RWDI  | Rebuild    | 427 |  99 |   163 |     119 | 1445 |  299 |
+|   8 | RWDI  | BBCMicro.h | 356 |  69 |   145 |     103 | 1281 |  207 |
+|  16 | Debug | Rebuild    | 154 |  42 |    28 |      23 |  467 |  109 |
+|  16 | Debug | BBCMicro.h |  93 |  24 |    24 |      16 |  384 |   57 |
+|  16 | RWDI  | Rebuild    | 424 |  87 |    98 |      73 | 1428 |  302 |
+|  16 | RWDI  | BBCMicro.h | 348 |  62 |    84 |      60 | 1272 |  209 |
+|  32 | Debug | Rebuild    | 164 |  42 |    28 |      22 |  499 |  116 |
+|  32 | Debug | BBCMicro.h | 105 |  25 |    23 |      17 |  407 |   62 |
+|  32 | RWDI  | Rebuild    | 454 |  93 |    94 |      71 | 1519 |  315 |
+|  32 | RWDI  | BBCMicro.h | 375 |  58 |    81 |      57 | 1340 |  223 |
+|  64 | Debug | Rebuild    | 185 |  38 |    26 |      23 |  580 |  124 |
+|  64 | Debug | BBCMicro.h | 126 |  28 |    20 |      17 |  488 |   72 |
+|  64 | RWDI  | Rebuild    | 518 |  89 |    80 |      61 | 1747 |  352 |
+|  64 | RWDI  | BBCMicro.h | 428 |  65 |    66 |      47 | 1582 |  263 |
+| 128 | Debug | Rebuild    | 237 |  43 |    32 |      29 |  775 |  152 |
+| 128 | Debug | BBCMicro.h | 180 |  30 |    27 |      23 |  689 |  101 |
+| 128 | RWDI  | Rebuild    | 699 | 101 |   104 |      80 | 2441 |  470 |
+| 128 | RWDI  | BBCMicro.h | 610 |  90 |    89 |      65 | 2243 |  373 |
 
 * Challenger Bad Track Format
 
