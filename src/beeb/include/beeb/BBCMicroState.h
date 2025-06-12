@@ -25,6 +25,7 @@ class Log;
 #include "video.h"
 #include "type.h"
 #include "BBCMicroParasiteType.h"
+#include "scsi.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicroState.inl"
@@ -357,6 +358,10 @@ class BBCMicroState {
 
     M6502 parasite_cpu = {};
 
+#if ENABLE_SCSI
+    SCSI scsi = {};
+#endif
+
   protected:
     // Disallow values of base type. Disallow delete of pointer to base type.
     ~BBCMicroState() = default;
@@ -414,6 +419,9 @@ class BBCMicroUniqueState : public BBCMicroState {
 // The potential discrepancy between RAM contents and hardware state doesn't
 // matter; when the BBC is running, it's impossible to tell, and when it's
 // stopped, the two are actually in sync.
+//
+// Bogus Handler/Trace/etc. pointers aren't relevant as they aren't accessible
+// via the public API.
 //
 // (Any actual modification to the BBCMicro state is done via BeebThread
 // messages.)

@@ -645,6 +645,12 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= BBCMicroInitFlag_ROMBoard;
     }
 
+    if (ts->current_config.config.scsi) {
+#if ENABLE_SCSI
+        init_flags |= BBCMicroInitFlag_SCSI;
+#endif
+    }
+
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
         rom_types[i] = ts->current_config.config.roms[i].type;

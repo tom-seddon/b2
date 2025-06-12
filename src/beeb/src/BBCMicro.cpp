@@ -254,6 +254,10 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 
     m_disk_drive_trace = trace_flags & BBCMicroTraceFlag_DiskDrive ? m_trace : nullptr;
 
+#if ENABLE_SCSI
+    m_state.scsi.SetTrace(m_trace_flags & BBCMicroTraceFlag_SCSI ? m_trace : nullptr);
+#endif
+
     this->UpdateCPUDataBusFn();
 }
 #endif
@@ -2553,6 +2557,17 @@ void BBCMicro::InitStuff() {
         uint8_t adji_addr = m_state.init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
         this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
     }
+
+#if ENABLE_SCSI
+    if (m_state.init_flags & BBCMicroInitFlag_SCSI) {
+        this->SetXFJIO(0xfc40, &SCSI::Read0, &m_state.scsi, &SCSI::Write0, &m_state.scsi);
+        this->SetXFJIO(0xfc40, &SCSI::Read1, &m_state.scsi, &SCSI::Write1, &m_state.scsi);
+        this->SetXFJIO(0xfc40, nullptr, nullptr, &SCSI::Write2, &m_state.scsi);
+        this->SetXFJIO(0xfc40, nullptr, nullptr, &SCSI::Write3, &m_state.scsi);
+
+        m_state.scsi.SetCPU(&m_state.cpu, BBCMicroIRQDevice_SCSI);
+    }
+#endif
 
     // Set up TST=1 tables.
     m_read_mmios_rom = std::vector<ReadMMIO>(768, {&ReadROMMMIO, this});

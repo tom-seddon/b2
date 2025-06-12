@@ -27,6 +27,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 static const std::string RECENT_PATHS_ROMS("roms");
+static const std::string RECENT_PATHS_HARD_DISKS("hard_disks");
 
 static const char NEW_CONFIG_POPUP[] = "new_config_popup";
 static const char COPY_CONFIG_POPUP[] = "copy_config_popup";
@@ -46,7 +47,8 @@ class ConfigsUI : public SettingsUI {
   private:
     BeebWindow *m_beeb_window = nullptr;
     bool m_edited = false;
-    OpenFileDialog m_ofd;
+    OpenFileDialog m_rom_ofd;
+    OpenFileDialog m_hard_disk_ofd;
     int m_config_index = -1;
 
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
@@ -68,10 +70,14 @@ class ConfigsUI : public SettingsUI {
 
 ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window)
-    , m_ofd(RECENT_PATHS_ROMS) {
+    , m_rom_ofd(RECENT_PATHS_ROMS)
+    , m_hard_disk_ofd(RECENT_PATHS_HARD_DISKS) {
     this->SetDefaultSize(ImVec2(650, 450));
 
-    m_ofd.AddAllFilesFilter();
+    m_rom_ofd.AddAllFilesFilter();
+
+    m_hard_disk_ofd.AddFilter("BBC hard disk file", {".dat"});
+    m_hard_disk_ofd.AddAllFilesFilter();
 
     const std::string &config_name = m_beeb_window->GetConfigName();
 
@@ -251,7 +257,6 @@ void ConfigsUI::DoEditConfigGui() {
 
     std::string title = config->name;
 
-    std::string name;
     {
         // with a width of -1, the label disappears...
         //ImGuiItemWidthPusher pusher(-1);
@@ -424,6 +429,7 @@ void ConfigsUI::DoEditConfigGui() {
                 case BBCMicroParasiteType_External3MHz6502:
                     config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
                     break;
+
                 case BBCMicroParasiteType_MasterTurbo:
                     config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
                     break;
@@ -446,6 +452,27 @@ void ConfigsUI::DoEditConfigGui() {
             }
         }
     }
+
+#if ENABLE_SCSI
+    ImGui::Checkbox("SCSI", &config->scsi);
+
+    if (config->scsi) {
+        for (size_t i = 0; i < config->hard_disk_dat_paths.size(); ++i) {
+            char name[100];
+            snprintf(name, sizeof name, "SCSI HD %zu", i);
+            if (ImGuiInputText(&config->hard_disk_dat_paths[i], name, config->hard_disk_dat_paths[i])) {
+                edited = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("...")) {
+                if (m_hard_disk_ofd.Open(&config->hard_disk_dat_paths[i])) {
+                    edited = true;
+                    m_hard_disk_ofd.AddLastPathToRecentPaths();
+                }
+            }
+        }
+    }
+#endif
 
     if (edited) {
         BeebWindows::ConfigDidChange((size_t)m_config_index);
@@ -723,14 +750,14 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
     if (ImGui::BeginPopup(ROM_POPUP)) {
         if (ImGui::MenuItem("File...")) {
-            if (m_ofd.Open(&rom->file_name)) {
+            if (m_rom_ofd.Open(&rom->file_name)) {
                 rom->standard_rom = nullptr;
                 edited = true;
-                m_ofd.AddLastPathToRecentPaths();
+                m_rom_ofd.AddLastPathToRecentPaths();
             }
         }
 
-        if (ImGuiRecentMenu(&rom->file_name, "Recent file", m_ofd)) {
+        if (ImGuiRecentMenu(&rom->file_name, "Recent file", m_rom_ofd)) {
             rom->standard_rom = nullptr;
             edited = true;
         }

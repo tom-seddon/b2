@@ -70,6 +70,11 @@ EQPNV(ADJIDIPSwitchesShift, 5)
 // banks.
 EPNV(ROMBoard, 1 << 7)
 
+#if ENABLE_SCSI
+// If set, has SCSI interface available via XFJ.
+EPNV(SCSI, 1 << 8)
+#endif
+
 EEND()
 #undef ENAME
 

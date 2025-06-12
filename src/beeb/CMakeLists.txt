@@ -34,6 +34,7 @@ set(SRCS
   ${S}/DiscGeometry.cpp ${I}/DiscGeometry.h
   ${S}/DirectDiscImage.cpp ${I}/DirectDiscImage.h
   ${S}/MemoryDiscImage.cpp ${I}/MemoryDiscImage.h
+  ${S}/scsi.cpp ${I}/scsi.h ${I}/scsi.inl
 )
 
 if(MSVC)
