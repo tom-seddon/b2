@@ -237,6 +237,8 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_MouseDebug, "toggle_mouse_debug", "Mouse debug", &CreateMouseDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_WD1770Debug, "toggle_wd1770_debug", "WD1770 Debug", &CreateWD1770DebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DiskDriveDebug, "toggle_disk_drive_debug", "Disk Drive Debug", &CreateDiskDriveDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_HardDiskDebug, "toggle_hard_disk_debug", "Hard Disk Debug", &CreateHardDiskDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SCSIDebug, "toggle_scsi_debug", "SCSI Debug", &CreateSCSIDebugWindow);
     return true;
 }
 
@@ -1600,7 +1602,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
                 if (popup) {
                     popup->DoImGui();
                 } else {
-                    ImGui::TextWrapped("This version of b2 does not support this type of window.");
+                    ImGui::TextWrapped("This build of b2 does not support this type of window.");
                 }
             }
             ImGui::End();
@@ -2287,6 +2289,8 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MouseDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_WD1770Debug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DiskDriveDebug].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_HardDiskDebug].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
 
         ImGui::Separator();
 

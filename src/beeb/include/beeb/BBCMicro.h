@@ -15,6 +15,7 @@ class TraceEventType;
 class DiscImage;
 class BeebLinkHandler;
 class BeebLink;
+class HardDiskImage;
 
 #include <array>
 #include <memory>
@@ -202,6 +203,7 @@ class BBCMicro : private WD1770Handler {
              const tm *rtc_time,
              uint32_t init_flags,
              BeebLinkHandler *beeblink_handler,
+             const HardDiskImageSet &hard_disk_images,
              CycleCount initial_cycle_count);
 
     explicit BBCMicro(const BBCMicroUniqueState &state);

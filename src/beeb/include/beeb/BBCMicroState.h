@@ -198,6 +198,10 @@ class BBCMicroState {
     uint8_t DebugGetMouseButtons() const;
     bool DebugGetWD1770(const WD1770 **fdc_ptr, DiscInterfaceControl *disc_control_ptr) const;
     const DiscDrive *DebugGetDrive(int drive) const;
+#if ENABLE_SCSI
+    const HardDiskImageSet *DebugGetHardDiskImageSet() const;
+    const SCSI *DebugGetSCSI() const;
+#endif
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -359,7 +363,7 @@ class BBCMicroState {
     M6502 parasite_cpu = {};
 
 #if ENABLE_SCSI
-    SCSI scsi = {};
+    std::shared_ptr<SCSI> scsi;
 #endif
 
   protected:
@@ -378,6 +382,7 @@ class BBCMicroState {
                            const std::vector<uint8_t> &nvram_contents,
                            uint32_t init_flags,
                            const tm *rtc_time,
+                           const HardDiskImageSet &hard_disk_images,
                            CycleCount initial_cycle_count);
 
     friend class BBCMicro;

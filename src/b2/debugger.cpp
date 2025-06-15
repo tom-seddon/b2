@@ -9,6 +9,8 @@
 #include <shared/file_io.h>
 #include <shared/strings.h>
 #include <beeb/DiscImage.h>
+#include <beeb/scsi.h>
+#include <beeb/HardDiskImage.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -185,6 +187,13 @@ static bool ParseAddress(uint16_t *addr_ptr,
     }
 
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void ImGuiByteValue(const char *name, uint8_t value) {
+    ImGui::Text("%s: %3d %3uu (%s%02x) (%s%s)", name, (int8_t)value, value, g_hex, value, g_bin, BINARY_BYTE_STRINGS[value]);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -686,7 +695,7 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
 
         if (dbp->bp.r) {
             uint8_t value = dbp->bp.r[addr.p.o];
-            ImGui::Text("Value: %3d %3uu (%s%02x) (%s%s)", (int8_t)value, value, g_hex, value, g_bin, BINARY_BYTE_STRINGS[value]);
+            ImGuiByteValue("Value", value);
         } else {
             ImGui::TextUnformatted("Value: --");
         }
@@ -3909,11 +3918,103 @@ class DiskDriveDebugWindow : public DebugUI {
         }
     }
 
+  protected:
   private:
 };
 
 std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<DiskDriveDebugWindow>(beeb_window, ImVec2(300, 300));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_SCSI
+class HardDiskDebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        const HardDiskImageSet *hds = m_beeb_state->DebugGetHardDiskImageSet();
+        if (!hds) {
+            ImGui::TextUnformatted("No hard disk interface");
+            return;
+        }
+
+        for (int i = 0; i < NUM_HARD_DISKS; ++i) {
+            char text[100];
+            snprintf(text, sizeof text, "SCSI LUN %d", i);
+            ImGuiHeader(text);
+
+            if (!hds->images[i]) {
+                ImGui::TextUnformatted("(Not connected)");
+            } else {
+                ImGui::BulletText("File name: %s", hds->images[i]->dat_path.c_str());
+
+                HardDiskGeometry g = hds->images[i]->GetGeometry();
+
+                ImGui::BulletText("Heads: %u", g.num_heads);
+                ImGui::BulletText("Cylinders: %u", g.num_cylinders);
+            }
+        }
+    }
+
+  protected:
+  private:
+};
+#endif
+
+std::unique_ptr<SettingsUI> CreateHardDiskDebugWindow(BeebWindow *beeb_window) {
+#if ENABLE_SCSI
+    return CreateDebugUI<HardDiskDebugWindow>(beeb_window, ImVec2(300, 300));
+#else
+    (void)beeb_window;
+    return nullptr;
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_SCSI
+class SCSIDebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        const SCSI *scsi = m_beeb_state->DebugGetSCSI();
+        if (!scsi) {
+            ImGui::TextUnformatted("No SCSI interface");
+            return;
+        }
+
+        ImGui::Text("Phase: %s", GetSCSIPhaseEnumName(scsi->m_phase));
+        ImGuiHeader("Status register");
+        ImGuiByteValue("Value", scsi->m_status_register.value);
+        ImGui::Text("msg=%d bsy=%d irq=%d req=%d io=%d cd=%d",
+                    scsi->m_status_register.bits.msg,
+                    scsi->m_status_register.bits.bsy,
+                    scsi->m_status_register.bits.irq,
+                    scsi->m_status_register.bits.req,
+                    scsi->m_status_register.bits.io,
+                    scsi->m_status_register.bits.cd);
+        ImGuiHeader("Command");
+        ImGuiByteValue(GetSCSICommandEnumName(scsi->m_cmd[0]), scsi->m_cmd[0]);
+        for (size_t i = 1; i < sizeof scsi->m_cmd; ++i) {
+            char text[100];
+            snprintf(text, sizeof text, "+%zu", i);
+            ImGuiByteValue(text, scsi->m_cmd[i]);
+        }
+    }
+
+  protected:
+  private:
+};
+#endif
+
+std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window) {
+#if ENABLE_SCSI
+    return CreateDebugUI<SCSIDebugWindow>(beeb_window, ImVec2(300, 300));
+#else
+    (void)beeb_window;
+    return nullptr;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4022,6 +4123,14 @@ std::unique_ptr<SettingsUI> CreateWD1770DebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateHardDiskDebugWindow(BeebWindow *beeb_window) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window) {
     return nullptr;
 }
 

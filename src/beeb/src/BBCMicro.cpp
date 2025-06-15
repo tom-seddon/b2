@@ -157,6 +157,7 @@ BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
                    const tm *rtc_time,
                    uint32_t init_flags,
                    BeebLinkHandler *beeblink_handler,
+                   const HardDiskImageSet &hard_disk_images,
                    CycleCount initial_cycle_count)
     : m_state(std::move(type),
               disc_interface,
@@ -164,6 +165,7 @@ BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
               nvram_contents,
               init_flags,
               rtc_time,
+              hard_disk_images,
               initial_cycle_count)
     , m_beeblink_handler(beeblink_handler) {
     this->InitStuff();
@@ -200,6 +202,14 @@ uint32_t BBCMicro::GetCloneImpediments() const {
             }
         }
     }
+
+#if ENABLE_SCSI
+    for (int i = 0; i < NUM_HARD_DISKS; ++i) {
+        if (!!m_state.scsi->hds.images[i]) {
+            result |= (uint32_t)BBCMicroCloneImpediment_HardDisk0 << i;
+        }
+    }
+#endif
 
     if (!!m_beeblink_handler) {
         result |= BBCMicroCloneImpediment_BeebLink;
@@ -255,7 +265,9 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
     m_disk_drive_trace = trace_flags & BBCMicroTraceFlag_DiskDrive ? m_trace : nullptr;
 
 #if ENABLE_SCSI
-    m_state.scsi.SetTrace(m_trace_flags & BBCMicroTraceFlag_SCSI ? m_trace : nullptr);
+    if (!!m_state.scsi) {
+        m_state.scsi->SetTrace(m_trace_flags & BBCMicroTraceFlag_SCSI ? m_trace : nullptr);
+    }
 #endif
 
     this->UpdateCPUDataBusFn();
@@ -2560,12 +2572,11 @@ void BBCMicro::InitStuff() {
 
 #if ENABLE_SCSI
     if (m_state.init_flags & BBCMicroInitFlag_SCSI) {
-        this->SetXFJIO(0xfc40, &SCSI::Read0, &m_state.scsi, &SCSI::Write0, &m_state.scsi);
-        this->SetXFJIO(0xfc40, &SCSI::Read1, &m_state.scsi, &SCSI::Write1, &m_state.scsi);
-        this->SetXFJIO(0xfc40, nullptr, nullptr, &SCSI::Write2, &m_state.scsi);
-        this->SetXFJIO(0xfc40, nullptr, nullptr, &SCSI::Write3, &m_state.scsi);
-
-        m_state.scsi.SetCPU(&m_state.cpu, BBCMicroIRQDevice_SCSI);
+        ASSERT(!!m_state.scsi);
+        this->SetXFJIO(0xfc40, &SCSI::Read0, m_state.scsi.get(), &SCSI::Write0, m_state.scsi.get());
+        this->SetXFJIO(0xfc41, &SCSI::Read1, m_state.scsi.get(), &SCSI::Write1, m_state.scsi.get());
+        this->SetXFJIO(0xfc42, nullptr, nullptr, &SCSI::Write2, m_state.scsi.get());
+        this->SetXFJIO(0xfc43, nullptr, nullptr, &SCSI::Write3, m_state.scsi.get());
     }
 #endif
 

@@ -75,6 +75,12 @@ std::string GetFlagsString(uint32_t value, const char *(*get_name_fn)(int)) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void AddCommaSeparator(std::string *str) {
+    if (!str->empty()) {
+        *str += ", ";
+    }
+}
+
 std::string GetCloneImpedimentsDescription(uint32_t impediments) {
     if (impediments == 0) {
         return "none";
@@ -82,19 +88,20 @@ std::string GetCloneImpedimentsDescription(uint32_t impediments) {
         std::string r;
         for (int i = 0; i < NUM_DRIVES; ++i) {
             if (impediments & (uint32_t)BBCMicroCloneImpediment_Drive0 << i) {
-                if (!r.empty()) {
-                    r += ", ";
-                }
-
+                AddCommaSeparator(&r);
                 r += strprintf("drive %d", i);
             }
         }
 
-        if (impediments & BBCMicroCloneImpediment_BeebLink) {
-            if (!r.empty()) {
-                r += ", ";
+        for (int i = 0; i < NUM_HARD_DISKS; ++i) {
+            if (impediments & (uint32_t)BBCMicroCloneImpediment_HardDisk0 << i) {
+                AddCommaSeparator(&r);
+                r += strprintf("hard disk %d", i);
             }
+        }
 
+        if (impediments & BBCMicroCloneImpediment_BeebLink) {
+            AddCommaSeparator(&r);
             r += "BeebLink";
         }
 

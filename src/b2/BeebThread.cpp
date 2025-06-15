@@ -662,6 +662,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                            &now,
                                            init_flags,
                                            ts->beeblink_handler.get(),
+                                           ts->current_config.hard_disk_images,
                                            num_cycles);
 
     beeb->SetOSROM(ts->current_config.os);

@@ -2,6 +2,20 @@
 #define HEADER_D00B4638BE6448AE9200E1E2A470ED2F
 
 #include "conf.h"
+#include <memory>
+
+class HardDiskImage;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// May move elsewhere when/if I get round to doing IDE.
+struct HardDiskImageSet {
+    std::shared_ptr<HardDiskImage> images[NUM_HARD_DISKS];
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #if ENABLE_SCSI
 
@@ -63,6 +77,21 @@ class SCSI {
     };
     CHECK_SIZEOF(SCSIStatusRegister, 1);
 
+    // The disk images are assumed to be set on startup, and then not changed
+    // thereafter. These are fixed disks after all.
+    const HardDiskImageSet hds;
+
+    bool leds[NUM_HARD_DISKS] = {};
+
+    // The SCSI emulation sets the CPU interrupt flag itself on read/write -
+    // judging by BeebEm and B-em, there's no need for a per cycle check. Which
+    // is lucky because this avoids adding another BBCMicro update flag.
+    explicit SCSI(HardDiskImageSet hds, M6502 *cpu, uint8_t cpu_irq_flag);
+    explicit SCSI(const SCSI &src) = default;
+    explicit SCSI(SCSI &&) = delete;
+    SCSI &operator=(const SCSI &) = delete;
+    SCSI &operator=(SCSI &&) = delete;
+
     static uint8_t Read0(void *scsi, M6502Word a);
     static uint8_t Read1(void *scsi, M6502Word a);
 
@@ -71,34 +100,60 @@ class SCSI {
     static void Write2(void *scsi, M6502Word a, uint8_t value);
     static void Write3(void *scsi, M6502Word a, uint8_t value);
 
-    // The SCSI emulation sets the CPU interrupt flag itself on read/write -
-    // judging by BeebEm and B-em, there's no need for a per cycle check. Which
-    // is lucky because this avoids adding another BBCMicro update flag.
-    void SetCPU(M6502 *cpu, uint32_t irq_flag);
-
     void SetTrace(Trace *t);
 
   protected:
   private:
+    static constexpr uint8_t MAX_COMMAND_LENGTH = 10;
+
+    //Value copied from B-em - but is this needlessly large?
+    static constexpr uint32_t BUFFER_SIZE = 0x800;
+
     SCSIPhase m_phase = SCSIPhase_BusFree;
     uint8_t m_code = 0;
-    uint8_t m_sector = 0;
+    uint32_t m_sector = 0;
     SCSIStatusRegister m_status_register = {};
-    uint8_t m_status;
+    uint8_t m_status = 0;
     bool m_sel = false;
     uint32_t m_blocks = 0;
     uint32_t m_length = 0;
+    uint8_t m_message = 0;
+    uint8_t m_lun = 0;
+    uint32_t m_next = 0;
+    uint8_t m_last_write = 0;
+    uint8_t m_cmd[MAX_COMMAND_LENGTH] = {};
 
-    M6502 *m_cpu = nullptr;
-    uint32_t m_cpu_irq_flag = 0;
+    M6502 *const m_cpu = nullptr;
+    const uint8_t m_cpu_irq_flag = 0;
 
-    std::vector<uint8_t> m_buffer;
+    uint8_t m_buffer[BUFFER_SIZE] = {};
     size_t m_offset = 0;
 
     Trace *m_trace = nullptr;
 
     uint8_t ReadData();
     void WriteData(uint8_t value);
+
+    void EnterBusFreePhase();
+    void EnterMessagePhase();
+    void EnterStatusPhase();
+    void EnterSelectionPhase();
+    void EnterCommandPhase();
+    void EnterExecutePhase();
+
+    // Sets status to Good (with 2-bit LUN in bits 5 and 6), and message to 0,
+    // then EnterStatusPhase.
+    void EnterGoodStatusPhase();
+
+    // Sets status to Check Condition (with 2-bit LUN in bits 5 and 6), and
+    // message to 0, then EnterStatusPhase.
+    void EnterCheckConditionStatusPhase();
+
+    HardDiskImage *GetHardDisk(uint8_t lun) const;
+
+#ifdef BBCMICRO_DEBUGGER
+    friend class SCSIDebugWindow;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

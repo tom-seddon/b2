@@ -690,6 +690,7 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
                nullptr,
                GetBBCMicroInitFlags(type, args.flags),
                nullptr,
+               HardDiskImageSet(),
                {0}) {
 #if BBCMICRO_TRACE
     m_trace_flags = (BBCMicroTraceFlag_RTC |

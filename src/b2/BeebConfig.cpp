@@ -12,6 +12,7 @@
 #include <beeb/DiscImage.h>
 #include "misc.h"
 #include <shared/file_io.h>
+#include <beeb/HardDiskImage.h>
 
 #include <shared/enum_def.h>
 #include "BeebConfig.inl"
@@ -574,6 +575,20 @@ bool BeebLoadedConfig::Load(
         if (!dest->parasite_os) {
             return false;
         }
+    }
+
+    bool any_hard_disk_failures = false;
+    for (size_t i = 0; i < NUM_HARD_DISKS; ++i) {
+        if (!src.hard_disk_dat_paths[i].empty()) {
+            dest->hard_disk_images.images[i] = HardDiskImage::CreateForFile(src.hard_disk_dat_paths[i], *msg);
+            if (!dest->hard_disk_images.images) {
+                any_hard_disk_failures = true;
+                // (but carry on, to note any additional failures)
+            }
+        }
+    }
+    if (any_hard_disk_failures) {
+        return false;
     }
 
     return true;

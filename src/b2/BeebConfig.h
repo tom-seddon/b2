@@ -12,6 +12,7 @@
 #include <beeb/BBCMicroParasiteType.h>
 #include <beeb/type.h>
 #include "json.h"
+#include <beeb/SCSI.h>
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -70,7 +71,7 @@ class BeebConfig {
     Enum<OSROMType> os_rom_type{OSROMType_16KB};
 
     bool scsi = false;
-    std::array<std::string, 8> hard_disk_dat_paths;
+    std::array<std::string, NUM_HARD_DISKS> hard_disk_dat_paths;
 
     void ResetNVRAM();
 
@@ -111,6 +112,7 @@ class BeebLoadedConfig {
     std::shared_ptr<const std::array<uint8_t, 16384>> os;
     std::shared_ptr<const std::vector<uint8_t>> roms[16];
     std::shared_ptr<const std::array<uint8_t, 4096>> parasite_os;
+    HardDiskImageSet hard_disk_images;
 
     static bool Load(BeebLoadedConfig *dest, const BeebConfig &src, Messages *msg);
 

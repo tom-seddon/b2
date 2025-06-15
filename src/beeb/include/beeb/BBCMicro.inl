@@ -83,11 +83,16 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static_assert(NUM_DRIVES <= 4);
+static_assert(NUM_HARD_DISKS <= 4);
+
 #define ENAME BBCMicroCloneImpediment
 EBEGIN()
 EPNV(BeebLink, 1 << 0)
-EPNV(Drive0, 1 << 24)
+EPNV(Drive0, 1 << 16)
 // ...up to DriveN, which is Drive0<<(NUM_DRIVES-1)
+EPNV(HardDisk0, 1 << 20)
+// ...up to HardDiskN, which is HardDisk0<<(NUM_HARD_DISKS-1)
 EEND()
 #undef ENAME
 

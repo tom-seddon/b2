@@ -3,6 +3,11 @@
 #include <beeb/DiscImage.h>
 #include <array>
 #include <type_traits>
+#include <shared/debug.h>
+
+#include <shared/enum_decl.h>
+#include "BBCMicro_private.inl" //we're all friends here
+#include <shared/enum_end.h>
 
 #include <shared/enum_def.h>
 #include <beeb/BBCMicroState.inl>
@@ -24,6 +29,7 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
                              const std::vector<uint8_t> &nvram_contents,
                              uint32_t init_flags_,
                              const tm *rtc_time,
+                             const HardDiskImageSet &hard_disk_images,
                              CycleCount initial_cycle_count)
     : type(std::move(type_))
     , init_flags(init_flags_)
@@ -68,6 +74,12 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
     }
 
     this->sn76489.Reset(!!(this->init_flags & BBCMicroInitFlag_PowerOnTone));
+
+#if ENABLE_SCSI
+    this->scsi = std::make_shared<SCSI>(hard_disk_images, &this->cpu, (uint8_t)BBCMicroIRQDevice_SCSI);
+#else
+    (void)hard_disk_images;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -241,6 +253,37 @@ const BBCMicroState::DiscDrive *BBCMicroState::DebugGetDrive(int drive) const {
     }
     return nullptr;
 }
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+#if ENABLE_SCSI
+const HardDiskImageSet *BBCMicroState::DebugGetHardDiskImageSet() const {
+    if (this->init_flags & BBCMicroInitFlag_SCSI) {
+        ASSERT(!!this->scsi);
+        return &this->scsi->hds;
+    }
+
+    return nullptr;
+}
+#endif
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+#if ENABLE_SCSI
+const SCSI *BBCMicroState::DebugGetSCSI() const {
+    if (this->init_flags & BBCMicroInitFlag_SCSI) {
+        return this->scsi.get();
+    }
+
+    return nullptr;
+}
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////
