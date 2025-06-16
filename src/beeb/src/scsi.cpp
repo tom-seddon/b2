@@ -79,6 +79,7 @@ bool LoadSCSIDiskSpec(SCSIDiskSpec *spec, const std::vector<uint8_t> &dsc_conten
 
 SCSI::SCSI(HardDiskImageSet hds_, M6502 *cpu, uint8_t cpu_irq_flag)
     : hds(std::move(hds_))
+    , leds(0)
     , m_cpu(cpu)
     , m_cpu_irq_flag(cpu_irq_flag) {
     ASSERT(cpu_irq_flag != 0);
@@ -364,7 +365,7 @@ void SCSI::EnterBusFreePhase() {
 
     m_status_register.value = 0;
 
-    memset(this->leds, 0, sizeof this->leds);
+    this->leds = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -420,7 +421,7 @@ void SCSI::EnterExecutePhase() {
     m_lun = m_cmd[1] >> 5;
 
     if (m_lun < NUM_HARD_DISKS) {
-        this->leds[m_lun] = true;
+        this->leds |= 1 << m_lun;
     }
 
     TRACE(this, "SCSI - Execute: LUN=%u CMD=%s (%u; 0x%x)\n", m_lun, GetSCSICommandEnumName(m_cmd[0]), m_cmd[0], m_cmd[0]);

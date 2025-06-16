@@ -46,6 +46,10 @@
 #include <vector>
 #include "keys.h"
 
+#include <shared/enum_decl.h>
+#include "dear_imgui.inl"
+#include <shared/enum_end.h>
+
 struct SDL_Texture;
 struct SDL_Renderer;
 struct SDL_Cursor;
@@ -299,9 +303,9 @@ void ImGuiHeader(const char *str);
 //////////////////////////////////////////////////////////////////////////
 
 // The LED colour is the ImGuiCol_CheckMark style colour.
-void ImGuiLED(bool on, const char *str);
-void ImGuiLEDv(bool on, const char *fmt, va_list v);
-void ImGuiLEDf(bool on, const char *fmt, ...) PRINTF_LIKE(2, 3);
+void ImGuiLED(ImGuiLEDStyle style, bool on, const char *str);
+void ImGuiLEDv(ImGuiLEDStyle style, bool on, const char *fmt, va_list v);
+void ImGuiLEDf(ImGuiLEDStyle style, bool on, const char *fmt, ...) PRINTF_LIKE(2, 3);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

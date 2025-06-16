@@ -1690,7 +1690,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
     bool pasting = m_beeb_thread->IsPasting();
     bool copying = m_beeb_thread->IsCopying();
-    if (ValueChanged(&m_leds, m_beeb_thread->GetLEDs()) || (m_leds & BBCMicroLEDFlags_AllDrives)) {
+    if (ValueChanged(&m_leds, m_beeb_thread->GetLEDs()) || (m_leds & BBCMicro::LED_FLAGS_ALL_DRIVES)) {
         if (m_settings.leds_popup_mode != BeebWindowLEDsPopupMode_Off) {
             show_leds_popup = true;
         }
@@ -1717,25 +1717,23 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
             ImGuiStyleColourPusher colour_pusher;
             colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
 
-            ImGuiLED(!!(m_leds & BBCMicroLEDFlag_CapsLock), "Caps Lock");
+            ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_CapsLock), "Caps Lock");
 
             ImGui::SameLine();
-            ImGuiLED(!!(m_leds & BBCMicroLEDFlag_ShiftLock), "Shift Lock");
 
-            for (int i = 0; i < NUM_DRIVES; ++i) {
-                ImGui::SameLine();
-                ImGuiLEDf(!!(m_leds & (uint32_t)BBCMicroLEDFlag_Drive0 << i), "Drive %d", i);
-            }
+            ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_ShiftLock), "Shift Lock");
+
+            ImGui::SameLine();
 
             colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(0.f, 1.f, 0.f, 1.f));
 
             switch (timeline_state.mode) {
             case BeebThreadTimelineMode_None:
-                ImGuiLED(false, "Replay");
+                ImGuiLED(ImGuiLEDStyle_Circle, false, "Replay");
                 break;
 
             case BeebThreadTimelineMode_Replay:
-                ImGuiLED(true, "Replay");
+                ImGuiLED(ImGuiLEDStyle_Circle, true, "Replay");
                 ImGui::SameLine();
                 if (ImGui::Button("Stop")) {
                     m_beeb_thread->Send(std::make_shared<BeebThread::StopReplayMessage>());
@@ -1744,7 +1742,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
             case BeebThreadTimelineMode_Record:
                 colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
-                ImGuiLED(true, "Record");
+                ImGuiLED(ImGuiLEDStyle_Circle, true, "Record");
                 ImGui::SameLine();
                 if (ImGuiConfirmButton("Stop")) {
                     m_beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
@@ -1754,7 +1752,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
             }
 
             ImGui::SameLine();
-            ImGuiLED(copying, "Copy");
+            ImGuiLED(ImGuiLEDStyle_Circle, copying, "Copy");
             if (copying) {
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel")) {
@@ -1763,12 +1761,27 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
             }
 
             ImGui::SameLine();
-            ImGuiLED(pasting, "Paste");
+            ImGuiLED(ImGuiLEDStyle_Circle, pasting, "Paste");
             if (pasting) {
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel")) {
                     m_beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
                 }
+            }
+
+            colour_pusher.Pop();
+            colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
+
+            for (int i = 0; i < NUM_DRIVES; ++i) {
+                if (i > 0) {
+                    ImGui::SameLine();
+                }
+                ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_FloppyDisk0Shift + i)), "Drive %d", i);
+            }
+
+            for (int i = 0; i < NUM_HARD_DISKS; ++i) {
+                ImGui::SameLine();
+                ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_HardDisk0Shift + i)), "HD %d", i);
             }
         }
         ImGui::End();

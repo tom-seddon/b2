@@ -1060,9 +1060,15 @@ uint32_t BBCMicro::GetLEDs() {
 
     for (int i = 0; i < NUM_DRIVES; ++i) {
         if (m_state.drives[i].motor) {
-            leds |= (uint32_t)BBCMicroLEDFlag_Drive0 << i;
+            leds |= 1 << (BBCMicroLEDFlag_FloppyDisk0Shift + i);
         }
     }
+
+#if ENABLE_SCSI
+    if (!!m_state.scsi) {
+        leds |= m_state.scsi->leds << BBCMicroLEDFlag_HardDisk0Shift;
+    }
+#endif
 
     return leds;
 }

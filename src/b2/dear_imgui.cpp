@@ -11,6 +11,10 @@
 #include "native_ui.h"
 #include <SDL_opengl.h>
 
+#include <shared/enum_def.h>
+#include "dear_imgui.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1092,7 +1096,7 @@ void ImGuiHeader(const char *str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void ImGuiLED2(bool on, const char *begin, const char *end) {
+static void ImGuiLED2(ImGuiLEDStyle style, bool on, const char *begin, const char *end) {
     ImGuiWindow *window = ImGui::GetCurrentWindow();
     if (window->SkipItems) {
         return;
@@ -1122,12 +1126,6 @@ static void ImGuiLED2(bool on, const char *begin, const char *end) {
     if (!ImGui::ItemAdd(total_bb, id))
         return;
 
-    ImVec2 centre = check_bb.GetCenter();
-    centre.x = (float)(int)centre.x + .5f;
-    centre.y = (float)(int)centre.y + .5f;
-
-    const float radius = check_bb.GetHeight() * .5f;
-
     ImGuiCol colour;
     if (on) {
         colour = ImGuiCol_CheckMark;
@@ -1137,7 +1135,30 @@ static void ImGuiLED2(bool on, const char *begin, const char *end) {
 
     //const float check_sz=ImMin(check_bb.GetWidth(),check_bb.GetHeight());
     //const float pad=ImMax(1.f,(float)(int)(check_sz/6.f));
-    window->DrawList->AddCircleFilled(centre, radius, ImGui::GetColorU32(colour));
+    switch (style) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case ImGuiLEDStyle_Circle:
+        {
+            ImVec2 centre = check_bb.GetCenter();
+            centre.x = (float)(int)centre.x + .5f;
+            centre.y = (float)(int)centre.y + .5f;
+
+            const float radius = check_bb.GetHeight() * .5f;
+
+            window->DrawList->AddCircleFilled(centre, radius, ImGui::GetColorU32(colour));
+        }
+        break;
+
+    case ImGuiLEDStyle_Rectangle:
+        {
+            ImVec2 rect_min(check_bb.Min.x, check_bb.Min.y + check_bb.GetHeight() * (1 / 3.f));
+            ImVec2 rect_max(check_bb.Max.x, check_bb.Min.y + check_bb.GetHeight() * (2 / 3.f));
+            window->DrawList->AddRectFilled(rect_min, rect_max, ImGui::GetColorU32(colour));
+        }
+        break;
+    };
 
     if (label_size.x > 0.f) {
         ImGui::RenderText(text_bb.GetTL(), begin, end);
@@ -1147,19 +1168,19 @@ static void ImGuiLED2(bool on, const char *begin, const char *end) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiLED(bool on, const char *str) {
+void ImGuiLED(ImGuiLEDStyle style, bool on, const char *str) {
     ImGuiWindow *window = ImGui::GetCurrentWindow();
     if (window->SkipItems) {
         return;
     }
 
-    ImGuiLED2(on, str, str + strlen(str));
+    ImGuiLED2(style, on, str, str + strlen(str));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiLEDv(bool on, const char *fmt, va_list v) {
+void ImGuiLEDv(ImGuiLEDStyle style, bool on, const char *fmt, va_list v) {
     ImGuiWindow *window = ImGui::GetCurrentWindow();
     if (window->SkipItems) {
         return;
@@ -1167,17 +1188,17 @@ void ImGuiLEDv(bool on, const char *fmt, va_list v) {
 
     char buf[1000];
     int n = ImFormatStringV(buf, IM_ARRAYSIZE(buf), fmt, v);
-    ImGuiLED2(on, buf, buf + n);
+    ImGuiLED2(style, on, buf, buf + n);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiLEDf(bool on, const char *fmt, ...) {
+void ImGuiLEDf(ImGuiLEDStyle style, bool on, const char *fmt, ...) {
     va_list v;
 
     va_start(v, fmt);
-    ImGuiLEDv(on, fmt, v);
+    ImGuiLEDv(style, on, fmt, v);
     va_end(v);
 }
 

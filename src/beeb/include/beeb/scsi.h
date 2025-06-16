@@ -70,7 +70,7 @@ bool LoadSCSIDiskSpec(SCSIDiskSpec *spec, const std::vector<uint8_t> &dsc_conten
 
 class SCSI {
   public:
-      // SM p16
+    // SM p16
     struct SCSIStatusRegisterBits {
         uint8_t msg : 1;
         uint8_t bsy : 1;
@@ -91,7 +91,8 @@ class SCSI {
     // thereafter. These are fixed disks after all.
     const HardDiskImageSet hds;
 
-    bool leds[NUM_HARD_DISKS] = {};
+    // bit i set if HD i's LED is active.
+    uint8_t leds : NUM_HARD_DISKS;
 
     // The SCSI emulation sets the CPU interrupt flag itself on read/write -
     // judging by BeebEm and B-em, there's no need for a per cycle check. Which
