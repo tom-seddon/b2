@@ -19,20 +19,17 @@
 
 // Based on code by Jon Welch and Y. Tanaka
 
-// X.131 page references refer to X.131-1986 doc - see
-// https://github.com/bitshifters/bbc-documents/blob/master/Hard%20Disk/ANSI%20SCSI-1%20Standard%20X3.131-1986.pdf
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
 
-#define TRACE(...)                                                     \
-    BEGIN_MACRO {                                                      \
-        if (m_trace) {                                                 \
-            m_trace->AllocStringf(TraceEventSource_Host, __VA_ARGS__); \
-        }                                                              \
-    }                                                                  \
+#define TRACE(SELF, ...)                                                       \
+    BEGIN_MACRO {                                                              \
+        if ((SELF)->m_trace) {                                                 \
+            (SELF)->m_trace->AllocStringf(TraceEventSource_Host, __VA_ARGS__); \
+        }                                                                      \
+    }                                                                          \
     END_MACRO
 
 #else
@@ -63,11 +60,35 @@ bool LoadSCSIDiskSpec(SCSIDiskSpec *spec, const std::vector<uint8_t> &dsc_conten
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ASSERT_ENABLED
+
+#define CHECK_SR_BIT(NAME, VALUE)   \
+    BEGIN_MACRO {                   \
+        SCSIStatusRegister s;       \
+        s.value = 0;                \
+        s.bits.NAME = 1;            \
+        ASSERT(s.value == (VALUE)); \
+    }                               \
+    END_MACRO
+
+#else
+
+#define CHECK_SR_BIT(...) ((void)0)
+
+#endif
+
 SCSI::SCSI(HardDiskImageSet hds_, M6502 *cpu, uint8_t cpu_irq_flag)
     : hds(std::move(hds_))
     , m_cpu(cpu)
     , m_cpu_irq_flag(cpu_irq_flag) {
     ASSERT(cpu_irq_flag != 0);
+
+    CHECK_SR_BIT(msg, 1);
+    CHECK_SR_BIT(bsy, 2);
+    CHECK_SR_BIT(irq, 0x10);
+    CHECK_SR_BIT(req, 0x20);
+    CHECK_SR_BIT(io, 0x40);
+    CHECK_SR_BIT(cd, 0x80);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,6 +114,15 @@ uint8_t SCSI::Read1(void *scsi_, M6502Word) {
     // ...???
     status_register.bits.req = 1;
 
+    TRACE(scsi, "SCSI - Read Status: $%02x: msg=%d bsy=%d irq=%d req=%d io=%d cd=%d\n",
+          status_register.value,
+          status_register.bits.msg,
+          status_register.bits.bsy,
+          status_register.bits.irq,
+          status_register.bits.req,
+          status_register.bits.io,
+          status_register.bits.cd);
+
     return status_register.value;
 }
 
@@ -101,6 +131,8 @@ uint8_t SCSI::Read1(void *scsi_, M6502Word) {
 
 void SCSI::Write0(void *scsi_, M6502Word, uint8_t value) {
     auto const scsi = (SCSI *)scsi_;
+
+    scsi->m_sel = true;
 
     scsi->WriteData(value);
 }
@@ -112,6 +144,11 @@ void SCSI::Write1(void *scsi_, M6502Word, uint8_t value) {
     auto const scsi = (SCSI *)scsi_;
     (void)value;
 
+    // Not sure what this is for? Looks like ADFS doesn't write to it and the
+    // service manual doesn't explain it.
+
+    TRACE(scsi, "SCSI - Write Status\n");
+
     scsi->m_sel = true;
 }
 
@@ -120,6 +157,8 @@ void SCSI::Write1(void *scsi_, M6502Word, uint8_t value) {
 
 void SCSI::Write2(void *scsi_, M6502Word, uint8_t value) {
     auto const scsi = (SCSI *)scsi_;
+
+    TRACE(scsi, "SCSI - Write Select\n");
 
     scsi->m_sel = false;
 
@@ -138,9 +177,13 @@ void SCSI::Write3(void *scsi_, M6502Word, uint8_t value) {
         scsi->m_status_register.bits.irq = 1;
         M6502_SetDeviceIRQ(scsi->m_cpu, scsi->m_cpu_irq_flag, true);
         scsi->m_status = 0;
+
+        TRACE(scsi, "SCSI - Set IRQ\n");
     } else {
         scsi->m_status_register.bits.irq = 0;
         M6502_SetDeviceIRQ(scsi->m_cpu, scsi->m_cpu_irq_flag, false);
+
+        TRACE(scsi, "SCSI - Clear IRQ\n");
     }
 }
 
@@ -155,7 +198,7 @@ void SCSI::SetTrace(Trace *t) {
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t SCSI::ReadData() {
-    TRACE("SCSI - ReadData: Phase=%s\n", GetSCSIPhaseEnumName(m_phase));
+    TRACE(this, "SCSI - ReadData: Phase=%s\n", GetSCSIPhaseEnumName(m_phase));
 
     switch (m_phase) {
     default:
@@ -218,6 +261,7 @@ uint8_t SCSI::ReadData() {
 //////////////////////////////////////////////////////////////////////////
 
 void SCSI::WriteData(uint8_t value) {
+    TRACE(this, "SCSI - WriteData: Phase=%s; value=$%02x\n", GetSCSIPhaseEnumName(m_phase), value);
     m_last_write = value;
 
     switch (m_phase) {
@@ -242,8 +286,12 @@ void SCSI::WriteData(uint8_t value) {
         }
         ASSERT(m_length <= MAX_COMMAND_LENGTH);
 
-        ++m_offset;
         --m_length;
+
+        TRACE(this, "SCSI - Command +%u (%u left): $%02x\n", m_offset, m_length, value);
+
+        ++m_offset;
+
         m_status_register.bits.req = 0;
 
         if (m_length == 0) {
@@ -356,7 +404,7 @@ void SCSI::EnterCommandPhase() {
     m_phase = SCSIPhase_Command;
 
     m_status_register.bits.io = 0;
-    m_status_register.bits.cd = 0;
+    m_status_register.bits.cd = 1;
     m_status_register.bits.msg = 0;
 
     m_offset = 0;
@@ -375,7 +423,7 @@ void SCSI::EnterExecutePhase() {
         this->leds[m_lun] = true;
     }
 
-    TRACE("SCSI - Execute: LUN=%u CMD=%s (%u; 0x%x)\n", m_lun, GetSCSICommandEnumName(m_cmd[0]), m_cmd[0], m_cmd[0]);
+    TRACE(this, "SCSI - Execute: LUN=%u CMD=%s (%u; 0x%x)\n", m_lun, GetSCSICommandEnumName(m_cmd[0]), m_cmd[0], m_cmd[0]);
 
     switch (m_cmd[0]) {
     default:
@@ -384,7 +432,7 @@ void SCSI::EnterExecutePhase() {
         this->EnterStatusPhase();
         break;
 
-    case SCSICommand_TestUnitReady: // 0x00 X.131 p62
+    case SCSICommand_TestUnitReady: // 0x00 X3.131 p62
         {
             if (this->GetHardDisk(m_lun)) {
                 this->EnterCheckConditionStatusPhase();
@@ -395,7 +443,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_RequestSense: // 0x03 X.131 p63
+    case SCSICommand_RequestSense: // 0x03 X3.131 p63
         {
             uint8_t size = m_cmd[4];
             if (size == 0) {
@@ -434,7 +482,7 @@ void SCSI::EnterExecutePhase() {
         //    this->ExecuteFormatUnit();
         //    break;
 
-    case SCSICommand_Read: // 0x08 X.131 p95
+    case SCSICommand_Read: // 0x08 X3.131 p95
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -448,7 +496,7 @@ void SCSI::EnterExecutePhase() {
                 m_blocks = 256;
             }
 
-            TRACE("SCSI - Read Sector: LBA=%u (0x%x)\n", m_lun, lba, lba);
+            TRACE(this, "SCSI - Read Sector: LBA=%u (0x%x)\n", m_lun, lba, lba);
             if (!hd->ReadSector(m_buffer, lba)) {
                 this->EnterCheckConditionStatusPhase();
                 break;
@@ -457,16 +505,21 @@ void SCSI::EnterExecutePhase() {
             m_status = m_lun << 5;
             m_message = 0;
 
+            m_length = 256;
             m_offset = 0;
             m_next = lba + 1;
+
             m_phase = SCSIPhase_Read;
+
             m_status_register.bits.io = 1;
-            m_status_register.bits.cd = 1;
+            m_status_register.bits.cd = 0;
             m_status_register.bits.req = 1;
+
+            // TODO: as per B-em - reset auto boot flag at this point.
         }
         break;
 
-    case SCSICommand_Write: // 0x0a X.131 p96
+    case SCSICommand_Write: // 0x0a X3.131 p96
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -483,16 +536,21 @@ void SCSI::EnterExecutePhase() {
             m_status = m_lun << 5;
             m_message = 0;
 
+            m_length = 256;
+
+            // TODO: why is there a +1 here? There's a -1 in WriteSector... and
+            // that presumably cancels this one out?
             m_next = lba + 1;
             m_offset = 0;
 
             m_phase = SCSIPhase_Write;
+
             m_status_register.bits.cd = 0;
             m_status_register.bits.req = 1;
         }
         break;
 
-    case SCSICommand_TranslateV: // 0x0f X.131 p86 - vender specific
+    case SCSICommand_TranslateV: // 0x0f X3.131 p86 - vender specific
         {
             uint32_t lba = (m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
 
@@ -511,7 +569,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_ModeSelect6: // 0x15 X.131 p98
+    case SCSICommand_ModeSelect6: // 0x15 X3.131 p98
         {
             m_length = m_cmd[4];
             m_blocks = 1;
@@ -526,7 +584,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_ModeSense6: // 0x1a X.131 p108
+    case SCSICommand_ModeSense6: // 0x1a X3.131 p108
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -563,7 +621,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_StartOrStopUnit: // 0x1b X.131 p111
+    case SCSICommand_StartOrStopUnit: // 0x1b X3.131 p111
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -575,7 +633,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_Verify: // 0x2f X.131 p121
+    case SCSICommand_Verify: // 0x2f X3.131 p121
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -600,9 +658,9 @@ void SCSI::EnterExecutePhase() {
 //////////////////////////////////////////////////////////////////////////
 
 void SCSI::EnterGoodStatusPhase() {
-    // X.131 p185
+    // X3.131 p185
 
-    TRACE("SCSI - Status=Good: LUN=%u\n", m_lun);
+    TRACE(this, "SCSI - Status=Good: LUN=%u\n", m_lun);
     m_status = m_lun << 5 | 0;
 
     m_message = 0;
@@ -614,9 +672,9 @@ void SCSI::EnterGoodStatusPhase() {
 //////////////////////////////////////////////////////////////////////////
 
 void SCSI::EnterCheckConditionStatusPhase() {
-    // X.131 p185
+    // X3.131 p185
 
-    TRACE("SCSI - Status=CheckCondition: LUN=%u\n", m_lun);
+    TRACE(this, "SCSI - Status=CheckCondition: LUN=%u\n", m_lun);
     m_status = m_lun << 5 | 2;
 
     m_message = 0;

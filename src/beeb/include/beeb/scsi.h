@@ -22,6 +22,15 @@ struct HardDiskImageSet {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// X3.131 page references refer to X3.131-1986 doc - see
+// https://github.com/bitshifters/bbc-documents/blob/master/Hard%20Disk/ANSI%20SCSI-1%20Standard%20X3.131-1986.pdf
+
+// SM page references refer to the Acorn Winchester service manual - see
+// https://github.com/bitshifters/bbc-documents/blob/master/Hard%20Disk/Acorn_WinchesterSM.pdf
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #include <shared/enum_decl.h>
 #include "scsi.inl"
 #include <shared/enum_end.h>
@@ -61,6 +70,7 @@ bool LoadSCSIDiskSpec(SCSIDiskSpec *spec, const std::vector<uint8_t> &dsc_conten
 
 class SCSI {
   public:
+      // SM p16
     struct SCSIStatusRegisterBits {
         uint8_t msg : 1;
         uint8_t bsy : 1;

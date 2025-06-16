@@ -4842,4 +4842,72 @@ the catalogue?
 LOAD"P0"
 *CAT
 
+* SCSI
+
+Existing ADFS disassemblies:
+
+https://github.com/dominicbeesley/ADFS-multi-target
+
+https://mdfs.net/Info/Comp/BBC/ADFS/
+
+https://github.com/hoglet67/ADFS130
+
+JGH's has some SCSI code notes, and addresses that look like they
+match the ADFS from MOS 3.20.
+
+** Bleargh (part 1/N)
+
+Start of command $08:
+
+H     1417275  $833a`d : pla  [$01ef`m]           08 00 05 ef nvdizC (08)
+H     1417279  $833b`d : bit  $cc [$00cc`m]       08 00 05 ef nvdiZC (22)
+H     1417282  $833d`d : rts  [$01f1`m]           08 00 05 f1 nvdiZC (83)
+H     1417288  $8341`d : bvs  $8349               08 00 05 f1 nvdiZC (00)
+H     1417290  $8343`d : sta  $fc40 [$fc40`i]     08 00 05 f1 nvdiZC (08)
+H     1417295  SCSI - WriteData: Phase=Command; value=$08
+H     1417295  SCSI - Command +0 (6 left): $08
+
+#+begin_src beebasm
+  .L806F PHP
+  .L8070 LDA &FC41        ;; Get SCSI status
+         STA &CC          ;; Save this value
+         LDA &FC41        ;; Get SCSI status
+         CMP &CC          ;; Compare with previous status
+         BNE L8070        ;; Loop until status stays same
+         PLP
+         RTS
+#+end_src
+
+On exit from L8332: V=io, N=cd
+
+#+begin_src beebasm
+  IF HD_SCSI
+  .L8332 PHA              ;; Save A
+  .L8333 JSR L806F        ;; Get SCSI status
+         AND #&20         ;; Check REQUEST
+         BEQ L8333        ;; Loop until REQUEST set
+         PLA              ;; Restore A
+         BIT &CC          ;; Set flags from SCSI status
+         RTS
+
+  .L833E JSR L8332        ;; Wait until SCSI ready
+         BVS L8349        ;; SCSI not responding, drop return and return result=UNKNOWN
+         STA &FC40
+         LDA #&00		;; Return Ok
+         RTS
+  .L8349 PLA              ;; Drop return address
+         PLA
+         JMP L81AD        ;; Jump to get result and return
+#+end_src
+
+#+begin_src beebasm
+  .L814A LDA (&B0),Y      ;; Get a command block byte
+  .L814C JSR L833E        ;; Send to SCSI data port
+         JSR L8332        ;; Wait until SCSI busy
+         BPL L8159        ;; If SCSI says enough command
+         BVS L8159        ;; bytes sent, jump ahead
+         INY              ;; Keep sending command block
+         BNE L814A        ;; until SCSI says 'stop!'
+#+end_src
+
 * eof.
