@@ -1690,7 +1690,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
     bool pasting = m_beeb_thread->IsPasting();
     bool copying = m_beeb_thread->IsCopying();
-    if (ValueChanged(&m_leds, m_beeb_thread->GetLEDs()) || (m_leds & BBCMicro::LED_FLAGS_ALL_DRIVES)) {
+    if (ValueChanged(&m_leds, m_beeb_thread->GetLEDs()) || (m_leds & BBCMicro::LED_FLAGS_ALL_DISKS)) {
         if (m_settings.leds_popup_mode != BeebWindowLEDsPopupMode_Off) {
             show_leds_popup = true;
         }
