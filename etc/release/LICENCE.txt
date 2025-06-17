@@ -1,4 +1,4 @@
-b2 Copyright (C) 2016-2024 Tom Seddon <modelb@bbcmicro.com>
+b2 Copyright (C) 2016-2025 Tom Seddon <modelb@bbcmicro.com>
 
 This program comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions;
@@ -41,6 +41,9 @@ Additional credits:
 
 * ROM mapper reverse-engineering by Nigel Barnes
   (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=9593)
+
+* SCSI emulation based on code by Jon Welch and Y. Tanaka (see
+  https://github.com/stardot/beebem-windows/blob/master/Src/Scsi.cpp)
 
 b2 makes use of a number of open source libraries, licences for which
 are also included in this file.
