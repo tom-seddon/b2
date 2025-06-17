@@ -92,7 +92,13 @@ class SCSI {
     const HardDiskImageSet hds;
 
     // bit i set if HD i's LED is active.
+    //
+    // leds reflects current state and is always updated. Bits in leds_ever_on
+    // are only ever set - caller should reset if it uses them. (leds_ever_on
+    // exists to allow even brief periods of activity to be reflected in the
+    // UI.)
     uint8_t leds : NUM_HARD_DISKS;
+    uint8_t leds_ever_on : NUM_HARD_DISKS;
 
     // The SCSI emulation sets the CPU interrupt flag itself on read/write -
     // judging by BeebEm and B-em, there's no need for a per cycle check. Which

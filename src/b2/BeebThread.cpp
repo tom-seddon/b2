@@ -59,6 +59,10 @@ static constexpr size_t NUM_AUDIO_UNITS = NUM_VIDEO_UNITS / 2; //(1<<SOUND_CLOCK
 // When recording, how often to save a state.
 static const CycleCount TIMELINE_SAVE_STATE_FREQUENCY_CYCLES = {CYCLES_PER_SECOND};
 
+// Set if the m_leds value was actually updated since the last read. (If not
+// updated, reuse last value.)
+static constexpr uint32_t LEDS_UPDATED = (uint32_t)1 << 31;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -2033,8 +2037,12 @@ std::shared_ptr<const DiscImage> BeebThread::GetDiscImage(UniqueLock<Mutex> *loc
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint32_t BeebThread::GetLEDs() const {
-    return m_leds.load(std::memory_order_acquire);
+uint32_t BeebThread::GetLEDs() {
+    uint32_t leds = m_leds.exchange(0, std::memory_order_acq_rel);
+    if (leds & LEDS_UPDATED) {
+        m_last_leds = leds & ~LEDS_UPDATED;
+    }
+    return m_last_leds;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3215,7 +3223,7 @@ void BeebThread::ThreadMain(void) {
 
             // TODO - can ts.beeb actually ever be null? I can't remember...
             if (ts.beeb) {
-                m_leds.store(ts.beeb->GetLEDs(), std::memory_order_release);
+                m_leds.fetch_or(ts.beeb->GetLEDs() | LEDS_UPDATED, std::memory_order_acq_rel);
 
 #if BBCMICRO_TRACE
                 ts.beeb->GetTraceStats(&m_trace_stats);

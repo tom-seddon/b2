@@ -967,7 +967,7 @@ class BeebThread {
     std::shared_ptr<const DiscImage> GetDiscImage(UniqueLock<Mutex> *lock, int drive) const;
 
     // Get the current LED flags - a combination of BBCMicroLEDFlag values.
-    uint32_t GetLEDs() const;
+    uint32_t GetLEDs();
 
     // Get the given BBC key state.
     bool GetKeyState(BeebKey beeb_key) const;
@@ -1119,6 +1119,8 @@ class BeebThread {
     std::atomic<uint64_t> m_num_mq_waits{0};
     std::atomic<bool> m_debug_is_halted{false};
     std::atomic<uint32_t> m_update_flags{0};
+
+    uint32_t m_last_leds = 0;
 
     // Stuff the BeebThread reads to update the BBCMicro at appropriate times.
     std::atomic<bool> m_show_cursor{true};
