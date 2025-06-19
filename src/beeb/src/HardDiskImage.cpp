@@ -4,6 +4,7 @@
 #include <shared/file_io.h>
 #include <shared/log.h>
 #include <shared/debug.h>
+#include <shared/load_store.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -16,7 +17,11 @@
 // BBC hard disks always have 33 sectors.
 static const uint8_t NUM_HARD_DISK_SECTORS = 33;
 
-static const uint32_t MAX_BLOCK = LONG_MAX / 256;
+// 8-bit ADFS sector number is a 21 bit quantity, so max 2097152 sectors.
+//
+// If no .dsc file specified, use these parameters, for 2097480 sectors total.
+static constexpr uint16_t DEFAULT_NUM_CYLINDERS = 6356;
+static constexpr uint8_t DEFAULT_NUM_HEADS = 10;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -48,20 +53,35 @@ std::shared_ptr<HardDiskImage> HardDiskImage::CreateForFile(std::string dat_path
 
     std::vector<uint8_t> dsc_data;
     if (!LoadFile(&dsc_data, dsc_path, &logs)) {
-        logs.e.f("Failed to load corresponding .dsc file for hard disk: %s\n", dat_path.c_str());
-        return nullptr;
-    }
+        dsc_data.resize(EXPECTED_DSC_SIZE, 0);
 
-    if (dsc_data.size() != EXPECTED_DSC_SIZE) {
-        logs.e.f("Hard disk .dsc file is %zu bytes (%zu expected): %s\n", dsc_data.size(), EXPECTED_DSC_SIZE, dat_path.c_str());
-        return nullptr;
+        // See
+        // http://www.cowsarenotpurple.co.uk/bbccomputer/native/adfs.html#imsandems
+        dsc_data[3] = 0x80;
+        dsc_data[10] = 1;
+        dsc_data[12] = 1;
+        Store16BE(&dsc_data[13], DEFAULT_NUM_CYLINDERS);
+        dsc_data[15] = DEFAULT_NUM_HEADS;
+        dsc_data[17] = 0x80;
+        dsc_data[19] = 0x80;
+        dsc_data[21] = 0; //3ms
+
+        logs.w.f("No .dsc file for disk image: %s\n", dat_path.c_str());
+    } else {
+        if (dsc_data.size() != EXPECTED_DSC_SIZE) {
+            logs.e.f("Hard disk .dsc file is %zu bytes (%zu expected): %s\n", dsc_data.size(), EXPECTED_DSC_SIZE, dat_path.c_str());
+            return nullptr;
+        }
     }
 
     FILE *fp = fopenUTF8(dat_path.c_str(), "r+b");
     if (!fp) {
-        logs.e.f("Couldn't open hard disk .dat file: %s\n", dat_path.c_str());
-        return nullptr;
+        logs.w.f("Couldn't open hard disk .dat file: %s\n", dat_path.c_str());
+
+        // ...but that's ok! You can format it.
     }
+
+    logs.i.f("%u H x %u C x %u S: %s\n", dsc_data[15], Load16BE(&dsc_data[13]), NUM_HARD_DISK_SECTORS, dat_path.c_str());
 
     auto image = std::make_shared<HardDiskImage>(std::move(dat_path), std::move(dsc_data), fp);
 
@@ -208,8 +228,11 @@ bool HardDiskImage::Format() {
 //////////////////////////////////////////////////////////////////////////
 
 bool HardDiskImage::SeekToBlock(uint32_t block) {
-    // TODO: add cross platform 64-bit seek...
-    if (block > MAX_BLOCK) {
+    if (!m_fp) {
+        return false;
+    }
+
+    if (!this->IsValidLBA(block)) {
         return false;
     }
 

@@ -153,10 +153,14 @@ class SCSI {
     void EnterGoodStatusPhase();
 
     // Sets status to Check Condition (with 2-bit LUN in bits 5 and 6), and
-    // message to 0, then EnterStatusPhase.
-    void EnterCheckConditionStatusPhase();
+    // message to 0, and code to the provided code, then EnterStatusPhase.
+    void EnterCheckConditionStatusPhase(uint8_t code);
 
     HardDiskImage *GetHardDisk(uint8_t lun) const;
+
+    // Retrieves image for corresponding to m_lun. Enters check condition status
+    // and returns false if no corresponding image.
+    bool GetHardDiskImageForCurrentCommand(HardDiskImage **hd_ptr);
 
 #ifdef BBCMICRO_DEBUGGER
     friend class SCSIDebugWindow;

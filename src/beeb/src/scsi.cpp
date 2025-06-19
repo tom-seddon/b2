@@ -23,6 +23,14 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static constexpr uint8_t CODE_BAD_DISK_ADDRESS = 0x21;
+static constexpr uint8_t CODE_VOLUME_ERROR = 0x23;
+static constexpr uint8_t CODE_BAD_DRIVE_NUMBER = 0x25;
+static constexpr uint8_t CODE_UNSUPPORTED_CONTROLLER_COMMAND = 0x27;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_TRACE
 
 #define TRACE(SELF, ...)                                                       \
@@ -229,7 +237,7 @@ uint8_t SCSI::ReadData() {
 
                 ASSERT(!!this->hds.images[m_lun]);
                 if (!this->hds.images[m_lun]->ReadSector(m_buffer, m_next)) {
-                    this->EnterCheckConditionStatusPhase();
+                    this->EnterCheckConditionStatusPhase(CODE_VOLUME_ERROR);
                     return data;
                 }
 
@@ -296,7 +304,7 @@ void SCSI::WriteData(uint8_t value) {
 
         if (m_length == 0) {
             if (!this->FlushBufferForCurrentCommand()) {
-                this->EnterCheckConditionStatusPhase();
+                this->EnterCheckConditionStatusPhase(CODE_VOLUME_ERROR);
                 break;
             }
 
@@ -437,15 +445,12 @@ void SCSI::EnterExecutePhase() {
 
     switch (m_cmd[0]) {
     default:
-        m_status = m_lun << 5 | 2;
-        m_message = 0;
-        this->EnterStatusPhase();
+        this->EnterCheckConditionStatusPhase(CODE_UNSUPPORTED_CONTROLLER_COMMAND);
         break;
 
     case SCSICommand_TestUnitReady:
         {
-            if (this->GetHardDisk(m_lun)) {
-                this->EnterCheckConditionStatusPhase();
+            if (!this->GetHardDiskImageForCurrentCommand(nullptr)) {
                 break;
             }
 
@@ -461,8 +466,8 @@ void SCSI::EnterExecutePhase() {
             }
 
             memset(m_buffer, 0, m_length);
-            if (m_code == 0x21) {
-                m_buffer[0] = 0x21;
+            m_buffer[0] = m_code;
+            if (m_code == CODE_BAD_DISK_ADDRESS) {
                 m_buffer[1] = (uint8_t)(m_sector >> 16);
                 m_buffer[2] = (uint8_t)(m_sector >> 8);
                 m_buffer[3] = (uint8_t)(m_sector >> 0);
@@ -484,9 +489,8 @@ void SCSI::EnterExecutePhase() {
 
     case SCSICommand_FormatUnit:
         {
-            HardDiskImage *hd = this->GetHardDisk(m_lun);
-            if (!hd) {
-                this->EnterCheckConditionStatusPhase();
+            HardDiskImage *hd;
+            if (!this->GetHardDiskImageForCurrentCommand(&hd)) {
                 break;
             }
 
@@ -498,9 +502,8 @@ void SCSI::EnterExecutePhase() {
 
     case SCSICommand_Read:
         {
-            HardDiskImage *hd = this->GetHardDisk(m_lun);
-            if (!hd) {
-                this->EnterCheckConditionStatusPhase();
+            HardDiskImage *hd;
+            if (!this->GetHardDiskImageForCurrentCommand(&hd)) {
                 break;
             }
 
@@ -512,7 +515,7 @@ void SCSI::EnterExecutePhase() {
 
             TRACE(this, "SCSI - Read Sector: LBA=%u (0x%x)\n", m_lun, lba, lba);
             if (!hd->ReadSector(m_buffer, lba)) {
-                this->EnterCheckConditionStatusPhase();
+                this->EnterCheckConditionStatusPhase(CODE_VOLUME_ERROR);
                 break;
             }
 
@@ -535,9 +538,8 @@ void SCSI::EnterExecutePhase() {
 
     case SCSICommand_Write:
         {
-            HardDiskImage *hd = this->GetHardDisk(m_lun);
-            if (!hd) {
-                this->EnterCheckConditionStatusPhase();
+            HardDiskImage *hd;
+            if (!this->GetHardDiskImageForCurrentCommand(&hd)) {
                 break;
             }
 
@@ -593,7 +595,7 @@ void SCSI::EnterExecutePhase() {
 
             m_next = 0;
             m_offset = 0;
-            m_blocks = 1;//???
+            m_blocks = 1; //???
             m_phase = SCSIPhase_Write;
             m_status_register.bits.cd = 0;
             m_status_register.bits.req = 1;
@@ -602,15 +604,14 @@ void SCSI::EnterExecutePhase() {
 
     case SCSICommand_ModeSense6:
         {
-            HardDiskImage *hd = this->GetHardDisk(m_lun);
-            if (!hd) {
-                this->EnterCheckConditionStatusPhase();
+            HardDiskImage *hd;
+            if (!this->GetHardDiskImageForCurrentCommand(&hd)) {
                 break;
             }
 
             memset(m_buffer, 0, sizeof m_buffer);
             if (!hd->GetSCSIDeviceParameters(m_buffer)) {
-                this->EnterCheckConditionStatusPhase();
+                this->EnterCheckConditionStatusPhase(CODE_VOLUME_ERROR);
                 break;
             }
 
@@ -646,9 +647,8 @@ void SCSI::EnterExecutePhase() {
 
     case SCSICommand_StartOrStopUnit:
         {
-            HardDiskImage *hd = this->GetHardDisk(m_lun);
-            if (!hd) {
-                this->EnterCheckConditionStatusPhase();
+            HardDiskImage *hd;
+            if (!this->GetHardDiskImageForCurrentCommand(&hd)) {
                 break;
             }
 
@@ -658,17 +658,15 @@ void SCSI::EnterExecutePhase() {
 
     case SCSICommand_Verify:
         {
-            HardDiskImage *hd = this->GetHardDisk(m_lun);
-            if (!hd) {
-                this->EnterCheckConditionStatusPhase();
+            HardDiskImage *hd;
+            if (!this->GetHardDiskImageForCurrentCommand(&hd)) {
                 break;
             }
 
             uint32_t lba = (m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
             if (!hd->IsValidLBA(lba)) {
-                m_code = 0x21; //???
                 m_sector = lba;
-                this->EnterCheckConditionStatusPhase();
+                this->EnterCheckConditionStatusPhase(CODE_BAD_DISK_ADDRESS);
                 break;
             }
 
@@ -695,13 +693,15 @@ void SCSI::EnterGoodStatusPhase() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SCSI::EnterCheckConditionStatusPhase() {
+void SCSI::EnterCheckConditionStatusPhase(uint8_t code) {
     // X3.131 p185
 
-    TRACE(this, "SCSI - Status=CheckCondition: LUN=%u\n", m_lun);
+    TRACE(this, "SCSI - Status=CheckCondition: LUN=%u; code=0x%x\n", m_lun, code);
     m_status = m_lun << 5 | 2;
 
     m_message = 0;
+
+    m_code = code;
 
     this->EnterStatusPhase();
 }
@@ -716,6 +716,23 @@ HardDiskImage *SCSI::GetHardDisk(uint8_t lun) const {
     } else {
         return this->hds.images[lun].get();
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SCSI::GetHardDiskImageForCurrentCommand(HardDiskImage **hd_ptr) {
+    HardDiskImage *hd = this->GetHardDisk(m_lun);
+    if (!hd) {
+        this->EnterCheckConditionStatusPhase(CODE_BAD_DRIVE_NUMBER);
+        return false;
+    }
+
+    if (hd_ptr) {
+        *hd_ptr = hd;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
