@@ -397,7 +397,7 @@ priorities.
 
 Items of optional hardware are as follows:
 
-- Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
+- Tick the `External memory` box to add a 16MByte paged RAM 1MHz bus
   device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
   corresponding page of the memory appears in page &FD.
   
