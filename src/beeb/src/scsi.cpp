@@ -9,6 +9,7 @@
 #include <shared/debug.h>
 #include <beeb/HardDiskImage.h>
 #include <shared/load_store.h>
+#include <inttypes.h>
 
 #include <shared/enum_def.h>
 #include <beeb/scsi.inl>
@@ -37,25 +38,6 @@
 #define TRACE(...) ((void)0)
 
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const size_t DSC_SIZE = 22;
-
-bool LoadSCSIDiskSpec(SCSIDiskSpec *spec, const std::vector<uint8_t> &dsc_contents, const LogSet &logs) {
-    if (dsc_contents.size() != DSC_SIZE) {
-        logs.e.f("DSC data is wrong size: %zu bytes (should be %zu bytes)\n", dsc_contents.size(), DSC_SIZE);
-        return false;
-    }
-
-    spec->num_cylinders = dsc_contents[13] << 8 | dsc_contents[14];
-    spec->num_heads = dsc_contents[15];
-
-    logs.i.f("DSC data: %u cylinders, %u heads\n", spec->num_cylinders, spec->num_heads);
-
-    return true;
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -229,14 +211,16 @@ uint8_t SCSI::ReadData() {
 
     case SCSIPhase_Read:
         {
+            ASSERT(m_blocks > 0);
+            ASSERT(m_length > 0);
+
+            TRACE(this, "SCSI - ReadData: m_offset=%zu (0x%zx); m_length=%" PRIu32 " (0x%" PRIx32 ")", m_offset, m_offset, m_length, m_length);
             uint8_t data = m_buffer[m_offset];
             ++m_offset;
-            ASSERT(m_length > 0);
             --m_length;
             m_status_register.bits.req = 0;
 
             if (m_length == 0) {
-                ASSERT(m_blocks > 0);
                 --m_blocks;
                 if (m_blocks == 0) {
                     this->EnterStatusPhase();
@@ -302,44 +286,20 @@ void SCSI::WriteData(uint8_t value) {
         break;
 
     case SCSIPhase_Write:
+        ASSERT(m_blocks > 0);
+        ASSERT(m_length > 0);
+
         m_buffer[m_offset] = value;
         ++m_offset;
-        ASSERT(m_length > 0);
         --m_length;
         m_status_register.bits.req = 0;
 
         if (m_length == 0) {
-            switch (m_cmd[0]) {
-            default:
-                this->EnterStatusPhase();
-                break;
-
-            case SCSICommand_Write:
-                {
-                    bool success = false;
-                    if (HardDiskImage *hd = this->GetHardDisk(m_lun)) {
-                        if (hd->WriteSector(m_buffer, m_next - 1)) {
-                            success = true;
-                        }
-                    }
-
-                    if (!success) {
-                        m_status = m_lun << 5 | 2; //???
-                        this->EnterStatusPhase();
-                    }
-                }
-                break;
-
-            case SCSICommand_ModeSelect6:
-                // Is this actually useful?
-                break;
-
-            case SCSICommand_WriteExtended:
-            case SCSICommand_WriteAndVerify:
+            if (!this->FlushBufferForCurrentCommand()) {
+                this->EnterCheckConditionStatusPhase();
                 break;
             }
 
-            ASSERT(m_blocks > 0);
             --m_blocks;
             if (m_blocks == 0) {
                 this->EnterStatusPhase();
@@ -356,6 +316,52 @@ void SCSI::WriteData(uint8_t value) {
         this->EnterBusFreePhase();
         break;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SCSI::FlushBufferForCurrentCommand() {
+    switch (m_cmd[0]) {
+    case SCSICommand_WriteExtended:
+        // TODO: BeebEm's code has a case for this, but no actual handling for
+        // it. Does anything 8-bit actually use it?!
+        //
+        // (It looks like it's a fancy version of Write (0x0a). 32-bit LBA,
+        // 16-bit block count. The wider parameters mean the parameter block
+        // layout is different from Write, so it does need special handling.)
+    default:
+        break;
+
+    case SCSICommand_Write:
+    case SCSICommand_WriteAndVerify:
+        {
+            HardDiskImage *hd = this->GetHardDisk(m_lun);
+            if (!hd) {
+                break;
+            }
+
+            if (!hd->WriteSector(m_buffer, m_next - 1)) {
+                break;
+            }
+        }
+        return true;
+
+    case SCSICommand_ModeSelect6:
+        {
+            HardDiskImage *hd = this->GetHardDisk(m_lun);
+            if (!hd) {
+                break;
+            }
+
+            if (!hd->SetSCSIDeviceParameters(m_buffer, m_offset)) {
+                break;
+            }
+        }
+        return true;
+    }
+
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -436,7 +442,7 @@ void SCSI::EnterExecutePhase() {
         this->EnterStatusPhase();
         break;
 
-    case SCSICommand_TestUnitReady: // 0x00 X3.131 p62
+    case SCSICommand_TestUnitReady:
         {
             if (this->GetHardDisk(m_lun)) {
                 this->EnterCheckConditionStatusPhase();
@@ -447,14 +453,14 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_RequestSense: // 0x03 X3.131 p63
+    case SCSICommand_RequestSense:
         {
-            uint8_t size = m_cmd[4];
-            if (size == 0) {
-                size = 4;
+            m_length = m_cmd[4];
+            if (m_length == 0) {
+                m_length = 4;
             }
 
-            memset(m_buffer, 0, size);
+            memset(m_buffer, 0, m_length);
             if (m_code == 0x21) {
                 m_buffer[0] = 0x21;
                 m_buffer[1] = (uint8_t)(m_sector >> 16);
@@ -465,28 +471,32 @@ void SCSI::EnterExecutePhase() {
             m_code = 0;
             m_sector = 0;
 
-            if (size > 0) {
-                m_offset = 0;
-                m_blocks = 1;
-                m_phase = SCSIPhase_Read;
-                m_status_register.bits.io = 1;
-                m_status_register.bits.cd = 0;
-                m_status = m_lun << 5;
-                m_message = 0;
-                m_status_register.bits.req = 1;
-            } else {
-                m_status = m_lun << 5 | 2;
-                m_message = 0;
-                this->EnterStatusPhase();
-            }
+            m_offset = 0;
+            m_blocks = 1;
+            m_phase = SCSIPhase_Read;
+            m_status_register.bits.io = 1;
+            m_status_register.bits.cd = 0;
+            m_status = m_lun << 5;
+            m_message = 0;
+            m_status_register.bits.req = 1;
         }
         break;
 
-        //case SCSICommand_FormatUnit: // 0x04 p87
-        //    this->ExecuteFormatUnit();
-        //    break;
+    case SCSICommand_FormatUnit:
+        {
+            HardDiskImage *hd = this->GetHardDisk(m_lun);
+            if (!hd) {
+                this->EnterCheckConditionStatusPhase();
+                break;
+            }
 
-    case SCSICommand_Read: // 0x08 X3.131 p95
+            hd->Format();
+
+            this->EnterGoodStatusPhase();
+        }
+        break;
+
+    case SCSICommand_Read:
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -523,7 +533,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_Write: // 0x0a X3.131 p96
+    case SCSICommand_Write:
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -554,7 +564,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_TranslateV: // 0x0f X3.131 p86 - vender specific
+    case SCSICommand_TranslateV:
         {
             uint32_t lba = (m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
 
@@ -562,6 +572,7 @@ void SCSI::EnterExecutePhase() {
 
             m_length = 4;
             m_offset = 0;
+            m_blocks = 1;
             m_phase = SCSIPhase_Read;
             m_status_register.bits.io = 1;
             m_status_register.bits.cd = 0;
@@ -573,7 +584,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_ModeSelect6: // 0x15 X3.131 p98
+    case SCSICommand_ModeSelect6:
         {
             m_length = m_cmd[4];
             m_blocks = 1;
@@ -582,13 +593,14 @@ void SCSI::EnterExecutePhase() {
 
             m_next = 0;
             m_offset = 0;
+            m_blocks = 1;//???
             m_phase = SCSIPhase_Write;
             m_status_register.bits.cd = 0;
             m_status_register.bits.req = 1;
         }
         break;
 
-    case SCSICommand_ModeSense6: // 0x1a X3.131 p108
+    case SCSICommand_ModeSense6:
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -596,18 +608,24 @@ void SCSI::EnterExecutePhase() {
                 break;
             }
 
-            HardDiskGeometry g = hd->GetGeometry();
-
             memset(m_buffer, 0, sizeof m_buffer);
-            m_buffer[3] = 0x80;                             // Block length descriptor
-            m_buffer[10] = 1;                               //Sector size bits 8-15
-            m_buffer[12] = 1;                               //1 = soft sectors
-            m_buffer[13] = (uint8_t)(g.num_cylinders >> 8); //Num cylinders bits 8-15
-            m_buffer[14] = (uint8_t)(g.num_cylinders);      //Num cylinders bits 0-7
-            m_buffer[15] = g.num_heads;                     //Num heads
-            m_buffer[17] = 0x80;                            //RWCC bits 0-7
-            m_buffer[19] = 0x80;                            //WPCC bits 0-7
-            m_buffer[21] = 0;                               //Seek time = 3ms
+            if (!hd->GetSCSIDeviceParameters(m_buffer)) {
+                this->EnterCheckConditionStatusPhase();
+                break;
+            }
+
+            TRACE(this, "SCSI - Sense: Buffer: [00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15 16 17]");
+            TRACE(this, "SCSI - Sense: Buffer: [%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x]",
+                  m_buffer[0], m_buffer[1], m_buffer[2], m_buffer[3], m_buffer[4],
+                  m_buffer[5], m_buffer[6], m_buffer[7], m_buffer[8], m_buffer[9],
+                  m_buffer[10], m_buffer[11], m_buffer[12], m_buffer[13], m_buffer[14],
+                  m_buffer[15], m_buffer[16], m_buffer[17], m_buffer[18], m_buffer[19],
+                  m_buffer[20], m_buffer[21]);
+
+            uint16_t num_cylinders = Load16BE(m_buffer + 13);
+            uint8_t num_heads = m_buffer[15];
+
+            TRACE(this, "SCSI - Sense: Heads=%u ($%x) Cylinders=%u ($%x) ", num_cylinders, num_cylinders, num_heads, num_heads);
 
             uint32_t size = m_cmd[4];
             if (size == 0) {
@@ -616,16 +634,17 @@ void SCSI::EnterExecutePhase() {
 
             m_offset = 0;
             m_blocks = 1;
+            m_length = 22;
             m_phase = SCSIPhase_Read;
             m_status_register.bits.io = 1;
-            m_status_register.bits.cd = 1;
+            m_status_register.bits.cd = 0;
             m_status = m_lun << 5;
             m_message = 0;
             m_status_register.bits.req = 1;
         }
         break;
 
-    case SCSICommand_StartOrStopUnit: // 0x1b X3.131 p111
+    case SCSICommand_StartOrStopUnit:
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -637,7 +656,7 @@ void SCSI::EnterExecutePhase() {
         }
         break;
 
-    case SCSICommand_Verify: // 0x2f X3.131 p121
+    case SCSICommand_Verify:
         {
             HardDiskImage *hd = this->GetHardDisk(m_lun);
             if (!hd) {
@@ -650,6 +669,7 @@ void SCSI::EnterExecutePhase() {
                 m_code = 0x21; //???
                 m_sector = lba;
                 this->EnterCheckConditionStatusPhase();
+                break;
             }
 
             this->EnterGoodStatusPhase();

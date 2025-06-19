@@ -447,6 +447,9 @@ this:
 processor. With a B/B+, be sure to install a ROM installed with the
 Tube host code in it, such as the Acorn 1770 DFS.)
 
+Tick `SCSI` to add an emulated SCSI hard disk adapter, useable with
+Acorn ADFS.
+
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Power-on Reset` (if you're editing the current config) or
 select the updated configuration from the `Hardware' menu.

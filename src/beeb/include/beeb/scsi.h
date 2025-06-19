@@ -58,16 +58,6 @@ struct M6502;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct SCSIDiskSpec {
-    uint16_t num_cylinders = 0;
-    uint8_t num_heads = 0;
-};
-
-bool LoadSCSIDiskSpec(SCSIDiskSpec *spec, const std::vector<uint8_t> &dsc_contents, const LogSet &logs);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class SCSI {
   public:
     // SM p16
@@ -150,7 +140,7 @@ class SCSI {
 
     uint8_t ReadData();
     void WriteData(uint8_t value);
-
+    bool FlushBufferForCurrentCommand();
     void EnterBusFreePhase();
     void EnterMessagePhase();
     void EnterStatusPhase();

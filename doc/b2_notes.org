@@ -4910,4 +4910,87 @@ On exit from L8332: V=io, N=cd
          BNE L814A        ;; until SCSI says 'stop!'
 #+end_src
 
+** Bleargh (part 2/N) - SUPERFORM reads incorrect drive parameters
+
+Parameters look correct...
+
+m_buffer is filled correctly...
+
+Correct bytes are read from $fc40...!
+
+H      386925  $81b3`d : lda  $fc40 [$fc40`i]     00 01 00 f0 nVdIZC (00)
+H      386930  SCSI - ReadData: Phase=Read
+H      386930  SCSI - ReadData: m_offset=0 (0x0); m_length=22 (0x16)
+H      386931  $81b6`d : jsr  $8332 [$01ef`m]     00 01 00 ee nVdIZC (81)
+...
+H      386995  $81b9`d : tay                      00 01 00 f0 nVdIZC (20)
+H      386997  $81ba`d : jsr  $806f [$01ef`m]     00 01 00 ee nVdIZC (81)
+H      387034  $81bd`d : and  #$01                00 01 00 f0 nVdIZC (01)
+H      387036  $81bf`d : beq  $81b0               00 01 00 f0 nVdIZC (01)
+
+
+#+begin_src beebasm
+  .L81B0 JSR L8332        ;; Wait for SCSI data ready
+         LDA &FC40        ;; Get result byte
+         JSR L8332        ;; Wait for SCSI data ready
+         TAY              ;; Save result
+         JSR L806F        ;; Get SCSI status
+         AND #&01
+         BEQ L81B0        ;; Loop to try to get result again
+         TYA              ;; Get result back
+         LDX &FC40        ;; Get second result byte
+         BEQ L81CA        ;; OK, jump to return result
+         JMP L82A5        ;; Return result=&7F
+#+end_src
+
+** Test process
+
+Copy BeebEm disk images:
+
+#+begin_example
+  c:\temp\hard_disk_images\
+  copy C:\tom\not-my\beebem-windows\UserData\DiscIms\scsi0.* .
+#+end_example
+
+Run SUPERFORM. Use option C to select drive parameters.
+
+** Drive parameter notes
+
+https://mdfs.net/Docs/Comp/Disk/Format/ADFS
+
+But then, results of superform...?
+
+| # tracks | result     | size |
+|----------+------------+------|
+|        1 | Bad FS map |      |
+|        2 | Bad FS map |      |
+|        3 | Bad FS map |      |
+|        4 | Bad FS map |      |
+|        5 | Disc full  |      |
+|        6 | Disc full  |      |
+|        7 | ok         |      |
+|        8 | ok         |      |
+|        9 | ok         |      |
+|       10 | ok         |      |
+
+For 7 tracks:
+
+2 sectors free space map
+5 sectors directory
+
+7 tracks = 7*33 = 231 ($e7) sectors = 59136
+
+-2 for free map = 229
+-5 for $ = 222
+-5 for $.FORMAT = 217
+
+217 ($d9) * 256 = 55552
+
+But *FREE says 9 sectors free, $5e (94) sectors used... 103 total?
+
+Looks like SUPERFORM reserves 128 sectors (~4 tracks) - for bad sector
+remapping purposes? See lines 3990 and 4000. So that explains that.
+The disk just has to be larger than you expect. Worth noting in the
+docs.
+
 * eof.
