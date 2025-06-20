@@ -14,6 +14,9 @@
 #include <IconsFontAwesome5.h>
 #include <beeb/BBCMicro.h>
 #include <shared/strings.h>
+#include "discs.h"
+#include <shared/path.h>
+#include <shared/file_io.h>
 
 #include <shared/enum_decl.h>
 #include "ConfigsUI_private.inl"
@@ -31,6 +34,8 @@ static const std::string RECENT_PATHS_HARD_DISKS("hard_disks");
 
 static const char NEW_CONFIG_POPUP[] = "new_config_popup";
 static const char COPY_CONFIG_POPUP[] = "copy_config_popup";
+static const char ROM_POPUP[] = "rom_popup";
+static const char SCSI_POPUP[] = "scsi_popup";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -49,6 +54,7 @@ class ConfigsUI : public SettingsUI {
     bool m_edited = false;
     OpenFileDialog m_rom_ofd;
     OpenFileDialog m_hard_disk_ofd;
+    SaveFileDialog m_new_hard_disk_sfd;
     int m_config_index = -1;
 
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
@@ -63,6 +69,8 @@ class ConfigsUI : public SettingsUI {
                 const BeebROM *const *roms);
 
     void DoEditConfigGui();
+
+    bool CreateNewHardDiskImage(const HardDisk &disk, const std::string &new_dat_path) const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -71,13 +79,17 @@ class ConfigsUI : public SettingsUI {
 ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window)
     , m_rom_ofd(RECENT_PATHS_ROMS)
-    , m_hard_disk_ofd(RECENT_PATHS_HARD_DISKS) {
+    , m_hard_disk_ofd(RECENT_PATHS_HARD_DISKS)
+    , m_new_hard_disk_sfd(RECENT_PATHS_HARD_DISKS) {
     this->SetDefaultSize(ImVec2(650, 450));
 
     m_rom_ofd.AddAllFilesFilter();
 
     m_hard_disk_ofd.AddFilter("BBC hard disk file", {".dat"});
     m_hard_disk_ofd.AddAllFilesFilter();
+
+    m_new_hard_disk_sfd.AddFilter("BBC hard disk file", {".dat"});
+    m_new_hard_disk_sfd.AddAllFilesFilter();
 
     const std::string &config_name = m_beeb_window->GetConfigName();
 
@@ -457,18 +469,55 @@ void ConfigsUI::DoEditConfigGui() {
     ImGui::Checkbox("SCSI", &config->scsi);
 
     if (config->scsi) {
-        for (size_t i = 0; i < config->hard_disk_dat_paths.size(); ++i) {
+        for (size_t hard_disk_index = 0; hard_disk_index < config->hard_disk_dat_paths.size(); ++hard_disk_index) {
+            ASSERT(hard_disk_index <= UINT32_MAX);
+            ImGuiIDPusher id_pusher((uint32_t)hard_disk_index);
+
             char name[100];
-            snprintf(name, sizeof name, "SCSI HD %zu", i);
-            if (ImGuiInputText(&config->hard_disk_dat_paths[i], name, config->hard_disk_dat_paths[i])) {
+            snprintf(name, sizeof name, "SCSI HD %zu", hard_disk_index);
+            if (ImGuiInputText(&config->hard_disk_dat_paths[hard_disk_index],
+                               name,
+                               config->hard_disk_dat_paths[hard_disk_index])) {
                 edited = true;
             }
             ImGui::SameLine();
             if (ImGui::Button("...")) {
-                if (m_hard_disk_ofd.Open(&config->hard_disk_dat_paths[i])) {
-                    edited = true;
-                    m_hard_disk_ofd.AddLastPathToRecentPaths();
+                ImGui::OpenPopup(SCSI_POPUP);
+            }
+
+            if (ImGui::BeginPopup(SCSI_POPUP)) {
+                if (ImGui::MenuItem("File...")) {
+                    if (m_hard_disk_ofd.Open(&config->hard_disk_dat_paths[hard_disk_index])) {
+                        edited = true;
+                        m_hard_disk_ofd.AddLastPathToRecentPaths();
+                    }
                 }
+
+                if (ImGuiRecentMenu(&config->hard_disk_dat_paths[hard_disk_index],
+                                    "Recent file",
+                                    m_hard_disk_ofd)) {
+                    edited = true;
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::BeginMenu("New")) {
+                    for (size_t blank_hard_disk_index = 0; blank_hard_disk_index < NUM_BLANK_HARD_DISKS; ++blank_hard_disk_index) {
+                        const HardDisk *disk = &BLANK_HARD_DISKS[blank_hard_disk_index];
+                        if (ImGui::MenuItem(disk->name.c_str())) {
+                            std::string dat_path;
+                            if (m_new_hard_disk_sfd.Open(&dat_path)) {
+                                if (this->CreateNewHardDiskImage(*disk, dat_path)) {
+                                    config->hard_disk_dat_paths[hard_disk_index] = dat_path;
+                                    edited = true;
+                                }
+                            }
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+
+                ImGui::EndPopup();
             }
         }
     }
@@ -519,8 +568,6 @@ void ConfigsUI::DoROMInfoGui(const char *caption,
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-static const char ROM_POPUP[] = "rom_popup";
 
 static bool ImGuiROM(BeebConfig::ROM *rom, const BeebROM *beeb_rom) {
     if (ImGui::MenuItem(beeb_rom->name.c_str())) {
@@ -833,6 +880,38 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
     }
 
     return action;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool CopyFile(const std::string &src_path, const std::string &dest_path, Messages *msg) {
+    std::vector<uint8_t> data;
+    if (!LoadFile(&data, src_path, msg)) {
+        return false;
+    }
+
+    if (!SaveFile(data, dest_path, msg)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool ConfigsUI::CreateNewHardDiskImage(const HardDisk &disk, const std::string &new_dat_path) const {
+    Messages msg(m_beeb_window->GetMessageList());
+
+    msg.e.f("hola: %s\n",new_dat_path.c_str());
+
+    if (!CopyFile(disk.GetDATAssetPath(), new_dat_path, &msg)) {
+        return false;
+    }
+
+    if (!CopyFile(disk.GetDSCAssetPath(), PathWithoutExtension(new_dat_path) + ".dsc", &msg)) {
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

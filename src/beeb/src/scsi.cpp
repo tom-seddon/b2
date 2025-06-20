@@ -670,6 +670,7 @@ void SCSI::EnterExecutePhase() {
                 break;
             }
 
+            m_next = lba;
             this->EnterGoodStatusPhase();
         }
         break;

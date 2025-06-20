@@ -14,7 +14,6 @@ struct DiscGeometry;
 struct Disc {
     std::string name; //shown in UI
     std::string path;
-    //bool bootable=false;//not relevant for blank disks
     const DiscGeometry *geometry;
 
     std::string GetAssetPath() const;
@@ -28,6 +27,20 @@ extern const size_t NUM_BLANK_DFS_DISCS;
 
 extern const Disc BLANK_ADFS_DISCS[];
 extern const size_t NUM_BLANK_ADFS_DISCS;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct HardDisk {
+    std::string name;
+    std::string path_stem;
+
+    std::string GetDATAssetPath() const;
+    std::string GetDSCAssetPath() const;
+};
+
+extern const HardDisk BLANK_HARD_DISKS[];
+extern const size_t NUM_BLANK_HARD_DISKS;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

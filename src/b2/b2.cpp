@@ -982,6 +982,11 @@ static void CheckAssetPaths() {
         CheckAssetPath(BLANK_ADFS_DISCS[i].GetAssetPath());
     }
 
+    for (size_t i = 0; i < NUM_BLANK_HARD_DISKS; ++i) {
+        CheckAssetPath(BLANK_HARD_DISKS[i].GetDATAssetPath());
+        CheckAssetPath(BLANK_HARD_DISKS[i].GetDSCAssetPath());
+    }
+
     CheckAssetPath(BEEB_ROM_MASTER_TURBO_PARASITE.GetAssetPath());
 }
 

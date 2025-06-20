@@ -3953,6 +3953,10 @@ class HardDiskDebugWindow : public DebugUI {
 
                 ImGui::BulletText("Heads: %u", g.num_heads);
                 ImGui::BulletText("Cylinders: %u", g.num_cylinders);
+
+                // TODO - the 33 needs to go somewhere better than this...!
+                uint32_t max_lba = g.num_heads * g.num_cylinders * 33;
+                ImGui::BulletText("Approx max LBA: %" PRIu32 " (0x%" PRIx32 ")", max_lba, max_lba);
             }
         }
     }
@@ -3985,6 +3989,7 @@ class SCSIDebugWindow : public DebugUI {
         }
 
         ImGui::Text("Phase: %s", GetSCSIPhaseEnumName(scsi->m_phase));
+        ImGui::Text("Next: %" PRIu32 " (0x%" PRIx32 ")", scsi->m_next, scsi->m_next);
         ImGuiHeader("Status register");
         ImGuiByteValue("Value", scsi->m_status_register.value);
         ImGui::Text("msg=%d bsy=%d irq=%d req=%d io=%d cd=%d",

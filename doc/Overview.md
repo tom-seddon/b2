@@ -448,7 +448,8 @@ processor. With a B/B+, be sure to install a ROM installed with the
 Tube host code in it, such as the Acorn 1770 DFS.)
 
 Tick `SCSI` to add an emulated SCSI hard disk adapter, useable with
-Acorn ADFS.
+Acorn ADFS. Select up to 4 hard disk images to use with it - see the
+SCSI hard disks section below.
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Power-on Reset` (if you're editing the current config) or
@@ -459,6 +460,39 @@ based off one of the default configs, or the `Copy...` button to
 create one that's a copy of one of the ones in the list.
 
 The `Delete` button will delete the currently selected config.
+
+## SCSI hard disks
+
+SCSI hard disk images come as two files: a .dat file, the actual disk
+contents, and a .dsc file, holding the disk geometry. The format is
+exactly the same as that used by BeebEm and B-em, so existing hard
+disk images should work as-is.
+
+As always with ADFS, when using hard disks in the emulator, be sure to
+use `*DISMOUNT` and the like when necessary. The emulator will write
+data to the disk image file only when ADFS requests it!
+
+### Creating new hard disk images
+
+The easiest way to create a new hard disk image is to use the `...` >
+`New` option - this creates a preformatted 10 MByte ADFS hard disk
+image.
+
+If 10 MBytes isn't enough, you can reformat it using
+`$.FORMAT.SUPERFORM` - see Acorn's Winchester Disc Filing System User
+Guide (e.g,
+https://github.com/bitshifters/bbc-documents/blob/master/Hard%20Disk/Acorn_WinchesterDiscFilingSystemUG.pdf).
+Use the `C` option to set the drive parameters. The total disk size
+will be roughly (heads * cylinders * 33 - 135) * 256.
+
+(The -135 is unimportant for any realistic hard disk size, but if
+you're trying to create a tiny one then it might become noticeable.
+Safest to pick at least 10 cylinders.)
+
+As another option, you can also refer to a nonexistent file. The
+resulting emulated hard disk won't be readable, but you can format it
+as above, if the named file (and its `.dsc` counterpart) can be
+created.
 
 ## Non-volatile CMOS RAM/EEPROM
 
