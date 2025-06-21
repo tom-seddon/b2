@@ -117,4 +117,3 @@ else()
 endif()
 
 add_subdirectory(tests)
-b2_target_boilerplate(shared_lib SANITIZERS)
