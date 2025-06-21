@@ -146,7 +146,7 @@ HardDiskGeometry HardDiskImage::GetGeometry() const {
 bool HardDiskImage::IsValidLBA(uint32_t lba) const {
     HardDiskGeometry g = this->GetGeometry();
 
-    uint32_t n = g.num_heads * g.num_cylinders * NUM_HARD_DISK_SECTORS;
+    uint32_t n = (uint32_t)(g.num_heads * g.num_cylinders * NUM_HARD_DISK_SECTORS);
     if (lba < n) {
         return true;
     } else {

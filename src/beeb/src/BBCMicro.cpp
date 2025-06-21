@@ -1066,7 +1066,7 @@ uint32_t BBCMicro::GetLEDs() {
 
 #if ENABLE_SCSI
     if (!!m_state.scsi) {
-        leds |= (m_state.scsi->leds_ever_on | m_state.scsi->leds) << BBCMicroLEDFlag_HardDisk0Shift;
+        leds |= (uint32_t)(m_state.scsi->leds_ever_on | m_state.scsi->leds) << BBCMicroLEDFlag_HardDisk0Shift;
         m_state.scsi->leds_ever_on = 0;
     }
 #endif

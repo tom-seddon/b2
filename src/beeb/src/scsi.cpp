@@ -282,7 +282,7 @@ void SCSI::WriteData(uint8_t value) {
 
         --m_length;
 
-        TRACE(this, "SCSI - Command +%u (%u left): $%02x\n", m_offset, m_length, value);
+        TRACE(this, "SCSI - Command +%zu (%u left): $%02x\n", m_offset, m_length, value);
 
         ++m_offset;
 
@@ -513,7 +513,7 @@ void SCSI::EnterExecutePhase() {
                 m_blocks = 256;
             }
 
-            TRACE(this, "SCSI - Read Sector: LBA=%u (0x%x)\n", m_lun, lba, lba);
+            TRACE(this, "SCSI - Read Sector: LBA=%u (0x%x)\n", lba, lba);
             if (!hd->ReadSector(m_buffer, lba)) {
                 this->EnterCheckConditionStatusPhase(CODE_VOLUME_ERROR);
                 break;

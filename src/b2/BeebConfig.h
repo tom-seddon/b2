@@ -12,7 +12,7 @@
 #include <beeb/BBCMicroParasiteType.h>
 #include <beeb/type.h>
 #include "json.h"
-#include <beeb/SCSI.h>
+#include <beeb/scsi.h>
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"

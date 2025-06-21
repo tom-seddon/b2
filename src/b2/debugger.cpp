@@ -3955,7 +3955,7 @@ class HardDiskDebugWindow : public DebugUI {
                 ImGui::BulletText("Cylinders: %u", g.num_cylinders);
 
                 // TODO - the 33 needs to go somewhere better than this...!
-                uint32_t max_lba = g.num_heads * g.num_cylinders * 33;
+                uint32_t max_lba = g.num_heads * g.num_cylinders * 33u;
                 ImGui::BulletText("Approx max LBA: %" PRIu32 " (0x%" PRIx32 ")", max_lba, max_lba);
             }
         }
