@@ -1060,7 +1060,7 @@ uint32_t BBCMicro::GetLEDs() {
 
     for (int i = 0; i < NUM_DRIVES; ++i) {
         if (m_state.drives[i].motor) {
-            leds |= 1 << (BBCMicroLEDFlag_FloppyDisk0Shift + i);
+            leds |= 1u << (BBCMicroLEDFlag_FloppyDisk0Shift + i);
         }
     }
 
