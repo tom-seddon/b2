@@ -374,3 +374,19 @@ set(JSON_MultipleHeaders OFF CACHE INTERNAL "")
 set(JSON_Diagnostics ON CACHE INTERNAL "")
 set(JSON_Diagnostic_Positions ON CACHE INTERNAL "")
 add_subdirectory(json)
+
+##########################################################################
+##########################################################################
+
+add_subdirectory(shared_lib)
+
+# add sanitizer stuff
+get_directory_property(shared_targets
+  DIRECTORY shared_lib
+  BUILDSYSTEM_TARGETS)
+get_directory_property(shared_tests_targets
+  DIRECTORY shared_lib/tests
+  BUILDSYSTEM_TARGETS)
+foreach(target IN LISTS shared_targets shared_tests_targets)
+  b2_target_boilerplate(${target} SANITIZERS)
+endforeach()

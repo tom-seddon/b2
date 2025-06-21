@@ -79,3 +79,6 @@
 [submodule "submodules/json"]
 	path = submodules/json
 	url = https://github.com/nlohmann/json
+[submodule "submodules/shared_lib"]
+	path = submodules/shared_lib
+	url = https://github.com/tom-seddon/shared_lib
