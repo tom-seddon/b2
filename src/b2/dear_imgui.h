@@ -305,7 +305,7 @@ void ImGuiHeader(const char *str);
 // The LED colour is the ImGuiCol_CheckMark style colour.
 void ImGuiLED(ImGuiLEDStyle style, bool on, const char *str);
 void ImGuiLEDv(ImGuiLEDStyle style, bool on, const char *fmt, va_list v);
-void ImGuiLEDf(ImGuiLEDStyle style, bool on, const char *fmt, ...) PRINTF_LIKE(2, 3);
+void ImGuiLEDf(ImGuiLEDStyle style, bool on, const char *fmt, ...) PRINTF_LIKE(3, 4);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
