@@ -467,10 +467,10 @@ void HexEditor::DoImGui() {
             this->UpdateOffsetByKey(ImGuiKey_PageUp, -(int)m_num_columns, num_visible_rows);
             this->UpdateOffsetByKey(ImGuiKey_PageDown, (int)m_num_columns, num_visible_rows);
 
-            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
+            if (ImGui::IsKeyPressed(ImGuiKey_Tab)) {
                 m_hex = !m_hex;
                 m_input_take_focus_next_frame = true;
-            } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
+            } else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
                 this->SetNewOffset(INVALID_OFFSET, 0, true);
             }
         }
@@ -708,7 +708,7 @@ void HexEditor::DoHexPart(size_t num_skip_columns, size_t begin_offset, size_t e
 
                 // Quickly check for a couple of keys it's a pain to
                 // handle.
-                if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
+                if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
                     commit = true;
                     editing = false;
                 } else {
