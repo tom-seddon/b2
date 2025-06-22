@@ -49,7 +49,6 @@ add_executable(b2 MACOSX_BUNDLE
   profiler.cpp profiler.h
   joysticks.cpp joysticks.h
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
-  json.cpp json.h
   )
 
 if(OSX)
@@ -415,8 +414,7 @@ add_test(
 ##########################################################################
 ##########################################################################
 
-add_executable(b2client b2client.cpp
-  json.cpp json.h)
+add_executable(b2client b2client.cpp)
 b2_target_boilerplate(b2client,SANITIZERS)
 target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohmann_json)
 

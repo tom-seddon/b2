@@ -11,7 +11,7 @@
 #include <beeb/BBCMicro.h>
 #include <beeb/SaveTrace.h>
 
-#include "json.h"
+#include <shared/json.h>
 
 #include <shared/enum_decl.h>
 #include "TraceUI.inl"

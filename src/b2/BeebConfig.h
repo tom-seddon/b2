@@ -11,7 +11,7 @@
 #include "roms.h"
 #include <beeb/BBCMicroParasiteType.h>
 #include <beeb/type.h>
-#include "json.h"
+#include <shared/json.h>
 #include <beeb/scsi.h>
 
 #include <shared/enum_decl.h>

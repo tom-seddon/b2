@@ -1,6 +1,6 @@
 #include <shared/system.h>
 #include "nlohmann_json_wrapper.h"
-#include "json.h"
+#include <shared/json.h>
 #include "debugger.h"
 #include "commands.h"
 #include <SDL.h>
