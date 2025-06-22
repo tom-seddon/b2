@@ -122,15 +122,17 @@ _set_submodule_upstream:
 ##########################################################################
 ##########################################################################
 
-.PHONY: backup_b2_json
-backup_b2_json: B2_JSON_PATH?=$(error B2_JSON_PATH not set!)
-backup_b2_json: _DEST_PATH:=$(BUILD_FOLDER)/b2.$(shell $(SHELLCMD) strftime --UTC -d _ _Y_m_dT_H_M_SZ).json
-backup_b2_json:
-	$(SHELLCMD) mkdir "$(BUILD_FOLDER)"
-	$(SHELLCMD) copy-file "$(B2_JSON_PATH)" "$(_DEST_PATH)"
+.PHONY: backup_b2_config
+backup_b2_config: B2_JSON_FOLDER?=$(error B2_JSON_FOLDER not set!)
+backup_b2_config: _TIMESTAMP:=$(shell $(SHELLCMD) strftime --UTC -d _ _Y_m_dT_H_M_SZ)
+backup_b2_config: _DEST:=$(BUILD_FOLDER)/configs/$(_TIMESTAMP)$(SUFFIX)
+backup_b2_config:
+	$(SHELLCMD) mkdir "$(_DEST)"
+	$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/b2.json" "$(_DEST)/b2.json"
+	$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.ini" "$(_DEST)/imgui.ini"
 # copy/paste fodder
-	$(SHELLCMD) realpath "$(B2_JSON_PATH)"
-	$(SHELLCMD) realpath "$(_DEST_PATH)"
+	$(SHELLCMD) realpath "$(B2_JSON_FOLDER)"
+	$(SHELLCMD) realpath "$(_DEST)"
 
 ##########################################################################
 ##########################################################################

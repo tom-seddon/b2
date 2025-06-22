@@ -46,5 +46,5 @@ github_ci_windows:
 ##########################################################################
 
 ifdef LOCALAPPDATA
-B2_JSON_PATH:=$(subst \,/,$(LOCALAPPDATA)/b2/b2.json)
+B2_JSON_FOLDER:=$(subst \,/,$(LOCALAPPDATA)/b2)
 endif
