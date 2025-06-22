@@ -276,15 +276,6 @@ class ImGuiStyleVarPusher {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// (std::vector<std::string> *)idx
-//bool ImGuiGetListBoxItemFromStringVector(void *data,int idx,const char **out_text);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// lame name.
-ImRect MakeImRectFromPosAndSize(const ImVec2 &pos, const ImVec2 &size);
-
 // changes position, preserving size.
 void SetImRectPosX(ImRect *rect, float x);
 void SetImRectPosY(ImRect *rect, float y);
@@ -338,8 +329,6 @@ static bool PRINTF_LIKE(3, 4) ImGuiRadioButtonf(T *value,
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-//bool ImGuiBeginFlag(const char *label,uint32_t *open,uint32_t open_mask,ImGuiWindowFlags flags=0);
 
 bool ImGuiMenuItemFlag(const char *label, const char *shortcut, uint32_t *selected, uint32_t selected_mask, bool enabled = true);
 

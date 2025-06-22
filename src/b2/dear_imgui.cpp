@@ -837,20 +837,6 @@ ImGuiIDPusher::~ImGuiIDPusher() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//bool ImGuiGetListBoxItemFromStringVector(void *data_,int idx,const char **out_text) {
-//    auto data=(std::vector<std::string> *)data_;
-//
-//    if(idx>=0&&(size_t)idx<data->size()) {
-//        *out_text=(*data)[idx].c_str();
-//        return true;
-//    } else {
-//        return false;
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 ImGuiItemWidthPusher::ImGuiItemWidthPusher(float width) {
     ImGui::PushItemWidth(width);
 }
@@ -1015,13 +1001,6 @@ ImGuiStyleVarPusher &ImGuiStyleVarPusher::Push(ImGuiStyleVar idx, const ImVec2 &
 ImGuiStyleVarPusher::ImGuiStyleVarPusher(ImGuiStyleVarPusher &&oth)
     : m_num_pushes(oth.m_num_pushes) {
     oth.m_num_pushes = 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-ImRect MakeImRectFromPosAndSize(const ImVec2 &pos, const ImVec2 &size) {
-    return ImRect(pos.x, pos.y, pos.x + size.x, pos.y + size.y);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1201,23 +1180,6 @@ void ImGuiLEDf(ImGuiLEDStyle style, bool on, const char *fmt, ...) {
     ImGuiLEDv(style, on, fmt, v);
     va_end(v);
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//bool ImGuiBeginFlag(const char *label,uint32_t *open,uint32_t open_mask,ImGuiWindowFlags flags) {
-//    bool tmp=!!(*open&open_mask);
-//
-//    bool result=ImGui::Begin(label,&tmp,flags);
-//
-//    if(tmp) {
-//        *open|=open_mask;
-//    } else {
-//        *open&=~open_mask;
-//    }
-//
-//    return result;
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
