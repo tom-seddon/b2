@@ -1084,7 +1084,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     ImGuiDockNodeFlags dock_space_flags = (ImGuiDockNodeFlags_PassthruCentralNode |
                                            ImGuiDockNodeFlags_NoDockingOverCentralNode);
-    ImGuiID dock_space_id = ImGui::DockSpaceOverViewport(viewport, dock_space_flags);
+    ImGuiID dock_space_id = ImGui::DockSpaceOverViewport(0, viewport, dock_space_flags);
 
     active_popup = this->DoSettingsUI();
 
