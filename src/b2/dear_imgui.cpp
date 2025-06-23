@@ -335,7 +335,7 @@ void ImGuiStuff::NewFrame() {
         SetRenderScaleQualityHint(false);
         m_font_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
         if (!m_font_texture) {
-            io.Fonts->TexID = nullptr;
+            io.Fonts->TexID = (ImTextureID)nullptr;
         } else {
             SDL_SetTextureBlendMode(m_font_texture, SDL_BLENDMODE_BLEND);
 
@@ -351,7 +351,7 @@ void ImGuiStuff::NewFrame() {
             rc = SDL_UpdateTexture(m_font_texture, NULL, tmp.data(), width * 4);
             ASSERT(rc == 0);
 
-            io.Fonts->TexID = m_font_texture;
+            io.Fonts->TexID = (ImTextureID)m_font_texture;
         }
 
         m_font_dirty = false;
@@ -1318,7 +1318,7 @@ static int PlotEx2(
     ItemSize(total_bb, style.FramePadding.y);
     if (!ItemAdd(total_bb, 0, &frame_bb))
         return -1;
-    const bool hovered = ItemHoverable(frame_bb, id, g.LastItemData.InFlags);
+    const bool hovered = ItemHoverable(frame_bb, id, g.LastItemData.ItemFlags);
 
     // Determine scale from values if not specified
     if (scale_min == FLT_MAX || scale_max == FLT_MAX) {

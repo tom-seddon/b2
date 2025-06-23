@@ -3743,7 +3743,7 @@ class MouseDebugWindow : public DebugUI {
 
   private:
     void MouseMotion(const char *name, int dx, int dy) {
-        if (ImGui::ButtonEx(name, ImVec2(0, 0), ImGuiButtonFlags_Repeat)) {
+        if (ImGui::ButtonEx(name, ImVec2(0, 0), ImGuiItemFlags_ButtonRepeat)) {
             m_beeb_thread->Send(std::make_shared<BeebThread::MouseMotionMessage>(dx, dy));
         }
     }

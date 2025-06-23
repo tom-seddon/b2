@@ -2652,7 +2652,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 
             ImGui::SetCursorPos(pos);
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
-            ImGui::Image(m_tv_texture, size);
+            ImGui::Image((ImTextureID)m_tv_texture, size);
 
             if (m_settings.capture_mouse_on_click) {
                 if (ImGui::IsItemClicked()) {

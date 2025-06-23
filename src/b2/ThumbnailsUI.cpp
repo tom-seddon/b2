@@ -137,7 +137,9 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
 
             ImGuiIDPusher pusher(t);
 
-            ImGui::Image(t->texture.get(), this->GetThumbnailSize());
+            auto texture_id = (ImTextureID)t->texture.get();
+
+            ImGui::Image(texture_id, this->GetThumbnailSize());
 
             if (ImGui::IsItemClicked()) {
                 ImGui::OpenPopup(THUMBNAIL_POPUP);
@@ -146,7 +148,7 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
             if (ImGui::BeginPopup(THUMBNAIL_POPUP)) {
                 int w, h;
                 SDL_QueryTexture(t->texture.get(), nullptr, nullptr, &w, &h);
-                ImGui::Image(t->texture.get(), ImVec2((float)w, (float)h));
+                ImGui::Image(texture_id, ImVec2((float)w, (float)h));
                 ImGui::EndPopup();
             }
         }
