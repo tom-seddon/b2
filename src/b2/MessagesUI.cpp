@@ -72,12 +72,16 @@ MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list)
 //////////////////////////////////////////////////////////////////////////
 
 void MessagesUI::DoImGui() {
+    ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
+    ImGuiContext *context = ImGui::GetCurrentContext();
+
     if (this->cst->WasActioned(g_clear_command)) {
         m_message_list->ClearMessages();
     }
 
+    this->cst->SetEnabled(g_copy_command, !!platform_io.Platform_SetClipboardTextFn);
+
     if (this->cst->WasActioned(g_copy_command)) {
-        ImGuiIO &io = ImGui::GetIO();
 
         std::string text;
 
@@ -86,7 +90,7 @@ void MessagesUI::DoImGui() {
                 text += m->text;
             });
 
-        (*io.SetClipboardTextFn)(io.ClipboardUserData, text.c_str());
+        (*platform_io.Platform_SetClipboardTextFn)(context, text.c_str());
     }
 
     //

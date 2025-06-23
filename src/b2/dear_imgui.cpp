@@ -130,8 +130,8 @@ static void FreeLastClipboardText() {
     g_last_clipboard_text = nullptr;
 }
 
-static const char *GetClipboardText(void *user_data) {
-    (void)user_data;
+static const char *GetClipboardText(ImGuiContext *context) {
+    (void)context;
 
     // This is quite safe, at least for now, due to the way the
     // callback is called...
@@ -151,8 +151,8 @@ static const char *GetClipboardText(void *user_data) {
 //////////////////////////////////////////////////////////////////////////
 
 #if USE_SDL_CLIPBOARD
-static void SetClipboardText(void *user_data, const char *text) {
-    (void)user_data;
+static void SetClipboardText(ImGuiContext *context, const char *text) {
+    (void)context;
 
     SDL_SetClipboardText(text);
 }
@@ -170,6 +170,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     ImGuiContextSetter setter(this);
 
     ImGuiIO &io = ImGui::GetIO();
+    ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
 
 #if SYSTEM_WINDOWS
 
@@ -207,8 +208,8 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
 #if USE_SDL_CLIPBOARD
 
-    io.GetClipboardTextFn = &GetClipboardText;
-    io.SetClipboardTextFn = &SetClipboardText;
+    platform_io.Platform_GetClipboardTextFn = &GetClipboardText;
+    platform_io.Platform_SetClipboardTextFn = &SetClipboardText;
 
 #endif
 
