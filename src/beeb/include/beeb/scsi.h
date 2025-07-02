@@ -156,6 +156,9 @@ class SCSI {
     // message to 0, and code to the provided code, then EnterStatusPhase.
     void EnterCheckConditionStatusPhase(uint8_t code);
 
+    // Fetches the LBA from bytes 1/2/3 of current command data.
+    uint32_t GetLBAForCurrentCommand() const;
+
     HardDiskImage *GetHardDisk(uint8_t lun) const;
 
     // Retrieves image for corresponding to m_lun. Enters check condition status

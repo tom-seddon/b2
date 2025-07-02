@@ -507,7 +507,7 @@ void SCSI::EnterExecutePhase() {
                 break;
             }
 
-            uint32_t lba = (m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
+            uint32_t lba = this->GetLBAForCurrentCommand();
             m_blocks = m_cmd[4];
             if (m_blocks == 0) {
                 m_blocks = 256;
@@ -543,7 +543,7 @@ void SCSI::EnterExecutePhase() {
                 break;
             }
 
-            uint32_t lba = (m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
+            uint32_t lba = this->GetLBAForCurrentCommand();
             m_blocks = m_cmd[4];
             if (m_blocks == 0) {
                 m_blocks = 256;
@@ -568,7 +568,7 @@ void SCSI::EnterExecutePhase() {
 
     case SCSICommand_TranslateV:
         {
-            uint32_t lba = (m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
+            uint32_t lba = this->GetLBAForCurrentCommand();
 
             Store32LE(&m_buffer[0], lba);
 
@@ -705,6 +705,14 @@ void SCSI::EnterCheckConditionStatusPhase(uint8_t code) {
     m_code = code;
 
     this->EnterStatusPhase();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Fetches the LBA from bytes 1/2/3 of current command data.
+uint32_t SCSI::GetLBAForCurrentCommand() const {
+    return (uint32_t)(m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
 }
 
 //////////////////////////////////////////////////////////////////////////
