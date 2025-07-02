@@ -138,6 +138,7 @@ static const char *GetClipboardText(ImGuiContext *context) {
 
     if (!g_FreeLastClipboardText_registered) {
         atexit(&FreeLastClipboardText);
+        g_FreeLastClipboardText_registered = true;
     }
 
     FreeLastClipboardText();
@@ -335,7 +336,7 @@ void ImGuiStuff::NewFrame() {
         SetRenderScaleQualityHint(false);
         m_font_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
         if (!m_font_texture) {
-            io.Fonts->TexID = (ImTextureID)nullptr;
+            io.Fonts->TexID = (ImTextureID) nullptr;
         } else {
             SDL_SetTextureBlendMode(m_font_texture, SDL_BLENDMODE_BLEND);
 
