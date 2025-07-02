@@ -2,6 +2,9 @@
 #include "discs.h"
 #include "load_save.h"
 #include <beeb/DiscGeometry.h>
+#include <random>
+#include <shared/load_store.h>
+#include <shared/debug.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -59,3 +62,49 @@ extern const HardDisk BLANK_HARD_DISKS[] = {
 };
 
 extern const size_t NUM_BLANK_HARD_DISKS = sizeof BLANK_HARD_DISKS / sizeof BLANK_HARD_DISKS[0];
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static uint8_t GetADFSChecksum(const uint8_t *sector) {
+    uint32_t sum = 255;
+
+    for (size_t i = 0; i < 255; ++i) {
+        if (sum > 255) {
+            sum = (sum + 1) & 0xff;
+        }
+
+        sum += sector[i];
+    }
+
+    return (uint8_t)sum;
+}
+
+void RandomizeADFSDiskIdentifier(std::vector<uint8_t> *data) {
+    if (data->size() < 0x200) {
+        // Too small to be ADFS.
+        return;
+    }
+
+    uint8_t checksum0 = GetADFSChecksum(&(*data)[0]);
+    if (checksum0 != (*data)[255]) {
+        // Bad sector 0 checksum.
+        return;
+    }
+
+    uint8_t checksum1 = GetADFSChecksum(&(*data)[256]);
+    if (checksum1 != (*data)[511]) {
+        // Bad sector 1 checksum.
+        return;
+    }
+
+    std::random_device rd;
+    std::uniform_int_distribution<int> dist(0, 65536);
+    int value = dist(rd);
+
+    Store16LE(&(*data)[0x1fb], (uint16_t)value);
+    (*data)[511] = GetADFSChecksum(&(*data)[256]);
+
+    ASSERT(GetADFSChecksum(&(*data)[0]) == (*data)[255]);
+    ASSERT(GetADFSChecksum(&(*data)[256]) == (*data)[511]);
+}

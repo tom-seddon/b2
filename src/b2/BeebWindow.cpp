@@ -949,12 +949,14 @@ class FileMenuItem {
             this->DoBlankDiscsMenu(new_dialog,
                                    BLANK_DFS_DISCS,
                                    NUM_BLANK_DFS_DISCS,
+                                   false,
                                    msgs);
             ImGui::Separator();
 
             this->DoBlankDiscsMenu(new_dialog,
                                    BLANK_ADFS_DISCS,
                                    NUM_BLANK_ADFS_DISCS,
+                                   true,
                                    msgs);
 
             ImGui::EndMenu();
@@ -978,6 +980,7 @@ class FileMenuItem {
     void DoBlankDiscsMenu(SelectorDialog *dialog,
                           const Disc *discs,
                           size_t num_discs,
+                          bool adfs,
                           Messages *msgs) {
         for (size_t i = 0; i < num_discs; ++i) {
             const Disc *disc = &discs[i];
@@ -987,6 +990,10 @@ class FileMenuItem {
 
                 if (!LoadFile(&this->new_disc_data, src_path, msgs)) {
                     return;
+                }
+
+                if (adfs) {
+                    RandomizeADFSDiskIdentifier(&this->new_disc_data);
                 }
 
                 if (dialog->Open(&this->path)) {

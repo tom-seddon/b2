@@ -885,10 +885,14 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool CopyFile(const std::string &src_path, const std::string &dest_path, Messages *msg) {
+static bool CopyFile(const std::string &src_path, const std::string &dest_path, bool adfs, Messages *msg) {
     std::vector<uint8_t> data;
     if (!LoadFile(&data, src_path, msg)) {
         return false;
+    }
+
+    if (adfs) {
+        RandomizeADFSDiskIdentifier(&data);
     }
 
     if (!SaveFile(data, dest_path, msg)) {
@@ -901,13 +905,11 @@ static bool CopyFile(const std::string &src_path, const std::string &dest_path, 
 bool ConfigsUI::CreateNewHardDiskImage(const HardDisk &disk, const std::string &new_dat_path) const {
     Messages msg(m_beeb_window->GetMessageList());
 
-    msg.e.f("hola: %s\n",new_dat_path.c_str());
-
-    if (!CopyFile(disk.GetDATAssetPath(), new_dat_path, &msg)) {
+    if (!CopyFile(disk.GetDATAssetPath(), new_dat_path, true, &msg)) {
         return false;
     }
 
-    if (!CopyFile(disk.GetDSCAssetPath(), PathWithoutExtension(new_dat_path) + ".dsc", &msg)) {
+    if (!CopyFile(disk.GetDSCAssetPath(), PathWithoutExtension(new_dat_path) + ".dsc", false, &msg)) {
         return false;
     }
 
