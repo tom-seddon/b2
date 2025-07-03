@@ -663,7 +663,7 @@ void SCSI::EnterExecutePhase() {
                 break;
             }
 
-            uint32_t lba = (m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
+            uint32_t lba = this->GetLBAForCurrentCommand();
             if (!hd->IsValidLBA(lba)) {
                 m_sector = lba;
                 this->EnterCheckConditionStatusPhase(CODE_BAD_DISK_ADDRESS);
@@ -712,7 +712,7 @@ void SCSI::EnterCheckConditionStatusPhase(uint8_t code) {
 
 // Fetches the LBA from bytes 1/2/3 of current command data.
 uint32_t SCSI::GetLBAForCurrentCommand() const {
-    return (uint32_t)(m_cmd[1] & 0x1f) << 16 | m_cmd[2] << 8 | m_cmd[3];
+    return (uint32_t)(m_cmd[1] & 0x1f) << 16 | (uint32_t)m_cmd[2] << 8 | m_cmd[3];
 }
 
 //////////////////////////////////////////////////////////////////////////
