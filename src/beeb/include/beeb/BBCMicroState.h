@@ -403,6 +403,8 @@ class BBCMicroUniqueState : public BBCMicroState {
 
   protected:
   private:
+    // Not necessary for compilation, just for Visual Studio code completion.
+    friend class BBCMicro;
 };
 
 //////////////////////////////////////////////////////////////////////////
