@@ -85,7 +85,7 @@ rel_tests:
 ##########################################################################
 ##########################################################################
 
-.PHONY:clang-format
+.PHONY: clang-format
 clang-format:
 	$(SHELLCMD) cat experimental/clang-format.header.txt src/.clang-format experimental/clang-format.header.txt > experimental/.clang-format
 
@@ -96,7 +96,7 @@ clang-format:
 ##########################################################################
 ##########################################################################
 
-.PHONY:set_submodule_upstreams
+.PHONY: set_submodule_upstreams
 set_submodule_upstreams:
 	@$(MAKE) _set_submodule_upstream SUBMODULE=Remotery UPSTREAM=https://github.com/Celtoys/Remotery
 	@$(MAKE) _set_submodule_upstream SUBMODULE=SDL_official UPSTREAM=https://github.com/libsdl-org/SDL
