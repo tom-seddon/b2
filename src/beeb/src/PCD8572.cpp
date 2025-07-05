@@ -179,7 +179,15 @@ void UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
     case PCD8572State_ReceiveData:
         if (ReceivedValue(p, clk, data)) {
             ELOG("write: address: %-3u ($%02x); value: %-3u $%02x %%%s %s", p->addr, p->addr, p->value, p->value, BINARY_BYTE_STRINGS[p->value], ASCII_BYTE_STRINGS[p->value]);
-            p->ram[p->addr & 0x7f] = p->value;
+
+            uint8_t addr = p->addr & 0x7f;
+            if (p->ram[addr] != p->value) {
+                p->ram[addr] = p->value;
+
+                if (p->nvram_changed_callback_fn) {
+                    (*p->nvram_changed_callback_fn)(p->nvram_changed_callback_context);
+                }
+            }
             ++p->addr;
 
             SendAcknowledge(p, PCD8572State_ReceiveData);

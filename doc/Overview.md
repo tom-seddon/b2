@@ -497,19 +497,21 @@ created.
 ## Non-volatile CMOS RAM/EEPROM
 
 If you're using an emulated Master 128, Master Compact or PC 128 S,
-use `File` > `Save CMOS/EEPROM contents` to save the current
-CMOS/EEPROM contents for the current config. (For technical reasons,
-this doesn't currently happen automatically - sorry!)
-
-These affect the values used when using `File` > `Power-on Reset` or
-when re-selecting the current config from the Hardware menu.
+the current CMOS/EEPROM contents will normally be automatically saved
+to when they change. So next time you do `File` > `Power-on reset`, or
+re-select the same config, the CMOS/EEPROM contents will remain set.
 
 (Each hardware config on the Hardware menu has its own independent
-set of CMOS/EEPROM contents.)
+CMOS/EEPROM contents - the intention being to match what you'd get
+when using a collection of real machines.)
+
+If recording or replayinga timeline, the changes won't be saved. Use
+`File` > `Save CMOS/EEPROM contents` to save the contents explicitly
+in this situation.
 
 Use `Tools` > `Reset CMOS/EEPROM` to reset the saved settings to
-reasonable default settings. Again, use `File` > `Power-on Reset` to
-see the effect.
+reasonable default settings. You'll need to use `File` > `Power-on
+Reset` to see the effect.
 
 ## Copy to clipboard
 

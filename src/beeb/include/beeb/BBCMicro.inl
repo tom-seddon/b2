@@ -9,11 +9,11 @@ static_assert(NUM_HARD_DISKS <= 4);
 
 #define ENAME BBCMicroLEDFlag
 EBEGIN()
-EPNV(CapsLock,1<<0)
-EPNV(ShiftLock,1<<1)
+EPNV(CapsLock, 1 << 0)
+EPNV(ShiftLock, 1 << 1)
 
-EPNV(FloppyDisk0Shift,4)
-EPNV(HardDisk0Shift,8)
+EPNV(FloppyDisk0Shift, 4)
+EPNV(HardDisk0Shift, 8)
 EEND()
 #undef ENAME
 
@@ -205,6 +205,3 @@ EPNV(IsMaster128, 1 << 15)
 
 EEND()
 #undef ENAME
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////

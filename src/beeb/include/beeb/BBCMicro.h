@@ -61,6 +61,8 @@ class BBCMicro : private WD1770Handler {
 
     static std::string GetUpdateFlagExpr(const uint32_t flags_);
 
+    typedef void (*NVRAMChangedCallbackFn)(BBCMicro *, void *context);
+
 #if BBCMICRO_DEBUGGER
 
     struct UpdateMFnData {
@@ -496,6 +498,8 @@ class BBCMicro : private WD1770Handler {
 
     void SetShowCursor(bool show_cursor);
 
+    void SetNVRAMChangedCallback(NVRAMChangedCallbackFn fn, void *context);
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -657,6 +661,9 @@ class BBCMicro : private WD1770Handler {
     CycleCount m_last_mfn_change_cycle_count = {};
 #endif
 
+    NVRAMChangedCallbackFn m_nvram_changed_callback_fn = nullptr;
+    void *m_nvram_changed_callback_context = nullptr;
+
     void InitStuff();
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags);
@@ -725,6 +732,9 @@ class BBCMicro : private WD1770Handler {
 #endif
 
     void UpdateMapperRegion(uint8_t region);
+
+    static void HandleRTCNVRAMChange(void *context);
+    static void HandleEEPROMNVRAMChange(void *context);
 
     static void EnsureUpdateMFnsTableIsReady();
 

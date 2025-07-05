@@ -521,6 +521,7 @@ class BeebWindow {
     void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, const BeebWindowSettings::CopySettings &settings) const;
 
     void SaveConfig();
+    void SaveDefaultNVRAMForCurrentConfig();
 
     void SetCaptureMouse(bool capture_mouse);
 

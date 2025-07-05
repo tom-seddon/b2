@@ -1439,9 +1439,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 
     m_cst.SetEnabled(g_save_default_nvram_command, m_beeb_thread->HasNVRAM());
     if (m_cst.WasActioned(g_save_default_nvram_command)) {
-        if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
-            config->nvram = m_beeb_thread->GetNVRAM();
-        }
+        this->SaveDefaultNVRAMForCurrentConfig();
     }
 
     m_cst.SetEnabled(g_reset_default_nvram_command, m_cst.GetEnabled(g_save_default_nvram_command));
@@ -2774,6 +2772,10 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             g_popups_visibility_checked = true;
         }
 
+        if (m_beeb_thread->TakeNVRAMChanged()) {
+            this->SaveDefaultNVRAMForCurrentConfig();
+        }
+
         //m_pushed_window_padding = true;
     }
 
@@ -3671,6 +3673,15 @@ void BeebWindow::SaveConfig() {
     SaveGlobalConfig(&m_msg);
 
     m_msg.i.f("Configuration saved.\n");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::SaveDefaultNVRAMForCurrentConfig() {
+    if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
+        config->nvram = m_beeb_thread->GetNVRAM();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

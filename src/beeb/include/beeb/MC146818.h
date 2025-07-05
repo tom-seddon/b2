@@ -24,6 +24,9 @@ class MC146818 {
   public:
     static const size_t RAM_SIZE = 50;
 
+    // There's not (currently?) any info about what actually changed.
+    typedef void (*NVRAMChangeCallbackFn)(void *context);
+
 #include <shared/pushwarn_bitfields.h>
     struct ABits {
         uint8_t rs : 4;
@@ -149,6 +152,8 @@ class MC146818 {
     // host clock.
     void Update();
 
+    void SetNVRAMChangeCallback(NVRAMChangeCallbackFn fn, void *context);
+
   protected:
   private:
     Registers m_regs = {};
@@ -157,6 +162,8 @@ class MC146818 {
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
 #endif
+    NVRAMChangeCallbackFn m_nvram_change_callback_fn = nullptr;
+    void *m_nvram_change_callback_context = nullptr;
 
     int GetTimeValue(uint8_t value);
     void SetTimeValue(uint8_t *dest, int value);

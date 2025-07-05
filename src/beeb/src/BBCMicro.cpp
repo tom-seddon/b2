@@ -2209,6 +2209,14 @@ void BBCMicro::SetShowCursor(bool show_cursor) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::SetNVRAMChangedCallback(NVRAMChangedCallbackFn fn, void *context) {
+    m_nvram_changed_callback_fn = fn;
+    m_nvram_changed_callback_context = context;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer->size());
     m_state.ram_buffer->at(ram_buffer_index) = value;
@@ -2672,6 +2680,11 @@ void BBCMicro::InitStuff() {
 #if BBCMICRO_TRACE
     this->SetTrace(nullptr, 0);
 #endif
+
+    m_state.rtc.SetNVRAMChangeCallback(&HandleRTCNVRAMChange, this);
+
+    m_state.eeprom.nvram_changed_callback_fn = &HandleEEPROMNVRAMChange;
+    m_state.eeprom.nvram_changed_callback_context = this;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3172,6 +3185,24 @@ void BBCMicro::UpdateMapperRegion(uint8_t region) {
         m_trace->AllocSetMapperRegionEvent(region);
     }
 #endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::HandleRTCNVRAMChange(void *context) {
+    auto m = (BBCMicro *)context;
+
+    if (m->m_nvram_changed_callback_fn) {
+        (*m->m_nvram_changed_callback_fn)(m, m->m_nvram_changed_callback_context);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::HandleEEPROMNVRAMChange(void *context) {
+    HandleRTCNVRAMChange(context); //currently, they're the same...
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -2456,6 +2456,13 @@ std::string BeebThread::GetConfigName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BeebThread::TakeNVRAMChanged() {
+    return m_nvram_changed.exchange(false, std::memory_order_acq_rel);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 bool BeebThread::DebugIsHalted() const {
     return m_debug_is_halted.load(std::memory_order_acquire);
@@ -2778,6 +2785,8 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 
     ts->beeb->GetAndResetDiscAccessFlag();
     this->ThreadSetBootState(ts, !!(flags & BeebThreadReplaceFlag_Autoboot));
+
+    ts->beeb->SetNVRAMChangedCallback(&BeebThread::ThreadHandleNVRAMChanged, this);
 
     //m_paused=false;
 }
@@ -3684,6 +3693,20 @@ void BeebThread::SetLastTrace(std::shared_ptr<Trace> last_trace) {
     LockGuard<Mutex> lock(m_last_trace_mutex);
 
     m_last_trace = std::move(last_trace);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadHandleNVRAMChanged(BBCMicro *m, void *context) {
+    (void)m;
+    auto beeb_thread = (BeebThread *)context;
+
+    if (beeb_thread->m_thread_state->timeline_mode == BeebThreadTimelineMode_None) {
+        beeb_thread->m_nvram_changed.store(true, std::memory_order_release);
+    } else {
+        // TODO maybe tweak this later...?
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

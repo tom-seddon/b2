@@ -264,6 +264,8 @@ void MC146818::SetAddress(uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 void MC146818::SetData(uint8_t value) {
+    uint8_t old_value = m_regs.values[m_reg];
+
     m_regs.values[m_reg] &= g_ro_masks[m_reg];
     m_regs.values[m_reg] |= value & ~g_ro_masks[m_reg];
 
@@ -278,6 +280,12 @@ void MC146818::SetData(uint8_t value) {
         m_trace->AllocStringf(TraceEventSource_Host, "CMOS - Write %s: Value now: %d ($%02X)\n", d, m_regs.values[m_reg], m_regs.values[m_reg]);
     }
 #endif
+
+    if (m_reg >= offsetof(RegisterBits, ram) && m_regs.values[m_reg] != old_value) {
+        if (m_nvram_change_callback_fn) {
+            (*m_nvram_change_callback_fn)(m_nvram_change_callback_context);
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -349,3 +357,8 @@ void MC146818::Update() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void MC146818::SetNVRAMChangeCallback(NVRAMChangeCallbackFn fn, void *context) {
+    m_nvram_change_callback_fn = fn;
+    m_nvram_change_callback_context = context;
+}

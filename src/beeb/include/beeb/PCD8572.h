@@ -29,6 +29,8 @@ struct M6502; //temp
 //////////////////////////////////////////////////////////////////////////
 
 struct PCD8572 {
+    typedef void (*NVRAMChangedCallback)(void *context);
+
     struct AddressBits {
         uint8_t w : 1;
         uint8_t a : 7;
@@ -61,6 +63,9 @@ struct PCD8572 {
 
     // "RAM"? Is that really the best name for this?
     uint8_t ram[128] = {};
+
+    NVRAMChangedCallback nvram_changed_callback_fn = nullptr;
+    void *nvram_changed_callback_context = nullptr;
 };
 
 #if BBCMICRO_TRACE

@@ -1062,6 +1062,8 @@ class BeebThread {
 
     std::string GetConfigName() const;
 
+    bool TakeNVRAMChanged();
+
   protected:
   private:
     struct AudioThreadData;
@@ -1119,6 +1121,11 @@ class BeebThread {
     std::atomic<uint64_t> m_num_mq_waits{0};
     std::atomic<bool> m_debug_is_halted{false};
     std::atomic<uint32_t> m_update_flags{0};
+
+    // Set if NVRAM changes. Query using TakeNVRAMChanged, which does an atomic
+    // swap with false. (The way b2 is arranged, it's just a lot simpler to
+    // query this by polling...)
+    std::atomic<bool> m_nvram_changed{false};
 
     uint32_t m_last_leds = 0;
 
@@ -1232,6 +1239,8 @@ class BeebThread {
     void ThreadStopReplay(ThreadState *ts);
 
     void SetLastTrace(std::shared_ptr<Trace> last_trace);
+
+    static void ThreadHandleNVRAMChanged(BBCMicro *m, void *context);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb, const M6502 *cpu, void *context);
 };
