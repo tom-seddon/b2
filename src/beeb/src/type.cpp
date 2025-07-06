@@ -1096,8 +1096,8 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
     if (IsMaster(type->type_id)) {
         type->sheila_cycle_stretch_regions = {
             {0x00, 0x1f},
-            {0x40, 0x7f},
-            {0xc0, 0xdf},
+            {0x28, 0x2b},
+            {0x40, 0x9f},
         };
     } else {
         type->sheila_cycle_stretch_regions = {
