@@ -44,6 +44,7 @@ std::unique_ptr<SettingsUI> CreateWD1770DebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateHardDiskDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

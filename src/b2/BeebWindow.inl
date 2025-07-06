@@ -79,6 +79,7 @@ EPN(WD1770Debug)
 EPN(DiskDriveDebug)
 EPN(HardDiskDebug)
 EPN(SCSIDebug)
+EPN(SerialDebug) //55
 
 // must be last
 EQPN(MaxValue)

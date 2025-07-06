@@ -649,6 +649,10 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= BBCMicroInitFlag_ROMBoard;
     }
 
+    if (ts->current_config.config.serial) {
+        init_flags |= BBCMicroInitFlag_Serial;
+    }
+
     if (ts->current_config.config.scsi) {
 #if ENABLE_SCSI
         init_flags |= BBCMicroInitFlag_SCSI;

@@ -11,9 +11,10 @@ static_assert(NUM_HARD_DISKS <= 4);
 EBEGIN()
 EPNV(CapsLock, 1 << 0)
 EPNV(ShiftLock, 1 << 1)
+EPNV(TapeMotor, 1 << 2)
 
-EPNV(FloppyDisk0Shift, 4)
-EPNV(HardDisk0Shift, 8)
+EQPNV(FloppyDisk0Shift, 4)
+EQPNV(HardDisk0Shift, 8)
 EEND()
 #undef ENAME
 

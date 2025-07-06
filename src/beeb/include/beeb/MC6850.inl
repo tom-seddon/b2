@@ -1,0 +1,43 @@
+#define ENAME MC6850CounterDivideSelect
+EBEGIN_DERIVED(uint8_t)
+EPNV(1, 0b00)
+EPNV(16, 0b01)
+EPNV(64, 0b10)
+EPNV(MasterReset, 0b11)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// - 7/8 = 7-/8-bit length
+// - e/o/_ = even/odd/no parity
+// - 2/1 = 2/1 stop bits
+
+#define ENAME MC6850WordSelect
+EBEGIN_DERIVED(uint8_t)
+EPNV(7e2, 0b000)
+EPNV(7o2, 0b001)
+EPNV(7e1, 0b010)
+EPNV(7o1, 0b011)
+EPNV(8_2, 0b100)
+EPNV(8_1, 0b101)
+EPNV(8e1, 0b110)
+EPNV(8o1, 0b111)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME MC6850TransmitterControl
+EBEGIN_DERIVED(uint8_t)
+EPNV(RTS0_NoTxIRQ, 0b00)
+EPNV(RTS0_TxIRQ, 0b01)
+EPNV(RTS1_NoTxIRQ, 0b10)
+EPNV(RTS0_Brk_NoTXIRQ, 0b11)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

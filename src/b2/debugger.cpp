@@ -63,6 +63,11 @@ static Command2 g_toggle_reset_relative_cycles_on_breakpoint_command = Command2(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#define BOOL_STR_ON_OFF(X) ((X) ? "on" : "off")
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 LOG_TAGGED_DEFINE(DBG, "debugger", "DBG   ", &log_printer_stdout_and_debugger, true);
 
 //////////////////////////////////////////////////////////////////////////
@@ -4025,6 +4030,52 @@ std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class SerialDebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        const SERPROC *serproc;
+        const MC6850 *mc6850;
+        if (!m_beeb_state->DebugGetSerial(&serproc, &mc6850)) {
+            ImGui::TextUnformatted("No serial hardware");
+            return;
+        }
+
+        ImGuiHeader("SERPROC");
+        ImGui::BulletText("Tx baud: %s", GetSERPROCBaudRateEnumName(serproc->control.bits.tx_baud));
+        ImGui::BulletText("Rx baud: %s", GetSERPROCBaudRateEnumName(serproc->control.bits.rx_baud));
+        ImGui::BulletText("Mode: %s", serproc->control.bits.rs423 ? "RS423" : "Tape");
+        ImGui::BulletText("Tape motor: %s", BOOL_STR_ON_OFF(serproc->control.bits.motor));
+
+        ImGuiHeader("ACIA Control");
+        ImGuiByteValue("ACIA Control", mc6850->control.value);
+        ImGui::BulletText("Counter divide: %s", GetMC6850CounterDivideSelectEnumName(mc6850->control.bits.counter_divide_select));
+        ImGui::BulletText("Word: %s", GetMC6850WordSelectEnumName(mc6850->control.bits.word_select));
+        ImGui::BulletText("Tx Control: %s", GetMC6850TransmitterControlEnumName(mc6850->control.bits.transmitter_control));
+        ImGui::BulletText("Rx IRQ enable: %s", BOOL_STR_ON_OFF(mc6850->control.bits.rx_irq_en));
+
+        ImGuiHeader("ACIA Status");
+        ImGuiByteValue("ACIA Status", mc6850->status.value);
+        ImGui::BulletText("Rx Data Reg Full: %u", mc6850->status.bits.rdrf);
+        ImGui::BulletText("Tx Data Reg Empty: %u", mc6850->status.bits.tdre);
+        ImGui::BulletText("Not DCD: %u", mc6850->status.bits.not_dcd);
+        ImGui::BulletText("Not CTS: %u", mc6850->status.bits.not_cts);
+        ImGui::BulletText("Framing Error: %u", mc6850->status.bits.fe);
+        ImGui::BulletText("Receiver Overrun: %u", mc6850->status.bits.ovrn);
+        ImGui::BulletText("Parity Error: %u", mc6850->status.bits.pe);
+        ImGui::BulletText("IRQ: %u", mc6850->status.bits.irq);
+    }
+
+  protected:
+  private:
+};
+
+std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<SerialDebugWindow>(beeb_window, ImVec2(300, 300));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -4131,11 +4182,15 @@ std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *) {
     return nullptr;
 }
 
-std::unique_ptr<SettingsUI> CreateHardDiskDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateHardDiskDebugWindow(BeebWindow *) {
     return nullptr;
 }
 
-std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *) {
     return nullptr;
 }
 

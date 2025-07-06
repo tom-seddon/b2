@@ -75,6 +75,10 @@ EPNV(ROMBoard, 1 << 7)
 EPNV(SCSI, 1 << 8)
 #endif
 
+// Compact only - if set, has serial upgrade fitted. (B/B+/Master 128 always
+// have the serial upgrade fitted.)
+EPNV(Serial, 1 << 9)
+
 EEND()
 #undef ENAME
 

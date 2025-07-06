@@ -275,6 +275,7 @@ bool HasADC(BBCMicroTypeID type_id);
 bool HasIndependentMOSView(BBCMicroTypeID type_id);
 const char *GetModelName(BBCMicroTypeID type_id);
 bool Has4ROMSlots(BBCMicroTypeID type_id);
+bool HasSerial(BBCMicroTypeID type_id);
 
 #if BBCMICRO_DEBUGGER
 // Parse address suffix and add additional flags to *dso_ptr.

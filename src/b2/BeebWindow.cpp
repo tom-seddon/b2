@@ -239,6 +239,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_DiskDriveDebug, "toggle_disk_drive_debug", "Disk Drive Debug", &CreateDiskDriveDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_HardDiskDebug, "toggle_hard_disk_debug", "Hard Disk Debug", &CreateHardDiskDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SCSIDebug, "toggle_scsi_debug", "SCSI Debug", &CreateSCSIDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SerialDebug, "toggle_serial_debug", "Serial Debug", &CreateSerialDebugWindow);
     return true;
 }
 
@@ -1730,6 +1731,10 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
             ImGui::SameLine();
 
+            ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_TapeMotor), "Motor");
+
+            ImGui::SameLine();
+
             colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(0.f, 1.f, 0.f, 1.f));
 
             switch (timeline_state.mode) {
@@ -2309,6 +2314,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DiskDriveDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_HardDiskDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
 
         ImGui::Separator();
 
@@ -2973,6 +2979,10 @@ bool BeebWindow::InitInternal() {
 
     m_sound_device = m_init_arguments.sound_device;
     ASSERT(m_init_arguments.sound_spec.freq > 0);
+
+#if BUILD_TYPE_Debug
+    m_msg.i.f("%d popup types\n", BeebWindowPopupType_MaxValue);
+#endif
 
     // Add some extra space round the edges so the display doesn't have to
     // be scaled down noticeably.

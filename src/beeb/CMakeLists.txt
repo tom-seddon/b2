@@ -36,6 +36,8 @@ set(SRCS
   ${S}/MemoryDiscImage.cpp ${I}/MemoryDiscImage.h
   ${S}/scsi.cpp ${I}/scsi.h ${I}/scsi.inl
   ${S}/HardDiskImage.cpp ${I}/HardDiskImage.h
+  ${S}/MC6850.cpp ${I}/MC6850.h ${I}/MC6850.inl
+  ${S}/serproc.cpp ${I}/serproc.h ${I}/serproc.inl
 )
 
 if(MSVC)

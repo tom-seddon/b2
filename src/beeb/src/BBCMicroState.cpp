@@ -85,6 +85,21 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BBCMicroState::HasSerial() const {
+    if (::HasSerial(this->type->type_id)) {
+        return true;
+    }
+
+    if (this->init_flags & BBCMicroInitFlag_Serial) {
+        return true;
+    }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 const M6502 *BBCMicroState::DebugGetM6502(uint32_t dso) const {
     if (dso & BBCMicroDebugStateOverride_Parasite) {
@@ -284,6 +299,21 @@ const SCSI *BBCMicroState::DebugGetSCSI() const {
     return nullptr;
 }
 #endif
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+bool BBCMicroState::DebugGetSerial(const SERPROC **serproc_ptr, const MC6850 **mc6850_ptr) const {
+    if (this->HasSerial()) {
+        *serproc_ptr = &this->serproc;
+        *mc6850_ptr = &this->acia;
+        return true;
+    }
+
+    return false;
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////////

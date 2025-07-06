@@ -63,6 +63,7 @@ class BeebConfig {
     std::vector<uint8_t> nvram;
     bool mouse = false;
     bool rom_board = true;
+    bool serial = true;
 
     Enum<BBCMicroParasiteType> parasite_type{BBCMicroParasiteType_None};
 

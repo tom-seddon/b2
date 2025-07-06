@@ -26,6 +26,8 @@ class Log;
 #include "type.h"
 #include "BBCMicroParasiteType.h"
 #include "scsi.h"
+#include "serproc.h"
+#include "MC6850.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicroState.inl"
@@ -186,6 +188,8 @@ class BBCMicroState {
     explicit BBCMicroState(BBCMicroState &&) = delete;
     BBCMicroState &operator=(BBCMicroState &&) = delete;
 
+    bool HasSerial() const;
+
 #if BBCMICRO_DEBUGGER
     const M6502 *DebugGetM6502(uint32_t dso) const;
     const ExtMem *DebugGetExtMem() const;
@@ -202,6 +206,7 @@ class BBCMicroState {
     const HardDiskImageSet *DebugGetHardDiskImageSet() const;
     const SCSI *DebugGetSCSI() const;
 #endif
+    bool DebugGetSerial(const SERPROC **serproc_ptr, const MC6850 **mc6850_ptr) const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -365,6 +370,9 @@ class BBCMicroState {
 #if ENABLE_SCSI
     std::shared_ptr<SCSI> scsi;
 #endif
+
+    SERPROC serproc;
+    MC6850 acia;
 
   protected:
     // Disallow values of base type. Disallow delete of pointer to base type.

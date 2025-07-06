@@ -1058,6 +1058,10 @@ uint32_t BBCMicro::GetLEDs() {
         leds |= BBCMicroLEDFlag_ShiftLock;
     }
 
+    if (m_state.serproc.control.bits.motor) {
+        leds |= BBCMicroLEDFlag_TapeMotor;
+    }
+
     for (int i = 0; i < NUM_DRIVES; ++i) {
         if (m_state.drives[i].motor) {
             leds |= 1u << (BBCMicroLEDFlag_FloppyDisk0Shift + i);
@@ -2518,6 +2522,20 @@ void BBCMicro::InitStuff() {
         m_state.disc_interface->InstallExtraHardware(this, m_state.disc_interface_extra_hardware);
     } else {
         m_state.fdc.SetHandler(nullptr);
+    }
+
+    // I/O: Serial
+    if (m_state.HasSerial()) {
+        // I/O: ULA/SERPROC
+        for (int i = 0; i < 8; ++i) {
+            this->SetSIO((uint16_t)(0xfe10 + i), nullptr, nullptr, &WriteSERPROC, &m_state.serproc);
+        }
+
+        // I/O: ACIA
+        for (int i = 0; i < 8; i += 2) {
+            this->SetSIO((uint16_t)(0xfe08 + i + 0), &ReadMC6850StatusRegister, &m_state.acia, &WriteMC6850ControlRegister, &m_state.acia);
+            this->SetSIO((uint16_t)(0xfe08 + i + 1), &ReadMC6850DataRegister, &m_state.acia, &WriteMC6850DataRegister, &m_state.acia);
+        }
     }
 
     m_state.video_ula.InitStuff();
