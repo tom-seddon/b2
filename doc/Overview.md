@@ -426,6 +426,9 @@ Items of optional hardware are as follows:
   other sideways ROM banks will become hidden, as their contents
   aren't accessible in this state)
   
+- For Master Compact/Olivetti PC 128 S, tick the `Serial` option to
+  add the optional serial port upgrade
+  
 There are also some second processor options, for models that support
 this:
 

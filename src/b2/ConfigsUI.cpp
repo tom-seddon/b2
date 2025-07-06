@@ -523,6 +523,12 @@ void ConfigsUI::DoEditConfigGui() {
     }
 #endif
 
+    if (!HasSerial(config->type_id)) {
+        if (ImGui::Checkbox("Serial", &config->serial)) {
+            m_edited = true;
+        }
+    }
+
     if (edited) {
         BeebWindows::ConfigDidChange((size_t)m_config_index);
         m_edited = true;
