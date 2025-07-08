@@ -4993,4 +4993,56 @@ remapping purposes? See lines 3990 and 4000. So that explains that.
 The disk just has to be larger than you expect. Worth noting in the
 docs.
 
+* Serial Stuff
+
+** Links
+
+B-em Tape Overhaul thread: https://www.stardot.org.uk/forums/viewtopic.php?t=29078
+
+BBC tape input circuit: https://stardot.org.uk/forums/viewtopic.php?f=3&t=22935
+
+BeebWiki docs: https://beebwiki.mdfs.net/Serial_ULA
+
+** Baud rates
+
+The notional ULA baud rates are all divisors of 19200 (or multiples of
+75). 600 baud isn't an option.
+
+According to BeebWiki, the serial ULA provides some multiple of a
+16/13 MHz clock for the ACIA. So presumably the actual ACIA clock Hz
+is as per the column here.
+
+| ULA baud | ULA div | 16/13 ACIA clock Hz? |
+|----------+---------+----------------------+
+|    19200 |       1 |   1230769.2307692308 |
+|     9600 |       2 |    615384.6153846154 |
+|     4800 |       4 |    307692.3076923077 |
+|     2400 |       8 |   153846.15384615384 |
+|     1200 |      16 |    76923.07692307692 |
+|      300 |      64 |    19230.76923076923 |
+|      150 |     128 |    9615.384615384615 |
+|       75 |     256 |    4807.692307692308 |
+
+The ACIA itself applies a further divider: /1, /16 or /64.
+
+Closest approximation to 16/13 in b2 is going to be 4/13. For ACIA
+dividers /16 and /64, no problem. For /1... well... hmm... but it
+should be ok for any useful bitrate value? The BBC is going to have to
+work hard enough to hit 76.8 Kbaud (or 76923.076923 Hz as it must
+actually be), so the cases b2 can never handle properly are surely
+unimportant.
+
+| ULA baud | ULA div |  real ACIA Hz? |     /16 baud |     /64 baud |       b2 ACIA Hz |     /16 baud |     /64 baud |
+|----------+---------+----------------+--------------+--------------+------------------+--------------+--------------|
+|    19200 |       1 | 1230769.230769 | 76923.076923 | 19230.769231 | 307692.307692 :( | 76923.076923 | 19230.769231 |
+|     9600 |       2 |  615384.615385 | 38461.538462 |  9615.384615 | 307692.307692 :( | 38461.538462 |  9615.384615 |
+|     4800 |       4 |  307692.307692 | 19230.769231 |  4807.692308 |    307692.307692 | 19230.769231 |  4807.692308 |
+|     2400 |       8 |  153846.153846 |  9615.384615 |  2403.846154 |    153846.153846 |  9615.384615 |  2403.846154 |
+|     1200 |      16 |   76923.076923 |  4807.692308 |  1201.923077 |     76923.076923 |  4807.692308 |  1201.923077 |
+|      300 |      64 |   19230.769231 |  1201.923077 |   300.480769 |     19230.769231 |  1201.923077 |   300.480769 |
+|      150 |     128 |    9615.384615 |   600.961538 |   150.240385 |      9615.384615 |   600.961538 |   150.240385 |
+|       75 |     256 |    4807.692308 |   300.480769 |    75.120192 |      4807.692308 |   300.480769 |    75.120192 |
+
+
+
 * eof.
