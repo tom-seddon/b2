@@ -91,7 +91,7 @@ static const char ACORN_1770_CONFIG_NAME[] = "Acorn 1770";
 class DiscInterfaceAcorn1770 : public DiscInterface {
   public:
     DiscInterfaceAcorn1770()
-        : DiscInterface(ACORN_1770_CONFIG_NAME, "Acorn 1770", StandardROM_Acorn1770DFS, 0xfe84, 0xfe80, 0) {
+        : DiscInterface(ACORN_1770_CONFIG_NAME, "Acorn 1770", StandardROM_Acorn1770DFS, 0xfe84, 0xfe80, DiscInterfaceFlag_ControlIsReadOnly) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -589,7 +589,7 @@ static const char MASTER_128_CONFIG_NAME[] = "Master 128";
 class DiscInterfaceMaster128 : public DiscInterface {
   public:
     DiscInterfaceMaster128()
-        : DiscInterface(MASTER_128_CONFIG_NAME, "Master 128", StandardROM_None, 0xfe28, 0xfe24, 0) {
+        : DiscInterface(MASTER_128_CONFIG_NAME, "Master 128", StandardROM_None, 0xfe28, 0xfe24, DiscInterfaceFlag_ControlIsReadOnly) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {

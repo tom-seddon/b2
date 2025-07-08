@@ -486,6 +486,7 @@ parasite_update_done:
                         if (r) {
                             m_state.cpu.dbus = r[m_state.cpu.abus.p.o];
                         } else {
+                            // see corresponding logic in BBCMicro::GetStaleDatabusByte.
                             if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) == 0) {
                                 // For B/B+, leave the previous value in place.
                                 // The CPU data bus is buffered so it'll read

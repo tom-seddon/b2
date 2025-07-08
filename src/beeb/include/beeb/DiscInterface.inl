@@ -7,5 +7,9 @@ EPNV(1772, 1 << 1)
 // it incompatible with the ExtRam. (Some better mechanism for all of this is
 // plausible... one day...)
 EPNV(Uses1MHzBus, 1 << 2)
+
+// This is not currently the default, but it may yet turn out that it's true for
+// every interface...
+EPNV(ControlIsReadOnly, 1 << 3)
 EEND()
 #undef ENAME

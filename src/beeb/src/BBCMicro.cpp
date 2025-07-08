@@ -673,7 +673,12 @@ uint8_t BBCMicro::Read1770ControlRegister(void *m_, M6502Word a) {
     ASSERT(m);
     ASSERT(m->m_state.disc_interface);
 
-    uint8_t value = m->m_state.disc_interface->GetByteFromControl(m->m_state.disc_control);
+    uint8_t value;
+    if (m->m_state.disc_interface->flags & DiscInterfaceFlag_ControlIsReadOnly) {
+        value = m->GetStaleDatabusByte();
+    } else {
+        value = m->m_state.disc_interface->GetByteFromControl(m->m_state.disc_control);
+    }
     return value;
 }
 
@@ -778,7 +783,8 @@ uint8_t BBCMicro::ReadUnmappedMMIO(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)m;
 
-    return 0; //m->m_state.cpu.dbus;
+    uint8_t value = m->GetStaleDatabusByte();
+    return value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -860,6 +866,38 @@ uint8_t BBCMicro::ReadADJI(void *m_, M6502Word a) {
     (void)a;
 
     return m->m_state.digital_joystick_state.value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    uint8_t value = m->GetStaleDatabusByte();
+
+    // There's no read/write signal for the serproc. Every access is a write.
+    // Good luck!
+    WriteSERPROC(&m->m_state.serproc, a, value);
+
+    if (m->m_update_flags & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) {
+        return value;
+    } else {
+        // I don't get this. Maybe the BBC part can dissipate the signals?
+        return 0;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t BBCMicro::GetStaleDatabusByte() const {
+    if (m_update_flags & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) {
+        return m_state.last_fetched_video_byte;
+    } else {
+        return m_state.cpu.dbus;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2528,7 +2566,7 @@ void BBCMicro::InitStuff() {
     if (m_state.HasSerial()) {
         // I/O: ULA/SERPROC
         for (int i = 0; i < 8; ++i) {
-            this->SetSIO((uint16_t)(0xfe10 + i), nullptr, nullptr, &WriteSERPROC, &m_state.serproc);
+            this->SetSIO((uint16_t)(0xfe10 + i), &ReadSERPROC, this, &WriteSERPROC, &m_state.serproc);
         }
 
         // I/O: ACIA
