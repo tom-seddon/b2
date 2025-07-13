@@ -10,6 +10,7 @@ EPNV(UserVIA, 1 << 1)
 EPNV(HostTube, 1 << 2)
 EPNV(ParasiteTube, 1 << 3)
 EPNV(SCSI, 1 << 4)
+EPNV(ACIA, 1 << 5)
 EEND()
 #undef ENAME
 

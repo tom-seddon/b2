@@ -46,6 +46,13 @@ struct MC6850 {
 
     ControlRegister control = {};
     StatusRegister status = {};
+    uint8_t tdr = 0;
+
+    // Includes start, parity and stop bits. Shifting continues until the value
+    // is 0 - which the stop bits ensure will not happen before time.
+    uint16_t transmit_data = 0;
+
+    MC6850TransmitState transmit_state = MC6850TransmitState_Idle;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -56,6 +63,8 @@ uint8_t ReadMC6850DataRegister(void *mc6850, M6502Word addr);
 
 void WriteMC6850ControlRegister(void *mc6850, M6502Word addr, uint8_t value);
 uint8_t ReadMC6850StatusRegister(void *mc6850, M6502Word addr);
+
+bool UpdateMC6850Transmit(MC6850 *mc6850);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
