@@ -249,9 +249,11 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
 #endif
         }
 
-        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_DebugStepParasite) != 0) {
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_DebugStep) != 0) {
 #if BBCMICRO_DEBUGGER
-            this->DebugHandleStep();
+            if (m_debug->step_cpu == &m_state.parasite_cpu) {
+                this->DebugHandleStep();
+            }
 #endif
         }
     }
@@ -646,9 +648,11 @@ parasite_update_done:
 #endif
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_DebugStepHost) != 0) {
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_DebugStep) != 0) {
 #if BBCMICRO_DEBUGGER
-                this->DebugHandleStep();
+                if (m_debug->step_cpu == &m_state.cpu) {
+                    this->DebugHandleStep();
+                }
 #endif
             }
         }
@@ -1098,11 +1102,11 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
     }
 
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
-        flags &= ~(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
+        flags &= ~(BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
     }
 
     if (!(flags & BBCMicroUpdateFlag_Debug)) {
-        flags &= ~(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
+        flags &= ~BBCMicroUpdateFlag_DebugStep;
     }
 
     BBCMicroUpdateROMType update_rom_type = (BBCMicroUpdateROMType)((flags >> BBCMicroUpdateFlag_UpdateROMTypeShift) & BBCMicroUpdateFlag_UpdateROMTypeMask);

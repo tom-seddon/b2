@@ -179,8 +179,8 @@ EPNV(Parasite, 1 << 4)
 // Special mode is not efficient.
 EPNV(ParasiteSpecial, 1 << 5)
 
-EPNV(DebugStepParasite, 1 << 6)
-EPNV(DebugStepHost, 1 << 7)
+EPNV(DebugStep, 1 << 6)
+EPNV(IsMaster128, 1 << 7)
 
 // If clear, parasite (if any) runs at 4 MHz.
 //
@@ -188,6 +188,7 @@ EPNV(DebugStepHost, 1 << 7)
 // out of every 4.
 EPNV(Parasite3MHzExternal, 1 << 8)
 
+// If set, check for breakpoints wwhile running.
 EPNV(Debug, 1 << 9)
 
 // Master Compact gets its own flag, as it implies multiple things:
@@ -200,8 +201,6 @@ EPNV(IsMasterCompact, 1 << 10)
 EQPNV(UpdateROMTypeShift, 11)
 EQPNV(UpdateROMTypeMask, 15)
 // next free bit is 1<<15
-
-EPNV(IsMaster128, 1 << 15)
 
 EEND()
 #undef ENAME
