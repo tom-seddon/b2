@@ -2108,19 +2108,27 @@ void BBCMicro::PrintInfo(Log *log) {
     // Every normalized flags combination should map to a unique instantation.
     {
         size_t num_surprises = 0;
-        std::unordered_map<BBCMicro::UpdateMFn, uint32_t> update_mfns;
+        std::unordered_map<BBCMicro::UpdateMFn, std::vector<uint32_t>> update_mfns;
         for (uint32_t i : normalized_flags) {
-            auto it = update_mfns.find(ms_update_mfns[i]);
-            if (it == update_mfns.end()) {
-                update_mfns[ms_update_mfns[i]] = i;
-            } else {
-                if (it->second != i) {
+            std::vector<uint32_t> *flags = &update_mfns[ms_update_mfns[i]];
+            if (!flags->empty()) {
+                if ((*flags)[0] != i) {
                     ++num_surprises;
                 }
             }
+            flags->push_back(i);
         }
 
         log->f("%zu surprise duplicates\n", num_surprises);
+
+        for (const auto &it : update_mfns) {
+            if (it.second.size() > 1) {
+                log->f("0x%x (%s):\n", it.first, GetUpdateFlagExpr(it.second[0]).c_str());
+                for (size_t i = 1; i < it.second.size(); ++i) {
+                    log->f("    0x%x (%s)\n", it.second[i], GetUpdateFlagExpr(it.second[i]).c_str());
+                }
+            }
+        }
     }
 
     uint32_t unused_bits = ~(uint32_t)0;
@@ -2715,14 +2723,12 @@ void BBCMicro::InitStuff() {
     m_host_cpu_metadata.name = "host";
 #if BBCMICRO_DEBUGGER
     m_host_cpu_metadata.dso = 0;
-    m_host_cpu_metadata.debug_step_update_flag = BBCMicroUpdateFlag_DebugStepHost;
 #endif
     m_state.cpu.context = &m_host_cpu_metadata;
 
     m_parasite_cpu_metadata.name = "parasite";
 #if BBCMICRO_DEBUGGER
-    m_parasite_cpu_metadata.dso = 0;
-    m_parasite_cpu_metadata.debug_step_update_flag = BBCMicroUpdateFlag_DebugStepParasite;
+    m_parasite_cpu_metadata.dso = BBCMicroDebugStateOverride_Parasite;
 #endif
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
@@ -3059,7 +3065,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
     uint32_t update_flags = 0;
 
     if (m_state.hack_flags != 0) {
-        update_flags |= BBCMicroUpdateFlag_Hacks;
+        update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
 #if BBCMICRO_TRACE
@@ -3076,18 +3082,17 @@ void BBCMicro::UpdateCPUDataBusFn() {
             }
         } else {
             ASSERT(m_debug->step_cpu);
-            auto metadata = (const M6502Metadata *)m_debug->step_cpu->context;
-            update_flags |= BBCMicroUpdateFlag_Debug | metadata->debug_step_update_flag;
+            update_flags |= BBCMicroUpdateFlag_Debug | BBCMicroUpdateFlag_TransientNonFastPath;
         }
     }
 #endif
 
     if (!m_host_instruction_fns.empty()) {
-        update_flags |= BBCMicroUpdateFlag_Hacks;
+        update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
     if (!m_host_write_fns.empty()) {
-        update_flags |= BBCMicroUpdateFlag_Hacks;
+        update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
     if (m_state.type->type_id == BBCMicroTypeID_Master) {
@@ -3106,12 +3111,8 @@ void BBCMicro::UpdateCPUDataBusFn() {
         if (m_state.parasite_boot_mode ||
             m_state.parasite_tube.status.bits.p ||
             m_state.parasite_tube.status.bits.t) {
-            update_flags |= BBCMicroUpdateFlag_ParasiteSpecial;
+            update_flags |= BBCMicroUpdateFlag_TransientNonFastPath;
         }
-    }
-
-    if (update_flags & BBCMicroUpdateFlag_ParasiteSpecial) {
-        ASSERT(update_flags & BBCMicroUpdateFlag_Parasite);
     }
 
     if (m_state.printer_enabled) {
