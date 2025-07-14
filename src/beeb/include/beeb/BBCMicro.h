@@ -43,7 +43,7 @@ constexpr BBCMicroUpdateROMType GetBBCMicroUpdateFlagsUpdateROMType(uint32_t upd
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr size_t NUM_BBCMICRO_UPDATE_MFNS = 32768;
+static constexpr size_t NUM_BBCMICRO_UPDATE_MFNS = 16384;
 
 class BBCMicro : private WD1770Handler {
   public:

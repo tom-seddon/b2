@@ -164,22 +164,49 @@ EEND()
 //
 // The update_mfns table is not accessed often enough for its layout to be a
 // pressing concern.
+//
+// More flags = slower compile time, so some flags cover multiple things, quite
+// possibly not in a very logical way.
 
 #define ENAME BBCMicroUpdateFlag
 EBEGIN_DERIVED(uint32_t)
+// Mouse connected.
 EPNV(Mouse, 1 << 0)
-EPNV(Hacks, 1 << 1)
+
+// Some non-fast path cases:
+//
+// - OSRDCH Paste
+// - Instruction functions
+//   - copy OSWRCH
+//   - trace start/stop conditions
+EPNV(NonFastPath, 1 << 1)
+
+// Parallel printer connected.
 EPNV(ParallelPrinter, 1 << 2)
+
+// Tracing active.
 EPNV(Trace, 1 << 3)
+
+// 6502 2nd processor connected.
 EPNV(Parasite, 1 << 4)
 
-// Special mode covers non-default Tube operation modes: any or all of boot
-// mode, host-initiated Tube reset, and parasite reset.
+// Additional non-fast path cases that are rare or transient:
 //
-// Special mode is not efficient.
-EPNV(ParasiteSpecial, 1 << 5)
+// - special parasite operation modes:
+//   - boot mode
+//   - host-initiated Tube reset
+//   - parasite reset
+// - debug single step
+EPNV(TransientNonFastPath, 1 << 5)
 
-EPNV(DebugStep, 1 << 6)
+// Master Compact gets its own flag, as it implies multiple things:
+//
+// - no Tube
+// - has Master Compact EEPROM
+// - mouse (if present) is Compact type
+EPNV(IsMasterCompact, 1 << 6)
+
+// Machine is Master 128.
 EPNV(IsMaster128, 1 << 7)
 
 // If clear, parasite (if any) runs at 4 MHz.
@@ -191,16 +218,9 @@ EPNV(Parasite3MHzExternal, 1 << 8)
 // If set, check for breakpoints wwhile running.
 EPNV(Debug, 1 << 9)
 
-// Master Compact gets its own flag, as it implies multiple things:
-//
-// - no Tube
-// - has Master Compact EEPROM
-// - mouse (if present) is Compact type
-EPNV(IsMasterCompact, 1 << 10)
-
-EQPNV(UpdateROMTypeShift, 11)
+EQPNV(UpdateROMTypeShift, 10)
 EQPNV(UpdateROMTypeMask, 15)
-// next free bit is 1<<15
+// next free bit is 1<<14
 
 EEND()
 #undef ENAME

@@ -3009,7 +3009,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
     uint32_t update_flags = 0;
 
     if (m_state.hack_flags != 0) {
-        update_flags |= BBCMicroUpdateFlag_Hacks;
+        update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
 #if BBCMICRO_TRACE
@@ -3026,17 +3026,17 @@ void BBCMicro::UpdateCPUDataBusFn() {
             }
         } else {
             ASSERT(m_debug->step_cpu);
-            update_flags |= BBCMicroUpdateFlag_Debug | BBCMicroUpdateFlag_DebugStep;
+            update_flags |= BBCMicroUpdateFlag_Debug | BBCMicroUpdateFlag_TransientNonFastPath;
         }
     }
 #endif
 
     if (!m_host_instruction_fns.empty()) {
-        update_flags |= BBCMicroUpdateFlag_Hacks;
+        update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
     if (!m_host_write_fns.empty()) {
-        update_flags |= BBCMicroUpdateFlag_Hacks;
+        update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
     if (m_state.type->type_id == BBCMicroTypeID_Master) {
@@ -3055,12 +3055,8 @@ void BBCMicro::UpdateCPUDataBusFn() {
         if (m_state.parasite_boot_mode ||
             m_state.parasite_tube.status.bits.p ||
             m_state.parasite_tube.status.bits.t) {
-            update_flags |= BBCMicroUpdateFlag_ParasiteSpecial;
+            update_flags |= BBCMicroUpdateFlag_TransientNonFastPath;
         }
-    }
-
-    if (update_flags & BBCMicroUpdateFlag_ParasiteSpecial) {
-        ASSERT(update_flags & BBCMicroUpdateFlag_Parasite);
     }
 
     if (m_state.printer_enabled) {
