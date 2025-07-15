@@ -223,5 +223,7 @@ EQPNV(UpdateROMTypeShift, 10)
 EQPNV(UpdateROMTypeMask, 15)
 // next free bit is 1<<14
 
+EPNV(Serial, 1 << 14)
+
 EEND()
 #undef ENAME
