@@ -1791,7 +1791,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             switch (di->mode) {
             default:
                 ASSERT(0);
-                // fall through
+                [[fallthrough]];
             case M6502AddrMode_IMP:
                 break;
 

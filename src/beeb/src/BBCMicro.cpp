@@ -349,7 +349,7 @@ void BBCMicro::UpdatePaging() {
     switch (m_state.parasite_type) {
     default:
         ASSERT(false);
-        // fall through
+        [[fallthrough]];
     case BBCMicroParasiteType_None:
         parasite_accessible = false;
         break;
@@ -2418,7 +2418,7 @@ void BBCMicro::DebugHandleStep() {
     switch (m_debug->step_type) {
     default:
         ASSERT(false);
-        // fall through
+        [[fallthrough]];
     case BBCMicroStepType_None:
         // It's valid to end up here with no step type: the flags and
         // m_update_mfn might change, but the current update function continues
