@@ -502,10 +502,12 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGuiHeader("UI");
 
         unsigned font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
-        if (ImGuiInputUInt("GUI Font Size", &font_size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+        if (ImGuiInputUInt("GUI Font Size", &font_size, 1, 1, 0)) {
             m_beeb_window->m_imgui_stuff->SetFontSizePixels(font_size);
             settings->gui_font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
         }
+
+        // use IsItemDeactivatedAfterEdit
     }
 
     ImGui::NewLine();
