@@ -10,18 +10,72 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool Is7Bit(MC6850WordSelect value) {
+    return !!(value & 4);
+}
+
+static const MC6850Parity PARITY_BY_WORD_SELECT[8] = {
+    MC6850Parity_Even,
+    MC6850Parity_Odd,
+    MC6850Parity_Even,
+    MC6850Parity_Odd,
+    MC6850Parity_None,
+    MC6850Parity_None,
+    MC6850Parity_Even,
+    MC6850Parity_Odd,
+};
+
+static const bool ONE_STOP_BIT_BY_WORD_SELECT[8] = {
+    false,
+    false,
+    true,
+    true,
+    false,
+    true,
+    true,
+    true,
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void WriteMC6850DataRegister(void *mc6850_, M6502Word addr, uint8_t value) {
+    (void)addr;
     auto mc6850 = (MC6850 *)mc6850_;
 
     mc6850->tdr = value;
-    mc6850->status.bits.tdre = 0;
+    mc6850->tx_tdre = 0;
+    mc6850->irq.bits.tx = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t ReadMC6850DataRegister(void *mc6850, M6502Word addr) {
-    return 0;
+uint8_t ReadMC6850DataRegister(void *mc6850_, M6502Word addr) {
+    (void)addr;
+    auto mc6850 = (MC6850 *)mc6850_;
+
+    mc6850->status.bits.rdrf = 0;
+    mc6850->status.bits.ovrn = 0;
+    mc6850->irq.bits.rx = 0;
+    mc6850->status.bits.not_dcd = mc6850->not_dcd;
+
+    return mc6850->rdr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void Reset(MC6850 *mc6850) {
+    mc6850->tx_state = MC6850TransmitState_Idle;
+    mc6850->tx_tdre = 1;
+
+    mc6850->rx_state = MC6850ReceiveState_Idle;
+
+    mc6850->status.value = 0;
+
+    mc6850->status.bits.not_dcd = mc6850->not_dcd;
+    mc6850->status.bits.not_cts = mc6850->not_cts;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -32,7 +86,48 @@ void WriteMC6850ControlRegister(void *mc6850_, M6502Word addr, uint8_t value) {
     auto mc6850 = (MC6850 *)mc6850_;
 
     mc6850->control.value = value;
+
+    switch (mc6850->control.bits.counter_divide_select) {
+    case MC6850CounterDivideSelect_1:
+        mc6850->clock_mask = 0;
+        break;
+
+    case MC6850CounterDivideSelect_16:
+        mc6850->clock_mask = 15;
+        break;
+
+    case MC6850CounterDivideSelect_64:
+        mc6850->clock_mask = 63;
+        break;
+
+    case MC6850CounterDivideSelect_MasterReset:
+        Reset(mc6850);
+        break;
+    }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static MC6850::StatusRegister ReadStatusRegister(const MC6850 *mc6850) {
+    MC6850::StatusRegister status = mc6850->status;
+
+    if (mc6850->control.bits.counter_divide_select != MC6850CounterDivideSelect_MasterReset) {
+        status.bits.tdre = mc6850->tx_tdre && mc6850->not_cts;
+        status.bits.irq = mc6850->irq.value != 0;
+    }
+
+    return status;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+MC6850::StatusRegister DebugReadMC6850StatusRegister(const MC6850 *mc6850) {
+    return ReadStatusRegister(mc6850);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -41,154 +136,194 @@ uint8_t ReadMC6850StatusRegister(void *mc6850_, M6502Word addr) {
     (void)addr;
     auto mc6850 = (MC6850 *)mc6850_;
 
-    return mc6850->status.value;
+    MC6850::StatusRegister status = ReadStatusRegister(mc6850);
+    return status.value;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Start bit, data bits, parity bit, stop bits.
+template <class StateType>
+static inline void UpdateDataTransferMask(uint8_t *mask, StateType *state, MC6850::ControlRegister control, StateType parity_state, StateType no_parity_state) {
+    *mask <<= 1;
 
-static const uint8_t POPCNT[16] = {
-    0, //%0000
-    1, //%0001
-    1, //%0010
-    2, //%0011
-    1, //%0100
-    2, //%0101
-    2, //%0110
-    3, //%0111
-    1, //%1000
-    2, //%1001
-    2, //%1010
-    3, //%1011
-    2, //%1100
-    3, //%1101
-    3, //%1110
-    4, //%1111
-};
+    if (*mask == 0 ||
+        (*mask == 0x80 && Is7Bit(control.bits.word_select))) {
+        // Reset mask for stop bits transmission.
+        *mask = 1;
 
-template <unsigned NUM_DATA_BITS, unsigned NUM_STOP_BITS>
-struct TransmitDataBitsWithParity {
-    uint16_t start : 1;
-    uint16_t data : NUM_DATA_BITS;
-    uint16_t parity : 1;
-    uint16_t stop : NUM_STOP_BITS;
-};
-
-template <unsigned NUM_DATA_BITS, unsigned NUM_STOP_BITS>
-struct TransmitDataBitsWithoutParity {
-    uint16_t start : 1;
-    uint16_t data : NUM_DATA_BITS;
-    uint16_t stop : NUM_STOP_BITS;
-};
-
-template <uint8_t NUM_DATA_BITS, MC6850Parity PARITY, uint8_t NUM_STOP_BITS>
-static uint16_t GetTransmitData(uint8_t data) {
-    static_assert(NUM_STOP_BITS == 1 || NUM_STOP_BITS == 2);
-    static_assert(NUM_DATA_BITS == 7 || NUM_DATA_BITS == 8);
-    static_assert(PARITY == MC6850Parity_None || PARITY == MC6850Parity_Odd || PARITY == MC6850Parity_Even);
-
-    static constexpr uint16_t STOP_BITS_VALUE = (1 << NUM_STOP_BITS) - 1;
-
-    if constexpr (PARITY == MC6850Parity_None) {
-        union {
-            TransmitDataBitsWithoutParity<NUM_DATA_BITS, NUM_STOP_BITS> bits;
-            uint16_t value;
-        } u;
-        static_assert(sizeof u == 2);
-        u.value = 0;
-        u.bits.start = 1;
-        u.bits.data = data;
-        u.bits.stop = STOP_BITS_VALUE;
-        return u.value;
-    } else {
-        union {
-            TransmitDataBitsWithParity<NUM_DATA_BITS, NUM_STOP_BITS> bits;
-            uint16_t value;
-        } u;
-        static_assert(sizeof u == 2);
-        u.value = 0;
-        u.bits.start = 1;
-        u.bits.data = data;
-        if constexpr (NUM_DATA_BITS == 7) {
-            u.bits.parity = POPCNT[data >> 4 & 7] + POPCNT[data & 0xf];
+        if (PARITY_BY_WORD_SELECT[control.bits.word_select] == MC6850Parity_None) {
+            *state = no_parity_state;
         } else {
-            u.bits.parity = POPCNT[data >> 4] + POPCNT[data & 0xf];
+            *state = parity_state;
         }
-        if constexpr (PARITY == MC6850Parity_Even) {
-            u.bits.parity ^= 1;
-        }
-        u.bits.stop = STOP_BITS_VALUE;
-        return u.value;
     }
 }
 
-bool UpdateMC6850Transmit(MC6850 *mc6850) {
-    switch (mc6850->transmit_state) {
-    default:
-        ASSERT(false);
-        break;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-    case MC6850TransmitState_Idle:
-        if (mc6850->status.bits.tdre) {
-            break;
+template <class StateType>
+static inline bool UpdateStopBitsTransferMask(uint8_t *mask, StateType *state, MC6850::ControlRegister control, StateType next_state) {
+    *mask <<= 1;
+
+    if (*mask == 4 ||
+        (*mask == 2 && ONE_STOP_BIT_BY_WORD_SELECT[control.bits.word_select])) {
+        *state = next_state;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void UpdateMC6850Receive(MC6850 *mc6850, uint8_t bit) {
+    // "The Rx CLK must be running for proper /DCD operation" - so presumably
+    // the pin is polled as part of the receive processing?
+    if (mc6850->control.bits.rx_irq_en) {
+        if (!mc6850->old_not_dcd && mc6850->not_dcd) {
+            mc6850->irq.bits.rx = 1;
+            mc6850->old_not_dcd = mc6850->not_dcd;
+            mc6850->status.bits.not_dcd = 1;
         }
+    }
 
-        switch (mc6850->control.bits.word_select) {
+    if ((mc6850->rx_clock++ & mc6850->clock_mask) == 0) {
+        switch (mc6850->rx_state) {
         default:
             ASSERT(false);
-            [[fallthrough]];
-        case MC6850WordSelect_7e2:
-            mc6850->transmit_data = GetTransmitData<7, MC6850Parity_Even, 2>(mc6850->tdr);
             break;
 
-        case MC6850WordSelect_7o2:
-            mc6850->transmit_data = GetTransmitData<7, MC6850Parity_Odd, 2>(mc6850->tdr);
+        case MC6850ReceiveState_Idle:
             break;
 
-        case MC6850WordSelect_7e1:
-            mc6850->transmit_data = GetTransmitData<7, MC6850Parity_Even, 1>(mc6850->tdr);
+        case MC6850ReceiveState_StartBit:
+            if (!bit) {
+                mc6850->rx_state = MC6850ReceiveState_DataBits;
+                mc6850->rx_mask = 1;
+                mc6850->rx_data = 0;
+                mc6850->rx_parity = 0;
+                mc6850->rx_parity_error = false;
+                mc6850->rx_framing_error = false;
+            }
             break;
 
-        case MC6850WordSelect_7o1:
-            mc6850->transmit_data = GetTransmitData<7, MC6850Parity_Odd, 1>(mc6850->tdr);
-            break;
-
-        case MC6850WordSelect_8_2:
-            mc6850->transmit_data = GetTransmitData<8, MC6850Parity_None, 2>(mc6850->tdr);
-            break;
-
-        case MC6850WordSelect_8_1:
-            mc6850->transmit_data = GetTransmitData<8, MC6850Parity_None, 1>(mc6850->tdr);
-            break;
-
-        case MC6850WordSelect_8e1:
-            mc6850->transmit_data = GetTransmitData<8, MC6850Parity_Even, 1>(mc6850->tdr);
-            break;
-
-        case MC6850WordSelect_8o1:
-            mc6850->transmit_data = GetTransmitData<8, MC6850Parity_Odd, 1>(mc6850->tdr);
-            break;
-        }
-
-        mc6850->transmit_state = MC6850TransmitState_Bits;
-        [[fallthrough]];
-    case MC6850TransmitState_Bits:
-        {
-            bool bit = (mc6850->transmit_data & 1) != 0;
-
-            mc6850->transmit_data >>= 1;
-
-            if (mc6850->transmit_data == 0) {
-                mc6850->transmit_state = MC6850TransmitState_Idle;
+        case MC6850ReceiveState_DataBits:
+            if (bit) {
+                mc6850->rx_data |= mc6850->rx_mask;
+                mc6850->rx_parity ^= 1;
             }
 
-            return bit;
+            UpdateDataTransferMask(&mc6850->rx_mask, &mc6850->rx_state, mc6850->control, MC6850ReceiveState_ParityBit, MC6850ReceiveState_StopBits);
+
+            break;
+
+        case MC6850ReceiveState_ParityBit:
+            {
+                ASSERT(mc6850->rx_parity == 0 || mc6850->rx_parity == 1);
+
+                if (PARITY_BY_WORD_SELECT[mc6850->control.bits.word_select] == MC6850Parity_Even) {
+                    mc6850->rx_parity ^= 1;
+                }
+
+                if (mc6850->rx_parity != (bit != 0)) {
+                    mc6850->rx_parity_error = true;
+                }
+
+                mc6850->rx_state = MC6850ReceiveState_StopBits;
+                mc6850->rx_mask = 1;
+            }
+            break;
+
+        case MC6850ReceiveState_StopBits:
+            {
+                if (!bit) {
+                    mc6850->rx_framing_error = true;
+                }
+
+                if (UpdateStopBitsTransferMask(&mc6850->rx_mask, &mc6850->rx_state, mc6850->control, MC6850ReceiveState_StartBit)) {
+                    if (mc6850->status.bits.rdrf) {
+                        mc6850->status.bits.ovrn = 1;
+                    } else {
+                        mc6850->status.bits.rdrf = 1;
+                        mc6850->rdr = mc6850->rx_data;
+                    }
+
+                    mc6850->irq.bits.rx = mc6850->control.bits.rx_irq_en;
+                }
+            }
+            break;
         }
-        break;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+MC6850TransmitResult UpdateMC6850Transmit(MC6850 *mc6850) {
+    if ((mc6850->tx_clock++ & mc6850->clock_mask) == 0) {
+        switch (mc6850->tx_state) {
+        default:
+            ASSERT(false);
+            break;
+
+        case MC6850TransmitState_Idle:
+            if (mc6850->tx_tdre) {
+                break;
+            }
+
+            mc6850->tx_data = mc6850->tdr;
+            mc6850->tx_state = MC6850TransmitState_StartBit;
+            mc6850->tx_tdre = 1;
+            [[fallthrough]];
+        case MC6850TransmitState_StartBit:
+            mc6850->tx_state = MC6850TransmitState_DataBits;
+            mc6850->tx_mask = 1;
+            mc6850->tx_parity = 0;
+            return {0, MC6850BitType_Start};
+
+        case MC6850TransmitState_DataBits:
+            {
+                MC6850TransmitResult result = {!!(mc6850->tx_data & mc6850->tx_mask), MC6850BitType_Data};
+
+                mc6850->tx_parity ^= result.bit;
+
+                UpdateDataTransferMask(&mc6850->tx_mask, &mc6850->tx_state, mc6850->control, MC6850TransmitState_ParityBit, MC6850TransmitState_StopBits);
+
+                return result;
+            }
+
+        case MC6850TransmitState_ParityBit:
+            {
+                ASSERT(mc6850->tx_parity == 0 || mc6850->tx_parity == 1);
+
+                // In theory, you could get here with the control register
+                // indicating no parity. I wonder what the actual ACIA does.
+                if (PARITY_BY_WORD_SELECT[mc6850->control.bits.word_select] == MC6850Parity_Even) {
+                    mc6850->tx_parity ^= 1;
+                }
+
+                mc6850->tx_mask = 1;
+                mc6850->tx_state = MC6850TransmitState_StopBits;
+
+                return {mc6850->tx_parity, MC6850BitType_Parity};
+            }
+
+        case MC6850TransmitState_StopBits:
+            {
+                if (UpdateStopBitsTransferMask(&mc6850->tx_mask, &mc6850->tx_state, mc6850->control, MC6850TransmitState_Idle)) {
+                    mc6850->irq.bits.tx = mc6850->control.bits.transmitter_control == MC6850TransmitterControl_RTS0_TxIRQ;
+                }
+                return {1, MC6850BitType_Stop};
+            }
+        }
     }
 
     // nothing doing.
-    return false;
+    return {};
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

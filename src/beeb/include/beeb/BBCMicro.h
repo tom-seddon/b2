@@ -684,7 +684,7 @@ class BBCMicro : private WD1770Handler {
     template <uint8_t AND_VALUE>
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadADJI(void *m_, M6502Word a);
-    static uint8_t ReadSERPROC(void *m_,M6502Word a);
+    static uint8_t ReadSERPROC(void *m_, M6502Word a);
     uint8_t GetStaleDatabusByte() const;
 #if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);

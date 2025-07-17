@@ -4041,32 +4041,58 @@ class SerialDebugWindow : public DebugUI {
         }
 
         ImGuiHeader("SERPROC");
-        ImGui::BulletText("Tx baud: %s", GetSERPROCBaudRateEnumName(serproc->control.bits.tx_baud));
-        ImGui::BulletText("Rx baud: %s", GetSERPROCBaudRateEnumName(serproc->control.bits.rx_baud));
+        ImGuiByteValue("SERPROC control", serproc->control.value);
+        ImGui::BulletText("Tx baud: %d", SERPROC_BAUD_RATES[serproc->control.bits.tx_baud]);
+        ImGui::BulletText("Rx baud: %d", SERPROC_BAUD_RATES[serproc->control.bits.rx_baud]);
         ImGui::BulletText("Mode: %s", serproc->control.bits.rs423 ? "RS423" : "Tape");
         ImGui::BulletText("Tape motor: %s", BOOL_STR_ON_OFF(serproc->control.bits.motor));
 
         ImGuiHeader("ACIA Control");
         ImGuiByteValue("ACIA Control", mc6850->control.value);
         ImGui::BulletText("Counter divide: %s", GetMC6850CounterDivideSelectEnumName(mc6850->control.bits.counter_divide_select));
+        ImGui::BulletText("(Effective tx baud rate: ~%d)", this->GetEffectiveBaudRate(mc6850->control.bits.counter_divide_select, serproc->control.bits.tx_baud));
+        ImGui::BulletText("(Effective rx baud rate: ~%d)", this->GetEffectiveBaudRate(mc6850->control.bits.counter_divide_select, serproc->control.bits.rx_baud));
         ImGui::BulletText("Word: %s", GetMC6850WordSelectEnumName(mc6850->control.bits.word_select));
         ImGui::BulletText("Tx Control: %s", GetMC6850TransmitterControlEnumName(mc6850->control.bits.transmitter_control));
         ImGui::BulletText("Rx IRQ enable: %s", BOOL_STR_ON_OFF(mc6850->control.bits.rx_irq_en));
 
         ImGuiHeader("ACIA Status");
-        ImGuiByteValue("ACIA Status", mc6850->status.value);
-        ImGui::BulletText("Rx Data Reg Full: %u", mc6850->status.bits.rdrf);
-        ImGui::BulletText("Tx Data Reg Empty: %u", mc6850->status.bits.tdre);
-        ImGui::BulletText("Not DCD: %u", mc6850->status.bits.not_dcd);
-        ImGui::BulletText("Not CTS: %u", mc6850->status.bits.not_cts);
-        ImGui::BulletText("Framing Error: %u", mc6850->status.bits.fe);
-        ImGui::BulletText("Receiver Overrun: %u", mc6850->status.bits.ovrn);
-        ImGui::BulletText("Parity Error: %u", mc6850->status.bits.pe);
-        ImGui::BulletText("IRQ: %u", mc6850->status.bits.irq);
+        MC6850::StatusRegister status = DebugReadMC6850StatusRegister(mc6850);
+        ImGuiByteValue("ACIA Status", status.value);
+        ImGui::BulletText("Rx Data Reg Full: %u", status.bits.rdrf);
+        ImGui::BulletText("Tx Data Reg Empty: %u", status.bits.tdre);
+        ImGui::BulletText("Not DCD: %u (DCD: %u)", status.bits.not_dcd, !status.bits.not_dcd);
+        ImGui::BulletText("Not CTS: %u (CTS: %u)", status.bits.not_cts, !status.bits.not_cts);
+        ImGui::BulletText("Framing Error: %u", status.bits.fe);
+        ImGui::BulletText("Receiver Overrun: %u", status.bits.ovrn);
+        ImGui::BulletText("Parity Error: %u", status.bits.pe);
+        ImGui::BulletText("IRQ: %u", status.bits.irq);
     }
 
   protected:
   private:
+    int GetEffectiveBaudRate(MC6850CounterDivideSelect divide_select, SERPROCBaudRate serproc_baud) const {
+        int scale;
+        switch (divide_select) {
+        case MC6850CounterDivideSelect_1:
+            scale = 64;
+            break;
+
+        case MC6850CounterDivideSelect_16:
+            scale = 4;
+            break;
+
+        case MC6850CounterDivideSelect_64:
+            scale = 1;
+            break;
+
+        default:
+            return 0;
+        }
+
+        ASSERT(serproc_baud < 8);
+        return SERPROC_BAUD_RATES[serproc_baud] * scale;
+    }
 };
 
 std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *beeb_window) {

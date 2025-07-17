@@ -86,15 +86,11 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicroState::HasSerial() const {
-    if (::HasSerial(this->type->type_id)) {
-        return true;
-    }
-
     if (this->init_flags & BBCMicroInitFlag_Serial) {
         return true;
+    } else {
+        return false;
     }
-
-    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////

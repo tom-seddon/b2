@@ -373,6 +373,7 @@ class BBCMicroState {
 
     SERPROC serproc;
     MC6850 acia;
+    uint8_t serproc_update_counter;
 
   protected:
     // Disallow values of base type. Disallow delete of pointer to base type.

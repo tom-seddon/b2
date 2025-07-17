@@ -5044,5 +5044,22 @@ unimportant.
 |       75 |     256 |    4807.692308 |   300.480769 |    75.120192 |      4807.692308 |   300.480769 |    75.120192 |
 
 
+** Random notes
+
+In RS423 mode, ~DCD=0 (DCD=1), so the receiver is always active. With
+nothing connected, valid characters are never received, so there's no
+overrun errors. But if you read the data register, a parity error or
+framing error may occur.
+
+Regarding the ULA register settings in tape mode (see
+https://beebwiki.mdfs.net/Serial_ULA):
+
+#+begin_quote
+The ULA itself ignores bits 5 to 3 and generates a receive clock of
+19.2 kHz when bit 6 is clear. (The SERPROC also disregards bits 5 and
+4 but reassigns bit 3 for another purpose, see below.) When saving,
+bits 2 to 0 as well as the ACIA clock divider govern the baud rate, as
+in serial mode, but again the MOS only adjusts the divider.
+#+end_quote
 
 * eof.

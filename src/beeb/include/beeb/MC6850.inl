@@ -20,8 +20,8 @@ EPNV(7e2, 0b000)
 EPNV(7o2, 0b001)
 EPNV(7e1, 0b010)
 EPNV(7o1, 0b011)
-EPNV(8_2, 0b100)
-EPNV(8_1, 0b101)
+EPNV(8n2, 0b100)
+EPNV(8n1, 0b101)
 EPNV(8e1, 0b110)
 EPNV(8o1, 0b111)
 EEND()
@@ -45,7 +45,23 @@ EEND()
 #define ENAME MC6850TransmitState
 EBEGIN_DERIVED(uint8_t)
 EPN(Idle)
-EPN(Bits)
+EPN(StartBit)
+EPN(DataBits)
+EPN(ParityBit)
+EPN(StopBits)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME MC6850ReceiveState
+EBEGIN_DERIVED(uint8_t)
+EPN(Idle)
+EPN(StartBit)
+EPN(DataBits)
+EPN(ParityBit)
+EPN(StopBits)
 EEND()
 #undef ENAME
 
@@ -59,3 +75,19 @@ EPN(Odd)
 EPN(Even)
 EEND()
 #undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME MC6850BitType
+EBEGIN_DERIVED(uint8_t)
+EPN(None)
+EPN(Start)
+EPN(Data)
+EPN(Parity)
+EPN(Stop)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

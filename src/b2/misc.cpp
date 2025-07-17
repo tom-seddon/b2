@@ -105,6 +105,11 @@ std::string GetCloneImpedimentsDescription(uint32_t impediments) {
             r += "BeebLink";
         }
 
+        if (impediments & BBCMicroCloneImpediment_Serial) {
+            AddCommaSeparator(&r);
+            r += "Serial";
+        }
+
         return r;
     }
 }

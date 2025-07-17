@@ -215,6 +215,10 @@ uint32_t BBCMicro::GetCloneImpediments() const {
         result |= BBCMicroCloneImpediment_BeebLink;
     }
 
+    if (!!m_state.serproc.source || !!m_state.serproc.sink) {
+        result |= BBCMicroCloneImpediment_Serial;
+    }
+
     return result;
 }
 
@@ -2582,6 +2586,8 @@ void BBCMicro::InitStuff() {
             this->SetSIO((uint16_t)(0xfe08 + i + 0), &ReadMC6850StatusRegister, &m_state.acia, &WriteMC6850ControlRegister, &m_state.acia);
             this->SetSIO((uint16_t)(0xfe08 + i + 1), &ReadMC6850DataRegister, &m_state.acia, &WriteMC6850DataRegister, &m_state.acia);
         }
+
+        m_state.serproc.acia = &m_state.acia;
     }
 
     m_state.video_ula.InitStuff();
@@ -3121,6 +3127,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
     if (m_state.init_flags & BBCMicroInitFlag_Mouse) {
         update_flags |= BBCMicroUpdateFlag_Mouse;
+    }
+
+    if (m_state.init_flags & BBCMicroInitFlag_Serial) {
+        update_flags |= BBCMicroUpdateFlag_Serial;
     }
 
 #if BBCMICRO_DEBUGGER

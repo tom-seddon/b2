@@ -649,7 +649,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= BBCMicroInitFlag_ROMBoard;
     }
 
-    if (ts->current_config.config.serial) {
+    if (HasSerial(ts->current_config.config.type_id) || ts->current_config.config.serial) {
         init_flags |= BBCMicroInitFlag_Serial;
     }
 

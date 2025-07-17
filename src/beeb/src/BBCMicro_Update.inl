@@ -262,6 +262,19 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
 
 parasite_update_done:
 
+    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Serial) != 0) {
+        static_assert(CYCLES_PER_SECOND == 4000000, "BBCMicro::Update needs updating");
+
+        //if (m_state.serproc_update_counter-- == 0) {
+
+        //    m_state.serproc_update_counter = 13;
+        //}
+
+        if (m_state.cycle_count.n % 13 == 0) {
+            UpdateSERPROC(&m_state.serproc, &m_state.acia);
+        }
+    }
+
     if (!phi2_2MHz_trailing_edge) {
 #if VIDEO_TRACK_METADATA
         video_unit->metadata.flags = 0;
@@ -988,6 +1001,10 @@ parasite_update_done:
             }
 
             m_state.old_addressable_latch = m_state.addressable_latch;
+
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Serial) != 0) {
+                M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_ACIA, m_state.acia.irq.value);
+            }
         } else {
             m_state.system_via_irq_pending = m_state.system_via.UpdatePhi2LeadingEdge();
             m_state.user_via_irq_pending = m_state.user_via.UpdatePhi2LeadingEdge();
