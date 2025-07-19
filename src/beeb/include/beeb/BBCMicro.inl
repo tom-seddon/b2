@@ -42,6 +42,7 @@ EPNV(DiskDrive, 1 << 15)
 #if ENABLE_SCSI
 EPNV(SCSI, 1 << 16)
 #endif
+EPNV(Serial, 1 << 17)
 EEND()
 #undef ENAME
 

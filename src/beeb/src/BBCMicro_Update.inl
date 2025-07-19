@@ -271,7 +271,7 @@ parasite_update_done:
         //}
 
         if (m_state.cycle_count.n % 13 == 0) {
-            UpdateSERPROC(&m_state.serproc, &m_state.acia);
+            m_state.serproc.Update();
         }
     }
 

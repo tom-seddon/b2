@@ -215,7 +215,7 @@ uint32_t BBCMicro::GetCloneImpediments() const {
         result |= BBCMicroCloneImpediment_BeebLink;
     }
 
-    if (!!m_state.serproc.source || !!m_state.serproc.sink) {
+    if (m_state.serproc.HasSource() || !!m_state.serproc.HasSink()) {
         result |= BBCMicroCloneImpediment_Serial;
     }
 
@@ -273,6 +273,9 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
         m_state.scsi->SetTrace(m_trace_flags & BBCMicroTraceFlag_SCSI ? m_trace : nullptr);
     }
 #endif
+
+    m_state.serproc.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr);
+    m_state.acia.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr);
 
     this->UpdateCPUDataBusFn();
 }
@@ -883,7 +886,7 @@ uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
 
     // There's no read/write signal for the serproc. Every access is a write.
     // Good luck!
-    WriteSERPROC(&m->m_state.serproc, a, value);
+    SERPROC::Write(&m->m_state.serproc, a, value);
 
     if (m->m_update_flags & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) {
         return value;
@@ -1100,7 +1103,7 @@ uint32_t BBCMicro::GetLEDs() {
         leds |= BBCMicroLEDFlag_ShiftLock;
     }
 
-    if (m_state.serproc.control.bits.motor) {
+    if (m_state.serproc.IsMotorOn()) {
         leds |= BBCMicroLEDFlag_TapeMotor;
     }
 
@@ -2578,16 +2581,16 @@ void BBCMicro::InitStuff() {
     if (m_state.HasSerial()) {
         // I/O: ULA/SERPROC
         for (int i = 0; i < 8; ++i) {
-            this->SetSIO((uint16_t)(0xfe10 + i), &ReadSERPROC, this, &WriteSERPROC, &m_state.serproc);
+            this->SetSIO((uint16_t)(0xfe10 + i), &ReadSERPROC, this, &SERPROC::Write, &m_state.serproc);
         }
 
         // I/O: ACIA
         for (int i = 0; i < 8; i += 2) {
-            this->SetSIO((uint16_t)(0xfe08 + i + 0), &ReadMC6850StatusRegister, &m_state.acia, &WriteMC6850ControlRegister, &m_state.acia);
-            this->SetSIO((uint16_t)(0xfe08 + i + 1), &ReadMC6850DataRegister, &m_state.acia, &WriteMC6850DataRegister, &m_state.acia);
+            this->SetSIO((uint16_t)(0xfe08 + i + 0), &MC6850::ReadStatusRegister, &m_state.acia, &MC6850::WriteControlRegister, &m_state.acia);
+            this->SetSIO((uint16_t)(0xfe08 + i + 1), &MC6850::ReadDataRegister, &m_state.acia, &MC6850::WriteDataRegister, &m_state.acia);
         }
 
-        m_state.serproc.acia = &m_state.acia;
+        m_state.serproc.Link(&m_state.acia);
     }
 
     m_state.video_ula.InitStuff();

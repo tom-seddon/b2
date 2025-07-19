@@ -11,6 +11,7 @@
 #include <shared/enum_end.h>
 
 union M6502Word;
+class Trace;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,8 @@ union M6502Word;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct MC6850 {
+class MC6850 {
+  public:
     struct ControlRegisterBits {
         MC6850CounterDivideSelect counter_divide_select : 2;
         MC6850WordSelect word_select : 3;
@@ -67,55 +69,66 @@ struct MC6850 {
     };
     CHECK_SIZEOF(IRQ, 1);
 
-    bool not_dcd = false;
-    bool not_cts = false;
-    ControlRegister control = {};
-    StatusRegister status = {};
-    uint8_t tdr = 0;
-    uint8_t rdr = 0;
+    struct TransmitResult {
+        uint8_t bit : 1;
+        MC6850BitType type : 3;
+    };
+    CHECK_SIZEOF(TransmitResult, 1);
+
     IRQ irq = {};
-    bool old_not_dcd = false;
 
-    uint8_t rx_clock = 0;
-    uint8_t rx_parity = 0;
-    uint8_t rx_data = 0;
-    uint8_t rx_mask = 0;
-    bool rx_parity_error = false;
-    bool rx_framing_error = false;
-    MC6850ReceiveState rx_state = MC6850ReceiveState_Idle;
+    static void WriteDataRegister(void *mc6850, M6502Word addr, uint8_t value);
+    static uint8_t ReadDataRegister(void *mc6850, M6502Word addr);
 
-    uint8_t tx_clock = 0;
-    uint8_t tx_data = 0;
-    uint8_t tx_mask = 0;
-    uint8_t tx_parity = 0;
-    uint8_t tx_tdre = 1;
-    MC6850TransmitState tx_state = MC6850TransmitState_Idle;
+    static void WriteControlRegister(void *mc6850, M6502Word addr, uint8_t value);
 
-    uint8_t clock_mask = 0;
-};
+    static uint8_t ReadStatusRegister(void *mc6850, M6502Word addr);
 
-struct MC6850TransmitResult {
-    uint8_t bit : 1;
-    MC6850BitType type : 3;
-};
-CHECK_SIZEOF(MC6850TransmitResult, 1);
+    void UpdateReceive(uint8_t bit);
+    TransmitResult UpdateTransmit();
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    void SetNotDCD(bool not_dcd);
 
-void WriteMC6850DataRegister(void *mc6850, M6502Word addr, uint8_t value);
-uint8_t ReadMC6850DataRegister(void *mc6850, M6502Word addr);
-
-void WriteMC6850ControlRegister(void *mc6850, M6502Word addr, uint8_t value);
-#if BBCMICRO_DEBUGGER
-MC6850::StatusRegister DebugReadMC6850StatusRegister(const MC6850 *mc6850);
+#if BBCMICRO_TRACE
+    void SetTrace(Trace *t);
 #endif
-uint8_t ReadMC6850StatusRegister(void *mc6850, M6502Word addr);
 
-void UpdateMC6850Receive(MC6850 *mc6850, uint8_t bit);
-MC6850TransmitResult UpdateMC6850Transmit(MC6850 *mc6850);
+  protected:
+  private:
+    bool m_not_dcd = false;
+    bool m_not_cts = false;
+    ControlRegister m_control = {};
+    StatusRegister m_status = {};
+    uint8_t m_tdr = 0;
+    uint8_t m_rdr = 0;
+    bool m_old_not_dcd = false;
 
-//void MaybeSetMC6850Idle(MC6850 *mc6850, bool has_input_source);
+    uint8_t m_rx_clock = 0;
+    uint8_t m_rx_parity = 0;
+    uint8_t m_rx_data = 0;
+    uint8_t m_rx_mask = 0;
+    bool m_rx_parity_error = false;
+    bool m_rx_framing_error = false;
+    MC6850ReceiveState m_rx_state = MC6850ReceiveState_Idle;
+
+    uint8_t m_tx_clock = 0;
+    uint8_t m_tx_data = 0;
+    uint8_t m_tx_mask = 0;
+    uint8_t m_tx_parity = 0;
+    uint8_t m_tx_tdre = 1;
+    MC6850TransmitState m_tx_state = MC6850TransmitState_Idle;
+
+    uint8_t m_clock_mask = 0;
+
+#if BBCMICRO_TRACE
+    Trace *m_trace = nullptr;
+#endif
+
+    void Reset();
+    StatusRegister GetStatusRegister() const;
+
+    friend class SerialDebugWindow;
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -65,54 +65,91 @@ SerialDataSink::~SerialDataSink() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void WriteSERPROC(void *serproc_, M6502Word addr, uint8_t value) {
+void SERPROC::Write(void *serproc_, M6502Word addr, uint8_t value) {
     (void)addr;
     auto serproc = (SERPROC *)serproc_;
 
-    serproc->control.value = value;
+    serproc->m_control.value = value;
 
-    serproc->tx_clock_mask = SERPROC_CLOCK_MASKS[serproc->control.bits.tx_baud];
-    serproc->rx_clock_mask = SERPROC_CLOCK_MASKS[serproc->control.bits.rx_baud];
+    serproc->m_tx_clock_mask = SERPROC_CLOCK_MASKS[serproc->m_control.bits.tx_baud];
+    serproc->m_rx_clock_mask = SERPROC_CLOCK_MASKS[serproc->m_control.bits.rx_baud];
 
-    if (serproc->control.bits.rs423) {
-        serproc->acia->not_dcd = 0;
+    if (serproc->m_control.bits.rs423) {
+        serproc->m_acia->SetNotDCD(false);
     } else {
-        serproc->acia->not_dcd = 1;
+        serproc->m_acia->SetNotDCD(true);
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void UpdateSERPROC(SERPROC *serproc, MC6850 *mc6850) {
-    if ((serproc->clock & serproc->tx_clock_mask) == 0) {
-        MC6850TransmitResult result = UpdateMC6850Transmit(mc6850);
+void SERPROC::Update() {
+    if ((m_clock & m_tx_clock_mask) == 0) {
+        MC6850::TransmitResult result = m_acia->UpdateTransmit();
 
         // TODO: should really ignore the result entirely when there's no
         // sink...
         switch (result.type) {
         case MC6850BitType_Start:
-            serproc->tx_byte = 0;
+            m_tx_byte = 0;
             break;
 
         case MC6850BitType_Data:
-            serproc->tx_byte <<= 1;
-            serproc->tx_byte |= result.bit;
+            m_tx_byte <<= 1;
+            m_tx_byte |= result.bit;
             break;
 
         case MC6850BitType_Stop:
-            if (!!serproc->sink) {
-                serproc->sink->AddByte(serproc->tx_byte);
+            if (!!m_sink) {
+                m_sink->AddByte(m_tx_byte);
             }
             break;
         }
     }
 
-    if ((serproc->clock & serproc->rx_clock_mask) == 0) {
-        UpdateMC6850Receive(mc6850, false);
+    if ((m_clock & m_rx_clock_mask) == 0) {
+        m_acia->UpdateReceive(false);
     }
 
-    //MaybeSetMC6850Idle(mc6850, !!serproc->source);
+    //MaybeSetMC6850Idle(mc6850, !!m_source);
 
-    ++serproc->clock;
+    ++m_clock;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+void SERPROC::SetTrace(Trace *t) {
+    m_trace = t;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SERPROC::HasSource() const {
+    return !!m_source;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SERPROC::HasSink() const {
+    return !!m_sink;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SERPROC::IsMotorOn() const {
+    return !!m_control.bits.motor;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SERPROC::Link(MC6850 *acia) {
+    m_acia = acia;
 }

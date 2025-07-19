@@ -4,6 +4,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
 #include <memory>
 
 #include <shared/enum_decl.h>
@@ -11,7 +12,10 @@
 #include <shared/enum_end.h>
 
 union M6502Word;
-struct MC6850;
+class MC6850;
+#if BBCMICRO_TRACE
+class Trace;
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -66,7 +70,8 @@ class SerialDataSink : public std::enable_shared_from_this<SerialDataSink> {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct SERPROC {
+class SERPROC {
+  public:
     struct ControlRegisterBits {
         SERPROCBaudRate tx_baud : 3;
         SERPROCBaudRate rx_baud : 3;
@@ -80,17 +85,39 @@ struct SERPROC {
     };
     CHECK_SIZEOF(ControlRegister, 1);
 
-    ControlRegister control = {};
-    uint8_t clock = 0;
-    uint8_t tx_clock_mask = 0;
-    uint8_t rx_clock_mask = 0;
+    static void Write(void *serproc, M6502Word addr, uint8_t value);
 
-    uint8_t tx_byte = 0;
+    void Update();
 
-    std::shared_ptr<SerialDataSource> source;
-    std::shared_ptr<SerialDataSink> sink;
+#if BBCMICRO_TRACE
+    void SetTrace(Trace *t);
+#endif
 
-    MC6850 *acia = nullptr;
+    bool HasSource() const;
+    bool HasSink() const;
+    bool IsMotorOn() const;
+
+    void Link(MC6850 *acia);
+
+  protected:
+  private:
+    ControlRegister m_control = {};
+    uint8_t m_clock = 0;
+    uint8_t m_tx_clock_mask = 0;
+    uint8_t m_rx_clock_mask = 0;
+
+    uint8_t m_tx_byte = 0;
+
+    std::shared_ptr<SerialDataSource> m_source;
+    std::shared_ptr<SerialDataSink> m_sink;
+
+    MC6850 *m_acia = nullptr;
+
+#if BBCMICRO_TRACE
+    Trace *m_trace = nullptr;
+#endif
+
+    friend class SerialDebugWindow;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -99,12 +126,12 @@ struct SERPROC {
 // Indexed by SERPROCBaudRate.
 extern const unsigned SERPROC_BAUD_RATES[8];
 
-void WriteSERPROC(void *serproc, M6502Word addr, uint8_t value);
+//void WriteSERPROC(void *serproc, M6502Word addr, uint8_t value);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void UpdateSERPROC(SERPROC *serproc, MC6850 *mc6850);
+//void UpdateSERPROC(SERPROC *serproc, MC6850 *mc6850);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -4041,23 +4041,23 @@ class SerialDebugWindow : public DebugUI {
         }
 
         ImGuiHeader("SERPROC");
-        ImGuiByteValue("SERPROC control", serproc->control.value);
-        ImGui::BulletText("Tx baud: %d", SERPROC_BAUD_RATES[serproc->control.bits.tx_baud]);
-        ImGui::BulletText("Rx baud: %d", SERPROC_BAUD_RATES[serproc->control.bits.rx_baud]);
-        ImGui::BulletText("Mode: %s", serproc->control.bits.rs423 ? "RS423" : "Tape");
-        ImGui::BulletText("Tape motor: %s", BOOL_STR_ON_OFF(serproc->control.bits.motor));
+        ImGuiByteValue("SERPROC control", serproc->m_control.value);
+        ImGui::BulletText("Tx baud: %d", SERPROC_BAUD_RATES[serproc->m_control.bits.tx_baud]);
+        ImGui::BulletText("Rx baud: %d", SERPROC_BAUD_RATES[serproc->m_control.bits.rx_baud]);
+        ImGui::BulletText("Mode: %s", serproc->m_control.bits.rs423 ? "RS423" : "Tape");
+        ImGui::BulletText("Tape motor: %s", BOOL_STR_ON_OFF(serproc->m_control.bits.motor));
 
         ImGuiHeader("ACIA Control");
-        ImGuiByteValue("ACIA Control", mc6850->control.value);
-        ImGui::BulletText("Counter divide: %s", GetMC6850CounterDivideSelectEnumName(mc6850->control.bits.counter_divide_select));
-        ImGui::BulletText("(Effective tx baud rate: ~%d)", this->GetEffectiveBaudRate(mc6850->control.bits.counter_divide_select, serproc->control.bits.tx_baud));
-        ImGui::BulletText("(Effective rx baud rate: ~%d)", this->GetEffectiveBaudRate(mc6850->control.bits.counter_divide_select, serproc->control.bits.rx_baud));
-        ImGui::BulletText("Word: %s", GetMC6850WordSelectEnumName(mc6850->control.bits.word_select));
-        ImGui::BulletText("Tx Control: %s", GetMC6850TransmitterControlEnumName(mc6850->control.bits.transmitter_control));
-        ImGui::BulletText("Rx IRQ enable: %s", BOOL_STR_ON_OFF(mc6850->control.bits.rx_irq_en));
+        ImGuiByteValue("ACIA Control", mc6850->m_control.value);
+        ImGui::BulletText("Counter divide: %s", GetMC6850CounterDivideSelectEnumName(mc6850->m_control.bits.counter_divide_select));
+        ImGui::BulletText("(Effective tx baud rate: ~%d)", this->GetEffectiveBaudRate(mc6850->m_control.bits.counter_divide_select, serproc->m_control.bits.tx_baud));
+        ImGui::BulletText("(Effective rx baud rate: ~%d)", this->GetEffectiveBaudRate(mc6850->m_control.bits.counter_divide_select, serproc->m_control.bits.rx_baud));
+        ImGui::BulletText("Word: %s", GetMC6850WordSelectEnumName(mc6850->m_control.bits.word_select));
+        ImGui::BulletText("Tx Control: %s", GetMC6850TransmitterControlEnumName(mc6850->m_control.bits.transmitter_control));
+        ImGui::BulletText("Rx IRQ enable: %s", BOOL_STR_ON_OFF(mc6850->m_control.bits.rx_irq_en));
 
         ImGuiHeader("ACIA Status");
-        MC6850::StatusRegister status = DebugReadMC6850StatusRegister(mc6850);
+        MC6850::StatusRegister status = mc6850->GetStatusRegister();
         ImGuiByteValue("ACIA Status", status.value);
         ImGui::BulletText("Rx Data Reg Full: %u", status.bits.rdrf);
         ImGui::BulletText("Tx Data Reg Empty: %u", status.bits.tdre);
