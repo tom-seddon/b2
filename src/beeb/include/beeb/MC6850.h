@@ -87,14 +87,19 @@ class MC6850 {
     void UpdateReceive(uint8_t bit);
     TransmitResult UpdateTransmit();
 
+    // The NOTs aren't unconfusing, but I found it worse trying to invert
+    // everything compared to the data sheet description.
+    bool GetNotRTS() const;
     void SetNotDCD(bool not_dcd);
+    void SetNotCTS(bool not_cts);
 
 #if BBCMICRO_TRACE
-    void SetTrace(Trace *t);
+    void SetTrace(Trace *t, bool extra_verbose);
 #endif
 
   protected:
   private:
+    IRQ m_irq = {};
     bool m_not_dcd = false;
     bool m_not_cts = false;
     ControlRegister m_control = {};
@@ -109,6 +114,7 @@ class MC6850 {
     uint8_t m_rx_mask = 0;
     bool m_rx_parity_error = false;
     bool m_rx_framing_error = false;
+    uint8_t m_rx_ovrn = 0;
     MC6850ReceiveState m_rx_state = MC6850ReceiveState_Idle;
 
     uint8_t m_tx_clock = 0;
@@ -122,10 +128,12 @@ class MC6850 {
 
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
+    bool m_trace_extra_verbose = false;
 #endif
 
     void Reset();
     StatusRegister GetStatusRegister() const;
+    void UpdateIRQs();
 
     friend class SerialDebugWindow;
 };

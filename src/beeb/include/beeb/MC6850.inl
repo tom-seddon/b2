@@ -32,10 +32,10 @@ EEND()
 
 #define ENAME MC6850TransmitterControl
 EBEGIN_DERIVED(uint8_t)
-EPNV(RTS0_NoTxIRQ, 0b00)
-EPNV(RTS0_TxIRQ, 0b01)
-EPNV(RTS1_NoTxIRQ, 0b10)
-EPNV(RTS0_Brk_NoTXIRQ, 0b11)
+EPNV(nRTS0_NoTxIRQ, 0b00)
+EPNV(nRTS0_TxIRQ, 0b01)
+EPNV(nRTS1_NoTxIRQ, 0b10)
+EPNV(nRTS0_Brk_NoTXIRQ, 0b11)
 EEND()
 #undef ENAME
 
@@ -45,7 +45,7 @@ EEND()
 #define ENAME MC6850TransmitState
 EBEGIN_DERIVED(uint8_t)
 EPN(Idle)
-EPN(StartBit)
+//EPN(StartBit)
 EPN(DataBits)
 EPN(ParityBit)
 EPN(StopBits)
@@ -86,6 +86,7 @@ EPN(Start)
 EPN(Data)
 EPN(Parity)
 EPN(Stop)
+EPN(Break)
 EEND()
 #undef ENAME
 

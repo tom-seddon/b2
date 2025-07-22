@@ -368,6 +368,9 @@ void TraceUI::DoImGui() {
             DoTraceFlag(&flags_seen, BBCMicroTraceFlag_UserVIA, "User VIA");
             DoTraceFlag(&flags_seen, BBCMicroTraceFlag_UserVIAExtra, "Extra", true);
 
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_Serial, "Serial");
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_SerialExtra, "Extra", true);
+
             for (uint32_t i = 1; i != 0; i <<= 1) {
                 if (!(flags_seen & i)) {
                     const char *name = GetBBCMicroTraceFlagEnumName(i);

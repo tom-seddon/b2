@@ -275,7 +275,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 #endif
 
     m_state.serproc.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr);
-    m_state.acia.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr);
+    m_state.acia.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr, !!(m_trace_flags & BBCMicroTraceFlag_SerialExtra));
 
     this->UpdateCPUDataBusFn();
 }

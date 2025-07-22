@@ -3,6 +3,7 @@
 #include <beeb/6502.h>
 #include <beeb/MC6850.h>
 #include <beeb/conf.h>
+#include <beeb/Trace.h>
 
 #include <shared/enum_def.h>
 #include <beeb/serproc.inl>
@@ -79,6 +80,13 @@ void SERPROC::Write(void *serproc_, M6502Word addr, uint8_t value) {
     } else {
         serproc->m_acia->SetNotDCD(true);
     }
+
+    TRACEF(serproc->m_trace, "SERPROC Write - $%02x (%03u) (%%%s): Tx=%d; Rx=%d; RS423=%d; Motor=%d",
+           value, value, BINARY_BYTE_STRINGS[value],
+           SERPROC_BAUD_RATES[serproc->m_control.bits.tx_baud],
+           SERPROC_BAUD_RATES[serproc->m_control.bits.rx_baud],
+           serproc->m_control.bits.rs423,
+           serproc->m_control.bits.motor);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -111,8 +119,6 @@ void SERPROC::Update() {
     if ((m_clock & m_rx_clock_mask) == 0) {
         m_acia->UpdateReceive(false);
     }
-
-    //MaybeSetMC6850Idle(mc6850, !!m_source);
 
     ++m_clock;
 }

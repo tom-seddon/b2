@@ -43,6 +43,7 @@ EPNV(DiskDrive, 1 << 15)
 EPNV(SCSI, 1 << 16)
 #endif
 EPNV(Serial, 1 << 17)
+EPNV(SerialExtra, 1 << 18)
 EEND()
 #undef ENAME
 

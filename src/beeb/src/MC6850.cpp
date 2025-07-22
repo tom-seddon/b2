@@ -2,6 +2,7 @@
 #include <shared/debug.h>
 #include <beeb/MC6850.h>
 #include <beeb/6502.h>
+#include <beeb/Trace.h>
 
 #include <shared/enum_def.h>
 #include <beeb/MC6850.inl>
@@ -45,7 +46,8 @@ void MC6850::WriteDataRegister(void *mc6850_, M6502Word addr, uint8_t value) {
 
     mc6850->m_tdr = value;
     mc6850->m_tx_tdre = 0;
-    mc6850->irq.bits.tx = 0;
+    mc6850->m_irq.bits.tx = 0;
+    mc6850->UpdateIRQs();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -57,8 +59,16 @@ uint8_t MC6850::ReadDataRegister(void *mc6850_, M6502Word addr) {
 
     mc6850->m_status.bits.rdrf = 0;
     mc6850->m_status.bits.ovrn = 0;
-    mc6850->irq.bits.rx = 0;
-    mc6850->m_status.bits.not_dcd = mc6850->m_not_dcd;
+    mc6850->m_irq.bits.rx = 0;
+    mc6850->UpdateIRQs();
+    //mc6850->m_status.bits.not_dcd = mc6850->m_not_dcd;
+
+    if (mc6850->m_rx_ovrn) {
+        mc6850->m_status.bits.ovrn = 1;
+        mc6850->m_rx_ovrn = 0;
+    } else {
+        mc6850->m_status.bits.ovrn = 0;
+    }
 
     return mc6850->m_rdr;
 }
@@ -89,6 +99,8 @@ void MC6850::WriteControlRegister(void *mc6850_, M6502Word addr, uint8_t value) 
         mc6850->Reset();
         break;
     }
+
+    mc6850->UpdateIRQs();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -144,12 +156,11 @@ static inline bool UpdateStopBitsTransferMask(uint8_t *mask, StateType *state, M
 void MC6850::UpdateReceive(uint8_t bit) {
     // "The Rx CLK must be running for proper /DCD operation" - so presumably
     // the pin is polled as part of the receive processing?
-    if (m_control.bits.rx_irq_en) {
-        if (!m_old_not_dcd && m_not_dcd) {
-            this->irq.bits.rx = 1;
-            m_old_not_dcd = m_not_dcd;
-            m_status.bits.not_dcd = 1;
-        }
+    if (!m_old_not_dcd && m_not_dcd) {
+        m_irq.bits.rx = 1;
+        this->UpdateIRQs();
+        m_old_not_dcd = m_not_dcd;
+        //m_status.bits.not_dcd = 1;
     }
 
     if ((m_rx_clock++ & m_clock_mask) == 0) {
@@ -207,13 +218,15 @@ void MC6850::UpdateReceive(uint8_t bit) {
 
                 if (UpdateStopBitsTransferMask(&m_rx_mask, &m_rx_state, m_control, MC6850ReceiveState_StartBit)) {
                     if (m_status.bits.rdrf) {
-                        m_status.bits.ovrn = 1;
+                        m_rx_ovrn = 1;
+                        //m_status.bits.ovrn = 1;
                     } else {
                         m_status.bits.rdrf = 1;
                         m_rdr = m_rx_data;
                     }
 
-                    this->irq.bits.rx = m_control.bits.rx_irq_en;
+                    m_irq.bits.rx = 1;
+                    this->UpdateIRQs();
                 }
             }
             break;
@@ -232,18 +245,22 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
             break;
 
         case MC6850TransmitState_Idle:
+            if (m_control.bits.transmitter_control == MC6850TransmitterControl_nRTS0_Brk_NoTXIRQ) {
+                return {0, MC6850BitType_Break};
+            }
+
             if (m_tx_tdre) {
                 break;
             }
 
             m_tx_data = m_tdr;
-            m_tx_state = MC6850TransmitState_StartBit;
             m_tx_tdre = 1;
-            [[fallthrough]];
-        case MC6850TransmitState_StartBit:
+            m_irq.bits.tx = 1;
+            this->UpdateIRQs();
             m_tx_state = MC6850TransmitState_DataBits;
             m_tx_mask = 1;
             m_tx_parity = 0;
+            TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Start: m_tx_data=$%02x %u %%%s %s", m_tx_data, m_tx_data, BINARY_BYTE_STRINGS[m_tx_data], ASCII_BYTE_STRINGS[m_tx_data]);
             return {0, MC6850BitType_Start};
 
         case MC6850TransmitState_DataBits:
@@ -251,6 +268,9 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
                 TransmitResult result = {!!(m_tx_data & m_tx_mask), MC6850BitType_Data};
 
                 m_tx_parity ^= result.bit;
+
+                // Do the log before updating the mask...
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Data: m_tx_mask=$%02x; result=%u", m_tx_mask, result.bit);
 
                 UpdateDataTransferMask(&m_tx_mask, &m_tx_state, m_control, MC6850TransmitState_ParityBit, MC6850TransmitState_StopBits);
 
@@ -270,14 +290,17 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
                 m_tx_mask = 1;
                 m_tx_state = MC6850TransmitState_StopBits;
 
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Parity: result=%u", m_tx_parity);
+
                 return {m_tx_parity, MC6850BitType_Parity};
             }
 
         case MC6850TransmitState_StopBits:
             {
-                if (UpdateStopBitsTransferMask(&m_tx_mask, &m_tx_state, m_control, MC6850TransmitState_Idle)) {
-                    this->irq.bits.tx = m_control.bits.transmitter_control == MC6850TransmitterControl_RTS0_TxIRQ;
-                }
+                UpdateStopBitsTransferMask(&m_tx_mask, &m_tx_state, m_control, MC6850TransmitState_Idle);
+
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Stop");
+
                 return {1, MC6850BitType_Stop};
             }
         }
@@ -290,6 +313,13 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool MC6850::GetNotRTS() const {
+    return m_control.bits.transmitter_control == MC6850TransmitterControl_nRTS1_NoTxIRQ;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void MC6850::SetNotDCD(bool not_dcd) {
     m_not_dcd = not_dcd;
 }
@@ -297,9 +327,17 @@ void MC6850::SetNotDCD(bool not_dcd) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void MC6850::SetNotCTS(bool not_cts) {
+    m_not_cts = not_cts;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_TRACE
-void MC6850::SetTrace(Trace *t) {
+void MC6850::SetTrace(Trace *t, bool extra_verbose) {
     m_trace = t;
+    m_trace_extra_verbose = extra_verbose;
 }
 #endif
 
@@ -324,10 +362,21 @@ void MC6850::Reset() {
 MC6850::StatusRegister MC6850::GetStatusRegister() const {
     MC6850::StatusRegister status = m_status;
 
+    status.bits.not_dcd = m_not_dcd;
+    status.bits.not_cts = m_not_cts;
+
     if (m_control.bits.counter_divide_select != MC6850CounterDivideSelect_MasterReset) {
-        status.bits.tdre = m_tx_tdre && m_not_cts;
+        status.bits.tdre = m_tx_tdre && !m_not_cts;
         status.bits.irq = this->irq.value != 0;
     }
 
     return status;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MC6850::UpdateIRQs() {
+    this->irq.bits.rx = m_irq.bits.rx & m_control.bits.rx_irq_en;
+    this->irq.bits.tx = m_irq.bits.tx && m_control.bits.transmitter_control == MC6850TransmitterControl_nRTS0_TxIRQ;
 }
