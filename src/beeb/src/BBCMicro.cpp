@@ -2034,6 +2034,10 @@ std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
 
     ROMType type = (ROMType)(flags_ >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
     if (type != ROMType_16KB) {
+        if (!expr.empty()) {
+            expr += "|";
+        }
+
         const char *type_name = GetBBCMicroUpdateROMTypeEnumName(type);
         if (type_name[0] == '?') {
             expr += "(BBCMicroUpdateROMType)" + std::to_string((int)type);
