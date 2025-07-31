@@ -589,3 +589,13 @@ options` submenu. (See the Copy to clipboard section above.) One thing
 to note though is that delete handling is not as useful as with text
 output because 127 chars are stripped from the output unless
 explicitly sent using VDU 1.
+
+## Serial
+
+There is some basic emulation of the serial hardware, and the emulated
+BBC will act mostly as if there's nothing connected to its serial
+port. This is a work in progress and will improve.
+
+## Tape
+
+Tapes are not currently supported. Apologies.

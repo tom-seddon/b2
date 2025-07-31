@@ -11,11 +11,12 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool Is7Bit(MC6850WordSelect value) {
-    return !!(value & 4);
-}
+static constexpr uint8_t END_MASK[2] = {
+    0x80,
+    0x00,
+};
 
-static const MC6850Parity PARITY_BY_WORD_SELECT[8] = {
+static constexpr MC6850Parity PARITY_BY_WORD_SELECT[8] = {
     MC6850Parity_Even,
     MC6850Parity_Odd,
     MC6850Parity_Even,
@@ -26,7 +27,7 @@ static const MC6850Parity PARITY_BY_WORD_SELECT[8] = {
     MC6850Parity_Odd,
 };
 
-static const bool ONE_STOP_BIT_BY_WORD_SELECT[8] = {
+static constexpr bool ONE_STOP_BIT_BY_WORD_SELECT[8] = {
     false,
     false,
     true,
@@ -82,6 +83,12 @@ void MC6850::WriteControlRegister(void *mc6850_, M6502Word addr, uint8_t value) 
 
     mc6850->m_control.value = value;
 
+    TRACEF(mc6850->m_trace, "MC6850 - Write Control Register: CDS=%s; WS=%s; TC=%s; IRQ=%u",
+           GetMC6850CounterDivideSelectEnumName(mc6850->m_control.bits.counter_divide_select),
+           GetMC6850WordSelectEnumName(mc6850->m_control.bits.word_select),
+           GetMC6850TransmitterControlEnumName(mc6850->m_control.bits.transmitter_control),
+           mc6850->m_control.bits.rx_irq_en);
+
     switch (mc6850->m_control.bits.counter_divide_select) {
     case MC6850CounterDivideSelect_1:
         mc6850->m_clock_mask = 0;
@@ -121,9 +128,7 @@ template <class StateType>
 static inline void UpdateDataTransferMask(uint8_t *mask, StateType *state, MC6850::ControlRegister control, StateType parity_state, StateType no_parity_state) {
     *mask <<= 1;
 
-    if (*mask == 0 ||
-        (*mask == 0x80 && Is7Bit(control.bits.word_select))) {
-        // Reset mask for stop bits transmission.
+    if (*mask == END_MASK[control.bits.word_select >> 2]) {
         *mask = 1;
 
         if (PARITY_BY_WORD_SELECT[control.bits.word_select] == MC6850Parity_None) {
@@ -160,7 +165,6 @@ void MC6850::UpdateReceive(uint8_t bit) {
         m_irq.bits.rx = 1;
         this->UpdateIRQs();
         m_old_not_dcd = m_not_dcd;
-        //m_status.bits.not_dcd = 1;
     }
 
     if ((m_rx_clock++ & m_clock_mask) == 0) {
@@ -170,10 +174,16 @@ void MC6850::UpdateReceive(uint8_t bit) {
             break;
 
         case MC6850ReceiveState_Idle:
+            if (!m_not_dcd) {
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Rx Idle: /DCD=0");
+                m_rx_state = MC6850ReceiveState_StartBit;
+            }
             break;
 
         case MC6850ReceiveState_StartBit:
             if (!bit) {
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Rx StartBit: got start bit");
+
                 m_rx_state = MC6850ReceiveState_DataBits;
                 m_rx_mask = 1;
                 m_rx_data = 0;
@@ -189,6 +199,8 @@ void MC6850::UpdateReceive(uint8_t bit) {
                 m_rx_parity ^= 1;
             }
 
+            TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Rx DataBits: m_rx_mask=$%02x", m_rx_mask);
+
             UpdateDataTransferMask(&m_rx_mask, &m_rx_state, m_control, MC6850ReceiveState_ParityBit, MC6850ReceiveState_StopBits);
 
             break;
@@ -201,7 +213,15 @@ void MC6850::UpdateReceive(uint8_t bit) {
                     m_rx_parity ^= 1;
                 }
 
-                if (m_rx_parity != (bit != 0)) {
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Rx ParityBit: got %d, expected %u (data=%%%s ($%02x); mode=%s)",
+                          bit,
+                          m_rx_parity,
+                          BINARY_BYTE_STRINGS[m_rx_data], m_rx_data,
+                          GetMC6850WordSelectEnumName(m_control.bits.word_select));
+
+                // rx_parity is 1 if the expected parity is correct - in which
+                // case the parity bit will be clear as no more 1s are required.
+                if (m_rx_parity != (bit == 0)) {
                     m_rx_parity_error = true;
                 }
 
@@ -216,6 +236,8 @@ void MC6850::UpdateReceive(uint8_t bit) {
                     m_rx_framing_error = true;
                 }
 
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Rx StopBit: got %d: rx_framing_error=%d, rx_ovrn=%d", bit, m_rx_framing_error, m_rx_ovrn);
+
                 if (UpdateStopBitsTransferMask(&m_rx_mask, &m_rx_state, m_control, MC6850ReceiveState_StartBit)) {
                     if (m_status.bits.rdrf) {
                         m_rx_ovrn = 1;
@@ -223,6 +245,8 @@ void MC6850::UpdateReceive(uint8_t bit) {
                     } else {
                         m_status.bits.rdrf = 1;
                         m_rdr = m_rx_data;
+                        m_status.bits.fe = m_rx_framing_error;
+                        m_status.bits.pe = m_rx_parity_error;
                     }
 
                     m_irq.bits.rx = 1;
@@ -260,7 +284,7 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
             m_tx_state = MC6850TransmitState_DataBits;
             m_tx_mask = 1;
             m_tx_parity = 0;
-            TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Start: m_tx_data=$%02x %u %%%s %s", m_tx_data, m_tx_data, BINARY_BYTE_STRINGS[m_tx_data], ASCII_BYTE_STRINGS[m_tx_data]);
+            TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Tx BitType_Start: m_tx_data=$%02x %u %%%s %s", m_tx_data, m_tx_data, BINARY_BYTE_STRINGS[m_tx_data], ASCII_BYTE_STRINGS[m_tx_data]);
             return {0, MC6850BitType_Start};
 
         case MC6850TransmitState_DataBits:
@@ -270,7 +294,7 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
                 m_tx_parity ^= result.bit;
 
                 // Do the log before updating the mask...
-                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Data: m_tx_mask=$%02x; result=%u", m_tx_mask, result.bit);
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Tx BitType_Data: m_tx_mask=$%02x; result=%u", m_tx_mask, result.bit);
 
                 UpdateDataTransferMask(&m_tx_mask, &m_tx_state, m_control, MC6850TransmitState_ParityBit, MC6850TransmitState_StopBits);
 
@@ -290,7 +314,7 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
                 m_tx_mask = 1;
                 m_tx_state = MC6850TransmitState_StopBits;
 
-                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Parity: result=%u", m_tx_parity);
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Tx BitType_Parity: result=%u", m_tx_parity);
 
                 return {m_tx_parity, MC6850BitType_Parity};
             }
@@ -299,7 +323,7 @@ MC6850::TransmitResult MC6850::UpdateTransmit() {
             {
                 UpdateStopBitsTransferMask(&m_tx_mask, &m_tx_state, m_control, MC6850TransmitState_Idle);
 
-                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - BitType_Stop");
+                TRACEF_IF(m_trace_extra_verbose, m_trace, "MC6850 - Tx BitType_Stop");
 
                 return {1, MC6850BitType_Stop};
             }
