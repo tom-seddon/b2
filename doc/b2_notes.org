@@ -5065,11 +5065,11 @@ in serial mode, but again the MOS only adjusts the divider.
 * WIP build notes
 
 #+begin_src markdown
-  ,**Note**: a UI library update means your window layout will be lost, and you'll have to recreate it. Sorry! I hope this won't happen too often.
+  ,**Note**: a UI library update means your window layout will be lost, and you'll have to recreate it. Apologies.
 
   ,* Add an error for unrecognised HTTP API query parameters
-  ,* Add automatic CMOS/EEPROM saving
-  ,* Add audio low pass filter
+  ,* Add automatic saving of CMOS/EEPROM saving
+  ,* Add optional audio low pass filter 
   ,* Add configurable debugger syntax
   ,* Add emulation of BBC B without rom board
   ,* Add lossless video recording: produces a sequence of uncompressed TGAs and WAV files suitable for later compressing with another tool (e.g., ffmpeg)
