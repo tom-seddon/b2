@@ -5062,4 +5062,28 @@ bits 2 to 0 as well as the ACIA clock divider govern the baud rate, as
 in serial mode, but again the MOS only adjusts the divider.
 #+end_quote
 
+* WIP build notes
+
+#+begin_src markdown
+  ,**Note**: a UI library update means your window layout will be lost, and you'll have to recreate it. Sorry! I hope this won't happen too often.
+
+  ,* Add an error for unrecognised HTTP API query parameters
+  ,* Add automatic CMOS/EEPROM saving
+  ,* Add audio low pass filter
+  ,* Add configurable debugger syntax
+  ,* Add emulation of BBC B without rom board
+  ,* Add lossless video recording: produces a sequence of uncompressed TGAs and WAV files suitable for later compressing with another tool (e.g., ffmpeg)
+  ,* Add optional background economy mode: make b2 use a bit less CPU time when not in focus
+  ,* Add SCSI hard disk emulation (compatible with standard Acorn ADFS)
+  ,* Fix handling of £ (ASCII 96 in the BBC character set) in the debugger
+  ,* Fix video output aspect ratio
+  ,* Fix occasional disk fault errors when using Opus Challenger
+  ,* Improve debugger setting persistence (this will be an ongoing effort)
+  ,* Improve memory emulation: fix handling of write-only I/O registers, empty ROM sockets and 1 MHz I/O regions on Master
+  ,* Improve Video NuLA accuracy
+  ,* macOS/Linux: prefer FLAC (lossless) audio encoding when available
+  ,* Windows: video audio output is now always FLAC (lossless)
+  ,* Update GUI library
+#+end_src
+
 * eof.
