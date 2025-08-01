@@ -207,6 +207,7 @@ class BBCMicroState {
     const SCSI *DebugGetSCSI() const;
 #endif
     bool DebugGetSerial(const SERPROC **serproc_ptr, const MC6850 **mc6850_ptr) const;
+    void DebugGetMemoryFaultMasks(uint8_t *ram_and_ptr, uint8_t *ram_or_ptr) const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -232,6 +233,10 @@ class BBCMicroState {
   protected:
     uint8_t ic15_byte = 0;
     uint8_t last_fetched_video_byte = 0;
+#if BBCMICRO_DEBUGGER
+    uint8_t ram_and = 0xff;
+    uint8_t ram_or = 0x00;
+#endif
 
     // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
     uint16_t shadow_select_mask = 0x0000;
