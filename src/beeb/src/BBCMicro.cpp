@@ -2134,7 +2134,7 @@ void BBCMicro::PrintInfo(Log *log) {
 
         for (const auto &it : update_mfns) {
             if (it.second.size() > 1) {
-                log->f("0x%x (%s):\n", it.first, GetUpdateFlagExpr(it.second[0]).c_str());
+                log->f("0x%x (%s):\n", it.second[0], GetUpdateFlagExpr(it.second[0]).c_str());
                 for (size_t i = 1; i < it.second.size(); ++i) {
                     log->f("    0x%x (%s)\n", it.second[i], GetUpdateFlagExpr(it.second[i]).c_str());
                 }

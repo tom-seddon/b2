@@ -81,7 +81,7 @@ void SERPROC::Write(void *serproc_, M6502Word addr, uint8_t value) {
         serproc->m_acia->SetNotDCD(true);
     }
 
-    TRACEF(serproc->m_trace, "SERPROC - Write $%02x (%03u) (%%%s): Tx=%d; Rx=%d; RS423=%d; Motor=%d",
+    TRACEF(serproc->m_trace, "SERPROC - Write $%02x (%03u) (%%%s): Tx=%u; Rx=%u; RS423=%d; Motor=%d",
            value, value, BINARY_BYTE_STRINGS[value],
            SERPROC_BAUD_RATES[serproc->m_control.bits.tx_baud],
            SERPROC_BAUD_RATES[serproc->m_control.bits.rx_baud],
@@ -99,6 +99,9 @@ void SERPROC::Update() {
         // TODO: should really ignore the result entirely when there's no
         // sink...
         switch (result.type) {
+        default:
+            break;
+            
         case MC6850BitType_Start:
             m_tx_byte = 0;
             break;

@@ -4042,8 +4042,8 @@ class SerialDebugWindow : public DebugUI {
 
         ImGuiHeader("SERPROC");
         ImGuiByteValue("SERPROC control", serproc->m_control.value);
-        ImGui::BulletText("Tx baud: %d", SERPROC_BAUD_RATES[serproc->m_control.bits.tx_baud]);
-        ImGui::BulletText("Rx baud: %d", SERPROC_BAUD_RATES[serproc->m_control.bits.rx_baud]);
+        ImGui::BulletText("Tx baud: %u", SERPROC_BAUD_RATES[serproc->m_control.bits.tx_baud]);
+        ImGui::BulletText("Rx baud: %u", SERPROC_BAUD_RATES[serproc->m_control.bits.rx_baud]);
         ImGui::BulletText("Mode: %s", serproc->m_control.bits.rs423 ? "RS423" : "Tape");
         ImGui::BulletText("Tape motor: %s", BOOL_STR_ON_OFF(serproc->m_control.bits.motor));
 
@@ -4071,8 +4071,8 @@ class SerialDebugWindow : public DebugUI {
 
   protected:
   private:
-    int GetEffectiveBaudRate(MC6850CounterDivideSelect divide_select, SERPROCBaudRate serproc_baud) const {
-        int scale;
+    unsigned GetEffectiveBaudRate(MC6850CounterDivideSelect divide_select, SERPROCBaudRate serproc_baud) const {
+        unsigned scale;
         switch (divide_select) {
         case MC6850CounterDivideSelect_1:
             scale = 64;
