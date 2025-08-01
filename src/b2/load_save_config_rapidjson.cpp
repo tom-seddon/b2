@@ -144,75 +144,6 @@ static bool FindBoolMember(bool *value, rapidjson::Value *object, const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const char *(*get_name_fn)(uint32_t)) {
-    for (uint32_t mask = 1; mask != 0; mask <<= 1) {
-        const char *name = (*get_name_fn)(mask);
-        if (name[0] == '?') {
-            continue;
-        }
-
-        if (!(flags & mask)) {
-            continue;
-        }
-
-        writer->String(name);
-    }
-}
-
-template <class T>
-static void SaveFlags(JSONWriter<StringStream> *writer, EnumFlags<T> flags) {
-    SaveFlags(writer, flags.value, EnumTraits<T>::GET_NAME_FN);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(uint32_t), Messages *msg) {
-    rapidjson::Value array;
-    if (!FindArrayMember(&array, object, key, msg)) {
-        return false;
-    }
-
-    bool good = true;
-    *flags = 0;
-
-    for (rapidjson::SizeType i = 0; i < array.Size(); ++i) {
-        if (array[i].IsString()) {
-            bool found = false;
-            const char *flag_name = array[i].GetString();
-
-            for (uint32_t mask = 1; mask != 0; mask <<= 1) {
-                const char *name = (*get_name_fn)(mask);
-                if (name[0] == '?') {
-                    continue;
-                }
-
-                if (strcmp(flag_name, name) == 0) {
-                    found = true;
-                    *flags |= mask;
-                    break;
-                }
-            }
-
-            if (!found) {
-                msg->e.f("unknown %s: %s\n", what, flag_name);
-                good = false;
-            }
-        }
-    }
-
-    return good;
-}
-
-template <class T>
-static bool FindFlagsMember(EnumFlags<T> &flags, rapidjson::Value *object, const char *key, const char *what, Messages *msg) {
-    bool good = FindFlagsMember(&flags.value, object, key, what, EnumTraits<T>::GET_NAME_FN, msg);
-    return good;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 template <class EnumType, class EnumBaseType>
 static void SaveEnum(JSONWriter<StringStream> *writer, EnumType value, const char *(*get_name_fn)(EnumBaseType)) {
     const char *name = (*get_name_fn)(value);
@@ -547,7 +478,7 @@ static void AddDefaultBeebKeymaps() {
 }
 
 static void AddDefaultBeebConfigs(bool force) {
-    const uint32_t old_features_seen = BeebWindows::GetBeebConfigFeatureFlags();
+    const uint32_t old_features_seen = g_global_settings.feature_flags;
     uint32_t new_features_seen = old_features_seen;
 
     for (size_t i = 0; i < GetNumDefaultBeebConfigs(); ++i) {
@@ -560,7 +491,7 @@ static void AddDefaultBeebConfigs(bool force) {
         }
     }
 
-    BeebWindows::SetBeebConfigFeatureFlags(new_features_seen);
+    g_global_settings.feature_flags = new_features_seen;
 }
 
 static void EnsureDefaultBeebKeymapsAvailable() {
@@ -576,12 +507,9 @@ static bool LoadGlobals(rapidjson::Value *globals,
                         Messages *msg) {
     (void)msg;
 
-    FindBoolMember(&g_option_vsync, globals, VSYNC, nullptr);
+    JSON j = LoadNLohmannJSON(*globals);
 
-    uint32_t feature_flags = 0;
-    if (FindFlagsMember(&feature_flags, globals, FEATURE_FLAGS, "feature flag", &GetBeebConfigFeatureFlagEnumName, msg)) {
-        BeebWindows::SetBeebConfigFeatureFlags(feature_flags);
-    }
+    j.Load(&g_global_settings);
 
     return true;
 }
@@ -589,15 +517,7 @@ static bool LoadGlobals(rapidjson::Value *globals,
 static void SaveGlobals(JSONWriter<StringStream> *writer) {
     auto globals_json = ObjectWriter(writer, GLOBALS);
     {
-        writer->Key(VSYNC);
-        writer->Bool(g_option_vsync);
-
-        {
-            auto feature_flags_json = ArrayWriter(writer, FEATURE_FLAGS);
-
-            uint32_t feature_flags = BeebWindows::GetBeebConfigFeatureFlags();
-            SaveFlags(writer, feature_flags, &GetBeebConfigFeatureFlagEnumName);
-        }
+        SaveNLohmannJSONObjectContents(writer, nlohmann::json(g_global_settings));
     }
 }
 

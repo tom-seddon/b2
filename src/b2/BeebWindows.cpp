@@ -34,7 +34,6 @@ struct BeebWindowsState {
 
     std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
 
-    uint32_t configs_feature_flags = 0;
     std::vector<std::unique_ptr<BeebConfig>> configs;
 
     std::vector<uint8_t> last_window_placement_data;
@@ -417,20 +416,6 @@ bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config, const std::s
     }
 
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint32_t BeebWindows::GetBeebConfigFeatureFlags() {
-    return g_->configs_feature_flags;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::SetBeebConfigFeatureFlags(uint32_t feature_flags) {
-    g_->configs_feature_flags = feature_flags;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1338,7 +1338,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_reset_dock_windows_command)) {
-        //m_imgui_stuff->ResetDockContext();
+        this->ResetImGuiWindows();
     }
 
     m_cst.SetTicked(g_paste_command, m_beeb_thread->IsPasting());
@@ -3168,8 +3168,11 @@ bool BeebWindow::InitInternal() {
     //        m_beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(false));
     //    }
 
-    if (reset_windows) {
-        // TODO...
+    if (reset_windows || !g_global_settings.imgui_1_91_window_reset_done) {
+        this->ResetImGuiWindows();
+
+        // (either way, they got reset, no need to do it again.)
+        g_global_settings.imgui_1_91_window_reset_done = true;
     }
 
     m_display_size_options.push_back("Auto");
@@ -3831,3 +3834,7 @@ void BeebWindow::ShowPrioritizeCommandShortcutsStatus() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::ResetImGuiWindows() {
+    m_settings.popups = 0;
+}

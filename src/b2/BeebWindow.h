@@ -533,6 +533,7 @@ class BeebWindow {
 #endif
 
     void ShowPrioritizeCommandShortcutsStatus();
+    void ResetImGuiWindows();
 
     // Keep this at the end. It's massive.
     mutable Messages m_msg;

@@ -145,7 +145,7 @@ static Uint32 g_first_event_type;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool g_option_vsync = true;
+GlobalSettings g_global_settings;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1401,15 +1401,15 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
         // Ugh. This thing here is really a bit of a bodge...
         if (options.vsync) {
-            g_option_vsync = true;
+            g_global_settings.vsync = true;
         } else if (options.timer) {
-            g_option_vsync = false;
+            g_global_settings.vsync = false;
         }
 
         g_vblank_handler = std::make_unique<b2VBlankHandler>();
-        init_messages.i.f("Timing method: %s\n", g_option_vsync ? "vsync" : "timer");
+        init_messages.i.f("Timing method: %s\n", g_global_settings.vsync ? "vsync" : "timer");
         std::unique_ptr<VBlankMonitor> vblank_monitor = CreateVBlankMonitor(g_vblank_handler.get(),
-                                                                            !g_option_vsync,
+                                                                            !g_global_settings.vsync,
                                                                             &init_messages);
         if (!vblank_monitor) {
             init_messages.e.f("Failed to initialise vblank monitor.\n");
