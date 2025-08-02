@@ -555,6 +555,14 @@ void BeebWindow::OptionsUI::DoImGui() {
                 }));
         }
 
+        bool teletext_dim_flash = beeb_state->saa5050.dim_flash;
+        if (ImGui::Checkbox("Show teletext flash as dim", &teletext_dim_flash)) {
+            m_beeb_window->m_beeb_thread->Send(
+                std::make_shared<BeebThread::CallbackMessage>([teletext_dim_flash](BBCMicro *m) -> void {
+                    m->SetTeletextDimFlash(teletext_dim_flash);
+                }));
+        }
+
         ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
         if (ImGui::Checkbox("Test pattern", &m_beeb_window->m_test_pattern)) {
             if (m_beeb_window->m_test_pattern) {

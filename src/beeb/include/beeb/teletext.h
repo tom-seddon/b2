@@ -21,6 +21,7 @@ class SAA5050 {
   public:
 #if BBCMICRO_DEBUGGER
     bool debug = false;
+    bool dim_flash = false;
 #endif
 
     SAA5050();

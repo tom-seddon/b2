@@ -309,6 +309,7 @@ class BBCMicro : private WD1770Handler {
 #if BBCMICRO_DEBUGGER
     //bool GetTeletextDebug() const;
     void SetTeletextDebug(bool teletext_debug);
+    void SetTeletextDimFlash(bool dim_flash);
 #endif
 
     // Result is a combination of BBCMicroUpdateResultFlag values.
