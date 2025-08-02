@@ -570,6 +570,67 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGui::Checkbox("6845 rows", &m_beeb_window->m_tv.show_6845_row_markers);
         ImGui::SameLine();
         ImGui::Checkbox("6845 DISPEN", &m_beeb_window->m_tv.show_6845_dispen_markers);
+
+        ImGui::TextUnformatted("RAM errors");
+
+        uint8_t ram_and, ram_or;
+        beeb_state->DebugGetMemoryFaultMasks(&ram_and, &ram_or);
+
+        bool changed = false;
+
+        for (int bit_index = 0; bit_index < 8; ++bit_index) {
+            ImGuiIDPusher pusher(bit_index);
+
+            if (bit_index > 0) {
+                ImGui::SameLine();
+            }
+
+            int bit = 7 - bit_index;
+            uint8_t mask = 1 << bit;
+
+            bool and = !!(ram_and & mask);
+            bool or = !!(ram_or & mask);
+
+            int value;
+            if (!and&&! or) {
+                value = 0;
+            } else if (and&&! or) {
+                value = 2;
+            } else {
+                value = 1;
+            }
+
+            char caption[2] = {};
+            caption[0] = "01-"[value];
+
+            if (ImGui::Button(caption)) {
+                value = (value + 1) % 3;
+                changed = true;
+
+                if (value == 0) {
+                    ram_and &= ~mask;
+                    ram_or &= ~mask;
+                } else if (value == 1) {
+                    ram_and &= ~mask;
+                    ram_or |= mask;
+                } else {
+                    ram_and |= mask;
+                    ram_or &= ~mask;
+                }
+            }
+
+            ImGui::SameLine();
+            ImGui::Text("%d", bit);
+        }
+
+        if (changed) {
+            m_beeb_window->m_beeb_thread->Send(
+                std::make_shared<BeebThread::CallbackMessage>(
+                    std::function<void(BBCMicro *)>(),
+                    [ram_and, ram_or](BBCMicro *m) -> void {
+                        m->SetMemoryAccessErrorMasks(ram_and, ram_or);
+                    }));
+        }
     }
 #endif
 }

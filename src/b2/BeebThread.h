@@ -808,16 +808,20 @@ class BeebThread {
     // once, when the message is prepared.
     class CallbackMessage : public Message {
       public:
-        explicit CallbackMessage(std::function<void(BBCMicro *)> callback);
+        explicit CallbackMessage(std::function<void(BBCMicro *)> prepare_callback);
+        explicit CallbackMessage(std::function<void(BBCMicro *)> prepare_callback, std::function<void(BBCMicro *)> replay_callback);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
       protected:
       private:
-        std::function<void(BBCMicro *)> m_callback;
+        std::function<void(BBCMicro *)> m_prepare_callback;
+        std::function<void(BBCMicro *)> m_replay_callback;
     };
 
     class TimingMessage : public Message {

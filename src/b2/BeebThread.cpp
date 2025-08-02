@@ -1674,11 +1674,16 @@ bool BeebThread::CreateTimelineVideoMessage::ThreadPrepare(std::shared_ptr<Messa
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::CallbackMessage::CallbackMessage(std::function<void(BBCMicro *)> prepare_callback)
+    : m_prepare_callback(std::move(prepare_callback)) {
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::CallbackMessage::CallbackMessage(std::function<void(BBCMicro *)> callback)
-    : m_callback(std::move(callback)) {
+BeebThread::CallbackMessage::CallbackMessage(std::function<void(BBCMicro *)> prepare_callback, std::function<void(BBCMicro *)> replay_callback)
+    : m_prepare_callback(prepare_callback)
+    , m_replay_callback(replay_callback) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1690,12 +1695,26 @@ bool BeebThread::CallbackMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                 ThreadState *ts) {
     (void)completion_fun, (void)beeb_thread;
 
-    if (m_callback) {
-        m_callback(ts->beeb);
+    if (m_prepare_callback) {
+        m_prepare_callback(ts->beeb);
     }
 
-    ptr->reset();
+    if (!m_replay_callback) {
+        ptr->reset();
+    }
+
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::CallbackMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+    (void)beeb_thread;
+
+    ASSERT(m_replay_callback);
+
+    m_replay_callback(ts->beeb);
 }
 
 //////////////////////////////////////////////////////////////////////////

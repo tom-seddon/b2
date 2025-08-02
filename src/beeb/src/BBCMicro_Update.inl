@@ -116,7 +116,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
         result |= BBCMicroUpdateResultFlag_Parasite;
         (*m_state.parasite_cpu.tfn)(&m_state.parasite_cpu);
 
-        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_TransientNonFastPath) != 0) {
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
             if (m_state.parasite_tube.status.bits.t) {
                 ResetTube(&m_state.parasite_tube);
             }
@@ -139,7 +139,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 // This bit is a bit careless about checking for the `Trace`
                 // flag, but that's only an efficiency issue, not important for
                 // parasite special modes.
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_TransientNonFastPath) != 0) {
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
                     if (m_state.parasite_boot_mode) {
 #if BBCMICRO_TRACE
                         if (m_trace) {
@@ -151,7 +151,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                     }
                 }
             } else {
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_TransientNonFastPath) != 0) {
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
                     if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
                         // Really not concerned about the efficiency of special
                         // mode. The emulator is not in this state for long.
@@ -175,7 +175,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 uint8_t flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
                                  *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX.i] + m_state.parasite_cpu.abus.w));
 
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_TransientNonFastPath) != 0) {
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
                     // Really not concerned about the efficiency of special
                     // mode. The emulator is not in this state for long.
                     if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
@@ -192,7 +192,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
         } else {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
                 (*m_parasite_write_mmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus, m_state.parasite_cpu.dbus);
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_TransientNonFastPath) != 0) {
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
                     if (m_state.parasite_boot_mode) {
 #if BBCMICRO_TRACE
                         if (m_trace) {
@@ -249,7 +249,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
 #endif
         }
 
-        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_TransientNonFastPath) != 0) {
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
             if (m_debug) {
                 if (m_debug->step_cpu == &m_state.parasite_cpu) {
@@ -502,6 +502,21 @@ parasite_update_done:
                         const uint8_t *r = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p];
                         if (r) {
                             m_state.cpu.dbus = r[m_state.cpu.abus.p.o];
+
+                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+#if BBCMICRO_DEBUGGER
+                                // Only affect the first 64 KB:
+                                // RAM/ANDY/HAZEL/shadow RAM.
+                                //
+                                // Checking for sideways RAM banks 4-7 on Master
+                                // (as opposed to overlaid ROMs) is mildly
+                                // inconvenient, and there's no pressing need
+                                // for it.
+                                if (m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->bp[m_state.cpu.abus.p.p]->index.i < 64 / 4) {
+                                    m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+                                }
+#endif
+                            }
                         } else {
                             // see corresponding logic in BBCMicro::GetStaleDatabusByte.
                             if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) == 0) {
@@ -518,6 +533,15 @@ parasite_update_done:
                         }
                     } else {
                         m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
+
+                        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+#if BBCMICRO_DEBUGGER
+                            // See comment above.
+                            if (m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->bp[m_state.cpu.abus.p.p]->index.i < 64 / 4) {
+                                m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+                            }
+#endif
+                        }
                     }
                 }
 
@@ -664,7 +688,7 @@ parasite_update_done:
 #endif
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_TransientNonFastPath) != 0) {
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
                 if (m_debug) {
                     if (m_debug->step_cpu == &m_state.cpu) {
@@ -750,6 +774,11 @@ parasite_update_done:
 
                 if (output.address & 0x2000) {
                     m_state.ic15_byte = m_ram[addr];
+                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+#if BBCMICRO_DEBUGGER
+                        m_state.ic15_byte = m_state.ic15_byte & m_state.ram_and | m_state.ram_or;
+#endif
+                    }
                 } else {
                     m_state.ic15_byte = 0;
                 }
@@ -761,11 +790,12 @@ parasite_update_done:
             }
 
             uint8_t value = m_ram[addr];
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+#if BBCMICRO_DEBUGGER
+                value = value & m_state.ram_and | m_state.ram_or;
+#endif
+            }
 
-            // The condition here isn't as clever as it could be, as it's
-            // currently only relevant for empty ROM sockets. But eventually
-            // this behaviour will support write-only I/O registers too, so
-            // it'll apply regardless of selected ROM bank.
             if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) != 0) {
                 m_state.last_fetched_video_byte = value;
             }

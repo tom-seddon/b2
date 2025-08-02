@@ -183,6 +183,8 @@ EPNV(Mouse, 1 << 0)
 // - Instruction functions
 //   - copy OSWRCH
 //   - trace start/stop conditions
+//
+// These are off the fast path, but shouldn't do anything abominable.
 EPNV(NonFastPath, 1 << 1)
 
 // Parallel printer connected.
@@ -194,14 +196,17 @@ EPNV(Trace, 1 << 3)
 // 6502 2nd processor connected.
 EPNV(Parasite, 1 << 4)
 
-// Additional non-fast path cases that are rare or transient:
+// Additional rarer non-fast path cases:
 //
 // - special parasite operation modes:
 //   - boot mode
 //   - host-initiated Tube reset
 //   - parasite reset
 // - debug single step
-EPNV(TransientNonFastPath, 1 << 5)
+// - memory access error
+//
+// These are rare and/or transient, and don't promise to be remotely efficient.
+EPNV(RareNonFastPath, 1 << 5)
 
 // Master Compact gets its own flag, as it implies multiple things:
 //

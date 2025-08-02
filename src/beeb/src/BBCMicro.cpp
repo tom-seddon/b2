@@ -2278,6 +2278,20 @@ void BBCMicro::SetNVRAMChangedCallback(NVRAMChangedCallbackFn fn, void *context)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetMemoryAccessErrorMasks(uint8_t ram_and, uint8_t ram_or) {
+    if (ram_and != m_state.ram_and || ram_or != m_state.ram_or) {
+        m_state.ram_and = ram_and;
+        m_state.ram_or = ram_or;
+
+        this->UpdateCPUDataBusFn();
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer->size());
     m_state.ram_buffer->at(ram_buffer_index) = value;
@@ -3095,8 +3109,12 @@ void BBCMicro::UpdateCPUDataBusFn() {
             }
         } else {
             ASSERT(m_debug->step_cpu);
-            update_flags |= BBCMicroUpdateFlag_Debug | BBCMicroUpdateFlag_TransientNonFastPath;
+            update_flags |= BBCMicroUpdateFlag_Debug | BBCMicroUpdateFlag_RareNonFastPath;
         }
+    }
+
+    if (m_state.ram_and != 0xff || m_state.ram_or != 0x00) {
+        update_flags |= BBCMicroUpdateFlag_RareNonFastPath;
     }
 #endif
 
@@ -3124,7 +3142,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
         if (m_state.parasite_boot_mode ||
             m_state.parasite_tube.status.bits.p ||
             m_state.parasite_tube.status.bits.t) {
-            update_flags |= BBCMicroUpdateFlag_TransientNonFastPath;
+            update_flags |= BBCMicroUpdateFlag_RareNonFastPath;
         }
     }
 

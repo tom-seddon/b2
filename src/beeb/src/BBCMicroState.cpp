@@ -315,6 +315,16 @@ bool BBCMicroState::DebugGetSerial(const SERPROC **serproc_ptr, const MC6850 **m
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void BBCMicroState::DebugGetMemoryFaultMasks(uint8_t *ram_and_ptr, uint8_t *ram_or_ptr) const {
+    *ram_and_ptr = this->ram_and;
+    *ram_or_ptr = this->ram_or;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::shared_ptr<const DiscImage> BBCMicroState::GetDiscImage(int drive) const {
     if (drive >= 0 && drive < NUM_DRIVES) {
         return this->drives[drive].disc_image;
