@@ -203,6 +203,7 @@ EPNV(Parasite, 1 << 4)
 //   - host-initiated Tube reset
 //   - parasite reset
 // - debug single step
+// - memory access error
 //
 // These are rare and/or transient, and don't promise to be remotely efficient.
 EPNV(RareNonFastPath, 1 << 5)

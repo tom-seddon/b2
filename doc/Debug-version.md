@@ -511,6 +511,11 @@ indicating each 0.5 microsecond.
 `6845 DISPEN` shows purple shading for periods corresponding to CRTC
 display enable.
 
+`RAM errors` allows you to emulate RAM errors that manifest themselves
+as stuck bits. Click each button to set that bit's behaviour: `-` (the
+default) for no error, `0` for stuck at 0, or `1` for stuck at 1. The
+error affects main RAM, and (if present) shadow RAM and ANDY/HAZEL.
+
 There'll also be some other undocumented stuff.
 
 # HTTP API

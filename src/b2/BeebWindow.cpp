@@ -571,7 +571,7 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGui::SameLine();
         ImGui::Checkbox("6845 DISPEN", &m_beeb_window->m_tv.show_6845_dispen_markers);
 
-        ImGui::TextUnformatted("Memory access errors");
+        ImGui::TextUnformatted("RAM errors");
 
         uint8_t ram_and, ram_or;
         beeb_state->DebugGetMemoryFaultMasks(&ram_and, &ram_or);
@@ -586,9 +586,6 @@ void BeebWindow::OptionsUI::DoImGui() {
             }
 
             int bit = 7 - bit_index;
-            ImGui::Text("%d: ", bit);
-            ImGui::SameLine();
-
             uint8_t mask = 1 << bit;
 
             bool and = !!(ram_and & mask);
@@ -597,8 +594,6 @@ void BeebWindow::OptionsUI::DoImGui() {
             int value;
             if (!and&&! or) {
                 value = 0;
-            } else if (!and&& or) {
-                value = 1;
             } else if (and&&! or) {
                 value = 2;
             } else {
@@ -606,13 +601,7 @@ void BeebWindow::OptionsUI::DoImGui() {
             }
 
             char caption[2] = {};
-            if (value == 0) {
-                caption[0] = '0';
-            } else if (value == 1) {
-                caption[0] = '1';
-            } else {
-                caption[0] = '-';
-            }
+            caption[0] = "01-"[value];
 
             if (ImGui::Button(caption)) {
                 value = (value + 1) % 3;
@@ -629,6 +618,9 @@ void BeebWindow::OptionsUI::DoImGui() {
                     ram_or &= ~mask;
                 }
             }
+
+            ImGui::SameLine();
+            ImGui::Text("%d", bit);
         }
 
         if (changed) {

@@ -504,7 +504,18 @@ parasite_update_done:
                             m_state.cpu.dbus = r[m_state.cpu.abus.p.o];
 
                             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
-                                m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+#if BBCMICRO_DEBUGGER
+                                // Only affect the first 64 KB:
+                                // RAM/ANDY/HAZEL/shadow RAM.
+                                //
+                                // Checking for sideways RAM banks 4-7 on Master
+                                // (as opposed to overlaid ROMs) is mildly
+                                // inconvenient, and there's no pressing need
+                                // for it.
+                                if (m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->bp[m_state.cpu.abus.p.p]->index.i < 64 / 4) {
+                                    m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+                                }
+#endif
                             }
                         } else {
                             // see corresponding logic in BBCMicro::GetStaleDatabusByte.
@@ -524,7 +535,12 @@ parasite_update_done:
                         m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
 
                         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
-                            m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+#if BBCMICRO_DEBUGGER
+                            // See comment above.
+                            if (m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->bp[m_state.cpu.abus.p.p]->index.i < 64 / 4) {
+                                m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+                            }
+#endif
                         }
                     }
                 }
@@ -757,10 +773,11 @@ parasite_update_done:
                 m_state.saa5050.Byte(m_state.ic15_byte, output.display);
 
                 if (output.address & 0x2000) {
-                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) == 0) {
-                        m_state.ic15_byte = m_ram[addr];
-                    } else {
-                        m_state.ic15_byte = m_ram[addr] & m_state.ram_and | m_state.ram_or;
+                    m_state.ic15_byte = m_ram[addr];
+                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+#if BBCMICRO_DEBUGGER
+                        m_state.ic15_byte = m_state.ic15_byte & m_state.ram_and | m_state.ram_or;
+#endif
                     }
                 } else {
                     m_state.ic15_byte = 0;
@@ -772,11 +789,11 @@ parasite_update_done:
 #endif
             }
 
-            uint8_t value;
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) == 0) {
-                value = m_ram[addr];
-            } else {
-                value = m_ram[addr] & m_state.ram_and | m_state.ram_or;
+            uint8_t value = m_ram[addr];
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+#if BBCMICRO_DEBUGGER
+                value = value & m_state.ram_and | m_state.ram_or;
+#endif
             }
 
             if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) != 0) {
