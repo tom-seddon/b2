@@ -3730,19 +3730,26 @@ class MouseDebugWindow : public DebugUI {
             uint8_t buttons = m_beeb_state->DebugGetMouseButtons();
 
             ImGuiHeader("Mouse State");
+            {
+                ImGuiIDPusher pusher(1);
 
-            ImGuiCheckboxFlags("Left", &buttons, BBCMicroMouseButton_Left);
-            ImGuiCheckboxFlags("Middle", &buttons, BBCMicroMouseButton_Middle);
-            ImGuiCheckboxFlags("Right", &buttons, BBCMicroMouseButton_Right);
+                ImGuiCheckboxFlags("Left", &buttons, BBCMicroMouseButton_Left);
+                ImGuiCheckboxFlags("Middle", &buttons, BBCMicroMouseButton_Middle);
+                ImGuiCheckboxFlags("Right", &buttons, BBCMicroMouseButton_Right);
 
-            ImGui::Text("X Delta: %d", m_beeb_state->mouse_dx);
-            ImGui::Text("Y Delta: %d", m_beeb_state->mouse_dy);
+                ImGui::Text("X Delta: %d", m_beeb_state->mouse_dx);
+                ImGui::Text("Y Delta: %d", m_beeb_state->mouse_dy);
+            }
 
             ImGuiHeader("Debug Mouse \"Control\"");
-            this->MouseMotion("Left", -1, 0);
-            this->MouseMotion("Right", 1, 0);
-            this->MouseMotion("Up", 0, -1);
-            this->MouseMotion("Down", 0, 1);
+            {
+                ImGuiIDPusher pusher(2);
+
+                this->MouseMotion("Left", -1, 0);
+                this->MouseMotion("Right", 1, 0);
+                this->MouseMotion("Up", 0, -1);
+                this->MouseMotion("Down", 0, 1);
+            }
         }
     }
 
