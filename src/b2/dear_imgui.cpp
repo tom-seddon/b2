@@ -258,16 +258,16 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-unsigned ImGuiStuff::GetFontSizePixels() const {
+int ImGuiStuff::GetFontSizePixels() const {
     return m_font_size_pixels;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::SetFontSizePixels(unsigned font_size_pixels) {
-    font_size_pixels = (std::max)(font_size_pixels, 13u);
-    font_size_pixels = (std::min)(font_size_pixels, 50u);
+void ImGuiStuff::SetFontSizePixels(int font_size_pixels) {
+    font_size_pixels = (std::max)(font_size_pixels, 13);
+    font_size_pixels = (std::min)(font_size_pixels, 50);
 
     if (font_size_pixels != m_font_size_pixels) {
         m_font_size_pixels = font_size_pixels;
@@ -1246,16 +1246,6 @@ bool ImGuiConfirmButton(const char *label, bool needs_confirm) {
     } else {
         return ImGui::Button(label);
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool ImGuiInputUInt(const char *label, unsigned *v, int step, int step_fast, ImGuiInputTextFlags flags) {
-    int value = (int)(std::min)(*v, (unsigned)INT_MAX);
-    bool result = ImGui::InputInt(label, &value, step, step_fast, flags);
-    *v = (unsigned)(std::max)(value, 0);
-    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////

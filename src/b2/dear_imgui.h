@@ -103,8 +103,8 @@ class ImGuiStuff {
 #endif
     void DoDebugGui();
 
-    unsigned GetFontSizePixels() const;
-    void SetFontSizePixels(unsigned font_size_pixels);
+    int GetFontSizePixels() const;
+    void SetFontSizePixels(int font_size_pixels);
 
     // The non-modifier key returned will be marked as no longer pressed.
     uint32_t ConsumePressedKeycode();
@@ -144,7 +144,7 @@ class ImGuiStuff {
     ConsumePressedKeycodeState m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Off;
     uint32_t m_consumed_keycode = 0;
 
-    unsigned m_font_size_pixels = 0;
+    int m_font_size_pixels = 0;
     bool m_font_dirty = true;
 
     ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
@@ -349,8 +349,6 @@ bool ImGuiMenuItemEnumValue(const char *label, const char *shortcut, T *value_pt
 bool ImGuiButton(const char *label, bool enabled = true);
 
 bool ImGuiConfirmButton(const char *label, bool needs_confirm = true);
-
-bool ImGuiInputUInt(const char *label, unsigned *v, int step = 1, int step_fast = 100, ImGuiInputTextFlags flags = 0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

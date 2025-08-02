@@ -501,13 +501,14 @@ void BeebWindow::OptionsUI::DoImGui() {
     {
         ImGuiHeader("UI");
 
-        unsigned font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
-        if (ImGuiInputUInt("GUI Font Size", &font_size, 1, 1, 0)) {
-            m_beeb_window->m_imgui_stuff->SetFontSizePixels(font_size);
+        ImGui::InputInt("GUI Font Size", &settings->gui_font_size, 1, 1, 0);
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            m_beeb_window->m_imgui_stuff->SetFontSizePixels(settings->gui_font_size);
+
+            // Reflect any Dear ImGui Stuff clamping. Looks rather janky though.
+            // Is there anything that can be done?
             settings->gui_font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
         }
-
-        // use IsItemDeactivatedAfterEdit
     }
 
     ImGui::NewLine();

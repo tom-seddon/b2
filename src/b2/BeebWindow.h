@@ -91,7 +91,7 @@ struct BeebWindowSettings {
 
     const BeebKeymap *keymap = nullptr; //json:annoying one-off data type
 
-    unsigned gui_font_size = 0;
+    int gui_font_size = 0;
 
     bool full_screen = false; // ignored if !ENABLE_SDL_FULL_SCREEN
 
