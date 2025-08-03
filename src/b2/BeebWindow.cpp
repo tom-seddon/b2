@@ -462,6 +462,22 @@ void BeebWindow::OptionsUI::DoImGui() {
     ImGui::NewLine();
 
     {
+        ImGuiHeader("LEDs");
+
+        int mode = settings->leds_popup_mode;
+
+        ImGui::RadioButton("Auto hide", &mode, BeebWindowLEDsPopupMode_Auto);
+        ImGui::RadioButton("Always on", &mode, BeebWindowLEDsPopupMode_On);
+        ImGui::RadioButton("Always off", &mode, BeebWindowLEDsPopupMode_Off);
+
+        settings->leds_popup_mode = (BeebWindowLEDsPopupMode)mode;
+
+        ImGui::SliderFloat("BG opacity", &settings->leds_popup_alpha, 0.f, 1.f);
+    }
+
+    ImGui::NewLine();
+
+    {
         ImGuiHeader("Screenshot");
         ImGuiIDPusher pusher(1);
 
@@ -1791,6 +1807,8 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
                                   ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::SetNextWindowPos(ImVec2(10.f, output_height - 50.f));
 
+        ImGui::SetNextWindowBgAlpha(m_settings.leds_popup_alpha);
+
         if (ImGui::Begin("LEDs", &m_leds_popup_ui_active, flags)) {
             ImGuiStyleColourPusher colour_pusher;
             colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
@@ -2274,16 +2292,6 @@ void BeebWindow::DoToolsMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Timeline].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SavedStates].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_BeebLink].command);
-
-        ImGui::Separator();
-
-        if (ImGui::BeginMenu("LEDs")) {
-            ImGuiMenuItemEnumValue("Auto hide", nullptr, &m_settings.leds_popup_mode, BeebWindowLEDsPopupMode_Auto);
-            ImGuiMenuItemEnumValue("Always on", nullptr, &m_settings.leds_popup_mode, BeebWindowLEDsPopupMode_On);
-            ImGuiMenuItemEnumValue("Always off", nullptr, &m_settings.leds_popup_mode, BeebWindowLEDsPopupMode_Off);
-
-            ImGui::EndMenu();
-        }
 
         // if(ImGui::MenuItem("Dump states")) {
         //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
