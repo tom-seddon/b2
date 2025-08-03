@@ -960,9 +960,9 @@ bool BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    ts->beeb_thread->ThreadReplaceBeeb(ts,
-                                       std::make_unique<BBCMicro>(*this->GetBeebState()),
-                                       BeebThreadReplaceFlag_ResetKeyState);
+    ts->beeb_thread->ThreadReplaceBeebFromState(ts,
+                                                this->GetBeebState(),
+                                                BeebThreadReplaceFlag_ResetKeyState);
 
     return true;
 }
@@ -994,9 +994,9 @@ bool BeebThread::LoadTimelineStateMessage::ThreadPrepare(std::shared_ptr<Message
         ts->beeb_thread->ThreadTruncateTimeline(ts, this->GetBeebState());
     }
 
-    ts->beeb_thread->ThreadReplaceBeeb(ts,
-                                       std::make_unique<BBCMicro>(*this->GetBeebState()),
-                                       BeebThreadReplaceFlag_ResetKeyState);
+    ts->beeb_thread->ThreadReplaceBeebFromState(ts,
+                                                this->GetBeebState(),
+                                                BeebThreadReplaceFlag_ResetKeyState);
 
     ptr->reset();
     return true;
@@ -1106,7 +1106,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
          ts->timeline_replay_list_event_index,
          ts->timeline_replay_time_cycle_count.n);
 
-    ts->beeb_thread->ThreadReplaceBeeb(ts, std::make_unique<BBCMicro>(*m_start_state), 0);
+    ts->beeb_thread->ThreadReplaceBeebFromState(ts, m_start_state, 0);
 
     ts->beeb_thread->ThreadCheckTimeline(ts);
 
@@ -2641,6 +2641,13 @@ std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::ThreadReplaceBeebFromState(ThreadState *ts, const std::shared_ptr<const BeebState> &beeb_state, uint32_t flags) {
+    this->ThreadReplaceBeeb(ts, std::make_unique<BBCMicro>(*beeb_state), flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> beeb, uint32_t flags) {
     ASSERT(!!beeb);
 
@@ -2746,6 +2753,13 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     this->ThreadSetBootState(ts, !!(flags & BeebThreadReplaceFlag_Autoboot));
 
     ts->beeb->SetNVRAMChangedCallback(&BeebThread::ThreadHandleNVRAMChanged, this);
+
+    // The new BBC is never copying state. Either it came via
+    // ThreadReplaceBeebFromState (and was newly created there), or it came from
+    // the HardReset message and was newly created there.
+    //
+    // This could be a bit tidier, but hangs together well enough.
+    ts->beeb_thread->m_is_copying.store(false, std::memory_order_release);
 
     //m_paused=false;
 }
@@ -3640,7 +3654,7 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
     ts->timeline_mode = BeebThreadTimelineMode_None;
 
     if (!!ts->timeline_replay_old_state) {
-        this->ThreadReplaceBeeb(ts, std::make_unique<BBCMicro>(*ts->timeline_replay_old_state), 0);
+        this->ThreadReplaceBeebFromState(ts, ts->timeline_replay_old_state, 0);
         ts->timeline_replay_old_state.reset();
     }
 }

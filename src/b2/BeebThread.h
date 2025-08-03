@@ -1159,6 +1159,7 @@ class BeebThread {
     static bool ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void *context);
 
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
+    void ThreadReplaceBeebFromState(ThreadState *ts, const std::shared_ptr<const BeebState> &beeb_state, uint32_t flags);
     void ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> beeb, uint32_t flags);
 #if BBCMICRO_TRACE
     void ThreadStartTrace(ThreadState *ts);
