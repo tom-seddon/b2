@@ -673,6 +673,11 @@ static uint32_t GetBBCMicroInitFlags(TestBBCMicroType type, uint32_t flags) {
         init_flags |= BBCMicroInitFlag_VideoNuLA;
     }
 
+    // The B/B+/Master OS don't expect missing serial hardware!
+    if (HasSerial(GetBBCMicroTypeID(type, flags))) {
+        init_flags |= BBCMicroInitFlag_Serial;
+    }
+
     return init_flags;
 }
 
