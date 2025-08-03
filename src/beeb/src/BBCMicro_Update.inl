@@ -964,9 +964,11 @@ parasite_update_done:
                 }
 
 #if BBCMICRO_TRACE
-                if (m_trace) {
-                    if (m_trace_flags & BBCMicroTraceFlag_SystemVIA) {
-                        TracePortB(pb);
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
+                    if (m_trace) {
+                        if (m_trace_flags & BBCMicroTraceFlag_SystemVIA) {
+                            TracePortB(pb);
+                        }
                     }
                 }
 #endif
