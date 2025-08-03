@@ -1603,7 +1603,7 @@ class TeletextTest : public Test {
         }
 
         RunImageTest(PathJoined(beeblink_volume_path, m_png_name),
-                     m_stem,
+                     m_volume_name + "." + m_stem,
                      &bbc);
     }
 
@@ -1915,6 +1915,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "RED", 0x7c00, "", "red.png"));
     all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"));
     all_tests.push_back(std::make_unique<TeletextTest>("tthmos", "TTHMOS", 0xe00, "OLD\rRUN\r", "tthmos.png"));
+    all_tests.push_back(std::make_unique<TeletextTest>("taliadon_test", "TEST", 0xe00, "OLD\rRUN\r", "taliadon_test.png"));
 
     for (int nula = 0; nula < 2; ++nula) {
         for (int nula_logical = 0; nula_logical < 2; ++nula_logical) {
