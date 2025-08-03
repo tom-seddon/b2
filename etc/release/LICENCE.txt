@@ -31,9 +31,11 @@ Additional credits:
 
 * Teletext tests from Chris Evans
   (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
-  (TELETST) and Kieran Connell
+  (TELETST), Kieran Connell
   (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=10431)
-  (RED). For more about the engineering test page, see:
+  (RED), and Coeus
+  (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=10708)
+  (TTHMOS). For more about the engineering test page, see:
   https://stardot.org.uk/forums/viewtopic.php?f=4&t=4686
 
 * Tube FIFO tests and reverse-engineering by David Banks

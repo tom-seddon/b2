@@ -1575,8 +1575,9 @@ class TubeTest : public Test {
 
 class TeletextTest : public Test {
   public:
-    TeletextTest(const std::string &name, uint32_t load_addr, std::string paste_text, std::string png_name)
-        : m_stem(name)
+    TeletextTest(const std::string &volume_name, const std::string &name, uint32_t load_addr, std::string paste_text, std::string png_name)
+        : m_volume_name(volume_name)
+        , m_stem(name)
         , m_load_addr(load_addr)
         , m_paste_text(std::move(paste_text))
         , m_png_name(std::move(png_name)) {
@@ -1587,7 +1588,7 @@ class TeletextTest : public Test {
     }
 
     void Run() override {
-        std::string beeblink_volume_path = PathJoined(b2_SOURCE_DIR, "etc", "teletest_v1");
+        std::string beeblink_volume_path = PathJoined(b2_SOURCE_DIR, "etc", m_volume_name);
 
         TestBBCMicro bbc(TestBBCMicroType_BTape);
 
@@ -1608,6 +1609,7 @@ class TeletextTest : public Test {
 
   protected:
   private:
+    std::string m_volume_name;
     std::string m_stem;
     uint32_t m_load_addr;
     std::string m_paste_text;
@@ -1909,9 +1911,10 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TubeTest>("itu_prst", "PRST", TestBBCMicroType_Master128MOS320WithMasterTurbo, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=TRUE\r", ""));
     all_tests.push_back(std::make_unique<TubeTest>("xtu_r124", "R124", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureExTube, 0x800, "OLD\r*SPOOL X.R124\r", "*SPOOL\r"));
     all_tests.push_back(std::make_unique<TubeTest>("xtu_r3", "R3", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, 0, 0x800, "OLD\r*SPOOL X.R3\r", "*SPOOL\r"));
-    all_tests.push_back(std::make_unique<TeletextTest>("ENGTEST", 0x7c00, "", "engtest.png"));
-    all_tests.push_back(std::make_unique<TeletextTest>("RED", 0x7c00, "", "red.png"));
-    all_tests.push_back(std::make_unique<TeletextTest>("TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"));
+    all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "ENGTEST", 0x7c00, "", "engtest.png"));
+    all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "RED", 0x7c00, "", "red.png"));
+    all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"));
+    all_tests.push_back(std::make_unique<TeletextTest>("tthmos", "TTHMOS", 0xe00, "OLD\rRUN\r", "tthmos.png"));
 
     for (int nula = 0; nula < 2; ++nula) {
         for (int nula_logical = 0; nula_logical < 2; ++nula_logical) {
