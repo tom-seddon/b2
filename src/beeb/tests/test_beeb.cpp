@@ -706,6 +706,8 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
                      BBCMicroTraceFlag_SN76489);
 #endif
 
+    this->SetTeletextDimFlash(true);
+
     switch (type) {
     default:
         TEST_FAIL("unknown TestBBCMicroType");
