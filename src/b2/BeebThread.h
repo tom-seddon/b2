@@ -139,13 +139,12 @@ class BeebThread {
         // with false, and the message will be discarded.
         virtual bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                                    CompletionFun *completion_fun,
-                                   BeebThread *beeb_thread,
                                    ThreadState *ts);
 
         // Called on the Beeb thread with m_mutex locked.
         //
         // Default impl does nothing.
-        virtual void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const;
+        virtual void ThreadHandle(ThreadState *ts) const;
 
       protected:
         // Standard policies for use from the ThreadPrepare function.
@@ -153,13 +152,11 @@ class BeebThread {
         // Returns false if ignored.
         static bool PrepareUnlessReplayingOrHalted(std::shared_ptr<Message> *ptr,
                                                    CompletionFun *completion_fun,
-                                                   BeebThread *beeb_thread,
                                                    ThreadState *ts);
 
         // Returns true if ignored.
         static bool PrepareUnlessReplaying(std::shared_ptr<Message> *ptr,
                                            CompletionFun *completion_fun,
-                                           BeebThread *beeb_thread,
                                            ThreadState *ts);
 
       private:
@@ -195,7 +192,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -208,9 +204,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -224,9 +219,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -241,9 +235,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -256,9 +249,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -272,9 +264,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -288,9 +279,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -305,17 +295,16 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override = 0;
+        void ThreadHandle(ThreadState *ts) const override = 0;
 
       protected:
         const uint32_t m_flags = 0;
 
-        void HardReset(BeebThread *beeb_thread,
-                       ThreadState *ts,
-                       const BeebLoadedConfig &loaded_config,
-                       const std::vector<uint8_t> &nvram_contents) const;
+        void HardReset(
+            ThreadState *ts,
+            const BeebLoadedConfig &loaded_config,
+            const std::vector<uint8_t> &nvram_contents) const;
 
       private:
     };
@@ -328,9 +317,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -345,10 +333,9 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread,
-                          ThreadState *ts) const override;
+        void ThreadHandle(
+            ThreadState *ts) const override;
 
       protected:
       private:
@@ -360,7 +347,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -374,7 +360,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -388,9 +373,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -408,7 +392,7 @@ class BeebThread {
       public:
         explicit EjectDiscMessage(int drive);
 
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -419,7 +403,7 @@ class BeebThread {
       public:
         explicit SetDriveWriteProtectedMessage(int drive, bool is_write_protected);
 
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -443,7 +427,7 @@ class BeebThread {
         // This is a no-op. Whether saving or replaying, the current state is
         // the same. (At least... in principle. Maybe a check would be
         // worthwhile.)
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -459,7 +443,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -476,7 +459,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -490,7 +472,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -503,7 +484,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -517,7 +497,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -529,7 +508,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -540,7 +518,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -551,7 +528,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -562,7 +538,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -576,7 +551,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -591,7 +565,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -604,7 +577,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -618,7 +590,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -632,9 +603,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -645,9 +615,8 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -659,7 +628,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -672,7 +640,6 @@ class BeebThread {
       public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -687,7 +654,6 @@ class BeebThread {
     //
     //        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
     //                           CompletionFun *completion_fun,
-    //                           BeebThread *beeb_thread,
     //                           ThreadState *ts) override;
     //    protected:
     //    private:
@@ -701,9 +667,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -721,9 +686,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -741,9 +705,8 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -759,7 +722,7 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
+
                            ThreadState *ts) override;
 
       protected:
@@ -777,7 +740,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -795,7 +757,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -813,10 +774,9 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -830,7 +790,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -844,7 +803,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
                            ThreadState *ts) override;
 
       protected:
@@ -858,9 +816,9 @@ class BeebThread {
 
         //bool ThreadPrepare(std::shared_ptr<Message> *ptr,
         //                   CompletionFun *completion_fun,
-        //                   BeebThread *beeb_thread,
+        //
         //                   ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -873,7 +831,7 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
+
                            ThreadState *ts) override;
 
       protected:
@@ -884,7 +842,7 @@ class BeebThread {
       public:
         explicit MouseMotionMessage(int dx, int dy);
 
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:
@@ -896,7 +854,7 @@ class BeebThread {
       public:
         explicit MouseButtonsMessage(uint8_t mask, uint8_t value);
 
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+        void ThreadHandle(ThreadState *ts) const override;
 
       protected:
       private:

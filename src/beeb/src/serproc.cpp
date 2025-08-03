@@ -101,7 +101,7 @@ void SERPROC::Update() {
         switch (result.type) {
         default:
             break;
-            
+
         case MC6850BitType_Start:
             m_tx_byte = 0;
             break;
