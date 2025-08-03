@@ -853,6 +853,12 @@ WD1770::Pins WD1770::Update() {
 
     case WD1770State_ForceInterrupt:
         {
+            this->Wait(32, WD1770State_ForceInterrupt2);
+        }
+        break;
+
+    case WD1770State_ForceInterrupt2:
+        {
             this->ResetStatusRegister();
 
             //m_status.bits.deleted_or_spinup=1;

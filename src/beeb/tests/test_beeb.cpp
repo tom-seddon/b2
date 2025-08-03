@@ -1337,7 +1337,7 @@ class StandardTest : public Test {
 
         bbc.StartCaptureOSWRCH();
         bbc.RunUntilOSWORD0(10.0);
-        //bbc.SetTestTraceFlags(bbc.GetTestTraceFlags()|BBCMicroTraceFlag_EveryMemoryAccess);
+        //bbc.StartTrace(0, 256 * 1024 * 1024);
 
         // Putting PAGE at $1900 makes it easier to replicate the same
         // conditions on a real BBC B with DFS.
@@ -1900,6 +1900,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<StandardTest>("TIMINGS"));
     all_tests.push_back(std::make_unique<StandardTest>("VTIMEOU", TestBBCMicroType_Master128MOS320));
     all_tests.push_back(std::make_unique<StandardTest>("VPOLL", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<StandardTest>("NOP1", TestBBCMicroType_Master128MOS350, "1"));
     all_tests.push_back(std::make_unique<KevinEdwardsTest>("Alien8", "P%=&900:[OPT 2:LDX #4:LDY #0:.loop LDA &3000,Y:STA &C00,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #1:STA &FC10:JMP &CEA:]\rCALL &900\r"));
     all_tests.push_back(std::make_unique<KevinEdwardsTest>("Nightsh", "P%=&3900:[OPT3:LDX #9:LDY #0:.loop LDA &3000,Y:STA &700,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&40:STA0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &3900\r"));
     all_tests.push_back(std::make_unique<KevinEdwardsTest>("Jetman", "P%=&380:[OPT 3:LDX #10:LDY #0:.loop LDA &3000,Y:STA &600,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&1F:STA 0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &380\r"));

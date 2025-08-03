@@ -104,7 +104,11 @@ EPN(ReadAddressFindSector)
 // set DRQ. Otherwise, go to FinishCommand.
 EPN(ReadAddressNextByte)
 
+// Set a timer to do the actual Force Interrupt after a short delay. 
 EPN(ForceInterrupt)
+
+// Do the actual Force Interrupt.
+EPN(ForceInterrupt2)
 
 // Do the E delay then go to UnsupportedCommand.
 EPN(ReadTrack)
