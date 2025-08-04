@@ -513,7 +513,7 @@ parasite_update_done:
                                 // inconvenient, and there's no pressing need
                                 // for it.
                                 if (m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->bp[m_state.cpu.abus.p.p]->index.i < 64 / 4) {
-                                    m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+                                    m_state.cpu.dbus = (m_state.cpu.dbus & m_state.ram_and) | m_state.ram_or;
                                 }
 #endif
                             }
@@ -538,7 +538,7 @@ parasite_update_done:
 #if BBCMICRO_DEBUGGER
                             // See comment above.
                             if (m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->bp[m_state.cpu.abus.p.p]->index.i < 64 / 4) {
-                                m_state.cpu.dbus = m_state.cpu.dbus & m_state.ram_and | m_state.ram_or;
+                                m_state.cpu.dbus = (m_state.cpu.dbus & m_state.ram_and) | m_state.ram_or;
                             }
 #endif
                         }
@@ -776,7 +776,7 @@ parasite_update_done:
                     m_state.ic15_byte = m_ram[addr];
                     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
-                        m_state.ic15_byte = m_state.ic15_byte & m_state.ram_and | m_state.ram_or;
+                        m_state.ic15_byte = (m_state.ic15_byte & m_state.ram_and) | m_state.ram_or;
 #endif
                     }
                 } else {
@@ -792,7 +792,7 @@ parasite_update_done:
             uint8_t value = m_ram[addr];
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
-                value = value & m_state.ram_and | m_state.ram_or;
+                value = (value & m_state.ram_and) | m_state.ram_or;
 #endif
             }
 

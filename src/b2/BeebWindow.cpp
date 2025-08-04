@@ -613,13 +613,13 @@ void BeebWindow::OptionsUI::DoImGui() {
             int bit = 7 - bit_index;
             uint8_t mask = 1 << bit;
 
-            bool and = !!(ram_and & mask);
-            bool or = !!(ram_or & mask);
+            bool and_ = !!(ram_and & mask);
+            bool or_= !!(ram_or & mask);
 
             int value;
-            if (!and&&! or) {
+            if (!and_&&! or_) {
                 value = 0;
-            } else if (and&&! or) {
+            } else if (and_&&! or_) {
                 value = 2;
             } else {
                 value = 1;
