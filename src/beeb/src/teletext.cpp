@@ -413,11 +413,9 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
             if (m_text_visible) {
                 data0 = teletext_font[1][m_charset][value - 32][glyph_raster];
                 data1 = teletext_font[1][m_charset][value - 32][glyph_raster + (1 >> m_raster_shift)];
-#if BBCMICRO_DEBUGGER
             } else if (this->dim_flash) {
                 data0 = 0x5555 & teletext_font[1][m_charset][value - 32][glyph_raster];
                 data1 = 0xaaaa & teletext_font[1][m_charset][value - 32][glyph_raster + (1 >> m_raster_shift)];
-#endif
             } else {
                 data0 = 0;
                 data1 = 0;
@@ -537,11 +535,9 @@ void SAA5050::VSync() {
 
     m_frame_flash_visible = m_frame >= NUM_FLASH_OFF_FRAMES;
 
-#if BBCMICRO_DEBUGGER
     if (this->dim_flash) {
         m_frame_flash_visible = false;
     }
-#endif
 
     m_any_double_height = false;
     m_raster_offset = 0;
