@@ -98,11 +98,14 @@ if(APPLE)
     DEPENDS ${ICONSET}/icon_1024x1024.png ${ICONSET}/icon_128x128.png ${ICONSET}/icon_128x128@2x.png ${ICONSET}/icon_16x16.png ${ICONSET}/icon_16x16@2x.png ${ICONSET}/icon_256x256.png ${ICONSET}/icon_32x32.png ${ICONSET}/icon_32x32@2x.png ${ICONSET}/icon_512x512.png ${ICONSET}/icon_64x64.png ${ICONSET}/icon_64x64@2x.png)
 
   set(BUNDLE_IDENTIFIER "com.tom-seddon.b2")
+
+  target_compile_definitions(b2 PRIVATE
+    MACOS_DEFAULT_BUNDLE_IDENTIFIER="${BUNDLE_IDENTIFIER}")
   
   set_target_properties(b2
     PROPERTIES
     MACOSX_BUNDLE_NAME "b2"
-    # MACOSX_BUNDLE_GUI_IDENTIFIER "${BUNDLE_IDENTIFIER}"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "${BUNDLE_IDENTIFIER}"
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_LIST_DIR}/macos/template.Info.plist
     MACOSX_BUNDLE_ICON_FILE b2.icns
     MACOSX_BUNDLE_BUNDLE_VERSION ${RELEASE_NAME}
@@ -112,37 +115,9 @@ if(APPLE)
   target_sources(b2 PRIVATE
     b2.icns)
 
-  target_compile_definitions(b2 PRIVATE
-    MACOS_BUNDLE_IDENTIFIER="${BUNDLE_IDENTIFIER}")
-
   set_source_files_properties(b2.icns PROPERTIES
     MACOSX_PACKAGE_LOCATION Resources)
 
-  # Target properties can't use generator expressions, so there's no
-  # easy way to put configuration-specific data into the Info.plist.
-  # And there's no obvious way to hook into the Info.plist generation.
-  # 
-  # POST_BUILD tools can use generator expressions, but the macOS
-  # plist tools are all pretty infuriating. defaults won't read from
-  # files, and PlistBuddy and plutil make it very hard to update items
-  # that may or may not already exist - a common occurrence, since the
-  # bundle's Info.plist isn't updated on every build, but the
-  # POST_BUILD tools are. (Setting the items fails if they don't
-  # exist. Adding the items fails if they do. And deleting the items
-  # fails if they don't...)
-  #
-  # So the template Info.plist includes a GUIDs that can be replaced
-  # textually using sed. sed doesn't mind when it has nothing to do.
-
-  # Not much point distinguishing Debug and RelWithDebInfo for Bundle
-  # Display Name purposes, I figure - not that I've found anywhere the
-  # value is actually used.
-  #
-  # Don't save a backup of the file, as (a) there's no need, and (b)
-  # it ends up in the bundle and the code signing moans.
-  set(PLIST_PATH ${BUNDLE_CONTENTS_FOLDER}/Info.plist)
-  add_custom_command(TARGET b2 POST_BUILD
-    COMMAND sed -I '' -e "s/D2FD113A-5D62-4785-9D14-6B4FFB78BAA6/$<IF:$<CONFIG:Final>,b2,b2 Debug>/g" -e "s/63316771-D325-42A3-8555-2FAF54B5C385/${BUNDLE_IDENTIFIER}-$<CONFIG>/g" ${PLIST_PATH})
 endif()
 
 ##########################################################################

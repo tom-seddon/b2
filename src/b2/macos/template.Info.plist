@@ -11,7 +11,7 @@
 	<key>CFBundleIconFile</key>
 	<string>${MACOSX_BUNDLE_ICON_FILE}</string>
 	<key>CFBundleIdentifier</key>
-	<string>63316771-D325-42A3-8555-2FAF54B5C385</string>
+	<string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleLongVersionString</key>
@@ -56,7 +56,5 @@
 	</array>
 	<key>LSApplicationCategoryType</key>
 	<string></string>
-	<key>CFBundleDisplayName</key>
-	<string>D2FD113A-5D62-4785-9D14-6B4FFB78BAA6</string>
 </dict>
 </plist>

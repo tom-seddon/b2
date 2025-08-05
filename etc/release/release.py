@@ -307,11 +307,29 @@ def get_darwin_build_path(config_name,path=None):
     
     return result
 
-def build_darwin_config(options,config):
+def build_darwin_config(options,
+                        config,
+                        bundle_identifier_suffix):
     path=get_darwin_build_path(config)
     with ChangeDirectory(path):
         if not options.skip_compile:
             run(["ninja"])
+
+        # If changing bundle identifier, do it before the
+        # dylib_bundler step. Might as well take advantage of
+        # dylib_bundler re-doing the code signing step.
+        if bundle_identifier_suffix is not None:
+            info_plist_path='./src/b2/b2.app/Contents/Info.plist'
+            output=subprocess.check_output(['/usr/libexec/PlistBuddy',
+                                            '-c',
+                                            'print CFBundleIdentifier',
+                                            info_plist_path],
+                                           encoding='utf-8')
+            identifier=output.splitlines()[0].strip()
+            run(['/usr/libexec/PlistBuddy',
+                 '-c',
+                 'set CFBundleIdentifier %s-debug'%identifier,
+                 info_plist_path])
 
         if not options.skip_dylib_bundler:
             run(['./submodules/macdylibbundler/dylibbundler',
@@ -336,8 +354,10 @@ def build_darwin(options,ifolder,rev_hash):
     elif arch=='arm64': arch='applesilicon'
     else: fatal('unknown architecture from uname -m: %s'%arch)
     
-    if not options.skip_debug: build_darwin_config(options,"r")
-    build_darwin_config(options,"f")
+    if not options.skip_debug:
+        build_darwin_config(options,"r",'-debug')
+
+    build_darwin_config(options,"f",None)
 
     stem="b2-macos-"
     if options.macos_deployment_target is not None:
