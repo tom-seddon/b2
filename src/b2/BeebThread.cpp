@@ -1811,13 +1811,16 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        int sound_freq,
                        size_t sound_buffer_size_samples,
                        BeebLoadedConfig default_loaded_config,
-                       std::vector<TimelineEventList> initial_timeline_event_lists)
+                       std::vector<TimelineEventList> initial_timeline_event_lists,
+                       bool is_main_thread_ready)
     : m_uid(g_next_uid++)
     , m_default_loaded_config(std::move(default_loaded_config))
     , m_initial_timeline_event_lists(std::move(initial_timeline_event_lists))
     , m_video_output(NUM_VIDEO_UNITS)
     , m_sound_output(NUM_AUDIO_UNITS)
-    , m_message_list(std::move(message_list)) {
+,m_is_main_thread_ready(is_main_thread_ready)
+, m_message_list(std::move(message_list))
+ {
     m_sound_device_id = sound_device_id;
 
     ASSERT(sound_freq >= 0);
@@ -2417,6 +2420,13 @@ std::string BeebThread::GetConfigName() const {
 
 bool BeebThread::TakeNVRAMChanged() {
     return m_nvram_changed.exchange(false, std::memory_order_acq_rel);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::MainThreadIsReady() {
+    m_is_main_thread_ready.store(true, std::memory_order_release);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3059,6 +3069,8 @@ void BeebThread::ThreadMain(void) {
         bool paused = false;
         if (!ts.beeb) {
             paused = true;
+        } else if(!m_is_main_thread_ready.load(std::memory_order_acquire)){
+            paused=true;
         } else {
 #if BBCMICRO_DEBUGGER
             if (ts.beeb->DebugIsHalted()) {

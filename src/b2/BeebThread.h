@@ -881,7 +881,8 @@ class BeebThread {
                         int sound_freq,
                         size_t sound_buffer_size_samples,
                         BeebLoadedConfig default_loaded_config,
-                        std::vector<TimelineEventList> initial_timeline_event_lists);
+                        std::vector<TimelineEventList> initial_timeline_event_lists,
+                        bool is_main_thread_ready);
     ~BeebThread();
 
     // Start/stop the thread.
@@ -1025,6 +1026,8 @@ class BeebThread {
     std::string GetConfigName() const;
 
     bool TakeNVRAMChanged();
+    
+    void MainThreadIsReady();
 
   protected:
   private:
@@ -1083,6 +1086,9 @@ class BeebThread {
     std::atomic<uint64_t> m_num_mq_waits{0};
     std::atomic<bool> m_debug_is_halted{false};
     std::atomic<uint32_t> m_update_flags{0};
+    
+    // Set once the main thread is ready for the BBC to start running. 
+    std::atomic<bool> m_is_main_thread_ready{false};
 
     // Set if NVRAM changes. Query using TakeNVRAMChanged, which does an atomic
     // swap with false. (The way b2 is arranged, it's just a lot simpler to

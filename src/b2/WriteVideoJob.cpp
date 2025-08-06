@@ -171,7 +171,8 @@ void WriteVideoJob::ThreadExecute() {
                                                afmt.freq,
                                                NUM_SAMPLES,
                                                BeebLoadedConfig(),
-                                               std::move(event_lists));
+                                               std::move(event_lists),
+                                               true);
 
     beeb_thread->SetLowPassFilter(low_pass_filter);
 

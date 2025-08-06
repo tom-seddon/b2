@@ -682,7 +682,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
                                                  m_init_arguments.sound_spec.freq,
                                                  m_init_arguments.sound_spec.samples,
                                                  m_init_arguments.default_config,
-                                                 std::vector<BeebThread::TimelineEventList>());
+                                                 std::vector<BeebThread::TimelineEventList>(),
+                                                 false);
 
     if (init_arguments.use_settings) {
         m_settings = init_arguments.settings;
@@ -2788,6 +2789,8 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
+    m_beeb_thread->MainThreadIsReady();
+    
     bool economy = false;
 
     if (m_settings.background_economy_mode) {
