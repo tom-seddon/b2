@@ -1460,9 +1460,10 @@ class ExtMemoryDebugWindow : public DebugUI {
   private:
     MemoryEditor m_memory_editor;
 
-    // There's no context parameter :( - so this hijacks the data
-    // parameter for that purpose.
-    static uint8_t MemoryEditorRead(const ImU8 *data, size_t off) {
+    // This code dates from before the MemoryEditor had a user_data parameter,
+    // so the data parameter is used for that purpose.
+    static ImU8 MemoryEditorRead(const ImU8 *data, size_t off, void *user_data) {
+        (void)user_data;
         auto self = (ExtMemoryDebugWindow *)data;
 
         ASSERT((uint32_t)off == off);
@@ -1471,9 +1472,9 @@ class ExtMemoryDebugWindow : public DebugUI {
         return ExtMem::ReadMemory(s, (uint32_t)off);
     }
 
-    // There's no context parameter :( - so this hijacks the data
-    // parameter for that purpose.
-    static void MemoryEditorWrite(ImU8 *data, size_t off, uint8_t d) {
+    // See comment for MemoryEditorRead.
+    static void MemoryEditorWrite(ImU8 *data, size_t off, uint8_t d, void *user_data) {
+        (void)user_data;
         auto self = (ExtMemoryDebugWindow *)data;
 
         self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetExtByteMessage>((uint32_t)off, d));
