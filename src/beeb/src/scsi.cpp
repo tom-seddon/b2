@@ -625,6 +625,7 @@ void SCSI::EnterExecutePhase() {
 
             uint16_t num_cylinders = Load16BE(m_buffer + 13);
             uint8_t num_heads = m_buffer[15];
+            (void)num_cylinders,(void)num_heads;
 
             TRACE(this, "SCSI - Sense: Heads=%u ($%x) Cylinders=%u ($%x) ", num_cylinders, num_cylinders, num_heads, num_heads);
 
