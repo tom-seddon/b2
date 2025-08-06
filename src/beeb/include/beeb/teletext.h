@@ -22,7 +22,7 @@ class SAA5050 {
 #if BBCMICRO_DEBUGGER
     bool debug = false;
 #endif
-    
+
     // Only exposed in the debug version UI, but the functionality has to be
     // available in all bulids, as the tests (and therefore the reference
     // iwages...) suse it.
