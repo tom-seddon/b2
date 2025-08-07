@@ -68,6 +68,12 @@ Please submit feedback to
 or post in
 [the b2 thread on Stardot](https://stardot.org.uk/forums/viewtopic.php?f=4&t=13081).
 
+(Regarding the GitHub issues list: nothing in the list will get
+forgotten, and I do intend to fix every open item! But this is a spare
+time hobby project for me, so it can take a while before the right
+combination of appropriate block of time, motivation, equipment setup,
+etc., presents itself.)
+
 # Licence
 
 ## `etc`, `submodules`
