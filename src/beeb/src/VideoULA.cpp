@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <beeb/6502.h>
+#include <6502/6502.h>
 #include <string.h>
 #include <beeb/VideoULA.h>
 #include <beeb/video.h>

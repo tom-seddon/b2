@@ -1,6 +1,6 @@
 #include <shared/system.h>
 #include <beeb/serproc.h>
-#include <beeb/6502.h>
+#include <6502/6502.h>
 #include <beeb/MC6850.h>
 #include <beeb/conf.h>
 #include <beeb/Trace.h>

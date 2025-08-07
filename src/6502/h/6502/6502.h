@@ -13,8 +13,6 @@ struct M6502;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if !M6502WORD_DEFINED
-
 /* This struct never aliases anything in 6502 memory - it needs to be
  * the right way round for the host system. (It should probably be
  * called M6502HostWord, or something...) */
@@ -22,13 +20,23 @@ struct M6502WordBytes {
     uint8_t l, h;
 };
 
+/* This is b2-specific. Strictly speaking, 6502_lib is its own indepndent thing,
+ * and there should be some way for the consuming project to supply its own
+ * extra M6502Word bits; but that's annoying enough to arrange for that there's
+ * no harm in taking advantage of the fact that actually, nothing other than b2
+ * uses it.
+ */
+struct M6502WordBigPage {
+    uint16_t o : 12, p : 4;
+};
+
+
 union M6502Word {
     uint16_t w;
     struct M6502WordBytes b;
+    struct M6502WordBigPage p;
 };
 typedef union M6502Word M6502Word;
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -1,7 +1,7 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include <beeb/MC6850.h>
-#include <beeb/6502.h>
+#include <6502/6502.h>
 #include <beeb/Trace.h>
 
 #include <shared/enum_def.h>

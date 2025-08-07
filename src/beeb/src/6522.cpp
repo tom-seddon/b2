@@ -4,6 +4,7 @@
 #include <beeb/6522.h>
 #include <string.h>
 #include <beeb/Trace.h>
+#include <6502/6502.h>
 
 #include <shared/enum_def.h>
 #include <beeb/6522.inl>

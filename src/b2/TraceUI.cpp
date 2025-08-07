@@ -7,7 +7,6 @@
 #include "BeebWindow.h"
 #include "BeebWindows.h"
 #include <beeb/BBCMicro.h>
-#include <beeb/6502.h>
 #include <shared/debug.h>
 #include <string.h>
 #include "native_ui.h"

@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <beeb/DiscInterface.h>
 #include <beeb/Trace.h>
+#include <6502/6502.h>
 
 #include <shared/enum_def.h>
 #include <beeb/1770.inl>

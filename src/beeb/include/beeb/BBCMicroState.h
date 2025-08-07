@@ -9,7 +9,7 @@ class Log;
 #include <memory>
 
 #include "conf.h"
-#include "6502.h"
+#include <6502/6502.h>
 #include "adc.h"
 #include "PCD8572.h"
 #include "crtc.h"
