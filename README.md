@@ -46,6 +46,9 @@ libretro core: https://docs.libretro.com/library/b2/# - looked after
 by [Zoltan Balogh](https://github.com/zoltanvb/b2-libretro). I can't
 provide any support for this but I do approve!
 
+Included in RetroArch, available on the Apple App Store: :
+https://apps.apple.com/us/app/retroarch/id6499539433
+
 # Documentation
 
 See [the overview](./doc/Overview.md).
