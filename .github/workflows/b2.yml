@@ -24,7 +24,7 @@ jobs:
       - run: make github_ci_ubuntu_without_ffmpeg
 
   build-windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
         with:
