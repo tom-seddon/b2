@@ -293,10 +293,10 @@ add_custom_command(
 function(do_master_ROMs VERSION)
   add_custom_command(
     TARGET b2 POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}/m128/${VERSION}
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom dfs.rom edit.rom mos.rom terminal.rom view.rom viewsht.rom $<TARGET_FILE_DIR:b2>/${ROMS}/m128/${VERSION}/
-	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/M128/${VERSION}
-	VERBATIM)
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}/m128/${VERSION}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom dfs.rom edit.rom mos.rom terminal.rom view.rom viewsht.rom $<TARGET_FILE_DIR:b2>/${ROMS}/m128/${VERSION}/
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/M128/${VERSION}
+    VERBATIM)
 endfunction()
 
 do_master_ROMs(3.20)
@@ -306,15 +306,22 @@ do_master_ROMs(3.50)
 function(do_compact_ROMs VERSION)
   add_custom_command(
     TARGET b2 POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom utils.rom mos.rom $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}/
-	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/${VERSION}
-	VERBATIM)
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom utils.rom mos.rom $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}/
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/${VERSION}
+    VERBATIM)
 endfunction()
 
 do_compact_ROMs(5.00)
 do_compact_ROMs(5.10)
 do_compact_ROMs(I5.10C)
+do_compact_ROMs(5.11i)
+
+# Additional MOS 5.11i ROMs
+add_custom_command(
+  TARGET b2 POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different international.rom arabic.rom $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/5.11i/
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/5.11i)
 
 # Discs
 add_custom_command(

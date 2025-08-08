@@ -62,6 +62,15 @@ extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_E;
 extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_F;
 extern const BeebROM BEEB_ROM_MOS510_MOS_ROM;
 
+extern const BeebROM BEEB_ROM_MOS511i_SIDEWAYS_ROM_D;
+extern const BeebROM BEEB_ROM_MOS511i_SIDEWAYS_ROM_E;
+extern const BeebROM BEEB_ROM_MOS511i_SIDEWAYS_ROM_F;
+extern const BeebROM BEEB_ROM_MOS511i_MOS_ROM;
+// These aren't strictly speaking part of MOS 5.11i proper, but this whole set
+// of ROMs seems to come as a unit, and UK Compacts didn't get 5.11i.
+extern const BeebROM BEEB_ROM_MOS511i_ARABIC;
+extern const BeebROM BEEB_ROM_MOS511i_INTERNATIONAL;
+
 // MOS I5.10C is for the Olivetti PC 128 S.
 extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D;
 extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E;

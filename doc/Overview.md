@@ -30,6 +30,13 @@ image...`. Or, to create a new blank disc, use `New disc image` or
 
 The default setup is a BBC Model B with Acorn 1770 DFS and 16K
 sideways RAM. The `Hardware` menu lets you select something different.
+(The default list includes several types of BBC B (with various disk
+interfaces); B+; B+128; Master 128 with MOS 3.20 or MOS 3.50; Master
+Compact with MOS 5.00, MOS 5.10, or MOS 5.11i+Arabic ROMs; and
+Olivetti PC 128 S.)
+
+Changing hardware is equivalent to doing a power-on reset, and all
+state in the emulated BBC will be lost.
 
 ## Change keyboard mapping ##
 
@@ -327,11 +334,9 @@ one that's a copy of one of the ones in the list.
 
 ## Customize hardware
 
-The hardware menu by default lists several types of BBC B (with
-different disk interfaces), B+, B+128, Master 128 with MOS 3.20 or MOS
-3.50, Master Compact with MOS 5.00 or MOS 5.10, and Olivetti PC 128 S.
-`Hardware` > `Configs` lets you edit this list and choose what each
-config includes - ROMs, sideways RAM status, and extra hardware.
+`Hardware` > `Configs` lets you edit the list of configs that appear
+in the `Hardware` menu, and choose what each config includes - ROMs,
+sideways RAM status, and extra hardware.
 
 Select the config to modify in the list on the left hand side. The
 right hand side will display the ROM slot contents, and tick boxes for

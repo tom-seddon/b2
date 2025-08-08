@@ -136,7 +136,7 @@ void BeebConfig::ResetNVRAM() {
         this->nvram = GetDefaultMasterCompactNVRAM();
         break;
 
-    case BeebConfigNVRAMType_PC128S:
+    case BeebConfigNVRAMType_MasterCompactInternational:
         this->nvram = GetDefaultMasterCompactNVRAM();
 
         this->nvram[10] = 0xf9;
@@ -412,6 +412,29 @@ void InitDefaultBeebConfigs() {
         g_default_configs.push_back(config);
     }
 
+    // Master Compact MOS 5.11i
+    {
+        BeebConfig config;
+
+        config.name = "Master Compact (MOS 5.11i+Arabic)";
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
+        config.type_id = BBCMicroTypeID_MasterCompact;
+        config.os.standard_rom = &BEEB_ROM_MOS511i_MOS_ROM;
+        config.roms[15].standard_rom = &BEEB_ROM_MOS511i_SIDEWAYS_ROM_F;
+        config.roms[14].standard_rom = &BEEB_ROM_MOS511i_SIDEWAYS_ROM_E;
+        config.roms[13].standard_rom = &BEEB_ROM_MOS511i_SIDEWAYS_ROM_D;
+        config.roms[8].standard_rom = &BEEB_ROM_MOS511i_ARABIC;
+        config.roms[7].writeable = true;
+        config.roms[6].writeable = true;
+        config.roms[5].writeable = true;
+        config.roms[4].writeable = true;
+        config.roms[2].standard_rom = &BEEB_ROM_MOS511i_INTERNATIONAL;
+        config.feature_flags = BeebConfigFeatureFlag_MasterCompactArabic;
+        config.nvram_type = BeebConfigNVRAMType_MasterCompactInternational;
+
+        g_default_configs.push_back(config);
+    }
+
     // Olivetti PC 128S
     {
         BeebConfig config;
@@ -428,7 +451,7 @@ void InitDefaultBeebConfigs() {
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
         config.feature_flags = BeebConfigFeatureFlag_OlivettiPC128S;
-        config.nvram_type = BeebConfigNVRAMType_PC128S;
+        config.nvram_type = BeebConfigNVRAMType_MasterCompactInternational;
 
         g_default_configs.push_back(config);
     }

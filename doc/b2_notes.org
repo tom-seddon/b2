@@ -5067,12 +5067,14 @@ in serial mode, but again the MOS only adjusts the divider.
 #+begin_src markdown
   ,**Note**: a UI library update means your window layout will be lost, and you'll have to recreate it. Apologies.
 
+  ,* Add a config for Master Compact with MOS 5.11i and Arabic ROMs
   ,* Add an error for unrecognised HTTP API query parameters
   ,* Add automatic saving of CMOS/EEPROM saving
-  ,* Add optional audio low pass filter 
+  ,* Add background opacity setting for LEDs popup
   ,* Add configurable debugger syntax
   ,* Add emulation of BBC B without rom board
   ,* Add lossless video recording: produces a sequence of uncompressed TGAs and WAV files suitable for later compressing with another tool (e.g., ffmpeg)
+  ,* Add optional audio low pass filter 
   ,* Add optional background economy mode: make b2 use a bit less CPU time when not in focus
   ,* Add SCSI hard disk emulation (compatible with standard Acorn ADFS)
   ,* Fix emulation of write-only I/O registers and empty ROM sockets

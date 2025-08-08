@@ -15,6 +15,7 @@ EPNV(MasterTurbo, 1 << 0)
 EPNV(6502SecondProcessor, 1 << 1)
 EPNV(MasterCompact, 1 << 2)
 EPNV(OlivettiPC128S, 1 << 3)
+EPNV(MasterCompactArabic, 1 << 4)
 EEND()
 #undef ENAME
 
@@ -28,7 +29,7 @@ EPN(Unknown)
 EPN(None)
 EPN(Master128)
 EPN(MasterCompact)
-EPN(PC128S)
+EPN(MasterCompactInternational) //covers both PC 128 S and MOS 5.11i Arabic Compact
 EEND()
 #undef ENAME
 
