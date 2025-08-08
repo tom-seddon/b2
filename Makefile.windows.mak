@@ -4,9 +4,13 @@ SHELL:=$(windir)\system32\cmd.exe
 ##########################################################################
 ##########################################################################
 
+.PHONY:init_vs2022
+init_vs2022:
+	$(MAKE) _newer_vs VSYEAR=2022 VSVER=17 VSVERNAME="Visual Studio 17 2022"
+
 .PHONY:init_vs2019
 init_vs2019:
-	$(MAKE) _newer_vs VSYEAR=2019 VSVER=16
+	$(MAKE) _newer_vs VSYEAR=2019 VSVER=16 VSVERNAME="Visual Studio 16"
 
 ##########################################################################
 ##########################################################################
@@ -18,11 +22,16 @@ _newer_vs: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)vs$(VSYEAR)
 _newer_vs:
 	$(if $(VS_PATH),,$(error Visual Studio $(VSYEAR) installation not found))
 	cmd /c bin\recreate_folder.bat $(FOLDER)
-	cd "$(FOLDER)" && "$(CMAKE)" $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER))" -A x64 ../..
+	cd "$(FOLDER)" && "..\..\bin\msbuild_bug_wrapper.bat" "$(CMAKE)" $(CMAKE_DEFINES) -G "$(VSVERNAME)" -A x64 ../..
 	$(SHELLCMD) copy-file etc\b2.ChildProcessDbgSettings "$(FOLDER)"
 
 ##########################################################################
 ##########################################################################
+
+.PHONY: run_tests_vs2022
+run_tests_vs2022: CONFIG=$(error Must specify CONFIG)
+run_tests_vs2022:
+	$(MAKE) _run_tests VSYEAR=2022 VSVER=17 CONFIG=$(CONFIG)
 
 .PHONY: run_tests_vs2019
 run_tests_vs2019: CONFIG=$(error Must specify CONFIG)
