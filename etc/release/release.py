@@ -167,6 +167,7 @@ def get_win32_vs_path(options):
         fatal('Visual Studio not installed? vswhere.exe not found at: %s'%vswhere_path)
 
     if options.toolchain=='vs2019': ver=16
+    elif options.toolchain=='vs2022': ver=17
     else: fatal('unknown toolchain: %s'%options.toolchain)
 
     installation_path=subprocess.check_output([vswhere_path,'-version',str(ver),'-property','installationPath']).decode('utf-8').rstrip()
@@ -508,8 +509,7 @@ if __name__=="__main__":
     parser.add_argument('--gh-release',action='store_true',help='''create GitHub release (or prerelease if not on master git branch) and upload artefacts''')
 
     if sys.platform=='win32':
-        # TODO: sort this out...
-        parser.set_defaults(toolchain='vs2019')
+        parser.add_argument('-t','--toolchain',default='vs2022',help='''Specify toolchain: vs2019, or vs2022. Default: %(default)s''')
     
     if sys.platform=='darwin':
         macos_deployment_target_help='''macOS deployment target. Default is whatever the Makefile defaults to'''

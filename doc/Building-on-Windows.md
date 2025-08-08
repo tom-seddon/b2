@@ -2,7 +2,8 @@
 
 Prerequisites:
 
-- Visual Studio 2019 (ensure C++ CMake tools for Windows is included)
+- Visual Studio 2022 or Visual Studio 2019 (ensure C++ CMake tools
+  for Windows is included)
 - Python 3.x (the version that comes with Visual Studio 2019 is fine)
   
 Optional, but recommended:
@@ -13,8 +14,9 @@ Initial setup, for use after cloning or updating the repo:
 
 1. Open command prompt in working copy folder 
 
-2. Run `make init_vs2019` to generate a solution for Visual Studio
-   2019.
+2. Run `make init_vs2022` to generate a solution for Visual Studio
+   2022, or `make init_vs2019` to generate a solution for Visual
+   Studio 2019
    
    You should get a bunch of output - there may be the odd warning,
    but there should be no obvious errors, and it should finish with an
@@ -22,7 +24,10 @@ Initial setup, for use after cloning or updating the repo:
 
 General day-to-day build steps:
 
-1. Load solution into Visual Studio: `build\vs2019\b2.sln`
+1. Load solution into Visual Studio:
+
+   - `build\vs2019\b2.sln` if using VS2019
+   - `build\vs2022\b2.sln` if using VS2022
 
 2. Build
 
@@ -37,6 +42,8 @@ information and the initial build steps ensure everything is rebuilt.)
 - Because of the way cmake works, there are 50+ projects in the
   solution. Even though most are rarely used, they're still there
   cluttering the place up. You just have to put up with this
+  
+- support for Visual Studio 2019 will probably go away eventually...
 
 # Running the automated tests
 
