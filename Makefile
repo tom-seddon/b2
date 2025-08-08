@@ -129,7 +129,8 @@ backup_b2_config: _DEST:=$(BUILD_FOLDER)/configs/$(_TIMESTAMP)$(SUFFIX)
 backup_b2_config:
 	$(SHELLCMD) mkdir "$(_DEST)"
 	$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/b2.json" "$(_DEST)/b2.json"
-	$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.ini" "$(_DEST)/imgui.ini"
+	-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.ini" "$(_DEST)/"
+	-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.1.92+.ini" "$(_DEST)/"
 # copy/paste fodder
 	$(SHELLCMD) realpath "$(B2_JSON_FOLDER)"
 	$(SHELLCMD) realpath "$(_DEST)"

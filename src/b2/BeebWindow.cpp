@@ -3249,11 +3249,8 @@ bool BeebWindow::InitInternal() {
     //        m_beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(false));
     //    }
 
-    if (reset_windows || !g_global_settings.imgui_1_91_window_reset_done) {
+    if (reset_windows) {
         this->ResetImGuiWindows();
-
-        // (either way, they got reset, no need to do it again.)
-        g_global_settings.imgui_1_91_window_reset_done = true;
     }
 
     m_display_size_options.push_back("Auto");

@@ -198,7 +198,15 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     m_cursors[ImGuiMouseCursor_ResizeNWSE] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
     m_cursors[ImGuiMouseCursor_TextInput] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
 
-    m_imgui_ini_path = GetConfigPath("imgui.ini");
+    // 1.90.7 or 1.91.6 (not sure which specifically - my notes aren't clear)
+    // changed some stuff around, and old imgui.ini and newer library (or vice
+    // versa) are no longer quite compatible. Symptoms with b2's UI are a mite
+    // confusing.
+    //
+    // Don't bother trying to be clever about this: just have a completely
+    // separate config file for the later versions. This is tedious but a
+    // one-off fix.
+    m_imgui_ini_path = GetConfigPath("imgui.1.92+.ini");
     io.IniFilename = m_imgui_ini_path.c_str();
 
     // On OS X, could this usefully go in ~/Library/Logs?

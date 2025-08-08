@@ -26,11 +26,8 @@ void PushFunctionMessage(std::function<void()> fun);
 struct GlobalSettings {
     bool vsync = true;
     EnumFlags<BeebConfigFeatureFlag> feature_flags;
-
-    // Set if windows got reset due to the 1.91 update problems.
-    bool imgui_1_91_window_reset_done = false;
 };
-JSON_SERIALIZE(GlobalSettings, vsync, feature_flags, imgui_1_91_window_reset_done);
+JSON_SERIALIZE(GlobalSettings, vsync, feature_flags);
 
 extern GlobalSettings g_global_settings;
 
