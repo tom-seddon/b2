@@ -4,12 +4,13 @@ The Unix build process covers building from the command line (or
 Emacs, vim, etc.) on Unix-type systems, currently macOS and Linux.
 
 I do some of the development on macOS, so that version should work
-well. [Building with Xcode](./Building-on-OSX.md) is recommended, but
-it works from the command line too, and the releases are prepared this
-way.
+well. I build using Xcode, but building from the command line also
+works fine (and indeed the binary releases are prepared that way).
+Please see [Building with Xcode](./Building-on-OSX.md), as there are a
+couple of Mac-specific notes that apply no matter how you build it.
 
 The Linux version doesn't get much testing by me, though I do try it
-on a Ubuntu VM occasionally. But I've had few reports of problems.
+on Linux Mint occasionally. But I've had few reports of problems.
 (Please [create an issue](https://github.com/tom-seddon/b2/issues) if
 necessary.)
 

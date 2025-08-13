@@ -38,16 +38,36 @@ By default, this builds the Debug build. Use `Edit Scheme...` from the
 scheme dropdown to select a different configuration for the `Run`
 option if you want something different.
 
-# Changing CMake settings?
+## Changing CMake settings?
 
 After changing any of the CMake files, to regenerate the xcodeproj run
 `make reinit_xcode` from the working copy folder. (`Product` > `Build`
 is supposed to do this for you automatically, but it seems to be
 rather unreliable.)
 
-# Changing Info.plist?
+# Changing Info.plist? (also applies if building Unix-style)
 
 There's an `Info.plist` in the Xcode project - it's auto-generated.
 Don't edit it. The correct file to edit is `template.Info.plist`; the
 `${...}` values are replaced with corresponding values from the CMake
 setup.
+
+# Bundle identifiers (also applies if building Unix-style)
+
+All built app bundles end up with the same bundle identifier:
+`com.tom-seddon.b2`.
+
+The release DMGs are prepared using a separate process, which gives
+the `b2 Debug` bundles a different bundle identifier. This is specific
+to creating the release DMGs, and doesn't happen when building
+normally (an annoying limitation in CMake).
+
+# macOS badgering you about keystroke monitoring? (also applies if building Unix-style)
+
+Adding b2 to the list of apps allowed to monitor keystrokes (see the
+[install on macOS notes](./Installing-on-OSX.md)) doesn't work very
+well if you're building it locally.
+
+I haven't investigated this particularly thoroughly. The default
+keyboard layouts treat the Page Up key as Caps Lock, so I just put up
+with that.

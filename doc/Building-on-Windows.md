@@ -8,7 +8,7 @@ Prerequisites:
   
 Optional, but recommended:
 
-- [Microsoft Child Process Debugging Power Tool](https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool)
+- Microsoft Child Process Debugging Power Tool: [VS2019](https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool); [VS2022](https://marketplace.visualstudio.com/items?itemName=vsdbgplat.MicrosoftChildProcessDebuggingPowerTool2022)
 
 Initial setup, for use after cloning or updating the repo:
 
@@ -47,10 +47,14 @@ information and the initial build steps ensure everything is rebuilt.)
 
 # Running the automated tests
 
-To run from the command line, run `make run_tests_vs2019
-CONFIG=<<config>>`, supplying the config of interest (`Debug`,
-`RelWithDebInfo` or `Final`). This will run the tests in parallel
-according to PC core count.
+To run from the command line, run the following (depending on Visual
+Studio version), replacing `<<config>>` with the config of interest:
+`Debug`, `RelWithDebInfo`, or `Final`.
+
+- `make run_tests_vs2019 CONFIG=<<config>>` if using VS2019
+- `make run_tests_vs2022 CONFIG=<<config>>` if using VS2022
+
+This will run the tests in parallel according to PC core count.
 
 To run in the debugger, set the Visual Studio startup project to be
 `visual_studio_test_runner`, build, and run. This runs the full set of
