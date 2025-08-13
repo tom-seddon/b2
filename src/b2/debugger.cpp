@@ -1807,10 +1807,8 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
             case M6502AddrMode_IMM:
                 {
-                    char label[3] = {
-                        HEX_CHARS_LC[operand.b.l >> 4 & 15],
-                        HEX_CHARS_LC[operand.b.l & 15],
-                    };
+                    char label[100];
+                    snprintf(label, sizeof label, "%s%02x", g_hex, operand.b.l);
 
                     M6502Word imm_addr = {operand.b.l};
                     const DebugBigPage *imm_dbp = this->GetDebugBigPageForAddress(imm_addr, false);
