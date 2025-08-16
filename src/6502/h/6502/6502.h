@@ -30,7 +30,6 @@ struct M6502WordBigPage {
     uint16_t o : 12, p : 4;
 };
 
-
 union M6502Word {
     uint16_t w;
     struct M6502WordBytes b;

@@ -1818,9 +1818,8 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
     , m_initial_timeline_event_lists(std::move(initial_timeline_event_lists))
     , m_video_output(NUM_VIDEO_UNITS)
     , m_sound_output(NUM_AUDIO_UNITS)
-,m_is_main_thread_ready(is_main_thread_ready)
-, m_message_list(std::move(message_list))
- {
+    , m_is_main_thread_ready(is_main_thread_ready)
+    , m_message_list(std::move(message_list)) {
     m_sound_device_id = sound_device_id;
 
     ASSERT(sound_freq >= 0);
@@ -3069,8 +3068,8 @@ void BeebThread::ThreadMain(void) {
         bool paused = false;
         if (!ts.beeb) {
             paused = true;
-        } else if(!m_is_main_thread_ready.load(std::memory_order_acquire)){
-            paused=true;
+        } else if (!m_is_main_thread_ready.load(std::memory_order_acquire)) {
+            paused = true;
         } else {
 #if BBCMICRO_DEBUGGER
             if (ts.beeb->DebugIsHalted()) {

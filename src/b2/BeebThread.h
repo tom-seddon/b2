@@ -1026,7 +1026,7 @@ class BeebThread {
     std::string GetConfigName() const;
 
     bool TakeNVRAMChanged();
-    
+
     void MainThreadIsReady();
 
   protected:
@@ -1086,8 +1086,8 @@ class BeebThread {
     std::atomic<uint64_t> m_num_mq_waits{0};
     std::atomic<bool> m_debug_is_halted{false};
     std::atomic<uint32_t> m_update_flags{0};
-    
-    // Set once the main thread is ready for the BBC to start running. 
+
+    // Set once the main thread is ready for the BBC to start running.
     std::atomic<bool> m_is_main_thread_ready{false};
 
     // Set if NVRAM changes. Query using TakeNVRAMChanged, which does an atomic
