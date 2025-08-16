@@ -81,8 +81,8 @@ const BeebROM BEEB_ROM_MOS511i_SIDEWAYS_ROM_D = {"mcompact/5.11i/adfs.rom", "MOS
 const BeebROM BEEB_ROM_MOS511i_SIDEWAYS_ROM_E = {"mcompact/5.11i/basic4.rom", "MOS 5.11i BASIC (e)", StandardROM_MOS511i_BASIC4};
 const BeebROM BEEB_ROM_MOS511i_SIDEWAYS_ROM_F = {"mcompact/5.11i/utils.rom", "MOS 5.11i UTILS (f)", StandardROM_MOS511i_UTILS};
 const BeebROM BEEB_ROM_MOS511i_MOS_ROM = {"mcompact/5.11i/mos.rom", "MOS 5.11i MOS (OS)", StandardROM_MOS511i_MOS};
-const BeebROM BEEB_ROM_MOS511i_ARABIC = {"mcompact/5.11i/arabic.rom", "MOS 5.11i ARABIC", StandardROM_MOS511i_ARABIC};
-const BeebROM BEEB_ROM_MOS511i_INTERNATIONAL = {"mcompact/5.11i/international.rom", "MOS 5.11i INTERNATIONAL", StandardROM_MOS511i_INTERNATIONAL};
+const BeebROM BEEB_ROM_MOS511i_ARABIC = {"mcompact/5.11i/arabic.rom", "MOS 5.11i ARABIC (usually 8)", StandardROM_MOS511i_ARABIC};
+const BeebROM BEEB_ROM_MOS511i_INTERNATIONAL = {"mcompact/5.11i/international.rom", "MOS 5.11i INTERNATIONAL (usually 2)", StandardROM_MOS511i_INTERNATIONAL};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

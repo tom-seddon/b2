@@ -3,7 +3,7 @@
 
 #define ENAME ROMEditAction
 EBEGIN()
-EPN(None)
+EPNV(None, 0) //explicitly false
 EPN(Edit)
 EPN(MoveUp)
 EPN(MoveDown)

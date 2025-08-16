@@ -406,42 +406,44 @@ make that sideways slot writeable.
 Use the up/down arrows to rearrange the ROM contents, changing the
 priorities.
 
-Items of optional hardware are as follows:
+Optional items of additional hardware can be added, as follows.
 
-- Tick the `External memory` box to add a 16MByte paged RAM 1MHz bus
-  device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
-  corresponding page of the memory appears in page &FD.
+- (B/B+/Master 128 only) Tick the `External memory` box to add a
+  16MByte paged RAM 1MHz bus device. Paging registers are at &FC00
+  (LSB) and &FC01 (MSB), and the corresponding page of the memory
+  appears in page &FD.
   
   (The external RAM can't be enabled in conjunction with the Opus
-  Challenger disc interface, as both devices use page &FD.)
+  Challenger disc interface, as both devices use page &FD)
   
-- Tick the `Mouse` box to add an emulated AMX mouse to the user port.
+- Tick the `Mouse` box to add a user port AMX/Watford mouse
+  (B/B+/Master 128), or a Compact mouse (Master Compact/PC 128 S)
   
-- Tick the `BeebLink` box to enable support for
+- (B/B+/Master 128 only) Tick the `BeebLink` box to enable support for
   [BeebLink](https://github.com/tom-seddon/beeblink). For more
-  details, see the [BeebLink notes](./BeebLink.md).
+  details, see the [BeebLink notes](./BeebLink.md)
   
 - Tick the `Video NuLA` box to add a
-  [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150).
+  [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150)
   (This is ticked by default, as it's very unlikely to cause a
-  problem.)
+  problem)
   
-- If using a Master 128, tick the `Retro Hardware ADJI` to add a Retro
-  Hardware ADJI cartridge (upcoming modern remake of the
-  [Slogger Switched Joystick Interface](https://www.computinghistory.org.uk/det/32296/Slogger%20Switched%20Joystick%20Interface/).
+- (Master 128 only) Tick the `Retro Hardware ADJI` to add a Retro
+  Hardware ADJI cartridge (upcoming modern remake of the [Slogger
+  Switched Joystick
+  Interface](https://www.computinghistory.org.uk/det/32296/Slogger%20Switched%20Joystick%20Interface/).
   Select the DIP switch settings from the list box. The ADJI will use
-  the digital joystick selected in the joysticks menu.
+  the digital joystick selected in the joysticks menu
   
-- For model B, untick the `ROM board` option to limit the ROMs to
-  using only the onboard 4 sockets, corresponding to banks 12-15. (The
-  other sideways ROM banks will become hidden, as their contents
-  aren't accessible in this state)
+- (B only) Untick the `ROM board` option to limit the ROMs to using
+  only the onboard 4 sockets, corresponding to banks 12-15. (The other
+  sideways ROM banks will become hidden, as their contents aren't
+  accessible in this state)
   
-- For Master Compact/Olivetti PC 128 S, tick the `Serial` option to
+- (Master Compact/Olivetti PC 128 S only) Tick the `Serial` option to
   add the optional serial port upgrade
   
-There are also some second processor options, for models that support
-this:
+There are also some second processor options, for B/B+/Master 128:
 
 - `None` for no second processor
 
@@ -456,14 +458,17 @@ this:
   [universal second processor](http://chrisacorns.computinghistory.org.uk/8bit_Upgrades/Acorn_ANC21_Uni2Proc.html)
   with a Master Turbo board fitted)
  
+(The second processor's OS ROM is configurable, but you can probably
+just leave it at the default.)
+ 
 (In either case, as per the on-screen reminder: with a Master, a
 `*CONFIGURE TUBE` may be required to get the OS to detect the second
 processor. With a B/B+, be sure to install a ROM installed with the
 Tube host code in it, such as the Acorn 1770 DFS.)
 
-Tick `SCSI` to add an emulated SCSI hard disk adapter, useable with
-Acorn ADFS. Select up to 4 hard disk images to use with it - see the
-SCSI hard disks section below.
+Also for B/B+/Master 128 only, tick `SCSI` to add an emulated SCSI
+hard disk adapter, useable with Acorn ADFS. Select up to 4 hard disk
+images to use with it - see the SCSI hard disks section below.
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Power-on Reset` (if you're editing the current config) or
@@ -519,7 +524,7 @@ re-select the same config, the CMOS/EEPROM contents will remain set.
 CMOS/EEPROM contents - the intention being to match what you'd get
 when using a collection of real machines.)
 
-If recording or replayinga timeline, the changes won't be saved. Use
+If recording or replaying a timeline, the changes won't be saved. Use
 `File` > `Save CMOS/EEPROM contents` to save the contents explicitly
 in this situation.
 
@@ -529,7 +534,7 @@ Reset` to see the effect.
 
 ## Copy to clipboard
 
-Copy text output using `Copy OSWRCH nexn output`. It works a bit like
+Copy text output using `Copy OSWRCH text output`. It works a bit like
 `*SPOOL`, in that once activated it captures anything printed via
 `OSWRCH` until deactivated.
 
@@ -575,9 +580,9 @@ To make it easy to paste text in from modern applications, newlines
 
 `£` is automatically translated into BBC-style £ (ASCII 96).
 
-The Mode 7 characters produced by the `Translate Mode 7 chars` will
-automatically be translated into the corresponding BBC chars, so the
-data will round trip correctly.
+The Mode 7 characters produced by the `Translate Mode 7 chars` option
+(see above) will automatically be translated into the corresponding
+BBC chars, so the data will round trip correctly.
 
 Other non-ASCII characters are not currently supported.
 

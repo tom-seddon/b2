@@ -312,6 +312,8 @@ static const char NVRAM[] = "nvram";
 static const char STANDARD_ROM[] = "standard_rom";
 static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
+static const char PARASITE_OS_MASTER_TURBO[] = "parasite_os_master_turbo";
+static const char PARASITE_OS_EXTERNAL_3MHZ_65C02[] = "parasite_os_external_3MHz_65c02";
 static const char JOYSTICKS[] = "joysticks";
 static const char DEVICE_NAMES[] = "device_names";
 static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
@@ -1035,11 +1037,36 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
 
         rapidjson::Document::MemberIterator parasite_os_it = config_json->FindMember(PARASITE_OS);
         if (parasite_os_it != config_json->MemberEnd()) {
+            BeebConfig::ROM parasite_os;
             if (!LoadROM(&parasite_os_it->value,
-                         &config.parasite_os,
+                         &parasite_os,
                          strprintf("%s.%s", json_path.c_str(), PARASITE_OS).c_str(),
                          msg)) {
                 continue;
+            }
+
+            config.parasite_os_external_3MHz_65c02 = parasite_os;
+            config.parasite_os_master_turbo = parasite_os;
+        } else {
+
+            parasite_os_it = config_json->FindMember(PARASITE_OS_MASTER_TURBO);
+            if (parasite_os_it != config_json->MemberEnd()) {
+                if (!LoadROM(&parasite_os_it->value,
+                             &config.parasite_os_master_turbo,
+                             strprintf("%s.%s", json_path.c_str(), PARASITE_OS_MASTER_TURBO),
+                             msg)) {
+                    continue;
+                }
+            }
+
+            parasite_os_it = config_json->FindMember(PARASITE_OS_EXTERNAL_3MHZ_65C02);
+            if (parasite_os_it != config_json->MemberEnd()) {
+                if (!LoadROM(&parasite_os_it->value,
+                             &config.parasite_os_external_3MHz_65c02,
+                             strprintf("%s.%s", json_path.c_str(), PARASITE_OS_EXTERNAL_3MHZ_65C02),
+                             msg)) {
+                    continue;
+                }
             }
         }
 
@@ -1088,8 +1115,11 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
                 }
             }
 
-            writer->Key(PARASITE_OS);
-            SaveROM(writer, config->parasite_os);
+            writer->Key(PARASITE_OS_MASTER_TURBO);
+            SaveROM(writer, config->parasite_os_master_turbo);
+
+            writer->Key(PARASITE_OS_EXTERNAL_3MHZ_65C02);
+            SaveROM(writer, config->parasite_os_external_3MHz_65c02);
 
             if (!config->nvram.empty()) {
                 writer->Key(NVRAM);

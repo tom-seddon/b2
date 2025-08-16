@@ -50,7 +50,12 @@ class BeebConfig {
     Enum<BBCMicroTypeID> type_id{BBCMicroTypeID_B};
     ROM os;
     SidewaysROM roms[16];
-    ROM parasite_os;
+
+    // TODO: there might be a more data-driven arrangement hiding in here
+    // somewhere. But with only 2 copro types, it hangs together well enough.
+    ROM parasite_os_external_3MHz_65c02;
+    ROM parasite_os_master_turbo;
+
     //uint8_t keyboard_links = 0;//TODO?
     const DiscInterface *disc_interface = nullptr;
     static constexpr bool DEFAULT_VIDEO_NULA = true;
@@ -116,6 +121,9 @@ class BeebLoadedConfig {
 
     std::shared_ptr<const std::array<uint8_t, 16384>> os;
     std::shared_ptr<const std::vector<uint8_t>> roms[16];
+
+    // There's 2 possible parasite OS settings - but there's only one actual
+    // loaded ROM, as there's only one parasite active at a time.
     std::shared_ptr<const std::array<uint8_t, 4096>> parasite_os;
     HardDiskImageSet hard_disk_images;
 

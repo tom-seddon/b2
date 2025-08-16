@@ -324,7 +324,6 @@ void InitDefaultBeebConfigs() {
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
         config.parasite_type = BBCMicroParasiteType_MasterTurbo;
-        config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
         config.nvram_type = BeebConfigNVRAMType_Master128;
 
@@ -351,7 +350,6 @@ void InitDefaultBeebConfigs() {
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
         config.parasite_type = BBCMicroParasiteType_MasterTurbo;
-        config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
         config.nvram_type = BeebConfigNVRAMType_Master128;
 
@@ -364,7 +362,6 @@ void InitDefaultBeebConfigs() {
 
         config.name += " + 6502 second processor";
         config.parasite_type = BBCMicroParasiteType_External3MHz6502;
-        config.parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
         config.feature_flags = BeebConfigFeatureFlag_6502SecondProcessor;
 
         g_default_configs.push_back(config);
@@ -458,6 +455,9 @@ void InitDefaultBeebConfigs() {
 
     for (BeebConfig &config : g_default_configs) {
         config.ResetNVRAM();
+
+        config.parasite_os_external_3MHz_65c02.standard_rom = FindBeebROM(StandardROM_TUBE110);
+        config.parasite_os_master_turbo.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
     }
 }
 
@@ -592,11 +592,30 @@ bool BeebLoadedConfig::Load(
         }
     }
 
-    if (dest->config.parasite_os.standard_rom ||
-        !dest->config.parasite_os.file_name.empty()) {
-        dest->parasite_os = LoadOSROM<4096>(dest->config.parasite_os, msg);
-        if (!dest->parasite_os) {
-            return false;
+    const BeebConfig::ROM *parasite_os;
+    switch (dest->config.parasite_type) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroParasiteType_None:
+        parasite_os = nullptr;
+        break;
+
+    case BBCMicroParasiteType_MasterTurbo:
+        parasite_os = &dest->config.parasite_os_master_turbo;
+        break;
+
+    case BBCMicroParasiteType_External3MHz6502:
+        parasite_os = &dest->config.parasite_os_external_3MHz_65c02;
+        break;
+    }
+
+    if (parasite_os) {
+        if (parasite_os->standard_rom || !parasite_os->file_name.empty()) {
+            dest->parasite_os = LoadOSROM<4096>(*parasite_os, msg);
+            if (!dest->parasite_os) {
+                return false;
+            }
         }
     }
 

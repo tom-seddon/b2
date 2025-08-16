@@ -61,6 +61,8 @@ class ConfigsUI : public SettingsUI {
 
     // rom_edit_flags is a combination of ROMEditFlag values
     ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, ROMType *type, OSROMType *os_type, uint32_t rom_edit_flags);
+    bool DoParasiteROMEditGui(BeebConfig::ROM *rom, StandardROM standard_rom);
+
     void DoROMs(BeebConfig::ROM *rom,
                 bool *edited,
                 uint32_t rom_edit_flags,
@@ -375,6 +377,8 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGui::Columns(1);
 
+    ImGuiHeader("Additional hardware");
+
     if (Has1MHzBus(config->type_id)) {
         if (!(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
             if (ImGui::Checkbox("External memory", &config->ext_mem)) {
@@ -418,116 +422,117 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
+    if (!HasSerial(config->type_id)) {
+        if (ImGui::Checkbox("Serial", &config->serial)) {
+            m_edited = true;
+        }
+    }
+
     if (HasTube(config->type_id)) {
-        if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
-            edited = true;
-        }
+        ImGui::Separator();
 
-        if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_External3MHz6502, "6502 Second Processor")) {
-            edited = true;
-        }
-
-        if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_MasterTurbo, "Master Turbo")) {
-            edited = true;
-        }
+        ImGuiHeader("Tube");
 
         if (config->parasite_type != BBCMicroParasiteType_None) {
-            if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
-                switch (config->parasite_type) {
-                case BBCMicroParasiteType_None:
-                    // inhibit spurious warning
-                    break;
-
-                case BBCMicroParasiteType_External3MHz6502:
-                    config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
-                    break;
-
-                case BBCMicroParasiteType_MasterTurbo:
-                    config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
-                    break;
-                }
-            }
-
-            if (this->DoROMEditGui("Parasite OS",
-                                   &config->parasite_os,
-                                   nullptr,
-                                   nullptr,
-                                   nullptr,
-                                   ROMEditFlag_ParasiteROMs)) {
-                edited = true;
-            }
-
             if (config->type_id == BBCMicroTypeID_Master) {
                 ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
             } else {
                 ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");
             }
         }
+
+        if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
+            edited = true;
+        }
+
+        {
+            ImGuiIDPusher pusher(BBCMicroParasiteType_External3MHz6502);
+
+            if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_External3MHz6502, "6502 Second Processor")) {
+                edited = true;
+            }
+
+            if (this->DoParasiteROMEditGui(&config->parasite_os_external_3MHz_65c02, StandardROM_TUBE110)) {
+                edited = true;
+            }
+        }
+
+        {
+            ImGuiIDPusher pusher(BBCMicroParasiteType_MasterTurbo);
+
+            if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_MasterTurbo, "Master Turbo")) {
+                edited = true;
+            }
+
+            if (this->DoParasiteROMEditGui(&config->parasite_os_master_turbo, StandardROM_MasterTurboParasite)) {
+                edited = true;
+            }
+        }
     }
 
 #if ENABLE_SCSI
-    ImGui::Checkbox("SCSI", &config->scsi);
+    if (Has1MHzBus(config->type_id)) {
+        ImGui::Separator();
 
-    if (config->scsi) {
-        for (size_t hard_disk_index = 0; hard_disk_index < config->hard_disk_dat_paths.size(); ++hard_disk_index) {
-            ASSERT(hard_disk_index <= UINT32_MAX);
-            ImGuiIDPusher id_pusher((uint32_t)hard_disk_index);
+        ImGuiHeader("SCSI##header");
 
-            char name[100];
-            snprintf(name, sizeof name, "SCSI HD %zu", hard_disk_index);
-            if (ImGuiInputText(&config->hard_disk_dat_paths[hard_disk_index],
-                               name,
-                               config->hard_disk_dat_paths[hard_disk_index])) {
-                edited = true;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("...")) {
-                ImGui::OpenPopup(SCSI_POPUP);
-            }
+        ImGui::Checkbox("SCSI", &config->scsi);
 
-            if (ImGui::BeginPopup(SCSI_POPUP)) {
-                if (ImGui::MenuItem("File...")) {
-                    if (m_hard_disk_ofd.Open(&config->hard_disk_dat_paths[hard_disk_index])) {
-                        edited = true;
-                        m_hard_disk_ofd.AddLastPathToRecentPaths();
-                    }
-                }
+        if (config->scsi) {
+            for (size_t hard_disk_index = 0; hard_disk_index < config->hard_disk_dat_paths.size(); ++hard_disk_index) {
+                ASSERT(hard_disk_index <= UINT32_MAX);
+                ImGuiIDPusher id_pusher((uint32_t)hard_disk_index);
 
-                if (ImGuiRecentMenu(&config->hard_disk_dat_paths[hard_disk_index],
-                                    "Recent file",
-                                    m_hard_disk_ofd)) {
+                char name[100];
+                snprintf(name, sizeof name, "SCSI HD %zu", hard_disk_index);
+                if (ImGuiInputText(&config->hard_disk_dat_paths[hard_disk_index],
+                                   name,
+                                   config->hard_disk_dat_paths[hard_disk_index])) {
                     edited = true;
                 }
+                ImGui::SameLine();
+                if (ImGui::Button("...")) {
+                    ImGui::OpenPopup(SCSI_POPUP);
+                }
 
-                ImGui::Separator();
+                if (ImGui::BeginPopup(SCSI_POPUP)) {
+                    if (ImGui::MenuItem("File...")) {
+                        if (m_hard_disk_ofd.Open(&config->hard_disk_dat_paths[hard_disk_index])) {
+                            edited = true;
+                            m_hard_disk_ofd.AddLastPathToRecentPaths();
+                        }
+                    }
 
-                if (ImGui::BeginMenu("New")) {
-                    for (size_t blank_hard_disk_index = 0; blank_hard_disk_index < NUM_BLANK_HARD_DISKS; ++blank_hard_disk_index) {
-                        const HardDisk *disk = &BLANK_HARD_DISKS[blank_hard_disk_index];
-                        if (ImGui::MenuItem(disk->name.c_str())) {
-                            std::string dat_path;
-                            if (m_new_hard_disk_sfd.Open(&dat_path)) {
-                                if (this->CreateNewHardDiskImage(*disk, dat_path)) {
-                                    config->hard_disk_dat_paths[hard_disk_index] = dat_path;
-                                    edited = true;
+                    if (ImGuiRecentMenu(&config->hard_disk_dat_paths[hard_disk_index],
+                                        "Recent file",
+                                        m_hard_disk_ofd)) {
+                        edited = true;
+                    }
+
+                    ImGui::Separator();
+
+                    if (ImGui::BeginMenu("New")) {
+                        for (size_t blank_hard_disk_index = 0; blank_hard_disk_index < NUM_BLANK_HARD_DISKS; ++blank_hard_disk_index) {
+                            const HardDisk *disk = &BLANK_HARD_DISKS[blank_hard_disk_index];
+                            if (ImGui::MenuItem(disk->name.c_str())) {
+                                std::string dat_path;
+                                if (m_new_hard_disk_sfd.Open(&dat_path)) {
+                                    if (this->CreateNewHardDiskImage(*disk, dat_path)) {
+                                        config->hard_disk_dat_paths[hard_disk_index] = dat_path;
+                                        edited = true;
+                                    }
                                 }
                             }
                         }
+                        ImGui::EndMenu();
                     }
-                    ImGui::EndMenu();
-                }
 
-                ImGui::EndPopup();
+                    ImGui::EndPopup();
+                }
             }
         }
     }
 #endif
-
-    if (!HasSerial(config->type_id)) {
-        if (ImGui::Checkbox("Serial", &config->serial)) {
-            m_edited = true;
-        }
-    }
 
     if (edited) {
         BeebWindows::ConfigDidChange((size_t)m_config_index);
@@ -695,6 +700,20 @@ static const BeebROM *const MOSI510C_MOS_ROMS[] = {
     nullptr,
 };
 
+static const BeebROM *const MOS511i_MOS_ROMS[] = {
+    &BEEB_ROM_MOS511i_MOS_ROM,
+    nullptr,
+};
+
+static const BeebROM *const MOS511i_SIDEWAYS_ROMS[] = {
+    &BEEB_ROM_MOS511i_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS511i_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS511i_SIDEWAYS_ROM_F,
+    &BEEB_ROM_MOS511i_ARABIC,
+    &BEEB_ROM_MOS511i_INTERNATIONAL,
+    nullptr,
+};
+
 static bool ImGuiROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
     for (size_t i = 0; b_roms[i]; ++i) {
         if (ImGuiROM(rom, b_roms[i])) {
@@ -764,6 +783,8 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             }
         }
     }
+
+    ImGui::SameLine();
 
     ImGui::NextColumn();
 
@@ -870,9 +891,11 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.00 Sideways ROM", MOS500_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.10 Sideways ROM", MOS510_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "PC 128 S Sideways ROM", MOSI510C_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.11i Sideways ROM", MOS511i_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.00 OS ROM", MOS500_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.10 OS ROM", MOS510_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "PC 128 S OS ROM", MOSI510C_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.11i OS ROM", MOS511i_MOS_ROMS);
 
         ImGui::EndPopup();
     }
@@ -891,7 +914,26 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool CopyFile(const std::string &src_path, const std::string &dest_path, bool adfs, Messages *msg) {
+bool ConfigsUI::DoParasiteROMEditGui(BeebConfig::ROM *rom, StandardROM standard_rom) {
+    if (rom->file_name.empty() && !rom->standard_rom) {
+        // I messed this up at some point, and now b2 is stuck with this forever
+        // :(
+        rom->standard_rom = FindBeebROM(standard_rom);
+    }
+
+    ROMEditAction a = this->DoROMEditGui("OS", rom, nullptr, nullptr, nullptr, ROMEditFlag_ParasiteROMs);
+    if (a != ROMEditAction_None) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool
+CopyFile(const std::string &src_path, const std::string &dest_path, bool adfs, Messages *msg) {
     std::vector<uint8_t> data;
     if (!LoadFile(&data, src_path, msg)) {
         return false;
