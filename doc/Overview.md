@@ -138,9 +138,15 @@ Save states are only available when the emulator has complete control
 over the entire state of the emulated BBC. That means the following
 restrictions apply:
 
-- all disk images loaded must be in-memory disk images
+- all floppy disk images loaded must be in-memory disk images
+
+- hard disk emulation disabled (since hard disk images are are never
+  in-memory images)
 
 - the current hardware config must have BeebLink disabled
+
+Hover over the `Save state` option when disabled to get a tooltip
+indicating why it's been disabled.
 
 ## Timeline
 

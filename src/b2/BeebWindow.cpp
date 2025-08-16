@@ -1976,6 +1976,13 @@ void BeebWindow::DoFileMenu() {
         ImGui::Separator();
 
         m_cst.DoMenuItem(g_save_state_command);
+        if (!m_cst.GetEnabled(g_save_state_command)) {
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                uint32_t clone_impediments = m_beeb_thread->GetBBCMicroCloneImpediments();
+                std::string tooltip = "Can't save state, due to: %s" + GetCloneImpedimentsDescription(clone_impediments);
+                ImGui::SetTooltip(tooltip.c_str());
+            }
+        }
 
         ImGui::Separator();
         m_cst.DoMenuItem(g_save_config_command);
@@ -2790,7 +2797,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
     m_beeb_thread->MainThreadIsReady();
-    
+
     bool economy = false;
 
     if (m_settings.background_economy_mode) {
