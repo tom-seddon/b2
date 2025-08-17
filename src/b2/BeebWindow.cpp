@@ -2191,8 +2191,39 @@ void BeebWindow::DoHardwareMenu() {
 
         for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
             BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
+            bool selected = false;
 
-            if (ImGui::MenuItem(config->name.c_str(), nullptr, config->name == config_name)) {
+            if (IsMultiOSType(config->os_rom_type)) {
+                if (ImGui::BeginMenu(config->name.c_str())) {
+                    if (ImGui::IsItemClicked()) {
+                        // (CloseCurrentPopup closes the menu, mimicking the
+                        // behaviour of an ordinary menu item.)
+                        ImGui::CloseCurrentPopup();
+
+                        selected = true;
+                    }
+
+                    for (int i = 0; i < 4; ++i) {
+                        char label[100];
+                        snprintf(label, sizeof label, "Multi-OS Bank %d", i);
+
+                        auto type = (OSROMType)(OSROMType_MultiOSBank0 + i);
+                        bool ticked = config->os_rom_type == type;
+                        if (ImGui::MenuItem(label, nullptr, &ticked)) {
+                            config->os_rom_type = type;
+                            selected = true;
+                        }
+                    }
+
+                    ImGui::EndMenu();
+                }
+            } else {
+                if (ImGui::MenuItem(config->name.c_str(), nullptr, config->name == config_name)) {
+                    selected = true;
+                }
+            }
+
+            if (selected) {
                 this->HardReset(*config, BeebThreadHardResetFlag_Run);
             }
         }

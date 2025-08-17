@@ -365,10 +365,14 @@ OS ROM type. The options available are:
   ROM dump from a genuine Master 128 ROM
 - `Multi-OS (512 KB)` - Multi-OS ROM, 512 KB (524,288 bytes) exactly,
   containing 4 sets of MegaROM contents. There are 4 such options,
-  corresponding to which particular bank you want to use. This will
-  work with a ROM dump from one of the commonly-available modern OS
-  ROM switchers
-
+  corresponding to which particular bank you want to use by default.
+  This will work with a ROM dump from one of the commonly-available
+  modern OS ROM switchers
+  
+  You can click the corresponding entry in the `Hardware` menu to use
+  the default bank; the entry also includes a popup that you can use
+  to set the default to a different bank
+  
 If using one of the larger ROM types (64 KB, 128 KB, 512 KB), some
 sideways ROM banks will become hidden, as their contents are part of
 the OS ROM and can't be configured separately.

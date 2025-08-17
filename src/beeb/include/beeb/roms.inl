@@ -84,6 +84,8 @@ EBEGIN_DERIVED(uint8_t)
 EPN(16KB)
 EPN(Compact)
 EPN(MegaROM)
+
+// Oops. It was a mistake to have the bank number included in this enum. 
 EPN(MultiOSBank0)
 EPN(MultiOSBank1)
 EPN(MultiOSBank2)
@@ -93,3 +95,8 @@ EPN(MultiOSBank3)
 EPN(Count)
 EEND()
 #undef ENAME
+
+// MultiOSBank values must be contiguous.
+static_assert(OSROMType_MultiOSBank1 == OSROMType_MultiOSBank0 + 1);
+static_assert(OSROMType_MultiOSBank2 == OSROMType_MultiOSBank0 + 2);
+static_assert(OSROMType_MultiOSBank3 == OSROMType_MultiOSBank0 + 3);
