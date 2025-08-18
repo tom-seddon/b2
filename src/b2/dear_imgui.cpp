@@ -495,6 +495,23 @@ void ImGuiStuff::RenderSDL() {
                 SDL_Texture *texture = (SDL_Texture *)cmd.TextureId;
                 SDL_GL_BindTexture(texture, nullptr, nullptr);
 
+                GLint gl_scale_mode;
+                SDL_ScaleMode scale_mode;
+                SDL_GetTextureScaleMode(texture, &scale_mode);
+                switch(scale_mode){
+                default:
+                case SDL_ScaleModeNearest:
+                    gl_scale_mode=GL_NEAREST;
+                    break;
+
+                case SDL_ScaleModeLinear:
+                    gl_scale_mode=GL_LINEAR;
+                    break;
+                }
+
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_scale_mode);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_scale_mode);
+                
                 SDL_BlendMode blend_mode;
                 SDL_GetTextureBlendMode(texture, &blend_mode);
                 switch (blend_mode) {
