@@ -479,7 +479,21 @@ void ImGuiStuff::RenderSDL() {
                 (*cmd.UserCallback)(draw_list, &cmd);
             } else {
                 SDL_Texture *texture = (SDL_Texture *)cmd.TextureId;
-                SDL_GL_BindTexture(texture, nullptr, nullptr);
+
+                GLfloat tex_w, tex_h;
+                SDL_GL_BindTexture(texture, &tex_w, &tex_h);
+
+                // Ensure texture scaling is correct (#467)
+                if (tex_w == 1.0f || tex_w == 0.0f) {
+                    // Reset texture matrix to proper state
+                    glMatrixMode(GL_TEXTURE);
+                    glLoadIdentity();
+                    glMatrixMode(GL_MODELVIEW);
+
+                    // Set texture parameters for clean rendering
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                }
 
                 SDL_BlendMode blend_mode;
                 SDL_GetTextureBlendMode(texture, &blend_mode);
