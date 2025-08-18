@@ -5268,4 +5268,29 @@ Seems to work ok manually. But where does the b2.app.xcent file come
 from? What is its path (in general)? (Can always search for it if it's
 not obvious...)
 
+* Testing with SDL3+sdl2-compat
+
+`dependencies` in the working copy is the ideal folder for this.
+
+: git clone https://github.com/libsdl-org/sdl2-compat
+: git clone https://github.com/libsdl-org/SDL
+
+For sdl2-compat, head revision is probably good.
+
+For SDL:
+
+: git checkout release-3.2.x
+
+SDL3 can just build itself. `add_subdirectory` somewhere in the
+CMakeLists.txt.
+
+: add_subdirectory(${CMAKE_SOURCE_DIR}/dependencies/SDL)
+
+sdl2-compat is similar. But note that it generates some SDL2::
+targets, so remove anything that would generate those. CMake will moan
+about this stuff if anything goes wrong, so trial and error will
+work.
+
+: add_subdirectory(${CMAKE_SOURCE_DIR}/dependencies/sdl2-compat)
+
 * eof.
