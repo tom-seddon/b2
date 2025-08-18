@@ -85,7 +85,7 @@ EPN(16KB)
 EPN(Compact)
 EPN(MegaROM)
 
-// Oops. It was a mistake to have the bank number included in this enum. 
+// Oops. It was a mistake to have the bank number included in this enum.
 EPN(MultiOSBank0)
 EPN(MultiOSBank1)
 EPN(MultiOSBank2)

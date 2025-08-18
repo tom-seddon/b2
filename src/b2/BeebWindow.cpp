@@ -1979,8 +1979,7 @@ void BeebWindow::DoFileMenu() {
         if (!m_cst.GetEnabled(g_save_state_command)) {
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                 uint32_t clone_impediments = m_beeb_thread->GetBBCMicroCloneImpediments();
-                std::string tooltip = "Can't save state, due to: %s" + GetCloneImpedimentsDescription(clone_impediments);
-                ImGui::SetTooltip(tooltip.c_str());
+                ImGui::SetTooltip("Can't save state, due to: %s", GetCloneImpedimentsDescription(clone_impediments).c_str());
             }
         }
 
