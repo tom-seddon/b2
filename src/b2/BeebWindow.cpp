@@ -2437,7 +2437,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
 
         ImGui::Separator();
-        
+
         // Symbols submenu
         if (ImGui::BeginMenu("Symbols")) {
             if (ImGui::MenuItem("Clear Symbols")) {
@@ -2446,9 +2446,9 @@ void BeebWindow::DoDebugMenu() {
             if (ImGui::MenuItem("Load Symbols File...")) {
                 this->OpenSymbolsFileDialog();
             }
-            
+
             ImGui::Separator();
-            
+
             // Show loaded symbols count
             size_t count = m_symbol_table.GetSymbolCount();
             if (count > 0) {
@@ -2456,7 +2456,7 @@ void BeebWindow::DoDebugMenu() {
             } else {
                 ImGui::TextDisabled("No symbols loaded");
             }
-            
+
             ImGui::EndMenu();
         }
 
@@ -3472,14 +3472,14 @@ std::shared_ptr<MessageList> BeebWindow::GetMessageList() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable& BeebWindow::GetSymbolTable() {
+SymbolTable &BeebWindow::GetSymbolTable() {
     return m_symbol_table;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const SymbolTable& BeebWindow::GetSymbolTable() const {
+const SymbolTable &BeebWindow::GetSymbolTable() const {
     return m_symbol_table;
 }
 
@@ -3488,10 +3488,10 @@ const SymbolTable& BeebWindow::GetSymbolTable() const {
 
 void BeebWindow::OpenSymbolsFileDialog() {
     OpenFileDialog fd("symbols");
-    
+
     fd.AddFilter("Symbol files", {".lbl", ".vice", ".sym"});
     fd.AddAllFilesFilter();
-    
+
     std::string path;
     if (fd.Open(&path)) {
         bool success = m_symbol_table.LoadFromFile(path);

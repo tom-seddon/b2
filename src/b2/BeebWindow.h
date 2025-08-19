@@ -305,11 +305,11 @@ class BeebWindow {
 #endif
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
-    
+
     // Get symbol table for debugging
-    SymbolTable& GetSymbolTable();
-    const SymbolTable& GetSymbolTable() const;
-    
+    SymbolTable &GetSymbolTable();
+    const SymbolTable &GetSymbolTable() const;
+
     // Symbol file loading
     void OpenSymbolsFileDialog();
 
@@ -414,7 +414,7 @@ class BeebWindow {
     BeebWindowSettings m_settings;
 
     ImGuiStuff *m_imgui_stuff = nullptr;
-    
+
     // Symbol table for debugging
     SymbolTable m_symbol_table;
 

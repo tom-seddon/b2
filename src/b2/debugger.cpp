@@ -181,7 +181,7 @@ static bool ParseAddress(uint16_t *addr_ptr,
         }
         size_t end = symbol_name.find_last_not_of(" \t\r\n");
         symbol_name = symbol_name.substr(start, end - start + 1);
-        
+
         if (symbol_table->HasSymbol(symbol_name)) {
             addr = symbol_table->GetAddressForSymbol(symbol_name);
             // Set ep to end of string for symbol resolution
@@ -192,7 +192,7 @@ static bool ParseAddress(uint16_t *addr_ptr,
     } else {
         // Try numeric parsing
         bool numeric_parse_success = GetUInt16FromString(&addr, text, 0, &ep);
-        
+
         if (!numeric_parse_success) {
             return false;
         }
@@ -1686,11 +1686,11 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                 // Check if this looked like a symbol name that failed to resolve
                 if (m_address_text[0] != '\0' && (isalpha(m_address_text[0]) || m_address_text[0] == '_')) {
                     // Store error message to display it in the UI
-                    snprintf(m_symbol_error_text, sizeof(m_symbol_error_text), 
-                            "Symbol not found: %s", m_address_text);
+                    snprintf(m_symbol_error_text, sizeof(m_symbol_error_text),
+                             "Symbol not found: %s", m_address_text);
                     m_symbol_error_time = ImGui::GetTime();
                 }
-                // For numeric parsing failures, we don't show an error since the input field 
+                // For numeric parsing failures, we don't show an error since the input field
                 // will just stay as-is, which is the expected behavior
             }
         }
@@ -1698,7 +1698,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         // Show symbol error message if recent
         if (m_symbol_error_text[0] != '\0') {
             double elapsed = ImGui::GetTime() - m_symbol_error_time;
-            if (elapsed < 3.0) { // Show error for 3 seconds
+            if (elapsed < 3.0) {                                                      // Show error for 3 seconds
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red text
                 ImGui::Text("%s", m_symbol_error_text);
                 ImGui::PopStyleColor();
@@ -1778,13 +1778,13 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
             if (m_show_labels) {
                 // Check for symbol at this address when labels are enabled
-                const SymbolTable& symbol_table = m_beeb_window->GetSymbolTable();
-                const SymbolTable::Symbol* symbol = symbol_table.GetSymbolForAddress(line_addr.w);
-                
+                const SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
+                const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(line_addr.w);
+
                 ImGui::SameLine();
                 ImGui::Text("  "); // Add some spacing
                 ImGui::SameLine();
-                
+
                 if (symbol) {
                     // Truncate symbol name if it's too long to maintain alignment
                     std::string display_name = symbol->name;
@@ -1792,7 +1792,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                     if (display_name.length() > max_label_length) {
                         display_name = display_name.substr(0, max_label_length - 3) + "...";
                     }
-                    
+
                     // Use a fixed width for consistent alignment
                     ImGui::Text("%-*s", (int)max_label_length, display_name.c_str());
                 } else {
