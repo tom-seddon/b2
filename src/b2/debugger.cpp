@@ -11,12 +11,14 @@
 #include <beeb/DiscImage.h>
 #include <beeb/scsi.h>
 #include <beeb/HardDiskImage.h>
+#include "SymbolTable.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 static CommandTable2 g_disassembly_table("Disassembly Window", BBCMICRO_DEBUGGER);
 static Command2 g_toggle_track_pc_command = Command2(&g_disassembly_table, "toggle_track_pc", "Track PC").WithShortcut(SDLK_t);
+static Command2 g_toggle_show_labels_command = Command2(&g_disassembly_table, "toggle_show_labels", "Show Labels").WithShortcut(SDLK_l);
 static Command2 g_back_command = Command2(&g_disassembly_table, "back", "Back").WithShortcut(SDLK_BACKSPACE);
 static Command2 g_up_command = Command2(&g_disassembly_table, "up", "Up").WithShortcut(SDLK_UP);
 static Command2 g_down_command = Command2(&g_disassembly_table, "down", "Down").WithShortcut(SDLK_DOWN);
@@ -163,13 +165,37 @@ static const char *GetFnName(M6502Fn fn) {
 static bool ParseAddress(uint16_t *addr_ptr,
                          uint32_t *dso_ptr,
                          const std::shared_ptr<const BBCMicroType> &type,
-                         const char *text) {
+                         const char *text,
+                         const SymbolTable *symbol_table = nullptr) {
     uint32_t dso = 0;
     uint16_t addr;
-
     const char *ep;
-    if (!GetUInt16FromString(&addr, text, 0, &ep)) {
-        return false;
+
+    // Check if this looks like a symbol name first (starts with letter or underscore)
+    if (symbol_table && text[0] != '\0' && (isalpha(text[0]) || text[0] == '_')) {
+        // Trim whitespace from input text
+        std::string symbol_name = text;
+        size_t start = symbol_name.find_first_not_of(" \t\r\n");
+        if (start == std::string::npos) {
+            return false; // Only whitespace
+        }
+        size_t end = symbol_name.find_last_not_of(" \t\r\n");
+        symbol_name = symbol_name.substr(start, end - start + 1);
+        
+        if (symbol_table->HasSymbol(symbol_name)) {
+            addr = symbol_table->GetAddressForSymbol(symbol_name);
+            // Set ep to end of string for symbol resolution
+            ep = text + strlen(text);
+        } else {
+            return false;
+        }
+    } else {
+        // Try numeric parsing
+        bool numeric_parse_success = GetUInt16FromString(&addr, text, 0, &ep);
+        
+        if (!numeric_parse_success) {
+            return false;
+        }
     }
 
     if (!isspace(*ep) && *ep != 0) {
@@ -1356,7 +1382,8 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
             if (!ParseAddress(&addr,
                               &m_window->m_dso,
                               m_window->m_beeb_state->type,
-                              text)) {
+                              text,
+                              &m_window->m_beeb_window->GetSymbolTable())) {
                 return false;
             }
 
@@ -1574,6 +1601,11 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             }
         }
 
+        this->cst->SetTicked(g_toggle_show_labels_command, m_show_labels);
+        if (this->cst->WasActioned(g_toggle_show_labels_command)) {
+            m_show_labels = !m_show_labels;
+        }
+
         this->cst->SetEnabled(g_back_command, !m_history.empty());
         if (this->cst->WasActioned(g_back_command)) {
             ASSERT(!m_history.empty());
@@ -1648,14 +1680,38 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                              m_address_text, sizeof m_address_text,
                              ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
             uint16_t addr;
-            if (ParseAddress(&addr, &m_dso, m_beeb_state->type, m_address_text)) {
+            if (ParseAddress(&addr, &m_dso, m_beeb_state->type, m_address_text, &m_beeb_window->GetSymbolTable())) {
                 this->GoTo(addr);
+            } else {
+                // Check if this looked like a symbol name that failed to resolve
+                if (m_address_text[0] != '\0' && (isalpha(m_address_text[0]) || m_address_text[0] == '_')) {
+                    // Store error message to display it in the UI
+                    snprintf(m_symbol_error_text, sizeof(m_symbol_error_text), 
+                            "Symbol not found: %s", m_address_text);
+                    m_symbol_error_time = ImGui::GetTime();
+                }
+                // For numeric parsing failures, we don't show an error since the input field 
+                // will just stay as-is, which is the expected behavior
+            }
+        }
+
+        // Show symbol error message if recent
+        if (m_symbol_error_text[0] != '\0') {
+            double elapsed = ImGui::GetTime() - m_symbol_error_time;
+            if (elapsed < 3.0) { // Show error for 3 seconds
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red text
+                ImGui::Text("%s", m_symbol_error_text);
+                ImGui::PopStyleColor();
+            } else {
+                m_symbol_error_text[0] = '\0'; // Clear the error message
             }
         }
 
         this->cst->DoButton(g_step_over_command);
         ImGui::SameLine();
         this->cst->DoButton(g_step_in_command);
+        ImGui::SameLine();
+        this->cst->DoToggleCheckbox(g_toggle_show_labels_command);
 
         if (m_persistent.track_pc) {
             if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
@@ -1719,6 +1775,31 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             const DebugBigPage *line_dbp = this->GetDebugBigPageForAddress(line_addr, false);
             ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, line_dbp->bp.metadata->aligned_codes);
             this->DoBytePopupGui(line_dbp, line_addr);
+
+            if (m_show_labels) {
+                // Check for symbol at this address when labels are enabled
+                const SymbolTable& symbol_table = m_beeb_window->GetSymbolTable();
+                const SymbolTable::Symbol* symbol = symbol_table.GetSymbolForAddress(line_addr.w);
+                
+                ImGui::SameLine();
+                ImGui::Text("  "); // Add some spacing
+                ImGui::SameLine();
+                
+                if (symbol) {
+                    // Truncate symbol name if it's too long to maintain alignment
+                    std::string display_name = symbol->name;
+                    const size_t max_label_length = 16; // Maximum chars for label
+                    if (display_name.length() > max_label_length) {
+                        display_name = display_name.substr(0, max_label_length - 3) + "...";
+                    }
+                    
+                    // Use a fixed width for consistent alignment
+                    ImGui::Text("%-*s", (int)max_label_length, display_name.c_str());
+                } else {
+                    // Empty space for alignment when no symbol
+                    ImGui::Text("%-*s", (int)16, "");
+                }
+            }
 
             ImGui::SameLine();
 
@@ -1927,7 +2008,12 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
     uint16_t m_addr = 0;
     int32_t m_old_pc = -1;
+
+    bool m_show_labels = false;
     char m_address_text[100] = {};
+    char m_symbol_error_text[200] = {};
+    double m_symbol_error_time = 0.0;
+
     //std::vector<uint16_t> m_line_addrs;
     std::vector<uint16_t> m_history;
     int m_num_lines = 0;

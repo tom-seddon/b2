@@ -19,6 +19,8 @@
 #include <SDL_syswm.h>
 #include "VBlankMonitor.h"
 #include "b2.h"
+#include "SymbolTable.h"
+#include "native_ui.h"
 #include <inttypes.h>
 #include "misc.h"
 #include "TimelineUI.h"
@@ -2435,6 +2437,30 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
 
         ImGui::Separator();
+        
+        // Symbols submenu
+        if (ImGui::BeginMenu("Symbols")) {
+            if (ImGui::MenuItem("Clear Symbols")) {
+                m_symbol_table.Clear();
+            }
+            if (ImGui::MenuItem("Load Symbols File...")) {
+                this->OpenSymbolsFileDialog();
+            }
+            
+            ImGui::Separator();
+            
+            // Show loaded symbols count
+            size_t count = m_symbol_table.GetSymbolCount();
+            if (count > 0) {
+                ImGui::Text("Loaded symbols: %zu", count);
+            } else {
+                ImGui::TextDisabled("No symbols loaded");
+            }
+            
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
 
         m_cst.DoMenuItem(g_debug_stop_command);
         m_cst.DoMenuItem(g_debug_run_command);
@@ -3441,6 +3467,41 @@ std::shared_ptr<BeebThread> BeebWindow::GetBeebThread() const {
 
 std::shared_ptr<MessageList> BeebWindow::GetMessageList() const {
     return m_message_list;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SymbolTable& BeebWindow::GetSymbolTable() {
+    return m_symbol_table;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const SymbolTable& BeebWindow::GetSymbolTable() const {
+    return m_symbol_table;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::OpenSymbolsFileDialog() {
+    OpenFileDialog fd("symbols");
+    
+    fd.AddFilter("Symbol files", {".lbl", ".vice", ".sym"});
+    fd.AddAllFilesFilter();
+    
+    std::string path;
+    if (fd.Open(&path)) {
+        bool success = m_symbol_table.LoadFromFile(path);
+        if (success) {
+            m_msg.i.f("Symbols loaded successfully from: %s\n", path.c_str());
+            fd.AddLastPathToRecentPaths();
+        } else {
+            m_msg.e.f("Failed to load symbols from: %s\n", path.c_str());
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
