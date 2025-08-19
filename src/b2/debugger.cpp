@@ -3236,97 +3236,97 @@ class StackDebugWindow : public DebugUI {
 
         const DebugBigPage *value_dbp = this->GetDebugBigPageForAddress({0}, false);
 
-        ImGui::BeginTable("stack_table", 9, ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY);
+        if (ImGui::BeginTable("stack_table", 9, ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY)) {
+            ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Int", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Byte", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Char", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Hex", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Bin", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Addr", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("rts", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("jsr", ImGuiTableColumnFlags_WidthFixed, 0.f);
 
-        ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("Int", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("Byte", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("Char", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("Hex", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("Bin", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("Addr", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("rts", ImGuiTableColumnFlags_WidthFixed, 0.f);
-        ImGui::TableSetupColumn("jsr", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableHeadersRow();
 
-        ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableHeadersRow();
+            {
+                ImVec4 disabled_colour = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+                ImGuiStyleColourPusher colour_pusher;
+                bool in_active_stack = true;
 
-        {
-            ImVec4 disabled_colour = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-            ImGuiStyleColourPusher colour_pusher;
-            bool in_active_stack = true;
+                for (int offset = 255; offset >= 0; --offset) {
+                    ImGui::TableNextRow();
 
-            for (int offset = 255; offset >= 0; --offset) {
-                ImGui::TableNextRow();
+                    if (offset == s) {
+                        ImGui::Separator();
+                        colour_pusher.Push(ImGuiCol_Text, disabled_colour);
+                        in_active_stack = false;
+                    }
 
-                if (offset == s) {
-                    ImGui::Separator();
-                    colour_pusher.Push(ImGuiCol_Text, disabled_colour);
-                    in_active_stack = false;
-                }
+                    M6502Word value_addr = {(uint16_t)(0x100 + offset)};
+                    uint8_t value = value_dbp->bp.r[value_addr.w];
 
-                M6502Word value_addr = {(uint16_t)(0x100 + offset)};
-                uint8_t value = value_dbp->bp.r[value_addr.w];
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s%04x", g_hex, value_addr.w);
+                    this->DoBytePopupGui(value_dbp, value_addr);
 
-                ImGui::TableNextColumn();
-                ImGui::Text("%s%04x", g_hex, value_addr.w);
-                this->DoBytePopupGui(value_dbp, value_addr);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%4d", (int8_t)value);
 
-                ImGui::TableNextColumn();
-                ImGui::Text("%4d", (int8_t)value);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%3u", value);
 
-                ImGui::TableNextColumn();
-                ImGui::Text("%3u", value);
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(GetByteStringBBC(value)->c_str());
 
-                ImGui::TableNextColumn();
-                ImGui::TextUnformatted(GetByteStringBBC(value)->c_str());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s%02x", g_hex, value);
 
-                ImGui::TableNextColumn();
-                ImGui::Text("%s%02x", g_hex, value);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s%s", g_bin, BINARY_BYTE_STRINGS[value]);
 
-                ImGui::TableNextColumn();
-                ImGui::Text("%s%s", g_bin, BINARY_BYTE_STRINGS[value]);
+                    M6502Word addr;
+                    addr.b.l = value;
+                    addr.b.h = value_dbp->bp.r[0x100 + ((offset + 1) & 0xff)];
 
-                M6502Word addr;
-                addr.b.l = value;
-                addr.b.h = value_dbp->bp.r[0x100 + ((offset + 1) & 0xff)];
+                    ImGuiIDPusher pusher(offset);
 
-                ImGuiIDPusher pusher(offset);
+                    {
+                        bool was_jsr = false;
+                        ImGuiStyleColourPusher colour_pusher2;
 
-                {
-                    bool was_jsr = false;
-                    ImGuiStyleColourPusher colour_pusher2;
-
-                    if (in_active_stack) {
-                        // Does this look like it was probably pushed by a jsr?
-                        //
-                        // (Paging can interfere with this! The paging overrides UI is
-                        // available if you need it.)
-                        uint8_t possible_jsr;
-                        if (this->ReadByte(&possible_jsr, nullptr, nullptr, addr.w - 2, false)) {
-                            if (possible_jsr == 0x20) {
-                                was_jsr = true;
+                        if (in_active_stack) {
+                            // Does this look like it was probably pushed by a jsr?
+                            //
+                            // (Paging can interfere with this! The paging overrides UI is
+                            // available if you need it.)
+                            uint8_t possible_jsr;
+                            if (this->ReadByte(&possible_jsr, nullptr, nullptr, addr.w - 2, false)) {
+                                if (possible_jsr == 0x20) {
+                                    was_jsr = true;
+                                }
                             }
                         }
+
+                        ImGui::TableNextColumn();
+                        this->AddressColumn("Address", addr, 0);
+
+                        if (!was_jsr) {
+                            colour_pusher2.Push(ImGuiCol_Text, disabled_colour);
+                        }
+
+                        ImGui::TableNextColumn();
+                        this->AddressColumn("Return address", addr, 1);
+
+                        ImGui::TableNextColumn();
+                        this->AddressColumn("Call address", addr, -2);
                     }
-
-                    ImGui::TableNextColumn();
-                    this->AddressColumn("Address", addr, 0);
-
-                    if (!was_jsr) {
-                        colour_pusher2.Push(ImGuiCol_Text, disabled_colour);
-                    }
-
-                    ImGui::TableNextColumn();
-                    this->AddressColumn("Return address", addr, 1);
-
-                    ImGui::TableNextColumn();
-                    this->AddressColumn("Call address", addr, -2);
                 }
             }
-        }
 
-        ImGui::EndTable();
+            ImGui::EndTable();
+        }
     }
 
   private:
