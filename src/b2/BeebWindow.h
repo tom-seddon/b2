@@ -45,6 +45,7 @@ class ImGuiStuff;
 #include "commands.h"
 #include <beeb/video.h>
 #include "misc.h"
+#include "SymbolTable.h"
 #include <condition_variable>
 #include <thread>
 #include <shared/json.h>
@@ -304,6 +305,13 @@ class BeebWindow {
 #endif
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
+    
+    // Get symbol table for debugging
+    SymbolTable& GetSymbolTable();
+    const SymbolTable& GetSymbolTable() const;
+    
+    // Symbol file loading
+    void OpenSymbolsFileDialog();
 
     bool HardReset(const BeebConfig &config, uint32_t flags);
 
@@ -406,6 +414,9 @@ class BeebWindow {
     BeebWindowSettings m_settings;
 
     ImGuiStuff *m_imgui_stuff = nullptr;
+    
+    // Symbol table for debugging
+    SymbolTable m_symbol_table;
 
 #if ENABLE_IMGUI_DEMO
     bool m_imgui_demo = false;

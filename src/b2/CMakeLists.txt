@@ -24,6 +24,7 @@ add_executable(b2 MACOSX_BUNDLE
   Remapper.cpp Remapper.h
   SavedStatesUI.cpp SavedStatesUI.h
   SettingsUI.cpp SettingsUI.h
+  SymbolTable.cpp SymbolTable.h
   ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
   TimelineUI.cpp TimelineUI.h
   TraceUI.cpp TraceUI.h TraceUI.inl
