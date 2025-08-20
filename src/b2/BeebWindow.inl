@@ -80,6 +80,7 @@ EPN(DiskDriveDebug)
 EPN(HardDiskDebug)
 EPN(SCSIDebug)
 EPN(SerialDebug) //55
+EPN(SymbolGroupManagement)
 
 // must be last
 EQPN(MaxValue)
