@@ -1741,8 +1741,16 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
     }
 
     if (m_messages_popup_ui_active) {
+        // With ImGuiWindowFlags_NoMouseInputs, the popup is ignored entirely
+        // for hovering purposes, so the mouse can end up interacting with
+        // widgets behind it. Which doesn't feel very desirable, as the popup is
+        // mostly opaque.
+        //
+        // Without it, you can still give the popup focus by clicking. Which
+        // also isn't ideal.
         ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
-                                  //ImGuiWindowFlags_ShowBorders|
+                                  ImGuiWindowFlags_NoNavInputs |
+                                  ImGuiWindowFlags_NoNavFocus |
                                   ImGuiWindowFlags_AlwaysAutoResize |
                                   ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
@@ -1763,6 +1771,9 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
         //ImGui::SetNextWindowSize(ImVec2(output_width*0.9f,0));
 
         if (ImGui::Begin("Recent Messages", &m_messages_popup_ui_active, flags)) {
+            ImGuiWindow *window = ImGui::GetCurrentWindow();
+            ImGui::BringWindowToDisplayFront(window);
+
             m_message_list->ForEachMessage(15, [](MessageList::Message *m) {
                 if (!m->seen) {
                     ImGuiMessageListMessage(m);
