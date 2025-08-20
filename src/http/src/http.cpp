@@ -1,7 +1,10 @@
 #include <shared/system.h>
 #include <http/http.h>
 #include <shared/strings.h>
+#include <shared/log.h>
 #include <string.h>
+#include <curl/curl.h>
+#include <uv.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -305,3 +308,33 @@ std::string HTTPResponse::GetContentString() const {
 void HTTPResponse::SetContentString(const std::string &content_) {
     this->content.assign(content_.begin(), content_.end());
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool InitHTTPDependencies(LogSet *logs) {
+    CURLcode r = curl_global_init(CURL_GLOBAL_DEFAULT);
+    if (r != 0) {
+        logs->e.f("Failed to initialise libcurl: %s\n", curl_easy_strerror(r));
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPDependencyVersions GetHTTPDependencyVersions() {
+    HTTPDependencyVersions versions;
+
+    const curl_version_info_data *curl_version = curl_version_info(CURLVERSION_NOW);
+    versions.libcurl_version = curl_version->version;
+
+    versions.libuv_version = uv_version_string();
+
+    return versions;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

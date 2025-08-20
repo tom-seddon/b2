@@ -38,7 +38,6 @@
 #include <http/HTTPServer.h>
 #include <http/http.h>
 #include "HTTPMethodsHandler.h"
-#include <curl/curl.h>
 #include <beeb/DirectDiscImage.h>
 #include "discs.h"
 #if SYSTEM_OSX
@@ -53,6 +52,8 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #include "joysticks.h"
 #include <shared/strings.h>
 #include <http/HTTPClient.h>
+#include "dear_imgui.h"
+#include <http/http.h>
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -677,6 +678,7 @@ cleanup:
 
 struct Options {
     bool verbose = false;
+    bool version = false;
     std::string discs[NUM_DRIVES];
     bool direct_disc[NUM_DRIVES] = {};
     int audio_hz = DEFAULT_AUDIO_HZ;
@@ -788,6 +790,8 @@ static bool ParseCommandLineOptions(
     }
 
     p.AddOption('v', "verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
+
+    p.AddOption(0, "version").SetIfPresent(&options->version).Help("display some version info and exit");
 
     p.AddOption(0, "reset-windows").SetIfPresent(&options->reset_windows).Help("reset window position and dock data");
 
@@ -1273,6 +1277,20 @@ static std::shared_ptr<MessageList> GetMRUMessageList() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void ShowOutputMessagesDialog(const char *description, const Messages &messages) {
+    (void)description, (void)messages;
+
+#if SYSTEM_WINDOWS
+    if (!GetConsoleWindow()) {
+        // Probably a GUI app build, so pop up the message box.
+        FailureMessageBox(description, messages.GetMessageList(), SIZE_MAX);
+    }
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
@@ -1280,35 +1298,43 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
     CheckAssetPaths();
 
-    // https://curl.haxx.se/libcurl/c/curl_global_init.html
-    {
-        CURLcode r = curl_global_init(CURL_GLOBAL_DEFAULT);
-        if (r != 0) {
-            init_messages.e.f("Failed to initialise libcurl: %s\n", curl_easy_strerror(r));
-            return false;
-        }
-    }
-
     Options options;
 
     if (!ParseCommandLineOptions(&options, argc, argv, &init_messages)) {
         if (options.help) {
-#if SYSTEM_WINDOWS
-            if (!GetConsoleWindow()) {
-                // Probably a GUI app build, so pop up the message box.
-                FailureMessageBox("Command line help", init_message_list, SIZE_MAX);
-                return true;
-            }
-#endif
-
+            ShowOutputMessagesDialog("Command line help", init_messages);
             return true;
         }
 
         return false;
     }
 
+    if (options.version) {
+        init_messages.i.f("b2 version: %s\n", STRINGIZE(RELEASE_NAME));
+        init_messages.i.f("Dear ImGui version: %s\n", IMGUI_VERSION);
+        init_messages.i.f("SDL headers version: %d.%d.%d\n", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL);
+        {
+            SDL_version version;
+            SDL_GetVersion(&version);
+            init_messages.i.f("SDL runtime version: %d.%d.%d (revision: %s)\n", version.major, version.minor, version.patch, SDL_GetRevision());
+        }
+
+        HTTPDependencyVersions versions = GetHTTPDependencyVersions();
+        init_messages.i.f("libuv version: %s\n", versions.libuv_version.c_str());
+        init_messages.i.f("libcurl version: %s\n", versions.libcurl_version.c_str());
+
+        ShowOutputMessagesDialog("Version information", init_messages);
+        return true;
+    }
+
     if (options.override_config_folder_specified) {
         SetConfigFolder(options.override_config_folder);
+    }
+
+    // https://curl.haxx.se/libcurl/c/curl_global_init.html
+    if (!InitHTTPDependencies(&init_messages)) {
+        ShowOutputMessagesDialog("Initialisation failure", init_messages);
+        return false;
     }
 
     StartHTTPServer(&init_messages);
