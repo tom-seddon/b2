@@ -369,9 +369,9 @@ OS ROM type. The options available are:
   This will work with a ROM dump from one of the commonly-available
   modern OS ROM switchers
   
-  You can click the corresponding entry in the `Hardware` menu to use
-  the default bank; the entry also includes a popup that you can use
-  to set the default to a different bank
+  (Configs using this option add 4 entries to the `Hardware` menu, one
+  per multi-OS bank. Select the entry according to the bank of
+  interest)
   
 If using one of the larger ROM types (64 KB, 128 KB, 512 KB), some
 sideways ROM banks will become hidden, as their contents are part of
