@@ -10,9 +10,8 @@ Please see [Building with Xcode](./Building-on-OSX.md), as there are a
 couple of Mac-specific notes that apply no matter how you build it.
 
 The Linux version doesn't get much testing by me, though I do try it
-on Linux Mint occasionally. But I've had few reports of problems.
-(Please [create an issue](https://github.com/tom-seddon/b2/issues) if
-necessary.)
+on Linux Mint somewhat regularly. (Please [create an
+issue](https://github.com/tom-seddon/b2/issues) if necessary.)
 
 # Common prerequisites
 
@@ -40,8 +39,10 @@ workflow.
 
 - gcc and g++, or clang
 
-The dependencies can be installed via apt. Ubuntu 24 will install
-suitable versions of the packages mentioned.
+## APT-based distributions
+
+The dependencies can be installed via apt. Ubuntu 24 and Linux Mint 22
+should install suitable versions of the packages mentioned.
 
 Required dependencies can be installed with:
 
@@ -55,6 +56,16 @@ Optional dependencies for compressed video writing can be installed
 with:
 	
 	sudo apt-get -y install libswresample-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libx264-dev
+
+## Other distributions
+
+You're on your own here I'm afraid, but hopefully the APT package list
+will be enough to help figure out how to install the dependencies.
+
+The code is intended to be compatible with `sdl2-compat` (an SDL2
+compatibily layer for SDL3), as found on Arch Linux at least.
+
+Any feedback welcome.
 
 # Building
 
