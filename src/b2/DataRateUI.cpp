@@ -307,10 +307,16 @@ void DataRateUI::DoImGui() {
     }
 #endif
 
-    if (!!g_all_root_timer_defs && !g_all_root_timer_defs->empty()) {
-        ImGui::Separator();
-        for (TimerDef *def : *g_all_root_timer_defs) {
-            def->DoImGui();
+    if (ImGui::CollapsingHeader("Timers")) {
+        if (ImGui::Button("Reset all")) {
+            ResetTimerDefs();
+        }
+
+        if (!!g_all_root_timer_defs && !g_all_root_timer_defs->empty()) {
+            ImGui::Separator();
+            for (TimerDef *def : *g_all_root_timer_defs) {
+                def->DoImGui();
+            }
         }
     }
 
