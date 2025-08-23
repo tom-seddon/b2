@@ -25,6 +25,7 @@ add_executable(b2 MACOSX_BUNDLE
   SavedStatesUI.cpp SavedStatesUI.h
   SettingsUI.cpp SettingsUI.h
   SymbolTable.cpp SymbolTable.h
+  memory_contexts.cpp memory_contexts.h symbol_ui_constants.h
   ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
   TimelineUI.cpp TimelineUI.h
   TraceUI.cpp TraceUI.h TraceUI.inl

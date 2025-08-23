@@ -1779,7 +1779,12 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             if (m_show_labels) {
                 // Check for symbol at this address when labels are enabled
                 const SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
-                const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(line_addr.w);
+
+                // Get memory context from debug big page metadata (same as instruction operands)
+                char memory_context = line_dbp->bp.metadata->minimal_codes[0];
+
+                // Use context-aware symbol lookup
+                const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(line_addr.w, memory_context);
 
                 ImGui::SameLine();
                 ImGui::Text("  "); // Add some spacing
@@ -2101,11 +2106,38 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         this->AddWord(IND_PREFIX, addr.w, mos, "");
     }
 
-    void AddWord(const char *prefix, uint16_t w, bool mos, const char *suffix) {
-        const DebugBigPage *dbp = this->GetDebugBigPageForAddress({w}, mos);
+    void AddAddress(const char *prefix, uint16_t addr, bool mos, const char *suffix, const char *hex_format) {
+        const DebugBigPage *dbp = this->GetDebugBigPageForAddress({addr}, mos);
 
         char label[100];
-        snprintf(label, sizeof label, "%s%04x%c%s", g_hex, w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+
+        // Check if we should use symbols instead of hex addresses
+        if (m_show_labels) {
+            const SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
+
+            // Get the memory context from the debug big page metadata
+            char memory_context = dbp->bp.metadata->minimal_codes[0];
+
+            // Use context-aware symbol lookup
+            const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(addr, memory_context);
+
+            if (symbol) {
+                // Use symbol name instead of hex address
+                snprintf(label, sizeof label, "%s%c%s", symbol->name.c_str(), ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+            } else {
+                // No symbol found, use hex as fallback
+                snprintf(label, sizeof label, hex_format, g_hex, addr, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+            }
+        } else {
+            // Labels disabled, use hex address
+            snprintf(label, sizeof label, hex_format, g_hex, addr, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+        }
+
+        this->DoClickableAddress(prefix, label, suffix, dbp, {addr});
+    }
+
+    void AddWord(const char *prefix, uint16_t w, bool mos, const char *suffix) {
+        this->AddAddress(prefix, w, mos, suffix, "%s%04x%c%s");
 
         //static_assert(sizeof dbp->bp.metadata->codes == 3);
         //char label[] = {
@@ -2119,15 +2151,10 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         //    HEX_CHARS_LC[w & 15],
         //    0,
         //};
-
-        this->DoClickableAddress(prefix, label, suffix, dbp, {w});
     }
 
     void AddByte(const char *prefix, uint8_t value, bool mos, const char *suffix) {
-        const DebugBigPage *dbp = this->GetDebugBigPageForAddress({value}, mos);
-
-        char label[100];
-        snprintf(label, sizeof label, "%s%02x%c%s", g_hex, value, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+        this->AddAddress(prefix, value, mos, suffix, "%s%02x%c%s");
 
         //static_assert(sizeof dbp->bp.metadata->codes == 3);
         //char label[] = {
@@ -2139,8 +2166,6 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         //    HEX_CHARS_LC[value & 15],
         //    0,
         //};
-
-        this->DoClickableAddress(prefix, label, suffix, dbp, {value});
     }
 
     void DoClickableAddress(const char *prefix,
