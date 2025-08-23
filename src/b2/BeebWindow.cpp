@@ -679,6 +679,10 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_message_list = std::make_shared<MessageList>("BeebWindow");
     m_msg.SetMessageList(m_message_list);
 
+    if (init_arguments.verbose) {
+        m_message_list->SetFlags(m_message_list->GetFlags() | MessageListFlags_Stdio);
+    }
+
     m_beeb_thread = std::make_shared<BeebThread>(m_message_list,
                                                  m_init_arguments.sound_device,
                                                  m_init_arguments.sound_spec.freq,

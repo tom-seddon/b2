@@ -21,19 +21,18 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// An object that collects a rolling queue of info/warning/error
-// output in a format that's easy to display in the gui and easy to
-// fill from a Log. Operations can take a pointer to one of these, so
-// they can produce output for the window the operation was initiated
-// from - tidier than passing Log pointers everywhere, and a bit more
-// flexible than just having a single string to fill in with an error
-// description.
+// An object that collects a rolling queue of info/warning/error output in a
+// format that's easy to display in the gui and easy to fill from a Log.
+// Operations can take a pointer to one of these, so they can produce output for
+// the window the operation was initiated from - tidier than passing Log
+// pointers everywhere, and a bit more flexible than just having a single string
+// to fill in with an error description.
 //
-// There's also a bit of fluff in there to print things to stdio and
-// merge message lists.
+// There's also a bit of fluff in there to print things to stdio (intended for
+// debug verbosity purposes, or for spilling accumulated messages on error) and
+// merging message lists.
 //
-// The Messages class is not threadsafe, and each thread needs its
-// own.
+// The Messages class is not threadsafe, and each thread needs its own.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -44,14 +43,21 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
         MessageType type;
         uint64_t ticks;
         std::string text;
+
+        // Set if message has been "seen" - whatever that means. For caller use.
+        // Set to false when message is added to the list.
         bool seen : 1;
+
+        // Set if message has been printed to stdio. Don't print it again if
+        // flushing.
+        bool printed_to_stdio : 1;
 
         Message(MessageType type, uint64_t ticks, std::string text);
     };
 
     explicit MessageList(std::string name,
                          size_t max_num_messages = 500,
-                         bool print_to_stdio = false);
+                         uint32_t flags = MessageListFlags_Save);
     ~MessageList();
 
     MessageList(const MessageList &src) = delete;
@@ -85,15 +91,9 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     // Not terribly efficient.
     void InsertMessages(const MessageList &src);
 
-    // When the print_to_stdio flag is true, messages are printed to stdout
-    // (info) or stderr (warning/error) rather than saved in the list.
-    //
-    // Queued messages are also flushed when the print_to_stdio flag is set.
-    void SetPrintToStdio(bool print_to_stdio);
-
-    // Print all accumulated messages to stdout/stderr and clear the
-    // list.
-    void FlushMessagesToStdio();
+    // Get/set the flags. A combination of MessageListFlags values.
+    uint32_t GetFlags() const;
+    void SetFlags(uint32_t flags);
 
     // A global Messages with the stdio flag set.
     static const std::shared_ptr<MessageList> stdio;
@@ -127,9 +127,11 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
     std::atomic<uint64_t> m_num_messages_printed;
     std::atomic<uint64_t> m_num_errors_printed;
 
-    bool m_print_to_stdio = false;
+    uint32_t m_flags = 0;
 
-    void AddMessage(MessageType type, const char *str, size_t str_len);
+    // Return value remains valid until mutex is unlocked or another non-const
+    // MessageList member function is called.
+    Message *LockedAddMessage(MessageType type, const char *str, size_t str_len);
     void LockedClearMessages();
     void LockedForEachMessage(size_t n, std::function<void(Message *)> fun) const;
     void LockedFlushMessagesToStdio();

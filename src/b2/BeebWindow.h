@@ -216,6 +216,9 @@ struct BeebWindowInitArguments {
 
     // Initial setting for the speed limiting.
     bool limit_speed = true;
+
+    // Set if --verbose was supplied on the command line.
+    bool verbose = false;
 };
 
 //////////////////////////////////////////////////////////////////////////

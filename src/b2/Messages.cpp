@@ -22,19 +22,20 @@ MessageList::Message::Message(MessageType type_,
     : type(type_)
     , ticks(ticks_)
     , text(std::move(text_))
-    , seen(false) {
+    , seen(false)
+    , printed_to_stdio(false) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-MessageList::MessageList(std::string name, size_t max_num_messages, bool print_to_stdio)
+MessageList::MessageList(std::string name, size_t max_num_messages, uint32_t flags)
     : m_info_printer(this, MessageType_Info, nullptr)
     , m_warning_printer(this, MessageType_Warning, nullptr)
     , m_error_printer(this, MessageType_Error, &m_num_errors_printed)
     , m_name(std::move(name))
     , m_max_num_messages(max_num_messages)
-    , m_print_to_stdio(print_to_stdio) {
+    , m_flags(flags) {
     MUTEX_SET_NAME(m_mutex, ("MessageList: " + m_name));
     m_info_printer.SetMutexName(("MessageList Info: " + m_name));
     m_warning_printer.SetMutexName(("MessageList Warning: " + m_name));
@@ -47,8 +48,10 @@ MessageList::MessageList(std::string name, size_t max_num_messages, bool print_t
 //////////////////////////////////////////////////////////////////////////
 
 MessageList::~MessageList() {
-    if (m_print_to_stdio) {
-        this->FlushMessagesToStdio();
+    if (m_flags & MessageListFlags_Stdio) {
+        LockGuard<Mutex> this_lock(m_mutex);
+
+        this->LockedFlushMessagesToStdio();
     }
 }
 
@@ -97,11 +100,13 @@ void MessageList::ClearMessages() {
 //////////////////////////////////////////////////////////////////////////
 
 void MessageList::InsertMessages(const MessageList &src) {
-    if (m_print_to_stdio) {
+    if (m_flags & MessageListFlags_Stdio) {
         LockGuard<Mutex> lock(m_mutex);
 
         src.ForEachMessage(&PrintMessageToStdio);
-    } else {
+    }
+
+    if (m_flags & MessageListFlags_Save) {
         std::vector<Message> src_messages;
         {
             LockGuard src_lock(src.m_mutex);
@@ -153,27 +158,30 @@ void MessageList::InsertMessages(const MessageList &src) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MessageList::SetPrintToStdio(bool print_to_stdio) {
+uint32_t MessageList::GetFlags() const {
     LockGuard<Mutex> this_lock(m_mutex);
 
-    if (!m_print_to_stdio && print_to_stdio) {
-        this->LockedFlushMessagesToStdio();
-
-        this->LockedClearMessages();
-    }
-
-    m_print_to_stdio = print_to_stdio;
+    return m_flags;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Print all accumulated messages to stdout/stderr and clear the
-// list.
-void MessageList::FlushMessagesToStdio() {
+void MessageList::SetFlags(uint32_t flags) {
     LockGuard<Mutex> this_lock(m_mutex);
 
-    this->LockedFlushMessagesToStdio();
+    if (!(m_flags & MessageListFlags_Stdio) &&
+        (flags & MessageListFlags_Stdio)) {
+        this->LockedFlushMessagesToStdio();
+
+        this->LockedClearMessages();
+    }
+
+    m_flags = flags;
+
+    if (!(m_flags & MessageListFlags_Save)) {
+        m_messages.clear();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -191,12 +199,21 @@ MessageList::Printer::Printer(MessageList *owner,
 //////////////////////////////////////////////////////////////////////////
 
 void MessageList::Printer::Print(const char *str, size_t str_len) {
-    if (m_owner->m_print_to_stdio) {
+    LockGuard<Mutex> lock(m_owner->m_mutex);
+    Message *message = nullptr;
+
+    if (m_owner->m_flags & MessageListFlags_Save) {
+        message = m_owner->LockedAddMessage(m_type, str, str_len);
+    }
+
+    if (m_owner->m_flags & MessageListFlags_Stdio) {
         if (FILE *f = MessageList::GetStdioFileForMessageType(m_type)) {
             fwrite(str, 1, str_len, f);
         }
-    } else {
-        m_owner->AddMessage(m_type, str, str_len);
+
+        if (message) {
+            message->printed_to_stdio = true;
+        }
     }
 
     if (m_counter_ptr) {
@@ -207,27 +224,31 @@ void MessageList::Printer::Print(const char *str, size_t str_len) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MessageList::AddMessage(MessageType type,
-                             const char *str,
-                             size_t str_len) {
-    LockGuard<Mutex> this_lock(m_mutex);
+MessageList::Message *MessageList::LockedAddMessage(MessageType type,
+                                                    const char *str,
+                                                    size_t str_len) {
+    Message *message;
 
     if (m_messages.size() < m_max_num_messages) {
         ASSERT(m_head == 0);
         m_messages.emplace_back(type,
                                 GetCurrentTickCount(),
                                 std::string(str, str_len));
+        message = &m_messages.back();
     } else {
         ASSERT(m_head < m_messages.size());
-        m_messages[m_head] = Message(type,
-                                     GetCurrentTickCount(),
-                                     std::string(str, str_len));
+        message = &m_messages[m_head];
+        *message = Message(type,
+                           GetCurrentTickCount(),
+                           std::string(str, str_len));
 
         ++m_head;
         m_head %= m_messages.size();
     }
 
     ++m_num_messages_printed;
+
+    return message;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -280,8 +301,12 @@ FILE *MessageList::GetStdioFileForMessageType(MessageType type) {
 //////////////////////////////////////////////////////////////////////////
 
 void MessageList::PrintMessageToStdio(Message *m) {
-    if (FILE *f = GetStdioFileForMessageType(m->type)) {
-        fwrite(m->text.c_str(), 1, m->text.size(), f);
+    if (!m->printed_to_stdio) {
+        if (FILE *f = GetStdioFileForMessageType(m->type)) {
+            fwrite(m->text.c_str(), 1, m->text.size(), f);
+        }
+
+        m->printed_to_stdio = true;
     }
 }
 

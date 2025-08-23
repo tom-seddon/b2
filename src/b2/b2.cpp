@@ -265,11 +265,17 @@ void AllocWindowsConsole() {
         }
     }
 
-    printf("stdout redirected to console window\n");
-    fflush(stdout);
+    if (g_can_detach_from_windows_console) {
+        printf("stdout redirected to console window\n");
+        fflush(stdout);
 
-    fprintf(stderr, "stderr redirected to console window\n");
-    fflush(stderr);
+        fprintf(stderr, "stderr redirected to console window\n");
+        fflush(stderr);
+    } else {
+        // If the console window isn't detachable, this is a console program,
+        // and stdout/stderr were already redirected to the console. Don't print
+        // the message.
+    }
 }
 #endif
 
@@ -1125,6 +1131,10 @@ static bool InitLogs(const Options &options, Messages *init_messages) {
     if (options.verbose) //<---note
 #endif                   //<---note
     {
+#if SYSTEM_WINDOWS
+        AllocWindowsConsole();
+#endif
+
         LOG(OUTPUT).Enable();
         LOG(OUTPUTND).Enable();
     }
@@ -1482,6 +1492,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             ia.default_config = initial_loaded_config;
             ia.name = "b2";
             ia.preinit_message_list = init_message_list;
+            ia.verbose = options.verbose;
 
 #if SYSTEM_OSX
             ia.frame_name = "b2Frame";
@@ -1830,7 +1841,7 @@ int main(int argc, char *argv[]) {
     }
 
     // If there are any messages, get them printed now.
-    messages->SetPrintToStdio(true);
+    messages->SetFlags(messages->GetFlags() | MessageListFlags_Stdio);
 
     if (!good) {
         return EXIT_FAILURE;
