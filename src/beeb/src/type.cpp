@@ -41,7 +41,7 @@
 // </pre>
 //
 // Each big page can be set up once, when the BBCMicro is first created,
-// simplifying some of the logic. When switching to ROM 1 region w, for example,
+// simplifying some of the logic. When switching to ROM 1 region 0, for example,
 // the buffers can be found by looking at the 32 pre-prepared big pages for that
 // bank, and then the 4 pre-prepared big pages for that region - rather than
 // having to check m_state.sideways_rom_buffers[1] (etc.). This also then covers
