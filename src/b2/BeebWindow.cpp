@@ -2472,6 +2472,10 @@ void BeebWindow::DoDebugMenu() {
             if (ImGui::MenuItem("Load Symbols...")) {
                 m_show_enhanced_symbol_window = true;
             }
+            if (ImGui::MenuItem("Reload All Symbols")) {
+                m_symbol_table.ReloadAllGroups();
+                m_msg.i.f("All symbol files have been reloaded from disk.\n");
+            }
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupManagement].command);
 
             ImGui::Separator();
@@ -4707,6 +4711,13 @@ void BeebWindow::DoGroupManagementWindowContent() {
         if (ImGui::Button("Close")) {
             const uint64_t mask = (uint64_t)1 << BeebWindowPopupType_SymbolGroupManagement;
             m_settings.popups &= ~mask;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Reload All")) {
+            m_symbol_table.ReloadAllGroups();
+            m_msg.i.f("All symbol files have been reloaded from disk.\n");
         }
 
         ImGui::SameLine();
