@@ -142,7 +142,7 @@ class SymbolTable {
 
     // Group metadata editing
     bool SetGroupName(size_t group_id, const std::string &new_name);
-    //bool SetGroupContexts(size_t group_id, const std::set<char> &new_contexts);
+    void SetGroupAddressSuffixes(size_t group_id, std::vector<std::string> new_address_suffixes);
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
     const Symbol *GetSymbolForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;

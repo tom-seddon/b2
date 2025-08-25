@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/debug.h>
 #include "SymbolTable.h"
 #include "memory_contexts.h"
 #include <shared/log.h>
@@ -842,6 +843,12 @@ bool SymbolTable::SetGroupName(size_t group_id, const std::string &new_name) {
     m_groups[group_id].name = trimmed_name;
     LOGF(SYMBOLS, "Updated group %zu name to: %s\n", group_id, trimmed_name.c_str());
     return true;
+}
+
+void SymbolTable::SetGroupAddressSuffixes(size_t group_id, std::vector<std::string> new_address_suffixes) {
+    ASSERT(group_id < m_groups.size());
+
+    m_groups[group_id].address_suffixes = std::move(new_address_suffixes);
 }
 
 //bool SymbolTable::SetGroupContexts(size_t group_id, const std::set<char> &new_contexts) {

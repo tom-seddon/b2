@@ -4422,12 +4422,15 @@ class SymbolGroupManagementUI : public SettingsUI {
     std::vector<bool> m_selected_groups;
 
     // State for inline editing
-    int m_editing_contexts_id = -1;    // Which group's contexts are being edited (-1 = none)
-    //std::set<char> m_editing_contexts; // Temporary contexts during editing
-    bool m_show_context_help = false;  // Help text for context popup
+    int m_editing_contexts_id = -1; // Which group's contexts are being edited (-1 = none)
+    std::vector<std::string> m_editing_address_suffixes;
+    bool m_show_context_help = false; // Help text for context popup
 
     // Name buffers for each group (persistent across frames)
     std::vector<std::string> m_group_name_buffers;
+
+    char m_address_suffix_buffer[20] = {};
+    std::string m_address_suffix_error;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -4543,7 +4546,7 @@ void SymbolGroupManagementUI::DoImGui() {
                     // Check if double-click was in Contexts column
                     if (mouse_pos.x >= contexts_col_start && mouse_pos.x < contexts_col_end) {
                         m_editing_contexts_id = static_cast<int>(i);
-                        //m_editing_contexts = group.memory_contexts;
+                        m_editing_address_suffixes = group.address_suffixes;
                     }
                 }
 
@@ -4681,19 +4684,15 @@ void SymbolGroupManagementUI::DoImGui() {
                 contexts_col_end = contexts_col_start + ImGui::GetColumnWidth();
 
                 // Display contexts (clickable) - show all contexts, no truncation
-                std::string display_text="*TODO*";
-                //if (group.memory_contexts.empty()) {
-                //    display_text = "Universal";
-                //} else {
-                //    // Show all contexts - user can resize column if needed
-                //    for (char c : group.memory_contexts) {
-                //        if (!display_text.empty())
-                //            display_text += " ";
-                //        display_text += c;
-                //    }
-                //}
+                std::string display_text;
+                for (const std::string &address_suffix : group.address_suffixes) {
+                    if (!display_text.empty()) {
+                        display_text += ";";
+                    }
+                    display_text += address_suffix;
+                }
 
-                ImGui::Text("%s", display_text.c_str());
+                ImGui::TextUnformatted(display_text.c_str());
 
                 if (ImGui::IsItemHovered()) {
                     ImGui::BeginTooltip();
@@ -4789,9 +4788,48 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 //ImGui::Separator();
 
+                if (ImGui::InputText("Suffix", m_address_suffix_buffer, sizeof m_address_suffix_buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    m_address_suffix_error.clear();
+
+                    for (const char *c = m_address_suffix_buffer; *c != 0; ++c) {
+                        if (!isalnum(*c)) {
+                            // cheeky way of avoiding running into any UTF-8...
+                            m_address_suffix_error = "Suffix must be alphanumeric only";
+                            break;
+                        } else if (!IsValidAddressSuffixChar(*c)) {
+                            m_address_suffix_error = "Invalid address suffix char: '" + std::string(1, *c) + "'";
+                            break;
+                        }
+                    }
+
+                    if (m_address_suffix_error.empty()) {
+                        m_editing_address_suffixes.push_back(m_address_suffix_buffer);
+
+                        memset(m_address_suffix_buffer, 0, sizeof m_address_suffix_buffer);
+                    }
+                }
+
+                if (!m_address_suffix_error.empty()) {
+                    ImGuiStyleColourPusher pusher(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                    ImGui::TextUnformatted(m_address_suffix_error.c_str());
+                }
+
+                {
+                    auto &&it = m_editing_address_suffixes.begin();
+                    while (it != m_editing_address_suffixes.end()) {
+                        ImGui::TextUnformatted(it->c_str());
+                        ImGui::SameLine();
+                        if (ImGui::Button("x")) {
+                            it = m_editing_address_suffixes.erase(it);
+                        } else {
+                            ++it;
+                        }
+                    }
+                }
+
                 // Action buttons
-                if (ImGui::Button("Save") || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-                    //symbol_table.SetGroupContexts(static_cast<size_t>(m_editing_contexts_id), m_editing_contexts);
+                if (ImGui::Button("Save")) {
+                    symbol_table.SetGroupAddressSuffixes(static_cast<size_t>(m_editing_contexts_id), std::move(m_editing_address_suffixes));
                     m_editing_contexts_id = -1;
                     m_show_context_help = false;
                     ImGui::CloseCurrentPopup();
@@ -4799,7 +4837,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 ImGui::SameLine();
 
-                if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+                if (ImGui::Button("Cancel")) {
                     m_editing_contexts_id = -1;
                     m_show_context_help = false;
                     ImGui::CloseCurrentPopup();

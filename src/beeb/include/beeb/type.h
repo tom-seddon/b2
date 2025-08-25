@@ -291,6 +291,11 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
                         Log *log);
 #endif
 
+#if BBCMICRO_DEBUGGER
+// Tested without regards to BBCMicroType.
+bool IsValidAddressSuffixChar(char c);
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
