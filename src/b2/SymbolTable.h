@@ -41,6 +41,17 @@ class SymbolTable {
         bool enabled;
         std::set<char> memory_contexts; // which memory contexts this group applies to (e.g. 'o', 'f', 'm')
 
+        // Address suffixes for which this symbol group applies. Serialised
+        // as-is.
+        std::vector<std::string> address_suffixes;
+
+        // Processed address suffixes, dependent on the current BBCMicroType.
+        struct DSOMask {
+            uint32_t mask = 0;
+            uint32_t value = 0;
+        };
+        std::vector<DSOMask> address_suffix_dso_masks;
+
         SymbolGroup()
             : enabled(true) {
         }
@@ -52,12 +63,15 @@ class SymbolTable {
             , enabled(true) {
         }
 
+        static const std::string ADDRESS_SUFFIXES;
+
         // Custom JSON serialization (save only essential fields)
         nlohmann::json to_json() const {
             nlohmann::json j{
                 {"file_path", file_path},
                 {"enabled", enabled},
-                {"name", name} // Save custom group name to preserve user choice
+                {"name", name}, // Save custom group name to preserve user choice
+                {ADDRESS_SUFFIXES, this->address_suffixes},
             };
 
             // Custom handling for std::set<char>
@@ -122,6 +136,13 @@ class SymbolTable {
                 description = "Unknown symbol group";
             } else {
                 description = "Loaded from " + file_path;
+            }
+
+            if (j.contains(ADDRESS_SUFFIXES)) {
+                try {
+                    this->address_suffixes = j[ADDRESS_SUFFIXES].get<std::vector<std::string>>();
+                } catch (nlohmann::json::exception &) {
+                }
             }
         }
     };
