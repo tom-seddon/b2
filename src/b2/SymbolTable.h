@@ -12,6 +12,8 @@
 #include <unordered_map>
 #include "nlohmann_json_wrapper.h"
 
+struct BBCMicroType;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -174,7 +176,7 @@ class SymbolTable {
     bool SetGroupContexts(size_t group_id, const std::set<char> &new_contexts);
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
-    const Symbol *GetSymbolForAddress(uint16_t address, char memory_context) const;
+    const Symbol *GetSymbolForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
     //uint16_t GetAddressForSymbol(const std::string &name, char memory_context) const;
     //bool HasSymbolForAddress(uint16_t address, char memory_context) const;
     //bool HasSymbol(const std::string &name, char memory_context) const;
@@ -186,9 +188,10 @@ class SymbolTable {
     //   3. Within same group, prefer later loaded symbols (e.g., CC65 "_main" over "__MY_RAM_START__")
     // GetAddressForSymbol finds ANY symbol with the given name (ignores display precedence)
     //const Symbol *GetSymbolForAddress(uint16_t address) const;
-    uint16_t GetAddressForSymbol(const std::string &name) const;
+    bool GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const;
+    //uint16_t GetAddressForSymbol(const std::string &name) const;
     //bool HasSymbolForAddress(uint16_t address) const;
-    bool HasSymbol(const std::string &name) const;
+    //bool HasSymbol(const std::string &name) const;
 
     // Base class for symbol file parsers
     class SymbolParser {
@@ -234,13 +237,13 @@ class SymbolTable {
     // Context-aware lookup maps for performance
     // Maps memory_context -> address -> vector of symbols
     mutable std::unordered_map<char, std::map<uint16_t, std::vector<Symbol *>>> m_context_to_address_cache;
-    mutable bool m_cache_dirty;
+    mutable std::shared_ptr<const BBCMicroType> m_cache_type;
 
     // Helper methods
     std::string TrimWhitespace(const std::string &str) const;
     bool IsValidAddress(uint32_t addr) const;
     void InvalidateCache() const;
-    void RebuildCache() const;
+    void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;
     //bool IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const;
     //const Symbol *GetFirstEnabledSymbolAt(uint16_t address) const;
 };

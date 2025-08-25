@@ -181,14 +181,12 @@ static bool ParseAddress(uint16_t *addr_ptr,
         }
         size_t end = symbol_name.find_last_not_of(" \t\r\n");
         symbol_name = symbol_name.substr(start, end - start + 1);
-        
-        if (symbol_table->HasSymbol(symbol_name)) {
-            addr = symbol_table->GetAddressForSymbol(symbol_name);
-            // Set ep to end of string for symbol resolution
-            ep = text + strlen(text);
-        } else {
+
+        if (!symbol_table->GetAddressForSymbol(&addr, &dso, type, symbol_name)) {
             return false;
         }
+
+        ep = text + strlen(text);
     } else {
         // Try numeric parsing
         bool numeric_parse_success = GetUInt16FromString(&addr, text, 0, &ep);
@@ -255,7 +253,16 @@ class DebugUI : public SettingsUI {
   protected:
     BeebWindow *m_beeb_window = nullptr;
     std::shared_ptr<BeebThread> m_beeb_thread;
+
+    // The DSO has overrides for any paging state overridden using the paging
+    // widget at the top of the UI.
     uint32_t m_dso = 0;
+
+    // The effective DSO specifies overrides for all paging state relevant for
+    // the current type, whether reflecting current hardware state or overridden
+    // by the paging widget. 
+    uint32_t m_effective_dso = 0;
+
     std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
 
@@ -364,6 +371,12 @@ void DebugUI::DoImGui() {
     }
 
     m_beeb_thread->DebugGetState(&m_beeb_state, &m_beeb_debug_state);
+
+    {
+        PagingState paging = m_beeb_state->paging;
+        (*m_beeb_state->type->apply_dso_fn)(&paging, m_dso);
+        m_effective_dso = (*m_beeb_state->type->get_dso_fn)(paging);
+    }
 
     m_popup_id = 0;
 
@@ -1780,11 +1793,8 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                 // Check for symbol at this address when labels are enabled
                 const SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
 
-                // Get memory context from debug big page metadata (same as instruction operands)
-                char memory_context = line_dbp->bp.metadata->minimal_codes[0];
-
                 // Use context-aware symbol lookup
-                const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(line_addr.w, memory_context);
+                const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
 
                 ImGui::SameLine();
                 ImGui::Text("  "); // Add some spacing
@@ -2115,11 +2125,8 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         if (m_show_labels) {
             const SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
 
-            // Get the memory context from the debug big page metadata
-            char memory_context = dbp->bp.metadata->minimal_codes[0];
-
             // Use context-aware symbol lookup
-            const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(addr, memory_context);
+            const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(addr, m_effective_dso, m_beeb_state->type);
 
             if (symbol) {
                 // Use symbol name instead of hex address

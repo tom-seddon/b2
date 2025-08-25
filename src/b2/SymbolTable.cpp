@@ -23,8 +23,7 @@ const std::string SymbolTable::SymbolGroup::ADDRESS_SUFFIXES = "address_suffixes
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable::SymbolTable()
-    : m_cache_dirty(false) {
+SymbolTable::SymbolTable() {
     // No default group needed - all loads create named groups
 }
 
@@ -513,7 +512,7 @@ size_t SymbolTable::GetSymbolCountForGroup(size_t group_id) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint16_t SymbolTable::GetAddressForSymbol(const std::string &name) const {
+bool SymbolTable::GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const {
     // Find ANY enabled symbol with this name (not just the "best" one for display)
     auto range = m_name_to_addresses.equal_range(name);
     for (auto it = range.first; it != range.second; ++it) {
@@ -523,15 +522,25 @@ uint16_t SymbolTable::GetAddressForSymbol(const std::string &name) const {
         auto addr_it = m_address_to_symbols.find(address);
         if (addr_it != m_address_to_symbols.end()) {
             for (const Symbol &symbol : addr_it->second) {
-                if (symbol.name == name &&
-                    symbol.group_id < m_groups.size() &&
-                    m_groups[symbol.group_id].enabled) {
-                    return address; // Found an enabled symbol with this exact name
+                if (symbol.name == name && symbol.group_id < m_groups.size()) {
+                    const SymbolGroup *group = &m_groups[symbol.group_id];
+                    if (group->enabled) {
+                        *addr_ptr = address;
+
+                        if (!group->address_suffix_dso_masks.empty()) {
+                            const SymbolGroup::DSOMask *mask = &group->address_suffix_dso_masks[0];
+
+                            *dso_ptr &= ~mask->mask;
+                            *dso_ptr |= mask->value;
+                        }
+
+                        return true;
+                    }
                 }
             }
         }
     }
-    return 0;
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -544,10 +553,10 @@ uint16_t SymbolTable::GetAddressForSymbol(const std::string &name) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::HasSymbol(const std::string &name) const {
-    // Check if ANY enabled symbol with this name exists
-    return this->GetAddressForSymbol(name) != 0;
-}
+//bool SymbolTable::HasSymbol(const std::string &name) const {
+//    // Check if ANY enabled symbol with this name exists
+//    return this->GetAddressForSymbol(name) != 0;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -871,44 +880,54 @@ bool SymbolTable::SetGroupContexts(size_t group_id, const std::set<char> &new_co
 
 // Context-Aware Symbol Lookup Methods
 
-const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, char memory_context) const {
-    // Context-aware lookup with precedence policy
-    if (m_cache_dirty) {
-        this->RebuildCache();
+const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const {
+    this->EnsureCacheReady(type);
+
+    auto it = m_address_to_symbols.find(address);
+    if (it == m_address_to_symbols.end()) {
+        return nullptr;
     }
 
-    auto context_it = m_context_to_address_cache.find(memory_context);
-    if (context_it != m_context_to_address_cache.end()) {
-        auto symbol_it = context_it->second.find(address);
-        if (symbol_it != context_it->second.end()) {
-            const std::vector<Symbol *> &symbols = symbol_it->second;
-            if (!symbols.empty()) {
-                // Apply precedence policy to find best symbol
-                const Symbol *best_symbol = nullptr;
-                size_t best_group_id = SIZE_MAX;
-
-                for (const Symbol *symbol : symbols) {
-                    // Skip disabled groups (should not happen due to cache, but be safe)
-                    if (symbol->group_id >= m_groups.size() || !m_groups[symbol->group_id].enabled) {
-                        continue;
-                    }
-
-                    // Prefer lower group_id (first loaded group)
-                    if (symbol->group_id < best_group_id) {
-                        best_symbol = symbol;
-                        best_group_id = symbol->group_id;
-                    }
-                    // Within same group, prefer later loaded symbol (CC65 style)
-                    else if (symbol->group_id == best_group_id) {
-                        best_symbol = symbol; // Later in cache = later loaded
-                    }
-                }
-
-                return best_symbol;
-            }
-        }
+    const std::vector<Symbol> *symbols = &it->second;
+    if (symbols->empty()) {
+        return nullptr;
     }
-    return nullptr;
+
+    // TODO...
+    return &(*symbols)[0];
+
+    //auto context_it = m_context_to_address_cache.find(memory_context);
+    //if (context_it != m_context_to_address_cache.end()) {
+    //    auto symbol_it = context_it->second.find(address);
+    //    if (symbol_it != context_it->second.end()) {
+    //        const std::vector<Symbol *> &symbols = symbol_it->second;
+    //        if (!symbols.empty()) {
+    //            // Apply precedence policy to find best symbol
+    //            const Symbol *best_symbol = nullptr;
+    //            size_t best_group_id = SIZE_MAX;
+
+    //            for (const Symbol *symbol : symbols) {
+    //                // Skip disabled groups (should not happen due to cache, but be safe)
+    //                if (symbol->group_id >= m_groups.size() || !m_groups[symbol->group_id].enabled) {
+    //                    continue;
+    //                }
+
+    //                // Prefer lower group_id (first loaded group)
+    //                if (symbol->group_id < best_group_id) {
+    //                    best_symbol = symbol;
+    //                    best_group_id = symbol->group_id;
+    //                }
+    //                // Within same group, prefer later loaded symbol (CC65 style)
+    //                else if (symbol->group_id == best_group_id) {
+    //                    best_symbol = symbol; // Later in cache = later loaded
+    //                }
+    //            }
+
+    //            return best_symbol;
+    //        }
+    //    }
+    //}
+    //return nullptr;
 }
 
 //uint16_t SymbolTable::GetAddressForSymbol(const std::string &name, char memory_context) const {
@@ -945,10 +964,14 @@ const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, ch
 // Cache Management Methods
 
 void SymbolTable::InvalidateCache() const {
-    m_cache_dirty = true;
+    m_cache_type.reset();
 }
 
-void SymbolTable::RebuildCache() const {
+void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const {
+    if (m_cache_type == type) {
+        return;
+    }
+
     m_context_to_address_cache.clear();
 
     for (auto &addr_pair : m_address_to_symbols) {
@@ -977,7 +1000,7 @@ void SymbolTable::RebuildCache() const {
         }
     }
 
-    m_cache_dirty = false;
+    m_cache_type = type;
 }
 
 //bool SymbolTable::IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const {
