@@ -8,7 +8,6 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include <set>
 #include <unordered_map>
 #include "nlohmann_json_wrapper.h"
 
@@ -38,10 +37,8 @@ class SymbolTable {
 
     struct SymbolGroup {
         std::string name;
-        std::string description;
         std::string file_path; // source file for this group
         bool enabled;
-        std::set<char> memory_contexts; // which memory contexts this group applies to (e.g. 'o', 'f', 'm')
 
         // Address suffixes for which this symbol group applies. Serialised
         // as-is.
@@ -58,9 +55,8 @@ class SymbolTable {
             : enabled(true) {
         }
 
-        SymbolGroup(const std::string &group_name, const std::string &desc = "", const std::string &path = "")
+        SymbolGroup(const std::string &group_name, const std::string &path)
             : name(group_name)
-            , description(desc)
             , file_path(path)
             , enabled(true) {
         }
@@ -76,13 +72,6 @@ class SymbolTable {
                 {ADDRESS_SUFFIXES, this->address_suffixes},
             };
 
-            // Custom handling for std::set<char>
-            nlohmann::json contexts_array = nlohmann::json::array();
-            for (char c : memory_contexts) {
-                contexts_array.push_back(std::string(1, c));
-            }
-            j["memory_contexts"] = contexts_array;
-
             return j;
         }
 
@@ -90,16 +79,10 @@ class SymbolTable {
             j.at("file_path").get_to(file_path);
             j.at("enabled").get_to(enabled);
 
-            // Custom handling for std::set<char>
-            memory_contexts.clear();
-            if (j.contains("memory_contexts") && j["memory_contexts"].is_array()) {
-                for (const auto &item : j["memory_contexts"]) {
-                    if (item.is_string()) {
-                        std::string str = item.get<std::string>();
-                        if (!str.empty()) {
-                            memory_contexts.insert(str[0]);
-                        }
-                    }
+            if (j.contains(ADDRESS_SUFFIXES)) {
+                try {
+                    this->address_suffixes = j[ADDRESS_SUFFIXES].get<std::vector<std::string>>();
+                } catch (nlohmann::json::exception &) {
                 }
             }
 
@@ -125,25 +108,11 @@ class SymbolTable {
 
                     // Use "Global" for simple loads, filename for enhanced loads
                     // (We'll detect this based on whether contexts are empty - simple loads have no contexts)
-                    if (memory_contexts.empty()) {
+                    if (this->address_suffixes.empty()) {
                         name = "Global";
                     } else {
                         name = filename;
                     }
-                }
-            }
-
-            // Always generate description from file path
-            if (file_path.empty()) {
-                description = "Unknown symbol group";
-            } else {
-                description = "Loaded from " + file_path;
-            }
-
-            if (j.contains(ADDRESS_SUFFIXES)) {
-                try {
-                    this->address_suffixes = j[ADDRESS_SUFFIXES].get<std::vector<std::string>>();
-                } catch (nlohmann::json::exception &) {
                 }
             }
         }
@@ -154,14 +123,14 @@ class SymbolTable {
 
     // Core functionality
     void Clear();
-    bool LoadFromFile(const std::string &filepath, const std::string &group_name = "", const std::set<char> &memory_contexts = {});
+    bool LoadFromFile(const std::string &filepath, const std::string &group_name, std::vector<std::string> address_suffixes);
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
     size_t GetSymbolCountForGroup(size_t group_id) const;
 
     // Group management
     size_t AddGroup(const SymbolGroup &group);
-    size_t AddGroup(const std::string &name, const std::string &description = "", const std::string &file_path = "");
+    //size_t AddGroup(const std::string &name, const std::string &description = "", const std::string &file_path = "");
     bool RemoveGroup(size_t group_id);
     void EnableGroup(size_t group_id, bool enabled);
     const SymbolGroup *GetGroup(size_t group_id) const;
@@ -173,7 +142,7 @@ class SymbolTable {
 
     // Group metadata editing
     bool SetGroupName(size_t group_id, const std::string &new_name);
-    bool SetGroupContexts(size_t group_id, const std::set<char> &new_contexts);
+    //bool SetGroupContexts(size_t group_id, const std::set<char> &new_contexts);
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
     const Symbol *GetSymbolForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
@@ -236,7 +205,7 @@ class SymbolTable {
 
     // Context-aware lookup maps for performance
     // Maps memory_context -> address -> vector of symbols
-    mutable std::unordered_map<char, std::map<uint16_t, std::vector<Symbol *>>> m_context_to_address_cache;
+    //mutable std::unordered_map<char, std::map<uint16_t, std::vector<Symbol *>>> m_context_to_address_cache;
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
 
     // Helper methods

@@ -47,16 +47,16 @@ void SymbolTable::Clear() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromFile(const std::string &filepath, const std::string &group_name, const std::set<char> &memory_contexts) {
+bool SymbolTable::LoadFromFile(const std::string &filepath, const std::string &group_name, std::vector<std::string> address_suffixes) {
     LOGF(SYMBOLS, "Loading symbols from: %s\n", filepath.c_str());
 
-    // Validate all memory contexts before proceeding
-    for (char context : memory_contexts) {
-        if (!MemoryContexts::IsValidContext(context)) {
-            LOGF(SYMBOLS, "ERROR: Invalid memory context '%c' in file: %s\n", context, filepath.c_str());
-            return false;
-        }
-    }
+    //// Validate all memory contexts before proceeding
+    //for (char context : memory_contexts) {
+    //    if (!MemoryContexts::IsValidContext(context)) {
+    //        LOGF(SYMBOLS, "ERROR: Invalid memory context '%c' in file: %s\n", context, filepath.c_str());
+    //        return false;
+    //    }
+    //}
 
     std::ifstream file(filepath);
     if (!file.is_open()) {
@@ -74,8 +74,8 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const std::string &g
     std::string actual_group_name = group_name.empty() ? "Global" : group_name;
 
     // Create new group - names are just display labels, can be duplicated
-    SymbolGroup new_group(actual_group_name, "Loaded from " + filepath, filepath);
-    new_group.memory_contexts = memory_contexts;
+    SymbolGroup new_group(actual_group_name, filepath);
+    new_group.address_suffixes = std::move(address_suffixes);
     size_t group_id = this->AddGroup(new_group);
 
     size_t old_count = GetSymbolCount();
@@ -659,10 +659,10 @@ size_t SymbolTable::AddGroup(const SymbolGroup &group) {
     return m_groups.size() - 1;
 }
 
-size_t SymbolTable::AddGroup(const std::string &name, const std::string &description, const std::string &file_path) {
-    SymbolGroup group(name, description, file_path);
-    return this->AddGroup(group);
-}
+//size_t SymbolTable::AddGroup(const std::string &name, const std::string &description, const std::string &file_path) {
+//    SymbolGroup group(name, description, file_path);
+//    return this->AddGroup(group);
+//}
 
 bool SymbolTable::RemoveGroup(size_t group_id) {
     if (group_id >= m_groups.size()) {
@@ -844,36 +844,36 @@ bool SymbolTable::SetGroupName(size_t group_id, const std::string &new_name) {
     return true;
 }
 
-bool SymbolTable::SetGroupContexts(size_t group_id, const std::set<char> &new_contexts) {
-    if (group_id >= m_groups.size()) {
-        return false;
-    }
-
-    // Validate all contexts before setting
-    for (char context : new_contexts) {
-        if (!MemoryContexts::IsValidContext(context)) {
-            LOGF(SYMBOLS, "WARNING: Invalid memory context '%c' ignored in group %zu\n", context, group_id);
-            return false;
-        }
-    }
-
-    m_groups[group_id].memory_contexts = new_contexts;
-
-    // Invalidate cache since context changes affect symbol visibility
-    this->InvalidateCache();
-
-    if (new_contexts.empty()) {
-        LOGF(SYMBOLS, "Updated group %zu contexts to: universal (visible everywhere)\n", group_id);
-    } else {
-        LOGF(SYMBOLS, "Updated group %zu contexts to: ", group_id);
-        for (char c : new_contexts) {
-            LOGF(SYMBOLS, "'%c' ", c);
-        }
-        LOGF(SYMBOLS, "\n");
-    }
-
-    return true;
-}
+//bool SymbolTable::SetGroupContexts(size_t group_id, const std::set<char> &new_contexts) {
+//    if (group_id >= m_groups.size()) {
+//        return false;
+//    }
+//
+//    // Validate all contexts before setting
+//    for (char context : new_contexts) {
+//        if (!MemoryContexts::IsValidContext(context)) {
+//            LOGF(SYMBOLS, "WARNING: Invalid memory context '%c' ignored in group %zu\n", context, group_id);
+//            return false;
+//        }
+//    }
+//
+//    m_groups[group_id].memory_contexts = new_contexts;
+//
+//    // Invalidate cache since context changes affect symbol visibility
+//    this->InvalidateCache();
+//
+//    if (new_contexts.empty()) {
+//        LOGF(SYMBOLS, "Updated group %zu contexts to: universal (visible everywhere)\n", group_id);
+//    } else {
+//        LOGF(SYMBOLS, "Updated group %zu contexts to: ", group_id);
+//        for (char c : new_contexts) {
+//            LOGF(SYMBOLS, "'%c' ", c);
+//        }
+//        LOGF(SYMBOLS, "\n");
+//    }
+//
+//    return true;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -972,33 +972,33 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
         return;
     }
 
-    m_context_to_address_cache.clear();
+    //m_context_to_address_cache.clear();
 
-    for (auto &addr_pair : m_address_to_symbols) {
-        uint16_t address = addr_pair.first;
-        const std::vector<Symbol> &symbols = addr_pair.second;
+    //for (auto &addr_pair : m_address_to_symbols) {
+    //    uint16_t address = addr_pair.first;
+    //    const std::vector<Symbol> &symbols = addr_pair.second;
 
-        for (const Symbol &symbol : symbols) {
-            // Skip disabled groups
-            if (symbol.group_id >= m_groups.size() || !m_groups[symbol.group_id].enabled) {
-                continue;
-            }
+    //    for (const Symbol &symbol : symbols) {
+    //        // Skip disabled groups
+    //        if (symbol.group_id >= m_groups.size() || !m_groups[symbol.group_id].enabled) {
+    //            continue;
+    //        }
 
-            const SymbolGroup &group = m_groups[symbol.group_id];
+    //        const SymbolGroup &group = m_groups[symbol.group_id];
 
-            // If group has specific contexts, add to those contexts
-            if (!group.memory_contexts.empty()) {
-                for (char context : group.memory_contexts) {
-                    m_context_to_address_cache[context][address].push_back(const_cast<Symbol *>(&symbol));
-                }
-            } else {
-                // Universal symbols: add to ALL common contexts
-                for (char context : MemoryContexts::UNIVERSAL_CACHE_CONTEXTS) {
-                    m_context_to_address_cache[context][address].push_back(const_cast<Symbol *>(&symbol));
-                }
-            }
-        }
-    }
+    //        // If group has specific contexts, add to those contexts
+    //        if (!group.memory_contexts.empty()) {
+    //            for (char context : group.memory_contexts) {
+    //                m_context_to_address_cache[context][address].push_back(const_cast<Symbol *>(&symbol));
+    //            }
+    //        } else {
+    //            // Universal symbols: add to ALL common contexts
+    //            for (char context : MemoryContexts::UNIVERSAL_CACHE_CONTEXTS) {
+    //                m_context_to_address_cache[context][address].push_back(const_cast<Symbol *>(&symbol));
+    //            }
+    //        }
+    //    }
+    //}
 
     m_cache_type = type;
 }

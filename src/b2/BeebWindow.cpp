@@ -2554,30 +2554,30 @@ void BeebWindow::DoDebugMenu() {
                         if (total_count == 1) {
                             // Single file
                             ImGui::Text("File: %s", file_names[0].c_str());
-                            if (!groups[indices[0]].memory_contexts.empty()) {
-                                ImGui::Text("Memory contexts (%zu total):", groups[indices[0]].memory_contexts.size());
+                            //if (!groups[indices[0]].memory_contexts.empty()) {
+                            //    ImGui::Text("Memory contexts (%zu total):", groups[indices[0]].memory_contexts.size());
 
-                                // Display contexts in groups per line
-                                std::string line_text;
-                                size_t count = 0;
-                                for (char c : groups[indices[0]].memory_contexts) {
-                                    if (count > 0 && count % SymbolUI::CONTEXTS_PER_TOOLTIP_LINE == 0) {
-                                        // Show completed line and start new one
-                                        ImGui::Text("  %s", line_text.c_str());
-                                        line_text.clear();
-                                    }
-                                    if (!line_text.empty())
-                                        line_text += ", ";
-                                    line_text += "'";
-                                    line_text += c;
-                                    line_text += "'";
-                                    count++;
-                                }
-                                // Show final line if not empty
-                                if (!line_text.empty()) {
-                                    ImGui::Text("  %s", line_text.c_str());
-                                }
-                            }
+                            //    // Display contexts in groups per line
+                            //    std::string line_text;
+                            //    size_t count = 0;
+                            //    for (char c : groups[indices[0]].memory_contexts) {
+                            //        if (count > 0 && count % SymbolUI::CONTEXTS_PER_TOOLTIP_LINE == 0) {
+                            //            // Show completed line and start new one
+                            //            ImGui::Text("  %s", line_text.c_str());
+                            //            line_text.clear();
+                            //        }
+                            //        if (!line_text.empty())
+                            //            line_text += ", ";
+                            //        line_text += "'";
+                            //        line_text += c;
+                            //        line_text += "'";
+                            //        count++;
+                            //    }
+                            //    // Show final line if not empty
+                            //    if (!line_text.empty()) {
+                            //        ImGui::Text("  %s", line_text.c_str());
+                            //    }
+                            //}
                         } else {
                             // Multiple files
                             ImGui::Text("%s (%zu files):", group_name.c_str(), total_count);
@@ -3653,7 +3653,7 @@ const SymbolTable &BeebWindow::GetSymbolTable() const {
 void BeebWindow::DoSymbolLoadingWindow() {
     static char group_name_buffer[SymbolUI::MAX_GROUP_NAME_LENGTH + 1] = "";
     static char selected_file_path[SymbolUI::MAX_FILE_PATH_LENGTH + 1] = "";
-    static std::set<char> selected_contexts;
+    //static std::set<char> selected_contexts;
     static bool show_context_help = false;
     static bool advanced_section_open = false; // Track if advanced section is expanded
 
@@ -3739,7 +3739,7 @@ void BeebWindow::DoSymbolLoadingWindow() {
         if (ImGui::Button("Load")) {
             std::string path = selected_file_path;
             std::string group_name;
-            std::set<char> contexts_to_use;
+            //std::set<char> contexts_to_use;
 
             // Smart group naming and context handling based on advanced section state
             if (advanced_section_open) {
@@ -3759,31 +3759,31 @@ void BeebWindow::DoSymbolLoadingWindow() {
                     }
                     group_name = filename;
                 }
-                contexts_to_use = selected_contexts; // Use selected contexts
+                //contexts_to_use = selected_contexts; // Use selected contexts
             } else {
                 // Simple mode: use "Global" group name with universal context
                 group_name = "Global";
-                contexts_to_use.clear(); // Universal context (empty set)
+                //contexts_to_use.clear(); // Universal context (empty set)
             }
 
-            bool success = m_symbol_table.LoadFromFile(path, group_name, contexts_to_use);
+            bool success = m_symbol_table.LoadFromFile(path, group_name, {});
 
             if (success) {
                 m_msg.i.f("Symbols loaded successfully into group '%s' from: %s\n", group_name.c_str(), path.c_str());
-                if (advanced_section_open && !contexts_to_use.empty()) {
-                    m_msg.i.f("Applied to memory contexts: ");
-                    for (char c : contexts_to_use) {
-                        m_msg.i.f("'%c' ", c);
-                    }
-                    m_msg.i.f("\n");
-                } else if (!advanced_section_open) {
-                    m_msg.i.f("Applied to universal context (visible everywhere)\n");
-                }
+                //if (advanced_section_open && !contexts_to_use.empty()) {
+                //    m_msg.i.f("Applied to memory contexts: ");
+                //    for (char c : contexts_to_use) {
+                //        m_msg.i.f("'%c' ", c);
+                //    }
+                //    m_msg.i.f("\n");
+                //} else if (!advanced_section_open) {
+                //    m_msg.i.f("Applied to universal context (visible everywhere)\n");
+                //}
 
                 // Reset dialog state and close
                 group_name_buffer[0] = '\0';
                 selected_file_path[0] = '\0';
-                selected_contexts.clear();
+                //selected_contexts.clear();
                 show_context_help = false;
                 advanced_section_open = false; // Reset to collapsed state for next use
 
@@ -3803,7 +3803,7 @@ void BeebWindow::DoSymbolLoadingWindow() {
             // Reset dialog state and close
             group_name_buffer[0] = '\0';
             selected_file_path[0] = '\0';
-            selected_contexts.clear();
+            //selected_contexts.clear();
             show_context_help = false;
             advanced_section_open = false; // Reset to collapsed state for next use
 
@@ -4423,7 +4423,7 @@ class SymbolGroupManagementUI : public SettingsUI {
 
     // State for inline editing
     int m_editing_contexts_id = -1;    // Which group's contexts are being edited (-1 = none)
-    std::set<char> m_editing_contexts; // Temporary contexts during editing
+    //std::set<char> m_editing_contexts; // Temporary contexts during editing
     bool m_show_context_help = false;  // Help text for context popup
 
     // Name buffers for each group (persistent across frames)
@@ -4543,7 +4543,7 @@ void SymbolGroupManagementUI::DoImGui() {
                     // Check if double-click was in Contexts column
                     if (mouse_pos.x >= contexts_col_start && mouse_pos.x < contexts_col_end) {
                         m_editing_contexts_id = static_cast<int>(i);
-                        m_editing_contexts = group.memory_contexts;
+                        //m_editing_contexts = group.memory_contexts;
                     }
                 }
 
@@ -4681,17 +4681,17 @@ void SymbolGroupManagementUI::DoImGui() {
                 contexts_col_end = contexts_col_start + ImGui::GetColumnWidth();
 
                 // Display contexts (clickable) - show all contexts, no truncation
-                std::string display_text;
-                if (group.memory_contexts.empty()) {
-                    display_text = "Universal";
-                } else {
-                    // Show all contexts - user can resize column if needed
-                    for (char c : group.memory_contexts) {
-                        if (!display_text.empty())
-                            display_text += " ";
-                        display_text += c;
-                    }
-                }
+                std::string display_text="*TODO*";
+                //if (group.memory_contexts.empty()) {
+                //    display_text = "Universal";
+                //} else {
+                //    // Show all contexts - user can resize column if needed
+                //    for (char c : group.memory_contexts) {
+                //        if (!display_text.empty())
+                //            display_text += " ";
+                //        display_text += c;
+                //    }
+                //}
 
                 ImGui::Text("%s", display_text.c_str());
 
@@ -4778,8 +4778,6 @@ void SymbolGroupManagementUI::DoImGui() {
         ImGui::SetNextWindowSize(ImVec2(SymbolUI::CONTEXT_MODAL_WIDTH, SymbolUI::CONTEXT_MODAL_HEIGHT), ImGuiCond_Appearing);
 
         if (ImGui::BeginPopupModal("Edit Memory Contexts", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-
-            const auto &groups = symbol_table.GetAllGroups();
             if (m_editing_contexts_id >= 0 && static_cast<size_t>(m_editing_contexts_id) < groups.size()) {
                 //const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
 
@@ -4793,7 +4791,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 // Action buttons
                 if (ImGui::Button("Save") || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-                    symbol_table.SetGroupContexts(static_cast<size_t>(m_editing_contexts_id), m_editing_contexts);
+                    //symbol_table.SetGroupContexts(static_cast<size_t>(m_editing_contexts_id), m_editing_contexts);
                     m_editing_contexts_id = -1;
                     m_show_context_help = false;
                     ImGui::CloseCurrentPopup();
