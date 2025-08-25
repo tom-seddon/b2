@@ -4408,7 +4408,29 @@ void BeebWindow::ResetImGuiWindows() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DoGroupManagementWindowContent() {
+class SymbolGroupManagementUI : public SettingsUI {
+  public:
+    explicit SymbolGroupManagementUI(BeebWindow *beeb_window);
+
+    void DoImGui() override;
+    bool OnClose() override;
+
+  private:
+    BeebWindow *m_beeb_window = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SymbolGroupManagementUI::SymbolGroupManagementUI(BeebWindow *beeb_window)
+    : m_beeb_window(beeb_window) {
+    this->SetDefaultSize(ImVec2(SymbolUI::MANAGEMENT_WINDOW_WIDTH, SymbolUI::MANAGEMENT_WINDOW_HEIGHT));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SymbolGroupManagementUI::DoImGui() {
     // Static selection state for group management
     static std::vector<bool> selected_groups;
 
@@ -4424,7 +4446,8 @@ void BeebWindow::DoGroupManagementWindowContent() {
     ImGui::Separator();
 
     // Get reference to groups
-    const auto &groups = m_symbol_table.GetAllGroups();
+    SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
+    const auto &groups = symbol_table.GetAllGroups();
 
     // Ensure selection state matches group count
     if (selected_groups.size() != groups.size()) {
@@ -4445,8 +4468,8 @@ void BeebWindow::DoGroupManagementWindowContent() {
         ImGui::Text("Groups are ordered by precedence (lower position = higher precedence)");
 
         // Show total symbol counts
-        size_t enabled_count = m_symbol_table.GetEnabledSymbolCount();
-        size_t total_count = m_symbol_table.GetSymbolCount();
+        size_t enabled_count = symbol_table.GetEnabledSymbolCount();
+        size_t total_count = symbol_table.GetSymbolCount();
         if (enabled_count == total_count) {
             ImGui::Text("Total symbols: %zu", enabled_count);
         } else {
@@ -4543,7 +4566,7 @@ void BeebWindow::DoGroupManagementWindowContent() {
                 // Up button
                 if (i > 0) { // Can't move above first position
                     if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
-                        if (m_symbol_table.MoveGroup(i, i - 1)) {
+                        if (symbol_table.MoveGroup(i, i - 1)) {
                             // Swap selection states too
                             if (i < selected_groups.size() && i - 1 < selected_groups.size()) {
                                 bool temp = selected_groups[i];
@@ -4565,7 +4588,7 @@ void BeebWindow::DoGroupManagementWindowContent() {
                 // Down button
                 if (i < groups.size() - 1) { // Can't move below last position
                     if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
-                        if (m_symbol_table.MoveGroup(i, i + 1)) {
+                        if (symbol_table.MoveGroup(i, i + 1)) {
                             // Swap selection states too
                             if (i < selected_groups.size() && i + 1 < selected_groups.size()) {
                                 bool temp = selected_groups[i];
@@ -4593,7 +4616,7 @@ void BeebWindow::DoGroupManagementWindowContent() {
                 bool enabled = group.enabled;
                 std::string checkbox_id = "##enabled_" + std::to_string(i);
                 if (ImGui::Checkbox(checkbox_id.c_str(), &enabled)) {
-                    m_symbol_table.EnableGroup(i, enabled);
+                    symbol_table.EnableGroup(i, enabled);
                 }
 
                 // Column 4: Group name (always editable input field)
@@ -4617,7 +4640,7 @@ void BeebWindow::DoGroupManagementWindowContent() {
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     std::string new_name = group_name_buffers[i];
                     if (new_name != group.name) {
-                        m_symbol_table.SetGroupName(i, new_name);
+                        symbol_table.SetGroupName(i, new_name);
                     }
                 }
 
@@ -4628,14 +4651,14 @@ void BeebWindow::DoGroupManagementWindowContent() {
                     ImGui::Text("Group: %s", display_name.c_str());
                     ImGui::Separator();
                     if (ImGui::MenuItem("Delete")) {
-                        m_symbol_table.RemoveGroup(i);
+                        symbol_table.RemoveGroup(i);
                     }
                     ImGui::EndPopup();
                 }
 
                 // Column 5: Symbol count for this group
                 ImGui::TableSetColumnIndex(5);
-                size_t group_symbol_count = m_symbol_table.GetSymbolCountForGroup(i);
+                size_t group_symbol_count = symbol_table.GetSymbolCountForGroup(i);
                 ImGui::Text("%zu", group_symbol_count);
                 if (ImGui::IsItemHovered()) {
                     ImGui::BeginTooltip();
@@ -4708,8 +4731,9 @@ void BeebWindow::DoGroupManagementWindowContent() {
 
         // Action buttons
         if (ImGui::Button("Reload All")) {
-            m_symbol_table.ReloadAllGroups();
-            m_msg.i.f("All symbol files have been reloaded from disk.\n");
+            Messages msg(m_beeb_window->GetMessageList());
+            symbol_table.ReloadAllGroups();
+            msg.i.f("All symbol files have been reloaded from disk.\n");
         }
 
         ImGui::SameLine();
@@ -4723,7 +4747,7 @@ void BeebWindow::DoGroupManagementWindowContent() {
             // Delete groups from highest index to lowest to maintain indices
             for (int idx = static_cast<int>(selected_groups.size()) - 1; idx >= 0; --idx) {
                 if (selected_groups[static_cast<size_t>(idx)]) {
-                    m_symbol_table.RemoveGroup(static_cast<size_t>(idx));
+                    symbol_table.RemoveGroup(static_cast<size_t>(idx));
                 }
             }
             // Reset selection state
@@ -4755,7 +4779,7 @@ void BeebWindow::DoGroupManagementWindowContent() {
 
         if (ImGui::BeginPopupModal("Edit Memory Contexts", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 
-            const auto &groups = m_symbol_table.GetAllGroups();
+            const auto &groups = symbol_table.GetAllGroups();
             if (editing_contexts_id >= 0 && static_cast<size_t>(editing_contexts_id) < groups.size()) {
                 //const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
 
@@ -4769,7 +4793,7 @@ void BeebWindow::DoGroupManagementWindowContent() {
 
                 // Action buttons
                 if (ImGui::Button("Save") || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-                    m_symbol_table.SetGroupContexts(static_cast<size_t>(editing_contexts_id), editing_contexts);
+                    symbol_table.SetGroupContexts(static_cast<size_t>(editing_contexts_id), editing_contexts);
                     editing_contexts_id = -1;
                     show_context_help = false;
                     ImGui::CloseCurrentPopup();
@@ -4797,37 +4821,6 @@ void BeebWindow::DoGroupManagementWindowContent() {
             show_context_help = false;
         }
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class SymbolGroupManagementUI : public SettingsUI {
-  public:
-    explicit SymbolGroupManagementUI(BeebWindow *beeb_window);
-
-    void DoImGui() override;
-    bool OnClose() override;
-
-  private:
-    BeebWindow *m_beeb_window = nullptr;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-SymbolGroupManagementUI::SymbolGroupManagementUI(BeebWindow *beeb_window)
-    : m_beeb_window(beeb_window) {
-    this->SetDefaultSize(ImVec2(SymbolUI::MANAGEMENT_WINDOW_WIDTH, SymbolUI::MANAGEMENT_WINDOW_HEIGHT));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void SymbolGroupManagementUI::DoImGui() {
-    // Just call the existing implementation but without the popup system checks
-    // since those are handled by the SettingsUI system
-    m_beeb_window->DoGroupManagementWindowContent();
 }
 
 //////////////////////////////////////////////////////////////////////////

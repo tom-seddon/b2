@@ -318,7 +318,6 @@ class BeebWindow {
     // Symbol file loading
     // Unified symbol loading dialog (replaces old Simple/Enhanced distinction)
     void DoSymbolLoadingWindow();
-    void DoGroupManagementWindowContent(); // Content only, for SettingsUI integration
 
     // Helper function for memory context selection UI (shared between dialogs)
     //void DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help);
