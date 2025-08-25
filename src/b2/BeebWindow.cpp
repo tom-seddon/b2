@@ -4441,11 +4441,6 @@ void BeebWindow::DoGroupManagementWindowContent() {
 
     if (groups.empty()) {
         ImGui::Text("No symbol groups loaded.");
-        ImGui::Separator();
-        if (ImGui::Button("Close")) {
-            const uint64_t mask = (uint64_t)1 << BeebWindowPopupType_SymbolGroupManagement;
-            m_settings.popups &= ~mask;
-        }
     } else {
         ImGui::Text("Groups are ordered by precedence (lower position = higher precedence)");
 
@@ -4712,13 +4707,6 @@ void BeebWindow::DoGroupManagementWindowContent() {
         ImGui::Separator();
 
         // Action buttons
-        if (ImGui::Button("Close")) {
-            const uint64_t mask = (uint64_t)1 << BeebWindowPopupType_SymbolGroupManagement;
-            m_settings.popups &= ~mask;
-        }
-
-        ImGui::SameLine();
-
         if (ImGui::Button("Reload All")) {
             m_symbol_table.ReloadAllGroups();
             m_msg.i.f("All symbol files have been reloaded from disk.\n");
