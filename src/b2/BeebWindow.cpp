@@ -3716,14 +3716,14 @@ void BeebWindow::DoSymbolLoadingWindow() {
                 ImGui::EndTooltip();
             }
 
-            ImGui::Separator();
+            //ImGui::Separator();
 
-            // Memory context selection
-            ImGui::Text("Memory Contexts:");
-            ImGui::SameLine();
+            //// Memory context selection
+            //ImGui::Text("Memory Contexts:");
+            //ImGui::SameLine();
 
-            // Use shared helper function
-            this->DoMemoryContextSelectionUI(selected_contexts, show_context_help);
+            //// Use shared helper function
+            //this->DoMemoryContextSelectionUI(selected_contexts, show_context_help);
         } else {
             advanced_section_open = false;
         }
@@ -4335,75 +4335,75 @@ void BeebWindow::ResetImGuiWindows() {
 //////////////////////////////////////////////////////////////////////////
 
 // Helper function to render memory context selection UI (shared between dialogs)
-void BeebWindow::DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help) {
-    // Context help
-    if (ImGui::Button("?##context_help")) {
-        show_context_help = !show_context_help;
-    }
-
-    if (show_context_help) {
-        // Calculate height based on number of lines
-        float help_height = ImGui::GetTextLineHeightWithSpacing() * SymbolUI::CONTEXT_HELP_LINES;
-        ImGui::BeginChild("context_help", ImVec2(-1, help_height), false);
-        ImGui::TextWrapped("Memory contexts control when symbols are visible:"); // wraps to 2 lines
-        ImGui::BulletText("'m' - Main RAM");
-        ImGui::BulletText("'o' - OS ROM (MOS)");
-        ImGui::BulletText("'0'-'f' - ROM banks 0-15");
-        ImGui::BulletText("'s' - Shadow RAM");
-        ImGui::BulletText("'n' - ANDY (extra RAM)");
-        ImGui::BulletText("'h' - HAZEL (Master)");
-        ImGui::BulletText("'p' - Parasite RAM");
-        ImGui::BulletText("'r' - Parasite boot ROM");
-        ImGui::BulletText("'i' - I/O area");
-        ImGui::TextWrapped("Leave empty for universal context (visible everywhere)"); // wraps to 2 lines
-        ImGui::EndChild();
-    }
-
-    // Context checkboxes - use organized groups from memory_contexts.h
-    for (const auto &group : MemoryContexts::CONTEXT_GROUPS) {
-        bool is_collapsible = group.collapsible;
-        bool group_is_open = true;
-
-        if (is_collapsible) {
-            group_is_open = ImGui::CollapsingHeader(group.name, ImGuiTreeNodeFlags_None);
-        } else {
-            ImGui::Text("%s:", group.name);
-        }
-
-        if (group_is_open) {
-            for (size_t i = 0; i < group.count; ++i) {
-                const auto &context_info = group.contexts[i];
-                char context = context_info.context;
-                bool selected = selected_contexts.find(context) != selected_contexts.end();
-
-                // Generate label
-                std::string label = std::string("'") + context + "'";
-                if (strlen(context_info.description) > 0) {
-                    label += " " + std::string(context_info.description);
-                }
-
-                if (ImGui::Checkbox(label.c_str(), &selected)) {
-                    if (selected) {
-                        selected_contexts.insert(context);
-                    } else {
-                        selected_contexts.erase(context);
-                    }
-                }
-
-                // Layout logic based on group type
-                if (strcmp(group.name, "ROM Banks 0-15") == 0 || strcmp(group.name, "ROM Mappers (A-P)") == 0) {
-                    // ROM banks: 8 per row
-                    if ((i + 1) % 8 != 0 && i < group.count - 1) {
-                        ImGui::SameLine();
-                    }
-                } else if (i < group.count - 1) {
-                    // Other groups: inline with spacing
-                    ImGui::SameLine();
-                }
-            }
-        }
-    }
-}
+//void BeebWindow::DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help) {
+//    // Context help
+//    if (ImGui::Button("?##context_help")) {
+//        show_context_help = !show_context_help;
+//    }
+//
+//    if (show_context_help) {
+//        // Calculate height based on number of lines
+//        float help_height = ImGui::GetTextLineHeightWithSpacing() * SymbolUI::CONTEXT_HELP_LINES;
+//        ImGui::BeginChild("context_help", ImVec2(-1, help_height), false);
+//        ImGui::TextWrapped("Memory contexts control when symbols are visible:"); // wraps to 2 lines
+//        ImGui::BulletText("'m' - Main RAM");
+//        ImGui::BulletText("'o' - OS ROM (MOS)");
+//        ImGui::BulletText("'0'-'f' - ROM banks 0-15");
+//        ImGui::BulletText("'s' - Shadow RAM");
+//        ImGui::BulletText("'n' - ANDY (extra RAM)");
+//        ImGui::BulletText("'h' - HAZEL (Master)");
+//        ImGui::BulletText("'p' - Parasite RAM");
+//        ImGui::BulletText("'r' - Parasite boot ROM");
+//        ImGui::BulletText("'i' - I/O area");
+//        ImGui::TextWrapped("Leave empty for universal context (visible everywhere)"); // wraps to 2 lines
+//        ImGui::EndChild();
+//    }
+//
+//    // Context checkboxes - use organized groups from memory_contexts.h
+//    for (const auto &group : MemoryContexts::CONTEXT_GROUPS) {
+//        bool is_collapsible = group.collapsible;
+//        bool group_is_open = true;
+//
+//        if (is_collapsible) {
+//            group_is_open = ImGui::CollapsingHeader(group.name, ImGuiTreeNodeFlags_None);
+//        } else {
+//            ImGui::Text("%s:", group.name);
+//        }
+//
+//        if (group_is_open) {
+//            for (size_t i = 0; i < group.count; ++i) {
+//                const auto &context_info = group.contexts[i];
+//                char context = context_info.context;
+//                bool selected = selected_contexts.find(context) != selected_contexts.end();
+//
+//                // Generate label
+//                std::string label = std::string("'") + context + "'";
+//                if (strlen(context_info.description) > 0) {
+//                    label += " " + std::string(context_info.description);
+//                }
+//
+//                if (ImGui::Checkbox(label.c_str(), &selected)) {
+//                    if (selected) {
+//                        selected_contexts.insert(context);
+//                    } else {
+//                        selected_contexts.erase(context);
+//                    }
+//                }
+//
+//                // Layout logic based on group type
+//                if (strcmp(group.name, "ROM Banks 0-15") == 0 || strcmp(group.name, "ROM Mappers (A-P)") == 0) {
+//                    // ROM banks: 8 per row
+//                    if ((i + 1) % 8 != 0 && i < group.count - 1) {
+//                        ImGui::SameLine();
+//                    }
+//                } else if (i < group.count - 1) {
+//                    // Other groups: inline with spacing
+//                    ImGui::SameLine();
+//                }
+//            }
+//        }
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -4769,15 +4769,15 @@ void BeebWindow::DoGroupManagementWindowContent() {
 
             const auto &groups = m_symbol_table.GetAllGroups();
             if (editing_contexts_id >= 0 && static_cast<size_t>(editing_contexts_id) < groups.size()) {
-                const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
+                //const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
 
-                ImGui::Text("Editing contexts for group: %s", group.name.c_str());
-                ImGui::Separator();
+                //ImGui::Text("Editing contexts for group: %s", group.name.c_str());
+                //ImGui::Separator();
 
-                // Use shared helper function for context selection
-                this->DoMemoryContextSelectionUI(editing_contexts, show_context_help);
+                //// Use shared helper function for context selection
+                //this->DoMemoryContextSelectionUI(editing_contexts, show_context_help);
 
-                ImGui::Separator();
+                //ImGui::Separator();
 
                 // Action buttons
                 if (ImGui::Button("Save") || ImGui::IsKeyPressed(ImGuiKey_Enter)) {

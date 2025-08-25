@@ -321,7 +321,7 @@ class BeebWindow {
     void DoGroupManagementWindowContent(); // Content only, for SettingsUI integration
 
     // Helper function for memory context selection UI (shared between dialogs)
-    void DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help);
+    //void DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help);
 
     // Enhanced symbol loading state
     bool m_show_enhanced_symbol_window = false;
