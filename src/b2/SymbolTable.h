@@ -175,9 +175,9 @@ class SymbolTable {
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
     const Symbol *GetSymbolForAddress(uint16_t address, char memory_context) const;
-    uint16_t GetAddressForSymbol(const std::string &name, char memory_context) const;
-    bool HasSymbolForAddress(uint16_t address, char memory_context) const;
-    bool HasSymbol(const std::string &name, char memory_context) const;
+    //uint16_t GetAddressForSymbol(const std::string &name, char memory_context) const;
+    //bool HasSymbolForAddress(uint16_t address, char memory_context) const;
+    //bool HasSymbol(const std::string &name, char memory_context) const;
 
     // Legacy lookup methods (for backwards compatibility)
     // GetSymbolForAddress uses symbol precedence policy for DISPLAY:
@@ -185,9 +185,9 @@ class SymbolTable {
     //   2. Among enabled groups, prefer first loaded group (lower group_id)
     //   3. Within same group, prefer later loaded symbols (e.g., CC65 "_main" over "__MY_RAM_START__")
     // GetAddressForSymbol finds ANY symbol with the given name (ignores display precedence)
-    const Symbol *GetSymbolForAddress(uint16_t address) const;
+    //const Symbol *GetSymbolForAddress(uint16_t address) const;
     uint16_t GetAddressForSymbol(const std::string &name) const;
-    bool HasSymbolForAddress(uint16_t address) const;
+    //bool HasSymbolForAddress(uint16_t address) const;
     bool HasSymbol(const std::string &name) const;
 
     // Base class for symbol file parsers
@@ -241,8 +241,8 @@ class SymbolTable {
     bool IsValidAddress(uint32_t addr) const;
     void InvalidateCache() const;
     void RebuildCache() const;
-    bool IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const;
-    const Symbol *GetFirstEnabledSymbolAt(uint16_t address) const;
+    //bool IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const;
+    //const Symbol *GetFirstEnabledSymbolAt(uint16_t address) const;
 };
 
 //////////////////////////////////////////////////////////////////////////

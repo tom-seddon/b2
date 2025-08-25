@@ -181,7 +181,7 @@ static bool ParseAddress(uint16_t *addr_ptr,
         }
         size_t end = symbol_name.find_last_not_of(" \t\r\n");
         symbol_name = symbol_name.substr(start, end - start + 1);
-
+        
         if (symbol_table->HasSymbol(symbol_name)) {
             addr = symbol_table->GetAddressForSymbol(symbol_name);
             // Set ep to end of string for symbol resolution

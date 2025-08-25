@@ -505,10 +505,10 @@ size_t SymbolTable::GetSymbolCountForGroup(size_t group_id) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address) const {
-    // Return first enabled symbol at this address
-    return this->GetFirstEnabledSymbolAt(address);
-}
+//const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address) const {
+//    // Return first enabled symbol at this address
+//    return this->GetFirstEnabledSymbolAt(address);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -537,9 +537,9 @@ uint16_t SymbolTable::GetAddressForSymbol(const std::string &name) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::HasSymbolForAddress(uint16_t address) const {
-    return this->GetSymbolForAddress(address) != nullptr;
-}
+//bool SymbolTable::HasSymbolForAddress(uint16_t address) const {
+//    return this->GetSymbolForAddress(address) != nullptr;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -605,39 +605,39 @@ bool SymbolTable::IsValidAddress(uint32_t addr) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const SymbolTable::Symbol *SymbolTable::GetFirstEnabledSymbolAt(uint16_t address) const {
-    auto it = m_address_to_symbols.find(address);
-    if (it != m_address_to_symbols.end()) {
-        const std::vector<Symbol> &symbols = it->second;
-
-        // Search for the best symbol using precedence policy:
-        // 1. Prefer symbols from enabled groups
-        // 2. Among enabled groups, prefer lower group_id (first loaded group)
-        // 3. Within same group, prefer later loaded symbols (higher index in vector)
-
-        const Symbol *best_symbol = nullptr;
-        size_t best_group_id = SIZE_MAX;
-
-        for (const Symbol &symbol : symbols) {
-            if (symbol.group_id >= m_groups.size() || !m_groups[symbol.group_id].enabled) {
-                continue; // Skip disabled groups
-            }
-
-            // If this is from a higher priority group (lower group_id), use it
-            if (symbol.group_id < best_group_id) {
-                best_symbol = &symbol;
-                best_group_id = symbol.group_id;
-            }
-            // If same group as current best, prefer this one (later in file)
-            else if (symbol.group_id == best_group_id) {
-                best_symbol = &symbol;
-            }
-        }
-
-        return best_symbol;
-    }
-    return nullptr;
-}
+//const SymbolTable::Symbol *SymbolTable::GetFirstEnabledSymbolAt(uint16_t address) const {
+//    auto it = m_address_to_symbols.find(address);
+//    if (it != m_address_to_symbols.end()) {
+//        const std::vector<Symbol> &symbols = it->second;
+//
+//        // Search for the best symbol using precedence policy:
+//        // 1. Prefer symbols from enabled groups
+//        // 2. Among enabled groups, prefer lower group_id (first loaded group)
+//        // 3. Within same group, prefer later loaded symbols (higher index in vector)
+//
+//        const Symbol *best_symbol = nullptr;
+//        size_t best_group_id = SIZE_MAX;
+//
+//        for (const Symbol &symbol : symbols) {
+//            if (symbol.group_id >= m_groups.size() || !m_groups[symbol.group_id].enabled) {
+//                continue; // Skip disabled groups
+//            }
+//
+//            // If this is from a higher priority group (lower group_id), use it
+//            if (symbol.group_id < best_group_id) {
+//                best_symbol = &symbol;
+//                best_group_id = symbol.group_id;
+//            }
+//            // If same group as current best, prefer this one (later in file)
+//            else if (symbol.group_id == best_group_id) {
+//                best_symbol = &symbol;
+//            }
+//        }
+//
+//        return best_symbol;
+//    }
+//    return nullptr;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -911,33 +911,33 @@ const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, ch
     return nullptr;
 }
 
-uint16_t SymbolTable::GetAddressForSymbol(const std::string &name, char memory_context) const {
-    // Find ANY symbol with this name that is visible in the specified context
-    auto range = m_name_to_addresses.equal_range(name);
-    for (auto it = range.first; it != range.second; ++it) {
-        uint16_t address = it->second;
+//uint16_t SymbolTable::GetAddressForSymbol(const std::string &name, char memory_context) const {
+//    // Find ANY symbol with this name that is visible in the specified context
+//    auto range = m_name_to_addresses.equal_range(name);
+//    for (auto it = range.first; it != range.second; ++it) {
+//        uint16_t address = it->second;
+//
+//        // Check if there's an enabled symbol with this name visible in this context
+//        auto addr_it = m_address_to_symbols.find(address);
+//        if (addr_it != m_address_to_symbols.end()) {
+//            for (const Symbol &symbol : addr_it->second) {
+//                if (symbol.name == name && this->IsSymbolVisibleInContext(symbol, memory_context)) {
+//                    return address; // Found a symbol with this name in this context
+//                }
+//            }
+//        }
+//    }
+//
+//    return 0; // Symbol not visible in this context
+//}
 
-        // Check if there's an enabled symbol with this name visible in this context
-        auto addr_it = m_address_to_symbols.find(address);
-        if (addr_it != m_address_to_symbols.end()) {
-            for (const Symbol &symbol : addr_it->second) {
-                if (symbol.name == name && this->IsSymbolVisibleInContext(symbol, memory_context)) {
-                    return address; // Found a symbol with this name in this context
-                }
-            }
-        }
-    }
+//bool SymbolTable::HasSymbolForAddress(uint16_t address, char memory_context) const {
+//    return this->GetSymbolForAddress(address, memory_context) != nullptr;
+//}
 
-    return 0; // Symbol not visible in this context
-}
-
-bool SymbolTable::HasSymbolForAddress(uint16_t address, char memory_context) const {
-    return this->GetSymbolForAddress(address, memory_context) != nullptr;
-}
-
-bool SymbolTable::HasSymbol(const std::string &name, char memory_context) const {
-    return this->GetAddressForSymbol(name, memory_context) != 0;
-}
+//bool SymbolTable::HasSymbol(const std::string &name, char memory_context) const {
+//    return this->GetAddressForSymbol(name, memory_context) != 0;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -980,21 +980,21 @@ void SymbolTable::RebuildCache() const {
     m_cache_dirty = false;
 }
 
-bool SymbolTable::IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const {
-    if (symbol.group_id >= m_groups.size() || !m_groups[symbol.group_id].enabled) {
-        return false;
-    }
-
-    const SymbolGroup &group = m_groups[symbol.group_id];
-
-    // If group has no specific contexts, it's visible in ALL contexts (universal symbols)
-    if (group.memory_contexts.empty()) {
-        return true;
-    }
-
-    // Check if the symbol's group applies to this memory context
-    return group.memory_contexts.find(memory_context) != group.memory_contexts.end();
-}
+//bool SymbolTable::IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const {
+//    if (symbol.group_id >= m_groups.size() || !m_groups[symbol.group_id].enabled) {
+//        return false;
+//    }
+//
+//    const SymbolGroup &group = m_groups[symbol.group_id];
+//
+//    // If group has no specific contexts, it's visible in ALL contexts (universal symbols)
+//    if (group.memory_contexts.empty()) {
+//        return true;
+//    }
+//
+//    // Check if the symbol's group applies to this memory context
+//    return group.memory_contexts.find(memory_context) != group.memory_contexts.end();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
