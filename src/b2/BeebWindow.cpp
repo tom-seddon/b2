@@ -4417,6 +4417,17 @@ class SymbolGroupManagementUI : public SettingsUI {
 
   private:
     BeebWindow *m_beeb_window = nullptr;
+
+    // Selection state for group management
+    std::vector<bool> m_selected_groups;
+
+    // State for inline editing
+    int m_editing_contexts_id = -1;    // Which group's contexts are being edited (-1 = none)
+    std::set<char> m_editing_contexts; // Temporary contexts during editing
+    bool m_show_context_help = false;  // Help text for context popup
+
+    // Name buffers for each group (persistent across frames)
+    std::vector<std::string> m_group_name_buffers;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -4431,17 +4442,6 @@ SymbolGroupManagementUI::SymbolGroupManagementUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 
 void SymbolGroupManagementUI::DoImGui() {
-    // Static selection state for group management
-    static std::vector<bool> selected_groups;
-
-    // Static state for inline editing
-    static int editing_contexts_id = -1;    // Which group's contexts are being edited (-1 = none)
-    static std::set<char> editing_contexts; // Temporary contexts during editing
-    static bool show_context_help = false;  // Help text for context popup
-
-    // Name buffers for each group (persistent across frames)
-    static std::vector<std::string> group_name_buffers;
-
     ImGui::Text("Manage Symbol Groups and Precedence");
     ImGui::Separator();
 
@@ -4450,15 +4450,15 @@ void SymbolGroupManagementUI::DoImGui() {
     const auto &groups = symbol_table.GetAllGroups();
 
     // Ensure selection state matches group count
-    if (selected_groups.size() != groups.size()) {
-        selected_groups.resize(groups.size(), false);
+    if (m_selected_groups.size() != groups.size()) {
+        m_selected_groups.resize(groups.size(), false);
     }
 
     // Ensure name buffers match group count and are initialized
-    if (group_name_buffers.size() != groups.size()) {
-        group_name_buffers.resize(groups.size());
+    if (m_group_name_buffers.size() != groups.size()) {
+        m_group_name_buffers.resize(groups.size());
         for (size_t i = 0; i < groups.size(); ++i) {
-            group_name_buffers[i] = groups[i].name;
+            m_group_name_buffers[i] = groups[i].name;
         }
     }
 
@@ -4480,8 +4480,8 @@ void SymbolGroupManagementUI::DoImGui() {
 
         // Count selected groups
         size_t selected_count = 0;
-        for (size_t i = 0; i < selected_groups.size(); ++i) {
-            if (selected_groups[i]) {
+        for (size_t i = 0; i < m_selected_groups.size(); ++i) {
+            if (m_selected_groups[i]) {
                 selected_count++;
             }
         }
@@ -4516,7 +4516,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 ImGui::TableNextRow();
 
                 // Row selection state
-                bool is_selected = i < selected_groups.size() && selected_groups[i];
+                bool is_selected = i < m_selected_groups.size() && m_selected_groups[i];
 
                 // Apply subtle background color for selected items (not hover highlighting)
                 if (is_selected) {
@@ -4542,8 +4542,8 @@ void SymbolGroupManagementUI::DoImGui() {
 
                     // Check if double-click was in Contexts column
                     if (mouse_pos.x >= contexts_col_start && mouse_pos.x < contexts_col_end) {
-                        editing_contexts_id = static_cast<int>(i);
-                        editing_contexts = group.memory_contexts;
+                        m_editing_contexts_id = static_cast<int>(i);
+                        m_editing_contexts = group.memory_contexts;
                     }
                 }
 
@@ -4558,7 +4558,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 bool selected = is_selected;
                 std::string select_id = "##select_" + std::to_string(i);
                 if (ImGui::Checkbox(select_id.c_str(), &selected)) {
-                    selected_groups[i] = selected;
+                    m_selected_groups[i] = selected;
                 }
 
                 // Column 2: Move buttons
@@ -4568,14 +4568,14 @@ void SymbolGroupManagementUI::DoImGui() {
                     if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
                         if (symbol_table.MoveGroup(i, i - 1)) {
                             // Swap selection states too
-                            if (i < selected_groups.size() && i - 1 < selected_groups.size()) {
-                                bool temp = selected_groups[i];
-                                selected_groups[i] = selected_groups[i - 1];
-                                selected_groups[i - 1] = temp;
+                            if (i < m_selected_groups.size() && i - 1 < m_selected_groups.size()) {
+                                bool temp = m_selected_groups[i];
+                                m_selected_groups[i] = m_selected_groups[i - 1];
+                                m_selected_groups[i - 1] = temp;
                             }
                             // Swap name buffers too
-                            if (i < group_name_buffers.size() && i - 1 < group_name_buffers.size()) {
-                                std::swap(group_name_buffers[i], group_name_buffers[i - 1]);
+                            if (i < m_group_name_buffers.size() && i - 1 < m_group_name_buffers.size()) {
+                                std::swap(m_group_name_buffers[i], m_group_name_buffers[i - 1]);
                             }
                         }
                     }
@@ -4590,14 +4590,14 @@ void SymbolGroupManagementUI::DoImGui() {
                     if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
                         if (symbol_table.MoveGroup(i, i + 1)) {
                             // Swap selection states too
-                            if (i < selected_groups.size() && i + 1 < selected_groups.size()) {
-                                bool temp = selected_groups[i];
-                                selected_groups[i] = selected_groups[i + 1];
-                                selected_groups[i + 1] = temp;
+                            if (i < m_selected_groups.size() && i + 1 < m_selected_groups.size()) {
+                                bool temp = m_selected_groups[i];
+                                m_selected_groups[i] = m_selected_groups[i + 1];
+                                m_selected_groups[i + 1] = temp;
                             }
                             // Swap name buffers too
-                            if (i < group_name_buffers.size() && i + 1 < group_name_buffers.size()) {
-                                std::swap(group_name_buffers[i], group_name_buffers[i + 1]);
+                            if (i < m_group_name_buffers.size() && i + 1 < m_group_name_buffers.size()) {
+                                std::swap(m_group_name_buffers[i], m_group_name_buffers[i + 1]);
                             }
                         }
                     }
@@ -4625,7 +4625,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 // Always show as InputText - much simpler and more intuitive
                 std::string input_id = "##group_name_" + std::to_string(i);
                 char buffer[SymbolUI::MAX_GROUP_NAME_LENGTH + 1];
-                strncpy(buffer, group_name_buffers[i].c_str(), 255);
+                strncpy(buffer, m_group_name_buffers[i].c_str(), 255);
                 buffer[255] = '\0';
 
                 // Make InputText fill the column width
@@ -4633,12 +4633,12 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 if (ImGui::InputText(input_id.c_str(), buffer, sizeof(buffer))) {
                     // Text changed - update buffer
-                    group_name_buffers[i] = buffer;
+                    m_group_name_buffers[i] = buffer;
                 }
 
                 // Save changes when Enter pressed or focus lost
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    std::string new_name = group_name_buffers[i];
+                    std::string new_name = m_group_name_buffers[i];
                     if (new_name != group.name) {
                         symbol_table.SetGroupName(i, new_name);
                     }
@@ -4745,13 +4745,13 @@ void SymbolGroupManagementUI::DoImGui() {
 
         if (ImGui::Button("Delete Selected")) {
             // Delete groups from highest index to lowest to maintain indices
-            for (int idx = static_cast<int>(selected_groups.size()) - 1; idx >= 0; --idx) {
-                if (selected_groups[static_cast<size_t>(idx)]) {
+            for (int idx = static_cast<int>(m_selected_groups.size()) - 1; idx >= 0; --idx) {
+                if (m_selected_groups[static_cast<size_t>(idx)]) {
                     symbol_table.RemoveGroup(static_cast<size_t>(idx));
                 }
             }
             // Reset selection state
-            selected_groups.clear();
+            m_selected_groups.clear();
         }
 
         if (selected_count == 0) {
@@ -4767,7 +4767,7 @@ void SymbolGroupManagementUI::DoImGui() {
     }
 
     // Context editing popup (modal dialog)
-    if (editing_contexts_id != -1) {
+    if (m_editing_contexts_id != -1) {
         // Open the popup immediately when editing is triggered
         ImGui::OpenPopup("Edit Memory Contexts");
 
@@ -4780,7 +4780,7 @@ void SymbolGroupManagementUI::DoImGui() {
         if (ImGui::BeginPopupModal("Edit Memory Contexts", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 
             const auto &groups = symbol_table.GetAllGroups();
-            if (editing_contexts_id >= 0 && static_cast<size_t>(editing_contexts_id) < groups.size()) {
+            if (m_editing_contexts_id >= 0 && static_cast<size_t>(m_editing_contexts_id) < groups.size()) {
                 //const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
 
                 //ImGui::Text("Editing contexts for group: %s", group.name.c_str());
@@ -4793,22 +4793,22 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 // Action buttons
                 if (ImGui::Button("Save") || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-                    symbol_table.SetGroupContexts(static_cast<size_t>(editing_contexts_id), editing_contexts);
-                    editing_contexts_id = -1;
-                    show_context_help = false;
+                    symbol_table.SetGroupContexts(static_cast<size_t>(m_editing_contexts_id), m_editing_contexts);
+                    m_editing_contexts_id = -1;
+                    m_show_context_help = false;
                     ImGui::CloseCurrentPopup();
                 }
 
                 ImGui::SameLine();
 
                 if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-                    editing_contexts_id = -1;
-                    show_context_help = false;
+                    m_editing_contexts_id = -1;
+                    m_show_context_help = false;
                     ImGui::CloseCurrentPopup();
                 }
             } else {
                 // Invalid group ID - close popup
-                editing_contexts_id = -1;
+                m_editing_contexts_id = -1;
                 ImGui::CloseCurrentPopup();
             }
 
@@ -4817,8 +4817,8 @@ void SymbolGroupManagementUI::DoImGui() {
 
         // If popup was closed externally, reset editing state
         if (!ImGui::IsPopupOpen("Edit Memory Contexts")) {
-            editing_contexts_id = -1;
-            show_context_help = false;
+            m_editing_contexts_id = -1;
+            m_show_context_help = false;
         }
     }
 }
