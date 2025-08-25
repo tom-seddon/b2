@@ -253,11 +253,14 @@ struct BBCMicroType {
 #if BBCMICRO_DEBUGGER
     bool (*parse_suffix_char_fn)(uint32_t *dso, char c);
 #endif
+
+    ROMType rom_types[16] = {};
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint32_t GetROMTypeRegionMask(ROMType rom_type);
 size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t region);
 
 std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types);
@@ -277,6 +280,9 @@ const char *GetModelName(BBCMicroTypeID type_id);
 bool Has4ROMSlots(BBCMicroTypeID type_id);
 bool HasSerial(BBCMicroTypeID type_id);
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 // Parse address suffix and add additional flags to *dso_ptr.
 //
@@ -289,11 +295,25 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
                         const std::shared_ptr<const BBCMicroType> &type,
                         const char *suffix,
                         Log *log);
-#endif
 
-#if BBCMICRO_DEBUGGER
 // Tested without regards to BBCMicroType.
 bool IsValidAddressSuffixChar(char c);
+
+// A normalized DSO has any irrelevant flags removed, as per the type's DSO
+// mask.
+//
+// If the DSO refers to a specific ROM bank, the mapper region will be
+// normalized too. (There's always a power-of-2 number of mapper regions, so
+// this can work.)
+uint32_t GetNormalizedDSO(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso);
+
+// Get a mask for any specified overrides in the given DSO. If an OverrideXXX
+// bit is set in the DSO, the mask has that bit set too, and the corresponding
+// bits for its overriden value.
+//
+// If the DSO parasite bit is set, that's set in the mask too, and perhaps the
+// parasite ROM bit too (which is otherwise ignored).
+uint32_t GetDSOMaskForOverrides(uint32_t dso);
 #endif
 
 //////////////////////////////////////////////////////////////////////////

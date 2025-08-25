@@ -261,6 +261,34 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
     }
 }
 
+uint32_t GetROMTypeRegionMask(ROMType rom_type) {
+    switch (rom_type) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case ROMType_16KB:
+        return 0;
+
+    case ROMType_CCIWORD:
+    case ROMType_ABEP:
+    case ROMType_ABE:
+        return 1;
+
+    case ROMType_CCIBASE:
+    case ROMType_Trilogy:
+    case ROMType_PALQST:
+    case ROMType_PALTED:
+        return 3;
+
+    case ROMType_CCISPELL:
+    case ROMType_PALWAP:
+        return 7;
+
+    case ROMType_MO2:
+        return 15;
+    }
+}
+
 size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t region) {
     ASSERT(relative_big_page_index < 4);
     ASSERT(region < NUM_MAPPER_REGIONS);
@@ -950,10 +978,14 @@ static bool ParseSuffixCharMaster(uint32_t *dso, char c) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types) {
+std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types_) {
     auto type = std::make_shared<BBCMicroType>();
 
     type->type_id = type_id;
+
+    for (uint8_t i = 0; i < 16; ++i) {
+        type->rom_types[i] = rom_types_[i];
+    }
 
     if (IsMaster(type->type_id)) {
         type->m6502_config = &M6502_cmos6502_config;
@@ -978,18 +1010,18 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         ASSERT(false);
         [[fallthrough]];
     case BBCMicroTypeID_B:
-        type->big_pages_metadata = GetBigPagesMetadataB(rom_types);
+        type->big_pages_metadata = GetBigPagesMetadataB(type->rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPageTablesB;
         break;
 
     case BBCMicroTypeID_BPlus:
-        type->big_pages_metadata = GetBigPagesMetadataBPlus(rom_types);
+        type->big_pages_metadata = GetBigPagesMetadataBPlus(type->rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPageTablesBPlus;
         break;
 
     case BBCMicroTypeID_Master:
     case BBCMicroTypeID_MasterCompact:
-        type->big_pages_metadata = GetBigPagesMetadataMaster(rom_types);
+        type->big_pages_metadata = GetBigPagesMetadataMaster(type->rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPagesTablesMaster;
         break;
     }
@@ -1014,7 +1046,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                 uint32_t region = (uint32_t)((i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES / 4);
                 //ASSERT(region < NUM_MAPPER_REGIONS);
                 uint32_t relative_big_page_index = (uint32_t)((i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES % 4);
-                BigPageIndex::Type *index = &seen_rom_big_pages[{bank, bp->addr, GetROMOffset(rom_types[bank], relative_big_page_index, region)}];
+                BigPageIndex::Type *index = &seen_rom_big_pages[{bank, bp->addr, GetROMOffset(type->rom_types[bank], relative_big_page_index, region)}];
                 if (*index == 0) {
                     // Not seen this one before, so here it is.
                     *index = i;
@@ -1074,10 +1106,9 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
     }
 
     for (uint8_t i = 0; i < 16; ++i) {
-        if (rom_types[i] != ROMType_16KB) {
-            type->dso_mask |= (BBCMicroDebugStateOverride_OverrideMapperRegion |
-                               BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
-            break;
+        uint32_t mask = GetROMTypeRegionMask(type->rom_types[i]);
+        if (mask != 0) {
+            type->dso_mask |= BBCMicroDebugStateOverride_OverrideMapperRegion | mask << BBCMicroDebugStateOverride_MapperRegionShift;
         }
     }
 #endif
@@ -1257,5 +1288,71 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
 #if BBCMICRO_DEBUGGER
 bool IsValidAddressSuffixChar(char c) {
     return g_all_big_page_codes.find_first_of(c) != std::string::npos;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+uint32_t GetNormalizedDSO(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso_) {
+    uint32_t dso = dso_;
+
+    // Strip off anythhing irrelevant for the type.
+    dso &= type->dso_mask;
+
+    // If overriding ROM bank and mapper region, normalize the
+    constexpr uint32_t override_both = BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_OverrideMapperRegion;
+    if ((dso & override_both) == override_both) {
+        uint32_t region = (dso >> BBCMicroDebugStateOverride_MapperRegionShift) & BBCMicroDebugStateOverride_MapperRegionMask;
+        uint8_t bank = dso & BBCMicroDebugStateOverride_ROM;
+        region &= GetROMTypeRegionMask(type->rom_types[bank]);
+        dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift) | region << BBCMicroDebugStateOverride_MapperRegionShift;
+    }
+
+    return dso;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+uint32_t GetDSOMaskForOverrides(uint32_t dso) {
+    uint32_t mask = 0;
+
+    if (dso & BBCMicroDebugStateOverride_OverrideROM) {
+        mask |= BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_ROM;
+    }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
+        mask |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
+    }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideHAZEL) {
+        mask |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL;
+    }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideShadow) {
+        mask |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
+    }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideOS) {
+        mask |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
+    }
+
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        mask |= BBCMicroDebugStateOverride_Parasite;
+
+        if (dso & BBCMicroDebugStateOverride_OverrideParasiteROM) {
+            mask |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;
+        }
+    }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideMapperRegion) {
+        mask |= BBCMicroDebugStateOverride_OverrideMapperRegion | (BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
+    }
+
+    return mask;
 }
 #endif

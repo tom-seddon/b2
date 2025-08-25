@@ -199,13 +199,10 @@ class SymbolTable {
     void PrintStats() const;
 
   private:
-    std::vector<SymbolGroup> m_groups;
+    mutable std::vector<SymbolGroup> m_groups;
     std::map<uint16_t, std::vector<Symbol>> m_address_to_symbols; // Multiple symbols per address
     std::multimap<std::string, uint16_t> m_name_to_addresses;     // Multiple addresses per name
 
-    // Context-aware lookup maps for performance
-    // Maps memory_context -> address -> vector of symbols
-    //mutable std::unordered_map<char, std::map<uint16_t, std::vector<Symbol *>>> m_context_to_address_cache;
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
 
     // Helper methods

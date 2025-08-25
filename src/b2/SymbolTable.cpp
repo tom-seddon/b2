@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <memory>
 #include <vector>
+#include <beeb/type.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -895,13 +896,18 @@ const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, ui
         return nullptr;
     }
 
-    const std::vector<Symbol> *symbols = &it->second;
-    if (symbols->empty()) {
-        return nullptr;
+    for (const Symbol &symbol : it->second) {
+        if (symbol.group_id < m_groups.size()) {
+            const SymbolGroup *group = &m_groups[symbol.group_id];
+            for (const SymbolGroup::DSOMask &mask : group->address_suffix_dso_masks) {
+                if ((dso & mask.mask) == mask.value) {
+                    return &symbol;
+                }
+            }
+        }
     }
 
-    // TODO...
-    return &(*symbols)[0];
+    return nullptr;
 
     //auto context_it = m_context_to_address_cache.find(memory_context);
     //if (context_it != m_context_to_address_cache.end()) {
@@ -977,6 +983,28 @@ void SymbolTable::InvalidateCache() const {
 void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const {
     if (m_cache_type == type) {
         return;
+    }
+
+    for (SymbolGroup &group : m_groups) {
+        group.address_suffix_dso_masks.clear();
+
+        for (const std::string &address_suffix : group.address_suffixes) {
+            uint32_t dso = 0;
+
+            if (ParseAddressSuffix(&dso, type, address_suffix.c_str(), nullptr)) {
+                SymbolGroup::DSOMask mask;
+
+                mask.mask = GetDSOMaskForOverrides(dso) & type->dso_mask;
+                mask.value = dso & type->dso_mask;
+
+                group.address_suffix_dso_masks.push_back(mask);
+            } else {
+                // Should have been called out in the UI. Nothing to be done at
+                // this stage but ignore it.
+            }
+        }
+
+        // TODO eliminate redundant masks.
     }
 
     //m_context_to_address_cache.clear();

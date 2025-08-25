@@ -5293,4 +5293,36 @@ work.
 
 : add_subdirectory(${CMAKE_SOURCE_DIR}/dependencies/sdl2-compat)
 
+* Symbols vs DSOs
+
+Open issues:
+
+- If you specify an address suffix for a symbol file, the symbols will
+  be visible only when that suffix applies. For sideways ROMs, this is
+  (probably) exactly what you want, because the symbols will only be
+  relevant when the ROM is paged in, including those in main RAM.
+
+  But this might not be what you want if you've got one symbol file
+  that straddles multiple paging regions in main memory. Like, even if
+  you've got some symbols that are only valid when shadow RAM is paged
+  in (say), when it's paged out, you'll still want the symbols in the
+  $0000-$3000 region to be valid, since that region is the same in
+  both cases.
+
+  (Something similar should also apply to the ROM mappers that have
+  fixed regions.)
+
+  This is fixable. There's just no info in the code anywhere about
+  which addresses are affected by which suffix codes
+
+- The symbol parsing doesn't take the ` syntax into account, so you
+  always end up with the DSO for the group the symbol is in
+
+- As well as typing in the address suffix, there should have some
+  variant of the page override UI for selecting it. Would be nice to
+  have 3 options: type it in, select it from a generic page override
+  UI (accommodating every possible option), or select it from a
+  type-specific page override UI (that's dependent on the current BBC
+  Micro type, as per the ones seen at the top of each bit of debug UI)
+
 * eof.
