@@ -216,13 +216,7 @@ static uint32_t GetROMDSO(const PagingState &paging) {
 }
 #endif
 
-static std::string g_all_big_page_codes;
-
-static void AddBigPageCode(char code) {
-    if (g_all_big_page_codes.find(code) == std::string::npos) {
-        g_all_big_page_codes.push_back(code);
-    }
-}
+static const std::string g_all_big_page_codes = "0123456789ABCDEFGHIJKLMNOPabcdefhimnoprs";
 
 static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  BigPageIndex index,
@@ -264,11 +258,6 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
 #endif
 
         bp->addr = (uint16_t)(base + i * 4096);
-    }
-
-    AddBigPageCode(code0);
-    if (code1 != 0) {
-        AddBigPageCode(code1);
     }
 }
 

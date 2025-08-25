@@ -46,9 +46,11 @@ EEND()
 
 // Flags not supported by the current setup should be treated as no-ops.
 
+static_assert((NUM_MAPPER_REGIONS & (NUM_MAPPER_REGIONS - 1)) == 0);
+
 #define ENAME BBCMicroDebugStateOverride
 EBEGIN_DERIVED(uint32_t)
-EPNV(ROM, 15)
+EQPNV(ROM, 15)
 EPNV(OverrideROM, 1 << 4)
 EPNV(ANDY, 1 << 5)
 EPNV(OverrideANDY, 1 << 6)
@@ -69,7 +71,7 @@ EPNV(Parasite, 1 << 15)
 
 EPNV(OverrideMapperRegion, 1 << 16)
 EPNV(MapperRegionShift, 17)
-EPNV(MapperRegionMask, (1 << NUM_MAPPER_REGIONS) - 1)
+EQPNV(MapperRegionMask, NUM_MAPPER_REGIONS - 1)
 //next free bit is 21
 
 EEND()
