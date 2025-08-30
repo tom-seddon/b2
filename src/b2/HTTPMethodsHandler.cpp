@@ -570,7 +570,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         if (!path_parts.empty()) {
             auto it = m_request_handlers.find(path_parts[0]);
             if (it == m_request_handlers.end()) {
-                server->SendResponse(request, HTTPResponse::BadRequest(request, "Unknown request type: %s", path_parts[2].c_str()));
+                server->SendResponse(request, HTTPResponse::BadRequest(request, "Couldn't find endpoint for path: %s", request.url_path.c_str()));
                 return;
             }
 
