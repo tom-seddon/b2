@@ -44,7 +44,7 @@ b2_target_boilerplate(test_beeb SANITIZERS)
 
 function(add_test_beeb_category category)
   add_test(NAME beeb/test_beeb_${category}
-    COMMAND $<TARGET_FILE:test_beeb> -T "${category}.*")
+    COMMAND $<TARGET_FILE:test_beeb> --verbose -T "${category}.*")
 endfunction()
 
 add_test_beeb_category(standard)
