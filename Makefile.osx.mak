@@ -50,8 +50,7 @@ github_ci_macos_homebrew_ffmpeg:
 .PHONY:_github_ci_macos_release
 _github_ci_macos_release: export PYTHONUNBUFFERED=1
 _github_ci_macos_release:
-	-$(PYTHON3) "./etc/release/release.py" --verbose $(TARGET_ARGS) --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) --gh-release $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix) --ctest-output-on-failure --ctest-timeout 90
-	./build/_Rel.f.osx/src/beeb/tests/test_beeb  --verbose -T "standard.*"
+	$(PYTHON3) "./etc/release/release.py" --verbose $(TARGET_ARGS) --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) --gh-release $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix) --ctest-output-on-failure
 
 .PHONY:github_ci_macos_x64
 github_ci_macos_x64:
