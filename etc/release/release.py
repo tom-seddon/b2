@@ -369,10 +369,10 @@ def build_darwin(options,ifolder,rev_hash):
     elif arch=='arm64': arch='applesilicon'
     else: fatal('unknown architecture from uname -m: %s'%arch)
     
+    build_darwin_config(options,"f",None)
+
     if not options.skip_debug:
         build_darwin_config(options,"r",'-debug')
-
-    build_darwin_config(options,"f",None)
 
     stem="b2-macos-"
     if options.macos_deployment_target is not None:
