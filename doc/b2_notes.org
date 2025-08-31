@@ -5325,4 +5325,39 @@ Open issues:
   type-specific page override UI (that's dependent on the current BBC
   Micro type, as per the ones seen at the top of each bit of debug UI)
 
+* Testing with msan on Linux
+
+: sudo apt-get install libclang-19-dev
+
+Get a copy of the llvm repo.
+
+#+begin_src shell
+git clone https://github.com/llvm/llvm-project
+#+end_src
+
+Set up clang-19.
+
+#+begin_src shell
+export CC=$(which clang-19)
+export CXX=$(which clang++-19)
+#+end_src
+
+
+#+begin_src shell
+cmake -G Ninja -S llvm-project/runtimes -B build.msan.llvm-project.runtimes -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" -DLLVM_USE_SANITIZER=MemoryWithOrigins -DCMAKE_INSTALL_PREFIX=$(realpath install.msan.llvm-project.runtimes)
+#+end_src
+
+Change to build folder, =ninja= then =ninja install=.
+
+Need something like this in the Makefile, I think, to ensure the
+include folders are right:
+
+#+begin_src diff
+  +_msan: export LIBRARY_PATH=/home/tom/not-my/install.msan.llvm-project.runtimes/lib
+  +_msan: export LD_LIBRARY_PATH=/home/tom/not-my/install.msan.llvm-project.runtimes/lib
+  +_msan: export CPATH=/home/tom/not-my/install.msan.llvm-project.runtimes/include/c++/v1:/usr/include
+#+end_src
+
+But only "like". The above didn't work.
+
 * eof.
