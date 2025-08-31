@@ -156,6 +156,20 @@ def gh_release(release_files,options):
 ##########################################################################
 ##########################################################################
 
+def get_ctest_args(options):
+    args=[]
+    
+    args+=['-j',str(options.ctest_jobs)]
+
+    args+=['--timeout',str(options.ctest_timeout)]
+
+    if options.ctest_output_on_failure: args+=['--output-on-failure']
+
+    return args
+
+##########################################################################
+##########################################################################
+
 def get_win32_build_folder(options):
     return '%s/%s%s'%(BUILD_FOLDER,
                       FOLDER_PREFIX,
@@ -216,9 +230,9 @@ def build_win32_config(timings,options,config,colour):
 
     if not options.skip_ctest:
         with ChangeDirectory(folder):
-            run([get_win32_vstool_path(r'''Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe''',options),
-                 "-j",str(options.ctest_jobs),
-                 "-C",config])
+            run([get_win32_vstool_path(r'''Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe''',options)]+
+                get_ctest_args(options)+
+                ["-C",config])
             
     run(["cmd","/c",
          "color"],ignore_errors=True)
@@ -340,8 +354,7 @@ def build_darwin_config(options,
                  '--dest-dir','./src/b2/b2.app/Contents/libs/'])
 
         if not options.skip_ctest:
-            run(["ctest",
-                 "-j",str(options.ctest_jobs)])
+            run(["ctest"]+get_ctest_args(options))
 
 def copy_darwin_app(config,mount,app_name):
     dest=os.path.join(mount,app_name)
@@ -445,7 +458,7 @@ def build_linux_config(options,config):
         if not options.skip_compile: run(['ninja'])
 
         if not options.skip_ctest:
-            run(['ctest','-j',str(options.ctest_jobs)])
+            run(['ctest']+get_ctest_args(options))
 
 def build_linux(options,ifolder,rev_hash):
     if not options.skip_debug: build_linux_config(options,'r')
@@ -527,7 +540,9 @@ if __name__=="__main__":
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     parser.add_argument('--gh-release',action='store_true',help='''create GitHub release (or prerelease if not on master git branch) and upload artefacts''')
-    parser.add_argument('--ctest-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='''run %(metavar) ctest jobs at once.  Default: %(default)d''')
+    parser.add_argument('--ctest-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='''run %(metavar)s ctest jobs at once.  Default: %(default)d''')
+    parser.add_argument('--ctest-timeout',metavar='SECONDS',default=3*60.0,type=float,help='''test timeout in seconds. Default: %(default)f''')
+    parser.add_argument('--ctest-output-on-failure',action='store_true',help='''output anything printed by the test program if the test fails''')
 
     if sys.platform=='win32':
         parser.add_argument('-t','--toolchain',default='vs2022',help='''Specify toolchain: vs2019, or vs2022. Default: %(default)s''')
