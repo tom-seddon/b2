@@ -217,7 +217,7 @@ def build_win32_config(timings,options,config,colour):
     if not options.skip_ctest:
         with ChangeDirectory(folder):
             run([get_win32_vstool_path(r'''Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe''',options),
-                 "-j",os.getenv("NUMBER_OF_PROCESSORS"),
+                 "-j",str(options.ctest_jobs),
                  "-C",config])
             
     run(["cmd","/c",
@@ -341,7 +341,7 @@ def build_darwin_config(options,
 
         if not options.skip_ctest:
             run(["ctest",
-                 "-j",str(multiprocessing.cpu_count())])
+                 "-j",str(options.ctest_jobs)])
 
 def copy_darwin_app(config,mount,app_name):
     dest=os.path.join(mount,app_name)
@@ -445,7 +445,7 @@ def build_linux_config(options,config):
         if not options.skip_compile: run(['ninja'])
 
         if not options.skip_ctest:
-            run(['ctest','-j',str(multiprocessing.cpu_count())])
+            run(['ctest','-j',str(options.ctest_jobs)])
 
 def build_linux(options,ifolder,rev_hash):
     if not options.skip_debug: build_linux_config(options,'r')
@@ -527,6 +527,7 @@ if __name__=="__main__":
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     parser.add_argument('--gh-release',action='store_true',help='''create GitHub release (or prerelease if not on master git branch) and upload artefacts''')
+    parser.add_argument('--ctest-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='''run %(metavar) ctest jobs at once.  Default: %(default)d''')
 
     if sys.platform=='win32':
         parser.add_argument('-t','--toolchain',default='vs2022',help='''Specify toolchain: vs2019, or vs2022. Default: %(default)s''')
