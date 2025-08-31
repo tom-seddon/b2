@@ -164,6 +164,7 @@ def get_ctest_args(options):
     args+=['--timeout',str(options.ctest_timeout)]
 
     if options.ctest_output_on_failure: args+=['--output-on-failure']
+    if options.ctest_extra_verbose: args+=['--extra-verbose']
 
     return args
 
@@ -543,6 +544,7 @@ if __name__=="__main__":
     parser.add_argument('--ctest-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='''run %(metavar)s ctest jobs at once.  Default: %(default)d''')
     parser.add_argument('--ctest-timeout',metavar='SECONDS',default=3*60.0,type=float,help='''test timeout in seconds. Default: %(default)f''')
     parser.add_argument('--ctest-output-on-failure',action='store_true',help='''output anything printed by the test program if the test fails''')
+    parser.add_argument('--ctest-extra-verbose',action='store_true',help='''enable more verbose output from tests''')
 
     if sys.platform=='win32':
         parser.add_argument('-t','--toolchain',default='vs2022',help='''Specify toolchain: vs2019, or vs2022. Default: %(default)s''')
