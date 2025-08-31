@@ -1811,6 +1811,7 @@ class VideoNuLATest : public Test {
 //////////////////////////////////////////////////////////////////////////
 
 struct Options {
+    bool verbose = false;
     std::vector<std::string> test_name_strs;
     std::vector<std::regex> test_name_regexes;
     bool list = false;
@@ -1828,6 +1829,7 @@ static Options GetOptions(int argc, char *argv[]) {
 
     std::vector<std::string> test_name_patterns;
 
+    p.AddOption('v', "verbose").SetIfPresent(&options.verbose).Help("be more verbose");
     p.AddOption('t', "test").Meta("TEST").AddArgToList(&options.test_name_strs).Help("run test(s) matching TEST, a case-insensitive string");
     p.AddOption('T', "test-pattern").Meta("TEST").AddArgToList(&test_name_patterns).Help("run test(s) matching TEST, a case-insensitive glob pattern");
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
@@ -1857,12 +1859,19 @@ static Options GetOptions(int argc, char *argv[]) {
             }
         }
 
+        if (options.verbose) {
+            printf("Regex: %s\n", test_name_regex_str.c_str());
+        }
+
+        std::regex re;
         try {
-            options.test_name_regexes.push_back(std::regex(test_name_regex_str, std::regex_constants::icase | std::regex_constants::extended));
+            re = std::regex(std::regex(test_name_regex_str, std::regex_constants::icase | std::regex_constants::extended));
         } catch (const std::regex_error &e) {
             fprintf(stderr, "FATAL: error in regex: %s\nFATAL: %s\n", test_name_regex_str.c_str(), e.what());
             exit(1);
         }
+
+        options.test_name_regexes.push_back(std::move(re));
     }
 
     return options;
