@@ -98,10 +98,15 @@ class SymbolTable {
     // Base class for symbol file parsers
     class SymbolParser {
       public:
+        struct ParsedSymbol {
+            size_t line_number = 0; //1-based; 0 means invalid
+            std::string name;
+            uint32_t addr = 0;
+        };
         virtual ~SymbolParser() = default;
         virtual std::string GetFormatName() const = 0;
         virtual bool MatchesLine(const std::string &line) const = 0;
-        virtual bool ParseContent(const std::string &content, size_t group_id, SymbolTable *table) = 0;
+        virtual std::vector<ParsedSymbol> ParseContent(const std::string &content) const = 0;
     };
 
     // Parser registry system
@@ -118,10 +123,6 @@ class SymbolTable {
     // Format detection and loading
     SymbolParser *DetectBestParser(const std::string &content);
     bool LoadFromContent(const std::string &content, size_t group_id);
-
-    // Legacy format-specific loaders (now used by parser implementations)
-    bool LoadViceFormat(const std::string &content, size_t group_id = 0);
-    bool LoadAcmeFormat(const std::string &content, size_t group_id = 0);
 
     // Persistence support
     std::shared_ptr<JSON> SaveToJSON() const;

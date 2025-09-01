@@ -21,6 +21,19 @@ LOG_DEFINE(SYMBOLS, "SYMBOLS", &log_printer_stdout_and_debugger, false);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::string TrimWhitespace(const std::string &str) {
+    const char *whitespace = " \t\r\n";
+    size_t start = str.find_first_not_of(whitespace);
+    if (start == std::string::npos) {
+        return "";
+    }
+    size_t end = str.find_last_not_of(whitespace);
+    return str.substr(start, end - start + 1);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 SymbolTable::Symbol::Symbol(uint16_t addr, const std::string &symbol_name, size_t group)
     : address(addr)
     , name(symbol_name)
@@ -150,8 +163,61 @@ class ViceParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    bool ParseContent(const std::string &content, size_t group_id, SymbolTable *table) override {
-        return table->LoadViceFormat(content, group_id);
+    std::vector<ParsedSymbol> ParseContent(const std::string &content) const override {
+        LOGF(SYMBOLS, "Parsing VICE label format\n");
+
+        std::vector<ParsedSymbol> parsed_symbols;
+
+        std::istringstream stream(content);
+        std::string line;
+        size_t line_number = 0;
+
+        // VICE format: "al 00FFFF ._some_symbol" or "al C:FFFF ._some_symbol"
+        // Extended regex to handle memory context prefixes
+        std::regex pattern(R"(^\s*al\s+(?:([A-Za-z0-9]):)?([0-9a-fA-F]{4,6})\s+(.+?)\s*$)");
+
+        while (std::getline(stream, line)) {
+            line_number++;
+
+            // Skip empty lines and comments
+            if (line.empty() || line[0] == ';' || line[0] == '#') {
+                continue;
+            }
+
+            std::smatch matches;
+            if (std::regex_match(line, matches, pattern)) {
+                try {
+                    ParsedSymbol symbol;
+                    symbol.line_number = line_number;
+
+                    // Extract memory context (if present) and address
+                    std::string context_str = matches[1].str();
+                    symbol.addr = std::stoul(matches[2].str(), nullptr, 16);
+                    symbol.name = TrimWhitespace(matches[3].str());
+
+                    // Ignore any VICE format context prefixes - contexts are assigned only through UI
+
+                    // Strip leading dot from VICE format symbols
+                    if (symbol.name.length() > 0 && symbol.name[0] == '.') {
+                        symbol.name = symbol.name.substr(1);
+                    }
+
+                    parsed_symbols.push_back(std::move(symbol));
+                } catch (const std::exception &e) {
+                    LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
+                }
+            } else {
+                // Only log non-empty, non-comment lines that don't match
+                std::string trimmed = TrimWhitespace(line);
+                if (!trimmed.empty()) {
+                    LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
+                         line_number, trimmed.c_str());
+                }
+            }
+        }
+
+        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, parsed_symbols.size());
+        return parsed_symbols;
     }
 };
 
@@ -172,8 +238,61 @@ class AcmeParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    bool ParseContent(const std::string &content, size_t group_id, SymbolTable *table) override {
-        return table->LoadAcmeFormat(content, group_id);
+    std::vector<ParsedSymbol> ParseContent(const std::string &content) const override {
+        LOGF(SYMBOLS, "Parsing ACME label format\n");
+
+        std::vector<ParsedSymbol> parsed_symbols;
+
+        std::istringstream stream(content);
+        std::string line;
+        size_t line_number = 0;
+
+        // ACME format: "symbol_name = address" where address can be:
+        // - $FFFF (hexadecimal with $ prefix)
+        // - 1234 (decimal number)
+        std::regex pattern(R"(^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(\$?[0-9a-fA-F]+)\s*$)");
+
+        while (std::getline(stream, line)) {
+            line_number++;
+
+            // Skip empty lines and comments
+            if (line.empty() || line[0] == ';' || line[0] == '#') {
+                continue;
+            }
+
+            std::smatch matches;
+            if (std::regex_match(line, matches, pattern)) {
+                try {
+                    ParsedSymbol symbol;
+                    symbol.line_number = line_number;
+                    symbol.name = TrimWhitespace(matches[1].str());
+
+                    std::string addr_str = TrimWhitespace(matches[2].str());
+
+                    if (addr_str[0] == '$') {
+                        // Hexadecimal address with $ prefix
+                        symbol.addr = std::stoul(addr_str.substr(1), nullptr, 16);
+                    } else {
+                        // Decimal address
+                        symbol.addr = std::stoul(addr_str, nullptr, 10);
+                    }
+
+                    parsed_symbols.push_back(std::move(symbol));
+                } catch (const std::exception &e) {
+                    LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
+                }
+            } else {
+                // Only log non-empty, non-comment lines that don't match
+                std::string trimmed = TrimWhitespace(line);
+                if (!trimmed.empty()) {
+                    LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
+                         line_number, trimmed.c_str());
+                }
+            }
+        }
+
+        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, parsed_symbols.size());
+        return parsed_symbols;
     }
 };
 
@@ -260,223 +379,71 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
     // Use new registry-based detection to get the best parser directly
     SymbolParser *best_parser = DetectBestParser(content);
 
-    if (best_parser) {
-        LOGF(SYMBOLS, "Using %s parser for content loading\n", best_parser->GetFormatName().c_str());
-        return best_parser->ParseContent(content, group_id, this);
+    if (!best_parser) {
+        LOGF(SYMBOLS, "WARNING: No suitable parser found\n");
+        return false;
     }
 
-    // Fallback to VICE format if no parser found
-    LOGF(SYMBOLS, "WARNING: No suitable parser found\n");
-    return false;
-}
+    LOGF(SYMBOLS, "Using %s parser for content loading\n", best_parser->GetFormatName().c_str());
+    std::vector<SymbolParser::ParsedSymbol> parsed_symbols = best_parser->ParseContent(content);
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    if (parsed_symbols.empty()) {
+        LOGF(SYMBOLS, "WARNING: No symbols loaded from file\n");
+        return true;
+    }
 
-bool SymbolTable::LoadViceFormat(const std::string &content, size_t group_id) {
-    LOGF(SYMBOLS, "Parsing VICE label format\n");
+    for (const SymbolParser::ParsedSymbol &parsed_symbol : parsed_symbols) {
+        if (IsValidAddress(parsed_symbol.addr) && !parsed_symbol.name.empty()) {
+            Symbol symbol((uint16_t)parsed_symbol.addr, parsed_symbol.name, group_id);
 
-    std::istringstream stream(content);
-    std::string line;
-    size_t line_number = 0;
-    size_t symbols_loaded = 0;
-
-    // VICE format: "al 00FFFF ._some_symbol" or "al C:FFFF ._some_symbol"
-    // Extended regex to handle memory context prefixes
-    std::regex pattern(R"(^\s*al\s+(?:([A-Za-z0-9]):)?([0-9a-fA-F]{4,6})\s+(.+?)\s*$)");
-
-    while (std::getline(stream, line)) {
-        line_number++;
-
-        // Skip empty lines and comments
-        if (line.empty() || line[0] == ';' || line[0] == '#') {
-            continue;
-        }
-
-        std::smatch matches;
-        if (std::regex_match(line, matches, pattern)) {
-            try {
-                // Extract memory context (if present) and address
-                std::string context_str = matches[1].str();
-                uint32_t addr = std::stoul(matches[2].str(), nullptr, 16);
-                std::string name = TrimWhitespace(matches[3].str());
-
-                // Ignore any VICE format context prefixes - contexts are assigned only through UI
-
-                // Strip leading dot from VICE format symbols
-                if (name.length() > 0 && name[0] == '.') {
-                    name = name.substr(1);
-                }
-
-                if (IsValidAddress(addr) && !name.empty()) {
-                    Symbol symbol((uint16_t)addr, name, group_id);
-
-                    // Check for duplicates - we allow multiple symbols per address, even from same group
-                    auto existing_addr = m_address_to_symbols.find(symbol.address);
-                    if (existing_addr != m_address_to_symbols.end()) {
-                        // Check if exact same name from same group already exists
-                        bool exact_duplicate_found = false;
-                        for (const Symbol &existing : existing_addr->second) {
-                            if (existing.name == symbol.name && existing.group_id == symbol.group_id) {
-                                LOGF(SYMBOLS, "WARNING: Exact duplicate symbol '%s' at $%04X from group %zu at line %zu, skipping\n",
-                                     symbol.name.c_str(), symbol.address, symbol.group_id, line_number);
-                                exact_duplicate_found = true;
-                                break;
-                            }
-                        }
-                        if (exact_duplicate_found) {
-                            continue; // Skip exact duplicates
-                        }
-
-                        // Log addition of new symbol at existing address
-                        bool same_group_different_name = false;
-                        for (const Symbol &existing : existing_addr->second) {
-                            if (existing.group_id == symbol.group_id && existing.name != symbol.name) {
-                                same_group_different_name = true;
-                                break;
-                            }
-                        }
-
-                        if (same_group_different_name) {
-                            LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group, CC65-style)\n",
-                                 symbol.name.c_str(), symbol.address);
-                        } else {
-                            LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
-                                 symbol.name.c_str(), symbol.address, symbol.group_id, existing_addr->second.size() + 1);
-                        }
+            // Check for duplicates - we allow multiple symbols per address, even from same group
+            auto existing_addr = m_address_to_symbols.find(symbol.address);
+            if (existing_addr != m_address_to_symbols.end()) {
+                // Check if exact same name from same group already exists
+                bool exact_duplicate_found = false;
+                for (const Symbol &existing : existing_addr->second) {
+                    if (existing.name == symbol.name && existing.group_id == symbol.group_id) {
+                        LOGF(SYMBOLS, "WARNING: Exact duplicate symbol '%s' at $%04X from group %zu at line %zu, skipping\n",
+                             symbol.name.c_str(), symbol.address, symbol.group_id, parsed_symbol.line_number);
+                        exact_duplicate_found = true;
+                        break;
                     }
-
-                    // Add symbol to address mapping (append to vector)
-                    m_address_to_symbols[symbol.address].push_back(symbol);
-
-                    // Add symbol to name mapping (multimap allows duplicates)
-                    m_name_to_addresses.insert({symbol.name, symbol.address});
-                    this->InvalidateCache();
-                    symbols_loaded++;
-                } else {
-                    LOGF(SYMBOLS, "WARNING: Invalid symbol at line %zu: address=$%X, name='%s'\n",
-                         line_number, addr, name.c_str());
                 }
-            } catch (const std::exception &e) {
-                LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
-            }
-        } else {
-            // Only log non-empty, non-comment lines that don't match
-            std::string trimmed = TrimWhitespace(line);
-            if (!trimmed.empty()) {
-                LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
-                     line_number, trimmed.c_str());
-            }
-        }
-    }
-
-    LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols_loaded);
-    return symbols_loaded > 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool SymbolTable::LoadAcmeFormat(const std::string &content, size_t group_id) {
-    LOGF(SYMBOLS, "Parsing ACME label format\n");
-
-    std::istringstream stream(content);
-    std::string line;
-    size_t line_number = 0;
-    size_t symbols_loaded = 0;
-
-    // ACME format: "symbol_name = address" where address can be:
-    // - $FFFF (hexadecimal with $ prefix)
-    // - 1234 (decimal number)
-    std::regex pattern(R"(^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(\$?[0-9a-fA-F]+)\s*$)");
-
-    while (std::getline(stream, line)) {
-        line_number++;
-
-        // Skip empty lines and comments
-        if (line.empty() || line[0] == ';' || line[0] == '#') {
-            continue;
-        }
-
-        std::smatch matches;
-        if (std::regex_match(line, matches, pattern)) {
-            try {
-                std::string name = TrimWhitespace(matches[1].str());
-                std::string addr_str = TrimWhitespace(matches[2].str());
-
-                uint32_t addr;
-                if (addr_str[0] == '$') {
-                    // Hexadecimal address with $ prefix
-                    addr = std::stoul(addr_str.substr(1), nullptr, 16);
-                } else {
-                    // Decimal address
-                    addr = std::stoul(addr_str, nullptr, 10);
+                if (exact_duplicate_found) {
+                    continue; // Skip exact duplicates
                 }
 
-                if (IsValidAddress(addr) && !name.empty()) {
-                    Symbol symbol((uint16_t)addr, name, group_id);
-
-                    // Check for duplicates - we allow multiple symbols per address, even from same group
-                    auto existing_addr = m_address_to_symbols.find(symbol.address);
-                    if (existing_addr != m_address_to_symbols.end()) {
-                        // Check if exact same name from same group already exists
-                        bool exact_duplicate_found = false;
-                        for (const Symbol &existing : existing_addr->second) {
-                            if (existing.name == symbol.name && existing.group_id == symbol.group_id) {
-                                LOGF(SYMBOLS, "WARNING: Exact duplicate symbol '%s' at $%04X from group %zu at line %zu, skipping\n",
-                                     symbol.name.c_str(), symbol.address, symbol.group_id, line_number);
-                                exact_duplicate_found = true;
-                                break;
-                            }
-                        }
-                        if (exact_duplicate_found) {
-                            continue; // Skip exact duplicates
-                        }
-
-                        // Log addition of new symbol at existing address
-                        bool same_group_different_name = false;
-                        for (const Symbol &existing : existing_addr->second) {
-                            if (existing.group_id == symbol.group_id && existing.name != symbol.name) {
-                                same_group_different_name = true;
-                                break;
-                            }
-                        }
-
-                        if (same_group_different_name) {
-                            LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group, ACME-style)\n",
-                                 symbol.name.c_str(), symbol.address);
-                        } else {
-                            LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
-                                 symbol.name.c_str(), symbol.address, symbol.group_id, existing_addr->second.size() + 1);
-                        }
+                // Log addition of new symbol at existing address
+                bool same_group_different_name = false;
+                for (const Symbol &existing : existing_addr->second) {
+                    if (existing.group_id == symbol.group_id && existing.name != symbol.name) {
+                        same_group_different_name = true;
+                        break;
                     }
-
-                    // Add symbol to address mapping (append to vector)
-                    m_address_to_symbols[symbol.address].push_back(symbol);
-
-                    // Add symbol to name mapping (multimap allows duplicates)
-                    m_name_to_addresses.insert({symbol.name, symbol.address});
-                    this->InvalidateCache();
-                    symbols_loaded++;
-                } else {
-                    LOGF(SYMBOLS, "WARNING: Invalid symbol at line %zu: address=$%X, name='%s'\n",
-                         line_number, addr, name.c_str());
                 }
-            } catch (const std::exception &e) {
-                LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
+
+                if (same_group_different_name) {
+                    LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group. Parser: %s)\n",
+                         symbol.name.c_str(), symbol.address, best_parser->GetFormatName().c_str());
+                } else {
+                    LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
+                         symbol.name.c_str(), symbol.address, symbol.group_id, existing_addr->second.size() + 1);
+                }
             }
+
+            // Add symbol to address mapping (append to vector)
+            m_address_to_symbols[symbol.address].push_back(symbol);
+
+            // Add symbol to name mapping (multimap allows duplicates)
+            m_name_to_addresses.insert({symbol.name, symbol.address});
+            this->InvalidateCache();
         } else {
-            // Only log non-empty, non-comment lines that don't match
-            std::string trimmed = TrimWhitespace(line);
-            if (!trimmed.empty()) {
-                LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
-                     line_number, trimmed.c_str());
-            }
+            LOGF(SYMBOLS, "WARNING: Invalid symbol at line %zu: address=$%X, name='%s'\n",
+                 parsed_symbol.line_number, parsed_symbol.addr, parsed_symbol.name.c_str());
         }
     }
 
-    LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols_loaded);
-    return symbols_loaded > 0;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -532,6 +499,7 @@ size_t SymbolTable::GetSymbolCountForGroup(size_t group_id) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Unreferenced 'type' parameter warning is deliberately unsilenced
 bool SymbolTable::GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const {
     // Find ANY enabled symbol with this name (not just the "best" one for display)
     auto range = m_name_to_addresses.equal_range(name);
@@ -608,19 +576,6 @@ void SymbolTable::PrintStats() const {
             LOGF(SYMBOLS, "  Addresses with multiple symbols: %zu\n", multi_symbol_addresses);
         }
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string SymbolTable::TrimWhitespace(const std::string &str) const {
-    const char *whitespace = " \t\r\n";
-    size_t start = str.find_first_not_of(whitespace);
-    if (start == std::string::npos) {
-        return "";
-    }
-    size_t end = str.find_last_not_of(whitespace);
-    return str.substr(start, end - start + 1);
 }
 
 //////////////////////////////////////////////////////////////////////////
