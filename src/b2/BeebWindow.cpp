@@ -283,6 +283,7 @@ static const std::string RECENT_PATHS_DISC_IMAGE = "disc_image";
 static const std::string RECENT_PATHS_NVRAM = "nvram";
 static const std::string RECENT_PATHS_SCREENSHOT = "screenshot";
 static const std::string RECENT_PATHS_PRINTER = "printer";
+static const std::string RECENT_PATHS_SYMBOLS = "symbols";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1226,10 +1227,10 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     }
 
 #if BBCMICRO_DEBUGGER
-    // Independent symbol loading window (outside any menu context)
-    if (m_show_enhanced_symbol_window) {
-        this->DoSymbolLoadingWindow();
-    }
+    //// Independent symbol loading window (outside any menu context)
+    //if (m_show_enhanced_symbol_window) {
+    //    this->DoSymbolLoadingWindow();
+    //}
 #endif
 
 #if ENABLE_IMGUI_DEMO
@@ -2476,25 +2477,79 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_HardDiskDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupManagement].command);
 
         ImGui::Separator();
 
         // Symbols submenu
-        if (ImGui::BeginMenu("Symbols")) {
-            if (ImGui::MenuItem("Clear Symbols")) {
+        if (ImGui::BeginMenu("Clear Symbols")) {
+            if (ImGui::MenuItem("Confirm")) {
                 m_symbol_table->Clear();
             }
-            if (ImGui::MenuItem("Load Symbols...")) {
-                m_show_enhanced_symbol_window = true;
-            }
-            if (ImGui::MenuItem("Reload All Symbols")) {
-                m_symbol_table->ReloadAllGroups();
-                m_msg.i.f("All symbol files have been reloaded from disk.\n");
-            }
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupManagement].command);
+            ImGui::EndMenu();
+        }
 
-            ImGui::Separator();
+        if (ImGui::BeginMenu("Load symbols")) {
+            const std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> &parsers = SymbolTable::SymbolParserRegistry::GetParsers();
 
+            const SymbolTable::SymbolParser *selected_parser = nullptr;
+            bool load_symbols = false;
+
+            // There's no way to get the actual selected filter index on macOS
+            // (and the filter options are pretty limited anyway...) so safest
+            // to have the format selection implied by the action rather than
+            // trying to figure it out from the file dialog filter index.
+
+            if (ImGui::MenuItem("Auto-detect...")) {
+                load_symbols = true;
+            }
+
+            for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : parsers) {
+                std::string name = parser->GetFormatName() + "...";
+                if (ImGui::MenuItem(name.c_str())) {
+                    selected_parser = parser.get();
+                    load_symbols = true;
+                }
+            }
+
+            ImGui::EndMenu();
+
+            if (load_symbols) {
+                OpenFileDialog fd(RECENT_PATHS_SYMBOLS);
+
+                if (selected_parser) {
+                    fd.AddFilter(selected_parser->GetFormatName(), selected_parser->GetSuggestedFileExtensions());
+                } else {
+                    std::set<std::string> auto_detect_exts;
+                    for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : parsers) {
+                        std::vector<std::string> exts = parser->GetSuggestedFileExtensions();
+                        auto_detect_exts.insert(exts.begin(), exts.end());
+                    }
+
+                    fd.AddFilter("Auto detect", std::vector<std::string>(auto_detect_exts.begin(), auto_detect_exts.end()));
+                }
+
+                fd.AddAllFilesFilter();
+
+                std::string path;
+                if (fd.Open(&path)) {
+                    // The settings can be modified once the symbol file is loaded.
+                    bool success = m_symbol_table->LoadFromFile(path, selected_parser);
+                    if (success) {
+                        m_msg.i.f("Symbols loaded from file: %s\n", path.c_str());
+                    } else {
+                        m_msg.i.f("Failed to load symbols from: %s\n", path.c_str());
+                    }
+                }
+            }
+        }
+
+        if (ImGui::MenuItem("Reload All Symbols")) {
+            m_symbol_table->ReloadAllGroups();
+            m_msg.i.f("All symbol files have been reloaded from disk.\n");
+        }
+
+        if (ImGui::BeginMenu("Symbol groups")) {
             // Show loaded groups and symbols (grouped by name for bulk operations)
             const auto &groups = m_symbol_table->GetAllGroups();
             if (!groups.empty()) {
@@ -3651,191 +3706,6 @@ const SymbolTable *BeebWindow::GetSymbolTable() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// OpenSymbolsFileDialog() removed - now using unified symbol loading dialog
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// DoSymbolLoadingDialog() removed - now using unified DoSymbolLoadingWindow()
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-void BeebWindow::DoSymbolLoadingWindow() {
-    static char group_name_buffer[SymbolUI::MAX_GROUP_NAME_LENGTH + 1] = "";
-    static char selected_file_path[SymbolUI::MAX_FILE_PATH_LENGTH + 1] = "";
-    //static std::set<char> selected_contexts;
-    static bool show_context_help = false;
-    static bool advanced_section_open = false; // Track if advanced section is expanded
-
-    if (!m_show_enhanced_symbol_window) {
-        return;
-    }
-
-    // Center the window - smaller since we're collapsing advanced options by default
-    ImGuiViewport *main_viewport = ImGui::GetMainViewport();
-    ImVec2 center = main_viewport->GetCenter();
-    ImVec2 window_size = advanced_section_open ? ImVec2(SymbolUI::LOADING_WINDOW_WIDTH_ADVANCED, SymbolUI::LOADING_WINDOW_HEIGHT_ADVANCED) : ImVec2(SymbolUI::LOADING_WINDOW_WIDTH_BASIC, SymbolUI::LOADING_WINDOW_HEIGHT_BASIC);
-    ImVec2 window_pos = ImVec2(center.x - window_size.x * 0.5f, center.y - window_size.y * 0.5f);
-
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Appearing);
-    ImGui::SetNextWindowSize(window_size, ImGuiCond_Appearing);
-
-    bool window_open = true;
-    if (ImGui::Begin("Load Symbols", &window_open, ImGuiWindowFlags_NoCollapse)) {
-
-        // File selection (always visible)
-        ImGui::Text("Select Symbol File:");
-        ImGui::InputText("##file_path", selected_file_path, sizeof(selected_file_path), ImGuiInputTextFlags_ReadOnly);
-        ImGui::SameLine();
-        if (ImGui::Button("Browse...")) {
-            OpenFileDialog fd("symbols");
-            fd.AddFilter("Symbol files", {".lbl", ".vice", ".sym"});
-            fd.AddAllFilesFilter();
-
-            std::string path;
-            if (fd.Open(&path)) {
-                strncpy(selected_file_path, path.c_str(), sizeof(selected_file_path) - 1);
-                selected_file_path[sizeof(selected_file_path) - 1] = '\0';
-
-                // Auto-generate group name from filename if advanced section is open
-                if (advanced_section_open && strlen(group_name_buffer) == 0) {
-                    std::string filename = PathGetName(path);
-                    size_t dot_pos = filename.find_last_of('.');
-                    if (dot_pos != std::string::npos) {
-                        filename = filename.substr(0, dot_pos);
-                    }
-                    strncpy(group_name_buffer, filename.c_str(), sizeof(group_name_buffer) - 1);
-                    group_name_buffer[sizeof(group_name_buffer) - 1] = '\0';
-                }
-            }
-        }
-
-        ImGui::Separator();
-
-        // Advanced options section (collapsible)
-        if (ImGui::CollapsingHeader("Advanced Options", advanced_section_open ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
-            advanced_section_open = true;
-
-            // Group name input
-            ImGui::Text("Group Name:");
-            ImGui::InputText("##group_name", group_name_buffer, sizeof(group_name_buffer));
-            if (ImGui::IsItemHovered()) {
-                ImGui::BeginTooltip();
-                ImGui::Text("Name for this symbol group (e.g., 'MOS', 'ROM Bank F', 'My Program')");
-                ImGui::Text("Leave empty to auto-generate from filename");
-                ImGui::EndTooltip();
-            }
-
-            //ImGui::Separator();
-
-            //// Memory context selection
-            //ImGui::Text("Memory Contexts:");
-            //ImGui::SameLine();
-
-            //// Use shared helper function
-            //this->DoMemoryContextSelectionUI(selected_contexts, show_context_help);
-        } else {
-            advanced_section_open = false;
-        }
-
-        ImGui::Separator();
-
-        // Buttons
-        bool can_load = strlen(selected_file_path) > 0;
-
-        if (!can_load) {
-            ImGui::BeginDisabled();
-        }
-        if (ImGui::Button("Load")) {
-            std::string path = selected_file_path;
-            std::string group_name;
-            //std::set<char> contexts_to_use;
-
-            // Smart group naming and context handling based on advanced section state
-            if (advanced_section_open) {
-                // Advanced mode: use custom group name or auto-generate from filename
-                group_name = group_name_buffer;
-                if (group_name.empty()) {
-                    // Auto-generate group name from filename
-                    std::string filename = path;
-                    size_t last_slash = filename.find_last_of("/\\");
-                    if (last_slash != std::string::npos) {
-                        filename = filename.substr(last_slash + 1);
-                    }
-                    // Remove extension for cleaner name
-                    size_t last_dot = filename.find_last_of('.');
-                    if (last_dot != std::string::npos) {
-                        filename = filename.substr(0, last_dot);
-                    }
-                    group_name = filename;
-                }
-                //contexts_to_use = selected_contexts; // Use selected contexts
-            } else {
-                // Simple mode: use "Global" group name with universal context
-                group_name = "Global";
-                //contexts_to_use.clear(); // Universal context (empty set)
-            }
-
-            bool success = m_symbol_table->LoadFromFile(path, group_name, {});
-
-            if (success) {
-                m_msg.i.f("Symbols loaded successfully into group '%s' from: %s\n", group_name.c_str(), path.c_str());
-                //if (advanced_section_open && !contexts_to_use.empty()) {
-                //    m_msg.i.f("Applied to memory contexts: ");
-                //    for (char c : contexts_to_use) {
-                //        m_msg.i.f("'%c' ", c);
-                //    }
-                //    m_msg.i.f("\n");
-                //} else if (!advanced_section_open) {
-                //    m_msg.i.f("Applied to universal context (visible everywhere)\n");
-                //}
-
-                // Reset dialog state and close
-                group_name_buffer[0] = '\0';
-                selected_file_path[0] = '\0';
-                //selected_contexts.clear();
-                show_context_help = false;
-                advanced_section_open = false; // Reset to collapsed state for next use
-
-                m_show_enhanced_symbol_window = false;
-                window_open = false;
-            } else {
-                m_msg.e.f("Failed to load symbols from: %s\n", path.c_str());
-            }
-        }
-        if (!can_load) {
-            ImGui::EndDisabled();
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Cancel")) {
-            // Reset dialog state and close
-            group_name_buffer[0] = '\0';
-            selected_file_path[0] = '\0';
-            //selected_contexts.clear();
-            show_context_help = false;
-            advanced_section_open = false; // Reset to collapsed state for next use
-
-            m_show_enhanced_symbol_window = false;
-            window_open = false;
-        }
-    }
-
-    ImGui::End();
-
-    // Handle window close button
-    if (!window_open) {
-        m_show_enhanced_symbol_window = false;
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if SYSTEM_WINDOWS
 void *BeebWindow::GetHWND() const {
     return m_hwnd;
@@ -4347,80 +4217,6 @@ void BeebWindow::ResetImGuiWindows() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Helper function to render memory context selection UI (shared between dialogs)
-//void BeebWindow::DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help) {
-//    // Context help
-//    if (ImGui::Button("?##context_help")) {
-//        show_context_help = !show_context_help;
-//    }
-//
-//    if (show_context_help) {
-//        // Calculate height based on number of lines
-//        float help_height = ImGui::GetTextLineHeightWithSpacing() * SymbolUI::CONTEXT_HELP_LINES;
-//        ImGui::BeginChild("context_help", ImVec2(-1, help_height), false);
-//        ImGui::TextWrapped("Memory contexts control when symbols are visible:"); // wraps to 2 lines
-//        ImGui::BulletText("'m' - Main RAM");
-//        ImGui::BulletText("'o' - OS ROM (MOS)");
-//        ImGui::BulletText("'0'-'f' - ROM banks 0-15");
-//        ImGui::BulletText("'s' - Shadow RAM");
-//        ImGui::BulletText("'n' - ANDY (extra RAM)");
-//        ImGui::BulletText("'h' - HAZEL (Master)");
-//        ImGui::BulletText("'p' - Parasite RAM");
-//        ImGui::BulletText("'r' - Parasite boot ROM");
-//        ImGui::BulletText("'i' - I/O area");
-//        ImGui::TextWrapped("Leave empty for universal context (visible everywhere)"); // wraps to 2 lines
-//        ImGui::EndChild();
-//    }
-//
-//    // Context checkboxes - use organized groups from memory_contexts.h
-//    for (const auto &group : MemoryContexts::CONTEXT_GROUPS) {
-//        bool is_collapsible = group.collapsible;
-//        bool group_is_open = true;
-//
-//        if (is_collapsible) {
-//            group_is_open = ImGui::CollapsingHeader(group.name, ImGuiTreeNodeFlags_None);
-//        } else {
-//            ImGui::Text("%s:", group.name);
-//        }
-//
-//        if (group_is_open) {
-//            for (size_t i = 0; i < group.count; ++i) {
-//                const auto &context_info = group.contexts[i];
-//                char context = context_info.context;
-//                bool selected = selected_contexts.find(context) != selected_contexts.end();
-//
-//                // Generate label
-//                std::string label = std::string("'") + context + "'";
-//                if (strlen(context_info.description) > 0) {
-//                    label += " " + std::string(context_info.description);
-//                }
-//
-//                if (ImGui::Checkbox(label.c_str(), &selected)) {
-//                    if (selected) {
-//                        selected_contexts.insert(context);
-//                    } else {
-//                        selected_contexts.erase(context);
-//                    }
-//                }
-//
-//                // Layout logic based on group type
-//                if (strcmp(group.name, "ROM Banks 0-15") == 0 || strcmp(group.name, "ROM Mappers (A-P)") == 0) {
-//                    // ROM banks: 8 per row
-//                    if ((i + 1) % 8 != 0 && i < group.count - 1) {
-//                        ImGui::SameLine();
-//                    }
-//                } else if (i < group.count - 1) {
-//                    // Other groups: inline with spacing
-//                    ImGui::SameLine();
-//                }
-//            }
-//        }
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_DEBUGGER
 class SymbolGroupManagementUI : public SettingsUI {
   public:
@@ -4454,7 +4250,7 @@ class SymbolGroupManagementUI : public SettingsUI {
 #if BBCMICRO_DEBUGGER
 SymbolGroupManagementUI::SymbolGroupManagementUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
-    this->SetDefaultSize(ImVec2(SymbolUI::MANAGEMENT_WINDOW_WIDTH, SymbolUI::MANAGEMENT_WINDOW_HEIGHT));
+    this->SetDefaultSize(ImVec2(750.0f, 500.f));
 }
 #endif
 

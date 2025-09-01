@@ -317,12 +317,6 @@ class BeebWindow {
     const SymbolTable *GetSymbolTable() const;
 #endif
 
-#if BBCMICRO_DEBUGGER
-    // Symbol file loading
-    // Unified symbol loading dialog (replaces old Simple/Enhanced distinction)
-    void DoSymbolLoadingWindow();
-#endif
-
     // Helper function for memory context selection UI (shared between dialogs)
     //void DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help);
 

@@ -47,14 +47,6 @@ SymbolTable::Symbol::Symbol(uint16_t addr, const std::string &symbol_name, size_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable::SymbolGroup::SymbolGroup(std::string group_name, std::string path)
-    : name(std::move(group_name))
-    , file_path(std::move(path)) {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const std::string ADDRESS_SUFFIXES = "address_suffixes";
 
 //////////////////////////////////////////////////////////////////////////
@@ -62,6 +54,9 @@ static const std::string ADDRESS_SUFFIXES = "address_suffixes";
 
 SymbolTable::SymbolTable() {
     // No default group needed - all loads create named groups
+
+    // Ensure builtin parsers are registered
+    SymbolParserRegistry::InitializeBuiltinParsers();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -84,7 +79,7 @@ void SymbolTable::Clear() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromFile(const std::string &filepath, const std::string &group_name, std::vector<std::string> address_suffixes) {
+bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *parser) {
     LOGF(SYMBOLS, "Loading symbols from: %s\n", filepath.c_str());
 
     //// Validate all memory contexts before proceeding
@@ -108,11 +103,15 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const std::string &g
     file.close();
 
     // Always create a new group for each file loaded
-    std::string actual_group_name = group_name.empty() ? "Global" : group_name;
+    //std::string actual_group_name = group_name.empty() ? "Global" : group_name;
 
     // Create new group - names are just display labels, can be duplicated
-    SymbolGroup new_group(actual_group_name, filepath);
-    new_group.address_suffixes = std::move(address_suffixes);
+    SymbolGroup new_group;
+    new_group.file_path = filepath;
+    if (parser) {
+        new_group.file_format_name = parser->GetFormatName();
+    }
+
     size_t group_id = this->AddGroup(new_group);
 
     size_t old_count = GetSymbolCount();
@@ -122,8 +121,8 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const std::string &g
 
     if (success) {
         size_t new_count = GetSymbolCount();
-        LOGF(SYMBOLS, "Successfully loaded %zu symbols into group '%s' (%zu symbols total)\n",
-             new_count - old_count, actual_group_name.c_str(), new_count);
+        LOGF(SYMBOLS, "Successfully loaded %zu symbols (%zu symbols total)\n",
+             new_count - old_count, new_count);
     } else {
         LOGF(SYMBOLS, "ERROR: Failed to parse symbol file: %s\n", filepath.c_str());
     }
@@ -135,14 +134,26 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const std::string &g
 //////////////////////////////////////////////////////////////////////////
 
 // SymbolParserRegistry implementation
-std::vector<std::unique_ptr<SymbolTable::SymbolParser>> SymbolTable::SymbolParserRegistry::s_parsers;
+std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> SymbolTable::SymbolParserRegistry::s_parsers;
 
-void SymbolTable::SymbolParserRegistry::RegisterParser(std::unique_ptr<SymbolParser> parser) {
+void SymbolTable::SymbolParserRegistry::RegisterParser(std::unique_ptr<const SymbolParser> parser) {
+    ASSERT(!FindParserByFormatName(parser->GetFormatName()));
+
     s_parsers.push_back(std::move(parser));
 }
 
-const std::vector<std::unique_ptr<SymbolTable::SymbolParser>> &SymbolTable::SymbolParserRegistry::GetParsers() {
+const std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> &SymbolTable::SymbolParserRegistry::GetParsers() {
     return s_parsers;
+}
+
+const SymbolTable::SymbolParser *SymbolTable::SymbolParserRegistry::FindParserByFormatName(const std::string &format_name) {
+    for (const std::unique_ptr<const SymbolParser> &parser : s_parsers) {
+        if (parser->GetFormatName() == format_name) {
+            return parser.get();
+        }
+    }
+
+    return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -154,6 +165,10 @@ class ViceParser : public SymbolTable::SymbolParser {
   public:
     std::string GetFormatName() const override {
         return "VICE";
+    }
+
+    std::vector<std::string> GetSuggestedFileExtensions() const {
+        return {".vice", ".lbl", ".sym"};
     }
 
     bool MatchesLine(const std::string &line) const override {
@@ -229,6 +244,10 @@ class AcmeParser : public SymbolTable::SymbolParser {
   public:
     std::string GetFormatName() const override {
         return "ACME";
+    }
+
+    std::vector<std::string> GetSuggestedFileExtensions() const {
+        return {".lbl", ".sym"};
     }
 
     bool MatchesLine(const std::string &line) const override {
@@ -311,10 +330,7 @@ void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string &content) {
-    // Ensure builtin parsers are registered
-    SymbolParserRegistry::InitializeBuiltinParsers();
-
+const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string &content) {
     const auto &parsers = SymbolParserRegistry::GetParsers();
     if (parsers.empty()) {
         LOGF(SYMBOLS, "ERROR: No symbol parsers registered!\n");
@@ -380,16 +396,20 @@ SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string &cont
 //////////////////////////////////////////////////////////////////////////
 
 bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
-    // Use new registry-based detection to get the best parser directly
-    SymbolParser *best_parser = DetectBestParser(content);
+    const SymbolGroup *group = &m_groups[group_id];
 
-    if (!best_parser) {
+    const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(group->file_format_name);
+    if (!parser) {
+        parser = DetectBestParser(content);
+    }
+
+    if (!parser) {
         LOGF(SYMBOLS, "WARNING: No suitable parser found\n");
         return false;
     }
 
-    LOGF(SYMBOLS, "Using %s parser for content loading\n", best_parser->GetFormatName().c_str());
-    std::vector<SymbolParser::ParsedSymbol> parsed_symbols = best_parser->ParseContent(content);
+    LOGF(SYMBOLS, "Using %s parser for content loading\n", parser->GetFormatName().c_str());
+    std::vector<SymbolParser::ParsedSymbol> parsed_symbols = parser->ParseContent(content);
 
     if (parsed_symbols.empty()) {
         LOGF(SYMBOLS, "WARNING: No symbols loaded from file\n");
@@ -428,7 +448,7 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
 
                 if (same_group_different_name) {
                     LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group. Parser: %s)\n",
-                         symbol.name.c_str(), symbol.address, best_parser->GetFormatName().c_str());
+                         symbol.name.c_str(), symbol.address, parser->GetFormatName().c_str());
                 } else {
                     LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
                          symbol.name.c_str(), symbol.address, symbol.group_id, existing_addr->second.size() + 1);

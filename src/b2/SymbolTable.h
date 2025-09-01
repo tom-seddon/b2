@@ -37,7 +37,8 @@ class SymbolTable {
 
     struct SymbolGroup {
         std::string name;
-        std::string file_path; // source file for this group
+        std::string file_path;        // source file for this group
+        std::string file_format_name; // or "" for auto-detect
         bool enabled = true;
 
         // Address suffixes for which this symbol group applies. Serialised
@@ -55,15 +56,17 @@ class SymbolTable {
         // JSON_SERIALIZE macro below.
 
         SymbolGroup() = default;
-        SymbolGroup(std::string group_name, std::string path);
+        //SymbolGroup(std::string group_name, std::string path);
     };
 
     SymbolTable();
     ~SymbolTable();
 
+    class SymbolParser;
+
     // Core functionality
     void Clear();
-    bool LoadFromFile(const std::string &filepath, const std::string &group_name, std::vector<std::string> address_suffixes);
+    bool LoadFromFile(const std::string &filepath, const SymbolParser *parser);
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
     size_t GetSymbolCountForGroup(size_t group_id) const;
@@ -112,6 +115,7 @@ class SymbolTable {
         };
         virtual ~SymbolParser() = default;
         virtual std::string GetFormatName() const = 0;
+        virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;
         virtual bool MatchesLine(const std::string &line) const = 0;
         virtual std::vector<ParsedSymbol> ParseContent(const std::string &content) const = 0;
     };
@@ -119,16 +123,17 @@ class SymbolTable {
     // Parser registry system
     class SymbolParserRegistry {
       public:
-        static void RegisterParser(std::unique_ptr<SymbolParser> parser);
-        static const std::vector<std::unique_ptr<SymbolParser>> &GetParsers();
+        static void RegisterParser(std::unique_ptr<const SymbolParser> parser);
+        static const std::vector<std::unique_ptr<const SymbolParser>> &GetParsers();
         static void InitializeBuiltinParsers(); // Initialize VICE and ACME parsers
+        static const SymbolParser *FindParserByFormatName(const std::string &format_name);//returns nullptr if not found
 
       private:
-        static std::vector<std::unique_ptr<SymbolParser>> s_parsers;
+        static std::vector<std::unique_ptr<const SymbolParser>> s_parsers;
     };
 
     // Format detection and loading
-    SymbolParser *DetectBestParser(const std::string &content);
+    const SymbolParser *DetectBestParser(const std::string &content);
     bool LoadFromContent(const std::string &content, size_t group_id);
 
     // Persistence support
@@ -158,7 +163,7 @@ class SymbolTable {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-JSON_SERIALIZE(SymbolTable::SymbolGroup, name, file_path, enabled, address_suffixes);
+JSON_SERIALIZE(SymbolTable::SymbolGroup, name, file_path, enabled, address_suffixes, file_format_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
