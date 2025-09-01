@@ -30,6 +30,7 @@ struct SDL_ControllerButtonEvent;
 struct JoystickResult;
 class BeebKeymap;
 class ImGuiStuff;
+class SymbolTable;
 
 #include "keys.h"
 #include <string>
@@ -45,10 +46,10 @@ class ImGuiStuff;
 #include "commands.h"
 #include <beeb/video.h>
 #include "misc.h"
-#include "SymbolTable.h"
 #include <condition_variable>
 #include <thread>
 #include <shared/json.h>
+#include "nlohmann_json_wrapper.h" //TODO
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -312,8 +313,8 @@ class BeebWindow {
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 
     // Get symbol table for debugging
-    SymbolTable &GetSymbolTable();
-    const SymbolTable &GetSymbolTable() const;
+    SymbolTable *GetMutableSymbolTable();
+    const SymbolTable *GetSymbolTable() const;
 
     // Symbol file loading
     // Unified symbol loading dialog (replaces old Simple/Enhanced distinction)
@@ -428,7 +429,7 @@ class BeebWindow {
     ImGuiStuff *m_imgui_stuff = nullptr;
 
     // Symbol table for debugging
-    SymbolTable m_symbol_table;
+    const std::unique_ptr<SymbolTable> m_symbol_table;
 
 #if ENABLE_IMGUI_DEMO
     bool m_imgui_demo = false;

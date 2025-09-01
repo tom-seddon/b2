@@ -260,7 +260,7 @@ class DebugUI : public SettingsUI {
 
     // The effective DSO specifies overrides for all paging state relevant for
     // the current type, whether reflecting current hardware state or overridden
-    // by the paging widget. 
+    // by the paging widget.
     uint32_t m_effective_dso = 0;
 
     std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
@@ -1396,7 +1396,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
                               &m_window->m_dso,
                               m_window->m_beeb_state->type,
                               text,
-                              &m_window->m_beeb_window->GetSymbolTable())) {
+                              m_window->m_beeb_window->GetSymbolTable())) {
                 return false;
             }
 
@@ -1693,7 +1693,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                              m_address_text, sizeof m_address_text,
                              ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
             uint16_t addr;
-            if (ParseAddress(&addr, &m_dso, m_beeb_state->type, m_address_text, &m_beeb_window->GetSymbolTable())) {
+            if (ParseAddress(&addr, &m_dso, m_beeb_state->type, m_address_text, m_beeb_window->GetSymbolTable())) {
                 this->GoTo(addr);
             } else {
                 // Check if this looked like a symbol name that failed to resolve
@@ -1791,10 +1791,10 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
             if (m_show_labels) {
                 // Check for symbol at this address when labels are enabled
-                const SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
+                const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
 
                 // Use context-aware symbol lookup
-                const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
+                const SymbolTable::Symbol *symbol = symbol_table->GetSymbolForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
 
                 ImGui::SameLine();
                 ImGui::Text("  "); // Add some spacing
@@ -2123,10 +2123,10 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
         // Check if we should use symbols instead of hex addresses
         if (m_show_labels) {
-            const SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
+            const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
 
             // Use context-aware symbol lookup
-            const SymbolTable::Symbol *symbol = symbol_table.GetSymbolForAddress(addr, m_effective_dso, m_beeb_state->type);
+            const SymbolTable::Symbol *symbol = symbol_table->GetSymbolForAddress(addr, m_effective_dso, m_beeb_state->type);
 
             if (symbol) {
                 // Use symbol name instead of hex address

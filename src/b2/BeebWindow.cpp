@@ -51,6 +51,7 @@
 #include <dwmapi.h>
 #endif
 #include <shared/file_io.h>
+#include "SymbolTable.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -676,7 +677,8 @@ bool BeebWindow::OptionsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
-    : m_init_arguments(std::move(init_arguments)) {
+    : m_init_arguments(std::move(init_arguments))
+    , m_symbol_table(std::make_unique<SymbolTable>()) {
     m_name = m_init_arguments.name;
 
     m_message_list = std::make_shared<MessageList>("BeebWindow");
@@ -703,8 +705,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     // Load symbol table from persistent data if available
     if (!m_settings.symbol_table_data.empty()) {
         try {
-            if (m_symbol_table.LoadFromJSON(m_settings.symbol_table_data)) {
-                LOGF(SYMBOLS, "Restored symbol table persistence data with %zu groups\n", m_symbol_table.GetAllGroups().size());
+            if (m_symbol_table->LoadFromJSON(m_settings.symbol_table_data)) {
+                LOGF(SYMBOLS, "Restored symbol table persistence data with %zu groups\n", m_symbol_table->GetAllGroups().size());
             } else {
                 LOGF(SYMBOLS, "WARNING: Failed to load symbol table persistence data - JSON was valid but load failed\n");
             }
@@ -2471,13 +2473,13 @@ void BeebWindow::DoDebugMenu() {
         // Symbols submenu
         if (ImGui::BeginMenu("Symbols")) {
             if (ImGui::MenuItem("Clear Symbols")) {
-                m_symbol_table.Clear();
+                m_symbol_table->Clear();
             }
             if (ImGui::MenuItem("Load Symbols...")) {
                 m_show_enhanced_symbol_window = true;
             }
             if (ImGui::MenuItem("Reload All Symbols")) {
-                m_symbol_table.ReloadAllGroups();
+                m_symbol_table->ReloadAllGroups();
                 m_msg.i.f("All symbol files have been reloaded from disk.\n");
             }
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupManagement].command);
@@ -2485,7 +2487,7 @@ void BeebWindow::DoDebugMenu() {
             ImGui::Separator();
 
             // Show loaded groups and symbols (grouped by name for bulk operations)
-            const auto &groups = m_symbol_table.GetAllGroups();
+            const auto &groups = m_symbol_table->GetAllGroups();
             if (!groups.empty()) {
                 ImGui::Text("Loaded symbol groups:");
 
@@ -2534,12 +2536,12 @@ void BeebWindow::DoDebugMenu() {
                         if (mixed_state) {
                             // Mixed state clicked: enable all
                             for (size_t idx : indices) {
-                                m_symbol_table.EnableGroup(idx, true);
+                                m_symbol_table->EnableGroup(idx, true);
                             }
                         } else {
                             // Normal toggle: affects all entries with this name
                             for (size_t idx : indices) {
-                                m_symbol_table.EnableGroup(idx, current_state);
+                                m_symbol_table->EnableGroup(idx, current_state);
                             }
                         }
                     }
@@ -2591,8 +2593,8 @@ void BeebWindow::DoDebugMenu() {
                     }
                 }
 
-                size_t enabled_count = m_symbol_table.GetEnabledSymbolCount();
-                size_t total_count = m_symbol_table.GetSymbolCount();
+                size_t enabled_count = m_symbol_table->GetEnabledSymbolCount();
+                size_t total_count = m_symbol_table->GetSymbolCount();
                 if (enabled_count == total_count) {
                     ImGui::Text("Total symbols: %zu", enabled_count);
                 } else {
@@ -3177,8 +3179,8 @@ void BeebWindow::SaveSettings() {
 
     // Save symbol table state
     try {
-        m_settings.symbol_table_data = m_symbol_table.SaveToJSON();
-        LOGF(SYMBOLS, "Saved symbol table persistence data with %zu groups\n", m_symbol_table.GetAllGroups().size());
+        m_settings.symbol_table_data = m_symbol_table->SaveToJSON();
+        LOGF(SYMBOLS, "Saved symbol table persistence data with %zu groups\n", m_symbol_table->GetAllGroups().size());
     } catch (const std::exception &e) {
         LOGF(SYMBOLS, "ERROR: Failed to save symbol table persistence data: %s\n", e.what());
         m_settings.symbol_table_data = nlohmann::json{}; // Clear invalid data
@@ -3626,15 +3628,15 @@ std::shared_ptr<MessageList> BeebWindow::GetMessageList() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable &BeebWindow::GetSymbolTable() {
-    return m_symbol_table;
+SymbolTable *BeebWindow::GetMutableSymbolTable() {
+    return m_symbol_table.get();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const SymbolTable &BeebWindow::GetSymbolTable() const {
-    return m_symbol_table;
+const SymbolTable *BeebWindow::GetSymbolTable() const {
+    return m_symbol_table.get();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3766,7 +3768,7 @@ void BeebWindow::DoSymbolLoadingWindow() {
                 //contexts_to_use.clear(); // Universal context (empty set)
             }
 
-            bool success = m_symbol_table.LoadFromFile(path, group_name, {});
+            bool success = m_symbol_table->LoadFromFile(path, group_name, {});
 
             if (success) {
                 m_msg.i.f("Symbols loaded successfully into group '%s' from: %s\n", group_name.c_str(), path.c_str());
@@ -4449,7 +4451,7 @@ void SymbolGroupManagementUI::DoImGui() {
     ImGui::Separator();
 
     // Get reference to groups
-    SymbolTable &symbol_table = m_beeb_window->GetSymbolTable();
+    SymbolTable &symbol_table = *m_beeb_window->GetMutableSymbolTable();
     const auto &groups = symbol_table.GetAllGroups();
 
     // Ensure selection state matches group count
