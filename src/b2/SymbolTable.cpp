@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include "nlohmann_json_wrapper.h"
 #include <shared/debug.h>
 #include "SymbolTable.h"
 #include "memory_contexts.h"
@@ -38,66 +39,6 @@ SymbolTable::SymbolGroup::SymbolGroup(std::string group_name, std::string path)
 //////////////////////////////////////////////////////////////////////////
 
 static const std::string ADDRESS_SUFFIXES = "address_suffixes";
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Custom JSON serialization (save only essential fields)
-nlohmann::json SymbolTable::SymbolGroup::to_json() const {
-    nlohmann::json j{
-        {"file_path", file_path},
-        {"enabled", enabled},
-        {"name", name}, // Save custom group name to preserve user choice
-        {ADDRESS_SUFFIXES, this->address_suffixes},
-    };
-
-    return j;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void SymbolTable::SymbolGroup::from_json(const nlohmann::json &j) {
-    j.at("file_path").get_to(file_path);
-    j.at("enabled").get_to(enabled);
-
-    if (j.contains(ADDRESS_SUFFIXES)) {
-        try {
-            this->address_suffixes = j[ADDRESS_SUFFIXES].get<std::vector<std::string>>();
-        } catch (nlohmann::json::exception &) {
-        }
-    }
-
-    // Use saved name if available, otherwise auto-generate for backward compatibility
-    if (j.contains("name") && j["name"].is_string()) {
-        // Use saved custom group name
-        name = j["name"].get<std::string>();
-    } else {
-        // Auto-generate name from file_path for backward compatibility
-        if (file_path.empty()) {
-            name = "Unknown";
-        } else {
-            // Extract filename without extension for name
-            std::string filename = file_path;
-            size_t last_slash = filename.find_last_of("/\\");
-            if (last_slash != std::string::npos) {
-                filename = filename.substr(last_slash + 1);
-            }
-            size_t last_dot = filename.find_last_of('.');
-            if (last_dot != std::string::npos) {
-                filename = filename.substr(0, last_dot);
-            }
-
-            // Use "Global" for simple loads, filename for enhanced loads
-            // (We'll detect this based on whether contexts are empty - simple loads have no contexts)
-            if (this->address_suffixes.empty()) {
-                name = "Global";
-            } else {
-                name = filename;
-            }
-        }
-    }
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1136,37 +1077,34 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
 
 // Persistence Methods
 
-nlohmann::json SymbolTable::SaveToJSON() const {
-    nlohmann::json j;
+struct PersistentSymbolTableData {
+    std::vector<SymbolTable::SymbolGroup> groups;
+};
+JSON_SERIALIZE(PersistentSymbolTableData, groups);
 
-    // Save groups (only essential fields, symbols are automatically reloaded from files)
-    j["groups"] = nlohmann::json::array();
-    for (const auto &group : m_groups) {
-        j["groups"].push_back(group.to_json());
-    }
+std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
+    PersistentSymbolTableData p_std;
 
-    return j;
+    p_std.groups = m_groups;
+
+    return std::make_shared<JSON>(p_std);
 }
 
-bool SymbolTable::LoadFromJSON(const nlohmann::json &j) {
-    try {
-        if (j.contains("groups") && j["groups"].is_array()) {
-            m_groups.clear();
-            for (const auto &group_json : j["groups"]) {
-                SymbolGroup group;
-                group.from_json(group_json);
-                m_groups.push_back(group);
-            }
-
-            // Reload all groups from their source files
-            this->ReloadAllGroups();
-            return true;
-        }
-    } catch (const std::exception &e) {
-        LOGF(SYMBOLS, "ERROR: Failed to load symbol groups from JSON: %s\n", e.what());
+bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j) {
+    if (!j) {
+        return false;
     }
 
-    return false;
+    PersistentSymbolTableData p_std;
+    std::string error;
+    if (!j->Load(&p_std, &error)) {
+        LOGF(SYMBOLS, "ERROR: Failed to load symbol groups from JSON: %s\n", error.c_str());
+        return false;
+    }
+
+    m_groups = std::move(p_std.groups);
+    this->ReloadAllGroups();
+    return true;
 }
 
 void SymbolTable::ReloadAllGroups() {

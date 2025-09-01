@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
-#include "nlohmann_json_wrapper.h"
+#include <shared/json.h>
 
 struct BBCMicroType;
 
@@ -44,11 +44,11 @@ class SymbolTable {
         };
         std::vector<DSOMask> address_suffix_dso_masks;
 
+        // if adding more stuff that needs serializing, be sure to update the
+        // JSON_SERIALIZE macro below.
+
         SymbolGroup() = default;
         SymbolGroup(std::string group_name, std::string path);
-
-        nlohmann::json to_json() const;
-        void from_json(const nlohmann::json &j);
     };
 
     SymbolTable();
@@ -124,8 +124,8 @@ class SymbolTable {
     bool LoadAcmeFormat(const std::string &content, size_t group_id = 0);
 
     // Persistence support
-    nlohmann::json SaveToJSON() const;
-    bool LoadFromJSON(const nlohmann::json &j);
+    std::shared_ptr<JSON> SaveToJSON() const;
+    bool LoadFromJSON(const std::shared_ptr<JSON> &j);
     void ReloadAllGroups(); // Reload all groups from their source files
 
     // Debugging/utility
@@ -146,6 +146,11 @@ class SymbolTable {
     //bool IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const;
     //const Symbol *GetFirstEnabledSymbolAt(uint16_t address) const;
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+JSON_SERIALIZE(SymbolTable::SymbolGroup, name, file_path, enabled);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

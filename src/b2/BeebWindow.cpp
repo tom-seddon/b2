@@ -703,7 +703,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     }
 
     // Load symbol table from persistent data if available
-    if (!m_settings.symbol_table_data.empty()) {
+    if (!!m_settings.symbol_table_data) {
         try {
             if (m_symbol_table->LoadFromJSON(m_settings.symbol_table_data)) {
                 LOGF(SYMBOLS, "Restored symbol table persistence data with %zu groups\n", m_symbol_table->GetAllGroups().size());
@@ -3178,13 +3178,7 @@ void BeebWindow::SaveSettings() {
 #endif
 
     // Save symbol table state
-    try {
-        m_settings.symbol_table_data = m_symbol_table->SaveToJSON();
-        LOGF(SYMBOLS, "Saved symbol table persistence data with %zu groups\n", m_symbol_table->GetAllGroups().size());
-    } catch (const std::exception &e) {
-        LOGF(SYMBOLS, "ERROR: Failed to save symbol table persistence data: %s\n", e.what());
-        m_settings.symbol_table_data = nlohmann::json{}; // Clear invalid data
-    }
+    m_settings.symbol_table_data = m_symbol_table->SaveToJSON();
 
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = this->GetConfigName();

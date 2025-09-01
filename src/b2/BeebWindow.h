@@ -49,7 +49,6 @@ class SymbolTable;
 #include <condition_variable>
 #include <thread>
 #include <shared/json.h>
-#include "nlohmann_json_wrapper.h" //TODO
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -125,10 +124,10 @@ struct BeebWindowSettings {
 
     DebuggerSyntax debugger_syntax{DebuggerSyntax_BBCBASIC};
 
-    nlohmann::json symbol_table_data; // JSON object for symbol table persistence
+    std::shared_ptr<JSON> symbol_table_data; //json:annoying one-off data type
 };
 JSON_SERIALIZE(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
-JSON_SERIALIZE(BeebWindowSettings, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, gui_font_size, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, symbol_table_data);
+JSON_SERIALIZE(BeebWindowSettings, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, gui_font_size, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

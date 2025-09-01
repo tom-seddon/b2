@@ -38,7 +38,7 @@ static bool TryGet(T *result, const nlohmann::json &j, Messages *msg) {
 }
 
 template <class T>
-static bool TryGet(T *result, const nlohmann::json &j, const char *key, Messages *msg) {
+static bool TryGet(T *result, const nlohmann::json &j, const std::string &key, Messages *msg) {
     if (j.count(key) == 0) {
         *result = T();
         return true;
@@ -79,7 +79,7 @@ nlohmann::json SaveTrace() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define KEY(NAME) static const char key_##NAME[] = #NAME;
+#define KEY(NAME) static const std::string key_##NAME = #NAME;
 
 // some bits I named wrongly...
 KEY(filter_bbc);
@@ -92,6 +92,7 @@ KEY(popups);
 KEY(keymap);
 KEY(window_placement);
 KEY(popup_persistent_data);
+KEY(symbol_table_data);
 
 bool LoadWindows(const nlohmann::json &j, Messages *msg) {
     TryGet(&BeebWindows::defaults, j, msg);
@@ -148,6 +149,11 @@ bool LoadWindows(const nlohmann::json &j, Messages *msg) {
         }
     }
 
+    if (j.count(key_symbol_table_data) > 0) {
+        const nlohmann::json &j_std = j.at(key_symbol_table_data);
+        BeebWindows::defaults.symbol_table_data = std::make_shared<JSON>(j_std);
+    }
+
     return true;
 }
 
@@ -191,6 +197,10 @@ nlohmann::json SaveWindows() {
             }
         }
         j[key_popup_persistent_data] = j_ppds;
+    }
+
+    if (!!BeebWindows::defaults.symbol_table_data) {
+        j[key_symbol_table_data] = BeebWindows::defaults.symbol_table_data->AsNLohmannJSON();
     }
 
     return j;
