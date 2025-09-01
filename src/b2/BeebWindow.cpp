@@ -164,6 +164,8 @@ static void InitialiseTogglePopupCommand(BeebWindowPopupType type, const char *n
     p->create_fun_2 = std::move(create_fun_2);
 }
 
+std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *beeb_window); //TODO
+
 static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_Keymaps, "toggle_keyboard_layout", "Keyboard Layouts", &CreateKeymapsUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_CommandKeymaps, "toggle_command_keymaps", "Command Keys", &CreateCommandKeymapsUI);
@@ -678,7 +680,10 @@ bool BeebWindow::OptionsUI::OnClose() {
 
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments))
-    , m_symbol_table(std::make_unique<SymbolTable>()) {
+#if BBCMICRO_DEBUGGER
+    , m_symbol_table(std::make_unique<SymbolTable>())
+#endif
+{
     m_name = m_init_arguments.name;
 
     m_message_list = std::make_shared<MessageList>("BeebWindow");
@@ -702,6 +707,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
         m_settings = BeebWindows::defaults;
     }
 
+#if BBCMICRO_DEBUGGER
     // Load symbol table from persistent data if available
     if (!!m_settings.symbol_table_data) {
         try {
@@ -714,6 +720,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
             LOGF(SYMBOLS, "ERROR: Failed to load symbol table persistence data: %s\n", e.what());
         }
     }
+#endif
 
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume, m_settings.bbc_mute);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume, m_settings.disc_mute);
@@ -1218,10 +1225,12 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         this->DoPopupUI(ticks, output_width, output_height);
     }
 
+#if BBCMICRO_DEBUGGER
     // Independent symbol loading window (outside any menu context)
     if (m_show_enhanced_symbol_window) {
         this->DoSymbolLoadingWindow();
     }
+#endif
 
 #if ENABLE_IMGUI_DEMO
     if (m_imgui_demo) {
@@ -3177,8 +3186,10 @@ void BeebWindow::SaveSettings() {
     m_settings.full_screen = this->IsWindowFullScreen();
 #endif
 
+#if BBCMICRO_DEBUGGER
     // Save symbol table state
     m_settings.symbol_table_data = m_symbol_table->SaveToJSON();
+#endif
 
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = this->GetConfigName();
@@ -3622,16 +3633,20 @@ std::shared_ptr<MessageList> BeebWindow::GetMessageList() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 SymbolTable *BeebWindow::GetMutableSymbolTable() {
     return m_symbol_table.get();
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const SymbolTable *BeebWindow::GetSymbolTable() const {
     return m_symbol_table.get();
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3646,6 +3661,7 @@ const SymbolTable *BeebWindow::GetSymbolTable() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BeebWindow::DoSymbolLoadingWindow() {
     static char group_name_buffer[SymbolUI::MAX_GROUP_NAME_LENGTH + 1] = "";
     static char selected_file_path[SymbolUI::MAX_FILE_PATH_LENGTH + 1] = "";
@@ -3815,6 +3831,7 @@ void BeebWindow::DoSymbolLoadingWindow() {
         m_show_enhanced_symbol_window = false;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -4404,6 +4421,7 @@ void BeebWindow::ResetImGuiWindows() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 class SymbolGroupManagementUI : public SettingsUI {
   public:
     explicit SymbolGroupManagementUI(BeebWindow *beeb_window);
@@ -4428,18 +4446,22 @@ class SymbolGroupManagementUI : public SettingsUI {
     char m_address_suffix_buffer[20] = {};
     std::string m_address_suffix_error;
 };
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 SymbolGroupManagementUI::SymbolGroupManagementUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
     this->SetDefaultSize(ImVec2(SymbolUI::MANAGEMENT_WINDOW_WIDTH, SymbolUI::MANAGEMENT_WINDOW_HEIGHT));
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void SymbolGroupManagementUI::DoImGui() {
     ImGui::Text("Manage Symbol Groups and Precedence");
     ImGui::Separator();
@@ -4854,17 +4876,27 @@ void SymbolGroupManagementUI::DoImGui() {
         }
     }
 }
-
+#endif
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 bool SymbolGroupManagementUI::OnClose() {
     return false; // Don't save config on close
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *beeb_window) {
+#if BBCMICRO_DEBUGGER
     return std::make_unique<SymbolGroupManagementUI>(beeb_window);
+#else
+    (void)beeb_window;
+    return nullptr;
+#endif
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

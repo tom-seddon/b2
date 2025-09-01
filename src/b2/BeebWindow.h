@@ -311,19 +311,20 @@ class BeebWindow {
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 
+#if BBCMICRO_DEBUGGER
     // Get symbol table for debugging
     SymbolTable *GetMutableSymbolTable();
     const SymbolTable *GetSymbolTable() const;
+#endif
 
+#if BBCMICRO_DEBUGGER
     // Symbol file loading
     // Unified symbol loading dialog (replaces old Simple/Enhanced distinction)
     void DoSymbolLoadingWindow();
+#endif
 
     // Helper function for memory context selection UI (shared between dialogs)
     //void DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help);
-
-    // Enhanced symbol loading state
-    bool m_show_enhanced_symbol_window = false;
 
     bool HardReset(const BeebConfig &config, uint32_t flags);
 
@@ -427,8 +428,10 @@ class BeebWindow {
 
     ImGuiStuff *m_imgui_stuff = nullptr;
 
+#if BBCMICRO_DEBUGGER
     // Symbol table for debugging
     const std::unique_ptr<SymbolTable> m_symbol_table;
+#endif
 
 #if ENABLE_IMGUI_DEMO
     bool m_imgui_demo = false;
@@ -508,6 +511,11 @@ class BeebWindow {
     bool m_is_mouse_captured = false;
 
     bool m_beeb_got_imgui_focus = false;
+
+#if BBCMICRO_DEBUGGER
+    // Enhanced symbol loading state
+    bool m_show_enhanced_symbol_window = false;
+#endif
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

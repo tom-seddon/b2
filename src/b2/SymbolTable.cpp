@@ -1,7 +1,11 @@
 #include <shared/system.h>
+#include "conf.h"
+
+#if BBCMICRO_DEBUGGER
+
 #include "nlohmann_json_wrapper.h"
-#include <shared/debug.h>
 #include "SymbolTable.h"
+#include <shared/debug.h>
 #include "memory_contexts.h"
 #include <shared/log.h>
 #include <fstream>
@@ -1101,3 +1105,8 @@ void SymbolTable::ReloadAllGroups() {
 
     LOGF(SYMBOLS, "Reloaded %zu symbols across %zu groups\n", GetSymbolCount(), m_groups.size());
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#endif
