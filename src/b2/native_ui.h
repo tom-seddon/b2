@@ -107,7 +107,7 @@ class FileDialog : public SelectorDialog {
 
     explicit FileDialog(std::string tag);
 
-    void AddFilter(std::string title, const std::vector<std::string> extensions);
+    void AddFilter(std::string title, std::vector<std::string> extensions);
     void AddAllFilesFilter();
 
   protected:
