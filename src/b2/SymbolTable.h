@@ -19,26 +19,19 @@ struct BBCMicroType;
 class SymbolTable {
   public:
     struct Symbol {
-        uint16_t address;
+        uint16_t address = 0;
         std::string name;
         std::string comment; // optional - for future use
-        size_t group_id;     // which group this symbol belongs to
+        size_t group_id = 0; // which group this symbol belongs to
 
-        Symbol()
-            : address(0)
-            , group_id(0) {
-        }
-        Symbol(uint16_t addr, const std::string &symbol_name, size_t group = 0)
-            : address(addr)
-            , name(symbol_name)
-            , group_id(group) {
-        }
+        Symbol() = default;
+        Symbol(uint16_t addr, const std::string &symbol_name, size_t group);
     };
 
     struct SymbolGroup {
         std::string name;
         std::string file_path; // source file for this group
-        bool enabled;
+        bool enabled = true;
 
         // Address suffixes for which this symbol group applies. Serialised
         // as-is.
@@ -51,71 +44,11 @@ class SymbolTable {
         };
         std::vector<DSOMask> address_suffix_dso_masks;
 
-        SymbolGroup()
-            : enabled(true) {
-        }
+        SymbolGroup() = default;
+        SymbolGroup(std::string group_name, std::string path);
 
-        SymbolGroup(const std::string &group_name, const std::string &path)
-            : name(group_name)
-            , file_path(path)
-            , enabled(true) {
-        }
-
-        static const std::string ADDRESS_SUFFIXES;
-
-        // Custom JSON serialization (save only essential fields)
-        nlohmann::json to_json() const {
-            nlohmann::json j{
-                {"file_path", file_path},
-                {"enabled", enabled},
-                {"name", name}, // Save custom group name to preserve user choice
-                {ADDRESS_SUFFIXES, this->address_suffixes},
-            };
-
-            return j;
-        }
-
-        void from_json(const nlohmann::json &j) {
-            j.at("file_path").get_to(file_path);
-            j.at("enabled").get_to(enabled);
-
-            if (j.contains(ADDRESS_SUFFIXES)) {
-                try {
-                    this->address_suffixes = j[ADDRESS_SUFFIXES].get<std::vector<std::string>>();
-                } catch (nlohmann::json::exception &) {
-                }
-            }
-
-            // Use saved name if available, otherwise auto-generate for backward compatibility
-            if (j.contains("name") && j["name"].is_string()) {
-                // Use saved custom group name
-                name = j["name"].get<std::string>();
-            } else {
-                // Auto-generate name from file_path for backward compatibility
-                if (file_path.empty()) {
-                    name = "Unknown";
-                } else {
-                    // Extract filename without extension for name
-                    std::string filename = file_path;
-                    size_t last_slash = filename.find_last_of("/\\");
-                    if (last_slash != std::string::npos) {
-                        filename = filename.substr(last_slash + 1);
-                    }
-                    size_t last_dot = filename.find_last_of('.');
-                    if (last_dot != std::string::npos) {
-                        filename = filename.substr(0, last_dot);
-                    }
-
-                    // Use "Global" for simple loads, filename for enhanced loads
-                    // (We'll detect this based on whether contexts are empty - simple loads have no contexts)
-                    if (this->address_suffixes.empty()) {
-                        name = "Global";
-                    } else {
-                        name = filename;
-                    }
-                }
-            }
-        }
+        nlohmann::json to_json() const;
+        void from_json(const nlohmann::json &j);
     };
 
     SymbolTable();

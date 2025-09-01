@@ -20,7 +20,84 @@ LOG_DEFINE(SYMBOLS, "SYMBOLS", &log_printer_stdout_and_debugger, false);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::string SymbolTable::SymbolGroup::ADDRESS_SUFFIXES = "address_suffixes";
+SymbolTable::Symbol::Symbol(uint16_t addr, const std::string &symbol_name, size_t group)
+    : address(addr)
+    , name(symbol_name)
+    , group_id(group) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SymbolTable::SymbolGroup::SymbolGroup(std::string group_name, std::string path)
+    : name(std::move(group_name))
+    , file_path(std::move(path)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const std::string ADDRESS_SUFFIXES = "address_suffixes";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Custom JSON serialization (save only essential fields)
+nlohmann::json SymbolTable::SymbolGroup::to_json() const {
+    nlohmann::json j{
+        {"file_path", file_path},
+        {"enabled", enabled},
+        {"name", name}, // Save custom group name to preserve user choice
+        {ADDRESS_SUFFIXES, this->address_suffixes},
+    };
+
+    return j;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SymbolTable::SymbolGroup::from_json(const nlohmann::json &j) {
+    j.at("file_path").get_to(file_path);
+    j.at("enabled").get_to(enabled);
+
+    if (j.contains(ADDRESS_SUFFIXES)) {
+        try {
+            this->address_suffixes = j[ADDRESS_SUFFIXES].get<std::vector<std::string>>();
+        } catch (nlohmann::json::exception &) {
+        }
+    }
+
+    // Use saved name if available, otherwise auto-generate for backward compatibility
+    if (j.contains("name") && j["name"].is_string()) {
+        // Use saved custom group name
+        name = j["name"].get<std::string>();
+    } else {
+        // Auto-generate name from file_path for backward compatibility
+        if (file_path.empty()) {
+            name = "Unknown";
+        } else {
+            // Extract filename without extension for name
+            std::string filename = file_path;
+            size_t last_slash = filename.find_last_of("/\\");
+            if (last_slash != std::string::npos) {
+                filename = filename.substr(last_slash + 1);
+            }
+            size_t last_dot = filename.find_last_of('.');
+            if (last_dot != std::string::npos) {
+                filename = filename.substr(0, last_dot);
+            }
+
+            // Use "Global" for simple loads, filename for enhanced loads
+            // (We'll detect this based on whether contexts are empty - simple loads have no contexts)
+            if (this->address_suffixes.empty()) {
+                name = "Global";
+            } else {
+                name = filename;
+            }
+        }
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
