@@ -105,6 +105,17 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
     // Always create a new group for each file loaded
     //std::string actual_group_name = group_name.empty() ? "Global" : group_name;
 
+    if (!this->LoadFromString(content, filepath, parser)) {
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser) {
     // Create new group - names are just display labels, can be duplicated
     SymbolGroup new_group;
     new_group.file_path = filepath;

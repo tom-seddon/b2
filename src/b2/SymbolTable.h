@@ -67,6 +67,7 @@ class SymbolTable {
     // Core functionality
     void Clear();
     bool LoadFromFile(const std::string &filepath, const SymbolParser *parser);
+    bool LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser);
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
     size_t GetSymbolCountForGroup(size_t group_id) const;
@@ -127,8 +128,8 @@ class SymbolTable {
       public:
         static void RegisterParser(std::unique_ptr<const SymbolParser> parser);
         static const std::vector<std::unique_ptr<const SymbolParser>> &GetParsers();
-        static void InitializeBuiltinParsers(); // Initialize VICE and ACME parsers
-        static const SymbolParser *FindParserByFormatName(const std::string &format_name);//returns nullptr if not found
+        static void InitializeBuiltinParsers();                                            // Initialize VICE and ACME parsers
+        static const SymbolParser *FindParserByFormatName(const std::string &format_name); //returns nullptr if not found
 
       private:
         static std::vector<std::unique_ptr<const SymbolParser>> s_parsers;
