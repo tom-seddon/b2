@@ -1,5 +1,8 @@
 #include <shared/system.h>
 #include "SymbolTable.h"
+
+#if BBCMICRO_DEBUGGER
+
 #include <shared/testing.h>
 #include <beeb/type.h>
 
@@ -32,7 +35,6 @@ static size_t MustFindGroupIndex(const SymbolTable &st, const std::string &file_
 }
 
 int main() {
-#if BBCMICRO_DEBUGGER
     SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers();
 
     {
@@ -72,5 +74,16 @@ int main() {
 
         //TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label1_2");
     }
-#endif
 }
+
+#else
+
+// BBCMICRO_DEBUGGER is controlled entirely at the C++ level, so the test will
+// be built (and run)R in all configurations.
+//
+// So, if no debugger, compile a stub, that'll then always succeed.
+
+int main() {
+}
+
+#endif
