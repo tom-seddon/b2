@@ -1795,16 +1795,16 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                 const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
 
                 // Use context-aware symbol lookup
-                const SymbolTable::Symbol *symbol = symbol_table->GetSymbolForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
+                const std::string *symbol_name = symbol_table->GetSymbolNameForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
 
                 ImGui::SameLine();
                 ImGui::Text("  "); // Add some spacing
                 ImGui::SameLine();
 
-                if (symbol) {
+                const size_t max_label_length = 16; // Maximum chars for label
+                if (symbol_name) {
                     // Truncate symbol name if it's too long to maintain alignment
-                    std::string display_name = symbol->name;
-                    const size_t max_label_length = 16; // Maximum chars for label
+                    std::string display_name = *symbol_name;
                     if (display_name.length() > max_label_length) {
                         display_name = display_name.substr(0, max_label_length - 3) + "...";
                     }
@@ -1813,7 +1813,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                     ImGui::Text("%-*s", (int)max_label_length, display_name.c_str());
                 } else {
                     // Empty space for alignment when no symbol
-                    ImGui::Text("%-*s", (int)16, "");
+                    ImGui::Text("%-*s", (int)max_label_length, "");
                 }
             }
 
@@ -2126,11 +2126,11 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
 
             // Use context-aware symbol lookup
-            const SymbolTable::Symbol *symbol = symbol_table->GetSymbolForAddress(addr, m_effective_dso, m_beeb_state->type);
+            const std::string *symbol_name = symbol_table->GetSymbolNameForAddress(addr, m_effective_dso, m_beeb_state->type);
 
-            if (symbol) {
+            if (symbol_name) {
                 // Use symbol name instead of hex address
-                snprintf(label, sizeof label, "%s%c%s", symbol->name.c_str(), ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+                snprintf(label, sizeof label, "%s%c%s", symbol_name->c_str(), ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
             } else {
                 // No symbol found, use hex as fallback
                 snprintf(label, sizeof label, hex_format, g_hex, addr, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);

@@ -88,7 +88,9 @@ class SymbolTable {
     void SetGroupAddressSuffixes(size_t group_id, std::vector<std::string> new_address_suffixes);
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
-    const Symbol *GetSymbolForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
+
+    // returned pointer remains valid only until next SymbolTable function call.
+    const std::string *GetSymbolNameForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
     //uint16_t GetAddressForSymbol(const std::string &name, char memory_context) const;
     //bool HasSymbolForAddress(uint16_t address, char memory_context) const;
     //bool HasSymbol(const std::string &name, char memory_context) const;

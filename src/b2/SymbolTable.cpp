@@ -887,7 +887,7 @@ void SymbolTable::SetGroupAddressSuffixes(size_t group_id, std::vector<std::stri
 
 // Context-Aware Symbol Lookup Methods
 
-const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const {
+const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const {
     this->EnsureCacheReady(type);
 
     auto it = m_address_to_symbols.find(address);
@@ -901,7 +901,7 @@ const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, ui
             if (group->enabled) {
                 for (const SymbolGroup::DSOMask &mask : group->address_suffix_dso_masks) {
                     if ((dso & mask.mask) == mask.value) {
-                        return &symbol;
+                        return &symbol.name;
                     }
                 }
             }
