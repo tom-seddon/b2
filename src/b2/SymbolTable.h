@@ -74,15 +74,11 @@ class SymbolTable {
     size_t GetSymbolCountForGroup(size_t group_id) const;
 
     // Group management
-    //size_t AddGroup(const std::string &name, const std::string &description = "", const std::string &file_path = "");
     bool RemoveGroup(size_t group_id);
     void EnableGroup(size_t group_id, bool enabled);
     size_t GetNumGroups() const;
     const SymbolGroup *GetGroupByIndex(size_t index) const;
-    //void ClearGroup(size_t group_id);
     bool MoveGroup(size_t from_index, size_t to_index);
-    //void ReassignGroupIds();
-    //void ReassignGroupIds(const std::vector<std::string> &original_group_names);
 
     // Group metadata editing
     bool SetGroupName(size_t group_id, const std::string &new_name);
@@ -92,9 +88,6 @@ class SymbolTable {
 
     // returned pointer remains valid only until next SymbolTable function call.
     const std::string *GetSymbolNameForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
-    //uint16_t GetAddressForSymbol(const std::string &name, char memory_context) const;
-    //bool HasSymbolForAddress(uint16_t address, char memory_context) const;
-    //bool HasSymbol(const std::string &name, char memory_context) const;
 
     // Legacy lookup methods (for backwards compatibility)
     // GetSymbolForAddress uses symbol precedence policy for DISPLAY:
@@ -102,11 +95,7 @@ class SymbolTable {
     //   2. Among enabled groups, prefer first loaded group (lower group_id)
     //   3. Within same group, prefer later loaded symbols (e.g., CC65 "_main" over "__MY_RAM_START__")
     // GetAddressForSymbol finds ANY symbol with the given name (ignores display precedence)
-    //const Symbol *GetSymbolForAddress(uint16_t address) const;
     bool GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const;
-    //uint16_t GetAddressForSymbol(const std::string &name) const;
-    //bool HasSymbolForAddress(uint16_t address) const;
-    //bool HasSymbol(const std::string &name) const;
 
     // Base class for symbol file parsers
     class SymbolParser {
@@ -181,12 +170,9 @@ class SymbolTable {
     //size_t AddGroup(const SymbolGroup &group);
 
     // Helper methods
-    //std::string TrimWhitespace(const std::string &str) const;
     bool IsValidAddress(uint32_t addr) const;
     void InvalidateCache() const;
     void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;
-    //bool IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const;
-    //const Symbol *GetFirstEnabledSymbolAt(uint16_t address) const;
     LoadedSymbolGroup *AddLoadedSymbolGroup(SymbolGroup new_group, size_t *group_index);
 };
 
