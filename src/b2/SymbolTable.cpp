@@ -898,9 +898,11 @@ const SymbolTable::Symbol *SymbolTable::GetSymbolForAddress(uint16_t address, ui
     for (const Symbol &symbol : it->second) {
         if (symbol.group_id < m_groups.size()) {
             const SymbolGroup *group = &m_groups[symbol.group_id];
-            for (const SymbolGroup::DSOMask &mask : group->address_suffix_dso_masks) {
-                if ((dso & mask.mask) == mask.value) {
-                    return &symbol;
+            if (group->enabled) {
+                for (const SymbolGroup::DSOMask &mask : group->address_suffix_dso_masks) {
+                    if ((dso & mask.mask) == mask.value) {
+                        return &symbol;
+                    }
                 }
             }
         }
