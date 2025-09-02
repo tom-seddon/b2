@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/system.h>
 #include "conf.h"
 
 #if BBCMICRO_DEBUGGER
@@ -60,8 +61,8 @@ SymbolTable::~SymbolTable() {
 //////////////////////////////////////////////////////////////////////////
 
 void SymbolTable::Clear() {
-    m_address_to_symbols.clear();
-    m_name_to_addresses.clear();
+    //m_address_to_symbols.clear();
+    //m_name_to_addresses.clear();
     m_groups.clear();
     this->InvalidateCache();
     LOGF(SYMBOLS, "Symbol table cleared\n");
@@ -445,48 +446,48 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
             continue;
         }
 
-        symbol->group_id = group_id;
+        //symbol->group_id = group_id;
 
-        // Check for duplicates - we allow multiple symbols per address, even from same group
-        auto existing_addr = m_address_to_symbols.find(symbol->address);
-        if (existing_addr != m_address_to_symbols.end()) {
-            // Check if exact same name from same group already exists
-            bool exact_duplicate_found = false;
-            for (const Symbol &existing : existing_addr->second) {
-                if (existing.name == symbol->name && existing.group_id == symbol->group_id) {
-                    LOGF(SYMBOLS, "WARNING: Exact duplicate symbol '%s' at $%04X from group %zu at line %zu, skipping\n",
-                         symbol->name.c_str(), symbol->address, symbol->group_id, symbol->line_number);
-                    exact_duplicate_found = true;
-                    break;
-                }
-            }
-            if (exact_duplicate_found) {
-                continue; // Skip exact duplicates
-            }
+        //// Check for duplicates - we allow multiple symbols per address, even from same group
+        //auto existing_addr = m_address_to_symbols.find(symbol->address);
+        //if (existing_addr != m_address_to_symbols.end()) {
+        //    // Check if exact same name from same group already exists
+        //    bool exact_duplicate_found = false;
+        //    for (const Symbol &existing : existing_addr->second) {
+        //        if (existing.name == symbol->name && existing.group_id == symbol->group_id) {
+        //            LOGF(SYMBOLS, "WARNING: Exact duplicate symbol '%s' at $%04X from group %zu at line %zu, skipping\n",
+        //                 symbol->name.c_str(), symbol->address, symbol->group_id, symbol->line_number);
+        //            exact_duplicate_found = true;
+        //            break;
+        //        }
+        //    }
+        //    if (exact_duplicate_found) {
+        //        continue; // Skip exact duplicates
+        //    }
 
-            // Log addition of new symbol at existing address
-            bool same_group_different_name = false;
-            for (const Symbol &existing : existing_addr->second) {
-                if (existing.group_id == symbol->group_id && existing.name != symbol->name) {
-                    same_group_different_name = true;
-                    break;
-                }
-            }
+        //    // Log addition of new symbol at existing address
+        //    bool same_group_different_name = false;
+        //    for (const Symbol &existing : existing_addr->second) {
+        //        if (existing.group_id == symbol->group_id && existing.name != symbol->name) {
+        //            same_group_different_name = true;
+        //            break;
+        //        }
+        //    }
 
-            if (same_group_different_name) {
-                LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group. Parser: %s)\n",
-                     symbol->name.c_str(), symbol->address, parser->GetFormatName().c_str());
-            } else {
-                LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
-                     symbol->name.c_str(), symbol->address, symbol->group_id, existing_addr->second.size() + 1);
-            }
-        }
+        //    if (same_group_different_name) {
+        //        LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group. Parser: %s)\n",
+        //             symbol->name.c_str(), symbol->address, parser->GetFormatName().c_str());
+        //    } else {
+        //        LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
+        //             symbol->name.c_str(), symbol->address, symbol->group_id, existing_addr->second.size() + 1);
+        //    }
+        //}
 
-        // Add symbol to address mapping (append to vector)
-        m_address_to_symbols[symbol->address].push_back(*symbol);
+        //// Add symbol to address mapping (append to vector)
+        //m_address_to_symbols[symbol->address].push_back(*symbol);
 
-        // Add symbol to name mapping (multimap allows duplicates)
-        m_name_to_addresses.insert({symbol->name, symbol->address});
+        //// Add symbol to name mapping (multimap allows duplicates)
+        //m_name_to_addresses.insert({symbol->name, symbol->address});
 
         ++symbol_it;
     }
@@ -498,42 +499,60 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
 //////////////////////////////////////////////////////////////////////////
 
 size_t SymbolTable::GetSymbolCount() const {
-    size_t count = 0;
-    for (const auto &pair : m_address_to_symbols) {
-        count += pair.second.size();
+    size_t n = 0;
+
+    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
+        n += lsg->symbols.size();
     }
-    return count;
+
+    return n;
+    //size_t count = 0;
+    //for (const auto &pair : m_address_to_symbols) {
+    //    count += pair.second.size();
+    //}
+    //return count;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 size_t SymbolTable::GetEnabledSymbolCount() const {
-    size_t count = 0;
-    for (const auto &pair : m_address_to_symbols) {
-        for (const Symbol &symbol : pair.second) {
-            if (symbol.group_id < m_groups.size() && m_groups[symbol.group_id]->group.enabled) {
-                count++;
-            }
+    size_t n = 0;
+
+    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
+        if (lsg->group.enabled) {
+            n += lsg->symbols.size();
         }
     }
-    return count;
+
+    return n;
+    //size_t count = 0;
+    //for (const auto &pair : m_address_to_symbols) {
+    //    for (const Symbol &symbol : pair.second) {
+    //        if (symbol.group_id < m_groups.size() && m_groups[symbol.group_id]->group.enabled) {
+    //            count++;
+    //        }
+    //    }
+    //}
+    //return count;
 }
 
 size_t SymbolTable::GetSymbolCountForGroup(size_t group_id) const {
-    if (group_id >= m_groups.size()) {
-        return 0;
-    }
+    ASSERT(group_id < m_groups.size());
+    return m_groups[group_id]->symbols.size();
+    //if (group_id >= m_groups.size()) {
+    //    return 0;
+    //}
 
-    size_t count = 0;
-    for (const auto &pair : m_address_to_symbols) {
-        for (const Symbol &symbol : pair.second) {
-            if (symbol.group_id == group_id) {
-                count++;
-            }
-        }
-    }
-    return count;
+    //size_t count = 0;
+    //for (const auto &pair : m_address_to_symbols) {
+    //    for (const Symbol &symbol : pair.second) {
+    //        if (symbol.group_id == group_id) {
+    //            count++;
+    //        }
+    //    }
+    //}
+    //return count;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -547,36 +566,65 @@ size_t SymbolTable::GetSymbolCountForGroup(size_t group_id) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Unreferenced 'type' parameter warning is deliberately unsilenced
 bool SymbolTable::GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const {
+    this->EnsureCacheReady(type);
+
     // Find ANY enabled symbol with this name (not just the "best" one for display)
-    auto range = m_name_to_addresses.equal_range(name);
-    for (auto it = range.first; it != range.second; ++it) {
-        uint16_t address = it->second;
-
-        // Check if there's an enabled symbol with this exact name at this address
-        auto addr_it = m_address_to_symbols.find(address);
-        if (addr_it != m_address_to_symbols.end()) {
-            for (const Symbol &symbol : addr_it->second) {
-                if (symbol.name == name && symbol.group_id < m_groups.size()) {
-                    const LoadedSymbolGroup *lsg = m_groups[symbol.group_id].get();
-                    if (lsg->group.enabled) {
-                        *addr_ptr = address;
-
-                        if (!lsg->address_suffix_dso_masks.empty()) {
-                            const LoadedSymbolGroup::DSOMask *mask = &lsg->address_suffix_dso_masks[0];
-
-                            *dso_ptr &= ~mask->mask;
-                            *dso_ptr |= mask->value;
-                        }
-
-                        return true;
-                    }
-                }
-            }
-        }
+    auto &&name_and_addresses_it = m_cache_name_to_addresses.find(name);
+    if (name_and_addresses_it == m_cache_name_to_addresses.end()) {
+        return false;
     }
-    return false;
+
+    // just go for the first address for now.
+    ASSERT(!name_and_addresses_it->second.empty());
+    const AddressForSymbol *addr = &name_and_addresses_it->second[0];
+
+    //auto &&address_and_at_address_it = m_cache_address_to_symbols.find(addr);
+    //ASSERT(address_and_at_address_it != m_cache_address_to_symbols.end());
+
+    //ASSERT(!address_and_at_address_it->second.grouped.empty());
+    //const SymbolsInGroup *in_group = &address_and_at_address_it->second.grouped[0];
+
+    *addr_ptr = addr->address;
+
+    if (!addr->lsg->address_suffix_dso_masks.empty()) {
+        const LoadedSymbolGroup::DSOMask *mask = &addr->lsg->address_suffix_dso_masks[0];
+
+        *dso_ptr &= ~mask->mask;
+        *dso_ptr |= mask->value;
+    }
+
+    return true;
+
+    //ASSERT(!in_group->symbols.empty()));
+    //auto range = m_cache_name_to_addresses.equal_range(name);
+    //for (auto it = range.first; it != range.second; ++it) {
+    //    uint16_t address = it->second;
+
+    //    // Check if there's an enabled symbol with this exact name at this address
+    //    auto it = m_cache_address_to_symbols.find(address);
+    //    if (addr_it != m_cache_address_to_symbols.end()) {
+
+    //        for (const Symbol &symbol : addr_it->second) {
+    //            if (symbol.name == name && symbol.group_id < m_groups.size()) {
+    //                const LoadedSymbolGroup *lsg = m_groups[symbol.group_id].get();
+    //                if (lsg->group.enabled) {
+    //                    *addr_ptr = address;
+
+    //                    if (!lsg->address_suffix_dso_masks.empty()) {
+    //                        const LoadedSymbolGroup::DSOMask *mask = &lsg->address_suffix_dso_masks[0];
+
+    //                        *dso_ptr &= ~mask->mask;
+    //                        *dso_ptr |= mask->value;
+    //                    }
+
+    //                    return true;
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+    //return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -597,34 +645,34 @@ bool SymbolTable::GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, con
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SymbolTable::PrintStats() const {
-    LOGF(SYMBOLS, "Symbol table statistics:\n");
-    LOGF(SYMBOLS, "  Total symbols: %zu\n", GetSymbolCount());
-    LOGF(SYMBOLS, "  Enabled symbols: %zu\n", GetEnabledSymbolCount());
-    LOGF(SYMBOLS, "  Unique addresses with symbols: %zu\n", m_address_to_symbols.size());
-
-    if (GetSymbolCount() > 0) {
-        // Find address range
-        uint16_t min_addr = 0xFFFF;
-        uint16_t max_addr = 0;
-        for (const auto &pair : m_address_to_symbols) {
-            min_addr = std::min(min_addr, pair.first);
-            max_addr = std::max(max_addr, pair.first);
-        }
-        LOGF(SYMBOLS, "  Address range: $%04X - $%04X\n", min_addr, max_addr);
-
-        // Show addresses with multiple symbols
-        size_t multi_symbol_addresses = 0;
-        for (const auto &pair : m_address_to_symbols) {
-            if (pair.second.size() > 1) {
-                multi_symbol_addresses++;
-            }
-        }
-        if (multi_symbol_addresses > 0) {
-            LOGF(SYMBOLS, "  Addresses with multiple symbols: %zu\n", multi_symbol_addresses);
-        }
-    }
-}
+//void SymbolTable::PrintStats() const {
+//    LOGF(SYMBOLS, "Symbol table statistics:\n");
+//    LOGF(SYMBOLS, "  Total symbols: %zu\n", GetSymbolCount());
+//    LOGF(SYMBOLS, "  Enabled symbols: %zu\n", GetEnabledSymbolCount());
+//    LOGF(SYMBOLS, "  Unique addresses with symbols: %zu\n", m_address_to_symbols.size());
+//
+//    if (GetSymbolCount() > 0) {
+//        // Find address range
+//        uint16_t min_addr = 0xFFFF;
+//        uint16_t max_addr = 0;
+//        for (const auto &pair : m_address_to_symbols) {
+//            min_addr = std::min(min_addr, pair.first);
+//            max_addr = std::max(max_addr, pair.first);
+//        }
+//        LOGF(SYMBOLS, "  Address range: $%04X - $%04X\n", min_addr, max_addr);
+//
+//        // Show addresses with multiple symbols
+//        size_t multi_symbol_addresses = 0;
+//        for (const auto &pair : m_address_to_symbols) {
+//            if (pair.second.size() > 1) {
+//                multi_symbol_addresses++;
+//            }
+//        }
+//        if (multi_symbol_addresses > 0) {
+//            LOGF(SYMBOLS, "  Addresses with multiple symbols: %zu\n", multi_symbol_addresses);
+//        }
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -693,19 +741,19 @@ bool SymbolTable::RemoveGroup(size_t group_id) {
     }
 
     // Remove all symbols belonging to this group
-    this->ClearGroup(group_id);
+    //this->ClearGroup(group_id);
 
     // Remove the group
     m_groups.erase(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(group_id));
 
-    // Update group IDs for all symbols with group_id > removed group
-    for (auto &addr_pair : m_address_to_symbols) {
-        for (Symbol &symbol : addr_pair.second) {
-            if (symbol.group_id > group_id) {
-                symbol.group_id--;
-            }
-        }
-    }
+    //// Update group IDs for all symbols with group_id > removed group
+    //for (auto &addr_pair : m_address_to_symbols) {
+    //    for (Symbol &symbol : addr_pair.second) {
+    //        if (symbol.group_id > group_id) {
+    //            symbol.group_id--;
+    //        }
+    //    }
+    //}
 
     this->InvalidateCache();
     return true;
@@ -727,53 +775,53 @@ size_t SymbolTable::GetNumGroups() const {
     return m_groups.size();
 }
 
-void SymbolTable::ClearGroup(size_t group_id) {
-    // Remove all symbols belonging to this group
-    for (auto addr_it = m_address_to_symbols.begin(); addr_it != m_address_to_symbols.end();) {
-        std::vector<Symbol> &symbols = addr_it->second;
-
-        // Remove symbols from this group from the vector
-        symbols.erase(
-            std::remove_if(symbols.begin(), symbols.end(),
-                           [group_id](const Symbol &symbol) {
-                               return symbol.group_id == group_id;
-                           }),
-            symbols.end());
-
-        // If no symbols left at this address, remove the entry entirely
-        if (symbols.empty()) {
-            addr_it = m_address_to_symbols.erase(addr_it);
-        } else {
-            ++addr_it;
-        }
-    }
-
-    // Remove name mappings for symbols in this group
-    for (auto name_it = m_name_to_addresses.begin(); name_it != m_name_to_addresses.end();) {
-        uint16_t address = name_it->second;
-        const std::string &name = name_it->first;
-
-        // Check if this name/address combo still exists after group removal
-        bool found = false;
-        auto addr_symbols_it = m_address_to_symbols.find(address);
-        if (addr_symbols_it != m_address_to_symbols.end()) {
-            for (const Symbol &symbol : addr_symbols_it->second) {
-                if (symbol.name == name) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-
-        if (!found) {
-            name_it = m_name_to_addresses.erase(name_it);
-        } else {
-            ++name_it;
-        }
-    }
-
-    this->InvalidateCache();
-}
+//void SymbolTable::ClearGroup(size_t group_id) {
+//    // Remove all symbols belonging to this group
+//    for (auto addr_it = m_address_to_symbols.begin(); addr_it != m_address_to_symbols.end();) {
+//        std::vector<Symbol> &symbols = addr_it->second;
+//
+//        // Remove symbols from this group from the vector
+//        symbols.erase(
+//            std::remove_if(symbols.begin(), symbols.end(),
+//                           [group_id](const Symbol &symbol) {
+//                               return symbol.group_id == group_id;
+//                           }),
+//            symbols.end());
+//
+//        // If no symbols left at this address, remove the entry entirely
+//        if (symbols.empty()) {
+//            addr_it = m_address_to_symbols.erase(addr_it);
+//        } else {
+//            ++addr_it;
+//        }
+//    }
+//
+//    // Remove name mappings for symbols in this group
+//    for (auto name_it = m_name_to_addresses.begin(); name_it != m_name_to_addresses.end();) {
+//        uint16_t address = name_it->second;
+//        const std::string &name = name_it->first;
+//
+//        // Check if this name/address combo still exists after group removal
+//        bool found = false;
+//        auto addr_symbols_it = m_address_to_symbols.find(address);
+//        if (addr_symbols_it != m_address_to_symbols.end()) {
+//            for (const Symbol &symbol : addr_symbols_it->second) {
+//                if (symbol.name == name) {
+//                    found = true;
+//                    break;
+//                }
+//            }
+//        }
+//
+//        if (!found) {
+//            name_it = m_name_to_addresses.erase(name_it);
+//        } else {
+//            ++name_it;
+//        }
+//    }
+//
+//    this->InvalidateCache();
+//}
 
 bool SymbolTable::MoveGroup(size_t from_index, size_t to_index) {
     if (from_index >= m_groups.size() || to_index >= m_groups.size() || from_index == to_index) {
@@ -782,28 +830,28 @@ bool SymbolTable::MoveGroup(size_t from_index, size_t to_index) {
 
     // All groups can now be moved - no special restrictions
 
-    // Create mapping from old position to new position before moving
-    std::vector<size_t> old_to_new_mapping(m_groups.size());
+    //// Create mapping from old position to new position before moving
+    //std::vector<size_t> old_to_new_mapping(m_groups.size());
 
-    // Initialize identity mapping
-    for (size_t i = 0; i < m_groups.size(); ++i) {
-        old_to_new_mapping[i] = i;
-    }
+    //// Initialize identity mapping
+    //for (size_t i = 0; i < m_groups.size(); ++i) {
+    //    old_to_new_mapping[i] = i;
+    //}
 
-    // Calculate the new positions after the move
-    if (from_index < to_index) {
-        // Moving down: shift everything up between from+1 and to
-        for (size_t i = from_index + 1; i <= to_index; ++i) {
-            old_to_new_mapping[i] = i - 1;
-        }
-        old_to_new_mapping[from_index] = to_index;
-    } else {
-        // Moving up: shift everything down between to and from-1
-        for (size_t i = to_index; i < from_index; ++i) {
-            old_to_new_mapping[i] = i + 1;
-        }
-        old_to_new_mapping[from_index] = to_index;
-    }
+    //// Calculate the new positions after the move
+    //if (from_index < to_index) {
+    //    // Moving down: shift everything up between from+1 and to
+    //    for (size_t i = from_index + 1; i <= to_index; ++i) {
+    //        old_to_new_mapping[i] = i - 1;
+    //    }
+    //    old_to_new_mapping[from_index] = to_index;
+    //} else {
+    //    // Moving up: shift everything down between to and from-1
+    //    for (size_t i = to_index; i < from_index; ++i) {
+    //        old_to_new_mapping[i] = i + 1;
+    //    }
+    //    old_to_new_mapping[from_index] = to_index;
+    //}
 
     // Move the group in the vector
     {
@@ -812,14 +860,14 @@ bool SymbolTable::MoveGroup(size_t from_index, size_t to_index) {
         m_groups.insert(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(to_index), std::move(group_to_move));
     }
 
-    // Update all symbol group IDs using position-based mapping
-    for (auto &addr_pair : m_address_to_symbols) {
-        for (Symbol &symbol : addr_pair.second) {
-            if (symbol.group_id < old_to_new_mapping.size()) {
-                symbol.group_id = old_to_new_mapping[symbol.group_id];
-            }
-        }
-    }
+    //// Update all symbol group IDs using position-based mapping
+    //for (auto &addr_pair : m_address_to_symbols) {
+    //    for (Symbol &symbol : addr_pair.second) {
+    //        if (symbol.group_id < old_to_new_mapping.size()) {
+    //            symbol.group_id = old_to_new_mapping[symbol.group_id];
+    //        }
+    //    }
+    //}
 
     this->InvalidateCache();
     return true;
@@ -914,23 +962,18 @@ void SymbolTable::SetGroupAddressSuffixes(size_t group_id, std::vector<std::stri
 const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const {
     this->EnsureCacheReady(type);
 
-    auto it = m_address_to_symbols.find(address);
-    if (it == m_address_to_symbols.end()) {
+    auto it = m_cache_address_to_symbols.find(address);
+    if (it == m_cache_address_to_symbols.end()) {
         return nullptr;
     }
 
-    for (const Symbol &symbol : it->second) {
-        if (symbol.group_id < m_groups.size()) {
-            const LoadedSymbolGroup *lsg = m_groups[symbol.group_id].get();
-            if (lsg->group.enabled) {
-                if (lsg->address_suffix_dso_masks.empty()) {
-                    return &symbol.name;
-                } else {
-                    for (const LoadedSymbolGroup::DSOMask &mask : lsg->address_suffix_dso_masks) {
-                        if ((dso & mask.mask) == mask.value) {
-                            return &symbol.name;
-                        }
-                    }
+    for (const SymbolsInGroup &in_group : it->second.grouped) {
+        if (in_group.lsg->address_suffix_dso_masks.empty()) {
+            return &in_group.symbols[0]->name;
+        } else {
+            for (const LoadedSymbolGroup::DSOMask &mask : in_group.lsg->address_suffix_dso_masks) {
+                if ((dso & mask.mask) == mask.value) {
+                    return &in_group.symbols[0]->name;
                 }
             }
         }
@@ -1036,6 +1079,49 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
         // TODO eliminate redundant masks.
     }
 
+    m_cache_address_to_symbols.clear();
+    m_cache_name_to_addresses.clear();
+
+    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
+        if (!lsg->group.enabled) {
+            continue;
+        }
+
+        for (size_t i = 0; i < lsg->symbols.size(); ++i) {
+            // go in reverse order, so later symbols have priority.
+            const Symbol *symbol = &lsg->symbols[lsg->symbols.size() - 1 - i];
+
+            // Handle the address->symbol lookup.
+            {
+                SymbolsAtAddress *at_address = &m_cache_address_to_symbols[symbol->address];
+
+                // going in group order - so if there's an entry for this group,
+                // it'll be the last one in the grouped list.
+                SymbolsInGroup *in_group;
+                if (at_address->grouped.empty() || at_address->grouped.back().lsg != lsg.get()) {
+                    in_group = &at_address->grouped.emplace_back();
+                    in_group->lsg = lsg.get();
+                } else {
+                    in_group = &at_address->grouped.back();
+                }
+
+                ASSERT(in_group->lsg == lsg.get());
+
+                in_group->symbols.push_back(symbol);
+            }
+
+            // Handle the symbol->address lookup.
+            {
+                AddressForSymbol addr;
+
+                addr.lsg = lsg.get();
+                addr.address = symbol->address;
+
+                m_cache_name_to_addresses[symbol->name].push_back(addr);
+            }
+        }
+    }
+
     //m_context_to_address_cache.clear();
 
     //for (auto &addr_pair : m_address_to_symbols) {
@@ -1126,8 +1212,8 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j) {
 
 void SymbolTable::ReloadAllGroups() {
     // Clear all symbols but keep groups
-    m_address_to_symbols.clear();
-    m_name_to_addresses.clear();
+    //m_address_to_symbols.clear();
+    //m_name_to_addresses.clear();
     this->InvalidateCache();
 
     // Reload each group from its source file

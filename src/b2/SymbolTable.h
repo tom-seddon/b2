@@ -24,6 +24,7 @@ struct BBCMicroType;
 //////////////////////////////////////////////////////////////////////////
 
 struct Symbol {
+    // 
     uint16_t address = 0;
 
     //
@@ -31,9 +32,6 @@ struct Symbol {
 
     //
     size_t line_number = 0;
-
-    //
-    size_t group_id = 0; // which group this symbol belongs to
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,7 +79,7 @@ class SymbolTable {
     void EnableGroup(size_t group_id, bool enabled);
     size_t GetNumGroups() const;
     const SymbolGroup *GetGroupByIndex(size_t index) const;
-    void ClearGroup(size_t group_id);
+    //void ClearGroup(size_t group_id);
     bool MoveGroup(size_t from_index, size_t to_index);
     //void ReassignGroupIds();
     //void ReassignGroupIds(const std::vector<std::string> &original_group_names);
@@ -142,7 +140,7 @@ class SymbolTable {
     void ReloadAllGroups(); // Reload all groups from their source files
 
     // Debugging/utility
-    void PrintStats() const;
+    //void PrintStats() const;
 
   private:
     struct LoadedSymbolGroup {
@@ -159,8 +157,24 @@ class SymbolTable {
     };
 
     std::vector<std::unique_ptr<LoadedSymbolGroup>> m_groups;
-    std::map<uint16_t, std::vector<Symbol>> m_address_to_symbols; // Multiple symbols per address
-    std::multimap<std::string, uint16_t> m_name_to_addresses;     // Multiple addresses per name
+
+    struct SymbolsInGroup {
+        const LoadedSymbolGroup *lsg = nullptr;
+        std::vector<const Symbol *> symbols;
+    };
+
+    struct SymbolsAtAddress {
+        std::vector<SymbolsInGroup> grouped;
+        //std::vector<const Symbol *> all;//TODO
+    };
+
+    struct AddressForSymbol {
+        const LoadedSymbolGroup *lsg = nullptr;
+        uint16_t address = 0;
+    };
+
+    mutable std::map<uint16_t, SymbolsAtAddress> m_cache_address_to_symbols;        // Multiple symbols per address
+    mutable std::map<std::string, std::vector<AddressForSymbol>> m_cache_name_to_addresses; // Multiple addresses per name
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
 
