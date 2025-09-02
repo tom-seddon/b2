@@ -23,42 +23,45 @@ struct BBCMicroType;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct Symbol {
+    uint16_t address = 0;
+
+    //
+    std::string name;
+
+    //
+    size_t line_number = 0;
+
+    //
+    size_t group_id = 0; // which group this symbol belongs to
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// TODO: this should be called SymbolFile, but it's a lot of stuff to change
+// and follow through.
+struct SymbolGroup {
+    std::string name;
+    std::string file_path;        // source file for this group
+    std::string file_format_name; // or "" for auto-detect
+    bool enabled = true;
+
+    // Address suffixes for which this symbol group applies. Serialised
+    // as-is.
+    std::vector<std::string> address_suffixes;
+
+    // if adding more stuff that needs serializing, be sure to update the
+    // JSON_SERIALIZE macro below.
+};
+
+JSON_SERIALIZE(SymbolGroup, name, file_path, enabled, address_suffixes, file_format_name);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class SymbolTable {
   public:
-    struct Symbol {
-        uint16_t address = 0;
-        std::string name;
-        std::string comment; // optional - for future use
-        size_t group_id = 0; // which group this symbol belongs to
-
-        Symbol() = default;
-        Symbol(uint16_t addr, const std::string &symbol_name, size_t group);
-    };
-
-    struct SymbolGroup {
-        std::string name;
-        std::string file_path;        // source file for this group
-        std::string file_format_name; // or "" for auto-detect
-        bool enabled = true;
-
-        // Address suffixes for which this symbol group applies. Serialised
-        // as-is.
-        std::vector<std::string> address_suffixes;
-
-        // Processed address suffixes, dependent on the current BBCMicroType.
-        struct DSOMask {
-            uint32_t mask = 0;
-            uint32_t value = 0;
-        };
-        std::vector<DSOMask> address_suffix_dso_masks;
-
-        // if adding more stuff that needs serializing, be sure to update the
-        // JSON_SERIALIZE macro below.
-
-        SymbolGroup() = default;
-        //SymbolGroup(std::string group_name, std::string path);
-    };
-
     SymbolTable();
     ~SymbolTable();
 
@@ -73,12 +76,11 @@ class SymbolTable {
     size_t GetSymbolCountForGroup(size_t group_id) const;
 
     // Group management
-    size_t AddGroup(const SymbolGroup &group);
     //size_t AddGroup(const std::string &name, const std::string &description = "", const std::string &file_path = "");
     bool RemoveGroup(size_t group_id);
     void EnableGroup(size_t group_id, bool enabled);
-    const SymbolGroup *GetGroup(size_t group_id) const;
-    const std::vector<SymbolGroup> &GetAllGroups() const;
+    size_t GetNumGroups() const;
+    const SymbolGroup *GetGroupByIndex(size_t index) const;
     void ClearGroup(size_t group_id);
     bool MoveGroup(size_t from_index, size_t to_index);
     //void ReassignGroupIds();
@@ -111,16 +113,11 @@ class SymbolTable {
     // Base class for symbol file parsers
     class SymbolParser {
       public:
-        struct ParsedSymbol {
-            size_t line_number = 0; //1-based; 0 means invalid
-            std::string name;
-            uint32_t addr = 0;
-        };
         virtual ~SymbolParser() = default;
         virtual std::string GetFormatName() const = 0;
         virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;
         virtual bool MatchesLine(const std::string &line) const = 0;
-        virtual std::vector<ParsedSymbol> ParseContent(const std::string &content) const = 0;
+        virtual std::vector<Symbol> ParseContent(const std::string &content) const = 0;
     };
 
     // Parser registry system
@@ -148,11 +145,26 @@ class SymbolTable {
     void PrintStats() const;
 
   private:
-    mutable std::vector<SymbolGroup> m_groups;
+    struct LoadedSymbolGroup {
+        SymbolGroup group;
+
+        std::vector<Symbol> symbols;
+
+        // Processed address suffixes, dependent on the current BBCMicroType.
+        struct DSOMask {
+            uint32_t mask = 0;
+            uint32_t value = 0;
+        };
+        std::vector<DSOMask> address_suffix_dso_masks;
+    };
+
+    std::vector<std::unique_ptr<LoadedSymbolGroup>> m_groups;
     std::map<uint16_t, std::vector<Symbol>> m_address_to_symbols; // Multiple symbols per address
     std::multimap<std::string, uint16_t> m_name_to_addresses;     // Multiple addresses per name
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
+
+    //size_t AddGroup(const SymbolGroup &group);
 
     // Helper methods
     //std::string TrimWhitespace(const std::string &str) const;
@@ -161,12 +173,8 @@ class SymbolTable {
     void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;
     //bool IsSymbolVisibleInContext(const Symbol &symbol, char memory_context) const;
     //const Symbol *GetFirstEnabledSymbolAt(uint16_t address) const;
+    LoadedSymbolGroup *AddLoadedSymbolGroup(SymbolGroup new_group, size_t *group_index);
 };
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-JSON_SERIALIZE(SymbolTable::SymbolGroup, name, file_path, enabled, address_suffixes, file_format_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

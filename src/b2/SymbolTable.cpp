@@ -38,15 +38,6 @@ static std::string TrimWhitespace(const std::string &str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable::Symbol::Symbol(uint16_t addr, const std::string &symbol_name, size_t group)
-    : address(addr)
-    , name(symbol_name)
-    , group_id(group) {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const std::string ADDRESS_SUFFIXES = "address_suffixes";
 
 //////////////////////////////////////////////////////////////////////////
@@ -116,14 +107,27 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
 //////////////////////////////////////////////////////////////////////////
 
 bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser) {
-    // Create new group - names are just display labels, can be duplicated
-    SymbolGroup new_group;
-    new_group.file_path = filepath;
-    if (parser) {
-        new_group.file_format_name = parser->GetFormatName();
+    size_t group_id;
+    LoadedSymbolGroup *lsg;
+    {
+        SymbolGroup new_group;
+
+        new_group.file_path = filepath;
+        if (parser) {
+            new_group.file_format_name = parser->GetFormatName();
+        }
+
+        lsg = this->AddLoadedSymbolGroup(std::move(new_group), &group_id);
     }
 
-    size_t group_id = this->AddGroup(new_group);
+    //size_t group_id = m_groups.size();
+    //m_groups.push_back(std::make_unique<LoadedSymbolGroup>());
+    //LoadedSymbolGroup *loaded_group = m_groups.back().get();
+
+    //loaded_group->group.file_path = filepath;
+    //if (parser) {
+    //    loaded_group->group.file_format_name = parser->GetFormatName();
+    //}
 
     size_t old_count = GetSymbolCount();
 
@@ -193,10 +197,10 @@ class ViceParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    std::vector<ParsedSymbol> ParseContent(const std::string &content) const override {
+    std::vector<Symbol> ParseContent(const std::string &content) const override {
         LOGF(SYMBOLS, "Parsing VICE label format\n");
 
-        std::vector<ParsedSymbol> parsed_symbols;
+        std::vector<Symbol> symbols;
 
         std::istringstream stream(content);
         std::string line;
@@ -217,12 +221,12 @@ class ViceParser : public SymbolTable::SymbolParser {
             std::smatch matches;
             if (std::regex_match(line, matches, pattern)) {
                 try {
-                    ParsedSymbol symbol;
+                    Symbol symbol;
                     symbol.line_number = line_number;
 
                     // Extract memory context (if present) and address
                     std::string context_str = matches[1].str();
-                    symbol.addr = std::stoul(matches[2].str(), nullptr, 16);
+                    symbol.address = (uint16_t)std::stoul(matches[2].str(), nullptr, 16);
                     symbol.name = TrimWhitespace(matches[3].str());
 
                     // Ignore any VICE format context prefixes - contexts are assigned only through UI
@@ -232,7 +236,7 @@ class ViceParser : public SymbolTable::SymbolParser {
                         symbol.name = symbol.name.substr(1);
                     }
 
-                    parsed_symbols.push_back(std::move(symbol));
+                    symbols.push_back(std::move(symbol));
                 } catch (const std::exception &e) {
                     LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
                 }
@@ -246,8 +250,8 @@ class ViceParser : public SymbolTable::SymbolParser {
             }
         }
 
-        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, parsed_symbols.size());
-        return parsed_symbols;
+        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols.size());
+        return symbols;
     }
 };
 
@@ -272,10 +276,10 @@ class AcmeParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    std::vector<ParsedSymbol> ParseContent(const std::string &content) const override {
+    std::vector<Symbol> ParseContent(const std::string &content) const override {
         LOGF(SYMBOLS, "Parsing ACME label format\n");
 
-        std::vector<ParsedSymbol> parsed_symbols;
+        std::vector<Symbol> symbols;
 
         std::istringstream stream(content);
         std::string line;
@@ -297,7 +301,7 @@ class AcmeParser : public SymbolTable::SymbolParser {
             std::smatch matches;
             if (std::regex_match(line, matches, pattern)) {
                 try {
-                    ParsedSymbol symbol;
+                    Symbol symbol;
                     symbol.line_number = line_number;
                     symbol.name = TrimWhitespace(matches[1].str());
 
@@ -305,13 +309,13 @@ class AcmeParser : public SymbolTable::SymbolParser {
 
                     if (addr_str[0] == '$') {
                         // Hexadecimal address with $ prefix
-                        symbol.addr = std::stoul(addr_str.substr(1), nullptr, 16);
+                        symbol.address = (uint16_t)std::stoul(addr_str.substr(1), nullptr, 16);
                     } else {
                         // Decimal address
-                        symbol.addr = std::stoul(addr_str, nullptr, 10);
+                        symbol.address = (uint16_t)std::stoul(addr_str, nullptr, 10);
                     }
 
-                    parsed_symbols.push_back(std::move(symbol));
+                    symbols.push_back(std::move(symbol));
                 } catch (const std::exception &e) {
                     LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
                 }
@@ -325,8 +329,8 @@ class AcmeParser : public SymbolTable::SymbolParser {
             }
         }
 
-        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, parsed_symbols.size());
-        return parsed_symbols;
+        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols.size());
+        return symbols;
     }
 };
 
@@ -407,9 +411,9 @@ const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string
 //////////////////////////////////////////////////////////////////////////
 
 bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
-    const SymbolGroup *group = &m_groups[group_id];
+    LoadedSymbolGroup *lsg = m_groups[group_id].get();
 
-    const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(group->file_format_name);
+    const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(lsg->group.file_format_name);
     if (!parser) {
         parser = DetectBestParser(content);
     }
@@ -419,63 +423,72 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
         return false;
     }
 
-    LOGF(SYMBOLS, "Using %s parser for content loading\n", parser->GetFormatName().c_str());
-    std::vector<SymbolParser::ParsedSymbol> parsed_symbols = parser->ParseContent(content);
+    this->InvalidateCache();
 
-    if (parsed_symbols.empty()) {
+    LOGF(SYMBOLS, "Using %s parser for content loading\n", parser->GetFormatName().c_str());
+    lsg->symbols = parser->ParseContent(content);
+
+    if (lsg->symbols.empty()) {
         LOGF(SYMBOLS, "WARNING: No symbols loaded from file\n");
         return true;
     }
 
-    for (const SymbolParser::ParsedSymbol &parsed_symbol : parsed_symbols) {
-        if (IsValidAddress(parsed_symbol.addr) && !parsed_symbol.name.empty()) {
-            Symbol symbol((uint16_t)parsed_symbol.addr, parsed_symbol.name, group_id);
+    auto &&symbol_it = lsg->symbols.begin();
+    while (symbol_it != lsg->symbols.end()) {
+        Symbol *symbol = &*symbol_it;
 
-            // Check for duplicates - we allow multiple symbols per address, even from same group
-            auto existing_addr = m_address_to_symbols.find(symbol.address);
-            if (existing_addr != m_address_to_symbols.end()) {
-                // Check if exact same name from same group already exists
-                bool exact_duplicate_found = false;
-                for (const Symbol &existing : existing_addr->second) {
-                    if (existing.name == symbol.name && existing.group_id == symbol.group_id) {
-                        LOGF(SYMBOLS, "WARNING: Exact duplicate symbol '%s' at $%04X from group %zu at line %zu, skipping\n",
-                             symbol.name.c_str(), symbol.address, symbol.group_id, parsed_symbol.line_number);
-                        exact_duplicate_found = true;
-                        break;
-                    }
-                }
-                if (exact_duplicate_found) {
-                    continue; // Skip exact duplicates
-                }
+        if (symbol->name.empty()) {
+            LOGF(SYMBOLS, "WARNING: Invalid symbol at line %zu: address=$%X, name='%s'\n",
+                 symbol->line_number, symbol->address, symbol->name.c_str());
 
-                // Log addition of new symbol at existing address
-                bool same_group_different_name = false;
-                for (const Symbol &existing : existing_addr->second) {
-                    if (existing.group_id == symbol.group_id && existing.name != symbol.name) {
-                        same_group_different_name = true;
-                        break;
-                    }
-                }
+            symbol_it = lsg->symbols.erase(symbol_it);
+            continue;
+        }
 
-                if (same_group_different_name) {
-                    LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group. Parser: %s)\n",
-                         symbol.name.c_str(), symbol.address, parser->GetFormatName().c_str());
-                } else {
-                    LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
-                         symbol.name.c_str(), symbol.address, symbol.group_id, existing_addr->second.size() + 1);
+        symbol->group_id = group_id;
+
+        // Check for duplicates - we allow multiple symbols per address, even from same group
+        auto existing_addr = m_address_to_symbols.find(symbol->address);
+        if (existing_addr != m_address_to_symbols.end()) {
+            // Check if exact same name from same group already exists
+            bool exact_duplicate_found = false;
+            for (const Symbol &existing : existing_addr->second) {
+                if (existing.name == symbol->name && existing.group_id == symbol->group_id) {
+                    LOGF(SYMBOLS, "WARNING: Exact duplicate symbol '%s' at $%04X from group %zu at line %zu, skipping\n",
+                         symbol->name.c_str(), symbol->address, symbol->group_id, symbol->line_number);
+                    exact_duplicate_found = true;
+                    break;
+                }
+            }
+            if (exact_duplicate_found) {
+                continue; // Skip exact duplicates
+            }
+
+            // Log addition of new symbol at existing address
+            bool same_group_different_name = false;
+            for (const Symbol &existing : existing_addr->second) {
+                if (existing.group_id == symbol->group_id && existing.name != symbol->name) {
+                    same_group_different_name = true;
+                    break;
                 }
             }
 
-            // Add symbol to address mapping (append to vector)
-            m_address_to_symbols[symbol.address].push_back(symbol);
-
-            // Add symbol to name mapping (multimap allows duplicates)
-            m_name_to_addresses.insert({symbol.name, symbol.address});
-            this->InvalidateCache();
-        } else {
-            LOGF(SYMBOLS, "WARNING: Invalid symbol at line %zu: address=$%X, name='%s'\n",
-                 parsed_symbol.line_number, parsed_symbol.addr, parsed_symbol.name.c_str());
+            if (same_group_different_name) {
+                LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X (overrides earlier symbols from same group. Parser: %s)\n",
+                     symbol->name.c_str(), symbol->address, parser->GetFormatName().c_str());
+            } else {
+                LOGF(SYMBOLS, "INFO: Adding symbol '%s' at $%04X from group %zu (total at address: %zu)\n",
+                     symbol->name.c_str(), symbol->address, symbol->group_id, existing_addr->second.size() + 1);
+            }
         }
+
+        // Add symbol to address mapping (append to vector)
+        m_address_to_symbols[symbol->address].push_back(*symbol);
+
+        // Add symbol to name mapping (multimap allows duplicates)
+        m_name_to_addresses.insert({symbol->name, symbol->address});
+
+        ++symbol_it;
     }
 
     return true;
@@ -499,7 +512,7 @@ size_t SymbolTable::GetEnabledSymbolCount() const {
     size_t count = 0;
     for (const auto &pair : m_address_to_symbols) {
         for (const Symbol &symbol : pair.second) {
-            if (symbol.group_id < m_groups.size() && m_groups[symbol.group_id].enabled) {
+            if (symbol.group_id < m_groups.size() && m_groups[symbol.group_id]->group.enabled) {
                 count++;
             }
         }
@@ -546,12 +559,12 @@ bool SymbolTable::GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, con
         if (addr_it != m_address_to_symbols.end()) {
             for (const Symbol &symbol : addr_it->second) {
                 if (symbol.name == name && symbol.group_id < m_groups.size()) {
-                    const SymbolGroup *group = &m_groups[symbol.group_id];
-                    if (group->enabled) {
+                    const LoadedSymbolGroup *lsg = m_groups[symbol.group_id].get();
+                    if (lsg->group.enabled) {
                         *addr_ptr = address;
 
-                        if (!group->address_suffix_dso_masks.empty()) {
-                            const SymbolGroup::DSOMask *mask = &group->address_suffix_dso_masks[0];
+                        if (!lsg->address_suffix_dso_masks.empty()) {
+                            const LoadedSymbolGroup::DSOMask *mask = &lsg->address_suffix_dso_masks[0];
 
                             *dso_ptr &= ~mask->mask;
                             *dso_ptr |= mask->value;
@@ -663,11 +676,11 @@ bool SymbolTable::IsValidAddress(uint32_t addr) const {
 
 // Group Management Methods
 
-size_t SymbolTable::AddGroup(const SymbolGroup &group) {
-    m_groups.push_back(group);
-    this->InvalidateCache();
-    return m_groups.size() - 1;
-}
+//size_t SymbolTable::AddGroup(const SymbolGroup &group) {
+//    m_groups.push_back(group);
+//    this->InvalidateCache();
+//    return m_groups.size() - 1;
+//}
 
 //size_t SymbolTable::AddGroup(const std::string &name, const std::string &description, const std::string &file_path) {
 //    SymbolGroup group(name, description, file_path);
@@ -700,20 +713,18 @@ bool SymbolTable::RemoveGroup(size_t group_id) {
 
 void SymbolTable::EnableGroup(size_t group_id, bool enabled) {
     if (group_id < m_groups.size()) {
-        m_groups[group_id].enabled = enabled;
+        m_groups[group_id]->group.enabled = enabled;
         this->InvalidateCache();
     }
 }
 
-const SymbolTable::SymbolGroup *SymbolTable::GetGroup(size_t group_id) const {
-    if (group_id < m_groups.size()) {
-        return &m_groups[group_id];
-    }
-    return nullptr;
+const SymbolGroup *SymbolTable::GetGroupByIndex(size_t index) const {
+    ASSERT(index < m_groups.size());
+    return &m_groups[index]->group;
 }
 
-const std::vector<SymbolTable::SymbolGroup> &SymbolTable::GetAllGroups() const {
-    return m_groups;
+size_t SymbolTable::GetNumGroups() const {
+    return m_groups.size();
 }
 
 void SymbolTable::ClearGroup(size_t group_id) {
@@ -795,9 +806,11 @@ bool SymbolTable::MoveGroup(size_t from_index, size_t to_index) {
     }
 
     // Move the group in the vector
-    SymbolGroup group_to_move = m_groups[from_index];
-    m_groups.erase(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(from_index));
-    m_groups.insert(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(to_index), group_to_move);
+    {
+        std::unique_ptr<LoadedSymbolGroup> group_to_move = std::move(m_groups[from_index]);
+        m_groups.erase(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(from_index));
+        m_groups.insert(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(to_index), std::move(group_to_move));
+    }
 
     // Update all symbol group IDs using position-based mapping
     for (auto &addr_pair : m_address_to_symbols) {
@@ -849,7 +862,7 @@ bool SymbolTable::SetGroupName(size_t group_id, const std::string &new_name) {
         }
     }
 
-    m_groups[group_id].name = trimmed_name;
+    m_groups[group_id]->group.name = trimmed_name;
     LOGF(SYMBOLS, "Updated group %zu name to: %s\n", group_id, trimmed_name.c_str());
     return true;
 }
@@ -857,7 +870,7 @@ bool SymbolTable::SetGroupName(size_t group_id, const std::string &new_name) {
 void SymbolTable::SetGroupAddressSuffixes(size_t group_id, std::vector<std::string> new_address_suffixes) {
     ASSERT(group_id < m_groups.size());
 
-    m_groups[group_id].address_suffixes = std::move(new_address_suffixes);
+    m_groups[group_id]->group.address_suffixes = std::move(new_address_suffixes);
 
     this->InvalidateCache();
 }
@@ -908,12 +921,12 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
 
     for (const Symbol &symbol : it->second) {
         if (symbol.group_id < m_groups.size()) {
-            const SymbolGroup *group = &m_groups[symbol.group_id];
-            if (group->enabled) {
-                if (group->address_suffix_dso_masks.empty()) {
+            const LoadedSymbolGroup *lsg = m_groups[symbol.group_id].get();
+            if (lsg->group.enabled) {
+                if (lsg->address_suffix_dso_masks.empty()) {
                     return &symbol.name;
                 } else {
-                    for (const SymbolGroup::DSOMask &mask : group->address_suffix_dso_masks) {
+                    for (const LoadedSymbolGroup::DSOMask &mask : lsg->address_suffix_dso_masks) {
                         if ((dso & mask.mask) == mask.value) {
                             return &symbol.name;
                         }
@@ -1001,19 +1014,19 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
         return;
     }
 
-    for (SymbolGroup &group : m_groups) {
-        group.address_suffix_dso_masks.clear();
+    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
+        lsg->address_suffix_dso_masks.clear();
 
-        for (const std::string &address_suffix : group.address_suffixes) {
+        for (const std::string &address_suffix : lsg->group.address_suffixes) {
             uint32_t dso = 0;
 
             if (ParseAddressSuffix(&dso, type, address_suffix.c_str(), nullptr)) {
-                SymbolGroup::DSOMask mask;
+                LoadedSymbolGroup::DSOMask mask;
 
                 mask.mask = GetDSOMaskForOverrides(dso) & type->dso_mask;
                 mask.value = dso & type->dso_mask;
 
-                group.address_suffix_dso_masks.push_back(mask);
+                lsg->address_suffix_dso_masks.push_back(mask);
             } else {
                 // Should have been called out in the UI. Nothing to be done at
                 // this stage but ignore it.
@@ -1076,14 +1089,16 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
 // Persistence Methods
 
 struct PersistentSymbolTableData {
-    std::vector<SymbolTable::SymbolGroup> groups;
+    std::vector<SymbolGroup> groups;
 };
 JSON_SERIALIZE(PersistentSymbolTableData, groups);
 
 std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
     PersistentSymbolTableData p_std;
 
-    p_std.groups = m_groups;
+    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
+        p_std.groups.push_back(lsg->group);
+    }
 
     return std::make_shared<JSON>(p_std);
 }
@@ -1100,7 +1115,11 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j) {
         return false;
     }
 
-    m_groups = std::move(p_std.groups);
+    m_groups.clear();
+    for (SymbolGroup &group : p_std.groups) {
+        this->AddLoadedSymbolGroup(std::move(group), nullptr);
+    }
+
     this->ReloadAllGroups();
     return true;
 }
@@ -1113,24 +1132,24 @@ void SymbolTable::ReloadAllGroups() {
 
     // Reload each group from its source file
     for (size_t i = 0; i < m_groups.size(); ++i) {
-        const SymbolGroup &group = m_groups[i];
+        const SymbolGroup *group = &m_groups[i]->group;
 
         // Skip groups without source files (but always load disabled groups for counting)
-        if (group.file_path.empty()) {
+        if (group->file_path.empty()) {
             continue;
         }
 
         // Check if file exists
-        std::ifstream test_file(group.file_path);
+        std::ifstream test_file(group->file_path);
         if (!test_file.is_open()) {
             LOGF(SYMBOLS, "WARNING: Cannot reload group '%s' - file not found: %s\n",
-                 group.name.c_str(), group.file_path.c_str());
+                 group->name.c_str(), group->file_path.c_str());
             continue;
         }
         test_file.close();
 
         // Read and parse the file
-        std::ifstream file(group.file_path);
+        std::ifstream file(group->file_path);
         std::ostringstream content_stream;
         content_stream << file.rdbuf();
         std::string content = content_stream.str();
@@ -1138,11 +1157,29 @@ void SymbolTable::ReloadAllGroups() {
 
         // Load symbols into this group (preserving enabled state)
         LOGF(SYMBOLS, "Reloading group '%s' from: %s (enabled: %s)\n",
-             group.name.c_str(), group.file_path.c_str(), group.enabled ? "true" : "false");
+             group->name.c_str(), group->file_path.c_str(), BOOL_STR(group->enabled));
         this->LoadFromContent(content, i);
     }
 
     LOGF(SYMBOLS, "Reloaded %zu symbols across %zu groups\n", GetSymbolCount(), m_groups.size());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SymbolTable::LoadedSymbolGroup *SymbolTable::AddLoadedSymbolGroup(SymbolGroup new_group, size_t *group_index) {
+    auto &&lsg = std::make_unique<LoadedSymbolGroup>();
+
+    lsg->group = std::move(new_group);
+
+    if (group_index) {
+        *group_index = m_groups.size();
+    }
+
+    SymbolTable::LoadedSymbolGroup *lsg_ptr = lsg.get();
+    m_groups.push_back(std::move(lsg));
+
+    return lsg_ptr;
 }
 
 //////////////////////////////////////////////////////////////////////////

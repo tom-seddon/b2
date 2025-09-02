@@ -713,7 +713,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     if (!!m_settings.symbol_table_data) {
         try {
             if (m_symbol_table->LoadFromJSON(m_settings.symbol_table_data)) {
-                LOGF(SYMBOLS, "Restored symbol table persistence data with %zu groups\n", m_symbol_table->GetAllGroups().size());
+                LOGF(SYMBOLS, "Restored symbol table persistence data with %zu groups\n", m_symbol_table->GetNumGroups());
             } else {
                 LOGF(SYMBOLS, "WARNING: Failed to load symbol table persistence data - JSON was valid but load failed\n");
             }
@@ -2551,14 +2551,15 @@ void BeebWindow::DoDebugMenu() {
 
         if (ImGui::BeginMenu("Symbol groups")) {
             // Show loaded groups and symbols (grouped by name for bulk operations)
-            const auto &groups = m_symbol_table->GetAllGroups();
-            if (!groups.empty()) {
+            const size_t num_groups = m_symbol_table->GetNumGroups();
+            if (num_groups > 0) {
                 ImGui::Text("Loaded symbol groups:");
 
                 // Group entries by name for consolidated display
                 std::map<std::string, std::vector<size_t>> groups_by_name;
-                for (size_t i = 0; i < groups.size(); ++i) {
-                    groups_by_name[groups[i].name].push_back(i);
+                for (size_t i = 0; i < num_groups; ++i) {
+                    const SymbolGroup *group = m_symbol_table->GetGroupByIndex(i);
+                    groups_by_name[group->name].push_back(i);
                 }
 
                 // Show one checkbox per unique group name
@@ -2569,11 +2570,12 @@ void BeebWindow::DoDebugMenu() {
                     std::vector<std::string> file_names;
 
                     for (size_t idx : indices) {
-                        if (groups[idx].enabled) {
+                        const SymbolGroup *group = m_symbol_table->GetGroupByIndex(idx);
+                        if (group->enabled) {
                             enabled_count++;
                         }
                         // Extract filename for tooltip
-                        std::string file_path = groups[idx].file_path;
+                        std::string file_path = group->file_path;
                         size_t last_slash = file_path.find_last_of("/\\");
                         if (last_slash != std::string::npos) {
                             file_names.push_back(file_path.substr(last_slash + 1));
@@ -2648,8 +2650,8 @@ void BeebWindow::DoDebugMenu() {
                             // Multiple files
                             ImGui::Text("%s (%zu files):", group_name.c_str(), total_count);
                             for (size_t i = 0; i < file_names.size(); ++i) {
-                                const auto &group = groups[indices[i]];
-                                ImGui::Text("  %s %s", group.enabled ? "[X]" : "[ ]", file_names[i].c_str());
+                                const SymbolGroup *group = m_symbol_table->GetGroupByIndex(indices[i]);
+                                ImGui::Text("  %s %s", group->enabled ? "[X]" : "[ ]", file_names[i].c_str());
                             }
                             ImGui::Text("Status: %zu of %zu enabled", enabled_count, total_count);
                         }
@@ -4264,22 +4266,24 @@ void SymbolGroupManagementUI::DoImGui() {
 
     // Get reference to groups
     SymbolTable &symbol_table = *m_beeb_window->GetMutableSymbolTable();
-    const auto &groups = symbol_table.GetAllGroups();
+    //const auto &groups = symbol_table.GetAllGroups();
+    const size_t num_groups = symbol_table.GetNumGroups();
 
     // Ensure selection state matches group count
-    if (m_selected_groups.size() != groups.size()) {
-        m_selected_groups.resize(groups.size(), false);
+    if (m_selected_groups.size() != num_groups) {
+        m_selected_groups.resize(num_groups, false);
     }
 
     // Ensure name buffers match group count and are initialized
-    if (m_group_name_buffers.size() != groups.size()) {
-        m_group_name_buffers.resize(groups.size());
-        for (size_t i = 0; i < groups.size(); ++i) {
-            m_group_name_buffers[i] = groups[i].name;
+    if (m_group_name_buffers.size() != num_groups) {
+        m_group_name_buffers.resize(num_groups);
+        for (size_t i = 0; i < num_groups; ++i) {
+            const SymbolGroup *group = symbol_table.GetGroupByIndex(i);
+            m_group_name_buffers[i] = group->name;
         }
     }
 
-    if (groups.empty()) {
+    if (num_groups == 0) {
         ImGui::Text("No symbol groups loaded.");
     } else {
         ImGui::Text("Groups are ordered by precedence (lower position = higher precedence)");
@@ -4308,7 +4312,7 @@ void SymbolGroupManagementUI::DoImGui() {
                                       ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable;
 
         // Calculate table height to fit content without excessive scrolling
-        float table_height = ImGui::GetTextLineHeightWithSpacing() * (groups.size() + 1);                                     // +1 for header
+        float table_height = ImGui::GetTextLineHeightWithSpacing() * (num_groups + 1);                                        // +1 for header
         table_height = std::min(table_height, ImGui::GetContentRegionAvail().y - SymbolUI::MANAGEMENT_TABLE_RESERVED_HEIGHT); // Reserve space for buttons below
 
         if (ImGui::BeginTable("symbol_groups", 8, table_flags, ImVec2(0.0f, table_height))) {
@@ -4326,8 +4330,8 @@ void SymbolGroupManagementUI::DoImGui() {
             ImGui::TableHeadersRow();
 
             // List all groups
-            for (size_t i = 0; i < groups.size(); ++i) {
-                const auto &group = groups[i];
+            for (size_t i = 0; i < num_groups; ++i) {
+                const SymbolGroup *group = symbol_table.GetGroupByIndex(i);
 
                 ImGui::PushID((int)i);
                 ImGui::TableNextRow();
@@ -4360,7 +4364,7 @@ void SymbolGroupManagementUI::DoImGui() {
                     // Check if double-click was in Contexts column
                     if (mouse_pos.x >= contexts_col_start && mouse_pos.x < contexts_col_end) {
                         m_editing_contexts_id = static_cast<int>(i);
-                        m_editing_address_suffixes = group.address_suffixes;
+                        m_editing_address_suffixes = group->address_suffixes;
                     }
                 }
 
@@ -4403,7 +4407,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 ImGui::SameLine(0, 2); // Tight spacing
 
                 // Down button
-                if (i < groups.size() - 1) { // Can't move below last position
+                if (i < num_groups - 1) { // Can't move below last position
                     if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
                         if (symbol_table.MoveGroup(i, i + 1)) {
                             // Swap selection states too
@@ -4430,7 +4434,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 float enabled_center_offset = (enabled_column_width - enabled_checkbox_width) * 0.5f;
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + enabled_center_offset);
 
-                bool enabled = group.enabled;
+                bool enabled = group->enabled;
                 std::string checkbox_id = "##enabled_" + std::to_string(i);
                 if (ImGui::Checkbox(checkbox_id.c_str(), &enabled)) {
                     symbol_table.EnableGroup(i, enabled);
@@ -4456,7 +4460,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 // Save changes when Enter pressed or focus lost
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     std::string new_name = m_group_name_buffers[i];
-                    if (new_name != group.name) {
+                    if (new_name != group->name) {
                         symbol_table.SetGroupName(i, new_name);
                     }
                 }
@@ -4464,7 +4468,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 // Right-click context menu for the group name
                 std::string popup_id = "group_context_menu_" + std::to_string(i);
                 if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
-                    std::string display_name = group.name.empty() ? "Unnamed Group" : group.name;
+                    std::string display_name = group->name.empty() ? "Unnamed Group" : group->name;
                     ImGui::Text("Group: %s", display_name.c_str());
                     ImGui::Separator();
                     if (ImGui::MenuItem("Delete")) {
@@ -4481,7 +4485,7 @@ void SymbolGroupManagementUI::DoImGui() {
                     ImGui::BeginTooltip();
                     ImGui::Text("Number of symbols in this group");
                     if (group_symbol_count > 0) {
-                        if (group.enabled) {
+                        if (group->enabled) {
                             ImGui::Text("All %zu symbols are active", group_symbol_count);
                         } else {
                             ImGui::Text("All %zu symbols are disabled", group_symbol_count);
@@ -4499,7 +4503,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 // Display contexts (clickable) - show all contexts, no truncation
                 std::string display_text;
-                for (const std::string &address_suffix : group.address_suffixes) {
+                for (const std::string &address_suffix : group->address_suffixes) {
                     if (!display_text.empty()) {
                         display_text += ";";
                     }
@@ -4516,11 +4520,11 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 // Column 7: Source file
                 ImGui::TableSetColumnIndex(7);
-                if (group.file_path.empty()) {
+                if (group->file_path.empty()) {
                     ImGui::Text("-");
                 } else {
                     // Show just filename
-                    std::string filename = group.file_path;
+                    std::string filename = group->file_path;
                     size_t slash_pos = filename.find_last_of("/\\");
                     if (slash_pos != std::string::npos) {
                         filename = filename.substr(slash_pos + 1);
@@ -4529,7 +4533,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
                     if (ImGui::IsItemHovered()) {
                         ImGui::BeginTooltip();
-                        ImGui::Text("Full path: %s", group.file_path.c_str());
+                        ImGui::Text("Full path: %s", group->file_path.c_str());
                         ImGui::EndTooltip();
                     }
                 }
@@ -4591,7 +4595,7 @@ void SymbolGroupManagementUI::DoImGui() {
         ImGui::SetNextWindowSize(ImVec2(SymbolUI::CONTEXT_MODAL_WIDTH, SymbolUI::CONTEXT_MODAL_HEIGHT), ImGuiCond_Appearing);
 
         if (ImGui::BeginPopupModal("Edit Memory Contexts", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            if (m_editing_contexts_id >= 0 && static_cast<size_t>(m_editing_contexts_id) < groups.size()) {
+            if (m_editing_contexts_id >= 0 && static_cast<size_t>(m_editing_contexts_id) < num_groups) {
                 //const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
 
                 //ImGui::Text("Editing contexts for group: %s", group.name.c_str());

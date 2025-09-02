@@ -21,10 +21,9 @@ static const char TEST_DATA_2[] =
     END_MACRO
 
 static size_t MustFindGroupIndex(const SymbolTable &st, const std::string &file_path) {
-    const std::vector<SymbolTable::SymbolGroup> &groups = st.GetAllGroups();
-
-    for (size_t i = 0; i < groups.size(); ++i) {
-        if (groups[i].file_path == file_path) {
+    for (size_t i = 0; i < st.GetNumGroups(); ++i) {
+        const SymbolGroup *group = st.GetGroupByIndex(i);
+        if (group->file_path == file_path) {
             return i;
         }
     }
@@ -64,6 +63,14 @@ int main() {
         st.EnableGroup(group1_index, false);
 
         TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label1_2");
+
+        st.EnableGroup(group1_index, true);
+
+        TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label1_1");
+
+        st.MoveGroup(group2_index, group1_index);
+
+        //TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label1_2");
     }
 #endif
 }

@@ -5360,4 +5360,37 @@ include folders are right:
 
 But only "like". The above didn't work.
 
+* Symbol stuff
+
+#+begin_src c++
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  struct SymbolFile {
+      // Path for symbol file.
+      std::string file_path;
+
+      // One of the registered parser names (going by GetFormatName).
+      // Auto-detected if name not found.
+      std::string file_format_name;
+
+      bool enabled = true;
+
+      // Address suffixes for which this symbol group applies. Serialised
+      // as-is.
+      std::vector<std::string> address_suffixes;
+  };
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  struct Symbol {
+      std::string name;
+      uint32_t address = 0;
+      size_t line_number = 0;
+  };
+
+#+end_src
+
+
 * eof.
