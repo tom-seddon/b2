@@ -4631,6 +4631,8 @@ void SymbolGroupManagementUI::DoImGui() {
                 {
                     auto &&it = m_editing_address_suffixes.begin();
                     while (it != m_editing_address_suffixes.end()) {
+                        ImGuiIDPusher pusher(&*it);
+
                         ImGui::TextUnformatted(it->c_str());
                         ImGui::SameLine();
                         if (ImGui::Button("x")) {
