@@ -847,6 +847,8 @@ void SymbolTable::SetGroupAddressSuffixes(size_t group_id, std::vector<std::stri
     ASSERT(group_id < m_groups.size());
 
     m_groups[group_id].address_suffixes = std::move(new_address_suffixes);
+
+    this->InvalidateCache();
 }
 
 //bool SymbolTable::SetGroupContexts(size_t group_id, const std::set<char> &new_contexts) {
