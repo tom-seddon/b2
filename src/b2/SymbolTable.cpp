@@ -899,9 +899,13 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
         if (symbol.group_id < m_groups.size()) {
             const SymbolGroup *group = &m_groups[symbol.group_id];
             if (group->enabled) {
-                for (const SymbolGroup::DSOMask &mask : group->address_suffix_dso_masks) {
-                    if ((dso & mask.mask) == mask.value) {
-                        return &symbol.name;
+                if (group->address_suffix_dso_masks.empty()) {
+                    return &symbol.name;
+                } else {
+                    for (const SymbolGroup::DSOMask &mask : group->address_suffix_dso_masks) {
+                        if ((dso & mask.mask) == mask.value) {
+                            return &symbol.name;
+                        }
                     }
                 }
             }
