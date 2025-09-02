@@ -712,7 +712,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     // Load symbol table from persistent data if available
     if (!!m_settings.symbol_table_data) {
         try {
-            if (m_symbol_table->LoadFromJSON(m_settings.symbol_table_data)) {
+            if (m_symbol_table->LoadFromJSON(m_settings.symbol_table_data, &m_msg)) {
                 LOGF(SYMBOLS, "Restored symbol table persistence data with %zu groups\n", m_symbol_table->GetNumGroups());
             } else {
                 LOGF(SYMBOLS, "WARNING: Failed to load symbol table persistence data - JSON was valid but load failed\n");
@@ -2534,7 +2534,7 @@ void BeebWindow::DoDebugMenu() {
                 std::string path;
                 if (fd.Open(&path)) {
                     // The settings can be modified once the symbol file is loaded.
-                    bool success = m_symbol_table->LoadFromFile(path, selected_parser);
+                    bool success = m_symbol_table->LoadFromFile(path, selected_parser, &m_msg);
                     if (success) {
                         m_msg.i.f("Symbols loaded from file: %s\n", path.c_str());
                     } else {
@@ -2545,7 +2545,7 @@ void BeebWindow::DoDebugMenu() {
         }
 
         if (ImGui::MenuItem("Reload All Symbols")) {
-            m_symbol_table->ReloadAllGroups();
+            m_symbol_table->ReloadAllGroups(&m_msg);
             m_msg.i.f("All symbol files have been reloaded from disk.\n");
         }
 
@@ -4549,7 +4549,7 @@ void SymbolGroupManagementUI::DoImGui() {
         // Action buttons
         if (ImGui::Button("Reload All")) {
             Messages msg(m_beeb_window->GetMessageList());
-            symbol_table.ReloadAllGroups();
+            symbol_table.ReloadAllGroups(&msg);
             msg.i.f("All symbol files have been reloaded from disk.\n");
         }
 

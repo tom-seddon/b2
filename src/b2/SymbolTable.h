@@ -15,16 +15,16 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include <unordered_map>
 #include <shared/json.h>
 
 struct BBCMicroType;
+struct LogSet;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 struct Symbol {
-    // 
+    //
     uint16_t address = 0;
 
     //
@@ -67,7 +67,7 @@ class SymbolTable {
 
     // Core functionality
     void Clear();
-    bool LoadFromFile(const std::string &filepath, const SymbolParser *parser);
+    bool LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs);
     bool LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser);
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
@@ -136,8 +136,8 @@ class SymbolTable {
 
     // Persistence support
     std::shared_ptr<JSON> SaveToJSON() const;
-    bool LoadFromJSON(const std::shared_ptr<JSON> &j);
-    void ReloadAllGroups(); // Reload all groups from their source files
+    bool LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *logs);
+    void ReloadAllGroups(const LogSet *logs); // Reload all groups from their source files
 
     // Debugging/utility
     //void PrintStats() const;
@@ -173,7 +173,7 @@ class SymbolTable {
         uint16_t address = 0;
     };
 
-    mutable std::map<uint16_t, SymbolsAtAddress> m_cache_address_to_symbols;        // Multiple symbols per address
+    mutable std::map<uint16_t, SymbolsAtAddress> m_cache_address_to_symbols;                // Multiple symbols per address
     mutable std::map<std::string, std::vector<AddressForSymbol>> m_cache_name_to_addresses; // Multiple addresses per name
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;

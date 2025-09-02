@@ -1,5 +1,4 @@
 #include <shared/system.h>
-#include <shared/system.h>
 #include "conf.h"
 
 #if BBCMICRO_DEBUGGER
@@ -9,14 +8,11 @@
 #include <shared/debug.h>
 #include "memory_contexts.h"
 #include <shared/log.h>
-#include <fstream>
-#include <sstream>
 #include <regex>
 #include <algorithm>
-#include <unordered_map>
-#include <memory>
-#include <vector>
 #include <beeb/type.h>
+#include <shared/file_io.h>
+#include <sstream>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -71,7 +67,7 @@ void SymbolTable::Clear() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *parser) {
+bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs) {
     LOGF(SYMBOLS, "Loading symbols from: %s\n", filepath.c_str());
 
     //// Validate all memory contexts before proceeding
@@ -82,17 +78,10 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
     //    }
     //}
 
-    std::ifstream file(filepath);
-    if (!file.is_open()) {
-        LOGF(SYMBOLS, "ERROR: Could not open symbol file: %s\n", filepath.c_str());
+    std::string content;
+    if (!LoadTextFile(&content, filepath, logs)) {
         return false;
     }
-
-    // Read entire file content
-    std::ostringstream content_stream;
-    content_stream << file.rdbuf();
-    std::string content = content_stream.str();
-    file.close();
 
     // Always create a new group for each file loaded
     //std::string actual_group_name = group_name.empty() ? "Global" : group_name;
@@ -1189,7 +1178,7 @@ std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
     return std::make_shared<JSON>(p_std);
 }
 
-bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j) {
+bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *logs) {
     if (!j) {
         return false;
     }
@@ -1197,7 +1186,7 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j) {
     PersistentSymbolTableData p_std;
     std::string error;
     if (!j->Load(&p_std, &error)) {
-        LOGF(SYMBOLS, "ERROR: Failed to load symbol groups from JSON: %s\n", error.c_str());
+        logs->e.f("Failed to load symbol groups from JSON: %s\n", error.c_str());
         return false;
     }
 
@@ -1206,11 +1195,11 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j) {
         this->AddLoadedSymbolGroup(std::move(group), nullptr);
     }
 
-    this->ReloadAllGroups();
+    this->ReloadAllGroups(logs);
     return true;
 }
 
-void SymbolTable::ReloadAllGroups() {
+void SymbolTable::ReloadAllGroups(const LogSet *logs) {
     // Clear all symbols but keep groups
     //m_address_to_symbols.clear();
     //m_name_to_addresses.clear();
@@ -1220,26 +1209,10 @@ void SymbolTable::ReloadAllGroups() {
     for (size_t i = 0; i < m_groups.size(); ++i) {
         const SymbolGroup *group = &m_groups[i]->group;
 
-        // Skip groups without source files (but always load disabled groups for counting)
-        if (group->file_path.empty()) {
+        std::string content;
+        if (!LoadTextFile(&content, group->file_path, logs)) {
             continue;
         }
-
-        // Check if file exists
-        std::ifstream test_file(group->file_path);
-        if (!test_file.is_open()) {
-            LOGF(SYMBOLS, "WARNING: Cannot reload group '%s' - file not found: %s\n",
-                 group->name.c_str(), group->file_path.c_str());
-            continue;
-        }
-        test_file.close();
-
-        // Read and parse the file
-        std::ifstream file(group->file_path);
-        std::ostringstream content_stream;
-        content_stream << file.rdbuf();
-        std::string content = content_stream.str();
-        file.close();
 
         // Load symbols into this group (preserving enabled state)
         LOGF(SYMBOLS, "Reloading group '%s' from: %s (enabled: %s)\n",
