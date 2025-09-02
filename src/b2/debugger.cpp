@@ -18,7 +18,7 @@
 
 static CommandTable2 g_disassembly_table("Disassembly Window", BBCMICRO_DEBUGGER);
 static Command2 g_toggle_track_pc_command = Command2(&g_disassembly_table, "toggle_track_pc", "Track PC").WithShortcut(SDLK_t);
-static Command2 g_toggle_show_labels_command = Command2(&g_disassembly_table, "toggle_show_labels", "Show Labels").WithShortcut(SDLK_l);
+static Command2 g_toggle_show_labels_command = Command2(&g_disassembly_table, "toggle_show_symbols", "Show Symbols").WithShortcut(SDLK_l);
 static Command2 g_back_command = Command2(&g_disassembly_table, "back", "Back").WithShortcut(SDLK_BACKSPACE);
 static Command2 g_up_command = Command2(&g_disassembly_table, "up", "Up").WithShortcut(SDLK_UP);
 static Command2 g_down_command = Command2(&g_disassembly_table, "down", "Down").WithShortcut(SDLK_DOWN);
@@ -1534,8 +1534,9 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
 
 struct DisassemblyDebugWindowPersistentData {
     bool track_pc = false;
+    bool show_symbols = false;
 };
-JSON_SERIALIZE(DisassemblyDebugWindowPersistentData, track_pc);
+JSON_SERIALIZE(DisassemblyDebugWindowPersistentData, track_pc, show_symbols);
 
 class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebugWindowPersistentData>,
                                public RevealTargetUI {
@@ -1614,9 +1615,9 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             }
         }
 
-        this->cst->SetTicked(g_toggle_show_labels_command, m_show_labels);
+        this->cst->SetTicked(g_toggle_show_labels_command, m_persistent.show_symbols);
         if (this->cst->WasActioned(g_toggle_show_labels_command)) {
-            m_show_labels = !m_show_labels;
+            m_persistent.show_symbols = !m_persistent.show_symbols;
         }
 
         this->cst->SetEnabled(g_back_command, !m_history.empty());
@@ -1789,7 +1790,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, line_dbp->bp.metadata->aligned_codes);
             this->DoBytePopupGui(line_dbp, line_addr);
 
-            if (m_show_labels) {
+            if (m_persistent.show_symbols) {
                 // Check for symbol at this address when labels are enabled
                 const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
 
@@ -2024,7 +2025,6 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     uint16_t m_addr = 0;
     int32_t m_old_pc = -1;
 
-    bool m_show_labels = false;
     char m_address_text[100] = {};
     char m_symbol_error_text[200] = {};
     double m_symbol_error_time = 0.0;
@@ -2122,7 +2122,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         char label[100];
 
         // Check if we should use symbols instead of hex addresses
-        if (m_show_labels) {
+        if (m_persistent.show_symbols) {
             const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
 
             // Use context-aware symbol lookup
