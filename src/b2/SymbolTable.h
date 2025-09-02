@@ -80,8 +80,8 @@ class SymbolTable {
     const std::vector<SymbolGroup> &GetAllGroups() const;
     void ClearGroup(size_t group_id);
     bool MoveGroup(size_t from_index, size_t to_index);
-    void ReassignGroupIds();
-    void ReassignGroupIds(const std::vector<std::string> &original_group_names);
+    //void ReassignGroupIds();
+    //void ReassignGroupIds(const std::vector<std::string> &original_group_names);
 
     // Group metadata editing
     bool SetGroupName(size_t group_id, const std::string &new_name);
@@ -152,7 +152,7 @@ class SymbolTable {
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
 
     // Helper methods
-    std::string TrimWhitespace(const std::string &str) const;
+    //std::string TrimWhitespace(const std::string &str) const;
     bool IsValidAddress(uint32_t addr) const;
     void InvalidateCache() const;
     void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;

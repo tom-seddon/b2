@@ -801,18 +801,18 @@ bool SymbolTable::MoveGroup(size_t from_index, size_t to_index) {
     return true;
 }
 
-void SymbolTable::ReassignGroupIds(const std::vector<std::string> &original_group_names) {
-    // This method is deprecated - group reordering now uses position-based mapping
-    // instead of name-based mapping to handle duplicate group names correctly.
-    // Kept for backward compatibility but no longer used by MoveGroup.
-    (void)original_group_names; // Suppress unused parameter warning
-}
-
-void SymbolTable::ReassignGroupIds() {
-    // This method is deprecated - group reordering now uses position-based mapping
-    // built into MoveGroup() instead of separate name-based reassignment.
-    // Kept for backward compatibility but no longer used.
-}
+//void SymbolTable::ReassignGroupIds(const std::vector<std::string> &original_group_names) {
+//    // This method is deprecated - group reordering now uses position-based mapping
+//    // instead of name-based mapping to handle duplicate group names correctly.
+//    // Kept for backward compatibility but no longer used by MoveGroup.
+//    (void)original_group_names; // Suppress unused parameter warning
+//}
+//
+//void SymbolTable::ReassignGroupIds() {
+//    // This method is deprecated - group reordering now uses position-based mapping
+//    // built into MoveGroup() instead of separate name-based reassignment.
+//    // Kept for backward compatibility but no longer used.
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
