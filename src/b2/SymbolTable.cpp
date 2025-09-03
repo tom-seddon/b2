@@ -86,7 +86,7 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
 //////////////////////////////////////////////////////////////////////////
 
 bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser) {
-    size_t group_id;
+    size_t file_index;
     LoadedSymbolGroup *lsg;
     {
         SymbolGroup new_group;
@@ -96,13 +96,13 @@ bool SymbolTable::LoadFromString(const std::string &content, const std::string &
             new_group.file_format_name = parser->GetFormatName();
         }
 
-        lsg = this->AddLoadedSymbolGroup(std::move(new_group), &group_id);
+        lsg = this->AddLoadedSymbolGroup(std::move(new_group), &file_index);
     }
 
     size_t old_count = GetSymbolCount();
 
     // Detect format and load with appropriate parser
-    bool success = LoadFromContent(content, group_id);
+    bool success = LoadFromContent(content, file_index);
 
     if (success) {
         size_t new_count = GetSymbolCount();
@@ -380,8 +380,8 @@ const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromContent(const std::string &content, size_t group_id) {
-    LoadedSymbolGroup *lsg = m_groups[group_id].get();
+bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index) {
+    LoadedSymbolGroup *lsg = m_groups[file_index].get();
 
     const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(lsg->group.file_format_name);
     if (!parser) {
@@ -454,9 +454,9 @@ size_t SymbolTable::GetEnabledSymbolCount() const {
     return n;
 }
 
-size_t SymbolTable::GetSymbolCountForGroup(size_t group_id) const {
-    ASSERT(group_id < m_groups.size());
-    return m_groups[group_id]->symbols.size();
+size_t SymbolTable::GetSymbolCountForFile(size_t file_index) const {
+    ASSERT(file_index < m_groups.size());
+    return m_groups[file_index]->symbols.size();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -500,35 +500,35 @@ bool SymbolTable::IsValidAddress(uint32_t addr) const {
 
 // Group Management Methods
 
-bool SymbolTable::RemoveGroup(size_t group_id) {
-    if (group_id >= m_groups.size()) {
+bool SymbolTable::RemoveFile(size_t file_index) {
+    if (file_index >= m_groups.size()) {
         return false;
     }
 
     // Remove the group
-    m_groups.erase(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(group_id));
+    m_groups.erase(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(file_index));
 
     this->InvalidateCache();
     return true;
 }
 
-void SymbolTable::EnableGroup(size_t group_id, bool enabled) {
-    if (group_id < m_groups.size()) {
-        m_groups[group_id]->group.enabled = enabled;
+void SymbolTable::EnableFile(size_t file_index, bool enabled) {
+    if (file_index < m_groups.size()) {
+        m_groups[file_index]->group.enabled = enabled;
         this->InvalidateCache();
     }
 }
 
-const SymbolGroup *SymbolTable::GetGroupByIndex(size_t index) const {
-    ASSERT(index < m_groups.size());
-    return &m_groups[index]->group;
+const SymbolGroup *SymbolTable::GetFileByIndex(size_t file_index) const {
+    ASSERT(file_index < m_groups.size());
+    return &m_groups[file_index]->group;
 }
 
-size_t SymbolTable::GetNumGroups() const {
+size_t SymbolTable::GetNumFiles() const {
     return m_groups.size();
 }
 
-bool SymbolTable::MoveGroup(size_t from_index, size_t to_index) {
+bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
     if (from_index >= m_groups.size() || to_index >= m_groups.size() || from_index == to_index) {
         return false;
     }
@@ -549,8 +549,8 @@ bool SymbolTable::MoveGroup(size_t from_index, size_t to_index) {
 
 // Group Metadata Editing Methods
 
-bool SymbolTable::SetGroupName(size_t group_id, const std::string &new_name) {
-    if (group_id >= m_groups.size()) {
+bool SymbolTable::SetFileGroupName(size_t file_index, const std::string &new_name) {
+    if (file_index >= m_groups.size()) {
         return false;
     }
 
@@ -568,15 +568,15 @@ bool SymbolTable::SetGroupName(size_t group_id, const std::string &new_name) {
         }
     }
 
-    m_groups[group_id]->group.name = trimmed_name;
-    LOGF(SYMBOLS, "Updated group %zu name to: %s\n", group_id, trimmed_name.c_str());
+    m_groups[file_index]->group.name = trimmed_name;
+    LOGF(SYMBOLS, "Updated file %zu group name to: %s\n", file_index, trimmed_name.c_str());
     return true;
 }
 
-void SymbolTable::SetGroupAddressSuffixes(size_t group_id, std::vector<std::string> new_address_suffixes) {
-    ASSERT(group_id < m_groups.size());
+void SymbolTable::SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes) {
+    ASSERT(file_index < m_groups.size());
 
-    m_groups[group_id]->group.address_suffixes = std::move(new_address_suffixes);
+    m_groups[file_index]->group.address_suffixes = std::move(new_address_suffixes);
 
     this->InvalidateCache();
 }
@@ -728,11 +728,11 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *log
         this->AddLoadedSymbolGroup(std::move(group), nullptr);
     }
 
-    this->ReloadAllGroups(logs);
+    this->ReloadAllFiles(logs);
     return true;
 }
 
-void SymbolTable::ReloadAllGroups(const LogSet *logs) {
+void SymbolTable::ReloadAllFiles(const LogSet *logs) {
     // Clear all symbols but keep groups
     //m_address_to_symbols.clear();
     //m_name_to_addresses.clear();
@@ -759,13 +759,13 @@ void SymbolTable::ReloadAllGroups(const LogSet *logs) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable::LoadedSymbolGroup *SymbolTable::AddLoadedSymbolGroup(SymbolGroup new_group, size_t *group_index) {
+SymbolTable::LoadedSymbolGroup *SymbolTable::AddLoadedSymbolGroup(SymbolGroup new_group, size_t *file_index) {
     auto &&lsg = std::make_unique<LoadedSymbolGroup>();
 
     lsg->group = std::move(new_group);
 
-    if (group_index) {
-        *group_index = m_groups.size();
+    if (file_index) {
+        *file_index = m_groups.size();
     }
 
     SymbolTable::LoadedSymbolGroup *lsg_ptr = lsg.get();

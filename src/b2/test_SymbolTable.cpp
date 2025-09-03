@@ -11,14 +11,14 @@ static const char TEST_DATA_1[] =
     "label2_1=$8001\n"
     "label3_1=$8000\n"
     "ambiguous=$1000\n"
-    "group1_only=$2001\n";
+    "file1_only=$2001\n";
 
 static const char TEST_DATA_2[] =
     "label1_2=$8000\n"
     "label2_2=$8001\n"
     "label3_2=$8000\n"
     "ambiguous=$1001\n"
-    "group2_only=$2002\n";
+    "file2_only=$2002\n";
 
 #define TEST_EQ_SYMBOL_S(GOT_NAME_PTR, WANTED_NAME) \
     BEGIN_MACRO {                                   \
@@ -27,16 +27,15 @@ static const char TEST_DATA_2[] =
     }                                               \
     END_MACRO
 
-static size_t
-MustFindGroupIndex(const SymbolTable &st, const std::string &file_path) {
-    for (size_t i = 0; i < st.GetNumGroups(); ++i) {
-        const SymbolGroup *group = st.GetGroupByIndex(i);
-        if (group->file_path == file_path) {
+static size_t MustFindFileIndex(const SymbolTable &st, const std::string &file_path) {
+    for (size_t i = 0; i < st.GetNumFiles(); ++i) {
+        const SymbolGroup *file = st.GetFileByIndex(i);
+        if (file->file_path == file_path) {
             return i;
         }
     }
 
-    TEST_FAIL("couldn't find expected symbol group: %s", file_path.c_str());
+    TEST_FAIL("couldn't find expected symbol file: %s", file_path.c_str());
 }
 
 int main() {
@@ -49,13 +48,13 @@ int main() {
 
     TEST_TRUE(st.LoadFromString(TEST_DATA_1, "1", acme_parser));
 
-    size_t group1_index = MustFindGroupIndex(st, "1");
-    TEST_GE_II(group1_index, 0);
+    size_t file1_index = MustFindFileIndex(st, "1");
+    TEST_GE_II(file1_index, 0);
 
     TEST_TRUE(st.LoadFromString(TEST_DATA_2, "2", acme_parser));
 
-    size_t group2_index = MustFindGroupIndex(st, "2");
-    TEST_GE_II(group2_index, 0);
+    size_t file2_index = MustFindFileIndex(st, "2");
+    TEST_GE_II(file2_index, 0);
 
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
@@ -71,42 +70,42 @@ int main() {
 
     TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label3_1");
 
-    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "group1_only"));
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "file1_only"));
     TEST_EQ_UU(addr, 0x2001);
 
-    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "group2_only"));
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "file2_only"));
     TEST_EQ_UU(addr, 0x2002);
 
     TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "ambiguous"));
     TEST_EQ_UU(addr, 0x1000);
 
-    st.EnableGroup(group1_index, false);
+    st.EnableFile(file1_index, false);
 
     // 1=disabled, 2=enabled
 
     TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label3_2");
 
-    TEST_FALSE(st.GetAddressForSymbol(&addr, &dso, type, "group1_only"));
+    TEST_FALSE(st.GetAddressForSymbol(&addr, &dso, type, "file1_only"));
 
-    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "group2_only"));
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "file2_only"));
     TEST_EQ_UU(addr, 0x2002);
 
     TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "ambiguous"));
     TEST_EQ_UU(addr, 0x1001);
 
-    st.EnableGroup(group1_index, true);
+    st.EnableFile(file1_index, true);
 
     // 1=enabled, 2=enabled
 
     TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label3_1");
 
-    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "group1_only"));
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "file1_only"));
     TEST_EQ_UU(addr, 0x2001);
 
-    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "group2_only"));
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "file2_only"));
     TEST_EQ_UU(addr, 0x2002);
 
-    st.MoveGroup(group2_index, group1_index);
+    st.MoveFile(file2_index, file1_index);
 
     // 2=enabled, 1=enabled
 

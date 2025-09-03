@@ -17,6 +17,11 @@
 #include <vector>
 #include <shared/json.h>
 
+// stupid windows.h crap.
+#ifdef MoveFile
+#undef MoveFile
+#endif
+
 struct BBCMicroType;
 struct LogSet;
 
@@ -40,10 +45,11 @@ struct Symbol {
 // TODO: this should be called SymbolFile, but it's a lot of stuff to change
 // and follow through.
 struct SymbolGroup {
-    std::string name;
+    std::string name;             //TODO: should really be called "group name"
     std::string file_path;        // source file for this group
     std::string file_format_name; // or "" for auto-detect
     bool enabled = true;
+    uint8_t tag = 0;
 
     // Address suffixes for which this symbol group applies. Serialised
     // as-is.
@@ -52,7 +58,6 @@ struct SymbolGroup {
     // if adding more stuff that needs serializing, be sure to update the
     // JSON_SERIALIZE macro below.
 };
-
 JSON_SERIALIZE(SymbolGroup, name, file_path, enabled, address_suffixes, file_format_name);
 
 //////////////////////////////////////////////////////////////////////////
@@ -71,18 +76,18 @@ class SymbolTable {
     bool LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser);
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
-    size_t GetSymbolCountForGroup(size_t group_id) const;
+    size_t GetSymbolCountForFile(size_t file_index) const;
 
     // Group management
-    bool RemoveGroup(size_t group_id);
-    void EnableGroup(size_t group_id, bool enabled);
-    size_t GetNumGroups() const;
-    const SymbolGroup *GetGroupByIndex(size_t index) const;
-    bool MoveGroup(size_t from_index, size_t to_index);
+    bool RemoveFile(size_t file_index);
+    void EnableFile(size_t file_index, bool enabled);
+    size_t GetNumFiles() const;
+    const SymbolGroup *GetFileByIndex(size_t file_index) const;
+    bool MoveFile(size_t from_index, size_t to_index);
 
     // Group metadata editing
-    bool SetGroupName(size_t group_id, const std::string &new_name);
-    void SetGroupAddressSuffixes(size_t group_id, std::vector<std::string> new_address_suffixes);
+    bool SetFileGroupName(size_t file_index, const std::string &new_name);
+    void SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes);
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
 
@@ -92,7 +97,7 @@ class SymbolTable {
     // Legacy lookup methods (for backwards compatibility)
     // GetSymbolForAddress uses symbol precedence policy for DISPLAY:
     //   1. Prefer symbols from enabled groups
-    //   2. Among enabled groups, prefer first loaded group (lower group_id)
+    //   2. Among enabled groups, prefer first loaded group (lower file_index)
     //   3. Within same group, prefer later loaded symbols (e.g., CC65 "_main" over "__MY_RAM_START__")
     // GetAddressForSymbol finds ANY symbol with the given name (ignores display precedence)
     bool GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const;
@@ -121,12 +126,12 @@ class SymbolTable {
 
     // Format detection and loading
     const SymbolParser *DetectBestParser(const std::string &content);
-    bool LoadFromContent(const std::string &content, size_t group_id);
+    bool LoadFromContent(const std::string &content, size_t file_index);
 
     // Persistence support
     std::shared_ptr<JSON> SaveToJSON() const;
     bool LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *logs);
-    void ReloadAllGroups(const LogSet *logs); // Reload all groups from their source files
+    void ReloadAllFiles(const LogSet *logs); // Reload all groups from their source files
 
     // Debugging/utility
     //void PrintStats() const;
@@ -173,7 +178,7 @@ class SymbolTable {
     bool IsValidAddress(uint32_t addr) const;
     void InvalidateCache() const;
     void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;
-    LoadedSymbolGroup *AddLoadedSymbolGroup(SymbolGroup new_group, size_t *group_index);
+    LoadedSymbolGroup *AddLoadedSymbolGroup(SymbolGroup new_group, size_t *file_index);
 };
 
 //////////////////////////////////////////////////////////////////////////
