@@ -276,6 +276,29 @@ class ImGuiStyleVarPusher {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class ImGuiItemFlagPusher {
+  public:
+    ImGuiItemFlagPusher() = default;
+    ImGuiItemFlagPusher(ImGuiItemFlags flag, bool enabled);
+
+    ~ImGuiItemFlagPusher();
+
+    ImGuiItemFlagPusher &Push(ImGuiItemFlags flag, bool enabled);
+
+    ImGuiItemFlagPusher(const ImGuiItemFlagPusher &) = delete;
+    ImGuiItemFlagPusher &operator=(const ImGuiItemFlagPusher &) = delete;
+
+    ImGuiItemFlagPusher(ImGuiItemFlagPusher &&) = delete;
+    ImGuiItemFlagPusher &operator=(ImGuiItemFlagPusher &&) = delete;
+
+  protected:
+  private:
+    int m_num_pushes = 0;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // changes position, preserving size.
 void SetImRectPosX(ImRect *rect, float x);
 void SetImRectPosY(ImRect *rect, float y);
