@@ -539,28 +539,10 @@ bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
 
 // File Metadata Editing Methods
 
-bool SymbolTable::SetFileGroupName(size_t file_index, const std::string &new_name) {
-    if (file_index >= m_files.size()) {
-        return false;
-    }
+void SymbolTable::SetFileGroupIndex(size_t file_index, uint8_t group_index) {
+    ASSERT(file_index < m_files.size());
 
-    std::string trimmed_name = new_name;
-    // Remove leading/trailing whitespace
-    size_t start = trimmed_name.find_first_not_of(" \t\n\r");
-    if (start == std::string::npos) {
-        trimmed_name = "Global"; // Default to Global if empty/whitespace only
-    } else {
-        size_t end = trimmed_name.find_last_not_of(" \t\n\r");
-        trimmed_name = trimmed_name.substr(start, end - start + 1);
-
-        if (trimmed_name.empty()) {
-            trimmed_name = "Global";
-        }
-    }
-
-    m_files[file_index]->file.name = trimmed_name;
-    LOGF(SYMBOLS, "Updated file %zu group name to: %s\n", file_index, trimmed_name.c_str());
-    return true;
+    m_files[file_index]->file.group_index = group_index;
 }
 
 void SymbolTable::SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes) {
@@ -687,15 +669,23 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
 // Persistence Methods
 
 struct PersistentSymbolTableData {
-    std::vector<SymbolFile> groups; //the "groups" naming is not ideal, but there it is
+    std::vector<SymbolFile> groups; //no, the "groups" naming is not ideal, but there it is...
+
+    // As well as the naming being not ideal, this ends up as a large array, as
+    // there are always 256 entries in it.
+    std::vector<SymbolGroup> groups2;
 };
-JSON_SERIALIZE(PersistentSymbolTableData, groups);
+JSON_SERIALIZE(PersistentSymbolTableData, groups, groups2);
 
 std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
     PersistentSymbolTableData p_std;
 
     for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
         p_std.groups.push_back(lsf->file);
+    }
+
+    for (const SymbolGroup &group : m_groups) {
+        p_std.groups2.push_back(group);
     }
 
     return std::make_shared<JSON>(p_std);
@@ -716,6 +706,14 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *log
     m_files.clear();
     for (SymbolFile &file : p_std.groups) {
         this->AddLoadedSymbolFile(std::move(file), nullptr);
+    }
+
+    for (size_t i = 0; i < MAX_NUM_SYMBOL_FILE_GROUPS; ++i) {
+        if (i < p_std.groups2.size()) {
+            m_groups[i] = p_std.groups2[i];
+        } else {
+            m_groups[i] = SymbolGroup();
+        }
     }
 
     this->ReloadAllFiles(logs);

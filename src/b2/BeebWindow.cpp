@@ -2553,111 +2553,155 @@ void BeebWindow::DoDebugMenu() {
             // Show loaded groups and symbols (grouped by name for bulk operations)
             const size_t num_files = m_symbol_table->GetNumFiles();
             if (num_files > 0) {
-                ImGui::Text("Loaded symbol groups:");
+                ImGui::Text("Symbol groups:");
 
-                // Group entries by name for consolidated display
-                std::map<std::string, std::vector<size_t>> groups_by_name;
-                for (size_t i = 0; i < num_files; ++i) {
-                    const SymbolFile *file = m_symbol_table->GetFileByIndex(i);
-                    groups_by_name[file->name].push_back(i);
-                }
-
-                // Show one checkbox per unique group name
-                for (const auto &[group_name, indices] : groups_by_name) {
-                    // Determine combined state for this group name
-                    size_t enabled_count = 0;
-                    size_t total_count = indices.size();
-                    std::vector<std::string> file_names;
-
-                    for (size_t idx : indices) {
-                        const SymbolFile *file = m_symbol_table->GetFileByIndex(idx);
-                        if (file->enabled) {
-                            enabled_count++;
-                        }
-                        // Extract filename for tooltip
-                        std::string file_path = file->file_path;
-                        size_t last_slash = file_path.find_last_of("/\\");
-                        if (last_slash != std::string::npos) {
-                            file_names.push_back(file_path.substr(last_slash + 1));
-                        } else {
-                            file_names.push_back(file_path);
-                        }
-                    }
-
-                    // Determine checkbox state
-                    bool all_enabled = (enabled_count == total_count);
-                    bool any_enabled = (enabled_count > 0);
-                    bool mixed_state = any_enabled && !all_enabled;
-
-                    // Show checkbox with appropriate state (including tristate for mixed)
-                    bool current_state = all_enabled;
-
-                    // Use ImGui's built-in tristate checkbox for mixed states
-                    if (mixed_state) {
-                        ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, true);
-                    }
-
-                    if (ImGui::Checkbox(group_name.c_str(), &current_state)) {
-                        // Handle checkbox interaction
-                        if (mixed_state) {
-                            // Mixed state clicked: enable all
-                            for (size_t idx : indices) {
-                                m_symbol_table->EnableFile(idx, true);
-                            }
-                        } else {
-                            // Normal toggle: affects all entries with this name
-                            for (size_t idx : indices) {
-                                m_symbol_table->EnableFile(idx, current_state);
-                            }
-                        }
-                    }
-
-                    if (mixed_state) {
-                        ImGui::PopItemFlag();
-                    }
-
-                    // Enhanced tooltip showing all files in this group name
-                    if (ImGui::IsItemHovered()) {
-                        ImGui::BeginTooltip();
-                        if (total_count == 1) {
-                            // Single file
-                            ImGui::Text("File: %s", file_names[0].c_str());
-                            //if (!groups[indices[0]].memory_contexts.empty()) {
-                            //    ImGui::Text("Memory contexts (%zu total):", groups[indices[0]].memory_contexts.size());
-
-                            //    // Display contexts in groups per line
-                            //    std::string line_text;
-                            //    size_t count = 0;
-                            //    for (char c : groups[indices[0]].memory_contexts) {
-                            //        if (count > 0 && count % SymbolUI::CONTEXTS_PER_TOOLTIP_LINE == 0) {
-                            //            // Show completed line and start new one
-                            //            ImGui::Text("  %s", line_text.c_str());
-                            //            line_text.clear();
-                            //        }
-                            //        if (!line_text.empty())
-                            //            line_text += ", ";
-                            //        line_text += "'";
-                            //        line_text += c;
-                            //        line_text += "'";
-                            //        count++;
-                            //    }
-                            //    // Show final line if not empty
-                            //    if (!line_text.empty()) {
-                            //        ImGui::Text("  %s", line_text.c_str());
-                            //    }
-                            //}
-                        } else {
-                            // Multiple files
-                            ImGui::Text("%s (%zu files):", group_name.c_str(), total_count);
-                            for (size_t i = 0; i < file_names.size(); ++i) {
-                                const SymbolFile *file = m_symbol_table->GetFileByIndex(indices[i]);
-                                ImGui::Text("  %s %s", file->enabled ? "[X]" : "[ ]", file_names[i].c_str());
-                            }
-                            ImGui::Text("Status: %zu of %zu enabled", enabled_count, total_count);
-                        }
-                        ImGui::EndTooltip();
+                // Group entries by group for consolidated display
+                size_t num_by_group[MAX_NUM_SYMBOL_FILE_GROUPS] = {};
+                size_t num_enabled_by_group[MAX_NUM_SYMBOL_FILE_GROUPS] = {};
+                for (size_t file_index = 0; file_index < num_files; ++file_index) {
+                    const SymbolFile *file = m_symbol_table->GetFileByIndex(file_index);
+                    ++num_by_group[file->group_index];
+                    if (file->enabled) {
+                        ++num_enabled_by_group[file->group_index];
                     }
                 }
+
+                // Show one checkbox per used group
+                for (unsigned group_index = 0; group_index < MAX_NUM_SYMBOL_FILE_GROUPS; ++group_index) {
+                    if (num_by_group[group_index] == 0) {
+                        continue;
+                    }
+
+                    ImGuiIDPusher id_pusher(group_index);
+
+                    ImGuiItemFlagPusher flag_pusher;
+
+                    bool all = num_by_group[group_index] == num_enabled_by_group[group_index];
+                    bool any = num_enabled_by_group[group_index] > 0;
+                    bool mixed = any && !all;
+
+                    if (mixed) {
+                        flag_pusher.Push(ImGuiItemFlags_MixedValue, true);
+                    }
+
+                    std::string group_name = std::to_string(group_index); //TODO...
+
+                    if (ImGui::Checkbox(group_name.c_str(), &all)) {
+                        if (mixed) {
+                            // Mixed state clicked: enable all.
+                            all = true;
+                        }
+
+                        for (size_t file_index = 0; file_index < m_symbol_table->GetNumFiles(); ++file_index) {
+                            const SymbolFile *file = m_symbol_table->GetFileByIndex(file_index);
+                            if (file->group_index == group_index) {
+                                m_symbol_table->EnableFile(file_index, all);
+                            }
+                        }
+                    }
+                }
+
+                //std::map<std::string, std::vector<size_t>> groups_by_name;
+                //for (size_t i = 0; i < num_files; ++i) {
+                //    const SymbolFile *file = m_symbol_table->GetFileByIndex(i);
+                //    groups_by_name[file->name].push_back(i);
+                //}
+
+                //for (const auto &[group_name, indices] : groups_by_name) {
+                //    // Determine combined state for this group name
+                //    size_t enabled_count = 0;
+                //    size_t total_count = indices.size();
+                //    std::vector<std::string> file_names;
+
+                //    for (size_t idx : indices) {
+                //        const SymbolFile *file = m_symbol_table->GetFileByIndex(idx);
+                //        if (file->enabled) {
+                //            enabled_count++;
+                //        }
+                //        // Extract filename for tooltip
+                //        std::string file_path = file->file_path;
+                //        size_t last_slash = file_path.find_last_of("/\\");
+                //        if (last_slash != std::string::npos) {
+                //            file_names.push_back(file_path.substr(last_slash + 1));
+                //        } else {
+                //            file_names.push_back(file_path);
+                //        }
+                //    }
+
+                //    // Determine checkbox state
+                //    bool all_enabled = (enabled_count == total_count);
+                //    bool any_enabled = (enabled_count > 0);
+                //    bool mixed_state = any_enabled && !all_enabled;
+
+                //    // Show checkbox with appropriate state (including tristate for mixed)
+                //    bool current_state = all_enabled;
+
+                //    // Use ImGui's built-in tristate checkbox for mixed states
+                //    if (mixed_state) {
+                //        ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, true);
+                //    }
+
+                //    if (ImGui::Checkbox(group_name.c_str(), &current_state)) {
+                //        // Handle checkbox interaction
+                //        if (mixed_state) {
+                //            // Mixed state clicked: enable all
+                //            for (size_t idx : indices) {
+                //                m_symbol_table->EnableFile(idx, true);
+                //            }
+                //        } else {
+                //            // Normal toggle: affects all entries with this name
+                //            for (size_t idx : indices) {
+                //                m_symbol_table->EnableFile(idx, current_state);
+                //            }
+                //        }
+                //    }
+
+                //    if (mixed_state) {
+                //        ImGui::PopItemFlag();
+                //    }
+
+                //    // Enhanced tooltip showing all files in this group name
+                //    if (ImGui::IsItemHovered()) {
+                //        ImGui::BeginTooltip();
+                //        if (total_count == 1) {
+                //            // Single file
+                //            ImGui::Text("File: %s", file_names[0].c_str());
+                //            //if (!groups[indices[0]].memory_contexts.empty()) {
+                //            //    ImGui::Text("Memory contexts (%zu total):", groups[indices[0]].memory_contexts.size());
+
+                //            //    // Display contexts in groups per line
+                //            //    std::string line_text;
+                //            //    size_t count = 0;
+                //            //    for (char c : groups[indices[0]].memory_contexts) {
+                //            //        if (count > 0 && count % SymbolUI::CONTEXTS_PER_TOOLTIP_LINE == 0) {
+                //            //            // Show completed line and start new one
+                //            //            ImGui::Text("  %s", line_text.c_str());
+                //            //            line_text.clear();
+                //            //        }
+                //            //        if (!line_text.empty())
+                //            //            line_text += ", ";
+                //            //        line_text += "'";
+                //            //        line_text += c;
+                //            //        line_text += "'";
+                //            //        count++;
+                //            //    }
+                //            //    // Show final line if not empty
+                //            //    if (!line_text.empty()) {
+                //            //        ImGui::Text("  %s", line_text.c_str());
+                //            //    }
+                //            //}
+                //        } else {
+                //            // Multiple files
+                //            ImGui::Text("%s (%zu files):", group_name.c_str(), total_count);
+                //            for (size_t i = 0; i < file_names.size(); ++i) {
+                //                const SymbolFile *file = m_symbol_table->GetFileByIndex(indices[i]);
+                //                ImGui::Text("  %s %s", file->enabled ? "[X]" : "[ ]", file_names[i].c_str());
+                //            }
+                //            ImGui::Text("Status: %zu of %zu enabled", enabled_count, total_count);
+                //        }
+                //        ImGui::EndTooltip();
+                //    }
+                //}
 
                 size_t enabled_count = m_symbol_table->GetEnabledSymbolCount();
                 size_t total_count = m_symbol_table->GetSymbolCount();
@@ -2667,7 +2711,7 @@ void BeebWindow::DoDebugMenu() {
                     ImGui::Text("Active symbols: %zu / %zu", enabled_count, total_count);
                 }
             } else {
-                ImGui::TextDisabled("No symbol groups loaded");
+                ImGui::TextDisabled("No symbols loaded");
             }
 
             ImGui::EndMenu();
@@ -4239,7 +4283,7 @@ class SymbolGroupManagementUI : public SettingsUI {
     bool m_show_context_help = false; // Help text for context popup
 
     // Name buffers for each group (persistent across frames)
-    std::vector<std::string> m_file_group_name_buffers;
+    //std::vector<std::string> m_file_group_name_buffers;
 
     char m_address_suffix_buffer[20] = {};
     std::string m_address_suffix_error;
@@ -4275,13 +4319,13 @@ void SymbolGroupManagementUI::DoImGui() {
     }
 
     // Ensure name buffers match group count and are initialized
-    if (m_file_group_name_buffers.size() != num_files) {
-        m_file_group_name_buffers.resize(num_files);
-        for (size_t i = 0; i < num_files; ++i) {
-            const SymbolFile *file = symbol_table.GetFileByIndex(i);
-            m_file_group_name_buffers[i] = file->name;
-        }
-    }
+    //if (m_file_group_name_buffers.size() != num_files) {
+    //    m_file_group_name_buffers.resize(num_files);
+    //    for (size_t i = 0; i < num_files; ++i) {
+    //        const SymbolFile *file = symbol_table.GetFileByIndex(i);
+    //        m_file_group_name_buffers[i] = file->name;
+    //    }
+    //}
 
     if (num_files == 0) {
         ImGui::Text("No symbol groups loaded.");
@@ -4315,13 +4359,13 @@ void SymbolGroupManagementUI::DoImGui() {
         float table_height = ImGui::GetTextLineHeightWithSpacing() * (num_files + 1);                                         // +1 for header
         table_height = std::min(table_height, ImGui::GetContentRegionAvail().y - SymbolUI::MANAGEMENT_TABLE_RESERVED_HEIGHT); // Reserve space for buttons below
 
-        if (ImGui::BeginTable("symbol_groups", 8, table_flags, ImVec2(0.0f, table_height))) {
+        if (ImGui::BeginTable("symbol_files", 8, table_flags, ImVec2(0.0f, table_height))) {
             // Reordered columns: # first, then Select, then Move
             ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, SymbolUI::COL_INDEX_WIDTH);
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, SymbolUI::COL_SELECT_WIDTH);
             ImGui::TableSetupColumn("Move", ImGuiTableColumnFlags_WidthFixed, SymbolUI::COL_MOVE_WIDTH);
             ImGui::TableSetupColumn("Enabled", ImGuiTableColumnFlags_WidthFixed, SymbolUI::COL_ENABLED_WIDTH);
-            ImGui::TableSetupColumn("Group Name", ImGuiTableColumnFlags_WidthStretch, SymbolUI::COL_GROUP_NAME_WIDTH);
+            ImGui::TableSetupColumn("Group", ImGuiTableColumnFlags_WidthStretch, SymbolUI::COL_GROUP_NAME_WIDTH);
             ImGui::TableSetupColumn("Count", ImGuiTableColumnFlags_WidthFixed, SymbolUI::COL_COUNT_WIDTH);
             ImGui::TableSetupColumn("Contexts", ImGuiTableColumnFlags_WidthStretch, SymbolUI::COL_CONTEXTS_WIDTH);
             ImGui::TableSetupColumn("Source File", ImGuiTableColumnFlags_WidthStretch, SymbolUI::COL_SOURCE_FILE_WIDTH);
@@ -4394,10 +4438,10 @@ void SymbolGroupManagementUI::DoImGui() {
                                 m_selected_files[i] = m_selected_files[i - 1];
                                 m_selected_files[i - 1] = temp;
                             }
-                            // Swap name buffers too
-                            if (i < m_file_group_name_buffers.size() && i - 1 < m_file_group_name_buffers.size()) {
-                                std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i - 1]);
-                            }
+                            //// Swap name buffers too
+                            //if (i < m_file_group_name_buffers.size() && i - 1 < m_file_group_name_buffers.size()) {
+                            //    std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i - 1]);
+                            //}
                         }
                     }
                 } else {
@@ -4416,10 +4460,10 @@ void SymbolGroupManagementUI::DoImGui() {
                                 m_selected_files[i] = m_selected_files[i + 1];
                                 m_selected_files[i + 1] = temp;
                             }
-                            // Swap name buffers too
-                            if (i < m_file_group_name_buffers.size() && i + 1 < m_file_group_name_buffers.size()) {
-                                std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i + 1]);
-                            }
+                            //// Swap name buffers too
+                            //if (i < m_file_group_name_buffers.size() && i + 1 < m_file_group_name_buffers.size()) {
+                            //    std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i + 1]);
+                            //}
                         }
                     }
                 } else {
@@ -4440,42 +4484,42 @@ void SymbolGroupManagementUI::DoImGui() {
                     symbol_table.EnableFile(i, enabled);
                 }
 
-                // Column 4: Group name (always editable input field)
-                ImGui::TableSetColumnIndex(4);
+                //// Column 4: Group name (always editable input field)
+                //ImGui::TableSetColumnIndex(4);
 
-                // Always show as InputText - much simpler and more intuitive
-                std::string input_id = "##group_name_" + std::to_string(i);
-                char buffer[SymbolUI::MAX_GROUP_NAME_LENGTH + 1];
-                strncpy(buffer, m_file_group_name_buffers[i].c_str(), 255);
-                buffer[255] = '\0';
+                //// Always show as InputText - much simpler and more intuitive
+                //std::string input_id = "##group_name_" + std::to_string(i);
+                //char buffer[SymbolUI::MAX_GROUP_NAME_LENGTH + 1];
+                //strncpy(buffer, m_file_group_name_buffers[i].c_str(), 255);
+                //buffer[255] = '\0';
 
-                // Make InputText fill the column width
-                ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
+                //// Make InputText fill the column width
+                //ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
 
-                if (ImGui::InputText(input_id.c_str(), buffer, sizeof(buffer))) {
-                    // Text changed - update buffer
-                    m_file_group_name_buffers[i] = buffer;
-                }
+                //if (ImGui::InputText(input_id.c_str(), buffer, sizeof(buffer))) {
+                //    // Text changed - update buffer
+                //    m_file_group_name_buffers[i] = buffer;
+                //}
 
-                // Save changes when Enter pressed or focus lost
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    std::string new_name = m_file_group_name_buffers[i];
-                    if (new_name != file->name) {
-                        symbol_table.SetFileGroupName(i, new_name);
-                    }
-                }
+                //// Save changes when Enter pressed or focus lost
+                //if (ImGui::IsItemDeactivatedAfterEdit()) {
+                //    std::string new_name = m_file_group_name_buffers[i];
+                //    if (new_name != file->name) {
+                //        symbol_table.SetFileGroupName(i, new_name);
+                //    }
+                //}
 
-                // Right-click context menu for the group name
-                std::string popup_id = "group_context_menu_" + std::to_string(i);
-                if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
-                    std::string display_name = file->name.empty() ? "Unnamed Group" : file->name;
-                    ImGui::Text("Group: %s", display_name.c_str());
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Delete")) {
-                        symbol_table.RemoveFile(i);
-                    }
-                    ImGui::EndPopup();
-                }
+                //// Right-click context menu for the group name
+                //std::string popup_id = "group_context_menu_" + std::to_string(i);
+                //if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
+                //    std::string display_name = file->name.empty() ? "Unnamed Group" : file->name;
+                //    ImGui::Text("Group: %s", display_name.c_str());
+                //    ImGui::Separator();
+                //    if (ImGui::MenuItem("Delete")) {
+                //        symbol_table.RemoveFile(i);
+                //    }
+                //    ImGui::EndPopup();
+                //}
 
                 // Column 5: Symbol count for this file
                 ImGui::TableSetColumnIndex(5);
@@ -4679,6 +4723,7 @@ void SymbolGroupManagementUI::DoImGui() {
     }
 }
 #endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

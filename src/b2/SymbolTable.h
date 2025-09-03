@@ -42,17 +42,51 @@ struct Symbol {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// For 6502 interop purposes, the group index basically has to be a 1-byte
+// value, so the limit is inherently 256.
+//
+// This is unlikely to change.
+//
+// The recommended data type is unsigned, for ok interop with ImGui::PushID.
+static constexpr unsigned MAX_NUM_SYMBOL_FILE_GROUPS = 256;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct SymbolGroup {
+    // Name of this group. For human readability purposes only.
+    std::string name;
+};
+JSON_SERIALIZE(SymbolGroup, name);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct SymbolFile {
-    std::string name;             //TODO: should really be called "group name"
-    std::string file_path;        // source file path
-    std::string file_format_name; // or "" for auto-detect
+    // Source file path.
+    std::string file_path; // source file path
+
+    // Name of parser in the registry (going by GetFormatName), or "" for
+    // auto-detect.
+    //
+    // (If name not found, will auto-detect in that case too - but this
+    // behaviour is up for debate.)
+    std::string file_format_name;
+
+    // Enabled flag.
     bool enabled = true;
-    uint8_t tag = 0;
+
+    // Group index, manually assigned by the user. Files in the same group can
+    // be enabled/disabled as one.
+    //
+    // (Eventually this will probably be used to allow similar bulk
+    // enable/disable of symbol groups from 6502 code.)
+    uint8_t group_index = 0;
 
     // Address suffixes for which symbols in this file apply. Serialised as-is.
     std::vector<std::string> address_suffixes;
 };
-JSON_SERIALIZE(SymbolFile, name, file_path, enabled, address_suffixes, file_format_name);
+JSON_SERIALIZE(SymbolFile, file_path, enabled, address_suffixes, file_format_name, group_index);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -80,7 +114,7 @@ class SymbolTable {
     bool MoveFile(size_t from_index, size_t to_index);
 
     // Group metadata editing
-    bool SetFileGroupName(size_t file_index, const std::string &new_name);
+    void SetFileGroupIndex(size_t file_index, uint8_t group_index);
     void SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes);
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
@@ -145,6 +179,7 @@ class SymbolTable {
     };
 
     std::vector<std::unique_ptr<LoadedSymbolFile>> m_files;
+    SymbolGroup m_groups[MAX_NUM_SYMBOL_FILE_GROUPS];
 
     struct SymbolsInFile {
         const LoadedSymbolFile *lsf = nullptr;
