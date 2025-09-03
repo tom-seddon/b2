@@ -42,23 +42,17 @@ struct Symbol {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// TODO: this should be called SymbolFile, but it's a lot of stuff to change
-// and follow through.
-struct SymbolGroup {
+struct SymbolFile {
     std::string name;             //TODO: should really be called "group name"
-    std::string file_path;        // source file for this group
+    std::string file_path;        // source file path
     std::string file_format_name; // or "" for auto-detect
     bool enabled = true;
     uint8_t tag = 0;
 
-    // Address suffixes for which this symbol group applies. Serialised
-    // as-is.
+    // Address suffixes for which symbols in this file apply. Serialised as-is.
     std::vector<std::string> address_suffixes;
-
-    // if adding more stuff that needs serializing, be sure to update the
-    // JSON_SERIALIZE macro below.
 };
-JSON_SERIALIZE(SymbolGroup, name, file_path, enabled, address_suffixes, file_format_name);
+JSON_SERIALIZE(SymbolFile, name, file_path, enabled, address_suffixes, file_format_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -78,11 +72,11 @@ class SymbolTable {
     size_t GetEnabledSymbolCount() const;
     size_t GetSymbolCountForFile(size_t file_index) const;
 
-    // Group management
+    // File management
     bool RemoveFile(size_t file_index);
     void EnableFile(size_t file_index, bool enabled);
     size_t GetNumFiles() const;
-    const SymbolGroup *GetFileByIndex(size_t file_index) const;
+    const SymbolFile *GetFileByIndex(size_t file_index) const;
     bool MoveFile(size_t from_index, size_t to_index);
 
     // Group metadata editing
@@ -96,9 +90,9 @@ class SymbolTable {
 
     // Legacy lookup methods (for backwards compatibility)
     // GetSymbolForAddress uses symbol precedence policy for DISPLAY:
-    //   1. Prefer symbols from enabled groups
-    //   2. Among enabled groups, prefer first loaded group (lower file_index)
-    //   3. Within same group, prefer later loaded symbols (e.g., CC65 "_main" over "__MY_RAM_START__")
+    //   1. Prefer symbols from enabled filess
+    //   2. Among enabled files, prefer first loaded file (lower file_index)
+    //   3. Within same file, prefer later loaded symbols (e.g., CC65 "_main" over "__MY_RAM_START__")
     // GetAddressForSymbol finds ANY symbol with the given name (ignores display precedence)
     bool GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const;
 
@@ -131,14 +125,14 @@ class SymbolTable {
     // Persistence support
     std::shared_ptr<JSON> SaveToJSON() const;
     bool LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *logs);
-    void ReloadAllFiles(const LogSet *logs); // Reload all groups from their source files
+    void ReloadAllFiles(const LogSet *logs); // Reload all files from their source files
 
     // Debugging/utility
     //void PrintStats() const;
 
   private:
-    struct LoadedSymbolGroup {
-        SymbolGroup group;
+    struct LoadedSymbolFile {
+        SymbolFile file;
 
         std::vector<Symbol> symbols;
 
@@ -150,20 +144,20 @@ class SymbolTable {
         std::vector<DSOMask> address_suffix_dso_masks;
     };
 
-    std::vector<std::unique_ptr<LoadedSymbolGroup>> m_groups;
+    std::vector<std::unique_ptr<LoadedSymbolFile>> m_files;
 
-    struct SymbolsInGroup {
-        const LoadedSymbolGroup *lsg = nullptr;
+    struct SymbolsInFile {
+        const LoadedSymbolFile *lsf = nullptr;
         std::vector<const Symbol *> symbols;
     };
 
     struct SymbolsAtAddress {
-        std::vector<SymbolsInGroup> grouped;
+        std::vector<SymbolsInFile> per_file;
         //std::vector<const Symbol *> all;//TODO
     };
 
     struct AddressForSymbol {
-        const LoadedSymbolGroup *lsg = nullptr;
+        const LoadedSymbolFile *lsf = nullptr;
         uint16_t address = 0;
     };
 
@@ -172,20 +166,15 @@ class SymbolTable {
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
 
-    //size_t AddGroup(const SymbolGroup &group);
-
     // Helper methods
     bool IsValidAddress(uint32_t addr) const;
     void InvalidateCache() const;
     void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;
-    LoadedSymbolGroup *AddLoadedSymbolGroup(SymbolGroup new_group, size_t *file_index);
+    LoadedSymbolFile *AddLoadedSymbolFile(SymbolFile new_file, size_t *file_index);
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-// Custom JSON serialization for SymbolGroup (save only essential fields)
-// name and description are auto-generated on load
 
 #endif
 

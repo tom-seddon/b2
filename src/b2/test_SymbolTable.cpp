@@ -29,7 +29,7 @@ static const char TEST_DATA_2[] =
 
 static size_t MustFindFileIndex(const SymbolTable &st, const std::string &file_path) {
     for (size_t i = 0; i < st.GetNumFiles(); ++i) {
-        const SymbolGroup *file = st.GetFileByIndex(i);
+        const SymbolFile *file = st.GetFileByIndex(i);
         if (file->file_path == file_path) {
             return i;
         }

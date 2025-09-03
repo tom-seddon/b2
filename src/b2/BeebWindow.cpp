@@ -2558,8 +2558,8 @@ void BeebWindow::DoDebugMenu() {
                 // Group entries by name for consolidated display
                 std::map<std::string, std::vector<size_t>> groups_by_name;
                 for (size_t i = 0; i < num_files; ++i) {
-                    const SymbolGroup *group = m_symbol_table->GetFileByIndex(i);
-                    groups_by_name[group->name].push_back(i);
+                    const SymbolFile *file = m_symbol_table->GetFileByIndex(i);
+                    groups_by_name[file->name].push_back(i);
                 }
 
                 // Show one checkbox per unique group name
@@ -2570,12 +2570,12 @@ void BeebWindow::DoDebugMenu() {
                     std::vector<std::string> file_names;
 
                     for (size_t idx : indices) {
-                        const SymbolGroup *group = m_symbol_table->GetFileByIndex(idx);
-                        if (group->enabled) {
+                        const SymbolFile *file = m_symbol_table->GetFileByIndex(idx);
+                        if (file->enabled) {
                             enabled_count++;
                         }
                         // Extract filename for tooltip
-                        std::string file_path = group->file_path;
+                        std::string file_path = file->file_path;
                         size_t last_slash = file_path.find_last_of("/\\");
                         if (last_slash != std::string::npos) {
                             file_names.push_back(file_path.substr(last_slash + 1));
@@ -2650,8 +2650,8 @@ void BeebWindow::DoDebugMenu() {
                             // Multiple files
                             ImGui::Text("%s (%zu files):", group_name.c_str(), total_count);
                             for (size_t i = 0; i < file_names.size(); ++i) {
-                                const SymbolGroup *group = m_symbol_table->GetFileByIndex(indices[i]);
-                                ImGui::Text("  %s %s", group->enabled ? "[X]" : "[ ]", file_names[i].c_str());
+                                const SymbolFile *file = m_symbol_table->GetFileByIndex(indices[i]);
+                                ImGui::Text("  %s %s", file->enabled ? "[X]" : "[ ]", file_names[i].c_str());
                             }
                             ImGui::Text("Status: %zu of %zu enabled", enabled_count, total_count);
                         }
@@ -4278,7 +4278,7 @@ void SymbolGroupManagementUI::DoImGui() {
     if (m_file_group_name_buffers.size() != num_files) {
         m_file_group_name_buffers.resize(num_files);
         for (size_t i = 0; i < num_files; ++i) {
-            const SymbolGroup *file = symbol_table.GetFileByIndex(i);
+            const SymbolFile *file = symbol_table.GetFileByIndex(i);
             m_file_group_name_buffers[i] = file->name;
         }
     }
@@ -4331,7 +4331,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
             // List all groups
             for (size_t i = 0; i < num_files; ++i) {
-                const SymbolGroup *group = symbol_table.GetFileByIndex(i);
+                const SymbolFile *file = symbol_table.GetFileByIndex(i);
 
                 ImGui::PushID((int)i);
                 ImGui::TableNextRow();
@@ -4364,7 +4364,7 @@ void SymbolGroupManagementUI::DoImGui() {
                     // Check if double-click was in Contexts column
                     if (mouse_pos.x >= contexts_col_start && mouse_pos.x < contexts_col_end) {
                         m_editing_contexts_id = static_cast<int>(i);
-                        m_editing_address_suffixes = group->address_suffixes;
+                        m_editing_address_suffixes = file->address_suffixes;
                     }
                 }
 
@@ -4434,7 +4434,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 float enabled_center_offset = (enabled_column_width - enabled_checkbox_width) * 0.5f;
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + enabled_center_offset);
 
-                bool enabled = group->enabled;
+                bool enabled = file->enabled;
                 std::string checkbox_id = "##enabled_" + std::to_string(i);
                 if (ImGui::Checkbox(checkbox_id.c_str(), &enabled)) {
                     symbol_table.EnableFile(i, enabled);
@@ -4460,7 +4460,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 // Save changes when Enter pressed or focus lost
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     std::string new_name = m_file_group_name_buffers[i];
-                    if (new_name != group->name) {
+                    if (new_name != file->name) {
                         symbol_table.SetFileGroupName(i, new_name);
                     }
                 }
@@ -4468,7 +4468,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 // Right-click context menu for the group name
                 std::string popup_id = "group_context_menu_" + std::to_string(i);
                 if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
-                    std::string display_name = group->name.empty() ? "Unnamed Group" : group->name;
+                    std::string display_name = file->name.empty() ? "Unnamed Group" : file->name;
                     ImGui::Text("Group: %s", display_name.c_str());
                     ImGui::Separator();
                     if (ImGui::MenuItem("Delete")) {
@@ -4477,7 +4477,7 @@ void SymbolGroupManagementUI::DoImGui() {
                     ImGui::EndPopup();
                 }
 
-                // Column 5: Symbol count for this group
+                // Column 5: Symbol count for this file
                 ImGui::TableSetColumnIndex(5);
                 size_t group_symbol_count = symbol_table.GetSymbolCountForFile(i);
                 ImGui::Text("%zu", group_symbol_count);
@@ -4485,7 +4485,7 @@ void SymbolGroupManagementUI::DoImGui() {
                     ImGui::BeginTooltip();
                     ImGui::Text("Number of symbols in this group");
                     if (group_symbol_count > 0) {
-                        if (group->enabled) {
+                        if (file->enabled) {
                             ImGui::Text("All %zu symbols are active", group_symbol_count);
                         } else {
                             ImGui::Text("All %zu symbols are disabled", group_symbol_count);
@@ -4503,7 +4503,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 // Display contexts (clickable) - show all contexts, no truncation
                 std::string display_text;
-                for (const std::string &address_suffix : group->address_suffixes) {
+                for (const std::string &address_suffix : file->address_suffixes) {
                     if (!display_text.empty()) {
                         display_text += ";";
                     }
@@ -4520,11 +4520,11 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 // Column 7: Source file
                 ImGui::TableSetColumnIndex(7);
-                if (group->file_path.empty()) {
+                if (file->file_path.empty()) {
                     ImGui::Text("-");
                 } else {
                     // Show just filename
-                    std::string filename = group->file_path;
+                    std::string filename = file->file_path;
                     size_t slash_pos = filename.find_last_of("/\\");
                     if (slash_pos != std::string::npos) {
                         filename = filename.substr(slash_pos + 1);
@@ -4533,7 +4533,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
                     if (ImGui::IsItemHovered()) {
                         ImGui::BeginTooltip();
-                        ImGui::Text("Full path: %s", group->file_path.c_str());
+                        ImGui::Text("Full path: %s", file->file_path.c_str());
                         ImGui::EndTooltip();
                     }
                 }

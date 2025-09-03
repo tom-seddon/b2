@@ -41,8 +41,6 @@ static const std::string ADDRESS_SUFFIXES = "address_suffixes";
 //////////////////////////////////////////////////////////////////////////
 
 SymbolTable::SymbolTable() {
-    // No default group needed - all loads create named groups
-
     // Ensure builtin parsers are registered
     SymbolParserRegistry::InitializeBuiltinParsers();
 }
@@ -59,7 +57,7 @@ SymbolTable::~SymbolTable() {
 void SymbolTable::Clear() {
     //m_address_to_symbols.clear();
     //m_name_to_addresses.clear();
-    m_groups.clear();
+    m_files.clear();
     this->InvalidateCache();
     LOGF(SYMBOLS, "Symbol table cleared\n");
 }
@@ -87,16 +85,16 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
 
 bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser) {
     size_t file_index;
-    LoadedSymbolGroup *lsg;
+    LoadedSymbolFile *lsf;
     {
-        SymbolGroup new_group;
+        SymbolFile new_file;
 
-        new_group.file_path = filepath;
+        new_file.file_path = filepath;
         if (parser) {
-            new_group.file_format_name = parser->GetFormatName();
+            new_file.file_format_name = parser->GetFormatName();
         }
 
-        lsg = this->AddLoadedSymbolGroup(std::move(new_group), &file_index);
+        lsf = this->AddLoadedSymbolFile(std::move(new_file), &file_index);
     }
 
     size_t old_count = GetSymbolCount();
@@ -381,9 +379,9 @@ const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string
 //////////////////////////////////////////////////////////////////////////
 
 bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index) {
-    LoadedSymbolGroup *lsg = m_groups[file_index].get();
+    LoadedSymbolFile *lsf = m_files[file_index].get();
 
-    const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(lsg->group.file_format_name);
+    const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(lsf->file.file_format_name);
     if (!parser) {
         parser = DetectBestParser(content);
     }
@@ -396,22 +394,22 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index)
     this->InvalidateCache();
 
     LOGF(SYMBOLS, "Using %s parser for content loading\n", parser->GetFormatName().c_str());
-    lsg->symbols = parser->ParseContent(content);
+    lsf->symbols = parser->ParseContent(content);
 
-    if (lsg->symbols.empty()) {
+    if (lsf->symbols.empty()) {
         LOGF(SYMBOLS, "WARNING: No symbols loaded from file\n");
         return true;
     }
 
-    auto &&symbol_it = lsg->symbols.begin();
-    while (symbol_it != lsg->symbols.end()) {
+    auto &&symbol_it = lsf->symbols.begin();
+    while (symbol_it != lsf->symbols.end()) {
         Symbol *symbol = &*symbol_it;
 
         if (symbol->name.empty()) {
             LOGF(SYMBOLS, "WARNING: Invalid symbol at line %zu: address=$%X, name='%s'\n",
                  symbol->line_number, symbol->address, symbol->name.c_str());
 
-            symbol_it = lsg->symbols.erase(symbol_it);
+            symbol_it = lsf->symbols.erase(symbol_it);
             continue;
         }
 
@@ -427,16 +425,11 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index)
 size_t SymbolTable::GetSymbolCount() const {
     size_t n = 0;
 
-    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
-        n += lsg->symbols.size();
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+        n += lsf->symbols.size();
     }
 
     return n;
-    //size_t count = 0;
-    //for (const auto &pair : m_address_to_symbols) {
-    //    count += pair.second.size();
-    //}
-    //return count;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -445,9 +438,9 @@ size_t SymbolTable::GetSymbolCount() const {
 size_t SymbolTable::GetEnabledSymbolCount() const {
     size_t n = 0;
 
-    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
-        if (lsg->group.enabled) {
-            n += lsg->symbols.size();
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+        if (lsf->file.enabled) {
+            n += lsf->symbols.size();
         }
     }
 
@@ -455,8 +448,8 @@ size_t SymbolTable::GetEnabledSymbolCount() const {
 }
 
 size_t SymbolTable::GetSymbolCountForFile(size_t file_index) const {
-    ASSERT(file_index < m_groups.size());
-    return m_groups[file_index]->symbols.size();
+    ASSERT(file_index < m_files.size());
+    return m_files[file_index]->symbols.size();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -477,8 +470,8 @@ bool SymbolTable::GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, con
 
     *addr_ptr = addr->address;
 
-    if (!addr->lsg->address_suffix_dso_masks.empty()) {
-        const LoadedSymbolGroup::DSOMask *mask = &addr->lsg->address_suffix_dso_masks[0];
+    if (!addr->lsf->address_suffix_dso_masks.empty()) {
+        const LoadedSymbolFile::DSOMask *mask = &addr->lsf->address_suffix_dso_masks[0];
 
         *dso_ptr &= ~mask->mask;
         *dso_ptr |= mask->value;
@@ -498,46 +491,43 @@ bool SymbolTable::IsValidAddress(uint32_t addr) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Group Management Methods
+// File Management Methods
 
 bool SymbolTable::RemoveFile(size_t file_index) {
-    if (file_index >= m_groups.size()) {
+    if (file_index >= m_files.size()) {
         return false;
     }
 
-    // Remove the group
-    m_groups.erase(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(file_index));
+    m_files.erase(m_files.begin() + static_cast<std::vector<SymbolFile>::difference_type>(file_index));
 
     this->InvalidateCache();
     return true;
 }
 
 void SymbolTable::EnableFile(size_t file_index, bool enabled) {
-    if (file_index < m_groups.size()) {
-        m_groups[file_index]->group.enabled = enabled;
-        this->InvalidateCache();
-    }
+    ASSERT(file_index < m_files.size());
+    m_files[file_index]->file.enabled = enabled;
+    this->InvalidateCache();
 }
 
-const SymbolGroup *SymbolTable::GetFileByIndex(size_t file_index) const {
-    ASSERT(file_index < m_groups.size());
-    return &m_groups[file_index]->group;
+const SymbolFile *SymbolTable::GetFileByIndex(size_t file_index) const {
+    ASSERT(file_index < m_files.size());
+    return &m_files[file_index]->file;
 }
 
 size_t SymbolTable::GetNumFiles() const {
-    return m_groups.size();
+    return m_files.size();
 }
 
 bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
-    if (from_index >= m_groups.size() || to_index >= m_groups.size() || from_index == to_index) {
+    if (from_index >= m_files.size() || to_index >= m_files.size() || from_index == to_index) {
         return false;
     }
 
-    // Move the group in the vector
     {
-        std::unique_ptr<LoadedSymbolGroup> group_to_move = std::move(m_groups[from_index]);
-        m_groups.erase(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(from_index));
-        m_groups.insert(m_groups.begin() + static_cast<std::vector<SymbolGroup>::difference_type>(to_index), std::move(group_to_move));
+        std::unique_ptr<LoadedSymbolFile> file_to_move = std::move(m_files[from_index]);
+        m_files.erase(m_files.begin() + static_cast<std::vector<SymbolFile>::difference_type>(from_index));
+        m_files.insert(m_files.begin() + static_cast<std::vector<SymbolFile>::difference_type>(to_index), std::move(file_to_move));
     }
 
     this->InvalidateCache();
@@ -547,10 +537,10 @@ bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Group Metadata Editing Methods
+// File Metadata Editing Methods
 
 bool SymbolTable::SetFileGroupName(size_t file_index, const std::string &new_name) {
-    if (file_index >= m_groups.size()) {
+    if (file_index >= m_files.size()) {
         return false;
     }
 
@@ -568,15 +558,15 @@ bool SymbolTable::SetFileGroupName(size_t file_index, const std::string &new_nam
         }
     }
 
-    m_groups[file_index]->group.name = trimmed_name;
+    m_files[file_index]->file.name = trimmed_name;
     LOGF(SYMBOLS, "Updated file %zu group name to: %s\n", file_index, trimmed_name.c_str());
     return true;
 }
 
 void SymbolTable::SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes) {
-    ASSERT(file_index < m_groups.size());
+    ASSERT(file_index < m_files.size());
 
-    m_groups[file_index]->group.address_suffixes = std::move(new_address_suffixes);
+    m_files[file_index]->file.address_suffixes = std::move(new_address_suffixes);
 
     this->InvalidateCache();
 }
@@ -594,13 +584,13 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
         return nullptr;
     }
 
-    for (const SymbolsInGroup &in_group : it->second.grouped) {
-        if (in_group.lsg->address_suffix_dso_masks.empty()) {
-            return &in_group.symbols[0]->name;
+    for (const SymbolsInFile &in_file : it->second.per_file) {
+        if (in_file.lsf->address_suffix_dso_masks.empty()) {
+            return &in_file.symbols[0]->name;
         } else {
-            for (const LoadedSymbolGroup::DSOMask &mask : in_group.lsg->address_suffix_dso_masks) {
+            for (const LoadedSymbolFile::DSOMask &mask : in_file.lsf->address_suffix_dso_masks) {
                 if ((dso & mask.mask) == mask.value) {
-                    return &in_group.symbols[0]->name;
+                    return &in_file.symbols[0]->name;
                 }
             }
         }
@@ -623,19 +613,19 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
         return;
     }
 
-    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
-        lsg->address_suffix_dso_masks.clear();
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+        lsf->address_suffix_dso_masks.clear();
 
-        for (const std::string &address_suffix : lsg->group.address_suffixes) {
+        for (const std::string &address_suffix : lsf->file.address_suffixes) {
             uint32_t dso = 0;
 
             if (ParseAddressSuffix(&dso, type, address_suffix.c_str(), nullptr)) {
-                LoadedSymbolGroup::DSOMask mask;
+                LoadedSymbolFile::DSOMask mask;
 
                 mask.mask = GetDSOMaskForOverrides(dso) & type->dso_mask;
                 mask.value = dso & type->dso_mask;
 
-                lsg->address_suffix_dso_masks.push_back(mask);
+                lsf->address_suffix_dso_masks.push_back(mask);
             } else {
                 // Should have been called out in the UI. Nothing to be done at
                 // this stage but ignore it.
@@ -648,39 +638,39 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
     m_cache_address_to_symbols.clear();
     m_cache_name_to_addresses.clear();
 
-    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
-        if (!lsg->group.enabled) {
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+        if (!lsf->file.enabled) {
             continue;
         }
 
-        for (size_t i = 0; i < lsg->symbols.size(); ++i) {
+        for (size_t i = 0; i < lsf->symbols.size(); ++i) {
             // go in reverse order, so later symbols have priority.
-            const Symbol *symbol = &lsg->symbols[lsg->symbols.size() - 1 - i];
+            const Symbol *symbol = &lsf->symbols[lsf->symbols.size() - 1 - i];
 
             // Handle the address->symbol lookup.
             {
                 SymbolsAtAddress *at_address = &m_cache_address_to_symbols[symbol->address];
 
-                // going in group order - so if there's an entry for this group,
-                // it'll be the last one in the grouped list.
-                SymbolsInGroup *in_group;
-                if (at_address->grouped.empty() || at_address->grouped.back().lsg != lsg.get()) {
-                    in_group = &at_address->grouped.emplace_back();
-                    in_group->lsg = lsg.get();
+                // going in file order - so if there's an entry for this file,
+                // it'll be the last one in the per-file list.
+                SymbolsInFile *in_file;
+                if (at_address->per_file.empty() || at_address->per_file.back().lsf != lsf.get()) {
+                    in_file = &at_address->per_file.emplace_back();
+                    in_file->lsf = lsf.get();
                 } else {
-                    in_group = &at_address->grouped.back();
+                    in_file = &at_address->per_file.back();
                 }
 
-                ASSERT(in_group->lsg == lsg.get());
+                ASSERT(in_file->lsf == lsf.get());
 
-                in_group->symbols.push_back(symbol);
+                in_file->symbols.push_back(symbol);
             }
 
             // Handle the symbol->address lookup.
             {
                 AddressForSymbol addr;
 
-                addr.lsg = lsg.get();
+                addr.lsf = lsf.get();
                 addr.address = symbol->address;
 
                 m_cache_name_to_addresses[symbol->name].push_back(addr);
@@ -697,15 +687,15 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
 // Persistence Methods
 
 struct PersistentSymbolTableData {
-    std::vector<SymbolGroup> groups;
+    std::vector<SymbolFile> groups; //the "groups" naming is not ideal, but there it is
 };
 JSON_SERIALIZE(PersistentSymbolTableData, groups);
 
 std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
     PersistentSymbolTableData p_std;
 
-    for (const std::unique_ptr<LoadedSymbolGroup> &lsg : m_groups) {
-        p_std.groups.push_back(lsg->group);
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+        p_std.groups.push_back(lsf->file);
     }
 
     return std::make_shared<JSON>(p_std);
@@ -719,13 +709,13 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *log
     PersistentSymbolTableData p_std;
     std::string error;
     if (!j->Load(&p_std, &error)) {
-        logs->e.f("Failed to load symbol groups from JSON: %s\n", error.c_str());
+        logs->e.f("Failed to load symbol file data from JSON: %s\n", error.c_str());
         return false;
     }
 
-    m_groups.clear();
-    for (SymbolGroup &group : p_std.groups) {
-        this->AddLoadedSymbolGroup(std::move(group), nullptr);
+    m_files.clear();
+    for (SymbolFile &file : p_std.groups) {
+        this->AddLoadedSymbolFile(std::move(file), nullptr);
     }
 
     this->ReloadAllFiles(logs);
@@ -733,45 +723,41 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *log
 }
 
 void SymbolTable::ReloadAllFiles(const LogSet *logs) {
-    // Clear all symbols but keep groups
-    //m_address_to_symbols.clear();
-    //m_name_to_addresses.clear();
     this->InvalidateCache();
 
-    // Reload each group from its source file
-    for (size_t i = 0; i < m_groups.size(); ++i) {
-        const SymbolGroup *group = &m_groups[i]->group;
+    // Reload each file from its source file
+    for (size_t i = 0; i < m_files.size(); ++i) {
+        const SymbolFile *file = &m_files[i]->file;
 
         std::string content;
-        if (!LoadTextFile(&content, group->file_path, logs)) {
+        if (!LoadTextFile(&content, file->file_path, logs)) {
             continue;
         }
 
         // Load symbols into this group (preserving enabled state)
-        LOGF(SYMBOLS, "Reloading group '%s' from: %s (enabled: %s)\n",
-             group->name.c_str(), group->file_path.c_str(), BOOL_STR(group->enabled));
+        LOGF(SYMBOLS, "Reloading symbols from: %s (enabled: %s)\n", file->file_path.c_str(), BOOL_STR(file->enabled));
         this->LoadFromContent(content, i);
     }
 
-    LOGF(SYMBOLS, "Reloaded %zu symbols across %zu groups\n", GetSymbolCount(), m_groups.size());
+    LOGF(SYMBOLS, "Reloaded %zu symbols across %zu files\n", GetSymbolCount(), m_files.size());
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SymbolTable::LoadedSymbolGroup *SymbolTable::AddLoadedSymbolGroup(SymbolGroup new_group, size_t *file_index) {
-    auto &&lsg = std::make_unique<LoadedSymbolGroup>();
+SymbolTable::LoadedSymbolFile *SymbolTable::AddLoadedSymbolFile(SymbolFile new_file, size_t *file_index) {
+    auto &&lsf = std::make_unique<LoadedSymbolFile>();
 
-    lsg->group = std::move(new_group);
+    lsf->file = std::move(new_file);
 
     if (file_index) {
-        *file_index = m_groups.size();
+        *file_index = m_files.size();
     }
 
-    SymbolTable::LoadedSymbolGroup *lsg_ptr = lsg.get();
-    m_groups.push_back(std::move(lsg));
+    SymbolTable::LoadedSymbolFile *lsf_ptr = lsf.get();
+    m_files.push_back(std::move(lsf));
 
-    return lsg_ptr;
+    return lsf_ptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
