@@ -1091,6 +1091,45 @@ void TranslateImRect(ImRect *rect, const ImVec2 &delta) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// copied from imgui_stdlib.h, with a bit of a C++17 tweak.
+struct ImGuiStdStringInputTextCallbackUserData {
+    std::string *str = nullptr;
+    ImGuiInputTextCallback next_callback = nullptr;
+    void *next_callback_user_data = nullptr;
+};
+
+static int ImGuiStdStringInputTextCallback(ImGuiInputTextCallbackData *data) {
+    auto user_data = (ImGuiStdStringInputTextCallbackUserData *)data->UserData;
+
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+        ASSERT(data->Buf == user_data->str->data());
+        user_data->str->resize(data->BufTextLen);
+        data->Buf = user_data->str->data();
+        return 0;
+    } else if (user_data->next_callback) {
+        data->UserData = user_data->next_callback_user_data;
+        return (*user_data->next_callback)(data);
+    } else {
+        return 0;
+    }
+}
+
+bool ImGuiInputText(const char *label, std::string *str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void *user_data) {
+    ASSERT(!(flags & ImGuiInputTextFlags_CallbackResize));
+    flags |= ImGuiInputTextFlags_CallbackResize;
+
+    ImGuiStdStringInputTextCallbackUserData u;
+    u.str = str;
+    u.next_callback = callback;
+    u.next_callback_user_data = user_data;
+
+    bool result = ImGui::InputText(label, str->data(), str->size() + 1, flags, &ImGuiStdStringInputTextCallback, &u);
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool ImGuiInputText(std::string *new_str,
                     const char *name,
                     const std::string &old_str) {

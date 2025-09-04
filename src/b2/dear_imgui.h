@@ -308,6 +308,8 @@ void TranslateImRect(ImRect *rect, const ImVec2 &delta);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool ImGuiInputText(const char *label, std::string *str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
+
 bool ImGuiInputText(std::string *new_str, const char *name, const std::string &old_str);
 
 // A collapsing header that you can't collapse.
