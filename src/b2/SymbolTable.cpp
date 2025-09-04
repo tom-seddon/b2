@@ -89,7 +89,6 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
 
 bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser) {
     size_t file_index;
-    LoadedSymbolFile *lsf;
     {
         SymbolFile new_file;
 
@@ -98,7 +97,7 @@ bool SymbolTable::LoadFromString(const std::string &content, const std::string &
             new_file.file_format_name = parser->GetFormatName();
         }
 
-        lsf = this->AddLoadedSymbolFile(std::move(new_file), &file_index);
+        this->AddLoadedSymbolFile(std::move(new_file), &file_index);
     }
 
     size_t old_count = GetSymbolCount();
@@ -154,7 +153,7 @@ class ViceParser : public SymbolTable::SymbolParser {
         return "VICE";
     }
 
-    std::vector<std::string> GetSuggestedFileExtensions() const {
+    std::vector<std::string> GetSuggestedFileExtensions() const override {
         return {".vice", ".lbl", ".sym"};
     }
 
@@ -233,7 +232,7 @@ class AcmeParser : public SymbolTable::SymbolParser {
         return "ACME";
     }
 
-    std::vector<std::string> GetSuggestedFileExtensions() const {
+    std::vector<std::string> GetSuggestedFileExtensions() const override {
         return {".lbl", ".sym"};
     }
 

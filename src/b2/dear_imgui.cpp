@@ -270,7 +270,6 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     ImGui::RegisterFontAtlas(m_new_font_atlas);
     io.Fonts = m_new_font_atlas;
-    printf("new font atlas: %p; old font atlas: %p\n", m_new_font_atlas, m_original_font_atlas);
 
     ImFontConfig font_config;
     font_config.SizePixels = 13.f;
@@ -1144,7 +1143,8 @@ static int ImGuiStdStringInputTextCallback(ImGuiInputTextCallbackData *data) {
 
     if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
         ASSERT(data->Buf == user_data->str->data());
-        user_data->str->resize(data->BufTextLen);
+        ASSERT(data->BufTextLen>=0);
+        user_data->str->resize((size_t)data->BufTextLen);
         data->Buf = user_data->str->data();
         return 0;
     } else if (user_data->next_callback) {

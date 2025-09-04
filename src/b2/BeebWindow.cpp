@@ -4407,7 +4407,7 @@ void SymbolGroupManagementUI::DoImGui() {
                 // Column 0: Order number with row-spanning selectable for hover highlighting (ImGui demo style)
                 ImGui::TableSetColumnIndex(0);
                 char row_label[32];
-                sprintf(row_label, "%zu", i);
+                snprintf(row_label, sizeof row_label, "%zu", i);
 
                 // Use visible Selectable with text content
                 ImGuiSelectableFlags selectable_flags = ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap;

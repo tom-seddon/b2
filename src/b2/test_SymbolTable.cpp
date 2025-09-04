@@ -49,12 +49,10 @@ int main() {
     TEST_TRUE(st.LoadFromString(TEST_DATA_1, "1", acme_parser));
 
     size_t file1_index = MustFindFileIndex(st, "1");
-    TEST_GE_II(file1_index, 0);
 
     TEST_TRUE(st.LoadFromString(TEST_DATA_2, "2", acme_parser));
 
     size_t file2_index = MustFindFileIndex(st, "2");
-    TEST_GE_II(file2_index, 0);
 
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
