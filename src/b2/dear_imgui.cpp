@@ -1167,26 +1167,20 @@ bool ImGuiInputText(const char *label, std::string *str, ImGuiInputTextFlags fla
 
 bool ImGuiInputText(std::string *new_str,
                     const char *name,
-                    const std::string &old_str) {
-    // This is a bit lame - but ImGui insists on editing a char
-    // buffer.
-    //
-    // 5,000 is supposed to be lots.
-    char buf[5000];
-
-    strlcpy(buf, old_str.c_str(), sizeof buf);
+                    std::string old_str) {
+    std::string tmp_str = std::move(old_str);
 
     ImGuiInputTextFlags flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll;
     if (!new_str) {
         flags |= ImGuiInputTextFlags_ReadOnly;
     }
 
-    if (!ImGui::InputText(name, buf, sizeof buf, flags)) {
+    if (!ImGuiInputText(name, &tmp_str, flags)) {
         return false;
     }
 
     if (new_str) {
-        new_str->assign(buf);
+        new_str->assign(std::move(tmp_str));
     }
 
     return true;
