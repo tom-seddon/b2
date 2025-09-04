@@ -2400,6 +2400,7 @@ void BeebWindow::DoToolsMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 static void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGroup *group, bool show_label) {
     std::string label;
 
@@ -2423,6 +2424,10 @@ static void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const Sym
         symbol_table->SetGroupEnabled(group->index, enabled);
     }
 }
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
@@ -4298,6 +4303,7 @@ SymbolGroupManagementUI::SymbolGroupManagementUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 static void CentreCheckboxInColumn() {
     // Center the checkbox in the column
     float enabled_column_width = ImGui::GetColumnWidth();
@@ -4305,6 +4311,7 @@ static void CentreCheckboxInColumn() {
     float enabled_center_offset = (enabled_column_width - enabled_checkbox_width) * 0.5f;
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + enabled_center_offset);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
