@@ -95,7 +95,6 @@ ImGuiStuff::~ImGuiStuff() {
             g_in_frame = false;
         }
 
-        ImGuiIO &io = ImGui::GetIO();
         ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
 
         for (ImTextureData *im_texture : platform_io.Textures) {
@@ -104,12 +103,6 @@ ImGuiStuff::~ImGuiStuff() {
                 this->UpdateImTextureData(im_texture);
             }
         }
-
-        io.Fonts = m_original_font_atlas;
-
-        ImGui::UnregisterFontAtlas(m_new_font_atlas);
-        delete m_new_font_atlas;
-        m_new_font_atlas = nullptr;
 
         ImGui::DestroyContext(m_context);
         m_context = nullptr;
@@ -262,14 +255,6 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_RGUI)] = ImGuiKey_RightSuper;
 
     // https://github.com/ocornut/imgui/commit/aa11934efafe4db75993e23aacacf9ed8b1dd40c#diff-bbaa16f299ca6d388a3a779b16572882L446
-
-    m_original_font_atlas = io.Fonts;
-
-    m_new_font_atlas = new ImFontAtlas;
-    m_new_font_atlas->OwnerContext = m_context;
-
-    ImGui::RegisterFontAtlas(m_new_font_atlas);
-    io.Fonts = m_new_font_atlas;
 
     ImFontConfig font_config;
     font_config.SizePixels = 13.f;
