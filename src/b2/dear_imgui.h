@@ -119,7 +119,6 @@ class ImGuiStuff {
 
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
-    SDL_Texture *m_font_texture = nullptr;
     uint64_t m_last_new_frame_ticks = 0;
     ImFontAtlas *m_original_font_atlas = nullptr;
     ImFontAtlas *m_new_font_atlas = nullptr;
@@ -144,10 +143,9 @@ class ImGuiStuff {
     ConsumePressedKeycodeState m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Off;
     uint32_t m_consumed_keycode = 0;
 
-    int m_font_size_pixels = 0;
-    bool m_font_dirty = true;
-
     ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
+
+    void UpdateImTextureData(ImTextureData *texture);
 
     friend class ImGuiContextSetter;
 };

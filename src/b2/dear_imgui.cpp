@@ -96,19 +96,23 @@ ImGuiStuff::~ImGuiStuff() {
         }
 
         ImGuiIO &io = ImGui::GetIO();
+        ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
+
+        for (ImTextureData *im_texture : platform_io.Textures) {
+            if (im_texture->RefCount == 1) {
+                im_texture->SetStatus(ImTextureStatus_WantDestroy);
+                this->UpdateImTextureData(im_texture);
+            }
+        }
 
         io.Fonts = m_original_font_atlas;
 
+        ImGui::UnregisterFontAtlas(m_new_font_atlas);
         delete m_new_font_atlas;
         m_new_font_atlas = nullptr;
 
         ImGui::DestroyContext(m_context);
         m_context = nullptr;
-    }
-
-    if (m_font_texture) {
-        SDL_DestroyTexture(m_font_texture);
-        m_font_texture = nullptr;
     }
 
     for (size_t i = 0; i < sizeof m_cursors / sizeof m_cursors[0]; ++i) {
@@ -172,6 +176,9 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     ImGuiIO &io = ImGui::GetIO();
     ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
+
+    io.BackendRendererName = "b2 SDL/OpenGL";
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 
 #if SYSTEM_WINDOWS
 
@@ -258,7 +265,21 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     m_original_font_atlas = io.Fonts;
 
-    this->SetFontSizePixels(13);
+    m_new_font_atlas = new ImFontAtlas;
+    m_new_font_atlas->OwnerContext = m_context;
+
+    ImGui::RegisterFontAtlas(m_new_font_atlas);
+    io.Fonts = m_new_font_atlas;
+    printf("new font atlas: %p; old font atlas: %p\n", m_new_font_atlas, m_original_font_atlas);
+
+    ImFontConfig font_config;
+    font_config.SizePixels = 13.f;
+    io.Fonts->AddFontDefault(&font_config);
+
+    ImFontConfig fa_config;
+    fa_config.MergeMode = true;
+    fa_config.PixelSnapH = true;
+    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), font_config.SizePixels, &fa_config, FA_ICONS_RANGES);
 
     return true;
 }
@@ -267,20 +288,14 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 //////////////////////////////////////////////////////////////////////////
 
 int ImGuiStuff::GetFontSizePixels() const {
-    return m_font_size_pixels;
+    return 13;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void ImGuiStuff::SetFontSizePixels(int font_size_pixels) {
-    font_size_pixels = (std::max)(font_size_pixels, 13);
-    font_size_pixels = (std::min)(font_size_pixels, 50);
-
-    if (font_size_pixels != m_font_size_pixels) {
-        m_font_size_pixels = font_size_pixels;
-        m_font_dirty = true;
-    }
+    (void)font_size_pixels;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -316,55 +331,6 @@ void ImGuiStuff::NewFrame() {
     uint64_t now_ticks = GetCurrentTickCount();
     io.DeltaTime = (float)GetSecondsFromTicks(now_ticks - m_last_new_frame_ticks);
     m_last_new_frame_ticks = now_ticks;
-
-    if (m_font_dirty) {
-        int rc;
-        (void)rc; //only used by ASSERTs...
-
-        m_new_font_atlas = new ImFontAtlas;
-        io.Fonts = m_new_font_atlas;
-        ImFontConfig font_config;
-        font_config.SizePixels = (float)m_font_size_pixels;
-        io.Fonts->AddFontDefault(&font_config);
-
-        ImFontConfig fa_config;
-        fa_config.MergeMode = true;
-        fa_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), (float)m_font_size_pixels, &fa_config, FA_ICONS_RANGES);
-
-        unsigned char *pixels;
-        int width, height;
-        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-        if (m_font_texture) {
-            SDL_DestroyTexture(m_font_texture);
-            m_font_texture = nullptr;
-        }
-
-        SetRenderScaleQualityHint(false);
-        m_font_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
-        if (!m_font_texture) {
-            io.Fonts->TexID = (ImTextureID) nullptr;
-        } else {
-            SDL_SetTextureBlendMode(m_font_texture, SDL_BLENDMODE_BLEND);
-
-            Uint32 font_texture_format;
-            rc = SDL_QueryTexture(m_font_texture, &font_texture_format, NULL, NULL, NULL);
-            ASSERT(rc == 0);
-
-            std::vector<uint8_t> tmp((size_t)(width * height * 4));
-
-            rc = SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_ARGB8888, pixels, width * 4, font_texture_format, tmp.data(), width * 4);
-            ASSERT(rc == 0);
-
-            rc = SDL_UpdateTexture(m_font_texture, NULL, tmp.data(), width * 4);
-            ASSERT(rc == 0);
-
-            io.Fonts->TexID = (ImTextureID)m_font_texture;
-        }
-
-        m_font_dirty = false;
-    }
 
     {
         ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
@@ -431,6 +397,14 @@ void ImGuiStuff::RenderSDL() {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
 
+    if (draw_data->Textures) {
+        for (ImTextureData *texture : *draw_data->Textures) {
+            if (texture->Status != ImTextureStatus_OK) {
+                this->UpdateImTextureData(texture);
+            }
+        }
+    }
+
     int output_width, output_height;
     SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
 
@@ -492,7 +466,7 @@ void ImGuiStuff::RenderSDL() {
 
                 (*cmd.UserCallback)(draw_list, &cmd);
             } else {
-                SDL_Texture *texture = (SDL_Texture *)cmd.TextureId;
+                SDL_Texture *texture = (SDL_Texture *)cmd.TexRef.GetTexID();
                 SDL_GL_BindTexture(texture, nullptr, nullptr);
 
                 GLint gl_scale_mode;
@@ -817,6 +791,67 @@ void ImGuiStuff::DoDebugGui() {
                 ImGui::EndTooltip();
             }
         }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::UpdateImTextureData(ImTextureData *im_texture) {
+    switch (im_texture->Status) {
+    default:
+        ASSERT(false);
+        break;
+
+    case ImTextureStatus_WantCreate:
+        {
+            ASSERT(im_texture->TexID == 0);
+            ASSERT(!im_texture->BackendUserData);
+            ASSERT(im_texture->Format == ImTextureFormat_RGBA32);
+
+            SetRenderScaleQualityHint(false);
+            SDL_Texture *sdl_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, im_texture->Width, im_texture->Height);
+            if (!sdl_texture) {
+                // Welp
+                im_texture->SetTexID(0);
+            } else {
+                SDL_SetTextureBlendMode(sdl_texture, SDL_BLENDMODE_BLEND);
+
+                const void *pixels = im_texture->GetPixels();
+                int pitch = im_texture->GetPitch();
+                SDL_UpdateTexture(sdl_texture, nullptr, pixels, pitch);
+
+                im_texture->SetTexID((ImTextureID)(intptr_t)sdl_texture);
+                im_texture->SetStatus(ImTextureStatus_OK);
+            }
+        }
+        break;
+
+    case ImTextureStatus_WantUpdates:
+        if (auto sdl_texture = (SDL_Texture *)im_texture->TexID) {
+            for (const ImTextureRect &im_rect : im_texture->Updates) {
+                SDL_Rect sdl_rect;
+                sdl_rect.x = im_rect.x;
+                sdl_rect.y = im_rect.y;
+                sdl_rect.w = im_rect.w;
+                sdl_rect.h = im_rect.h;
+
+                const void *pixels = im_texture->GetPixelsAt(im_rect.x, im_rect.y);
+                int pitch = im_texture->GetPitch();
+                SDL_UpdateTexture(sdl_texture, &sdl_rect, pixels, pitch);
+            }
+        }
+        break;
+
+    case ImTextureStatus_WantDestroy:
+        {
+            if (auto sdl_texture = (SDL_Texture *)im_texture->TexID) {
+                SDL_DestroyTexture(sdl_texture);
+                im_texture->SetTexID(0);
+                im_texture->SetStatus(ImTextureStatus_Destroyed);
+            }
+        }
+        break;
     }
 }
 
