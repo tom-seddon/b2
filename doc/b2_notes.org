@@ -5062,7 +5062,7 @@ bits 2 to 0 as well as the ACIA clock divider govern the baud rate, as
 in serial mode, but again the MOS only adjusts the divider.
 #+end_quote
 
-* WIP build notes
+* DONE WIP build notes
 
 #+begin_src markdown
   ,* Fix disassembly window display of immediate operands
@@ -5392,5 +5392,11 @@ But only "like". The above didn't work.
 
 #+end_src
 
+
+* TODO WIP build notes
+
+#+begin_src markdown
+  ,* The GUI Font Size setting has been renamed to GUI Font Scale, now a scale value rather than a pixel size. If you previously changed this setting, that change will be lost, and you'll need to set it up again in the Options dialog. Apologies
+#+end_src
 
 * eof.

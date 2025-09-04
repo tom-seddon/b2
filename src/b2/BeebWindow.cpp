@@ -526,13 +526,11 @@ void BeebWindow::OptionsUI::DoImGui() {
     {
         ImGuiHeader("UI");
 
-        ImGui::InputInt("GUI Font Size", &settings->gui_font_size, 1, 1, 0);
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            m_beeb_window->m_imgui_stuff->SetFontSizePixels(settings->gui_font_size);
-
-            // Reflect any Dear ImGui Stuff clamping. Looks rather janky though.
-            // Is there anything that can be done?
-            settings->gui_font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
+        float scale = m_beeb_window->m_imgui_stuff->GetFontScale();
+        if (ImGui::InputFloat("GUI Font Scale", &scale, 0.f, 0.f)) {
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                m_beeb_window->m_imgui_stuff->SetFontScale(scale);
+            }
         }
     }
 
@@ -3283,6 +3281,8 @@ void BeebWindow::SaveSettings() {
     m_settings.symbol_table_data = m_symbol_table->SaveToJSON();
 #endif
 
+    m_settings.gui_font_scale = m_imgui_stuff->GetFontScale();
+
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = this->GetConfigName();
 
@@ -3513,7 +3513,7 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    m_imgui_stuff->SetFontSizePixels(m_settings.gui_font_size);
+    m_imgui_stuff->SetFontScale(m_settings.gui_font_scale);
 
     if (!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n"); //: %s",BeebThread_GetError(m_beeb_thread));

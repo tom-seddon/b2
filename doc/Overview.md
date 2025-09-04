@@ -281,9 +281,8 @@ get the beep.)
 
 ### UI
 
-If you find the UI text a bit small, use the GUI Font Size setting to
-make it larger. (This only affects the emulator UI, not the BBC
-display.)
+If you find the UI text a bit small, use the GUI Font Scale setting to
+scale it up. 1.0 = the original size, 2.0 = twice as large, and so on.
 
 ### HTTP Server
 

@@ -103,8 +103,8 @@ class ImGuiStuff {
 #endif
     void DoDebugGui();
 
-    int GetFontSizePixels() const;
-    void SetFontSizePixels(int font_size_pixels);
+    float GetFontScale() const;
+    void SetFontScale(float scale);
 
     // The non-modifier key returned will be marked as no longer pressed.
     uint32_t ConsumePressedKeycode();

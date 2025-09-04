@@ -287,15 +287,21 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int ImGuiStuff::GetFontSizePixels() const {
-    return 13;
+float ImGuiStuff::GetFontScale() const {
+    ImGuiContextSetter setter(this);
+
+    const ImGuiStyle &style = ImGui::GetStyle();
+    return style.FontScaleMain;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::SetFontSizePixels(int font_size_pixels) {
-    (void)font_size_pixels;
+void ImGuiStuff::SetFontScale(float scale) {
+    ImGuiContextSetter setter(this);
+
+    ImGuiStyle &style = ImGui::GetStyle();
+    style.FontScaleMain = (std::max)(scale, 1.f);
 }
 
 //////////////////////////////////////////////////////////////////////////
