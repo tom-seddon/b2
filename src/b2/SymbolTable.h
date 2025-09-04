@@ -22,6 +22,10 @@
 #undef MoveFile
 #endif
 
+#include <shared/enum_decl.h>
+#include "SymbolTable.inl"
+#include <shared/enum_end.h>
+
 struct BBCMicroType;
 struct LogSet;
 
@@ -56,6 +60,15 @@ static constexpr unsigned MAX_NUM_SYMBOL_FILE_GROUPS = 256;
 struct SymbolGroup {
     // Name of this group. For human readability purposes only.
     std::string name;
+
+    // Updated automatically.
+    uint8_t index = 0;
+
+    // Updated automatically as file groups are changed.
+    bool used = false;
+
+    // Updated automatically as files are enabled or disabled.
+    SymbolGroupState state = SymbolGroupState_Indeterminate;
 };
 JSON_SERIALIZE(SymbolGroup, name);
 
@@ -116,6 +129,11 @@ class SymbolTable {
     // Group metadata editing
     void SetFileGroupIndex(size_t file_index, uint8_t group_index);
     void SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes);
+    const SymbolGroup *GetSymbolGroupByIndex(uint8_t group_index) const;
+    void SetGroupEnabled(uint8_t group_index, bool enabled);
+
+    // The group name has no impact on anything, so it can be freely changed.
+    std::string *GetGroupMutableName(uint8_t group_index);
 
     // Context-aware symbol lookup (symbols without explicit contexts are universal)
 
@@ -179,7 +197,7 @@ class SymbolTable {
     };
 
     std::vector<std::unique_ptr<LoadedSymbolFile>> m_files;
-    SymbolGroup m_groups[MAX_NUM_SYMBOL_FILE_GROUPS];
+    mutable SymbolGroup m_groups[MAX_NUM_SYMBOL_FILE_GROUPS];
 
     struct SymbolsInFile {
         const LoadedSymbolFile *lsf = nullptr;
@@ -200,12 +218,15 @@ class SymbolTable {
     mutable std::map<std::string, std::vector<AddressForSymbol>> m_cache_name_to_addresses; // Multiple addresses per name
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
+    mutable bool m_group_properties_valid = false;
 
     // Helper methods
     bool IsValidAddress(uint32_t addr) const;
     void InvalidateCache() const;
+    void InvalidateGroupProperties() const;
     void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;
     LoadedSymbolFile *AddLoadedSymbolFile(SymbolFile new_file, size_t *file_index);
+    void EnsureGroupPropertiesValid() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

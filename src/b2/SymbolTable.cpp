@@ -14,6 +14,10 @@
 #include <shared/file_io.h>
 #include <sstream>
 
+#include <shared/enum_def.h>
+#include "SymbolTable.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -506,8 +510,13 @@ bool SymbolTable::RemoveFile(size_t file_index) {
 
 void SymbolTable::EnableFile(size_t file_index, bool enabled) {
     ASSERT(file_index < m_files.size());
-    m_files[file_index]->file.enabled = enabled;
-    this->InvalidateCache();
+    SymbolFile *file = &m_files[file_index]->file;
+
+    if (file->enabled != enabled) {
+        file->enabled = enabled;
+
+        this->InvalidateCache();
+    }
 }
 
 const SymbolFile *SymbolTable::GetFileByIndex(size_t file_index) const {
@@ -541,8 +550,13 @@ bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
 
 void SymbolTable::SetFileGroupIndex(size_t file_index, uint8_t group_index) {
     ASSERT(file_index < m_files.size());
+    SymbolFile *file = &m_files[file_index]->file;
 
-    m_files[file_index]->file.group_index = group_index;
+    if (file->group_index != group_index) {
+        file->group_index = group_index;
+
+        this->InvalidateCache();
+    }
 }
 
 void SymbolTable::SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes) {
@@ -551,6 +565,24 @@ void SymbolTable::SetFileAddressSuffixes(size_t file_index, std::vector<std::str
     m_files[file_index]->file.address_suffixes = std::move(new_address_suffixes);
 
     this->InvalidateCache();
+}
+
+const SymbolGroup *SymbolTable::GetSymbolGroupByIndex(uint8_t group_index) const {
+    this->EnsureGroupPropertiesValid();
+
+    return &m_groups[group_index];
+}
+
+void SymbolTable::SetGroupEnabled(uint8_t group_index, bool enabled) {
+    for (size_t file_index = 0; file_index < m_files.size(); ++file_index) {
+        if (m_files[file_index]->file.group_index == group_index) {
+            this->EnableFile(file_index, enabled);
+        }
+    }
+}
+
+std::string *SymbolTable::GetGroupMutableName(uint8_t group_index) {
+    return &m_groups[group_index].name;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -588,6 +620,12 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
 
 void SymbolTable::InvalidateCache() const {
     m_cache_type.reset();
+
+    this->InvalidateGroupProperties();
+}
+
+void SymbolTable::InvalidateGroupProperties() const {
+    m_group_properties_valid = false;
 }
 
 void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const {
@@ -756,6 +794,73 @@ SymbolTable::LoadedSymbolFile *SymbolTable::AddLoadedSymbolFile(SymbolFile new_f
     m_files.push_back(std::move(lsf));
 
     return lsf_ptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SymbolTable::EnsureGroupPropertiesValid() const {
+    if (m_group_properties_valid) {
+        return;
+    }
+
+    SymbolGroupState *states[MAX_NUM_SYMBOL_FILE_GROUPS] = {};
+
+    for (unsigned group_index = 0; group_index < MAX_NUM_SYMBOL_FILE_GROUPS; ++group_index) {
+        SymbolGroup *group = &m_groups[group_index];
+
+        group->index = (uint8_t)group_index;
+        ASSERT(group->index == group_index);
+
+        group->used = false;
+    }
+
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+        SymbolGroup *group = &m_groups[lsf->file.group_index];
+
+        group->used = true;
+
+        SymbolGroupState **state_ptr = &states[lsf->file.group_index];
+
+        if (!*state_ptr) {
+            *state_ptr = &group->state;
+
+            if (lsf->file.enabled) {
+                **state_ptr = SymbolGroupState_Enabled;
+            } else {
+                **state_ptr = SymbolGroupState_Disabled;
+            }
+        } else {
+            switch (**state_ptr) {
+            case SymbolGroupState_Disabled:
+                if (lsf->file.enabled) {
+                    **state_ptr = SymbolGroupState_Indeterminate;
+                }
+                break;
+
+            case SymbolGroupState_Enabled:
+                if (!lsf->file.enabled) {
+                    **state_ptr = SymbolGroupState_Indeterminate;
+                }
+                break;
+
+            default:
+                ASSERT(false);
+                [[fallthrough]];
+            case SymbolGroupState_Indeterminate:
+                // No way out of this state.
+                break;
+            }
+        }
+    }
+
+    for (unsigned group_index = 0; group_index < MAX_NUM_SYMBOL_FILE_GROUPS; ++group_index) {
+        if (!states[group_index]) {
+            m_groups[group_index].state = SymbolGroupState_Disabled;
+        }
+    }
+
+    m_group_properties_valid = true;
 }
 
 //////////////////////////////////////////////////////////////////////////

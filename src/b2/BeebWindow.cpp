@@ -2402,6 +2402,30 @@ void BeebWindow::DoToolsMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGroup *group, bool show_label) {
+    std::string label;
+
+    if (show_label) {
+        label = std::to_string(group->index);
+        if (!group->name.empty()) {
+            label += ". " + group->name;
+        }
+    }
+
+    ImGuiIDPusher id_pusher(group->index);
+
+    ImGuiItemFlagPusher flag_pusher;
+
+    if (group->state == SymbolGroupState_Indeterminate) {
+        flag_pusher.Push(ImGuiItemFlags_MixedValue, true);
+    }
+
+    bool enabled = group->state == SymbolGroupState_Enabled;
+    if (ImGui::Checkbox(label.c_str(), &enabled)) {
+        symbol_table->SetGroupEnabled(group->index, enabled);
+    }
+}
+
 void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
     if (ImGui::BeginMenu("Debug")) {
@@ -2555,50 +2579,17 @@ void BeebWindow::DoDebugMenu() {
             if (num_files > 0) {
                 ImGui::Text("Symbol groups:");
 
-                // Group entries by group for consolidated display
-                size_t num_by_group[MAX_NUM_SYMBOL_FILE_GROUPS] = {};
-                size_t num_enabled_by_group[MAX_NUM_SYMBOL_FILE_GROUPS] = {};
-                for (size_t file_index = 0; file_index < num_files; ++file_index) {
-                    const SymbolFile *file = m_symbol_table->GetFileByIndex(file_index);
-                    ++num_by_group[file->group_index];
-                    if (file->enabled) {
-                        ++num_enabled_by_group[file->group_index];
-                    }
-                }
-
                 // Show one checkbox per used group
                 for (unsigned group_index = 0; group_index < MAX_NUM_SYMBOL_FILE_GROUPS; ++group_index) {
-                    if (num_by_group[group_index] == 0) {
+                    const SymbolGroup *group = m_symbol_table->GetSymbolGroupByIndex((uint8_t)group_index);
+
+                    if (!group->used) {
                         continue;
                     }
 
                     ImGuiIDPusher id_pusher(group_index);
 
-                    ImGuiItemFlagPusher flag_pusher;
-
-                    bool all = num_by_group[group_index] == num_enabled_by_group[group_index];
-                    bool any = num_enabled_by_group[group_index] > 0;
-                    bool mixed = any && !all;
-
-                    if (mixed) {
-                        flag_pusher.Push(ImGuiItemFlags_MixedValue, true);
-                    }
-
-                    std::string group_name = std::to_string(group_index); //TODO...
-
-                    if (ImGui::Checkbox(group_name.c_str(), &all)) {
-                        if (mixed) {
-                            // Mixed state clicked: enable all.
-                            all = true;
-                        }
-
-                        for (size_t file_index = 0; file_index < m_symbol_table->GetNumFiles(); ++file_index) {
-                            const SymbolFile *file = m_symbol_table->GetFileByIndex(file_index);
-                            if (file->group_index == group_index) {
-                                m_symbol_table->EnableFile(file_index, all);
-                            }
-                        }
-                    }
+                    ImGuiSymbolGroupEnabledCheckbox(m_symbol_table.get(), group, true);
                 }
 
                 //std::map<std::string, std::vector<size_t>> groups_by_name;
@@ -4287,6 +4278,10 @@ class SymbolGroupManagementUI : public SettingsUI {
 
     char m_address_suffix_buffer[20] = {};
     std::string m_address_suffix_error;
+
+    // TODO: probably better as an enum.
+    bool m_show_all_groups = false;
+    bool m_show_used_groups = true;
 };
 #endif
 
@@ -4303,10 +4298,21 @@ SymbolGroupManagementUI::SymbolGroupManagementUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void CentreCheckboxInColumn() {
+    // Center the checkbox in the column
+    float enabled_column_width = ImGui::GetColumnWidth();
+    float enabled_checkbox_width = ImGui::GetFrameHeight(); // Checkbox is square
+    float enabled_center_offset = (enabled_column_width - enabled_checkbox_width) * 0.5f;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + enabled_center_offset);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 void SymbolGroupManagementUI::DoImGui() {
-    ImGui::Text("Manage Symbol Groups and Precedence");
-    ImGui::Separator();
+    //ImGui::Text("Manage Symbol Groups and Precedence");
+    //ImGui::Separator();
 
     // Get reference to groups
     SymbolTable &symbol_table = *m_beeb_window->GetMutableSymbolTable();
@@ -4327,10 +4333,12 @@ void SymbolGroupManagementUI::DoImGui() {
     //    }
     //}
 
+    ImGuiHeader("Symbol Files");
+
     if (num_files == 0) {
         ImGui::Text("No symbol groups loaded.");
     } else {
-        ImGui::Text("Groups are ordered by precedence (lower position = higher precedence)");
+        ImGui::Text("Files are ordered by precedence (lower position = higher precedence)");
 
         // Show total symbol counts
         size_t enabled_count = symbol_table.GetEnabledSymbolCount();
@@ -4359,7 +4367,7 @@ void SymbolGroupManagementUI::DoImGui() {
         float table_height = ImGui::GetTextLineHeightWithSpacing() * (num_files + 1);                                         // +1 for header
         table_height = std::min(table_height, ImGui::GetContentRegionAvail().y - SymbolUI::MANAGEMENT_TABLE_RESERVED_HEIGHT); // Reserve space for buttons below
 
-        if (ImGui::BeginTable("symbol_files", 8, table_flags, ImVec2(0.0f, table_height))) {
+        if (ImGui::BeginTable("symbol_files", 8, table_flags)) {
             // Reordered columns: # first, then Select, then Move
             ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, SymbolUI::COL_INDEX_WIDTH);
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, SymbolUI::COL_SELECT_WIDTH);
@@ -4377,7 +4385,8 @@ void SymbolGroupManagementUI::DoImGui() {
             for (size_t i = 0; i < num_files; ++i) {
                 const SymbolFile *file = symbol_table.GetFileByIndex(i);
 
-                ImGui::PushID((int)i);
+                ImGuiIDPusher id_pusher((int)i);
+
                 ImGui::TableNextRow();
 
                 // Row selection state
@@ -4472,11 +4481,7 @@ void SymbolGroupManagementUI::DoImGui() {
 
                 // Column 3: Enabled checkbox - centered
                 ImGui::TableSetColumnIndex(3);
-                // Center the checkbox in the column
-                float enabled_column_width = ImGui::GetColumnWidth();
-                float enabled_checkbox_width = ImGui::GetFrameHeight(); // Checkbox is square
-                float enabled_center_offset = (enabled_column_width - enabled_checkbox_width) * 0.5f;
-                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + enabled_center_offset);
+                CentreCheckboxInColumn();
 
                 bool enabled = file->enabled;
                 std::string checkbox_id = "##enabled_" + std::to_string(i);
@@ -4485,7 +4490,17 @@ void SymbolGroupManagementUI::DoImGui() {
                 }
 
                 //// Column 4: Group name (always editable input field)
-                //ImGui::TableSetColumnIndex(4);
+                ImGui::TableSetColumnIndex(4);
+                {
+                    int group_index = file->group_index;
+                    if (ImGui::InputInt("##group", &group_index, 0)) {
+                        if (ImGui::IsItemDeactivatedAfterEdit()) {
+                            if (group_index >= 0 && (unsigned)group_index < MAX_NUM_SYMBOL_FILE_GROUPS) {
+                                symbol_table.SetFileGroupIndex(i, (uint8_t)group_index);
+                            }
+                        }
+                    }
+                }
 
                 //// Always show as InputText - much simpler and more intuitive
                 //std::string input_id = "##group_name_" + std::to_string(i);
@@ -4581,8 +4596,6 @@ void SymbolGroupManagementUI::DoImGui() {
                         ImGui::EndTooltip();
                     }
                 }
-
-                ImGui::PopID();
             }
 
             ImGui::EndTable();
@@ -4624,6 +4637,47 @@ void SymbolGroupManagementUI::DoImGui() {
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Delete %zu selected group%s", selected_count, selected_count > 1 ? "s" : "");
             }
+        }
+
+        ImGui::Separator();
+
+        ImGuiHeader("Symbol Groups");
+
+        ImGui::Checkbox("Show all", &m_show_all_groups);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show used", &m_show_used_groups);
+
+        if (ImGui::BeginTable("symbol_groups", 3, table_flags)) {
+            ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 50.f);
+            ImGui::TableSetupColumn("Enabled", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 0.f);
+
+            ImGui::TableHeadersRow();
+
+            for (unsigned group_index = 0; group_index < MAX_NUM_SYMBOL_FILE_GROUPS; ++group_index) {
+                const SymbolGroup *group = symbol_table.GetSymbolGroupByIndex((uint8_t)group_index);
+
+                if (m_show_used_groups && !group->used) {
+                    continue;
+                }
+
+                ImGui::TableNextRow();
+
+                ImGuiIDPusher id_pusher(group_index);
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%3u (0x%02x)", group_index, group_index);
+
+                ImGui::TableSetColumnIndex(1);
+                CentreCheckboxInColumn();
+                ImGuiSymbolGroupEnabledCheckbox(&symbol_table, group, false);
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
+                ImGuiInputText("##group_name", symbol_table.GetGroupMutableName((uint8_t)group_index));
+            }
+
+            ImGui::EndTable();
         }
     }
 
