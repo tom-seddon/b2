@@ -1338,25 +1338,33 @@ bool IsValidAddressSuffixChar(char c) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-uint32_t GetNormalizedDSO(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso_) {
-    uint32_t dso = dso_;
-
-    // Strip off anythhing irrelevant for the type.
-    dso &= type->dso_mask;
-
-    // If overriding ROM bank and mapper region, normalize the mapper region.
-    constexpr uint32_t override_both = BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_OverrideMapperRegion;
-    if ((dso & override_both) == override_both) {
-        uint32_t region = (dso >> BBCMicroDebugStateOverride_MapperRegionShift) & BBCMicroDebugStateOverride_MapperRegionMask;
-        uint8_t bank = dso & BBCMicroDebugStateOverride_ROM;
-        region &= GetROMTypeRegionMask(type->rom_types[bank]);
-        dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift) | region << BBCMicroDebugStateOverride_MapperRegionShift;
-    }
-
-    return dso;
-}
-#endif
+//#if BBCMICRO_DEBUGGER
+//uint32_t GetNormalizedDSO(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso_) {
+//    uint32_t dso = dso_;
+//
+//    // Strip off anythhing irrelevant for the type.
+//    dso &= type->dso_mask;
+//
+//    // If overriding ROM bank and mapper region, normalize the mapper region.
+//    constexpr uint32_t override_both = BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_OverrideMapperRegion;
+//    if ((dso & override_both) == override_both) {
+//        uint32_t region = (dso >> BBCMicroDebugStateOverride_MapperRegionShift) & BBCMicroDebugStateOverride_MapperRegionMask;
+//        uint8_t bank = dso & BBCMicroDebugStateOverride_ROM;
+//        region &= GetROMTypeRegionMask(type->rom_types[bank]);
+//        dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift) | region << BBCMicroDebugStateOverride_MapperRegionShift;
+//    }
+//
+//    // Strip out parasite/non-parasite stuff as appropriate.
+//    constexpr uint32_t all_parasite_flags = BBCMicroDebugStateOverride_Parasite | BBCMicroDebugStateOverride_OverrideParasiteROM;
+//    if (dso & BBCMicroDebugStateOverride_Parasite) {
+//        dso &= all_parasite_flags;
+//    } else {
+//        dso &= ~all_parasite_flags;
+//    }
+//
+//    return dso;
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

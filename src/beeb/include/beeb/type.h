@@ -305,7 +305,7 @@ bool IsValidAddressSuffixChar(char c);
 // If the DSO refers to a specific ROM bank, the mapper region will be
 // normalized too. (There's always a power-of-2 number of mapper regions, so
 // this can work.)
-uint32_t GetNormalizedDSO(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso);
+// uint32_t GetNormalizedDSO(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso);
 
 // Get a mask for any specified overrides in the given DSO. If an OverrideXXX
 // bit is set in the DSO, the mask has that bit set too, and the corresponding
