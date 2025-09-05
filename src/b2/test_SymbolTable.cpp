@@ -4,6 +4,7 @@
 #if BBCMICRO_DEBUGGER
 
 #include <shared/testing.h>
+#include <shared/log.h>
 #include <beeb/type.h>
 
 static const char TEST_DATA_1[] =
@@ -19,6 +20,8 @@ static const char TEST_DATA_2[] =
     "label3_2=$8000\n"
     "ambiguous=$1001\n"
     "file2_only=$2002\n";
+
+static const char BEEBASM_TEST_DATA[] = "[{'.SPARE1':0L,'.SPARE2':2L,'.irqTmp':3L,'.runLenCnt':4L,'.joystickEnabledFlag':5L,'.snowWindow':6L,'.packedTileTable':10L,'.itemExtra':16L,'.itemTile':17L,'.itemID':18L,'.itemX':19L,'.itemY':20L}]";
 
 #define TEST_EQ_SYMBOL_S(GOT_NAME_PTR, WANTED_NAME) \
     BEGIN_MACRO {                                   \
@@ -38,8 +41,37 @@ static size_t MustFindFileIndex(const SymbolTable &st, const std::string &file_p
     TEST_FAIL("couldn't find expected symbol file: %s", file_path.c_str());
 }
 
-int main() {
-    SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers();
+static std::shared_ptr<const BBCMicroType> CreateTestBBCMicroType() {
+    ROMType rom_types[16];
+    for (int i = 0; i < 16; ++i) {
+        rom_types[i] = ROMType_16KB;
+    }
+
+    std::shared_ptr<const BBCMicroType> type = CreateBBCMicroType(BBCMicroTypeID_B, rom_types);
+    return type;
+}
+
+static void TestBeebAsmStuff() {
+    const SymbolTable::SymbolParser *beebasm_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("BeebAsm");
+    TEST_NON_NULL(beebasm_parser);
+
+    SymbolTable st;
+
+    TEST_TRUE(st.LoadFromString(BEEBASM_TEST_DATA, "1", beebasm_parser));
+
+    std::shared_ptr<const BBCMicroType> type = CreateTestBBCMicroType();
+
+    TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0, 0, type), "SPARE1");
+    TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(20, 0, type), "itemY");
+
+    uint16_t addr;
+    uint32_t dso;
+
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "snowWindow"));
+    TEST_EQ_UU(addr, 6);
+}
+
+static void TestMultiSymbolTableStuff() {
 
     const SymbolTable::SymbolParser *acme_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("ACME");
     TEST_NON_NULL(acme_parser);
@@ -54,12 +86,7 @@ int main() {
 
     size_t file2_index = MustFindFileIndex(st, "2");
 
-    ROMType rom_types[16];
-    for (int i = 0; i < 16; ++i) {
-        rom_types[i] = ROMType_16KB;
-    }
-
-    std::shared_ptr<const BBCMicroType> type = CreateBBCMicroType(BBCMicroTypeID_B, rom_types);
+    std::shared_ptr<const BBCMicroType> type = CreateTestBBCMicroType();
 
     uint16_t addr;
     uint32_t dso;
@@ -111,6 +138,17 @@ int main() {
 
     TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "ambiguous"));
     TEST_EQ_UU(addr, 0x1001);
+}
+
+LOG_EXTERN(SYMBOLS);
+
+int main() {
+    SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers();
+
+    LOG(SYMBOLS).Enable();
+
+    TestMultiSymbolTableStuff();
+    TestBeebAsmStuff();
 }
 
 #else

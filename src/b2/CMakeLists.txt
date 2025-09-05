@@ -407,9 +407,10 @@ target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohma
 
 add_executable(test_SymbolTable
   test_SymbolTable.cpp
+  misc.cpp misc.h
   SymbolTable.cpp SymbolTable.h)
 b2_target_boilerplate(test_SymbolTable SANITIZERS)
-target_link_libraries(test_SymbolTable shared_lib beeb_lib nlohmann_json::nlohmann_json)
+target_link_libraries(test_SymbolTable shared_lib beeb_lib nlohmann_json::nlohmann_json ${SDL2_LIBRARY})
 add_test(
   NAME b2/test_SymbolTable
   COMMAND $<TARGET_FILE:test_SymbolTable>)

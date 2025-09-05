@@ -33,7 +33,9 @@ struct LogSet;
 //////////////////////////////////////////////////////////////////////////
 
 struct Symbol {
-    //
+    // TODO: may want to expand this to something else at some point, since
+    // symbols could be anything. But, for now, they are assumed to represent
+    // addreses, so 16 bits makes sense.
     uint16_t address = 0;
 
     //
@@ -155,7 +157,7 @@ class SymbolTable {
         virtual std::string GetFormatName() const = 0;
         virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;
         virtual bool MatchesLine(const std::string &line) const = 0;
-        virtual std::vector<Symbol> ParseContent(const std::string &content) const = 0;
+        virtual bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const = 0;
     };
 
     // Parser registry system

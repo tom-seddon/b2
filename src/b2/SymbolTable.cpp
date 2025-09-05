@@ -13,6 +13,7 @@
 #include <beeb/type.h>
 #include <shared/file_io.h>
 #include <sstream>
+#include "misc.h"
 
 #include <shared/enum_def.h>
 #include "SymbolTable.inl"
@@ -147,6 +148,187 @@ const SymbolTable::SymbolParser *SymbolTable::SymbolParserRegistry::FindParserBy
 
 // Concrete parser implementations
 
+class BeebAsmParser : public SymbolTable::SymbolParser {
+    struct ParseState {
+        const char *c = nullptr;
+        size_t line_number = 1;
+    };
+
+  public:
+    std::string GetFormatName() const override {
+        return "BeebAsm";
+    }
+
+    std::vector<std::string> GetSuggestedFileExtensions() const override {
+        return {".labels", ".txt"};
+    }
+
+    bool MatchesLine(const std::string &line) const override {
+        if (line.substr(0, 3) == "[{'") {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const override {
+        ParseState ps;
+
+        ps.c = content.c_str();
+
+        if (!this->SkipSpacesAndConsumeMatch(&ps, '[')) {
+            return this->Error(ps, "didn't find opening [");
+        }
+
+        if (!this->SkipSpacesAndConsumeMatch(&ps, '{')) {
+            return this->Error(ps, "didn't find opening {");
+        }
+
+        for (;;) {
+            if (!this->SkipSpacesAndConsumeMatch(&ps, '\'')) {
+                return this->Error(ps, "didn't find opening '");
+            }
+
+            Symbol symbol;
+            symbol.line_number = ps.line_number;
+
+            // Just treat everything up to the closing ' as the symbol and pass any
+            // UTF-8 issues to further along the chain.
+            //
+            // BeebAsm doesn't do any quoting for the symbol names, but ' isn't
+            // valid in symbol names anyway.
+            const char *symbol_begin = ps.c;
+            while (*ps.c != 0 && *ps.c != '\'') {
+                ++ps.c;
+            }
+
+            // BeebAsm labels always have a "." prefix. b2 treats this as a
+            // syntactic element, necesasry for disambiguation in the original
+            // source file,but not part of the name (any more than the ";"
+            // suffix might be in other assemblers).
+            //
+            // So it will accept names that don't start with ., but it'll strip
+            // out the leading . when there is one.
+            if (*symbol_begin == '.') {
+                ++symbol_begin;
+            }
+
+            // the label terminated either way.
+            symbol.name.assign(symbol_begin, ps.c);
+
+            if (*ps.c != '\'') {
+                return this->Error(ps, "didn't find closing ' for symbol: %s", symbol.name.c_str());
+            }
+
+            ++ps.c; //skip '
+
+            if (!this->SkipSpacesAndConsumeMatch(&ps, ':')) {
+                return this->Error(ps, "didn't find : for symbol: %s", symbol.name.c_str());
+            }
+
+            this->SkipSpaces(&ps);
+            if (!isdigit(*ps.c)) {
+                return this->Error(ps, "invalid non-digit value for symbol: %s", symbol.name.c_str());
+            }
+
+            const char *value_begin = ps.c;
+            while (isdigit(*ps.c)) {
+                ++ps.c;
+            }
+
+            // the value terminated either way.
+            std::string value_str(value_begin, ps.c);
+
+            if (*ps.c == 0) {
+                return this->Error(ps, "reached eof during value for symbol: %s", symbol.name.c_str());
+            }
+
+            // take the L when there is one.
+            if (*ps.c == 'L') {
+                ++ps.c;
+            }
+
+            // interpret the value.
+            uint32_t value;
+            if (!GetUInt32FromString(&value, value_str)) {
+                // unlikely to occur with the current code, since it already carefully checked that it's all digits...
+                return this->Error(ps, "invalid value for symbol \"%s\": %s", symbol.name.c_str(), value_str.c_str());
+            }
+
+            // actually looks like that was a valid symbol.
+            symbol.address = (uint16_t)value;
+            symbols->push_back(symbol);
+
+            this->SkipSpaces(&ps);
+            if (*ps.c == ',') {
+                ++ps.c; //skip ,
+                // more entries to come, you hope.
+                continue;
+            } else if (*ps.c == '}') {
+                // end of input signalled.
+                ++ps.c; //skip }
+                break;
+            } else {
+                return this->Error(ps, "syntax error after symbol: %s", symbol.name.c_str());
+            }
+        }
+
+        if (!this->SkipSpacesAndConsumeMatch(&ps, ']')) {
+            return this->Error(ps, "didn't find closing ]");
+        }
+
+        this->SkipSpaces(&ps);
+        if (*ps.c != 0) {
+            return this->Error(ps, "syntax error after closing ]");
+        }
+
+        return true;
+    }
+
+  protected:
+  private:
+    bool Error(const ParseState &ps, const char *fmt, ...) const PRINTF_LIKE(2, 3) {
+        LOGF(SYMBOLS, "Error: line %zu: ", ps.line_number);
+
+        va_list v;
+        va_start(v, fmt);
+        LOGV(SYMBOLS, fmt, v);
+        va_end(v);
+
+        LOG(SYMBOLS).EnsureBOL();
+
+        return false;
+    }
+
+    bool SkipSpacesAndConsumeMatch(ParseState *ps, char term) const {
+        this->SkipSpaces(ps);
+
+        if (*ps->c == term) {
+            ++ps->c;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    void SkipSpaces(ParseState *ps) const {
+        while (*ps->c != 0 && isspace(*ps->c)) {
+            if (*ps->c == '\r' || *ps->c == '\n') {
+                ++ps->line_number;
+
+                // Skip an extra byte if it looks like a 2-byte line ending.
+                if ((ps->c[1] == '\r' || ps->c[1] == '\n') && ps->c[1] != *ps->c) {
+                    ++ps->c;
+                }
+            }
+            ++ps->c;
+        }
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class ViceParser : public SymbolTable::SymbolParser {
   public:
     std::string GetFormatName() const override {
@@ -168,10 +350,8 @@ class ViceParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    std::vector<Symbol> ParseContent(const std::string &content) const override {
+    bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const override {
         LOGF(SYMBOLS, "Parsing VICE label format\n");
-
-        std::vector<Symbol> symbols;
 
         std::istringstream stream(content);
         std::string line;
@@ -207,24 +387,29 @@ class ViceParser : public SymbolTable::SymbolParser {
                         symbol.name = symbol.name.substr(1);
                     }
 
-                    symbols.push_back(std::move(symbol));
+                    symbols->push_back(std::move(symbol));
                 } catch (const std::exception &e) {
                     LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
+                    return false;
                 }
             } else {
                 // Only log non-empty, non-comment lines that don't match
                 std::string trimmed = TrimWhitespace(line);
                 if (!trimmed.empty()) {
+                    // TODO: should probably reveal this somewhere...
                     LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
                          line_number, trimmed.c_str());
                 }
             }
         }
 
-        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols.size());
-        return symbols;
+        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols->size());
+        return true;
     }
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 class AcmeParser : public SymbolTable::SymbolParser {
   public:
@@ -247,10 +432,8 @@ class AcmeParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    std::vector<Symbol> ParseContent(const std::string &content) const override {
+    bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const override {
         LOGF(SYMBOLS, "Parsing ACME label format\n");
-
-        std::vector<Symbol> symbols;
 
         std::istringstream stream(content);
         std::string line;
@@ -286,22 +469,24 @@ class AcmeParser : public SymbolTable::SymbolParser {
                         symbol.address = (uint16_t)std::stoul(addr_str, nullptr, 10);
                     }
 
-                    symbols.push_back(std::move(symbol));
+                    symbols->push_back(std::move(symbol));
                 } catch (const std::exception &e) {
                     LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
+                    return false;
                 }
             } else {
                 // Only log non-empty, non-comment lines that don't match
                 std::string trimmed = TrimWhitespace(line);
                 if (!trimmed.empty()) {
+                    // TODO: should probably reveal this somewhere...
                     LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
                          line_number, trimmed.c_str());
                 }
             }
         }
 
-        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols.size());
-        return symbols;
+        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols->size());
+        return true;
     }
 };
 
@@ -309,6 +494,7 @@ void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
     if (s_parsers.empty()) {
         RegisterParser(std::make_unique<ViceParser>());
         RegisterParser(std::make_unique<AcmeParser>());
+        RegisterParser(std::make_unique<BeebAsmParser>());
         LOGF(SYMBOLS, "Initialized %zu builtin symbol parsers\n", s_parsers.size());
     }
 }
@@ -397,11 +583,12 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index)
     this->InvalidateCache();
 
     LOGF(SYMBOLS, "Using %s parser for content loading\n", parser->GetFormatName().c_str());
-    lsf->symbols = parser->ParseContent(content);
+    if (!parser->ParseContent(content, &lsf->symbols)) {
+        return false;
+    }
 
     if (lsf->symbols.empty()) {
         LOGF(SYMBOLS, "WARNING: No symbols loaded from file\n");
-        return true;
     }
 
     auto &&symbol_it = lsf->symbols.begin();
