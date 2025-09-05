@@ -130,6 +130,8 @@ static Command2 g_clone_window_command = Command2(&g_beeb_window_command_table, 
 static Command2 g_close_window_command = Command2(&g_beeb_window_command_table, "close_window", "Close window");
 static Command2 g_toggle_capture_mouse_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse", "Capture mouse").WithTick().AlwaysPrioritized();
 static Command2 g_toggle_capture_mouse_on_click_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse_on_click", "Capture on click").WithTick();
+static Command2 g_clear_symbols_command = Command2(&g_beeb_window_command_table, "clear_symbols", "Clear symbols").MustConfirm().VisibleIf(BBCMICRO_DEBUGGER);
+static Command2 g_reload_all_symbols_command = Command2(&g_beeb_window_command_table, "reload_all_symbols", "Reload all symbols").VisibleIf(BBCMICRO_DEBUGGER);
 
 struct PopupMetadata {
     Command2 command;
@@ -1662,6 +1664,19 @@ void BeebWindow::DoCommands(bool *close_window) {
         }
         m_cst.SetTicked(popup_metadata->command, !!(m_settings.popups & mask));
     }
+
+#if BBCMICRO_DEBUGGER
+    if (m_cst.WasActioned(g_clear_symbols_command)) {
+        m_symbol_table->Clear();
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    if (m_cst.WasActioned(g_reload_all_symbols_command)) {
+        m_symbol_table->ReloadAllFiles(&m_msg);
+        m_msg.i.f("All symbol files have been reloaded from disk.\n");
+    }
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2475,14 +2490,18 @@ void BeebWindow::DoDebugMenu() {
 
         ImGui::Separator();
 
-        // Symbols submenu
-        if (ImGui::BeginMenu("Clear Symbols")) {
-            if (ImGui::MenuItem("Confirm")) {
-                m_symbol_table->Clear();
-            }
-            ImGui::EndMenu();
-        }
+        m_cst.DoMenuItem(g_clear_symbols_command);
 
+        // Symbols submenu
+        //if (ImGui::BeginMenu("Clear Symbols")) {
+        //    if (ImGui::MenuItem("Confirm")) {
+        //        m_symbol_table->Clear();
+        //    }
+        //    ImGui::EndMenu();
+        //}
+
+        // TODO: no current good way of integrating this tidily with the
+        // Command2 system.
         if (ImGui::BeginMenu("Load symbols")) {
             const std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> &parsers = SymbolTable::SymbolParserRegistry::GetParsers();
 
@@ -2532,16 +2551,13 @@ void BeebWindow::DoDebugMenu() {
                     if (success) {
                         m_msg.i.f("Symbols loaded from file: %s\n", path.c_str());
                     } else {
-                        m_msg.i.f("Failed to load symbols from: %s\n", path.c_str());
+                        m_msg.e.f("Failed to load symbols from: %s\n", path.c_str());
                     }
                 }
             }
         }
 
-        if (ImGui::MenuItem("Reload All Symbols")) {
-            m_symbol_table->ReloadAllFiles(&m_msg);
-            m_msg.i.f("All symbol files have been reloaded from disk.\n");
-        }
+        m_cst.DoMenuItem(g_reload_all_symbols_command);
 
         if (ImGui::BeginMenu("Symbol groups")) {
             // Show loaded groups and symbols (grouped by name for bulk operations)
