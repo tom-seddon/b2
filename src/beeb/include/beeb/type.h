@@ -10,7 +10,7 @@
 #include <vector>
 #include <memory>
 
-static const size_t NUM_MAPPER_REGIONS = 16;
+static constexpr size_t NUM_MAPPER_REGIONS = 16;
 
 #include <shared/enum_decl.h>
 #include "type.inl"

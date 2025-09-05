@@ -5399,4 +5399,287 @@ But only "like". The above didn't work.
   ,* The GUI Font Size setting has been renamed to GUI Font Scale, now a scale value rather than a pixel size. If you previously changed this setting, that change will be lost, and you'll need to set it up again in the Options dialog. Apologies
 #+end_src
 
+* Address suffix spring clean
+
+| Suf     | What    | ROM | ROM | Mapper | HAZEL | I/O | Main | ANDY | OS | Shadow |
+|---------+---------+-----+-----+--------+-------+-----+------+------+----+--------|
+| 0-9/a-f | ROM     | N   | N   |        |       |     |      |    0 |    |        |
+| r       | ROM     | x   | x   |        |       |     |      |    0 |    |        |
+| A-P     | Mapper  |     |     | N      |       |     |      |      |    |        |
+| h       | HAZEL   |     |     |        |     1 |     |      |      |    |        |
+| i       | I/O     |     |     |        |       |   1 |      |      |    |        |
+| m       | Main    |     |     |        |       |     |    1 |      |    |      0 |
+| n       | ANDY    |     |     |        |       |     |      |    1 |    |        |
+| o       | OS      |     |     |        |     0 |   0 |      |      |    |        |
+| s       | Shadow  |     |     |        |       |     |    0 |      |    |      1 |
+|---------+---------+-----+-----+--------+-------+-----+------+------+----+--------|
+| q       | Par.ROM |     |     |        |       |     |      |      |    |        |
+| p       | Par.    |     |     |        |       |     |      |      |    |        |
+
+** Test code
+
+Not sure where I was going with any of this nonsense. I've forgotten
+too many of the details.
+
+DSO test cmake stuff:
+
+#+begin_src cmake
+  add_executable(test_DSOs
+    test_DSOs.cpp)
+  target_link_libraries(test_DSOs PRIVATE shared_lib beeb_lib)
+  b2_target_boilerplate(test_DSOs SANITIZERS)
+  add_test(NAME beeb/test_DSOs
+    COMMAND $<TARGET_FILE:test_DSOs>)
+#+end_src
+
+DSO test:
+
+#+begin_src c++
+  #include <shared/system.h>
+  #include <beeb/conf.h>
+
+  #if BBCMICRO_DEBUGGER
+
+  #include <inttypes.h>
+  #include <beeb/type.h>
+  #include <shared/testing.h>
+  #include <shared/debug.h>
+  #include <shared/log.h>
+
+  static bool GetOverrideMask(uint32_t *flags, const std::shared_ptr<const BBCMicroType> &type, int control, uint32_t override, uint32_t value) {
+      switch (control) {
+      default:
+          ASSERT(false);
+          [[fallthrough]];
+      case -1:
+          ,*flags = 0;
+          return true;
+
+      case 0:
+          ,*flags = override;
+          break;
+
+      case 1:
+          ,*flags = override | value;
+          break;
+      }
+
+      if (override & type->dso_mask) {
+          return true;
+      } else {
+          return false;
+      }
+  }
+
+  LOG_EXTERN(TESTING);
+
+  static uint32_t TestDSOs(std::shared_ptr<const BBCMicroType> type) {
+      uint32_t num_dsos = 0;
+
+      int rom, region, andy, hazel, shadow, os;
+      std::string suffix;
+      uint32_t parsed_dso;
+
+      AddTestFailFn([&](const TestFailArgs *) {
+          LOGF(TESTING, "rom=%d region=%d andy=%d hazel=%d shadow=%d os=%d\n", rom, region, andy, hazel, shadow, os);
+          LOGF(TESTING, "suffix=\"%s\"\n", suffix.c_str());
+          LOGF(TESTING, "parsed_dso=0x%" PRIx32 "\n", parsed_dso);
+      },
+                    &num_dsos);
+
+      for (rom = -1; rom < 16; ++rom) {
+          uint32_t rom_flags;
+          if (!GetOverrideMask(&rom_flags,
+                               type, rom < 0 ? -1 : 1,
+                               BBCMicroDebugStateOverride_OverrideROM,
+                               (uint32_t)rom)) {
+              continue;
+          }
+
+          static_assert((size_t)(int)NUM_MAPPER_REGIONS == NUM_MAPPER_REGIONS);
+          for (region = -1; region < (int)NUM_MAPPER_REGIONS; ++region) {
+              uint32_t region_flags;
+              if (!GetOverrideMask(&region_flags,
+                                   type,
+                                   region < 0 ? -1 : 1,
+                                   BBCMicroDebugStateOverride_OverrideMapperRegion,
+                                   region << BBCMicroDebugStateOverride_MapperRegionShift)) {
+                  continue;
+              }
+
+              for (andy = -1; andy < 2; ++andy) {
+                  uint32_t andy_flags;
+                  if (!GetOverrideMask(&andy_flags,
+                                       type,
+                                       andy,
+                                       BBCMicroDebugStateOverride_OverrideANDY,
+                                       BBCMicroDebugStateOverride_ANDY)) {
+                      continue;
+                  }
+
+                  for (hazel = -1; hazel < 2; ++hazel) {
+                      uint32_t hazel_flags;
+                      if (!GetOverrideMask(&hazel_flags,
+                                           type,
+                                           hazel,
+                                           BBCMicroDebugStateOverride_OverrideHAZEL,
+                                           BBCMicroDebugStateOverride_HAZEL)) {
+                          continue;
+                      }
+
+                      for (shadow = -1; shadow < 2; ++shadow) {
+                          uint32_t shadow_flags;
+                          if (!GetOverrideMask(&shadow_flags,
+                                               type,
+                                               shadow,
+                                               BBCMicroDebugStateOverride_OverrideShadow,
+                                               BBCMicroDebugStateOverride_Shadow)) {
+                              continue;
+                          }
+
+                          for (os = -1; os < 2; ++os) {
+                              uint32_t os_flags;
+                              if (!GetOverrideMask(&os_flags,
+                                                   type,
+                                                   os,
+                                                   BBCMicroDebugStateOverride_OverrideOS,
+                                                   BBCMicroDebugStateOverride_OS)) {
+                                  continue;
+                              }
+
+                              uint32_t dso = rom_flags |
+                                             region_flags |
+                                             andy_flags |
+                                             hazel_flags |
+                                             shadow_flags |
+                                             os_flags;
+
+                              suffix = "?????";
+
+                              suffix = GetSuffixChars(dso);
+
+                              parsed_dso = dso;
+                              bool good_parse = ParseAddressSuffix(&parsed_dso, type, suffix.c_str(), nullptr);
+                              TEST_TRUE(good_parse);
+
+                              // Invalid test. Irrelevant bits may be set.
+                              //TEST_EQ_UU(parsed_dso & ~type->dso_mask, 0);
+
+                              //parsed_dso &= type->dso_mask;
+                              //TEST_EQ_UU(parsed_dso, dso);
+
+                              //TEST_EQ_UU(parsed_dso & type->dso_mask, dso & type->dso_mask);
+
+                              //printf("0x%" PRIx32 " : %s (rom=%d region=%d andy=%d hazel=%d shadow=%d os=%d)\n", dso, suffix.c_str(), rom, region, andy, hazel, shadow, os);
+
+                              ++num_dsos;
+                          }
+                      }
+                  }
+              }
+          }
+      }
+
+      RemoveTestFailFnByContext(&num_dsos);
+
+      return num_dsos;
+  }
+
+  struct Counts {
+      uint32_t b = 0, bplus = 0, master = 0;
+  };
+
+  int main() {
+      Counts counts_by_type[ROMType_Count];
+
+      for (uint8_t rom_type = 0; rom_type < ROMType_Count; ++rom_type) {
+          ROMType rom_types[16];
+          for (int i = 0; i < 16; ++i) {
+              rom_types[i] = ROMType_16KB;
+          }
+
+          // only one needs to be set.
+          rom_types[0] = (ROMType)rom_type;
+
+          Counts *c = &counts_by_type[rom_type];
+
+          c->b = TestDSOs(CreateBBCMicroType(BBCMicroTypeID_B, rom_types));
+          c->bplus = TestDSOs(CreateBBCMicroType(BBCMicroTypeID_BPlus, rom_types));
+          c->master = TestDSOs(CreateBBCMicroType(BBCMicroTypeID_Master, rom_types));
+      }
+
+      for (uint8_t rom_type = 0; rom_type < ROMType_Count; ++rom_type) {
+          const Counts *c = &counts_by_type[rom_type];
+          printf("%s: B: %" PRIu32 "; B+: %" PRIu32 "; Master: %" PRIu32 "\n", GetROMTypeEnumName(rom_type), c->b, c->bplus, c->master);
+      }
+  }
+
+  #else
+
+  int main() {
+      return 0;
+  }
+
+  #endif
+#+end_src
+
+Convert DSO to suffix string:
+
+#+begin_src c++
+  #if BBCMICRO_DEBUGGER
+  std::string GetSuffixChars(uint32_t dso) {
+      std::string suffix;
+
+      if (dso & BBCMicroDebugStateOverride_Parasite) {
+          suffix.push_back(PARASITE_CODE);
+      }
+
+      if (dso & BBCMicroDebugStateOverride_OverrideParasiteROM) {
+          if (dso & BBCMicroDebugStateOverride_ParasiteROM) {
+              suffix.push_back(PARASITE_ROM_CODE);
+          }
+      }
+
+      if (dso & BBCMicroDebugStateOverride_OverrideROM) {
+          suffix.push_back(ROM_BANK_CODES[dso & BBCMicroDebugStateOverride_ROM]);
+      } else if ((dso & BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY) == BBCMicroDebugStateOverride_OverrideANDY) {
+          // ugly logic but it puts any ROM-related chars in the same place.
+          suffix.push_back(ROM_CODE);
+      }
+
+      if (dso & BBCMicroDebugStateOverride_OverrideMapperRegion) {
+          suffix.push_back(MAPPER_REGION_CODES[dso >> BBCMicroDebugStateOverride_MapperRegionShift & BBCMicroDebugStateOverride_MapperRegionMask]);
+      }
+
+      if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
+          if (dso & BBCMicroDebugStateOverride_ANDY) {
+              suffix.push_back(ANDY_CODE);
+          } else {
+              // this case was handled above, if required.
+          }
+      }
+
+      if (dso & BBCMicroDebugStateOverride_OverrideShadow) {
+          if (dso & BBCMicroDebugStateOverride_Shadow) {
+              suffix.push_back(SHADOW_CODE);
+          } else {
+              suffix.push_back(MAIN_CODE);
+          }
+      }
+
+      if (dso & BBCMicroDebugStateOverride_OverrideHAZEL) {
+          if (dso & BBCMicroDebugStateOverride_HAZEL) {
+              suffix.push_back(HAZEL_CODE);
+          } else {
+              suffix.push_back(OS_CODE);
+          }
+      }
+
+      // there's no DSO for the I/O region. See https://github.com/tom-seddon/b2/issues/260
+
+      return suffix;
+  }
+  #endif
+#+end_src
+
 * eof.

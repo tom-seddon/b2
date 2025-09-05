@@ -115,8 +115,8 @@
 // n - ANDY
 // o - OS ROM
 // p - parasite RAM
-// q -
-// r - parasite boot ROM
+// q - parasite boot ROM
+// r - current sideways ROM (equivalent to selecting appropriate 0-9/a-f)
 // s - shadow RAM
 // t -
 // u -
@@ -153,12 +153,30 @@
 // Z -
 // </pre>
 //
-// How the ROM mapper bank affects things depends on the ROM mapper type.
+// Notes:
+//
+// - How the ROM mapper bank affects things depends on the ROM mapper type
+// - 'r' exists to be the opposite of 'n'
+// 
+
+static const char HAZEL_CODE = 'h';
+static const char IO_CODE = 'i';
+static const char MAIN_CODE = 'm';
+static const char ANDY_CODE = 'n';
+static const char OS_CODE = 'o';
+static const char PARASITE_CODE = 'p';
+static const char PARASITE_ROM_CODE = 'q';
+static const char ROM_CODE = 'r';
+static const char SHADOW_CODE = 's';
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 static const char ROM_BANK_CODES[] = "0123456789abcdef";
+static_assert(sizeof ROM_BANK_CODES - 1 == 16);
+
+static const char MAPPER_REGION_CODES[] = "ABCDEFGHIJKLMNOP";
+static_assert(sizeof MAPPER_REGION_CODES - 1 == NUM_MAPPER_REGIONS);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -216,7 +234,17 @@ static uint32_t GetROMDSO(const PagingState &paging) {
 }
 #endif
 
-static const std::string g_all_big_page_codes = "0123456789ABCDEFGHIJKLMNOPabcdefhimnoprs";
+static const std::string g_all_big_page_codes = std::string(ROM_BANK_CODES) +
+                                                MAPPER_REGION_CODES +
+                                                std::string(1, HAZEL_CODE) +
+                                                std::string(1, IO_CODE) +
+                                                std::string(1, MAIN_CODE) +
+                                                std::string(1, ANDY_CODE) +
+                                                std::string(1, OS_CODE) +
+                                                std::string(1, PARASITE_CODE) +
+                                                std::string(1, PARASITE_ROM_CODE) +
+                                                std::string(1, ROM_CODE) +
+                                                std::string(1, SHADOW_CODE);
 
 static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  BigPageIndex index,
@@ -362,7 +390,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     InitBigPagesMetadata(&big_pages,
                          MAIN_BIG_PAGE_INDEX,
                          NUM_MAIN_BIG_PAGES,
-                         'm', 0, "Main RAM",
+                         MAIN_CODE, 0, "Main RAM",
 #if BBCMICRO_DEBUGGER
                          0,
                          0,
@@ -449,7 +477,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     InitBigPagesMetadata(&big_pages,
                          MOS_BIG_PAGE_INDEX,
                          NUM_MOS_BIG_PAGES,
-                         'o', 0, "MOS ROM",
+                         OS_CODE, 0, "MOS ROM",
 #if BBCMICRO_DEBUGGER
                          0,
                          0,
@@ -459,7 +487,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     InitBigPagesMetadata(&big_pages,
                          PARASITE_BIG_PAGE_INDEX,
                          NUM_PARASITE_BIG_PAGES,
-                         'p', 0, "Parasite",
+                         PARASITE_CODE, 0, "Parasite",
 #if BBCMICRO_DEBUGGER
                          0,
                          0,
@@ -469,7 +497,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     InitBigPagesMetadata(&big_pages,
                          PARASITE_ROM_BIG_PAGE_INDEX,
                          NUM_PARASITE_ROM_BIG_PAGES,
-                         'r', 0, "Parasite ROM",
+                         PARASITE_ROM_CODE, 0, "Parasite ROM",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM,
@@ -488,11 +516,21 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 }
 
 #if BBCMICRO_DEBUGGER
-static bool HandleROMSuffixChar(uint32_t *dso, uint8_t rom) {
-    ASSERT(rom >= 0 && rom <= 15);
+static bool HandleROMSuffixChar(uint32_t *dso, int rom) {
+    ASSERT(rom >= -1 && rom <= 15);
 
-    *dso &= ~(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY | BBCMicroDebugStateOverride_OverrideMapperRegion);
-    *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_OverrideROM | rom;
+    // OverrideANDY=1, ANDY=0
+    // OverrideMapperRegion=0
+    // if rom>=0: OverrideROM=1, ROM=rom
+    // if rom<0: OverrideROM=0
+
+    *dso &= ~(BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_OverrideMapperRegion | BBCMicroDebugStateOverride_ANDY);
+    *dso |= BBCMicroDebugStateOverride_OverrideANDY;
+
+    if (rom >= 0) {
+        *dso &= ~BBCMicroDebugStateOverride_ROM;
+        *dso |= BBCMicroDebugStateOverride_OverrideROM | rom;
+    }
 
     return true;
 }
@@ -505,6 +543,8 @@ static bool ParseROMSuffixChar(uint32_t *dso, char c) {
         return HandleROMSuffixChar(dso, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
         return HandleROMSuffixChar(dso, (uint8_t)(c - 'a' + 10));
+    } else if (c == ROM_CODE) {
+        return HandleROMSuffixChar(dso, -1);
     } else if (c >= 'A' && c < (char)('A' + NUM_MAPPER_REGIONS)) {
         *dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
         *dso |= BBCMicroDebugStateOverride_OverrideMapperRegion | (uint32_t)(c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
@@ -703,7 +743,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus(const ROMType *rom_
     InitBigPagesMetadata(&big_pages,
                          ANDY_BIG_PAGE_INDEX,
                          NUM_ANDY_BIG_PAGES + NUM_HAZEL_BIG_PAGES,
-                         'n', 0, "ANDY",
+                         ANDY_CODE, 0, "ANDY",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY,
@@ -713,7 +753,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus(const ROMType *rom_
     InitBigPagesMetadata(&big_pages,
                          SHADOW_BIG_PAGE_INDEX,
                          NUM_SHADOW_BIG_PAGES,
-                         's', 0, "Shadow RAM",
+                         SHADOW_CODE, 0, "Shadow RAM",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow,
@@ -727,12 +767,12 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus(const ROMType *rom_
 static bool ParseSuffixCharBPlus(uint32_t *dso, char c) {
     if (ParseROMSuffixChar(dso, c)) {
         // ...
-    } else if (c == 's') {
+    } else if (c == SHADOW_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
-    } else if (c == 'm') {
+    } else if (c == MAIN_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow;
         *dso &= ~BBCMicroDebugStateOverride_Shadow;
-    } else if (c == 'n') {
+    } else if (c == ANDY_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
         //} else if (c == 'i' || c == 'I' || c == 'o' || c == 'O') {
         //    // Valid, but no effect. These are supported on the basis that if you
@@ -903,7 +943,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
     InitBigPagesMetadata(&big_pages,
                          ANDY_BIG_PAGE_INDEX,
                          NUM_ANDY_BIG_PAGES,
-                         'n', 0, "ANDY",
+                         ANDY_CODE, 0, "ANDY",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY,
@@ -913,7 +953,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
     InitBigPagesMetadata(&big_pages,
                          HAZEL_BIG_PAGE_INDEX,
                          NUM_HAZEL_BIG_PAGES,
-                         'h', 0, "HAZEL",
+                         HAZEL_CODE, 0, "HAZEL",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL,
@@ -923,7 +963,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
     InitBigPagesMetadata(&big_pages,
                          SHADOW_BIG_PAGE_INDEX,
                          NUM_SHADOW_BIG_PAGES,
-                         's', 0, "Shadow RAM",
+                         SHADOW_CODE, 0, "Shadow RAM",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow,
@@ -952,19 +992,19 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
 static bool ParseSuffixCharMaster(uint32_t *dso, char c) {
     if (ParseROMSuffixChar(dso, c)) {
         // ...
-    } else if (c == 's') {
+    } else if (c == SHADOW_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
-    } else if (c == 'm') {
+    } else if (c == MAIN_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow;
         *dso &= ~BBCMicroDebugStateOverride_Shadow;
-    } else if (c == 'h') {
+    } else if (c == HAZEL_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL;
-    } else if (c == 'n') {
+    } else if (c == ANDY_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
-    } else if (c == 'o') {
+    } else if (c == OS_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
         *dso &= ~BBCMicroDebugStateOverride_HAZEL;
-    } else if (c == 'i') {
+    } else if (c == IO_CODE) {
         *dso |= BBCMicroDebugStateOverride_OverrideOS;
         *dso &= ~BBCMicroDebugStateOverride_OS;
     } else {
@@ -1259,9 +1299,9 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
     for (const char *suffix_char = suffix; *suffix_char != 0; ++suffix_char) {
         char c = *suffix_char;
 
-        if (c == 'p') {
+        if (c == PARASITE_CODE) {
             dso |= BBCMicroDebugStateOverride_Parasite;
-        } else if (c == 'r') {
+        } else if (c == PARASITE_ROM_CODE) {
             dso |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;
         } else if ((*type->parse_suffix_char_fn)(&dso, c)) {
             // Valid flag for this model.
@@ -1285,6 +1325,10 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 bool IsValidAddressSuffixChar(char c) {
     return g_all_big_page_codes.find_first_of(c) != std::string::npos;
@@ -1301,7 +1345,7 @@ uint32_t GetNormalizedDSO(const std::shared_ptr<const BBCMicroType> &type, uint3
     // Strip off anythhing irrelevant for the type.
     dso &= type->dso_mask;
 
-    // If overriding ROM bank and mapper region, normalize the
+    // If overriding ROM bank and mapper region, normalize the mapper region.
     constexpr uint32_t override_both = BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_OverrideMapperRegion;
     if ((dso & override_both) == override_both) {
         uint32_t region = (dso >> BBCMicroDebugStateOverride_MapperRegionShift) & BBCMicroDebugStateOverride_MapperRegionMask;

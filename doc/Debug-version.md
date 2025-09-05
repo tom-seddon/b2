@@ -110,7 +110,8 @@ visible at that address. The possible suffixes are as follows.
 Host memory:
 
 - `m` - main RAM ($0000...$7fff)
-- `0` - `f` - paged ROM ($8000...$bfff)
+- `0` - `f` - specific paged ROM ($8000...$bfff)
+- `r` - current paged ROM ($8000...$bfff)
 - `s` - shadow RAM (B+/Master only) ($3000...$7fff)
 - `n` - ANDY (B+/Master only) (B+: $8000...$afff; Master: $8000...$8fff)
 - `h` - HAZEL (Master only) ($c000...$dfff)
@@ -121,7 +122,7 @@ Host memory:
 Parasite memory:
 
 - `p` - parasite RAM ($0000...$ffff)
-- `r` - parasite ROM ($f000...$ffff)
+- `q` - parasite ROM ($f000...$ffff)
 
 When entering an address with a suffix, appropriate paging overrides
 will be selected to ensure the requested byte is visible.
@@ -130,9 +131,10 @@ You can supply multiple address suffix codes. Order is relevant, as
 certain suffixes imply the settings for other sufixes. Override this
 with further suffixes if required.
 
-- ROM bank suffix ('0' - 'f') implies current selected ROM mapper
-  region for that bank
-- (B+/Master) ROM bank suffix (`0` - `f`) implies ANDY disabled
+- ROM bank suffix (`0` - `9`, `a` - `f`, `r`) implies current selected
+  ROM mapper region for that bank
+- (B+/Master) ROM bank suffix (`0` - `9`, `a` - `f`, `r`) implies ANDY
+  disabled
 - (Master) OS ROM (`o`) implies HAZEL disabled
 
 Inappropriate suffixes are ignored.
