@@ -72,7 +72,6 @@ static void TestBeebAsmStuff() {
 }
 
 static void TestMultiSymbolTableStuff() {
-
     const SymbolTable::SymbolParser *acme_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("ACME");
     TEST_NON_NULL(acme_parser);
 

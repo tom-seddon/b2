@@ -6,7 +6,6 @@
 #include "nlohmann_json_wrapper.h"
 #include "SymbolTable.h"
 #include <shared/debug.h>
-#include "memory_contexts.h"
 #include <shared/log.h>
 #include <regex>
 #include <algorithm>

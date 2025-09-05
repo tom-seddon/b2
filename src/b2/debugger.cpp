@@ -4226,6 +4226,572 @@ std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGroup *group, bool show_label) {
+    std::string label;
+
+    if (show_label) {
+        label = std::to_string(group->index);
+        if (!group->name.empty()) {
+            label += ". " + group->name;
+        }
+    }
+
+    ImGuiIDPusher id_pusher(group->index);
+
+    ImGuiItemFlagPusher flag_pusher;
+
+    if (group->state == SymbolGroupState_Indeterminate) {
+        flag_pusher.Push(ImGuiItemFlags_MixedValue, true);
+    }
+
+    bool enabled = group->state == SymbolGroupState_Enabled;
+    if (ImGui::Checkbox(label.c_str(), &enabled)) {
+        symbol_table->SetGroupEnabled(group->index, enabled);
+    }
+}
+
+class SymbolGroupManagementUI : public SettingsUI {
+    // Group Management Window dimensions
+    static constexpr float MANAGEMENT_TABLE_RESERVED_HEIGHT = 100.0f; // Space for buttons below table
+
+    // Context Edit Modal dimensions
+    static constexpr float CONTEXT_MODAL_WIDTH = 600.0f;
+    static constexpr float CONTEXT_MODAL_HEIGHT = 400.0f;
+
+    // Table column widths
+    static constexpr float COL_INDEX_WIDTH = 20.0f;
+    static constexpr float COL_SELECT_WIDTH = 15.0f;
+    static constexpr float COL_MOVE_WIDTH = 60.0f;
+    static constexpr float COL_ENABLED_WIDTH = 80.0f;
+    static constexpr float COL_GROUP_NAME_WIDTH = 120.0f;
+    static constexpr float COL_COUNT_WIDTH = 40.0f;
+    static constexpr float COL_CONTEXTS_WIDTH = 100.0f;
+    static constexpr float COL_SOURCE_FILE_WIDTH = 220.0f;
+
+    // UI Layout constants
+    static constexpr int MAX_GROUP_NAME_LENGTH = 255;
+
+    // Help text sizing
+    static constexpr float CONTEXT_HELP_LINES = 11.0f; // Number of lines in context help
+
+    // Button spacing
+    static constexpr float ARROW_BUTTON_SPACING = 2.0f;
+
+  public:
+    explicit SymbolGroupManagementUI(BeebWindow *beeb_window)
+        : m_beeb_window(beeb_window) {
+        this->SetDefaultSize(ImVec2(750.0f, 500.f));
+    }
+
+    void DoImGui() override {
+        //ImGui::Text("Manage Symbol Groups and Precedence");
+        //ImGui::Separator();
+
+        // Get reference to groups
+        SymbolTable &symbol_table = *m_beeb_window->GetMutableSymbolTable();
+        //const auto &groups = symbol_table.GetAllGroups();
+        const size_t num_files = symbol_table.GetNumFiles();
+
+        // Ensure selection state matches group count
+        if (m_selected_files.size() != num_files) {
+            m_selected_files.resize(num_files, false);
+        }
+
+        // Ensure name buffers match group count and are initialized
+        //if (m_file_group_name_buffers.size() != num_files) {
+        //    m_file_group_name_buffers.resize(num_files);
+        //    for (size_t i = 0; i < num_files; ++i) {
+        //        const SymbolFile *file = symbol_table.GetFileByIndex(i);
+        //        m_file_group_name_buffers[i] = file->name;
+        //    }
+        //}
+
+        ImGuiHeader("Symbol Files");
+
+        if (num_files == 0) {
+            ImGui::Text("No symbol groups loaded.");
+        } else {
+            ImGui::Text("Files are ordered by precedence (lower position = higher precedence)");
+
+            // Show total symbol counts
+            size_t enabled_count = symbol_table.GetEnabledSymbolCount();
+            size_t total_count = symbol_table.GetSymbolCount();
+            if (enabled_count == total_count) {
+                ImGui::Text("Total symbols: %zu", enabled_count);
+            } else {
+                ImGui::Text("Active symbols: %zu / %zu", enabled_count, total_count);
+            }
+
+            ImGui::Separator();
+
+            // Count selected groups
+            size_t selected_count = 0;
+            for (size_t i = 0; i < m_selected_files.size(); ++i) {
+                if (m_selected_files[i]) {
+                    selected_count++;
+                }
+            }
+
+            // Table setup
+            ImGuiTableFlags table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
+                                          ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable;
+
+            // Calculate table height to fit content without excessive scrolling
+            float table_height = ImGui::GetTextLineHeightWithSpacing() * (num_files + 1);                               // +1 for header
+            table_height = std::min(table_height, ImGui::GetContentRegionAvail().y - MANAGEMENT_TABLE_RESERVED_HEIGHT); // Reserve space for buttons below
+
+            if (ImGui::BeginTable("symbol_files", 8, table_flags)) {
+                // Reordered columns: # first, then Select, then Move
+                ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, COL_INDEX_WIDTH);
+                ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, COL_SELECT_WIDTH);
+                ImGui::TableSetupColumn("Move", ImGuiTableColumnFlags_WidthFixed, COL_MOVE_WIDTH);
+                ImGui::TableSetupColumn("Enabled", ImGuiTableColumnFlags_WidthFixed, COL_ENABLED_WIDTH);
+                ImGui::TableSetupColumn("Group", ImGuiTableColumnFlags_WidthStretch, COL_GROUP_NAME_WIDTH);
+                ImGui::TableSetupColumn("Count", ImGuiTableColumnFlags_WidthFixed, COL_COUNT_WIDTH);
+                ImGui::TableSetupColumn("Contexts", ImGuiTableColumnFlags_WidthStretch, COL_CONTEXTS_WIDTH);
+                ImGui::TableSetupColumn("Source File", ImGuiTableColumnFlags_WidthStretch, COL_SOURCE_FILE_WIDTH);
+
+                // Show headers
+                ImGui::TableHeadersRow();
+
+                // List all groups
+                for (size_t i = 0; i < num_files; ++i) {
+                    const SymbolFile *file = symbol_table.GetFileByIndex(i);
+
+                    ImGuiIDPusher id_pusher((int)i);
+
+                    ImGui::TableNextRow();
+
+                    // Row selection state
+                    bool is_selected = i < m_selected_files.size() && m_selected_files[i];
+
+                    // Apply subtle background color for selected items (not hover highlighting)
+                    if (is_selected) {
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, IM_COL32(70, 140, 200, 40));
+                    }
+
+                    // Column 0: Order number with row-spanning selectable for hover highlighting (ImGui demo style)
+                    ImGui::TableSetColumnIndex(0);
+                    char row_label[32];
+                    snprintf(row_label, sizeof row_label, "%zu", i);
+
+                    // Use visible Selectable with text content
+                    ImGuiSelectableFlags selectable_flags = ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap;
+                    ImGui::Selectable(row_label, false, selectable_flags, ImVec2(0, ImGui::GetFrameHeight()));
+
+                    // Store column positions for double-click detection (contexts only)
+                    static float contexts_col_start = 0;
+                    static float contexts_col_end = 0;
+
+                    // Handle double-click on row for context editing
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        ImVec2 mouse_pos = ImGui::GetMousePos();
+
+                        // Check if double-click was in Contexts column
+                        if (mouse_pos.x >= contexts_col_start && mouse_pos.x < contexts_col_end) {
+                            m_editing_contexts_id = static_cast<int>(i);
+                            m_editing_address_suffixes = file->address_suffixes;
+                        }
+                    }
+
+                    // Column 1: Selection checkbox - centered
+                    ImGui::TableSetColumnIndex(1);
+                    // Center the checkbox in the column
+                    float column_width = ImGui::GetColumnWidth();
+                    float checkbox_width = ImGui::GetFrameHeight(); // Checkbox is square
+                    float center_offset = (column_width - checkbox_width) * 0.5f;
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + center_offset);
+
+                    bool selected = is_selected;
+                    std::string select_id = "##select_" + std::to_string(i);
+                    if (ImGui::Checkbox(select_id.c_str(), &selected)) {
+                        m_selected_files[i] = selected;
+                    }
+
+                    // Column 2: Move buttons
+                    ImGui::TableSetColumnIndex(2);
+                    // Up button
+                    if (i > 0) { // Can't move above first position
+                        if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
+                            if (symbol_table.MoveFile(i, i - 1)) {
+                                // Swap selection states too
+                                if (i < m_selected_files.size() && i - 1 < m_selected_files.size()) {
+                                    bool temp = m_selected_files[i];
+                                    m_selected_files[i] = m_selected_files[i - 1];
+                                    m_selected_files[i - 1] = temp;
+                                }
+                                //// Swap name buffers too
+                                //if (i < m_file_group_name_buffers.size() && i - 1 < m_file_group_name_buffers.size()) {
+                                //    std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i - 1]);
+                                //}
+                            }
+                        }
+                    } else {
+                        ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight()));
+                    }
+
+                    ImGui::SameLine(0, 2); // Tight spacing
+
+                    // Down button
+                    if (i < num_files - 1) { // Can't move below last position
+                        if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
+                            if (symbol_table.MoveFile(i, i + 1)) {
+                                // Swap selection states too
+                                if (i < m_selected_files.size() && i + 1 < m_selected_files.size()) {
+                                    bool temp = m_selected_files[i];
+                                    m_selected_files[i] = m_selected_files[i + 1];
+                                    m_selected_files[i + 1] = temp;
+                                }
+                                //// Swap name buffers too
+                                //if (i < m_file_group_name_buffers.size() && i + 1 < m_file_group_name_buffers.size()) {
+                                //    std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i + 1]);
+                                //}
+                            }
+                        }
+                    } else {
+                        ImGui::Dummy(ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight()));
+                    }
+
+                    // Column 3: Enabled checkbox - centered
+                    ImGui::TableSetColumnIndex(3);
+                    CentreCheckboxInColumn();
+
+                    bool enabled = file->enabled;
+                    std::string checkbox_id = "##enabled_" + std::to_string(i);
+                    if (ImGui::Checkbox(checkbox_id.c_str(), &enabled)) {
+                        symbol_table.EnableFile(i, enabled);
+                    }
+
+                    //// Column 4: Group name (always editable input field)
+                    ImGui::TableSetColumnIndex(4);
+                    {
+                        int group_index = file->group_index;
+                        if (ImGui::InputInt("##group", &group_index, 0)) {
+                            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                                if (group_index >= 0 && (unsigned)group_index < MAX_NUM_SYMBOL_FILE_GROUPS) {
+                                    symbol_table.SetFileGroupIndex(i, (uint8_t)group_index);
+                                }
+                            }
+                        }
+                    }
+
+                    //// Always show as InputText - much simpler and more intuitive
+                    //std::string input_id = "##group_name_" + std::to_string(i);
+                    //char buffer[MAX_GROUP_NAME_LENGTH + 1];
+                    //strncpy(buffer, m_file_group_name_buffers[i].c_str(), 255);
+                    //buffer[255] = '\0';
+
+                    //// Make InputText fill the column width
+                    //ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
+
+                    //if (ImGui::InputText(input_id.c_str(), buffer, sizeof(buffer))) {
+                    //    // Text changed - update buffer
+                    //    m_file_group_name_buffers[i] = buffer;
+                    //}
+
+                    //// Save changes when Enter pressed or focus lost
+                    //if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    //    std::string new_name = m_file_group_name_buffers[i];
+                    //    if (new_name != file->name) {
+                    //        symbol_table.SetFileGroupName(i, new_name);
+                    //    }
+                    //}
+
+                    //// Right-click context menu for the group name
+                    //std::string popup_id = "group_context_menu_" + std::to_string(i);
+                    //if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
+                    //    std::string display_name = file->name.empty() ? "Unnamed Group" : file->name;
+                    //    ImGui::Text("Group: %s", display_name.c_str());
+                    //    ImGui::Separator();
+                    //    if (ImGui::MenuItem("Delete")) {
+                    //        symbol_table.RemoveFile(i);
+                    //    }
+                    //    ImGui::EndPopup();
+                    //}
+
+                    // Column 5: Symbol count for this file
+                    ImGui::TableSetColumnIndex(5);
+                    size_t group_symbol_count = symbol_table.GetSymbolCountForFile(i);
+                    ImGui::Text("%zu", group_symbol_count);
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Number of symbols in this group");
+                        if (group_symbol_count > 0) {
+                            if (file->enabled) {
+                                ImGui::Text("All %zu symbols are active", group_symbol_count);
+                            } else {
+                                ImGui::Text("All %zu symbols are disabled", group_symbol_count);
+                            }
+                        }
+                        ImGui::EndTooltip();
+                    }
+
+                    // Column 6: Contexts (with double-click editing)
+                    ImGui::TableSetColumnIndex(6);
+
+                    // Store column position for double-click detection
+                    contexts_col_start = ImGui::GetCursorScreenPos().x;
+                    contexts_col_end = contexts_col_start + ImGui::GetColumnWidth();
+
+                    // Display contexts (clickable) - show all contexts, no truncation
+                    std::string display_text;
+                    for (const std::string &address_suffix : file->address_suffixes) {
+                        if (!display_text.empty()) {
+                            display_text += ";";
+                        }
+                        display_text += address_suffix;
+                    }
+
+                    ImGui::TextUnformatted(display_text.c_str());
+
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Double-click to edit");
+                        ImGui::EndTooltip();
+                    }
+
+                    // Column 7: Source file
+                    ImGui::TableSetColumnIndex(7);
+                    if (file->file_path.empty()) {
+                        ImGui::Text("-");
+                    } else {
+                        // Show just filename
+                        std::string filename = file->file_path;
+                        size_t slash_pos = filename.find_last_of("/\\");
+                        if (slash_pos != std::string::npos) {
+                            filename = filename.substr(slash_pos + 1);
+                        }
+                        ImGui::Text("%s", filename.c_str());
+
+                        if (ImGui::IsItemHovered()) {
+                            ImGui::BeginTooltip();
+                            ImGui::Text("Full path: %s", file->file_path.c_str());
+                            ImGui::EndTooltip();
+                        }
+                    }
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::Separator();
+
+            // Action buttons
+            if (ImGui::Button("Reload All")) {
+                Messages msg(m_beeb_window->GetMessageList());
+                symbol_table.ReloadAllFiles(&msg);
+                msg.i.f("All symbol files have been reloaded from disk.\n");
+            }
+
+            ImGui::SameLine();
+
+            // Multi-delete button
+            if (selected_count == 0) {
+                ImGui::BeginDisabled();
+            }
+
+            if (ImGui::Button("Delete Selected")) {
+                // Delete groups from highest index to lowest to maintain indices
+                for (int idx = static_cast<int>(m_selected_files.size()) - 1; idx >= 0; --idx) {
+                    if (m_selected_files[static_cast<size_t>(idx)]) {
+                        symbol_table.RemoveFile(static_cast<size_t>(idx));
+                    }
+                }
+                // Reset selection state
+                m_selected_files.clear();
+            }
+
+            if (selected_count == 0) {
+                ImGui::EndDisabled();
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    ImGui::SetTooltip("Select one or more groups to delete");
+                }
+            } else {
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Delete %zu selected group%s", selected_count, selected_count > 1 ? "s" : "");
+                }
+            }
+
+            ImGui::Separator();
+
+            ImGuiHeader("Symbol Groups");
+
+            ImGui::Checkbox("Show all", &m_show_all_groups);
+            ImGui::SameLine();
+            ImGui::Checkbox("Show used", &m_show_used_groups);
+
+            if (ImGui::BeginTable("symbol_groups", 3, table_flags)) {
+                ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 50.f);
+                ImGui::TableSetupColumn("Enabled", ImGuiTableColumnFlags_WidthFixed, 0.f);
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 0.f);
+
+                ImGui::TableHeadersRow();
+
+                for (unsigned group_index = 0; group_index < MAX_NUM_SYMBOL_FILE_GROUPS; ++group_index) {
+                    const SymbolGroup *group = symbol_table.GetSymbolGroupByIndex((uint8_t)group_index);
+
+                    if (m_show_used_groups && !group->used) {
+                        continue;
+                    }
+
+                    ImGui::TableNextRow();
+
+                    ImGuiIDPusher id_pusher(group_index);
+
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%3u (0x%02x)", group_index, group_index);
+
+                    ImGui::TableSetColumnIndex(1);
+                    CentreCheckboxInColumn();
+                    ImGuiSymbolGroupEnabledCheckbox(&symbol_table, group, false);
+
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
+                    ImGuiInputText("##group_name", symbol_table.GetGroupMutableName((uint8_t)group_index));
+                }
+
+                ImGui::EndTable();
+            }
+        }
+
+        // Context editing popup (modal dialog)
+        if (m_editing_contexts_id != -1) {
+            // Open the popup immediately when editing is triggered
+            ImGui::OpenPopup("Edit Memory Contexts");
+
+            // Center the popup - make it wider to accommodate help text
+            ImGuiViewport *main_viewport = ImGui::GetMainViewport();
+            ImVec2 center = main_viewport->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            ImGui::SetNextWindowSize(ImVec2(CONTEXT_MODAL_WIDTH, CONTEXT_MODAL_HEIGHT), ImGuiCond_Appearing);
+
+            if (ImGui::BeginPopupModal("Edit Memory Contexts", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                if (m_editing_contexts_id >= 0 && static_cast<size_t>(m_editing_contexts_id) < num_files) {
+                    //const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
+
+                    //ImGui::Text("Editing contexts for group: %s", group.name.c_str());
+                    //ImGui::Separator();
+
+                    //// Use shared helper function for context selection
+                    //this->DoMemoryContextSelectionUI(editing_contexts, show_context_help);
+
+                    //ImGui::Separator();
+
+                    if (ImGui::InputText("Suffix", m_address_suffix_buffer, sizeof m_address_suffix_buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        m_address_suffix_error.clear();
+
+                        for (const char *c = m_address_suffix_buffer; *c != 0; ++c) {
+                            if (!isalnum(*c)) {
+                                // cheeky way of avoiding running into any UTF-8...
+                                m_address_suffix_error = "Suffix must be alphanumeric only";
+                                break;
+                            } else if (!IsValidAddressSuffixChar(*c)) {
+                                m_address_suffix_error = "Invalid address suffix char: '" + std::string(1, *c) + "'";
+                                break;
+                            }
+                        }
+
+                        if (m_address_suffix_error.empty()) {
+                            m_editing_address_suffixes.push_back(m_address_suffix_buffer);
+
+                            memset(m_address_suffix_buffer, 0, sizeof m_address_suffix_buffer);
+                        }
+                    }
+
+                    if (!m_address_suffix_error.empty()) {
+                        ImGuiStyleColourPusher pusher(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                        ImGui::TextUnformatted(m_address_suffix_error.c_str());
+                    }
+
+                    {
+                        auto &&it = m_editing_address_suffixes.begin();
+                        while (it != m_editing_address_suffixes.end()) {
+                            ImGuiIDPusher pusher(&*it);
+
+                            ImGui::TextUnformatted(it->c_str());
+                            ImGui::SameLine();
+                            if (ImGui::Button("x")) {
+                                it = m_editing_address_suffixes.erase(it);
+                            } else {
+                                ++it;
+                            }
+                        }
+                    }
+
+                    // Action buttons
+                    if (ImGui::Button("Save")) {
+                        symbol_table.SetFileAddressSuffixes(static_cast<size_t>(m_editing_contexts_id), std::move(m_editing_address_suffixes));
+                        m_editing_contexts_id = -1;
+                        m_show_context_help = false;
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    ImGui::SameLine();
+
+                    if (ImGui::Button("Cancel")) {
+                        m_editing_contexts_id = -1;
+                        m_show_context_help = false;
+                        ImGui::CloseCurrentPopup();
+                    }
+                } else {
+                    // Invalid group ID - close popup
+                    m_editing_contexts_id = -1;
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+
+            // If popup was closed externally, reset editing state
+            if (!ImGui::IsPopupOpen("Edit Memory Contexts")) {
+                m_editing_contexts_id = -1;
+                m_show_context_help = false;
+            }
+        }
+    }
+
+    bool OnClose() override {
+        return false; // Don't save config on close
+    }
+
+  protected:
+  private:
+    BeebWindow *m_beeb_window = nullptr;
+
+    // Selection state for group management
+    std::vector<bool> m_selected_files;
+
+    // State for inline editing
+    int m_editing_contexts_id = -1; // Which group's contexts are being edited (-1 = none)
+    std::vector<std::string> m_editing_address_suffixes;
+    bool m_show_context_help = false; // Help text for context popup
+
+    // Name buffers for each group (persistent across frames)
+    //std::vector<std::string> m_file_group_name_buffers;
+
+    char m_address_suffix_buffer[20] = {};
+    std::string m_address_suffix_error;
+
+    // TODO: probably better as an enum.
+    bool m_show_all_groups = false;
+    bool m_show_used_groups = true;
+
+    static void CentreCheckboxInColumn() {
+        // Center the checkbox in the column
+        float enabled_column_width = ImGui::GetColumnWidth();
+        float enabled_checkbox_width = ImGui::GetFrameHeight(); // Checkbox is square
+        float enabled_center_offset = (enabled_column_width - enabled_checkbox_width) * 0.5f;
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + enabled_center_offset);
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *beeb_window) {
+    return std::make_unique<SymbolGroupManagementUI>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -4341,6 +4907,10 @@ std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *) {
     return nullptr;
 }
 

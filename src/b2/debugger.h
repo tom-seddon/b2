@@ -12,6 +12,10 @@
 
 class BeebWindow;
 class SettingsUI;
+#if BBCMICRO_DEBUGGER
+class SymbolTable;
+struct SymbolGroup;
+#endif
 
 // If the relevant features are compiled out, the Create... function will return
 // nullptr.
@@ -45,6 +49,14 @@ std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateHardDiskDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *beeb_window);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGroup *group, bool show_label);
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
