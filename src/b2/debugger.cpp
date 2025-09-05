@@ -4250,6 +4250,8 @@ void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGrou
     }
 }
 
+static const char ADDRESS_SUFFIXES_POPUP[] = "address_suffixes_popup";
+
 class SymbolGroupManagementUI : public SettingsUI {
     // Group Management Window dimensions
     static constexpr float MANAGEMENT_TABLE_RESERVED_HEIGHT = 100.0f; // Space for buttons below table
@@ -4346,15 +4348,15 @@ class SymbolGroupManagementUI : public SettingsUI {
                 ImGui::TableHeadersRow();
 
                 // List all groups
-                for (size_t i = 0; i < num_files; ++i) {
-                    const SymbolFile *file = symbol_table.GetFileByIndex(i);
+                for (size_t file_index = 0; file_index < num_files; ++file_index) {
+                    const SymbolFile *file = symbol_table.GetFileByIndex(file_index);
 
-                    ImGuiIDPusher id_pusher((int)i);
+                    ImGuiIDPusher id_pusher((int)file_index);
 
                     ImGui::TableNextRow();
 
                     // Row selection state
-                    bool is_selected = i < m_selected_files.size() && m_selected_files[i];
+                    bool is_selected = file_index < m_selected_files.size() && m_selected_files[file_index];
 
                     // Apply subtle background color for selected items (not hover highlighting)
                     if (is_selected) {
@@ -4364,7 +4366,7 @@ class SymbolGroupManagementUI : public SettingsUI {
                     // Column 0: Order number with row-spanning selectable for hover highlighting (ImGui demo style)
                     ImGui::TableSetColumnIndex(0);
                     char row_label[32];
-                    snprintf(row_label, sizeof row_label, "%zu", i);
+                    snprintf(row_label, sizeof row_label, "%zu", file_index);
 
                     // Use visible Selectable with text content
                     ImGuiSelectableFlags selectable_flags = ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap;
@@ -4380,8 +4382,7 @@ class SymbolGroupManagementUI : public SettingsUI {
 
                         // Check if double-click was in Contexts column
                         if (mouse_pos.x >= contexts_col_start && mouse_pos.x < contexts_col_end) {
-                            m_editing_contexts_id = static_cast<int>(i);
-                            m_editing_address_suffixes = file->address_suffixes;
+                            ImGui::OpenPopup(ADDRESS_SUFFIXES_POPUP);
                         }
                     }
 
@@ -4395,20 +4396,20 @@ class SymbolGroupManagementUI : public SettingsUI {
 
                     bool selected = is_selected;
                     if (ImGui::Checkbox("##select", &selected)) {
-                        m_selected_files[i] = selected;
+                        m_selected_files[file_index] = selected;
                     }
 
                     // Column 2: Move buttons
                     ImGui::TableSetColumnIndex(2);
                     // Up button
-                    if (i > 0) { // Can't move above first position
+                    if (file_index > 0) { // Can't move above first position
                         if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
-                            if (symbol_table.MoveFile(i, i - 1)) {
+                            if (symbol_table.MoveFile(file_index, file_index - 1)) {
                                 // Swap selection states too
-                                if (i < m_selected_files.size() && i - 1 < m_selected_files.size()) {
-                                    bool temp = m_selected_files[i];
-                                    m_selected_files[i] = m_selected_files[i - 1];
-                                    m_selected_files[i - 1] = temp;
+                                if (file_index < m_selected_files.size() && file_index - 1 < m_selected_files.size()) {
+                                    bool temp = m_selected_files[file_index];
+                                    m_selected_files[file_index] = m_selected_files[file_index - 1];
+                                    m_selected_files[file_index - 1] = temp;
                                 }
                             }
                         }
@@ -4419,14 +4420,14 @@ class SymbolGroupManagementUI : public SettingsUI {
                     ImGui::SameLine(0, 2); // Tight spacing
 
                     // Down button
-                    if (i < num_files - 1) { // Can't move below last position
+                    if (file_index < num_files - 1) { // Can't move below last position
                         if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
-                            if (symbol_table.MoveFile(i, i + 1)) {
+                            if (symbol_table.MoveFile(file_index, file_index + 1)) {
                                 // Swap selection states too
-                                if (i < m_selected_files.size() && i + 1 < m_selected_files.size()) {
-                                    bool temp = m_selected_files[i];
-                                    m_selected_files[i] = m_selected_files[i + 1];
-                                    m_selected_files[i + 1] = temp;
+                                if (file_index < m_selected_files.size() && file_index + 1 < m_selected_files.size()) {
+                                    bool temp = m_selected_files[file_index];
+                                    m_selected_files[file_index] = m_selected_files[file_index + 1];
+                                    m_selected_files[file_index + 1] = temp;
                                 }
                             }
                         }
@@ -4440,7 +4441,7 @@ class SymbolGroupManagementUI : public SettingsUI {
 
                     bool enabled = file->enabled;
                     if (ImGui::Checkbox("##enabled", &enabled)) {
-                        symbol_table.EnableFile(i, enabled);
+                        symbol_table.EnableFile(file_index, enabled);
                     }
 
                     // Column 4: Group name (always editable input field)
@@ -4453,7 +4454,7 @@ class SymbolGroupManagementUI : public SettingsUI {
                         if (ImGui::InputInt("##group", &group_index, 0)) {
                             if (ImGui::IsItemDeactivatedAfterEdit()) {
                                 if (group_index >= 0 && (unsigned)group_index < MAX_NUM_SYMBOL_FILE_GROUPS) {
-                                    symbol_table.SetFileGroupIndex(i, (uint8_t)group_index);
+                                    symbol_table.SetFileGroupIndex(file_index, (uint8_t)group_index);
                                 }
                             }
                         }
@@ -4461,7 +4462,7 @@ class SymbolGroupManagementUI : public SettingsUI {
 
                     // Column 5: Symbol count for this file
                     ImGui::TableSetColumnIndex(5);
-                    size_t group_symbol_count = symbol_table.GetSymbolCountForFile(i);
+                    size_t group_symbol_count = symbol_table.GetSymbolCountForFile(file_index);
                     ImGui::Text("%zu", group_symbol_count);
                     if (ImGui::IsItemHovered()) {
                         ImGui::BeginTooltip();
@@ -4518,6 +4519,61 @@ class SymbolGroupManagementUI : public SettingsUI {
                             ImGui::Text("Full path: %s", file->file_path.c_str());
                             ImGui::EndTooltip();
                         }
+                    }
+
+                    if (ImGui::BeginPopup(ADDRESS_SUFFIXES_POPUP)) {
+                        if (ImGui::InputText("Suffix", m_address_suffix_buffer, sizeof m_address_suffix_buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                            m_address_suffix_error.clear();
+
+                            for (const char *c = m_address_suffix_buffer; *c != 0; ++c) {
+                                if (!isalnum(*c)) {
+                                    // cheeky way of avoiding running into any UTF-8...
+                                    m_address_suffix_error = "Suffix must be alphanumeric only";
+                                    break;
+                                } else if (!IsValidAddressSuffixChar(*c)) {
+                                    m_address_suffix_error = "Invalid address suffix char: '" + std::string(1, *c) + "'";
+                                    break;
+                                }
+                            }
+
+                            if (m_address_suffix_error.empty()) {
+                                std::vector<std::string> address_suffixes = file->address_suffixes;
+
+                                address_suffixes.push_back(m_address_suffix_buffer);
+
+                                symbol_table.SetFileAddressSuffixes(file_index, std::move(address_suffixes));
+                            }
+                        }
+
+                        if (!m_address_suffix_error.empty()) {
+                            ImGuiStyleColourPusher pusher(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                            ImGui::TextUnformatted(m_address_suffix_error.c_str());
+                        }
+
+                        {
+                            size_t erase_index = file->address_suffixes.size();
+                            for (size_t i = 0; i < file->address_suffixes.size(); ++i) {
+                                ImGuiIDPusher pusher((void *)i);
+
+                                if (ImGui::Button("x")) {
+                                    erase_index = i;
+                                }
+
+                                ImGui::SameLine();
+
+                                ImGui::TextUnformatted(file->address_suffixes[i].c_str());
+                            }
+
+                            if (erase_index < file->address_suffixes.size()) {
+                                std::vector<std::string> address_suffixes = file->address_suffixes;
+
+                                address_suffixes.erase(address_suffixes.begin() + (ptrdiff_t)erase_index);
+
+                                symbol_table.SetFileAddressSuffixes(file_index, std::move(address_suffixes));
+                            }
+                        }
+
+                        ImGui::EndPopup();
                     }
                 }
 
@@ -4603,101 +4659,6 @@ class SymbolGroupManagementUI : public SettingsUI {
                 ImGui::EndTable();
             }
         }
-
-        // Context editing popup (modal dialog)
-        if (m_editing_contexts_id != -1) {
-            // Open the popup immediately when editing is triggered
-            ImGui::OpenPopup("Edit Memory Contexts");
-
-            // Center the popup - make it wider to accommodate help text
-            ImGuiViewport *main_viewport = ImGui::GetMainViewport();
-            ImVec2 center = main_viewport->GetCenter();
-            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-            ImGui::SetNextWindowSize(ImVec2(CONTEXT_MODAL_WIDTH, CONTEXT_MODAL_HEIGHT), ImGuiCond_Appearing);
-
-            if (ImGui::BeginPopupModal("Edit Memory Contexts", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-                if (m_editing_contexts_id >= 0 && static_cast<size_t>(m_editing_contexts_id) < num_files) {
-                    //const SymbolTable::SymbolGroup &group = groups[static_cast<size_t>(editing_contexts_id)];
-
-                    //ImGui::Text("Editing contexts for group: %s", group.name.c_str());
-                    //ImGui::Separator();
-
-                    //// Use shared helper function for context selection
-                    //this->DoMemoryContextSelectionUI(editing_contexts, show_context_help);
-
-                    //ImGui::Separator();
-
-                    if (ImGui::InputText("Suffix", m_address_suffix_buffer, sizeof m_address_suffix_buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
-                        m_address_suffix_error.clear();
-
-                        for (const char *c = m_address_suffix_buffer; *c != 0; ++c) {
-                            if (!isalnum(*c)) {
-                                // cheeky way of avoiding running into any UTF-8...
-                                m_address_suffix_error = "Suffix must be alphanumeric only";
-                                break;
-                            } else if (!IsValidAddressSuffixChar(*c)) {
-                                m_address_suffix_error = "Invalid address suffix char: '" + std::string(1, *c) + "'";
-                                break;
-                            }
-                        }
-
-                        if (m_address_suffix_error.empty()) {
-                            m_editing_address_suffixes.push_back(m_address_suffix_buffer);
-
-                            memset(m_address_suffix_buffer, 0, sizeof m_address_suffix_buffer);
-                        }
-                    }
-
-                    if (!m_address_suffix_error.empty()) {
-                        ImGuiStyleColourPusher pusher(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
-                        ImGui::TextUnformatted(m_address_suffix_error.c_str());
-                    }
-
-                    {
-                        auto &&it = m_editing_address_suffixes.begin();
-                        while (it != m_editing_address_suffixes.end()) {
-                            ImGuiIDPusher pusher(&*it);
-
-                            ImGui::TextUnformatted(it->c_str());
-                            ImGui::SameLine();
-                            if (ImGui::Button("x")) {
-                                it = m_editing_address_suffixes.erase(it);
-                            } else {
-                                ++it;
-                            }
-                        }
-                    }
-
-                    // Action buttons
-                    if (ImGui::Button("Save")) {
-                        symbol_table.SetFileAddressSuffixes(static_cast<size_t>(m_editing_contexts_id), std::move(m_editing_address_suffixes));
-                        m_editing_contexts_id = -1;
-                        m_show_context_help = false;
-                        ImGui::CloseCurrentPopup();
-                    }
-
-                    ImGui::SameLine();
-
-                    if (ImGui::Button("Cancel")) {
-                        m_editing_contexts_id = -1;
-                        m_show_context_help = false;
-                        ImGui::CloseCurrentPopup();
-                    }
-                } else {
-                    // Invalid group ID - close popup
-                    m_editing_contexts_id = -1;
-                    ImGui::CloseCurrentPopup();
-                }
-
-                ImGui::EndPopup();
-            }
-
-            // If popup was closed externally, reset editing state
-            if (!ImGui::IsPopupOpen("Edit Memory Contexts")) {
-                m_editing_contexts_id = -1;
-                m_show_context_help = false;
-            }
-        }
     }
 
     bool OnClose() override {
@@ -4710,14 +4671,6 @@ class SymbolGroupManagementUI : public SettingsUI {
 
     // Selection state for group management
     std::vector<bool> m_selected_files;
-
-    // State for inline editing
-    int m_editing_contexts_id = -1; // Which group's contexts are being edited (-1 = none)
-    std::vector<std::string> m_editing_address_suffixes;
-    bool m_show_context_help = false; // Help text for context popup
-
-    // Name buffers for each group (persistent across frames)
-    //std::vector<std::string> m_file_group_name_buffers;
 
     char m_address_suffix_buffer[20] = {};
     std::string m_address_suffix_error;
