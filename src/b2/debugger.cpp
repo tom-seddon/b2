@@ -1739,6 +1739,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             }
         }
 
+        m_next_address_id = 0;
         m_num_lines = 0;
         uint16_t addr = m_addr;
         std::string ascii;
@@ -2032,6 +2033,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     //std::vector<uint16_t> m_line_addrs;
     std::vector<uint16_t> m_history;
     int m_num_lines = 0;
+    uint32_t m_next_address_id = 0;
     //char m_disassembly_text[100];
     float m_wheel = 0;
 
@@ -2191,7 +2193,9 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             // No point using SmallButton - it doesn't set the
             // horizontal frame padding to 0.
 
-            ImGuiStyleVarPusher pusher(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+            ImGuiIDPusher id_pusher(m_next_address_id++);
+
+            ImGuiStyleVarPusher style_pusher(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
 
             if (ImGui::ButtonEx(label, ImVec2(0.f, 0.f), ImGuiButtonFlags_AlignTextBaseLine)) {
                 this->GoTo(addr.w); //TODO...
