@@ -198,7 +198,7 @@ class SymbolTable {
         std::vector<DSOMask> address_suffix_dso_masks;
     };
 
-    std::vector<std::unique_ptr<LoadedSymbolFile>> m_files;
+    std::vector<std::unique_ptr<LoadedSymbolFile>> m_lsfs;
     mutable SymbolGroup m_groups[MAX_NUM_SYMBOL_FILE_GROUPS];
 
     struct SymbolsInFile {
@@ -224,7 +224,7 @@ class SymbolTable {
 
     // Helper methods
     bool IsValidAddress(uint32_t addr) const;
-    void InvalidateCache() const;
+    void InvalidateEverything() const;
     void InvalidateGroupProperties() const;
     void EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const;
     LoadedSymbolFile *AddLoadedSymbolFile(SymbolFile new_file, size_t *file_index);

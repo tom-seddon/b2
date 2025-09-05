@@ -61,8 +61,8 @@ SymbolTable::~SymbolTable() {
 void SymbolTable::Clear() {
     //m_address_to_symbols.clear();
     //m_name_to_addresses.clear();
-    m_files.clear();
-    this->InvalidateCache();
+    m_lsfs.clear();
+    this->InvalidateEverything();
     LOGF(SYMBOLS, "Symbol table cleared\n");
 }
 
@@ -567,7 +567,7 @@ const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string
 //////////////////////////////////////////////////////////////////////////
 
 bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index) {
-    LoadedSymbolFile *lsf = m_files[file_index].get();
+    LoadedSymbolFile *lsf = m_lsfs[file_index].get();
 
     const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(lsf->file.file_format_name);
     if (!parser) {
@@ -579,7 +579,7 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index)
         return false;
     }
 
-    this->InvalidateCache();
+    this->InvalidateEverything();
 
     LOGF(SYMBOLS, "Using %s parser for content loading\n", parser->GetFormatName().c_str());
     if (!parser->ParseContent(content, &lsf->symbols)) {
@@ -614,7 +614,7 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index)
 size_t SymbolTable::GetSymbolCount() const {
     size_t n = 0;
 
-    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         n += lsf->symbols.size();
     }
 
@@ -627,7 +627,7 @@ size_t SymbolTable::GetSymbolCount() const {
 size_t SymbolTable::GetEnabledSymbolCount() const {
     size_t n = 0;
 
-    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         if (lsf->file.enabled) {
             n += lsf->symbols.size();
         }
@@ -637,8 +637,8 @@ size_t SymbolTable::GetEnabledSymbolCount() const {
 }
 
 size_t SymbolTable::GetSymbolCountForFile(size_t file_index) const {
-    ASSERT(file_index < m_files.size());
-    return m_files[file_index]->symbols.size();
+    ASSERT(file_index < m_lsfs.size());
+    return m_lsfs[file_index]->symbols.size();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -683,48 +683,48 @@ bool SymbolTable::IsValidAddress(uint32_t addr) const {
 // File Management Methods
 
 bool SymbolTable::RemoveFile(size_t file_index) {
-    if (file_index >= m_files.size()) {
+    if (file_index >= m_lsfs.size()) {
         return false;
     }
 
-    m_files.erase(m_files.begin() + static_cast<std::vector<SymbolFile>::difference_type>(file_index));
+    m_lsfs.erase(m_lsfs.begin() + static_cast<std::vector<SymbolFile>::difference_type>(file_index));
 
-    this->InvalidateCache();
+    this->InvalidateEverything();
     return true;
 }
 
 void SymbolTable::EnableFile(size_t file_index, bool enabled) {
-    ASSERT(file_index < m_files.size());
-    SymbolFile *file = &m_files[file_index]->file;
+    ASSERT(file_index < m_lsfs.size());
+    SymbolFile *file = &m_lsfs[file_index]->file;
 
     if (file->enabled != enabled) {
         file->enabled = enabled;
 
-        this->InvalidateCache();
+        this->InvalidateEverything();
     }
 }
 
 const SymbolFile *SymbolTable::GetFileByIndex(size_t file_index) const {
-    ASSERT(file_index < m_files.size());
-    return &m_files[file_index]->file;
+    ASSERT(file_index < m_lsfs.size());
+    return &m_lsfs[file_index]->file;
 }
 
 size_t SymbolTable::GetNumFiles() const {
-    return m_files.size();
+    return m_lsfs.size();
 }
 
 bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
-    if (from_index >= m_files.size() || to_index >= m_files.size() || from_index == to_index) {
+    if (from_index >= m_lsfs.size() || to_index >= m_lsfs.size() || from_index == to_index) {
         return false;
     }
 
     {
-        std::unique_ptr<LoadedSymbolFile> file_to_move = std::move(m_files[from_index]);
-        m_files.erase(m_files.begin() + static_cast<std::vector<SymbolFile>::difference_type>(from_index));
-        m_files.insert(m_files.begin() + static_cast<std::vector<SymbolFile>::difference_type>(to_index), std::move(file_to_move));
+        std::unique_ptr<LoadedSymbolFile> file_to_move = std::move(m_lsfs[from_index]);
+        m_lsfs.erase(m_lsfs.begin() + static_cast<std::vector<SymbolFile>::difference_type>(from_index));
+        m_lsfs.insert(m_lsfs.begin() + static_cast<std::vector<SymbolFile>::difference_type>(to_index), std::move(file_to_move));
     }
 
-    this->InvalidateCache();
+    this->InvalidateEverything();
     return true;
 }
 
@@ -734,22 +734,22 @@ bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
 // File Metadata Editing Methods
 
 void SymbolTable::SetFileGroupIndex(size_t file_index, uint8_t group_index) {
-    ASSERT(file_index < m_files.size());
-    SymbolFile *file = &m_files[file_index]->file;
+    ASSERT(file_index < m_lsfs.size());
+    SymbolFile *file = &m_lsfs[file_index]->file;
 
     if (file->group_index != group_index) {
         file->group_index = group_index;
 
-        this->InvalidateCache();
+        this->InvalidateEverything();
     }
 }
 
 void SymbolTable::SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes) {
-    ASSERT(file_index < m_files.size());
+    ASSERT(file_index < m_lsfs.size());
 
-    m_files[file_index]->file.address_suffixes = std::move(new_address_suffixes);
+    m_lsfs[file_index]->file.address_suffixes = std::move(new_address_suffixes);
 
-    this->InvalidateCache();
+    this->InvalidateEverything();
 }
 
 const SymbolGroup *SymbolTable::GetSymbolGroupByIndex(uint8_t group_index) const {
@@ -759,8 +759,8 @@ const SymbolGroup *SymbolTable::GetSymbolGroupByIndex(uint8_t group_index) const
 }
 
 void SymbolTable::SetGroupEnabled(uint8_t group_index, bool enabled) {
-    for (size_t file_index = 0; file_index < m_files.size(); ++file_index) {
-        if (m_files[file_index]->file.group_index == group_index) {
+    for (size_t file_index = 0; file_index < m_lsfs.size(); ++file_index) {
+        if (m_lsfs[file_index]->file.group_index == group_index) {
             this->EnableFile(file_index, enabled);
         }
     }
@@ -803,7 +803,7 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
 
 // Cache Management Methods
 
-void SymbolTable::InvalidateCache() const {
+void SymbolTable::InvalidateEverything() const {
     m_cache_type.reset();
 
     this->InvalidateGroupProperties();
@@ -818,7 +818,7 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
         return;
     }
 
-    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         lsf->address_suffix_dso_masks.clear();
 
         for (const std::string &address_suffix : lsf->file.address_suffixes) {
@@ -843,7 +843,7 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
     m_cache_address_to_symbols.clear();
     m_cache_name_to_addresses.clear();
 
-    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         if (!lsf->file.enabled) {
             continue;
         }
@@ -903,7 +903,7 @@ JSON_SERIALIZE(PersistentSymbolTableData, groups, groups2);
 std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
     PersistentSymbolTableData p_std;
 
-    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         p_std.groups.push_back(lsf->file);
     }
 
@@ -926,7 +926,7 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *log
         return false;
     }
 
-    m_files.clear();
+    m_lsfs.clear();
     for (SymbolFile &file : p_std.groups) {
         this->AddLoadedSymbolFile(std::move(file), nullptr);
     }
@@ -944,11 +944,11 @@ bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *log
 }
 
 void SymbolTable::ReloadAllFiles(const LogSet *logs) {
-    this->InvalidateCache();
+    this->InvalidateEverything();
 
     // Reload each file from its source file
-    for (size_t i = 0; i < m_files.size(); ++i) {
-        const SymbolFile *file = &m_files[i]->file;
+    for (size_t i = 0; i < m_lsfs.size(); ++i) {
+        const SymbolFile *file = &m_lsfs[i]->file;
 
         std::string content;
         if (!LoadTextFile(&content, file->file_path, logs)) {
@@ -960,7 +960,7 @@ void SymbolTable::ReloadAllFiles(const LogSet *logs) {
         this->LoadFromContent(content, i);
     }
 
-    LOGF(SYMBOLS, "Reloaded %zu symbols across %zu files\n", GetSymbolCount(), m_files.size());
+    LOGF(SYMBOLS, "Reloaded %zu symbols across %zu files\n", GetSymbolCount(), m_lsfs.size());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -972,11 +972,11 @@ SymbolTable::LoadedSymbolFile *SymbolTable::AddLoadedSymbolFile(SymbolFile new_f
     lsf->file = std::move(new_file);
 
     if (file_index) {
-        *file_index = m_files.size();
+        *file_index = m_lsfs.size();
     }
 
     SymbolTable::LoadedSymbolFile *lsf_ptr = lsf.get();
-    m_files.push_back(std::move(lsf));
+    m_lsfs.push_back(std::move(lsf));
 
     return lsf_ptr;
 }
@@ -1000,7 +1000,7 @@ void SymbolTable::EnsureGroupPropertiesValid() const {
         group->used = false;
     }
 
-    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_files) {
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         SymbolGroup *group = &m_groups[lsf->file.group_index];
 
         group->used = true;
