@@ -4297,15 +4297,6 @@ class SymbolGroupManagementUI : public SettingsUI {
             m_selected_files.resize(num_files, false);
         }
 
-        // Ensure name buffers match group count and are initialized
-        //if (m_file_group_name_buffers.size() != num_files) {
-        //    m_file_group_name_buffers.resize(num_files);
-        //    for (size_t i = 0; i < num_files; ++i) {
-        //        const SymbolFile *file = symbol_table.GetFileByIndex(i);
-        //        m_file_group_name_buffers[i] = file->name;
-        //    }
-        //}
-
         ImGuiHeader("Symbol Files");
 
         if (num_files == 0) {
@@ -4403,8 +4394,7 @@ class SymbolGroupManagementUI : public SettingsUI {
                     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + center_offset);
 
                     bool selected = is_selected;
-                    std::string select_id = "##select_" + std::to_string(i);
-                    if (ImGui::Checkbox(select_id.c_str(), &selected)) {
+                    if (ImGui::Checkbox("##select", &selected)) {
                         m_selected_files[i] = selected;
                     }
 
@@ -4420,10 +4410,6 @@ class SymbolGroupManagementUI : public SettingsUI {
                                     m_selected_files[i] = m_selected_files[i - 1];
                                     m_selected_files[i - 1] = temp;
                                 }
-                                //// Swap name buffers too
-                                //if (i < m_file_group_name_buffers.size() && i - 1 < m_file_group_name_buffers.size()) {
-                                //    std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i - 1]);
-                                //}
                             }
                         }
                     } else {
@@ -4442,10 +4428,6 @@ class SymbolGroupManagementUI : public SettingsUI {
                                     m_selected_files[i] = m_selected_files[i + 1];
                                     m_selected_files[i + 1] = temp;
                                 }
-                                //// Swap name buffers too
-                                //if (i < m_file_group_name_buffers.size() && i + 1 < m_file_group_name_buffers.size()) {
-                                //    std::swap(m_file_group_name_buffers[i], m_file_group_name_buffers[i + 1]);
-                                //}
                             }
                         }
                     } else {
@@ -4457,14 +4439,16 @@ class SymbolGroupManagementUI : public SettingsUI {
                     CentreCheckboxInColumn();
 
                     bool enabled = file->enabled;
-                    std::string checkbox_id = "##enabled_" + std::to_string(i);
-                    if (ImGui::Checkbox(checkbox_id.c_str(), &enabled)) {
+                    if (ImGui::Checkbox("##enabled", &enabled)) {
                         symbol_table.EnableFile(i, enabled);
                     }
 
-                    //// Column 4: Group name (always editable input field)
+                    // Column 4: Group name (always editable input field)
                     ImGui::TableSetColumnIndex(4);
                     {
+                        // Make InputText fill the column width
+                        ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
+
                         int group_index = file->group_index;
                         if (ImGui::InputInt("##group", &group_index, 0)) {
                             if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -4474,40 +4458,6 @@ class SymbolGroupManagementUI : public SettingsUI {
                             }
                         }
                     }
-
-                    //// Always show as InputText - much simpler and more intuitive
-                    //std::string input_id = "##group_name_" + std::to_string(i);
-                    //char buffer[MAX_GROUP_NAME_LENGTH + 1];
-                    //strncpy(buffer, m_file_group_name_buffers[i].c_str(), 255);
-                    //buffer[255] = '\0';
-
-                    //// Make InputText fill the column width
-                    //ImGui::SetNextItemWidth(ImGui::GetColumnWidth());
-
-                    //if (ImGui::InputText(input_id.c_str(), buffer, sizeof(buffer))) {
-                    //    // Text changed - update buffer
-                    //    m_file_group_name_buffers[i] = buffer;
-                    //}
-
-                    //// Save changes when Enter pressed or focus lost
-                    //if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    //    std::string new_name = m_file_group_name_buffers[i];
-                    //    if (new_name != file->name) {
-                    //        symbol_table.SetFileGroupName(i, new_name);
-                    //    }
-                    //}
-
-                    //// Right-click context menu for the group name
-                    //std::string popup_id = "group_context_menu_" + std::to_string(i);
-                    //if (ImGui::BeginPopupContextItem(popup_id.c_str())) {
-                    //    std::string display_name = file->name.empty() ? "Unnamed Group" : file->name;
-                    //    ImGui::Text("Group: %s", display_name.c_str());
-                    //    ImGui::Separator();
-                    //    if (ImGui::MenuItem("Delete")) {
-                    //        symbol_table.RemoveFile(i);
-                    //    }
-                    //    ImGui::EndPopup();
-                    //}
 
                     // Column 5: Symbol count for this file
                     ImGui::TableSetColumnIndex(5);

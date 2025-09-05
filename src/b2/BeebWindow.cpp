@@ -2492,14 +2492,6 @@ void BeebWindow::DoDebugMenu() {
 
         m_cst.DoMenuItem(g_clear_symbols_command);
 
-        // Symbols submenu
-        //if (ImGui::BeginMenu("Clear Symbols")) {
-        //    if (ImGui::MenuItem("Confirm")) {
-        //        m_symbol_table->Clear();
-        //    }
-        //    ImGui::EndMenu();
-        //}
-
         // TODO: no current good way of integrating this tidily with the
         // Command2 system.
         if (ImGui::BeginMenu("Load symbols")) {
