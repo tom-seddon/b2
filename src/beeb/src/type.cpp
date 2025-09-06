@@ -966,12 +966,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8 * sizeof tables->mem_big_pages[0][0]);
 
-    *paging_flags = (
-#if PAGING_FLAGS_HAS_ROMIO
-        (paging.acccon.m128_bits.tst ? PagingFlags_ROMIO : 0) |
-        (paging.acccon.m128_bits.ifj ? PagingFlags_IFJ : 0) |
-#endif
-        (paging.acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0));
+    *paging_flags = (paging.acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0);
 }
 
 #if BBCMICRO_DEBUGGER

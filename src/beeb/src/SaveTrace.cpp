@@ -304,12 +304,7 @@ class TraceSaver {
             break;
 
         case TraceEventSource_Host:
-#if PAGING_FLAGS_HAS_ROMIO
-            if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && !(m_paging_flags & PagingFlags_ROMIO)) {
-                codes = "i";
-            } else //<--note
-#endif             //<--note
-            {      //<--note
+            {
                 M6502Word pc = {pc_};
                 BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
                 ASSERT(big_page.i < NUM_BIG_PAGES);

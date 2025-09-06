@@ -23,23 +23,10 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define PAGING_FLAGS_HAS_ROMIO 0 // TODO: remove
-
 #define ENAME PagingFlags
 EBEGIN()
-#if PAGING_FLAGS_HAS_ROMIO
-// Corresponds to Master 128 ACCCON TST bit. 1 = read ROM at $fc00...$feff, 0 =
-// read I/O at $fc00...$feff. (Writes to this area always go to I/O.)
-EPNV(ROMIO, 1 << 0)
-
-// Corresponds to Master 128 ACCCON IFJ bit. 1 = FRED+JIM access cartridge, 0 =
-// FRED+JIM access external connectors.
-EPNV(IFJ, 1 << 1)
-#endif
-
 // Set if display comes from shadow RAM rather than main RAM.
-EPNV(DisplayShadow, 1 << 2)
-
+EPNV(DisplayShadow, 1 << 0)
 EEND()
 #undef ENAME
 

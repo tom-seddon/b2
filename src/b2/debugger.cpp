@@ -3042,13 +3042,13 @@ class PagingDebugWindow : public DebugUI {
             ImGui::Text("%04zx - %04zx", i << 12, i << 12 | 0xfff);
             ImGui::NextColumn();
 
-            this->DoTypeColumn(m_beeb_state->type, tables, paging_flags, 0, i);
+            this->DoTypeColumn(m_beeb_state->type, tables, 0, i);
             ImGui::NextColumn();
 
             if (all_user) {
                 ImGui::TextUnformatted("N/A");
             } else {
-                this->DoTypeColumn(m_beeb_state->type, tables, paging_flags, 1, i);
+                this->DoTypeColumn(m_beeb_state->type, tables, 1, i);
             }
             ImGui::NextColumn();
         }
@@ -3088,19 +3088,11 @@ class PagingDebugWindow : public DebugUI {
     }
 
   private:
-    void DoTypeColumn(const std::shared_ptr<const BBCMicroType> &type, const MemoryBigPageTables &tables, uint32_t paging_flags, size_t index, size_t mem_big_page_index) {
+    void DoTypeColumn(const std::shared_ptr<const BBCMicroType> &type, const MemoryBigPageTables &tables, size_t index, size_t mem_big_page_index) {
         BigPageIndex big_page_index = tables.mem_big_pages[index][mem_big_page_index];
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
         ImGui::Text("%s (%u)", metadata->description.c_str(), metadata->debug_flags_index.i);
-#if PAGING_FLAGS_HAS_ROMIO
-        if (big_page_index.i == MOS_BIG_PAGE_INDEX.i + 3 && !(paging_flags & PagingFlags_ROMIO)) {
-            ImGui::SameLine();
-            ImGui::Text(" + I/O (%s)", paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
-        }
-#else
-        (void)paging_flags;
-#endif
     }
 };
 
