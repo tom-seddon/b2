@@ -1809,31 +1809,37 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             uint8_t opcode_addr_flags;
             uint8_t opcode_byte_flags;
             uint8_t opcode;
-            this->ReadByte(&opcode, &opcode_addr_flags,
-                           &opcode_byte_flags,
-                           addr++,
-                           false);
+            ReadByteResult opcode_read_result = this->ReadByte(&opcode, &opcode_addr_flags,
+                                                               &opcode_byte_flags,
+                                                               addr++,
+                                                               false);
 
             ascii.clear();
 
-            const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[opcode];
+            const M6502DisassemblyInfo *di;
+            if (opcode_read_result.bits.got_value) {
+                di = &cpu->config->disassembly_info[opcode];
+            } else {
+                di = &M6502_invalid_instruction;
+            }
 
             M6502Word operand = {};
             M6502Word operand_addr_flags = {};
             M6502Word operand_byte_flags = {};
+            ReadByteResult operand_l_read_result, operand_h_read_result;
             if (di->num_bytes >= 2) {
-                this->ReadByte(&operand.b.l,
-                               &operand_addr_flags.b.l,
-                               &operand_byte_flags.b.l,
-                               addr++,
-                               false);
+                operand_l_read_result = this->ReadByte(&operand.b.l,
+                                                       &operand_addr_flags.b.l,
+                                                       &operand_byte_flags.b.l,
+                                                       addr++,
+                                                       false);
             }
             if (di->num_bytes >= 3) {
-                this->ReadByte(&operand.b.h,
-                               &operand_addr_flags.b.h,
-                               &operand_byte_flags.b.h,
-                               addr++,
-                               false);
+                operand_h_read_result = this->ReadByte(&operand.b.h,
+                                                       &operand_addr_flags.b.h,
+                                                       &operand_byte_flags.b.h,
+                                                       addr++,
+                                                       false);
             }
 
             ImGuiStyleColourPusher pusher;
@@ -1879,14 +1885,14 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
             ImGui::SameLine();
 
-            this->TextWithBreakpointBackground(opcode_addr_flags, opcode_byte_flags, "%02x", opcode);
+            this->ByteWithBreakpointBackground(opcode_addr_flags, opcode_byte_flags, opcode, opcode_read_result);
             this->DoBytePopupGui(line_dbp, line_addr);
             ascii += *GetByteStringBBC(opcode, &STRING_1_SPACE);
 
             ImGui::SameLine();
 
             if (di->num_bytes >= 2) {
-                this->TextWithBreakpointBackground(operand_addr_flags.b.l, operand_byte_flags.b.l, "%02x", operand.b.l);
+                this->ByteWithBreakpointBackground(operand_addr_flags.b.l, operand_byte_flags.b.l, operand.b.l, operand_l_read_result);
 
                 M6502Word operand_l_addr = {(uint16_t)(line_addr.w + 1u)};
                 const DebugBigPage *operand_l_dbp = this->GetDebugBigPageForAddress(operand_l_addr, false);
@@ -1901,7 +1907,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             ImGui::SameLine();
 
             if (di->num_bytes >= 3) {
-                this->TextWithBreakpointBackground(operand_addr_flags.b.h, operand_byte_flags.b.h, "%02x", operand.b.h);
+                this->ByteWithBreakpointBackground(operand_addr_flags.b.h, operand_byte_flags.b.h, operand.b.h, operand_h_read_result);
 
                 M6502Word operand_h_addr = {(uint16_t)(line_addr.w + 2u)};
                 const DebugBigPage *operand_h_dbp = this->GetDebugBigPageForAddress(operand_h_addr, false);
@@ -2134,15 +2140,19 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         }
     }
 
-    void PRINTF_LIKE(4, 5) TextWithBreakpointBackground(uint8_t addr_flags,
+    void PRINTF_LIKE(4, 5) ByteWithBreakpointBackground(uint8_t addr_flags,
                                                         uint8_t byte_flags,
-                                                        const char *fmt, ...) {
-        char text[100];
-        va_list v;
-
-        va_start(v, fmt);
-        vsnprintf(text, sizeof text, fmt, v);
-        va_end(v);
+                                                        uint8_t value,
+                                                        ReadByteResult result) {
+        char text[3];
+        if (result.bits.got_value) {
+            text[0] = HEX_CHARS_LC[value & 0xf];
+            text[1] = HEX_CHARS_LC[value >> 4];
+        } else {
+            text[0] = '-';
+            text[1] = '-';
+        }
+        text[2] = 0;
 
         if ((addr_flags | byte_flags) & (BBCMicroByteDebugFlag_BreakExecute |
                                          BBCMicroByteDebugFlag_BreakRead |

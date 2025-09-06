@@ -374,10 +374,11 @@ memory...` to specify the file to save it to.
 Outsize end/size values will be clamped so that the saved region fits
 in the $0000...$ffff (inclusive) region.
 
-Memory is read with the paging overrides that are currently in effect,
-with one restriction: memory-mapped I/O devices are bypassed, and you
-see what's in the ROM or RAM behind them. (A future revision of the
-emulator will fix this.)
+Memory is read with the paging overrides that are currently in effect.
+Note that in the non-parasite case, host memory-mapped I/O is not
+particularly well supported - if you view the I/O region, it'll show
+up as unreadable bytes. (A future revision of the emulator will fix
+this.)
 
 ## `Host Disassembly Debug`, `Parasite Disassembly Debug` ##
 
@@ -410,6 +411,11 @@ Also note that the system will stop when it hits a breakpoint on
 either CPU, meaning a breakpoint for one CPU could interrupt a step
 operation for the other. Debugging code on two CPUs simultaneously is
 inevitably going to be a little inconvenient.
+
+As with the memory debug window, host memory-mapped I/O is not
+supported particularly well, in that if you view the I/O region, it'll
+show up as unreadable bytes, and instructions that straddle the I/O
+region may not be disassembled correctly.
 
 ## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug`, `Disc Drive Debug` ##
 

@@ -202,6 +202,9 @@ struct M6502DisassemblyInfo {
 };
 typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 
+// Generic invalid instruction disassembly info: 1 byte, implicit.
+extern const M6502DisassemblyInfo M6502_invalid_instruction;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
