@@ -286,7 +286,7 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
 
   protected:
   private:
-    bool Error(const ParseState &ps, const char *fmt, ...) const PRINTF_LIKE(2, 3) {
+    bool Error(const ParseState &ps, const char *fmt, ...) const PRINTF_LIKE(3, 4) {
         LOGF(SYMBOLS, "Error: line %zu: ", ps.line_number);
 
         va_list v;
