@@ -108,7 +108,7 @@
 // g -
 // h - HAZEL
 // i - I/O
-// j -
+// j - IFJ I/O
 // k -
 // l -
 // m - main RAM
@@ -157,10 +157,11 @@
 //
 // - How the ROM mapper bank affects things depends on the ROM mapper type
 // - 'r' exists to be the opposite of 'n'
-// 
+//
 
 static const char HAZEL_CODE = 'h';
 static const char IO_CODE = 'i';
+static const char IFJ_IO_CODE = 'j';
 static const char MAIN_CODE = 'm';
 static const char ANDY_CODE = 'n';
 static const char OS_CODE = 'o';
@@ -168,6 +169,12 @@ static const char PARASITE_CODE = 'p';
 static const char PARASITE_ROM_CODE = 'q';
 static const char ROM_CODE = 'r';
 static const char SHADOW_CODE = 's';
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const char PARASITE_MINIMAL_CODES[]={PARASITE_CODE};
+const char PARASITE_ROM_MINIMAL_CODES[]={PARASITE_ROM_CODE};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -238,6 +245,7 @@ static const std::string g_all_big_page_codes = std::string(ROM_BANK_CODES) +
                                                 MAPPER_REGION_CODES +
                                                 std::string(1, HAZEL_CODE) +
                                                 std::string(1, IO_CODE) +
+                                                std::string(1, IFJ_IO_CODE) +
                                                 std::string(1, MAIN_CODE) +
                                                 std::string(1, ANDY_CODE) +
                                                 std::string(1, OS_CODE) +
@@ -287,6 +295,18 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
 
         bp->addr = (uint16_t)(base + i * 4096);
     }
+}
+
+static void InitBigPageIOMetadata(std::vector<BigPageMetadata> *big_pages, BigPageIndex index, HostIOType host_io_type, char io_code) {
+    BigPageMetadata *metadata = &(*big_pages)[index.i];
+
+    ASSERT(metadata->host_io_type == HostIOType_None);
+    metadata->host_io_type = host_io_type;
+
+    metadata->aligned_io_codes[0] = io_code;
+    metadata->aligned_io_codes[1] = ' ';
+
+    metadata->minimal_io_codes[0] = io_code;
 }
 
 uint32_t GetROMTypeRegionMask(ROMType rom_type) {
@@ -474,16 +494,67 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         }
     }
 
+    // MOS
     InitBigPagesMetadata(&big_pages,
                          MOS_BIG_PAGE_INDEX,
                          NUM_MOS_BIG_PAGES,
                          OS_CODE, 0, "MOS ROM",
 #if BBCMICRO_DEBUGGER
-                         0,
-                         0,
+                         BBCMicroDebugStateOverride_HAZEL,
+                         BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS,
 #endif
                          0xc000);
 
+    // I/O
+    //
+    // These all get OS_CODE as the default code. The I/O part is a bit of a
+    // special case and that applies to its code as well.
+    InitBigPagesMetadata(&big_pages,
+                         XFJ_IO_BIG_PAGE_INDEX,
+                         1,
+                         OS_CODE, 0, "MOS ROM+rw XFJ I/O",
+#if BBCMICRO_DEBUGGER
+                         BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_HAZEL | BBCMicroDebugStateOverride_IFJ,
+                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ,
+#endif
+                         0xf000);
+
+    InitBigPagesMetadata(&big_pages,
+                         IFJ_IO_BIG_PAGE_INDEX,
+                         1,
+                         OS_CODE, 0, "MOS ROM+rw IFJ I/O",
+#if BBCMICRO_DEBUGGER
+                         BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_HAZEL,
+                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_IFJ,
+#endif
+                         0xf000);
+
+    InitBigPagesMetadata(&big_pages,
+                         WRITE_XFJ_IO_BIG_PAGE_INDEX,
+                         1,
+                         OS_CODE, 0, "MOS ROM+w XFJ I/O",
+#if BBCMICRO_DEBUGGER
+                         BBCMicroDebugStateOverride_HAZEL | BBCMicroDebugStateOverride_IFJ,
+                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ,
+#endif
+                         0xf000);
+
+    InitBigPagesMetadata(&big_pages,
+                         WRITE_IFJ_IO_BIG_PAGE_INDEX,
+                         1,
+                         OS_CODE, 0, "MOS ROM+w IFJ I/O",
+#if BBCMICRO_DEBUGGER
+                         BBCMicroDebugStateOverride_HAZEL,
+                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_IFJ,
+#endif
+                         0xf000);
+
+    InitBigPageIOMetadata(&big_pages, XFJ_IO_BIG_PAGE_INDEX, HostIOType_XFJ, IO_CODE);
+    InitBigPageIOMetadata(&big_pages, IFJ_IO_BIG_PAGE_INDEX, HostIOType_IFJ, IFJ_IO_CODE);
+    InitBigPageIOMetadata(&big_pages, WRITE_XFJ_IO_BIG_PAGE_INDEX, HostIOType_WriteXFJ, IO_CODE);
+    InitBigPageIOMetadata(&big_pages, WRITE_IFJ_IO_BIG_PAGE_INDEX, HostIOType_WriteIFJ, IFJ_IO_CODE);
+
+    // Parasite RAM
     InitBigPagesMetadata(&big_pages,
                          PARASITE_BIG_PAGE_INDEX,
                          NUM_PARASITE_BIG_PAGES,
@@ -580,7 +651,7 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
     tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
     tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
-    tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
+    tables->mem_big_pages[0][0xf] = XFJ_IO_BIG_PAGE_INDEX;
 
     memset(tables->mem_big_pages[1], 0, sizeof tables->mem_big_pages[1]);
     memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
@@ -696,7 +767,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
     tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
     tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
-    tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
+    tables->mem_big_pages[0][0xf] = XFJ_IO_BIG_PAGE_INDEX;
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8 * sizeof tables->mem_big_pages[0][0]);
 
@@ -860,18 +931,33 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[0][0xb].i = rom + 3;
     }
 
+    BigPageIndex::Type io_big_page_index;
+    if (paging.acccon.m128_bits.tst) {
+        if (paging.acccon.m128_bits.ifj) {
+            io_big_page_index = WRITE_IFJ_IO_BIG_PAGE_INDEX.i;
+        } else {
+            io_big_page_index = WRITE_XFJ_IO_BIG_PAGE_INDEX.i;
+        }
+    } else {
+        if (paging.acccon.m128_bits.ifj) {
+            io_big_page_index = IFJ_IO_BIG_PAGE_INDEX.i;
+        } else {
+            io_big_page_index = XFJ_IO_BIG_PAGE_INDEX.i;
+        }
+    }
+
     if (paging.acccon.m128_bits.y) {
         tables->mem_big_pages[0][0xc].i = HAZEL_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0xd].i = HAZEL_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
-        tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
+        tables->mem_big_pages[0][0xf].i = io_big_page_index;
 
         memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
     } else {
         tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
-        tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
+        tables->mem_big_pages[0][0xf].i = io_big_page_index;
 
         memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
         tables->pc_mem_big_pages_set[0xc] = 1;
@@ -880,9 +966,12 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8 * sizeof tables->mem_big_pages[0][0]);
 
-    *paging_flags = ((paging.acccon.m128_bits.tst ? PagingFlags_ROMIO : 0) |
-                     (paging.acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0) |
-                     (paging.acccon.m128_bits.ifj ? PagingFlags_IFJ : 0));
+    *paging_flags = (
+#if PAGING_FLAGS_HAS_ROMIO
+        (paging.acccon.m128_bits.tst ? PagingFlags_ROMIO : 0) |
+        (paging.acccon.m128_bits.ifj ? PagingFlags_IFJ : 0) |
+#endif
+        (paging.acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0));
 }
 
 #if BBCMICRO_DEBUGGER
@@ -1093,6 +1182,11 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                 }
 
                 bp->debug_flags_index.i = *index;
+            } else if (i >= FIRST_IO_BIG_PAGE_INDEX.i && i < FIRST_IO_BIG_PAGE_INDEX.i + NUM_IO_BIG_PAGES) {
+                // Top 4 KB of MOS ROM. All copies of this share the same debug flags.
+                BigPageIndex mos_debug_flags_index = type->big_pages_metadata[MOS_BIG_PAGE_INDEX.i + 3].debug_flags_index;
+                ASSERT(mos_debug_flags_index.i != 0); //0 is not allowed to be a MOS big page.
+                bp->debug_flags_index = mos_debug_flags_index;
             } else {
                 // A non-sideways big page. These always have their own debug
                 // flags.
@@ -1321,10 +1415,6 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
     return true;
 }
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

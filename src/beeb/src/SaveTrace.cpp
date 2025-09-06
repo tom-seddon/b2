@@ -304,22 +304,47 @@ class TraceSaver {
             break;
 
         case TraceEventSource_Host:
+#if PAGING_FLAGS_HAS_ROMIO
             if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && !(m_paging_flags & PagingFlags_ROMIO)) {
                 codes = "i";
-            } else {
+            } else //<--note
+#endif             //<--note
+            {      //<--note
                 M6502Word pc = {pc_};
                 BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
                 ASSERT(big_page.i < NUM_BIG_PAGES);
                 const BigPageMetadata *bp = &m_type->big_pages_metadata[big_page.i];
-                codes = align ? bp->aligned_codes : bp->minimal_codes;
+
+                // TODO: bit of a duplicate of similar logic in debugger.cpp.
+                switch (bp->host_io_type) {
+                case HostIOType_None:
+                non_io_access:
+                    codes = align ? bp->aligned_codes : bp->minimal_codes;
+                    break;
+
+                case HostIOType_XFJ:
+                case HostIOType_IFJ:
+                    if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
+                        //io_access:
+                        codes = align ? bp->aligned_io_codes : bp->minimal_io_codes;
+                    } else {
+                        goto non_io_access;
+                    }
+                    break;
+
+                case HostIOType_WriteXFJ:
+                case HostIOType_WriteIFJ:
+                    // TODO: should be possible to detect at least some writes...
+                    goto non_io_access;
+                }
             }
             break;
 
         case TraceEventSource_Parasite:
             if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
-                codes = "r";
+                codes = PARASITE_ROM_MINIMAL_CODES;
             } else {
-                codes = "p";
+                codes = PARASITE_MINIMAL_CODES;
             }
             break;
         }

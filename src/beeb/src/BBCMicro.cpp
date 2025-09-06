@@ -284,34 +284,70 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if PAGING_FLAGS_HAS_ROMIO
 static_assert(PagingFlags_ROMIO == 1);
 static_assert(PagingFlags_IFJ == 2);
-std::vector<BBCMicro::ReadMMIO> BBCMicro::*BBCMicro::ms_read_mmios_mptrs[] = {
+#else
+static_assert(HostIOType_XFJ == 0);
+static_assert(HostIOType_IFJ == 1);
+static_assert(HostIOType_WriteXFJ == 2);
+static_assert(HostIOType_WriteIFJ == 3);
+#endif
+
+std::vector<BBCMicro::ReadMMIO> BBCMicro::*BBCMicro::ms_read_mmios_mptrs[4] = {
+#if PAGING_FLAGS_HAS_ROMIO
     &BBCMicro::m_read_mmios_hw,           //0
     &BBCMicro::m_read_mmios_rom,          //ROMIO
     &BBCMicro::m_read_mmios_hw_cartridge, //IFJ
     &BBCMicro::m_read_mmios_rom,          //IFJ|ROMIO
+#else
+    &BBCMicro::m_read_mmios_hw,           //HostIOType_XFJ
+    &BBCMicro::m_read_mmios_hw_cartridge, //HostIOType_IFJ
+    &BBCMicro::m_read_mmios_rom,          //HostIOType_WriteXFJ
+    &BBCMicro::m_read_mmios_rom,          //HostIOType_WriteIFJ
+#endif
 };
 
-std::vector<uint8_t> BBCMicro::*BBCMicro::ms_read_mmios_stretch_mptrs[] = {
+std::vector<uint8_t> BBCMicro::*BBCMicro::ms_read_mmios_stretch_mptrs[4] = {
+#if PAGING_FLAGS_HAS_ROMIO
     &BBCMicro::m_mmios_stretch_hw,           //0
     &BBCMicro::m_mmios_stretch_rom,          //ROMIO
     &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ
     &BBCMicro::m_mmios_stretch_rom,          //IFJ|ROMIO
+#else
+    &BBCMicro::m_mmios_stretch_hw,           //HostIOType_XFJ
+    &BBCMicro::m_mmios_stretch_hw_cartridge, //HostIOType_IFJ
+    &BBCMicro::m_mmios_stretch_rom,          //HostIOType_WriteXFJ
+    &BBCMicro::m_mmios_stretch_rom,          //HostIOType_WriteIFJ
+#endif
 };
 
-std::vector<BBCMicro::WriteMMIO> BBCMicro::*BBCMicro::ms_write_mmios_mptrs[] = {
+std::vector<BBCMicro::WriteMMIO> BBCMicro::*BBCMicro::ms_write_mmios_mptrs[4] = {
+#if PAGING_FLAGS_HAS_ROMIO
     &BBCMicro::m_write_mmios_hw,           //0
     &BBCMicro::m_write_mmios_hw,           //ROMIO
     &BBCMicro::m_write_mmios_hw_cartridge, //IFJ
     &BBCMicro::m_write_mmios_hw_cartridge, //IFJ|ROMIO
+#else
+    &BBCMicro::m_write_mmios_hw,           //HostIOType_XFJ
+    &BBCMicro::m_write_mmios_hw_cartridge, //HostIOType_IFJ
+    &BBCMicro::m_write_mmios_hw,           //HostIOType_WriteXFJ
+    &BBCMicro::m_write_mmios_hw_cartridge, //HostIOType_WriteIFJ
+#endif
 };
 
-std::vector<uint8_t> BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[] = {
+std::vector<uint8_t> BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[4] = {
+#if PAGING_FLAGS_HAS_ROMIO
     &BBCMicro::m_mmios_stretch_hw,           //0
     &BBCMicro::m_mmios_stretch_hw,           //ROMIO
     &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ
     &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ|ROMIO
+#else
+    &BBCMicro::m_mmios_stretch_hw,           //HostIOType_XFJ
+    &BBCMicro::m_mmios_stretch_hw_cartridge, //HostIOType_IFJ
+    &BBCMicro::m_mmios_stretch_hw,           //HostIOType_WriteXFJ
+    &BBCMicro::m_mmios_stretch_hw_cartridge, //HostIOType_WriteIFJ
+#endif
 };
 
 void BBCMicro::UpdatePaging() {
@@ -346,7 +382,13 @@ void BBCMicro::UpdatePaging() {
         m_state.shadow_select_mask = 0;
     }
 
+#if PAGING_FLAGS_HAS_ROMIO
     uint32_t index = paging_flags & (PagingFlags_ROMIO | PagingFlags_IFJ);
+#else
+    ASSERT(tables.mem_big_pages[0][15].i >= FIRST_IO_BIG_PAGE_INDEX.i && tables.mem_big_pages[0][15].i < FIRST_IO_BIG_PAGE_INDEX.i + NUM_IO_BIG_PAGES);
+    ASSERT(m_big_pages[tables.mem_big_pages[0][15].i].metadata->host_io_type != HostIOType_None);
+    uint32_t index = tables.mem_big_pages[0][15].i - FIRST_IO_BIG_PAGE_INDEX.i;
+#endif
     m_read_mmios = (this->*ms_read_mmios_mptrs[index]).data();
     m_read_mmios_stretch = (this->*ms_read_mmios_stretch_mptrs[index]).data();
     m_write_mmios = (this->*ms_write_mmios_mptrs[index]).data();
@@ -473,10 +515,16 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
             bp->r = &state->sideways_ram_buffers[bank]->at(offset);
             bp->writeable = true;
         }
-    } else if (big_page_index.i >= MOS_BIG_PAGE_INDEX.i &&
-               big_page_index.i < MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES) {
+    } else if ((big_page_index.i >= MOS_BIG_PAGE_INDEX.i &&
+                big_page_index.i < MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES)) {
         if (!!state->os_buffer) {
             size_t offset = (big_page_index.i - MOS_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
+            bp->r = &state->os_buffer->at(offset);
+        }
+    } else if (big_page_index.i >= FIRST_IO_BIG_PAGE_INDEX.i &&
+               big_page_index.i < FIRST_IO_BIG_PAGE_INDEX.i + NUM_IO_BIG_PAGES) {
+        if (!!state->os_buffer) {
+            size_t offset = 3 * BIG_PAGE_SIZE_BYTES; //I/O big page is always at $f000...$ffff
             bp->r = &state->os_buffer->at(offset);
         }
     } else if (big_page_index.i >= PARASITE_BIG_PAGE_INDEX.i &&
@@ -2985,8 +3033,11 @@ struct SeekSound {
     DiscDriveSound sound;
 };
 
-#define SEEK_SOUND(N) \
-    { SOUND_CLOCKS_FROM_MS(N), DiscDriveSound_Seek##N##ms, }
+#define SEEK_SOUND(N)               \
+    {                               \
+        SOUND_CLOCKS_FROM_MS(N),    \
+        DiscDriveSound_Seek##N##ms, \
+    }
 
 static const SeekSound g_seek_sounds[] = {
     {

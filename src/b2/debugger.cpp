@@ -235,6 +235,7 @@ class DebugUI : public SettingsUI {
     struct DebugBigPage {
         bool valid = false;
         BBCMicro::ReadOnlyBigPage bp;
+        HostIOType host_io_type = HostIOType_None;
 
         // ...any more???
     };
@@ -269,11 +270,31 @@ class DebugUI : public SettingsUI {
     virtual void DoImGui2() = 0;
 
     // Returns false with *value=0 if address unreadable.
-    bool ReadByte(uint8_t *value,
-                  uint8_t *address_flags,
-                  uint8_t *byte_flags,
-                  uint16_t addr,
-                  bool mos);
+    struct ReadByteResultBits {
+        // Set if a value was read.
+        bool got_value : 1;
+
+        // Set if the location is writeable.
+        bool can_write : 1;
+
+        // Set if the location would be I/O when written.
+        //
+        // TODO: this flag is currently unused, but surely something could be
+        // done?
+        bool io_write : 1;
+    };
+
+    union ReadByteResult {
+        uint8_t value = 0;
+        ReadByteResultBits bits;
+    };
+
+    // result is combination of ReadByteResult flags.
+    ReadByteResult ReadByte(uint8_t *value,
+                            uint8_t *address_flags,
+                            uint8_t *byte_flags,
+                            uint16_t addr,
+                            bool mos);
 
     void DoDebugPageOverrideImGui();
 
@@ -426,11 +447,11 @@ void DebugUI::SetDebugStateOverrides(uint32_t dso) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool DebugUI::ReadByte(uint8_t *value,
-                       uint8_t *addr_flags,
-                       uint8_t *byte_flags,
-                       uint16_t addr_,
-                       bool mos) {
+DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
+                                          uint8_t *addr_flags,
+                                          uint8_t *byte_flags,
+                                          uint16_t addr_,
+                                          bool mos) {
     M6502Word addr = {addr_};
 
     const DebugBigPage *dbp = this->GetDebugBigPageForAddress(addr, mos);
@@ -451,15 +472,42 @@ bool DebugUI::ReadByte(uint8_t *value,
         }
     }
 
+    ReadByteResult result;
+
+    // Set up can_write/io_write flags. Early out if it's read/write I/O.
+    switch (dbp->host_io_type) {
+    default:
+        ASSERT(false);
+        break;
+
+    case HostIOType_WriteIFJ:
+    case HostIOType_WriteXFJ:
+        if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
+            result.bits.io_write = 1;
+        }
+        [[fallthrough]];
+    case HostIOType_None:
+        result.bits.can_write = !!dbp->bp.writeable;
+        break;
+
+    case HostIOType_IFJ:
+    case HostIOType_XFJ:
+        if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
+            *value = 0;
+            result.bits.can_write = 0;
+            result.bits.io_write = 1;
+            return result;
+        }
+        break;
+    }
+
     if (dbp->bp.r) {
         *value = dbp->bp.r[addr.p.o];
 
-        return true;
-    } else {
-        *value = 0;
-
-        return false;
+        result.bits.got_value = 1;
     }
+
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -900,6 +948,8 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
         //    ASSERT(!dbp->bp.address_debug_flags);
         //}
 
+        dbp->host_io_type = dbp->bp.metadata->host_io_type;
+
         dbp->valid = true;
     }
 
@@ -1263,17 +1313,22 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
         }
 
         void ReadByte(HexEditorByte *byte, size_t offset) override {
-            M6502Word addr = {(uint16_t)offset};
+            //M6502Word addr = {(uint16_t)offset};
 
-            const DebugBigPage *dbp = m_window->GetDebugBigPageForAddress(addr, false);
+            ReadByteResult result = m_window->ReadByte(&byte->value, nullptr, nullptr, (uint16_t)offset, false);
 
-            if (!dbp || !dbp->bp.r) {
-                byte->got_value = false;
-            } else {
-                byte->got_value = true;
-                byte->value = dbp->bp.r[addr.p.o];
-                byte->can_write = dbp->bp.writeable;
-            }
+            byte->got_value = result.bits.got_value;
+            byte->can_write = result.bits.can_write;
+
+            //const DebugBigPage *dbp = m_window->GetDebugBigPageForAddress(addr, false);
+
+            //if (!dbp || !dbp->bp.r) {
+            //    byte->got_value = false;
+            //} else {
+            //    byte->got_value = true;
+            //    byte->value = dbp->bp.r[addr.p.o];
+            //    byte->can_write = dbp->bp.writeable;
+            //}
         }
 
         void WriteByte(size_t offset, uint8_t value) override {
@@ -1982,7 +2037,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                     this->AddWord(",", dest.w, false, "");
 
                     uint8_t value;
-                    if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false)) {
+                    if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false).bits.got_value) {
                         uint8_t bit;
                         bool set;
                         if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
@@ -2221,7 +2276,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     void Up(const M6502Config *config, int n) {
         for (int i = 0; i < n; ++i) {
             uint8_t opcode;
-            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr - 1, false)) {
+            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr - 1, false).bits.got_value) {
                 --m_addr;
                 continue;
             }
@@ -2231,7 +2286,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                 continue;
             }
 
-            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr - 2, false)) {
+            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr - 2, false).bits.got_value) {
                 --m_addr;
                 continue;
             }
@@ -2248,7 +2303,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     void Down(const M6502Config *config, int n) {
         for (int i = 0; i < n; ++i) {
             uint8_t opcode;
-            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr, false)) {
+            if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr, false).bits.got_value) {
                 ++m_addr;
             } else {
                 m_addr += config->disassembly_info[opcode].num_bytes;
@@ -3028,10 +3083,14 @@ class PagingDebugWindow : public DebugUI {
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
         ImGui::Text("%s (%u)", metadata->description.c_str(), metadata->debug_flags_index.i);
+#if PAGING_FLAGS_HAS_ROMIO
         if (big_page_index.i == MOS_BIG_PAGE_INDEX.i + 3 && !(paging_flags & PagingFlags_ROMIO)) {
             ImGui::SameLine();
             ImGui::Text(" + I/O (%s)", paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
         }
+#else
+        (void)paging_flags;
+#endif
     }
 };
 
@@ -3422,7 +3481,7 @@ class StackDebugWindow : public DebugUI {
                             // (Paging can interfere with this! The paging overrides UI is
                             // available if you need it.)
                             uint8_t possible_jsr;
-                            if (this->ReadByte(&possible_jsr, nullptr, nullptr, addr.w - 2, false)) {
+                            if (this->ReadByte(&possible_jsr, nullptr, nullptr, addr.w - 2, false).bits.got_value) {
                                 if (possible_jsr == 0x20) {
                                     was_jsr = true;
                                 }

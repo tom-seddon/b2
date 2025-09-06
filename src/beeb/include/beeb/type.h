@@ -33,6 +33,17 @@ struct M6502Config;
 char GetROMBankCode(uint32_t bank);
 char GetMapperRegionCode(uint32_t region);
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Parasite handling is special-cased in a couple of places. These strings are
+// the minimal_codes for the corresponding big pages.
+extern const char PARASITE_MINIMAL_CODES[];
+extern const char PARASITE_ROM_MINIMAL_CODES[];
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // BIG_PAGE_SIZE_BYTES fits into a uint16_t.
 static constexpr size_t BIG_PAGE_SIZE_BYTES = 4096;
 static constexpr size_t BIG_PAGE_OFFSET_MASK = 4095;
@@ -64,7 +75,17 @@ static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {NUM_MAPPER_REGIONS * 16
 static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = {16 / 4};
 
-static constexpr BigPageIndex PARASITE_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES};
+// Ordinary IO is whatever is in the MOS big page that overlaps with
+// $fc00...$fbff, plus the I/O region on top.
+static constexpr BigPageIndex XFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_XFJ};
+static constexpr BigPageIndex IFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_IFJ};
+static constexpr BigPageIndex WRITE_XFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_WriteXFJ};
+static constexpr BigPageIndex WRITE_IFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_WriteIFJ};
+
+static constexpr BigPageIndex FIRST_IO_BIG_PAGE_INDEX = XFJ_IO_BIG_PAGE_INDEX;
+static constexpr BigPageIndex::Type NUM_IO_BIG_PAGES = 4;
+
+static constexpr BigPageIndex PARASITE_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_IO_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_PARASITE_BIG_PAGES = {64 / 4};
 
 static constexpr BigPageIndex PARASITE_ROM_BIG_PAGE_INDEX = {PARASITE_BIG_PAGE_INDEX.i + NUM_PARASITE_BIG_PAGES};
@@ -76,7 +97,7 @@ static constexpr BigPageIndex::Type NUM_PARASITE_ROM_BIG_PAGES = {1};
 //static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = {SECOND_PARASITE_BIG_PAGE_INDEX.i + NUM_SECOND_PARASITE_BIG_PAGES.i};
 //static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = {1};
 
-static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
+static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_IO_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
 
 // A few big page indexes from NUM_BIG_PAGES onwards will never be valid, so
 // they can be used for other purposes.
@@ -144,6 +165,8 @@ static_assert(sizeof(PagingState) == 18);
 struct MemoryBigPageTables {
     // [0][i] is the big page to use when user code accesses memory big page i;
     // [1][i] likewise for MOS code.
+    //
+    // [1][15], if relevant, must be the same as [0][15].
     BigPageIndex mem_big_pages[2][16];
 
     // [i] is 0 if memory big page i counts as user code, or 1 if it counts as
@@ -169,6 +192,11 @@ struct BigPageMetadata {
     char aligned_codes[3] = {};
     char minimal_codes[3] = {};
 
+    // And as above, if host_io_type!=HostIOType_None, and the access is to the
+    // I/O part.
+    char aligned_io_codes[3] = {};
+    char minimal_io_codes[3] = {};
+
     // More elaborate description, printed in UI.
     std::string description;
 
@@ -185,6 +213,11 @@ struct BigPageMetadata {
     //
     // (This mechanism could be tidier. But it should hang together for now...)
     bool is_parasite = false;
+
+    // Set if this big page has host I/O in it.
+    //
+    // Host I/O is always at +0xc00...+0xeff.
+    HostIOType host_io_type = HostIOType_None;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -314,6 +347,21 @@ bool IsValidAddressSuffixChar(char c);
 // If the DSO parasite bit is set, that's set in the mask too, and perhaps the
 // parasite ROM bit too (which is otherwise ignored).
 uint32_t GetDSOMaskForOverrides(uint32_t dso);
+
+//inline bool IsIOAccess(HostIOType host_io_type, uint16_t offset, bool read) {
+//    if (host_io_type != HostIOType_None) {
+//        if (offset >= 0xc00 && offset < 0xf00) {
+//            if (host_io_type == HostIOType_XFJ || host_io_type == HostIOType_IFJ) {
+//                return true;
+//            } else if (host_io_type == HostIOType_WriteXFJ || host_io_type == HostIOType_WriteIFJ) {
+//                return !read;
+//            }
+//        }
+//    }
+//
+//    return false;
+//}
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////
