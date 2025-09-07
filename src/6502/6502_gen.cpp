@@ -1511,8 +1511,30 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
             }
         }
 
+        std::string instruction_category;
+        {
+            InstrType type = instr->GetInstrType();
+            switch (type) {
+            default:
+                instruction_category = "Other";
+                break;
+
+            case InstrType_R:
+                instruction_category = "Read";
+                break;
+
+            case InstrType_RMW:
+                instruction_category = "ReadModifyWrite";
+                break;
+
+            case InstrType_W:
+                instruction_category = "Write";
+                break;
+            }
+        }
+
         ASSERT(mnemonic.size() <= 4);
-        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch_condition=M6502Condition_%s,.stack_operation=M6502StackOperation_%s},\n",
+        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch_condition=M6502Condition_%s,.stack_operation=M6502StackOperation_%s,.instruction_category=M6502InstructionCategory_%s},\n",
           i,
           mnemonic.c_str(),
           mode.c_str(),
@@ -1520,7 +1542,8 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
           instr->undocumented,
           always_step_in,
           condition.c_str(),
-          stack_operation.c_str());
+          stack_operation.c_str(),
+          instruction_category.c_str());
     }
     P("};\n");
     P("\n");

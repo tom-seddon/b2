@@ -167,6 +167,17 @@ typedef enum M6502StackOperation M6502StackOperation;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+enum M6502InstructionCategory {
+    M6502InstructionCategory_Other,
+    M6502InstructionCategory_Read,
+    M6502InstructionCategory_ReadModifyWrite,
+    M6502InstructionCategory_Write,
+};
+typedef enum M6502InstructionCategory M6502InstructionCategory;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 typedef void (*M6502Fn)(struct M6502 *);
 
 typedef void (*M6502Callback)(struct M6502 *, void *);
@@ -196,6 +207,10 @@ struct M6502DisassemblyInfo {
     // Stack operation performed by this instruction - one of the
     // M6502StackOperation values.
     uint16_t stack_operation : 2;
+
+    // Basic instruction category for this instruction - one of the
+    // M6502InstructionCategory values.
+    uint16_t instruction_category : 2;
 
     // Mnemonic.
     char mnemonic[5];
