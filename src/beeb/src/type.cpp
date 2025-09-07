@@ -510,26 +510,36 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     // These all get OS_CODE as the default code. The I/O part is a bit of a
     // special case and that applies to its code as well.
     for (uint8_t host_io_flags = 0; host_io_flags < 8; ++host_io_flags) {
+#if BBCMICRO_DEBUGGER
         uint32_t dso_clear = BBCMicroDebugStateOverride_HAZEL;
         uint32_t dso_set = BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ;
+#endif
         char io_code = IO_CODE;
 
         std::string description = "MOS ROM+";
         if (host_io_flags & HostIOFlag_WriteOnly) {
             description += "w";
+#if BBCMICRO_DEBUGGER
             dso_set = BBCMicroDebugStateOverride_OS;
+#endif
         } else {
             description += "rw";
+#if BBCMICRO_DEBUGGER
             dso_clear = BBCMicroDebugStateOverride_OS;
+#endif
         }
         description += " ";
         if (host_io_flags & HostIOFlag_IFJ) {
             description += "IFJ";
+#if BBCMICRO_DEBUGGER
             dso_set = BBCMicroDebugStateOverride_IFJ;
+#endif
             io_code = IFJ_IO_CODE;
         } else {
             description += "XFJ";
+#if BBCMICRO_DEBUGGER
             dso_clear = BBCMicroDebugStateOverride_IFJ;
+#endif
         }
         description += "/";
         if (host_io_flags & HostIOFlag_ITU) {
