@@ -368,7 +368,20 @@ class BBCMicroState {
     uint64_t paste_wait_end = 0;
 
     // Tube stuff.
+
+    // Set if the parasite is accessible. Updated when the ITU/XTU flag (where
+    // available) changes.
+    //
+    // TODO: could these flags be boiled down into 1? Or a state check that's if
+    // constexpr-friendly?
     bool parasite_accessible = false;
+
+    // Holds the setting for ITU (exactly 0 or 1!) that makes the parasite
+    // accessible.
+    //
+    // TODO: all the ACCCON fields are 1-bit, so they could be bools. And then
+    // maybe this could be a bool as well?
+    uint8_t parasite_itu = 0;
 
     M6502 parasite_cpu = {};
 
@@ -458,9 +471,7 @@ class BBCMicroReadOnlyState : public BBCMicroState {
     virtual ~BBCMicroReadOnlyState() = default;
 
 #if BBCMICRO_DEBUGGER
-    // No DSO - the caller is assumed to have taken care of that. If not IFJ,
-    // it's XFJ.
-    virtual DebugReadMMIOResult DebugReadMMIO(uint8_t *value, M6502Word addr, bool ifj) const = 0;
+    virtual DebugReadMMIOResult DebugReadMMIO(uint8_t *value, M6502Word addr, uint8_t host_io_flags) const = 0;
     virtual uint8_t DebugGetStaleDataBusByte() const = 0;
 #endif
   protected:

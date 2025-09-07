@@ -79,15 +79,10 @@ class BBCMicroReadOnlyStateWithDebugMMIO : public BBCMicroReadOnlyState {
         , m_debug_read_mmio_data(m_debug_read_mmio_data_ptr.get()) {
     }
 
-    DebugReadMMIOResult DebugReadMMIO(uint8_t *value, M6502Word addr, bool ifj) const override {
+    DebugReadMMIOResult DebugReadMMIO(uint8_t *value, M6502Word addr, uint8_t host_io_flags) const override {
         ASSERT(addr.w >= 0xfc00 && addr.w < 0xff00);
 
-        const std::vector<BBCMicro::DebugReadMMIO> *table;
-        if (ifj) {
-            table = &m_debug_read_mmio_data->read_mmios_hw_cartridge;
-        } else {
-            table = &m_debug_read_mmio_data->read_mmios_hw;
-        }
+        const std::vector<BBCMicro::DebugReadMMIO> *table = &m_debug_read_mmio_data->debug_read_mmios[host_io_flags & 3];
 
         uint16_t index = addr.w - 0xfc00;
         const BBCMicro::DebugReadMMIO *debug_read_mmio = &(*table)[index];
@@ -214,6 +209,29 @@ static const BBCMicro::DebugReadMMIOFn g_WD1770_debug_read_fns[] = {
 };
 
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const BBCMicro::ReadMMIOFn g_tube_host_read_fns[7] = {
+    &ReadHostTube1,
+    &ReadHostTube2,
+    &ReadHostTube3,
+    &ReadHostTube4,
+    &ReadHostTube5,
+    &ReadHostTube6,
+    &ReadHostTube7,
+};
+
+static const BBCMicro::WriteMMIOFn g_tube_host_write_fns[7] = {
+    &WriteHostTube1,
+    &WriteTubeDummy,
+    &WriteHostTube3,
+    &WriteTubeDummy,
+    &WriteHostTube5,
+    &WriteTubeDummy,
+    &WriteHostTube7,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -382,39 +400,6 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static_assert(HostIOType_XFJ == 0);
-static_assert(HostIOType_IFJ == 1);
-static_assert(HostIOType_WriteXFJ == 2);
-static_assert(HostIOType_WriteIFJ == 3);
-
-std::vector<BBCMicro::ReadMMIO> BBCMicro::*BBCMicro::ms_read_mmios_mptrs[4] = {
-    &BBCMicro::m_read_mmios_hw,           //HostIOType_XFJ
-    &BBCMicro::m_read_mmios_hw_cartridge, //HostIOType_IFJ
-    &BBCMicro::m_read_mmios_rom,          //HostIOType_WriteXFJ
-    &BBCMicro::m_read_mmios_rom,          //HostIOType_WriteIFJ
-};
-
-std::vector<uint8_t> BBCMicro::*BBCMicro::ms_read_mmios_stretch_mptrs[4] = {
-    &BBCMicro::m_mmios_stretch_hw,           //HostIOType_XFJ
-    &BBCMicro::m_mmios_stretch_hw_cartridge, //HostIOType_IFJ
-    &BBCMicro::m_mmios_stretch_rom,          //HostIOType_WriteXFJ
-    &BBCMicro::m_mmios_stretch_rom,          //HostIOType_WriteIFJ
-};
-
-std::vector<BBCMicro::WriteMMIO> BBCMicro::*BBCMicro::ms_write_mmios_mptrs[4] = {
-    &BBCMicro::m_write_mmios_hw,           //HostIOType_XFJ
-    &BBCMicro::m_write_mmios_hw_cartridge, //HostIOType_IFJ
-    &BBCMicro::m_write_mmios_hw,           //HostIOType_WriteXFJ
-    &BBCMicro::m_write_mmios_hw_cartridge, //HostIOType_WriteIFJ
-};
-
-std::vector<uint8_t> BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[4] = {
-    &BBCMicro::m_mmios_stretch_hw,           //HostIOType_XFJ
-    &BBCMicro::m_mmios_stretch_hw_cartridge, //HostIOType_IFJ
-    &BBCMicro::m_mmios_stretch_hw,           //HostIOType_WriteXFJ
-    &BBCMicro::m_mmios_stretch_hw_cartridge, //HostIOType_WriteIFJ
-};
-
 void BBCMicro::UpdatePaging() {
     MemoryBigPageTables tables;
     uint32_t paging_flags;
@@ -448,78 +433,24 @@ void BBCMicro::UpdatePaging() {
     }
 
     ASSERT(tables.mem_big_pages[0][15].i >= FIRST_IO_BIG_PAGE_INDEX.i && tables.mem_big_pages[0][15].i < FIRST_IO_BIG_PAGE_INDEX.i + NUM_IO_BIG_PAGES);
-    ASSERT(m_big_pages[tables.mem_big_pages[0][15].i].metadata->host_io_type != HostIOType_None);
-    uint32_t index = tables.mem_big_pages[0][15].i - FIRST_IO_BIG_PAGE_INDEX.i;
-    m_read_mmios = (this->*ms_read_mmios_mptrs[index]).data();
-    m_read_mmios_stretch = (this->*ms_read_mmios_stretch_mptrs[index]).data();
-    m_write_mmios = (this->*ms_write_mmios_mptrs[index]).data();
-    m_write_mmios_stretch = (this->*ms_write_mmios_stretch_mptrs[index]).data();
+    ASSERT(!(m_big_pages[tables.mem_big_pages[0][15].i].metadata->host_io_flags & HostIOFlag_NoIO));
 
-    bool parasite_accessible;
-    switch (m_state.parasite_type) {
-    default:
-        ASSERT(false);
-        [[fallthrough]];
-    case BBCMicroParasiteType_None:
-        parasite_accessible = false;
-        break;
+    uint32_t host_io_flags = tables.mem_big_pages[0][15].i - FIRST_IO_BIG_PAGE_INDEX.i;
 
-    case BBCMicroParasiteType_External3MHz6502:
-        if (m_state.type->type_id == BBCMicroTypeID_Master) {
-            parasite_accessible = !m_state.paging.acccon.m128_bits.itu;
-        } else {
-            parasite_accessible = true;
-        }
-        break;
-
-    case BBCMicroParasiteType_MasterTurbo:
-        if (m_state.type->type_id == BBCMicroTypeID_Master) {
-            parasite_accessible = m_state.paging.acccon.m128_bits.itu;
-        } else {
-            parasite_accessible = true;
-        }
-        break;
+    if (host_io_flags & HostIOFlag_WriteOnly) {
+        m_read_mmios = m_read_mmios_rom.data();
+        m_read_mmios_stretch = m_mmios_stretch_rom.data();
+    } else {
+        m_read_mmios = m_read_mmios_hw[host_io_flags].data();
+        m_read_mmios_stretch = m_mmios_stretch_hw[host_io_flags].data();
     }
 
-    // TODO: updating the MMIO functions on the fly means no debug functions for
-    // the parasite (since the debug function tables are shared). This flag
-    // needs to participate in the HostIOType mechanism.
-    if (parasite_accessible != m_state.parasite_accessible) {
-        if (parasite_accessible) {
-            static constexpr ReadMMIOFn host_rmmio_fns[7] = {
-                &ReadHostTube1,
-                &ReadHostTube2,
-                &ReadHostTube3,
-                &ReadHostTube4,
-                &ReadHostTube5,
-                &ReadHostTube6,
-                &ReadHostTube7,
-            };
+    uint32_t write_table_index = host_io_flags & (HostIOFlag_ITU | HostIOFlag_IFJ);
+    m_write_mmios = m_write_mmios_hw[write_table_index].data();
+    m_write_mmios_stretch = m_mmios_stretch_hw[write_table_index].data();
 
-            static constexpr WriteMMIOFn host_wmmio_fns[7] = {
-                &WriteHostTube1,
-                &WriteTubeDummy,
-                &WriteHostTube3,
-                &WriteTubeDummy,
-                &WriteHostTube5,
-                &WriteTubeDummy,
-                &WriteHostTube7,
-            };
-
-            for (uint16_t a = 0xfee0; a < 0xff00; a += 8) {
-                this->SetSIO(a + 0, &ReadHostTube0, &m_state.parasite_tube, &WriteHostTube0Wrapper, this);
-                for (uint16_t i = 0; i < 7; ++i) {
-                    this->SetSIO(a + 1 + i, host_rmmio_fns[i], &m_state.parasite_tube, host_wmmio_fns[i], &m_state.parasite_tube);
-                }
-            }
-        } else {
-            for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-                this->SetSIO(a, nullptr, nullptr, nullptr, nullptr);
-            }
-        }
-
-        m_state.parasite_accessible = parasite_accessible;
-    }
+    // The per-type ACCCON mask ensures that ITU will remain clear on B/B+.
+    m_state.parasite_accessible = m_state.paging.acccon.m128_bits.itu == m_state.parasite_itu;
 
 #if BBCMICRO_DEBUGGER
     ++m_update_mfn_data->num_UpdatePaging_calls;
@@ -1443,15 +1374,15 @@ void BBCMicro::AddHostWriteFn(WriteFn fn, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
+void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool xtu, bool itu) {
     ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
-    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, true, true);
+    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, xtu, itu);
 }
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
+void BBCMicro::SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool xtu, bool itu) {
     ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
-    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, true, true);
+    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, xtu, itu);
 }
 #endif
 
@@ -2682,19 +2613,18 @@ void BBCMicro::InitStuff() {
     m_state.eeprom.cpu = &m_state.cpu;
 #endif
 
-    m_read_mmios_hw = std::vector<ReadMMIO>(768);
-    m_write_mmios_hw = std::vector<WriteMMIO>(768);
-    m_mmios_stretch_hw = std::vector<uint8_t>(768);
-
-    m_read_mmios_hw_cartridge = std::vector<ReadMMIO>(768);
-    m_write_mmios_hw_cartridge = std::vector<WriteMMIO>(768);
-    m_mmios_stretch_hw_cartridge = std::vector<uint8_t>(768);
-
 #if BBCMICRO_DEBUGGER
     m_debug_read_mmio_data = std::make_unique<DebugReadMMIOData>();
-    m_debug_read_mmio_data->read_mmios_hw = std::vector<DebugReadMMIO>(768);
-    m_debug_read_mmio_data->read_mmios_hw_cartridge = std::vector<DebugReadMMIO>(768);
 #endif
+    for (int i = 0; i < 4; ++i) {
+        m_read_mmios_hw[i] = std::vector<ReadMMIO>(768);
+        m_write_mmios_hw[i] = std::vector<WriteMMIO>(768);
+        m_mmios_stretch_hw[i] = std::vector<uint8_t>(768);
+
+#if BBCMICRO_DEBUGGER
+        m_debug_read_mmio_data->debug_read_mmios[i] = std::vector<DebugReadMMIO>(768);
+#endif
+    }
 
     // Assume hardware is mapped. It will get fixed up later if
     // not.
@@ -2896,37 +2826,52 @@ void BBCMicro::InitStuff() {
     }
 #endif
 
+    if (m_state.parasite_type != BBCMicroParasiteType_None) {
+        m_state.parasite_itu = 0;
+
+        if (m_state.parasite_type == BBCMicroParasiteType_MasterTurbo) {
+            if (m_state.type->type_id == BBCMicroTypeID_Master) {
+                m_state.parasite_itu = 1;
+            }
+        }
+
+        for (uint16_t a = 0xfee0; a < 0xff00; a += 8) {
+            this->SetSIO(a + 0, &ReadHostTube0, &m_state.parasite_tube, &WriteHostTube0Wrapper, this, !m_state.parasite_itu, !!m_state.parasite_itu);
+            for (uint16_t i = 0; i < 7; ++i) {
+                this->SetSIO(a + 1 + i, g_tube_host_read_fns[i], &m_state.parasite_tube, g_tube_host_write_fns[i], &m_state.parasite_tube, !m_state.parasite_itu, !!m_state.parasite_itu);
+            }
+        }
+    }
+
     // Set up TST=1 tables.
     m_read_mmios_rom = std::vector<ReadMMIO>(768, {&ReadROMMMIO, this});
     m_mmios_stretch_rom = std::vector<uint8_t>(768, 0x00);
 
-    // FRED = external stretched, internal not
-    for (size_t i = 0; i < 0x100; ++i) {
-        m_mmios_stretch_hw[i] = 0xff;
-        m_mmios_stretch_hw_cartridge[i] = 0x00;
-    }
+    // Set up TST=0/write tables.
+    for (uint8_t flags = 0; flags < 4; ++flags) {
+        uint8_t xfj_stretched = flags & HostIOFlag_IFJ ? 0x00 : 0xff;
 
-    // JIM = external stretched, internal not
-    for (size_t i = 0x100; i < 0x200; ++i) {
-        m_mmios_stretch_hw[i] = 0xff;
-        m_mmios_stretch_hw_cartridge[i] = 0x00;
-    }
-
-    // SHEILA = part stretched
-    for (size_t i = 0x200; i < 0x300; ++i) {
-        m_mmios_stretch_hw[i] = 0x00;
-    }
-
-    for (const BBCMicroType::SHEILACycleStretchRegion &region : m_state.type->sheila_cycle_stretch_regions) {
-        ASSERT(region.first < region.last);
-        for (uint8_t i = region.first; i <= region.last; ++i) {
-            m_mmios_stretch_hw[0x200u + i] = 0xff;
+        // FRED = external stretched, internal not
+        for (size_t i = 0; i < 0x100; ++i) {
+            m_mmios_stretch_hw[flags][i] = xfj_stretched;
         }
-    }
 
-    // Copy SHEILA stretching flags for the cartridge copy.
-    for (size_t i = 0x200; i < 0x300; ++i) {
-        m_mmios_stretch_hw_cartridge[i] = m_mmios_stretch_hw[i];
+        // JIM = external stretched, internal not
+        for (size_t i = 0x100; i < 0x200; ++i) {
+            m_mmios_stretch_hw[flags][i] = xfj_stretched;
+        }
+
+        // SHEILA = part stretched (IFJ/XFJ irrelevant)
+        for (size_t i = 0x200; i < 0x300; ++i) {
+            m_mmios_stretch_hw[flags][i] = 0x00;
+        }
+
+        for (const BBCMicroType::SHEILACycleStretchRegion &region : m_state.type->sheila_cycle_stretch_regions) {
+            ASSERT(region.first < region.last);
+            for (uint8_t i = region.first; i <= region.last; ++i) {
+                m_mmios_stretch_hw[flags][0x200u + i] = 0xff;
+            }
+        }
     }
 
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
@@ -3389,8 +3334,27 @@ void BBCMicro::UpdateCPUDataBusFn() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj) {
-    ASSERT(set_xfj || set_ifj);
+static bool MatchesHostIOFlags(uint8_t host_io_flags, uint16_t addr, bool set_external, bool set_internal) {
+    ASSERT(addr >= 0xfc00 && addr < 0xff00);
+    if (addr >= 0xfc00 && addr < 0xfe00) {
+        if (set_external && !(host_io_flags & HostIOFlag_IFJ)) {
+            return true;
+        } else if (set_internal && (host_io_flags & HostIOFlag_IFJ)) {
+            return true;
+        }
+    } else {
+        if (set_external && !(host_io_flags & HostIOFlag_ITU)) {
+            return true;
+        } else if (set_internal && (host_io_flags & HostIOFlag_ITU)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_external, bool set_internal) {
+    ASSERT(set_external || set_internal);
     ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
 
     uint16_t index = addr - 0xfc00;
@@ -3409,20 +3373,17 @@ void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_
         write_mmio = {&WriteUnmappedMMIO, this};
     }
 
-    if (set_xfj) {
-        m_write_mmios_hw[index] = write_mmio;
-        m_read_mmios_hw[index] = read_mmio;
-    }
-
-    if (set_ifj) {
-        m_write_mmios_hw_cartridge[index] = write_mmio;
-        m_read_mmios_hw_cartridge[index] = read_mmio;
+    for (uint8_t host_io_flags = 0; host_io_flags < 4; ++host_io_flags) {
+        if (MatchesHostIOFlags(host_io_flags, addr, set_external, set_internal)) {
+            m_write_mmios_hw[host_io_flags][index] = write_mmio;
+            m_read_mmios_hw[host_io_flags][index] = read_mmio;
+        }
     }
 }
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_xfj, bool set_ifj) {
-    ASSERT(set_xfj || set_ifj);
+void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_external, bool set_internal) {
+    ASSERT(set_external || set_internal);
     ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
 
     DebugReadMMIO debug_read_mmio;
@@ -3432,12 +3393,10 @@ void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read
 
     uint16_t index = addr - 0xfc00;
 
-    if (set_xfj) {
-        m_debug_read_mmio_data->read_mmios_hw[index] = debug_read_mmio;
-    }
-
-    if (set_ifj) {
-        m_debug_read_mmio_data->read_mmios_hw_cartridge[index] = debug_read_mmio;
+    for (uint8_t host_io_flags = 0; host_io_flags < 4; ++host_io_flags) {
+        if (MatchesHostIOFlags(host_io_flags, addr, set_external, set_internal)) {
+            m_debug_read_mmio_data->debug_read_mmios[host_io_flags][index] = debug_read_mmio;
+        }
     }
 }
 

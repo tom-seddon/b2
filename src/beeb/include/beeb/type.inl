@@ -33,14 +33,17 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Defines
-#define ENAME HostIOType
+#define ENAME HostIOFlag
 EBEGIN_DERIVED(uint8_t)
-EPN(XFJ)
-EPN(IFJ)
-EPN(WriteXFJ)
-EPN(WriteIFJ)
-EPN(None)
+// These 3 bit assignments are not arbitrary - they match the bit ordering in
+// Master 128 ACCCON.
+EPNV(ITU, 1 << 0)
+EPNV(IFJ, 1 << 1)
+EPNV(WriteOnly, 1 << 2)
+
+// The inverted logic means the value can be used as an index when this value
+// isn't set.
+EPNV(NoIO, 1 << 3)
 EEND()
 #undef ENAME
 
@@ -94,6 +97,8 @@ EQPNV(MapperRegionMask, NUM_MAPPER_REGIONS - 1)
 // If OverrideIFJ, IFJ selects behaviour of $fc00...$fdff: IFJ (1) or XFJ (0).
 EPNV(OverrideIFJ, 1 << 21)
 EPNV(IFJ, 1 << 22)
+
+// TODO: XTU/ITU...
 
 //next free bit is 23
 

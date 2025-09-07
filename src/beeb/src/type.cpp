@@ -173,8 +173,8 @@ static const char SHADOW_CODE = 's';
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char PARASITE_MINIMAL_CODES[]={PARASITE_CODE};
-const char PARASITE_ROM_MINIMAL_CODES[]={PARASITE_ROM_CODE};
+const char PARASITE_MINIMAL_CODES[] = {PARASITE_CODE};
+const char PARASITE_ROM_MINIMAL_CODES[] = {PARASITE_ROM_CODE};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -297,11 +297,11 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
     }
 }
 
-static void InitBigPageIOMetadata(std::vector<BigPageMetadata> *big_pages, BigPageIndex index, HostIOType host_io_type, char io_code) {
+static void InitBigPageIOMetadata(std::vector<BigPageMetadata> *big_pages, BigPageIndex index, uint8_t host_io_flags, char io_code) {
     BigPageMetadata *metadata = &(*big_pages)[index.i];
 
-    ASSERT(metadata->host_io_type == HostIOType_None);
-    metadata->host_io_type = host_io_type;
+    ASSERT(metadata->host_io_flags & HostIOFlag_NoIO);
+    metadata->host_io_flags = host_io_flags;
 
     metadata->aligned_io_codes[0] = io_code;
     metadata->aligned_io_codes[1] = ' ';
@@ -509,50 +509,45 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     //
     // These all get OS_CODE as the default code. The I/O part is a bit of a
     // special case and that applies to its code as well.
-    InitBigPagesMetadata(&big_pages,
-                         XFJ_IO_BIG_PAGE_INDEX,
-                         1,
-                         OS_CODE, 0, "MOS ROM+rw XFJ I/O",
-#if BBCMICRO_DEBUGGER
-                         BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_HAZEL | BBCMicroDebugStateOverride_IFJ,
-                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ,
-#endif
-                         0xf000);
+    for (uint8_t host_io_flags = 0; host_io_flags < 8; ++host_io_flags) {
+        uint32_t dso_clear = BBCMicroDebugStateOverride_HAZEL;
+        uint32_t dso_set = BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ;
+        char io_code = IO_CODE;
 
-    InitBigPagesMetadata(&big_pages,
-                         IFJ_IO_BIG_PAGE_INDEX,
-                         1,
-                         OS_CODE, 0, "MOS ROM+rw IFJ I/O",
-#if BBCMICRO_DEBUGGER
-                         BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_HAZEL,
-                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_IFJ,
-#endif
-                         0xf000);
+        std::string description = "MOS ROM+";
+        if (host_io_flags & HostIOFlag_WriteOnly) {
+            description += "w";
+            dso_set = BBCMicroDebugStateOverride_OS;
+        } else {
+            description += "rw";
+            dso_clear = BBCMicroDebugStateOverride_OS;
+        }
+        description += " ";
+        if (host_io_flags & HostIOFlag_IFJ) {
+            description += "IFJ";
+            dso_set = BBCMicroDebugStateOverride_IFJ;
+            io_code = IFJ_IO_CODE;
+        } else {
+            description += "XFJ";
+            dso_clear = BBCMicroDebugStateOverride_IFJ;
+        }
+        description += "/";
+        if (host_io_flags & HostIOFlag_ITU) {
+            description += "ITU";
+        } else {
+            description += "XTU";
+        }
+        description += " I/O";
 
-    InitBigPagesMetadata(&big_pages,
-                         WRITE_XFJ_IO_BIG_PAGE_INDEX,
-                         1,
-                         OS_CODE, 0, "MOS ROM+w XFJ I/O",
+        BigPageIndex index = {(BigPageIndex::Type)(FIRST_IO_BIG_PAGE_INDEX.i + host_io_flags)};
+        InitBigPagesMetadata(&big_pages, index, 1, OS_CODE, 0, description,
 #if BBCMICRO_DEBUGGER
-                         BBCMicroDebugStateOverride_HAZEL | BBCMicroDebugStateOverride_IFJ,
-                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ,
+                             dso_clear, dso_set,
 #endif
-                         0xf000);
+                             0xf000);
 
-    InitBigPagesMetadata(&big_pages,
-                         WRITE_IFJ_IO_BIG_PAGE_INDEX,
-                         1,
-                         OS_CODE, 0, "MOS ROM+w IFJ I/O",
-#if BBCMICRO_DEBUGGER
-                         BBCMicroDebugStateOverride_HAZEL,
-                         BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_IFJ,
-#endif
-                         0xf000);
-
-    InitBigPageIOMetadata(&big_pages, XFJ_IO_BIG_PAGE_INDEX, HostIOType_XFJ, IO_CODE);
-    InitBigPageIOMetadata(&big_pages, IFJ_IO_BIG_PAGE_INDEX, HostIOType_IFJ, IFJ_IO_CODE);
-    InitBigPageIOMetadata(&big_pages, WRITE_XFJ_IO_BIG_PAGE_INDEX, HostIOType_WriteXFJ, IO_CODE);
-    InitBigPageIOMetadata(&big_pages, WRITE_IFJ_IO_BIG_PAGE_INDEX, HostIOType_WriteIFJ, IFJ_IO_CODE);
+        InitBigPageIOMetadata(&big_pages, index, host_io_flags, io_code);
+    }
 
     // Parasite RAM
     InitBigPagesMetadata(&big_pages,
@@ -651,7 +646,7 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
     tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
     tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
-    tables->mem_big_pages[0][0xf] = XFJ_IO_BIG_PAGE_INDEX;
+    tables->mem_big_pages[0][0xf].i = FIRST_IO_BIG_PAGE_INDEX.i + 0;
 
     memset(tables->mem_big_pages[1], 0, sizeof tables->mem_big_pages[1]);
     memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
@@ -767,7 +762,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
     tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
     tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
-    tables->mem_big_pages[0][0xf] = XFJ_IO_BIG_PAGE_INDEX;
+    tables->mem_big_pages[0][0xf].i = FIRST_IO_BIG_PAGE_INDEX.i + 0;
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8 * sizeof tables->mem_big_pages[0][0]);
 
@@ -931,20 +926,8 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[0][0xb].i = rom + 3;
     }
 
-    BigPageIndex::Type io_big_page_index;
-    if (paging.acccon.m128_bits.tst) {
-        if (paging.acccon.m128_bits.ifj) {
-            io_big_page_index = WRITE_IFJ_IO_BIG_PAGE_INDEX.i;
-        } else {
-            io_big_page_index = WRITE_XFJ_IO_BIG_PAGE_INDEX.i;
-        }
-    } else {
-        if (paging.acccon.m128_bits.ifj) {
-            io_big_page_index = IFJ_IO_BIG_PAGE_INDEX.i;
-        } else {
-            io_big_page_index = XFJ_IO_BIG_PAGE_INDEX.i;
-        }
-    }
+    uint8_t host_io_flags = (paging.acccon.value >> 4) & 7;
+    BigPageIndex::Type io_big_page_index = {(BigPageIndex::Type)(FIRST_IO_BIG_PAGE_INDEX.i + host_io_flags)};
 
     if (paging.acccon.m128_bits.y) {
         tables->mem_big_pages[0][0xc].i = HAZEL_BIG_PAGE_INDEX.i + 0;

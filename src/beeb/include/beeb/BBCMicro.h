@@ -275,8 +275,8 @@ class BBCMicro : private WD1770Handler {
     };
 
     struct DebugReadMMIOData {
-        std::vector<DebugReadMMIO> read_mmios_hw;
-        std::vector<DebugReadMMIO> read_mmios_hw_cartridge;
+        // indexed by HostIOFlag IFJ+ITU.
+        std::vector<DebugReadMMIO> debug_read_mmios[4];
     };
 #endif
 
@@ -388,19 +388,22 @@ class BBCMicro : private WD1770Handler {
 
     void AddHostWriteFn(WriteFn fn, void *context);
 
-    // Set SHEILA IO functions.
-    void SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
+    // Set SHEILA IO functions. (XFJ vs IFJ does not apply to SHEILA.)
+    //
+    // Unlike SetXFJIO/SetIFJIO, the xtu/itu is a parameter, as 99% of the time
+    // the two are the same.
+    void SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool xtu = true, bool itu = true);
 #if BBCMICRO_DEBUGGER
-    void SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
+    void SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool xtu = true, bool itu = true);
 #endif
 
-    // Set external FRED/JIM IO functions.
+    // Set external FRED/JIM IO functions. (ITU vs XTU does not apply to FRED or JIM.)
     void SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
 #if BBCMICRO_DEBUGGER
     void SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
 #endif
 
-    // Set internal FRED/JIM IO functions (Master 128 only).
+    // Set internal FRED/JIM IO functions (Master 128 only). (ITU vs XTU does not apply to FRED or JIM.)
     void SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
 #if BBCMICRO_DEBUGGER
     void SetDebugIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
@@ -593,22 +596,11 @@ class BBCMicro : private WD1770Handler {
     const WriteMMIO *m_write_mmios = nullptr;
     const uint8_t *m_write_mmios_stretch = nullptr;
 
-    static std::vector<ReadMMIO> BBCMicro::*ms_read_mmios_mptrs[];
-    static std::vector<uint8_t> BBCMicro::*ms_read_mmios_stretch_mptrs[];
-    static std::vector<WriteMMIO> BBCMicro::*ms_write_mmios_mptrs[];
-    static std::vector<uint8_t> BBCMicro::*ms_write_mmios_stretch_mptrs[];
-
-    // Tables for pages FC/FD/FE that access the hardware - B, B+, M128 when
-    // ACCCON TST=0.
-    std::vector<ReadMMIO> m_read_mmios_hw;
-    std::vector<WriteMMIO> m_write_mmios_hw;
-    std::vector<uint8_t> m_mmios_stretch_hw;
-
-    // Tables for pages FC/FD/FE that access cartridge hardware - M128 when
-    // ACCON IFJ=1.
-    std::vector<ReadMMIO> m_read_mmios_hw_cartridge;
-    std::vector<WriteMMIO> m_write_mmios_hw_cartridge;
-    std::vector<uint8_t> m_mmios_stretch_hw_cartridge;
+    // Tables for pages FC/FD/FE that access the hardware. Indexed by
+    // a combination of HostIOFlag IFJ and ITU.
+    std::vector<ReadMMIO> m_read_mmios_hw[4];
+    std::vector<WriteMMIO> m_write_mmios_hw[4];
+    std::vector<uint8_t> m_mmios_stretch_hw[4];
 
     // Tables for pages FC/FD/FE that access the ROM - reads on M128 when ACCCON
     // TST=1.
@@ -771,11 +763,14 @@ class BBCMicro : private WD1770Handler {
 
     // If read_fn is null or never explicitly set, the location will read as the
     // stale CPU data bus value.
-    void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj);
+    //
+    // set_external/set_internal handle XTU vs ITU if setting SHEILA, and IFJ vs
+    // XFJ if setting FRED/JIM.
+    void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_external, bool set_internal);
 #if BBCMICRO_DEBUGGER
     // If debug_read_fn is null, the byte is treated as explicitly unmapped, and
     // will show up in the debugger as the stale CPU data bus value.
-    void SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_xfj, bool set_ifj);
+    void SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_external, bool set_internal);
 #endif
 
     static void WriteHostTube0Wrapper(void *context, M6502Word a, uint8_t value);

@@ -75,15 +75,13 @@ static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {NUM_MAPPER_REGIONS * 16
 static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = {16 / 4};
 
-// Ordinary IO is whatever is in the MOS big page that overlaps with
-// $fc00...$fbff, plus the I/O region on top.
-static constexpr BigPageIndex XFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_XFJ};
-static constexpr BigPageIndex IFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_IFJ};
-static constexpr BigPageIndex WRITE_XFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_WriteXFJ};
-static constexpr BigPageIndex WRITE_IFJ_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + HostIOType_WriteIFJ};
-
-static constexpr BigPageIndex FIRST_IO_BIG_PAGE_INDEX = XFJ_IO_BIG_PAGE_INDEX;
-static constexpr BigPageIndex::Type NUM_IO_BIG_PAGES = 4;
+// Big page indexes for whatever's in the MOS big page that overlaps with the
+// I/O area, plus the I/O region on top at +$c00...$eff.
+//
+// The I/O big page index numbers are any combination of the IFJ, ITU and
+// WriteOnly HostIOFlag values.
+static constexpr BigPageIndex FIRST_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_IO_BIG_PAGES = 8;
 
 static constexpr BigPageIndex PARASITE_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_IO_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_PARASITE_BIG_PAGES = {64 / 4};
@@ -214,10 +212,10 @@ struct BigPageMetadata {
     // (This mechanism could be tidier. But it should hang together for now...)
     bool is_parasite = false;
 
-    // Set if this big page has host I/O in it.
+    // Set as appropriate for whatever I/O is in this page (if any).
     //
     // Host I/O is always at +0xc00...+0xeff.
-    HostIOType host_io_type = HostIOType_None;
+    uint8_t host_io_flags = HostIOFlag_NoIO;
 };
 
 //////////////////////////////////////////////////////////////////////////

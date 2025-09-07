@@ -235,7 +235,7 @@ class DebugUI : public SettingsUI {
     struct DebugBigPage {
         bool valid = false;
         BBCMicro::ReadOnlyBigPage bp;
-        HostIOType host_io_type = HostIOType_None;
+        uint8_t host_io_flags = HostIOFlag_NoIO;
 
         // ...any more???
     };
@@ -495,48 +495,35 @@ DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
     ReadByteResult result;
 
     // Set up can_write/io_write flags. Early out if it's read/write I/O.
-    switch (dbp->host_io_type) {
-    default:
-        ASSERT(false);
-        break;
-
-    case HostIOType_WriteIFJ:
-    case HostIOType_WriteXFJ:
+    if (!(dbp->host_io_flags & HostIOFlag_NoIO)) {
         if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
             result.bits.io_write = true;
-        }
-        [[fallthrough]];
-    case HostIOType_None:
-        result.bits.can_write = !!dbp->bp.writeable;
-        break;
 
-    case HostIOType_IFJ:
-    case HostIOType_XFJ:
-        if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
-            DebugReadMMIOResult debug_read_result = m_beeb_state->DebugReadMMIO(value, addr, dbp->host_io_type == HostIOType_IFJ);
-            switch (debug_read_result) {
-            case DebugReadMMIOResult_Unset:
-                break;
+            if (!(dbp->host_io_flags & HostIOFlag_WriteOnly)) {
+                DebugReadMMIOResult debug_read_result = m_beeb_state->DebugReadMMIO(value, addr, dbp->host_io_flags);
+                switch (debug_read_result) {
+                case DebugReadMMIOResult_Unset:
+                    break;
 
-            case DebugReadMMIOResult_Unmapped:
-                if (m_debug_read_mmio) {
-                    *value = m_stale_data_bus_byte;
-                    result.bits.got_value = true;
+                case DebugReadMMIOResult_Unmapped:
+                    if (m_debug_read_mmio) {
+                        *value = m_stale_data_bus_byte;
+                        result.bits.got_value = true;
+                    }
+                    break;
+
+                case DebugReadMMIOResult_GotValue:
+                    if (m_debug_read_mmio) {
+                        result.bits.got_value = true;
+                    }
+                    break;
                 }
-                break;
 
-            case DebugReadMMIOResult_GotValue:
-                if (m_debug_read_mmio) {
-                    result.bits.got_value = true;
-                }
-                break;
+                result.bits.can_write = false;
+                result.bits.io_write = true;
+                return result;
             }
-
-            result.bits.can_write = false;
-            result.bits.io_write = true;
-            return result;
         }
-        break;
     }
 
     if (dbp->bp.r) {
@@ -986,7 +973,7 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
         //    ASSERT(!dbp->bp.address_debug_flags);
         //}
 
-        dbp->host_io_type = dbp->bp.metadata->host_io_type;
+        dbp->host_io_flags = dbp->bp.metadata->host_io_flags;
 
         dbp->valid = true;
     }

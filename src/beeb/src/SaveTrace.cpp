@@ -294,7 +294,7 @@ class TraceSaver {
         //const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
         M6502Word addr = {value};
 
-        const char *codes = "?";//inhibit spurious unititialized variable warning
+        const char *codes;
         switch (ev->source) {
         default:
             ASSERT(false);
@@ -311,30 +311,12 @@ class TraceSaver {
                 const BigPageMetadata *bp = &m_type->big_pages_metadata[big_page.i];
 
                 // TODO: bit of a duplicate of similar logic in debugger.cpp.
-                switch (bp->host_io_type) {
-                case HostIOType_None:
-                non_io_access:
+                if (!(bp->host_io_flags & HostIOFlag_NoIO) &&
+                    addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
+                    (!(bp->host_io_flags & HostIOFlag_WriteOnly) || instr->instruction_category == M6502InstructionCategory_Write)) {
+                    codes = align ? bp->aligned_io_codes : bp->minimal_io_codes;
+                } else {
                     codes = align ? bp->aligned_codes : bp->minimal_codes;
-                    break;
-
-                case HostIOType_XFJ:
-                case HostIOType_IFJ:
-                    if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
-                    io_access:
-                        codes = align ? bp->aligned_io_codes : bp->minimal_io_codes;
-                    } else {
-                        goto non_io_access;
-                    }
-                    break;
-
-                case HostIOType_WriteXFJ:
-                case HostIOType_WriteIFJ:
-                    if (instr) {
-                        if (instr->instruction_category == M6502InstructionCategory_Write) {
-                            goto io_access;
-                        }
-                    }
-                    goto non_io_access;
                 }
             }
             break;
@@ -1091,8 +1073,7 @@ class TraceSaver {
         return true;
     }
 
-    void
-    SetHandler(const TraceEventType &type, MFn mfn, uint32_t flags = 0) {
+    void SetHandler(const TraceEventType &type, MFn mfn, uint32_t flags = 0) {
         Handler *h = &m_handlers[type.type_id];
 
         ASSERT(!h->mfn);
