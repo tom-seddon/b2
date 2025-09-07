@@ -69,6 +69,65 @@ const TraceEventType BBCMicro::INSTRUCTION_EVENT("Instruction", sizeof(Instructi
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+class BBCMicroReadOnlyStateWithDebugMMIO : public BBCMicroReadOnlyState {
+  public:
+    explicit BBCMicroReadOnlyStateWithDebugMMIO(const BBCMicroUniqueState &src, std::shared_ptr<BBCMicro::DebugReadMMIOData> debug_read_mmio_data)
+        : BBCMicroReadOnlyState(src)
+        , m_debug_read_mmio_data_ptr(std::move(debug_read_mmio_data))
+        , m_type_id(this->type->type_id)
+        , m_debug_read_mmio_data(m_debug_read_mmio_data_ptr.get()) {
+    }
+
+    DebugReadMMIOResult DebugReadMMIO(uint8_t *value, M6502Word addr, bool ifj) const override {
+        ASSERT(addr.w >= 0xfc00 && addr.w < 0xff00);
+
+        const std::vector<BBCMicro::DebugReadMMIO> *table;
+        if (ifj) {
+            table = &m_debug_read_mmio_data->read_mmios_hw_cartridge;
+        } else {
+            table = &m_debug_read_mmio_data->read_mmios_hw;
+        }
+
+        uint16_t index = addr.w - 0xfc00;
+        const BBCMicro::DebugReadMMIO *debug_read_mmio = &(*table)[index];
+
+        if (!debug_read_mmio->set) {
+            return DebugReadMMIOResult_Unset;
+        }
+
+        if (!debug_read_mmio->fn) {
+            return DebugReadMMIOResult_Unmapped;
+        }
+
+        const void *context = (*debug_read_mmio->context_fn)(this);
+        *value = (*debug_read_mmio->fn)(context, addr);
+
+        return DebugReadMMIOResult_GotValue;
+    }
+
+    uint8_t DebugGetStaleDataBusByte() const override {
+        BBCMicroTypeID type_id = this->type->type_id;
+        if (type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact) {
+            return this->last_fetched_video_byte;
+        } else {
+            return this->cpu.dbus;
+        }
+    }
+
+  protected:
+  private:
+    const std::shared_ptr<BBCMicro::DebugReadMMIOData> m_debug_read_mmio_data_ptr;
+
+    // Save on some shared_ptr lookups...
+    const BBCMicroTypeID m_type_id;
+    BBCMicro::DebugReadMMIOData *const m_debug_read_mmio_data = nullptr;
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const BBCMicro::WriteMMIOFn g_R6522_write_fns[16] = {
     &R6522::Write0,
     &R6522::Write1,
@@ -107,18 +166,57 @@ static const BBCMicro::ReadMMIOFn g_R6522_read_fns[16] = {
     &R6522::ReadF,
 };
 
+#if BBCMICRO_DEBUGGER
+static const BBCMicro::DebugReadMMIOFn g_R6522_debug_read_fns[16] = {
+    &R6522::DebugRead0,
+    &R6522::DebugRead1,
+    &R6522::DebugRead2,
+    &R6522::DebugRead3,
+    &R6522::DebugRead4,
+    &R6522::DebugRead5,
+    &R6522::DebugRead6,
+    &R6522::DebugRead7,
+    &R6522::DebugRead8,
+    &R6522::DebugRead9,
+    &R6522::DebugReadA,
+    &R6522::DebugReadB,
+    &R6522::DebugReadC,
+    &R6522::DebugReadD,
+    &R6522::DebugReadE,
+    &R6522::DebugReadF,
+};
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const BBCMicro::WriteMMIOFn g_WD1770_write_fns[] = {
     &WD1770::Write0,
     &WD1770::Write1,
     &WD1770::Write2,
     &WD1770::Write3,
 };
+
 static const BBCMicro::ReadMMIOFn g_WD1770_read_fns[] = {
     &WD1770::Read0,
     &WD1770::Read1,
     &WD1770::Read2,
     &WD1770::Read3,
 };
+
+#if BBCMICRO_DEBUGGER
+static const BBCMicro::DebugReadMMIOFn g_WD1770_debug_read_fns[] = {
+    &WD1770::DebugRead0,
+    &WD1770::DebugRead1,
+    &WD1770::DebugRead2,
+    &WD1770::DebugRead3,
+};
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 static const uint8_t g_unmapped_reads[BIG_PAGE_SIZE_BYTES] = {
     0,
@@ -383,6 +481,9 @@ void BBCMicro::UpdatePaging() {
         break;
     }
 
+    // TODO: updating the MMIO functions on the fly means no debug functions for
+    // the parasite (since the debug function tables are shared). This flag
+    // needs to participate in the HostIOType mechanism.
     if (parasite_accessible != m_state.parasite_accessible) {
         if (parasite_accessible) {
             static constexpr ReadMMIOFn host_rmmio_fns[7] = {
@@ -700,6 +801,18 @@ uint8_t BBCMicro::Read1770ControlRegister(void *m_, M6502Word a) {
     return value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t BBCMicro::DebugRead1770ControlRegister(const void *m_, M6502Word a) {
+    (void)a;
+    auto m = (const BBCMicroReadOnlyState *)m_;
+
+    ASSERT(m->disc_interface);
+
+    uint8_t value = m->disc_interface->GetByteFromControl(m->disc_control);
+    return value;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -824,6 +937,15 @@ uint8_t BBCMicro::ReadROMSEL(void *m_, M6502Word a) {
     return m->m_state.paging.romsel.value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t BBCMicro::DebugReadROMSEL(const void *state_, M6502Word a) {
+    auto state = (const BBCMicroReadOnlyState *)state_;
+    (void)a;
+
+    return state->paging.romsel.value;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -855,6 +977,15 @@ uint8_t BBCMicro::ReadACCCON(void *m_, M6502Word a) {
 
     return m->m_state.paging.acccon.value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t BBCMicro::DebugReadACCCON(const void *state_, M6502Word a) {
+    auto state = (const BBCMicroReadOnlyState *)state_;
+    (void)a;
+
+    return state->paging.acccon.value;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1317,6 +1448,13 @@ void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, Wri
     this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, true, true);
 }
 
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
+    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, true, true);
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1325,6 +1463,13 @@ void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, W
     this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, true, false);
 }
 
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
+    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, true, false);
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1332,6 +1477,13 @@ void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, W
     ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
     this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, false, true);
 }
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetDebugIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
+    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, false, true);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1442,10 +1594,12 @@ void BBCMicro::StopPaste() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 std::shared_ptr<const BBCMicroReadOnlyState> BBCMicro::DebugGetState() const {
-    auto result = std::make_shared<BBCMicroReadOnlyState>(m_state);
+    auto result = std::make_shared<BBCMicroReadOnlyStateWithDebugMMIO>(m_state, m_debug_read_mmio_data);
     return result;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2536,6 +2690,12 @@ void BBCMicro::InitStuff() {
     m_write_mmios_hw_cartridge = std::vector<WriteMMIO>(768);
     m_mmios_stretch_hw_cartridge = std::vector<uint8_t>(768);
 
+#if BBCMICRO_DEBUGGER
+    m_debug_read_mmio_data = std::make_unique<DebugReadMMIOData>();
+    m_debug_read_mmio_data->read_mmios_hw = std::vector<DebugReadMMIO>(768);
+    m_debug_read_mmio_data->read_mmios_hw_cartridge = std::vector<DebugReadMMIO>(768);
+#endif
+
     // Assume hardware is mapped. It will get fixed up later if
     // not.
     //m_read_mmios = m_read_mmios_hw.data();
@@ -2564,6 +2724,10 @@ void BBCMicro::InitStuff() {
     for (uint16_t i = 0; i < 32; ++i) {
         this->SetSIO(0xfe40 + i, g_R6522_read_fns[i & 15], &m_state.system_via, g_R6522_write_fns[i & 15], &m_state.system_via);
         this->SetSIO(0xfe60 + i, g_R6522_read_fns[i & 15], &m_state.user_via, g_R6522_write_fns[i & 15], &m_state.user_via);
+#if BBCMICRO_DEBUGGER
+        this->SetDebugSIO(0xfe40 + i, g_R6522_debug_read_fns[i & 15], &GetDebugMMIOReadSystemVIAContext);
+        this->SetDebugSIO(0xfe60 + i, g_R6522_debug_read_fns[i & 15], &GetDebugMMIOReadUserVIAContext);
+#endif
     }
 
     // I/O: 6845
@@ -2604,9 +2768,21 @@ void BBCMicro::InitStuff() {
             uint16_t addr = (uint16_t)(m_state.disc_interface->fdc_addr + i);
 
             this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], &m_state.fdc, g_WD1770_write_fns[i], &m_state.fdc, true, false);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugMMIOFnsInternal(addr, g_WD1770_debug_read_fns[i], &GetDebugMMIOReadFDCContext, true, false);
+#endif
         }
 
         this->SetMMIOFnsInternal(m_state.disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, true, false);
+#if BBCMICRO_DEBUGGER
+        // TODO: should really handle the read only case in a similar way with
+        // the ordinary I/O functions too.
+        if (m_state.disc_interface->flags & DiscInterfaceFlag_ControlIsReadOnly) {
+            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, nullptr, nullptr, true, false);
+        } else {
+            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, &DebugRead1770ControlRegister, &GetDebugMMIORead1770ControlRegisterContext, true, false);
+        }
+#endif
 
         m_state.disc_interface->InstallExtraHardware(this, m_state.disc_interface_extra_hardware);
     } else {
@@ -2658,22 +2834,38 @@ void BBCMicro::InitStuff() {
         // The non-zero ROMSEL OR_VALUE will end up reflected in any reads, but:
         // no problem. You can't read ROMSEL on the B.
         for (uint16_t i = 0; i < 16; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadUnmappedMMIO, this, m_state.init_flags & BBCMicroInitFlag_ROMBoard ? &WriteROMSEL<0xf, 0x0> : &WriteROMSEL<0x3, 0xc>, this);
+            uint16_t romsel_addr = (uint16_t)(0xfe30 + i);
+            this->SetSIO(romsel_addr, &ReadUnmappedMMIO, this, m_state.init_flags & BBCMicroInitFlag_ROMBoard ? &WriteROMSEL<0xf, 0x0> : &WriteROMSEL<0x3, 0xc>, this);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugSIO(romsel_addr, nullptr, nullptr);
+#endif
         }
         break;
 
     case BBCMicroTypeID_BPlus:
         for (uint16_t i = 0; i < 4; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadUnmappedMMIO, this, &WriteROMSEL<0x8f, 0x0>, this);
-            this->SetSIO((uint16_t)(0xfe34 + i), &ReadUnmappedMMIO, this, &WriteACCCON<0x80>, this);
+            uint16_t romsel_addr = (uint16_t)(0xfe30 + i);
+            uint16_t acccon_addr = (uint16_t)(0xfe34 + i);
+            this->SetSIO(romsel_addr, &ReadUnmappedMMIO, this, &WriteROMSEL<0x8f, 0x0>, this);
+            this->SetSIO(acccon_addr, &ReadUnmappedMMIO, this, &WriteACCCON<0x80>, this);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugSIO(romsel_addr, nullptr, nullptr);
+            this->SetDebugSIO(acccon_addr, nullptr, nullptr);
+#endif
         }
         break;
 
     case BBCMicroTypeID_Master:
     case BBCMicroTypeID_MasterCompact:
         for (uint16_t i = 0; i < 4; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, this, &WriteROMSEL<0x8f, 0x0>, this);
-            this->SetSIO((uint16_t)(0xfe34 + i), &ReadACCCON, this, &WriteACCCON<0xff>, this);
+            uint16_t romsel_addr = (uint16_t)(0xfe30 + i);
+            uint16_t acccon_addr = (uint16_t)(0xfe34 + i);
+            this->SetSIO(romsel_addr, &ReadROMSEL, this, &WriteROMSEL<0x8f, 0x0>, this);
+            this->SetSIO(acccon_addr, &ReadACCCON, this, &WriteACCCON<0xff>, this);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugSIO(romsel_addr, &DebugReadROMSEL, &GetDebugMMIOReadROMSELContext);
+            this->SetDebugSIO(romsel_addr, &DebugReadACCCON, &GetDebugMMIOReadACCCONContext);
+#endif
         }
         break;
     }
@@ -3228,6 +3420,29 @@ void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_
     }
 }
 
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_xfj, bool set_ifj) {
+    ASSERT(set_xfj || set_ifj);
+    ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
+
+    DebugReadMMIO debug_read_mmio;
+    debug_read_mmio.set = true;
+    debug_read_mmio.fn = debug_read_fn;
+    debug_read_mmio.context_fn = debug_get_context_fn;
+
+    uint16_t index = addr - 0xfc00;
+
+    if (set_xfj) {
+        m_debug_read_mmio_data->read_mmios_hw[index] = debug_read_mmio;
+    }
+
+    if (set_ifj) {
+        m_debug_read_mmio_data->read_mmios_hw_cartridge[index] = debug_read_mmio;
+    }
+}
+
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -3341,3 +3556,57 @@ void BBCMicro::EnsureUpdateMFnsTableIsReady() {
         ASSERT(ms_update_mfns[i] == ms_update_mfns[BBCMicro::GetNormalizedBBCMicroUpdateFlags(i)]);
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadSystemVIAContext(const BBCMicroReadOnlyState *state) {
+    return &state->system_via;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadUserVIAContext(const BBCMicroReadOnlyState *state) {
+    return &state->user_via;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadFDCContext(const BBCMicroReadOnlyState *state) {
+    return &state->fdc;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIORead1770ControlRegisterContext(const BBCMicroReadOnlyState *state) {
+    return state;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadROMSELContext(const BBCMicroReadOnlyState *state) {
+    return state;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadACCCONContext(const BBCMicroReadOnlyState *state) {
+    return state;
+}
+#endif

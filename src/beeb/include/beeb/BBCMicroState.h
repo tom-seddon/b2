@@ -451,9 +451,18 @@ class BBCMicroReadOnlyState : public BBCMicroState {
   public:
     using BBCMicroState::BBCMicroState;
 
-    BBCMicroReadOnlyState(const BBCMicroUniqueState &src);
-    ~BBCMicroReadOnlyState() = default;
+    explicit inline BBCMicroReadOnlyState(const BBCMicroUniqueState &src)
+        : BBCMicroState(src) {
+    }
 
+    virtual ~BBCMicroReadOnlyState() = default;
+
+#if BBCMICRO_DEBUGGER
+    // No DSO - the caller is assumed to have taken care of that. If not IFJ,
+    // it's XFJ.
+    virtual DebugReadMMIOResult DebugReadMMIO(uint8_t *value, M6502Word addr, bool ifj) const = 0;
+    virtual uint8_t DebugGetStaleDataBusByte() const = 0;
+#endif
   protected:
   private:
 };

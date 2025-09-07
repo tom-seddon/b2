@@ -157,6 +157,12 @@ struct WD1770 {
     static uint8_t Read2(void *fdc, M6502Word addr);
     static uint8_t Read3(void *fdc, M6502Word addr);
 
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugRead0(const void *fdc, M6502Word addr);
+    static uint8_t DebugRead1(const void *fdc, M6502Word addr);
+    static uint8_t DebugRead2(const void *fdc, M6502Word addr);
+    static uint8_t DebugRead3(const void *fdc, M6502Word addr);
+#endif
     void SetDDEN(bool dden);
 
     void SetTrace(Trace *trace);

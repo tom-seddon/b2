@@ -499,6 +499,16 @@ Notes:
 - This setting does not affect trace output (see above), which always
   uses assembler syntax
 
+`Show memory-mapped I/O` will (where supported) show current
+memory-mapped I/O values in the disassembly and memory view windows.
+The value shown is the value that would be read by the CPU if it read
+the value that cycle.
+
+If disabled, memory-mapped I/O will show up as `--` bytes.
+
+Not all memory-mapped I/O addresses support being read by the
+debugger; those that don't will show as `--` in either mode.
+
 ## Debug options
 
 Non-persistent debug options that can be switched on for the current

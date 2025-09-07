@@ -88,7 +88,7 @@ const int WD1770::STEP_RATES_MS_1772[] = {2, 3, 6, 12};
 static const int uS_PER_BYTE = 64;
 
 // Assuming 300rpm.
-#define INDEX_PULSES_uS(N) ((N)*200000)
+#define INDEX_PULSES_uS(N) ((N) * 200000)
 
 static const uint8_t STEP_IN = 0;
 static const uint8_t STEP_OUT = 1;
@@ -502,6 +502,15 @@ uint8_t WD1770::Read0(void *fdc_, M6502Word addr) {
     return fdc->m_status.value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t WD1770::DebugRead0(const void *fdc_, M6502Word addr) {
+    auto fdc = (const WD1770 *)fdc_;
+    (void)addr;
+
+    return fdc->m_status.value;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -512,6 +521,15 @@ uint8_t WD1770::Read1(void *fdc_, M6502Word addr) {
     return fdc->m_track;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t WD1770::DebugRead1(const void *fdc_, M6502Word addr) {
+    auto fdc = (const WD1770 *)fdc_;
+    (void)addr;
+
+    return fdc->m_track;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -521,6 +539,15 @@ uint8_t WD1770::Read2(void *fdc_, M6502Word addr) {
 
     return fdc->m_sector;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t WD1770::DebugRead2(const void *fdc_, M6502Word addr) {
+    auto fdc = (const WD1770 *)fdc_;
+    (void)addr;
+
+    return fdc->m_sector;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -533,6 +560,15 @@ uint8_t WD1770::Read3(void *fdc_, M6502Word addr) {
 
     return fdc->m_data;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t WD1770::DebugRead3(const void *fdc_, M6502Word addr) {
+    auto fdc = (const WD1770 *)fdc_;
+    (void)addr;
+
+    return fdc->m_data;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

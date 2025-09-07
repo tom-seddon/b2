@@ -264,6 +264,14 @@ class DebugUI : public SettingsUI {
     // by the paging widget.
     uint32_t m_effective_dso = 0;
 
+    // Current stale data bus byte. Updated once per update.
+    uint8_t m_stale_data_bus_byte = 0;
+
+    // Whether to treat memory-mapped I/O as readable for debug purposes when
+    // configured, or always unreadable. (Not all memory-mapped I/O addresses
+    // are debuggable; non-debuggable ones are always unreadable.)
+    bool m_debug_read_mmio = true;
+
     std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
 
@@ -282,6 +290,10 @@ class DebugUI : public SettingsUI {
         // TODO: this flag is currently unused, but surely something could be
         // done?
         bool io_write : 1;
+
+        //// Set if this is I/O that isn't currently set up to work with the
+        //// debugger. Shown as '--'.
+        //bool undebuggable_io : 1;
     };
 
     union ReadByteResult {
@@ -401,7 +413,11 @@ void DebugUI::DoImGui() {
 
     m_popup_id = 0;
 
-    switch (m_beeb_window->GetSettings().debugger_syntax) {
+    m_stale_data_bus_byte = m_beeb_state->DebugGetStaleDataBusByte();
+
+    const BeebWindowSettings &settings = m_beeb_window->GetSettings();
+
+    switch (settings.debugger_syntax) {
     case DebuggerSyntax_BBCBASIC:
         g_hex = "&";
         g_bin = "0b"; //there's no actual syntax for this, so I just made one up.
@@ -417,6 +433,10 @@ void DebugUI::DoImGui() {
         g_bin = "0b";
         break;
     }
+
+    // TODO: hedging my bets a bit here. Maybe this will eventually end up per
+    // window?
+    m_debug_read_mmio = settings.debugger_show_mmio;
 
     this->DoImGui2();
 }
@@ -483,7 +503,7 @@ DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
     case HostIOType_WriteIFJ:
     case HostIOType_WriteXFJ:
         if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
-            result.bits.io_write = 1;
+            result.bits.io_write = true;
         }
         [[fallthrough]];
     case HostIOType_None:
@@ -493,9 +513,27 @@ DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
     case HostIOType_IFJ:
     case HostIOType_XFJ:
         if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
-            *value = 0;
-            result.bits.can_write = 0;
-            result.bits.io_write = 1;
+            DebugReadMMIOResult debug_read_result = m_beeb_state->DebugReadMMIO(value, addr, dbp->host_io_type == HostIOType_IFJ);
+            switch (debug_read_result) {
+            case DebugReadMMIOResult_Unset:
+                break;
+
+            case DebugReadMMIOResult_Unmapped:
+                if (m_debug_read_mmio) {
+                    *value = m_stale_data_bus_byte;
+                    result.bits.got_value = true;
+                }
+                break;
+
+            case DebugReadMMIOResult_GotValue:
+                if (m_debug_read_mmio) {
+                    result.bits.got_value = true;
+                }
+                break;
+            }
+
+            result.bits.can_write = false;
+            result.bits.io_write = true;
             return result;
         }
         break;
@@ -504,7 +542,7 @@ DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
     if (dbp->bp.r) {
         *value = dbp->bp.r[addr.p.o];
 
-        result.bits.got_value = 1;
+        result.bits.got_value = true;
     }
 
     return result;

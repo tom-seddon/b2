@@ -1101,11 +1101,11 @@ class BeebThread {
     std::atomic<bool> m_show_cursor{true};
     bool m_power_on_tone = true;
 
+#if BBCMICRO_DEBUGGER
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)
     mutable Mutex m_beeb_state_mutex;
     std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
-#if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
     std::shared_ptr<const BBCMicro::UpdateMFnData> m_update_mfn_data;
 #endif

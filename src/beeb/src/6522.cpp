@@ -101,6 +101,29 @@ uint8_t R6522::Read0(void *via_, M6502Word addr) {
     return value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead0(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    uint8_t value = via->b.or_ & via->b.ddr;
+
+    if (via->m_acr.bits.pb_latching) {
+        value |= via->b.p_latch & ~via->b.ddr;
+    } else {
+        value |= via->b.p & ~via->b.ddr;
+    }
+
+    // IRB reads always seem to reflect the PB7 output value, when active.
+    if (via->m_acr.bits.t1_output_pb7) {
+        value &= 0x7f;
+        value |= via->m_t1_pb7;
+    }
+
+    return value;
+}
+#endif
+
 /* ORB */
 void R6522::Write0(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -151,6 +174,19 @@ uint8_t R6522::ReadF(void *via_, M6502Word addr) {
     }
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugReadF(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    if (via->m_acr.bits.pa_latching) {
+        return via->a.p_latch;
+    } else {
+        return via->a.p;
+    }
+}
+#endif
+
 /* IRA */
 uint8_t R6522::Read1(void *via_, M6502Word addr) {
     auto via = (R6522 *)via_;
@@ -177,6 +213,12 @@ uint8_t R6522::Read1(void *via_, M6502Word addr) {
 
     return R6522::ReadF(via, addr);
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead1(const void *via_, M6502Word addr) {
+    return DebugReadF(via_, addr);
+}
+#endif
 
 /* ORA (no handshaking) */
 void R6522::WriteF(void *via_, M6502Word addr, uint8_t value) {
@@ -224,6 +266,15 @@ uint8_t R6522::Read2(void *via_, M6502Word addr) {
     return via->b.ddr;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead2(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->b.ddr;
+}
+#endif
+
 void R6522::Write2(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
     (void)addr;
@@ -241,6 +292,15 @@ uint8_t R6522::Read3(void *via_, M6502Word addr) {
 
     return via->a.ddr;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead3(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->a.ddr;
+}
+#endif
 
 void R6522::Write3(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -266,6 +326,15 @@ uint8_t R6522::Read4(void *via_, M6502Word addr) {
     return (uint8_t)(via->m_t1);
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead4(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return (uint8_t)(via->m_t1);
+}
+#endif
+
 /* T1L-L */
 void R6522::Write4(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -284,6 +353,15 @@ uint8_t R6522::Read5(void *via_, M6502Word addr) {
 
     return (uint8_t)(via->m_t1 >> 8);
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead5(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return (uint8_t)(via->m_t1 >> 8);
+}
+#endif
 
 void R6522::Write5(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -315,6 +393,15 @@ uint8_t R6522::Read6(void *via_, M6502Word addr) {
     return via->m_t1ll;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead6(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->m_t1ll;
+}
+#endif
+
 void R6522::Write6(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
     (void)addr;
@@ -332,6 +419,15 @@ uint8_t R6522::Read7(void *via_, M6502Word addr) {
 
     return via->m_t1lh;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead7(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->m_t1lh;
+}
+#endif
 
 void R6522::Write7(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -366,6 +462,15 @@ uint8_t R6522::Read8(void *via_, M6502Word addr) {
     return (uint8_t)via->m_t2;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead8(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return (uint8_t)via->m_t2;
+}
+#endif
+
 void R6522::Write8(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
     (void)addr;
@@ -383,6 +488,15 @@ uint8_t R6522::Read9(void *via_, M6502Word addr) {
 
     return (uint8_t)(via->m_t2 >> 8);
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugRead9(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return (uint8_t)(via->m_t2 >> 8);
+}
+#endif
 
 void R6522::Write9(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -410,6 +524,15 @@ uint8_t R6522::ReadA(void *via_, M6502Word addr) {
     return via->m_sr;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugReadA(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->m_sr;
+}
+#endif
+
 void R6522::WriteA(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
     (void)addr;
@@ -427,6 +550,15 @@ uint8_t R6522::ReadB(void *via_, M6502Word addr) {
 
     return via->m_acr.value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugReadB(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->m_acr.value;
+}
+#endif
 
 void R6522::WriteB(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -451,6 +583,15 @@ uint8_t R6522::ReadC(void *via_, M6502Word addr) {
 
     return via->m_pcr.value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugReadC(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->m_pcr.value;
+}
+#endif
 
 void R6522::WriteC(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
@@ -480,6 +621,21 @@ uint8_t R6522::ReadD(void *via_, M6502Word addr) {
     return value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugReadD(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    uint8_t value = via->ifr.value & 0x7f;
+
+    if (via->ier.value & via->ifr.value & 0x7f) {
+        value |= 0x80;
+    }
+
+    return value;
+}
+#endif
+
 void R6522::WriteD(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;
     (void)addr;
@@ -499,6 +655,15 @@ uint8_t R6522::ReadE(void *via_, M6502Word addr) {
 
     return via->ier.value | 0x80;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t R6522::DebugReadE(const void *via_, M6502Word addr) {
+    auto via = (const R6522 *)via_;
+    (void)addr;
+
+    return via->ier.value | 0x80;
+}
+#endif
 
 void R6522::WriteE(void *via_, M6502Word addr, uint8_t value) {
     auto via = (R6522 *)via_;

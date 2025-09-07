@@ -45,6 +45,9 @@ constexpr BBCMicroUpdateROMType GetBBCMicroUpdateFlagsUpdateROMType(uint32_t upd
 
 static constexpr size_t NUM_BBCMICRO_UPDATE_MFNS = 32768;
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BBCMicro : private WD1770Handler {
   public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
@@ -262,6 +265,21 @@ class BBCMicro : private WD1770Handler {
         void *context;
     };
 
+#if BBCMICRO_DEBUGGER
+    typedef uint8_t (*DebugReadMMIOFn)(const void *, M6502Word);
+    typedef const void *(*DebugGetReadMMIOContextFn)(const BBCMicroReadOnlyState *state);
+    struct DebugReadMMIO {
+        bool set = false;
+        DebugReadMMIOFn fn = nullptr;
+        DebugGetReadMMIOContextFn context_fn = nullptr;
+    };
+
+    struct DebugReadMMIOData {
+        std::vector<DebugReadMMIO> read_mmios_hw;
+        std::vector<DebugReadMMIO> read_mmios_hw_cartridge;
+    };
+#endif
+
     // Called after an opcode fetch and before execution.
     //
     // cpu->pc.w is PC+1; cpu->pc.dbus is the opcode fetched.
@@ -372,12 +390,21 @@ class BBCMicro : private WD1770Handler {
 
     // Set SHEILA IO functions.
     void SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
+#if BBCMICRO_DEBUGGER
+    void SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
+#endif
 
     // Set external FRED/JIM IO functions.
     void SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
+#if BBCMICRO_DEBUGGER
+    void SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
+#endif
 
     // Set internal FRED/JIM IO functions (Master 128 only).
     void SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
+#if BBCMICRO_DEBUGGER
+    void SetDebugIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
+#endif
 
     // The pointer is moved into the result.
     std::shared_ptr<DiscImage> TakeDiscImage(int drive);
@@ -402,7 +429,9 @@ class BBCMicro : private WD1770Handler {
     void StartPaste(std::shared_ptr<const std::string> text);
     void StopPaste();
 
+#if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicroReadOnlyState> DebugGetState() const;
+#endif
 
     const M6502 *GetM6502() const;
 
@@ -586,6 +615,10 @@ class BBCMicro : private WD1770Handler {
     std::vector<ReadMMIO> m_read_mmios_rom;
     std::vector<uint8_t> m_mmios_stretch_rom;
 
+#if BBCMICRO_DEBUGGER
+    std::shared_ptr<DebugReadMMIOData> m_debug_read_mmio_data;
+#endif
+
     //// Whether memory-mapped I/O reads currently access ROM or not.
     //bool m_rom_mmio = false;
 
@@ -676,6 +709,9 @@ class BBCMicro : private WD1770Handler {
     void InitPaging();
     static void Write1770ControlRegister(void *m_, M6502Word a, uint8_t value);
     static uint8_t Read1770ControlRegister(void *m_, M6502Word a);
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugRead1770ControlRegister(const void *m_, M6502Word a);
+#endif
 #if BBCMICRO_TRACE
     void TracePortB(BBCMicroState::SystemVIAPB pb);
 #endif
@@ -683,14 +719,23 @@ class BBCMicro : private WD1770Handler {
     static uint8_t ReadUnmappedMMIO(void *m_, M6502Word a);
     static uint8_t ReadROMMMIO(void *m_, M6502Word a);
     static uint8_t ReadROMSEL(void *m_, M6502Word a);
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugReadROMSEL(const void *state_, M6502Word a);
+#endif
     template <uint8_t AND_VALUE, uint8_t OR_VALUE>
     static void WriteROMSEL(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadACCCON(void *m_, M6502Word a);
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugReadACCCON(const void *state_, M6502Word a);
+#endif
     template <uint8_t AND_VALUE>
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadADJI(void *m_, M6502Word a);
     static uint8_t ReadSERPROC(void *m_, M6502Word a);
     uint8_t GetStaleDatabusByte() const;
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugReadUnmappedMMIO(const void *state_, M6502Word a);
+#endif
 #if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
@@ -723,7 +768,15 @@ class BBCMicro : private WD1770Handler {
     void StepSound(BBCMicroState::DiscDrive *dd, int step_rate_ms);
     float UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd);
     void UpdateCPUDataBusFn();
+
+    // If read_fn is null or never explicitly set, the location will read as the
+    // stale CPU data bus value.
     void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj);
+#if BBCMICRO_DEBUGGER
+    // If debug_read_fn is null, the byte is treated as explicitly unmapped, and
+    // will show up in the debugger as the stale CPU data bus value.
+    void SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_xfj, bool set_ifj);
+#endif
 
     static void WriteHostTube0Wrapper(void *context, M6502Word a, uint8_t value);
 
@@ -743,6 +796,15 @@ class BBCMicro : private WD1770Handler {
     static void HandleEEPROMNVRAMChange(void *context);
 
     static void EnsureUpdateMFnsTableIsReady();
+
+#if BBCMICRO_DEBUGGER
+    static const void *GetDebugMMIOReadSystemVIAContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadUserVIAContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadFDCContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIORead1770ControlRegisterContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadROMSELContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadACCCONContext(const BBCMicroReadOnlyState *state);
+#endif
 
     // List terminated by nullptr - slightly odd arrangement that means the
     // group count doesn't have to escape the generated code.

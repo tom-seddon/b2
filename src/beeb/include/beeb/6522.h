@@ -178,6 +178,25 @@ class R6522 {
     static uint8_t ReadE(void *via, M6502Word addr);
     static uint8_t ReadF(void *via, M6502Word addr);
 
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugRead0(const void *via, M6502Word addr);
+    static uint8_t DebugRead1(const void *via, M6502Word addr);
+    static uint8_t DebugRead2(const void *via, M6502Word addr);
+    static uint8_t DebugRead3(const void *via, M6502Word addr);
+    static uint8_t DebugRead4(const void *via, M6502Word addr);
+    static uint8_t DebugRead5(const void *via, M6502Word addr);
+    static uint8_t DebugRead6(const void *via, M6502Word addr);
+    static uint8_t DebugRead7(const void *via, M6502Word addr);
+    static uint8_t DebugRead8(const void *via, M6502Word addr);
+    static uint8_t DebugRead9(const void *via, M6502Word addr);
+    static uint8_t DebugReadA(const void *via, M6502Word addr);
+    static uint8_t DebugReadB(const void *via, M6502Word addr);
+    static uint8_t DebugReadC(const void *via, M6502Word addr);
+    static uint8_t DebugReadD(const void *via, M6502Word addr);
+    static uint8_t DebugReadE(const void *via, M6502Word addr);
+    static uint8_t DebugReadF(const void *via, M6502Word addr);
+#endif
+
     // Get current PCR value, no side-effects.
     PCR GetPCR() const;
 

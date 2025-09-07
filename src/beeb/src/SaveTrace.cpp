@@ -294,13 +294,13 @@ class TraceSaver {
         //const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
         M6502Word addr = {value};
 
-        const char *codes;
+        const char *codes = "?";//inhibit spurious unititialized variable warning
         switch (ev->source) {
         default:
             ASSERT(false);
             // fall through
         case TraceEventSource_None:
-            codes = "?";
+            codes = "-";
             break;
 
         case TraceEventSource_Host:

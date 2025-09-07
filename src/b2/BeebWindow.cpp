@@ -560,6 +560,8 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_BBCBASIC, "BBC BASIC");
         ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_Assembler, "Assembler");
         ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_C, "C");
+
+        ImGui::Checkbox("Show memory-mapped I/O", &m_beeb_window->m_settings.debugger_show_mmio);
     }
 
     {

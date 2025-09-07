@@ -3251,11 +3251,11 @@ void BeebThread::ThreadMain(void) {
                 m_timeline_state.clone_impediments = clone_impediments;
             }
 
+#if BBCMICRO_DEBUGGER
             {
                 LockGuard<Mutex> lock2(m_beeb_state_mutex);
 
                 m_beeb_state = ts.beeb->DebugGetState();
-#if BBCMICRO_DEBUGGER
                 m_beeb_debug_state = ts.beeb->GetDebugState();
                 if (!!m_beeb_debug_state) {
                     m_debug_is_halted.store(m_beeb_debug_state->is_halted, std::memory_order_release);
@@ -3263,8 +3263,8 @@ void BeebThread::ThreadMain(void) {
                     m_debug_is_halted.store(false, std::memory_order_release);
                 }
                 m_update_mfn_data = ts.beeb->GetUpdateMFnData();
-#endif
             }
+#endif
         }
 
         if (!paused && stop_cycles.n > ts.num_executed_cycles->n) {

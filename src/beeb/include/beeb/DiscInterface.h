@@ -72,6 +72,8 @@ class DiscInterface {
     //virtual DiscInterface *Clone() const = 0;
 
     virtual DiscInterfaceControl GetControlFromByte(uint8_t value) const = 0;
+
+    // Overrides must be pure.
     virtual uint8_t GetByteFromControl(DiscInterfaceControl control) const = 0;
 
     // create accompanying ExtraHardwareState.
