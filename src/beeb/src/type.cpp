@@ -605,7 +605,7 @@ static bool HandleROMSuffixChar(uint32_t *dso, int rom) {
 
     if (rom >= 0) {
         *dso &= ~BBCMicroDebugStateOverride_ROM;
-        *dso |= BBCMicroDebugStateOverride_OverrideROM | rom;
+        *dso |= BBCMicroDebugStateOverride_OverrideROM | (uint32_t)rom;
     }
 
     return true;
