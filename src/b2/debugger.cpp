@@ -2166,10 +2166,10 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         }
     }
 
-    void PRINTF_LIKE(4, 5) ByteWithBreakpointBackground(uint8_t addr_flags,
-                                                        uint8_t byte_flags,
-                                                        uint8_t value,
-                                                        ReadByteResult result) {
+    void ByteWithBreakpointBackground(uint8_t addr_flags,
+                                      uint8_t byte_flags,
+                                      uint8_t value,
+                                      ReadByteResult result) {
         char text[3];
         if (result.bits.got_value) {
             text[0] = HEX_CHARS_LC[value & 0xf];
