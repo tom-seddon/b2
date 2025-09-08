@@ -189,6 +189,16 @@ void WriteHostTube1(void *tube, M6502Word a, uint8_t value);
 void WriteHostTube3(void *tube, M6502Word a, uint8_t value);
 void WriteHostTube5(void *tube, M6502Word a, uint8_t value);
 void WriteHostTube7(void *tube, M6502Word a, uint8_t value);
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube0(const void *tube, M6502Word a);
+uint8_t DebugReadHostTube1(const void *tube, M6502Word a);
+uint8_t DebugReadHostTube2(const void *tube, M6502Word a);
+uint8_t DebugReadHostTube3(const void *tube, M6502Word a);
+uint8_t DebugReadHostTube4(const void *tube, M6502Word a);
+uint8_t DebugReadHostTube5(const void *tube, M6502Word a);
+uint8_t DebugReadHostTube6(const void *tube, M6502Word a);
+uint8_t DebugReadHostTube7(const void *tube, M6502Word a);
+#endif
 
 uint8_t ReadParasiteTube0(void *tube, M6502Word a);
 uint8_t ReadParasiteTube1(void *tube, M6502Word a);

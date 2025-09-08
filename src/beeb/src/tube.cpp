@@ -212,6 +212,22 @@ uint8_t ReadHostTube0(void *tube_, M6502Word) {
     return t->hstatus1.value | (t->status.value & 0x3f);
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube0(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return t->hstatus1.value | (t->status.value & 0x3f);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//
+// FIFO 1
+//
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Read FIFO 1 parasite->host
 uint8_t ReadHostTube1(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
@@ -236,6 +252,14 @@ uint8_t ReadHostTube1(void *tube_, M6502Word) {
 
     return value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube1(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return t->last_p2h_value;
+}
+#endif
 
 // Read FIFO 1 host->parasite
 uint8_t ReadParasiteTube1(void *tube_, M6502Word) {
@@ -311,6 +335,14 @@ uint8_t ReadHostTube2(void *tube_, M6502Word) {
     return t->hstatus2.value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube2(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return t->hstatus2.value;
+}
+#endif
+
 // Read FIFO 2 parasite->host
 uint8_t ReadHostTube3(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
@@ -321,6 +353,14 @@ uint8_t ReadHostTube3(void *tube_, M6502Word) {
 
     return t->p2h2;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube3(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return t->p2h2;
+}
+#endif
 
 // Write FIFO 2 host->parasite
 void WriteHostTube3(void *tube_, M6502Word, uint8_t value) {
@@ -399,6 +439,16 @@ static uint8_t ReadFIFO3(Tube *t,
     return value;
 }
 
+#if BBCMICRO_DEBUGGER
+static uint8_t DebugReadFIFO3(const uint8_t *fifo, uint8_t fifo_n, uint8_t dummy) {
+    if (fifo_n > 0) {
+        return fifo[0];
+    } else {
+        return dummy;
+    }
+}
+#endif
+
 static void WriteFIFO3(Tube *t,
                        TubeFIFOStatus *this_status,
                        TubeFIFOStatus *other_status,
@@ -431,6 +481,14 @@ uint8_t ReadHostTube4(void *tube_, M6502Word) {
     return t->hstatus3.value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube4(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return t->hstatus3.value;
+}
+#endif
+
 // Read FIFO 3 parasite->host
 uint8_t ReadHostTube5(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
@@ -445,6 +503,14 @@ uint8_t ReadHostTube5(void *tube_, M6502Word) {
 
     return value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube5(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return DebugReadFIFO3(t->p2h3, t->p2h3_n, t->last_p2h_value);
+}
+#endif
 
 // Write FIFO3 host->parasite
 void WriteHostTube5(void *tube_, M6502Word, uint8_t value) {
@@ -529,6 +595,14 @@ uint8_t ReadHostTube6(void *tube_, M6502Word) {
     return t->hstatus4.value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube6(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return t->hstatus4.value;
+}
+#endif
+
 // Read FIFO 4 parasite->host
 uint8_t ReadHostTube7(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
@@ -539,6 +613,14 @@ uint8_t ReadHostTube7(void *tube_, M6502Word) {
 
     return t->p2h4;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t DebugReadHostTube7(const void *tube, M6502Word) {
+    auto t = (const Tube *)tube;
+
+    return t->p2h4;
+}
+#endif
 
 // Write FIFO4 host->parasite
 void WriteHostTube7(void *tube_, M6502Word, uint8_t value) {

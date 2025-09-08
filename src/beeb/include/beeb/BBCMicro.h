@@ -723,11 +723,11 @@ class BBCMicro : private WD1770Handler {
     template <uint8_t AND_VALUE>
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadADJI(void *m_, M6502Word a);
+#if BBCMICRO_DEBUGGER
+    uint8_t DebugReadADJI(const void *dji_, M6502Word a);
+#endif
     static uint8_t ReadSERPROC(void *m_, M6502Word a);
     uint8_t GetStaleDatabusByte() const;
-#if BBCMICRO_DEBUGGER
-    static uint8_t DebugReadUnmappedMMIO(const void *state_, M6502Word a);
-#endif
 #if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
@@ -799,6 +799,10 @@ class BBCMicro : private WD1770Handler {
     static const void *GetDebugMMIORead1770ControlRegisterContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadROMSELContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadACCCONContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadTubeContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadADCContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadACIAContext(const BBCMicroReadOnlyState *state);
+    static const void *GetDebugMMIOReadADJIContext(const BBCMicroReadOnlyState *state);
 #endif
 
     // List terminated by nullptr - slightly odd arrangement that means the

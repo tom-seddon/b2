@@ -93,6 +93,15 @@ uint8_t SCSI::Read0(void *scsi_, M6502Word) {
     return value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t SCSI::DebugRead0(const void *scsi_, M6502Word) {
+    auto const scsi = (const SCSI *)scsi_;
+
+    uint8_t value = scsi->DebugReadData();
+    return value;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -117,6 +126,17 @@ uint8_t SCSI::Read1(void *scsi_, M6502Word) {
 
     return status_register.value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t SCSI::DebugRead1(const void *scsi_, M6502Word) {
+    auto const scsi = (const SCSI *)scsi_;
+
+    SCSIStatusRegister status_register = scsi->m_status_register;
+    status_register.bits.req = 1; //see SCSI::Read1
+
+    return status_register.value;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -250,6 +270,24 @@ uint8_t SCSI::ReadData() {
         }
     }
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t SCSI::DebugReadData() const {
+    switch (m_phase) {
+    default:
+        return m_last_write;
+
+    case SCSIPhase_Status:
+        return m_status;
+
+    case SCSIPhase_Message:
+        return m_message;
+
+    case SCSIPhase_Read:
+        return m_buffer[m_offset];
+    }
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

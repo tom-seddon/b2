@@ -101,6 +101,10 @@ class SCSI {
 
     static uint8_t Read0(void *scsi, M6502Word a);
     static uint8_t Read1(void *scsi, M6502Word a);
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugRead0(const void *scsi, M6502Word a);
+    static uint8_t DebugRead1(const void *scsi, M6502Word a);
+#endif
 
     static void Write0(void *scsi, M6502Word a, uint8_t value);
     static void Write1(void *scsi, M6502Word a, uint8_t value);
@@ -139,6 +143,9 @@ class SCSI {
     Trace *m_trace = nullptr;
 
     uint8_t ReadData();
+#if BBCMICRO_DEBUGGER
+    uint8_t DebugReadData() const;
+#endif
     void WriteData(uint8_t value);
     bool FlushBufferForCurrentCommand();
     void EnterBusFreePhase();

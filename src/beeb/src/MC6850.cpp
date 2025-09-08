@@ -74,6 +74,15 @@ uint8_t MC6850::ReadDataRegister(void *mc6850_, M6502Word addr) {
     return mc6850->m_rdr;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t MC6850::DebugReadDataRegister(const void *mc6850_, M6502Word addr) {
+    (void)addr;
+    auto mc6850 = (const MC6850 *)mc6850_;
+
+    return mc6850->m_rdr;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -120,6 +129,16 @@ uint8_t MC6850::ReadStatusRegister(void *mc6850_, M6502Word addr) {
     StatusRegister status = mc6850->GetStatusRegister();
     return status.value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t MC6850::DebugReadStatusRegister(const void *mc6850_, M6502Word addr) {
+    (void)addr;
+    auto mc6850 = (MC6850 *)mc6850_;
+
+    StatusRegister status = mc6850->GetStatusRegister();
+    return status.value;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

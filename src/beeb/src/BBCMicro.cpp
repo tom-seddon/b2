@@ -123,119 +123,6 @@ class BBCMicroReadOnlyStateWithDebugMMIO : public BBCMicroReadOnlyState {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const BBCMicro::WriteMMIOFn g_R6522_write_fns[16] = {
-    &R6522::Write0,
-    &R6522::Write1,
-    &R6522::Write2,
-    &R6522::Write3,
-    &R6522::Write4,
-    &R6522::Write5,
-    &R6522::Write6,
-    &R6522::Write7,
-    &R6522::Write8,
-    &R6522::Write9,
-    &R6522::WriteA,
-    &R6522::WriteB,
-    &R6522::WriteC,
-    &R6522::WriteD,
-    &R6522::WriteE,
-    &R6522::WriteF,
-};
-
-static const BBCMicro::ReadMMIOFn g_R6522_read_fns[16] = {
-    &R6522::Read0,
-    &R6522::Read1,
-    &R6522::Read2,
-    &R6522::Read3,
-    &R6522::Read4,
-    &R6522::Read5,
-    &R6522::Read6,
-    &R6522::Read7,
-    &R6522::Read8,
-    &R6522::Read9,
-    &R6522::ReadA,
-    &R6522::ReadB,
-    &R6522::ReadC,
-    &R6522::ReadD,
-    &R6522::ReadE,
-    &R6522::ReadF,
-};
-
-#if BBCMICRO_DEBUGGER
-static const BBCMicro::DebugReadMMIOFn g_R6522_debug_read_fns[16] = {
-    &R6522::DebugRead0,
-    &R6522::DebugRead1,
-    &R6522::DebugRead2,
-    &R6522::DebugRead3,
-    &R6522::DebugRead4,
-    &R6522::DebugRead5,
-    &R6522::DebugRead6,
-    &R6522::DebugRead7,
-    &R6522::DebugRead8,
-    &R6522::DebugRead9,
-    &R6522::DebugReadA,
-    &R6522::DebugReadB,
-    &R6522::DebugReadC,
-    &R6522::DebugReadD,
-    &R6522::DebugReadE,
-    &R6522::DebugReadF,
-};
-
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const BBCMicro::WriteMMIOFn g_WD1770_write_fns[] = {
-    &WD1770::Write0,
-    &WD1770::Write1,
-    &WD1770::Write2,
-    &WD1770::Write3,
-};
-
-static const BBCMicro::ReadMMIOFn g_WD1770_read_fns[] = {
-    &WD1770::Read0,
-    &WD1770::Read1,
-    &WD1770::Read2,
-    &WD1770::Read3,
-};
-
-#if BBCMICRO_DEBUGGER
-static const BBCMicro::DebugReadMMIOFn g_WD1770_debug_read_fns[] = {
-    &WD1770::DebugRead0,
-    &WD1770::DebugRead1,
-    &WD1770::DebugRead2,
-    &WD1770::DebugRead3,
-};
-
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const BBCMicro::ReadMMIOFn g_tube_host_read_fns[7] = {
-    &ReadHostTube1,
-    &ReadHostTube2,
-    &ReadHostTube3,
-    &ReadHostTube4,
-    &ReadHostTube5,
-    &ReadHostTube6,
-    &ReadHostTube7,
-};
-
-static const BBCMicro::WriteMMIOFn g_tube_host_write_fns[7] = {
-    &WriteHostTube1,
-    &WriteTubeDummy,
-    &WriteHostTube3,
-    &WriteTubeDummy,
-    &WriteHostTube5,
-    &WriteTubeDummy,
-    &WriteHostTube7,
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const uint8_t g_unmapped_reads[BIG_PAGE_SIZE_BYTES] = {
     0,
 };
@@ -947,6 +834,15 @@ uint8_t BBCMicro::ReadADJI(void *m_, M6502Word a) {
 
     return m->m_state.digital_joystick_state.value;
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t BBCMicro::DebugReadADJI(const void *dji_, M6502Word a) {
+    auto dji = (const BBCMicroState::DigitalJoystickInput *)dji_;
+    (void)a;
+
+    return dji->value;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2592,6 +2488,132 @@ void BBCMicro::DebugHandleStep() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const BBCMicro::WriteMMIOFn g_R6522_write_fns[16] = {
+    &R6522::Write0,
+    &R6522::Write1,
+    &R6522::Write2,
+    &R6522::Write3,
+    &R6522::Write4,
+    &R6522::Write5,
+    &R6522::Write6,
+    &R6522::Write7,
+    &R6522::Write8,
+    &R6522::Write9,
+    &R6522::WriteA,
+    &R6522::WriteB,
+    &R6522::WriteC,
+    &R6522::WriteD,
+    &R6522::WriteE,
+    &R6522::WriteF,
+};
+
+static const BBCMicro::ReadMMIOFn g_R6522_read_fns[16] = {
+    &R6522::Read0,
+    &R6522::Read1,
+    &R6522::Read2,
+    &R6522::Read3,
+    &R6522::Read4,
+    &R6522::Read5,
+    &R6522::Read6,
+    &R6522::Read7,
+    &R6522::Read8,
+    &R6522::Read9,
+    &R6522::ReadA,
+    &R6522::ReadB,
+    &R6522::ReadC,
+    &R6522::ReadD,
+    &R6522::ReadE,
+    &R6522::ReadF,
+};
+
+#if BBCMICRO_DEBUGGER
+static const BBCMicro::DebugReadMMIOFn g_R6522_debug_read_fns[16] = {
+    &R6522::DebugRead0,
+    &R6522::DebugRead1,
+    &R6522::DebugRead2,
+    &R6522::DebugRead3,
+    &R6522::DebugRead4,
+    &R6522::DebugRead5,
+    &R6522::DebugRead6,
+    &R6522::DebugRead7,
+    &R6522::DebugRead8,
+    &R6522::DebugRead9,
+    &R6522::DebugReadA,
+    &R6522::DebugReadB,
+    &R6522::DebugReadC,
+    &R6522::DebugReadD,
+    &R6522::DebugReadE,
+    &R6522::DebugReadF,
+};
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const BBCMicro::WriteMMIOFn g_WD1770_write_fns[] = {
+    &WD1770::Write0,
+    &WD1770::Write1,
+    &WD1770::Write2,
+    &WD1770::Write3,
+};
+
+static const BBCMicro::ReadMMIOFn g_WD1770_read_fns[] = {
+    &WD1770::Read0,
+    &WD1770::Read1,
+    &WD1770::Read2,
+    &WD1770::Read3,
+};
+
+#if BBCMICRO_DEBUGGER
+static const BBCMicro::DebugReadMMIOFn g_WD1770_debug_read_fns[] = {
+    &WD1770::DebugRead0,
+    &WD1770::DebugRead1,
+    &WD1770::DebugRead2,
+    &WD1770::DebugRead3,
+};
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const BBCMicro::ReadMMIOFn g_tube_host_read_fns[7] = {
+    &ReadHostTube1,
+    &ReadHostTube2,
+    &ReadHostTube3,
+    &ReadHostTube4,
+    &ReadHostTube5,
+    &ReadHostTube6,
+    &ReadHostTube7,
+};
+
+static const BBCMicro::WriteMMIOFn g_tube_host_write_fns[7] = {
+    &WriteHostTube1,
+    &WriteTubeDummy,
+    &WriteHostTube3,
+    &WriteTubeDummy,
+    &WriteHostTube5,
+    &WriteTubeDummy,
+    &WriteHostTube7,
+};
+
+#if BBCMICRO_DEBUGGER
+static const BBCMicro::DebugReadMMIOFn g_tube_host_debug_read_fns[8] = {
+    &DebugReadHostTube0,
+    &DebugReadHostTube1,
+    &DebugReadHostTube2,
+    &DebugReadHostTube3,
+    &DebugReadHostTube4,
+    &DebugReadHostTube5,
+    &DebugReadHostTube6,
+    &DebugReadHostTube7,
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::InitStuff() {
     CHECK_SIZEOF(BBCMicroState::AddressableLatch, 1);
     CHECK_SIZEOF(ROMSEL, 1);
@@ -2723,13 +2745,22 @@ void BBCMicro::InitStuff() {
     if (m_state.HasSerial()) {
         // I/O: ULA/SERPROC
         for (int i = 0; i < 8; ++i) {
-            this->SetSIO((uint16_t)(0xfe10 + i), &ReadSERPROC, this, &SERPROC::Write, &m_state.serproc);
+            uint16_t addr = (uint16_t)(0xfe10 + i);
+            this->SetSIO(addr, &ReadSERPROC, this, &SERPROC::Write, &m_state.serproc);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugSIO(addr, nullptr, nullptr);
+#endif
         }
 
         // I/O: ACIA
         for (int i = 0; i < 8; i += 2) {
-            this->SetSIO((uint16_t)(0xfe08 + i + 0), &MC6850::ReadStatusRegister, &m_state.acia, &MC6850::WriteControlRegister, &m_state.acia);
-            this->SetSIO((uint16_t)(0xfe08 + i + 1), &MC6850::ReadDataRegister, &m_state.acia, &MC6850::WriteDataRegister, &m_state.acia);
+            uint16_t addr = (uint16_t)(0xfe08 + i);
+            this->SetSIO(addr + 0, &MC6850::ReadStatusRegister, &m_state.acia, &MC6850::WriteControlRegister, &m_state.acia);
+            this->SetSIO(addr + 1, &MC6850::ReadDataRegister, &m_state.acia, &MC6850::WriteDataRegister, &m_state.acia);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugSIO(addr + 0, &MC6850::DebugReadStatusRegister, &GetDebugMMIOReadACIAContext);
+            this->SetDebugSIO(addr + 0, &MC6850::DebugReadDataRegister, &GetDebugMMIOReadACIAContext);
+#endif
         }
 
         m_state.serproc.Link(&m_state.acia);
@@ -2804,10 +2835,17 @@ void BBCMicro::InitStuff() {
     if (m_state.type->adc_addr != 0) {
         ASSERT(m_state.type->adc_count % 4 == 0);
         for (unsigned i = 0; i < m_state.type->adc_count; i += 4) {
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &m_state.adc, &ADC::Write0, &m_state.adc);
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &m_state.adc, &ADC::Write1, &m_state.adc);
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &m_state.adc, &ADC::Write2, &m_state.adc);
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &m_state.adc, &ADC::Write3, &m_state.adc);
+            uint16_t addr = (uint16_t)(m_state.type->adc_addr + i);
+            this->SetSIO(addr + 0u, &ADC::Read0, &m_state.adc, &ADC::Write0, &m_state.adc);
+            this->SetSIO(addr + 1u, &ADC::Read1, &m_state.adc, &ADC::Write1, &m_state.adc);
+            this->SetSIO(addr + 2u, &ADC::Read2, &m_state.adc, &ADC::Write2, &m_state.adc);
+            this->SetSIO(addr + 3u, &ADC::Read3, &m_state.adc, &ADC::Write3, &m_state.adc);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugSIO(addr + 0u, &ADC::DebugRead0, &GetDebugMMIOReadADCContext);
+            this->SetDebugSIO(addr + 1u, &ADC::DebugRead1, &GetDebugMMIOReadADCContext);
+            this->SetDebugSIO(addr + 2u, &ADC::DebugRead2, &GetDebugMMIOReadADCContext);
+            this->SetDebugSIO(addr + 3u, &ADC::DebugRead3, &GetDebugMMIOReadADCContext);
+#endif
         }
     }
 
@@ -2840,6 +2878,11 @@ void BBCMicro::InitStuff() {
             for (uint16_t i = 0; i < 7; ++i) {
                 this->SetSIO(a + 1 + i, g_tube_host_read_fns[i], &m_state.parasite_tube, g_tube_host_write_fns[i], &m_state.parasite_tube, !m_state.parasite_itu, !!m_state.parasite_itu);
             }
+#if BBCMICRO_DEBUGGER
+            for (uint16_t i = 0; i < 8; ++i) {
+                this->SetDebugSIO(a + i, g_tube_host_debug_read_fns[i], &GetDebugMMIOReadTubeContext, !m_state.parasite_itu, !!m_state.parasite_itu);
+            }
+#endif
         }
     }
 
@@ -3567,5 +3610,41 @@ const void *BBCMicro::GetDebugMMIOReadROMSELContext(const BBCMicroReadOnlyState 
 #if BBCMICRO_DEBUGGER
 const void *BBCMicro::GetDebugMMIOReadACCCONContext(const BBCMicroReadOnlyState *state) {
     return state;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadTubeContext(const BBCMicroReadOnlyState *state) {
+    return &state->parasite_tube;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadADCContext(const BBCMicroReadOnlyState *state) {
+    return &state->adc;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadACIAContext(const BBCMicroReadOnlyState *state) {
+    return &state->acia;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const void *BBCMicro::GetDebugMMIOReadADJIContext(const BBCMicroReadOnlyState *state) {
+    return &state->digital_joystick_state;
 }
 #endif

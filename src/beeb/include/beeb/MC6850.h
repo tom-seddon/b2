@@ -84,6 +84,11 @@ class MC6850 {
 
     static uint8_t ReadStatusRegister(void *mc6850, M6502Word addr);
 
+#if BBCMICRO_DEBUGGER
+    static uint8_t DebugReadDataRegister(const void *mc6850, M6502Word addr);
+    static uint8_t DebugReadStatusRegister(const void *mc6850, M6502Word addr);
+#endif
+
     void UpdateReceive(uint8_t bit);
     TransmitResult UpdateTransmit();
 

@@ -76,6 +76,14 @@ uint8_t ADC::Read0(void *adc_, M6502Word) {
     return adc->m_status.value;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t ADC::DebugRead0(const void *adc_, M6502Word) {
+    auto adc = (const ADC *)adc_;
+
+    return adc->m_status.value;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -87,6 +95,14 @@ uint8_t ADC::Read1(void *adc_, M6502Word) {
     return adc->m_dvalue.b.h;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t ADC::DebugRead1(const void *adc_, M6502Word) {
+    auto adc = (const ADC *)adc_;
+
+    return adc->m_dvalue.b.h;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -96,12 +112,26 @@ uint8_t ADC::Read2(void *adc_, M6502Word) {
     return adc->m_dvalue.b.l;
 }
 
+#if BBCMICRO_DEBUGGER
+uint8_t ADC::DebugRead2(const void *adc_, M6502Word) {
+    auto adc = (const ADC *)adc_;
+
+    return adc->m_dvalue.b.l;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t ADC::Read3(void *adc, M6502Word addr) {
     return Read2(adc, addr);
 }
+
+#if BBCMICRO_DEBUGGER
+uint8_t ADC::DebugRead3(const void *adc, M6502Word addr) {
+    return DebugRead2(adc, addr);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
