@@ -530,6 +530,7 @@ DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
         *value = dbp->bp.r[addr.p.o];
 
         result.bits.got_value = true;
+        result.bits.can_write = dbp->bp.writeable;
     }
 
     return result;
