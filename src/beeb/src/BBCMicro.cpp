@@ -2743,14 +2743,6 @@ void BBCMicro::InitStuff() {
         m_state.fdc.SetNoINTRQ(!!(m_state.disc_interface->flags & DiscInterfaceFlag_NoINTRQ));
         m_state.fdc.Set1772(!!(m_state.disc_interface->flags & DiscInterfaceFlag_1772));
 
-        M6502Word c = {m_state.disc_interface->control_addr};
-        c.b.h -= 0xfc;
-        ASSERT(c.b.h < 3);
-
-        M6502Word f = {m_state.disc_interface->fdc_addr};
-        f.b.h -= 0xfc;
-        ASSERT(f.b.h < 3);
-
         // Slightly ugly code that goes straight to the internal function. The
         // Challenger FDC is in the XFJ area, so that has to be catered for.
         //
