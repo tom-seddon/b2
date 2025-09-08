@@ -764,13 +764,14 @@ class BBCMicro : private WD1770Handler {
     // If read_fn is null or never explicitly set, the location will read as the
     // stale CPU data bus value.
     //
-    // set_external/set_internal handle XTU vs ITU if setting SHEILA, and IFJ vs
-    // XFJ if setting FRED/JIM.
-    void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_external, bool set_internal);
+    // scope is a combination of BBCMicroMMIOScopeFlag values.
+    void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, uint8_t scope);
 #if BBCMICRO_DEBUGGER
     // If debug_read_fn is null, the byte is treated as explicitly unmapped, and
     // will show up in the debugger as the stale CPU data bus value.
-    void SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_external, bool set_internal);
+    //
+    // scope is a combination of BBCMicroMMIOScopeFlag values.
+    void SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, uint8_t scope);
 #endif
 
     static void WriteHostTube0Wrapper(void *context, M6502Word a, uint8_t value);

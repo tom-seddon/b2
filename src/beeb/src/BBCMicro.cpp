@@ -1270,15 +1270,52 @@ void BBCMicro::AddHostWriteFn(WriteFn fn, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static uint8_t GetFJScopeFlags(bool xfj, bool ifj) {
+    ASSERT(xfj || ifj);
+
+    // XTU vs ITU doesn't affect FRED or JIM.
+    uint8_t scope = BBCMicroMMIOScopeFlag_XTU | BBCMicroMMIOScopeFlag_ITU;
+
+    if (xfj) {
+        scope |= BBCMicroMMIOScopeFlag_XFJ;
+    }
+
+    if (ifj) {
+        scope |= BBCMicroMMIOScopeFlag_IFJ;
+    }
+
+    return scope;
+}
+
+static uint8_t GetSScopeFlags(bool xtu, bool itu) {
+    ASSERT(xtu || itu);
+
+    // XFJ vs IFJ doesn't affect SHEILA.
+    uint8_t scope = BBCMicroMMIOScopeFlag_XFJ | BBCMicroMMIOScopeFlag_IFJ;
+
+    if (xtu) {
+        scope |= BBCMicroMMIOScopeFlag_XTU;
+    }
+
+    if (itu) {
+        scope |= BBCMicroMMIOScopeFlag_ITU;
+    }
+
+    return scope;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool xtu, bool itu) {
     ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
-    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, xtu, itu);
+    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, GetSScopeFlags(xtu, itu));
 }
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool xtu, bool itu) {
     ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
-    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, xtu, itu);
+    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, GetSScopeFlags(xtu, itu));
 }
 #endif
 
@@ -1287,13 +1324,13 @@ void BBCMicro::SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGe
 
 void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
     ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
-    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, true, false);
+    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, GetFJScopeFlags(true, false));
 }
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
     ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
-    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, true, false);
+    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, GetFJScopeFlags(true, false));
 }
 #endif
 
@@ -1302,13 +1339,13 @@ void BBCMicro::SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, Debug
 
 void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
     ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
-    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, false, true);
+    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, GetFJScopeFlags(false, true));
 }
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
     ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
-    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, false, true);
+    this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, GetFJScopeFlags(false, true));
 }
 #endif
 
@@ -2656,7 +2693,7 @@ void BBCMicro::InitStuff() {
 
     // initially no I/O
     for (uint16_t i = 0xfc00; i < 0xff00; ++i) {
-        this->SetMMIOFnsInternal(i, nullptr, nullptr, nullptr, nullptr, true, true);
+        this->SetMMIOFnsInternal(i, nullptr, nullptr, nullptr, nullptr, BBCMicroMMIOScopeFlag_All);
     }
 
     if (m_state.init_flags & BBCMicroInitFlag_ExtMem) {
@@ -2714,25 +2751,30 @@ void BBCMicro::InitStuff() {
         f.b.h -= 0xfc;
         ASSERT(f.b.h < 3);
 
-        // Slightly ugly code gonig straight to the internal function, to work
-        // around Challenger FDC being in the external 1 MHz bus area.
+        // Slightly ugly code that goes straight to the internal function. The
+        // Challenger FDC is in the XFJ area, so that has to be catered for.
+        //
+        // The scope is always XTU+ITU+XFJ. If there are any IFJ-based disk
+        // interfaces - which I don't think there are? - b2 doesn't support them
+        // anyway.
+        uint8_t fdc_scope = BBCMicroMMIOScopeFlag_XFJ | BBCMicroMMIOScopeFlag_XTU | BBCMicroMMIOScopeFlag_ITU;
         for (int i = 0; i < 4; ++i) {
             uint16_t addr = (uint16_t)(m_state.disc_interface->fdc_addr + i);
 
-            this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], &m_state.fdc, g_WD1770_write_fns[i], &m_state.fdc, true, false);
+            this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], &m_state.fdc, g_WD1770_write_fns[i], &m_state.fdc, fdc_scope);
 #if BBCMICRO_DEBUGGER
-            this->SetDebugMMIOFnsInternal(addr, g_WD1770_debug_read_fns[i], &GetDebugMMIOReadFDCContext, true, false);
+            this->SetDebugMMIOFnsInternal(addr, g_WD1770_debug_read_fns[i], &GetDebugMMIOReadFDCContext, fdc_scope);
 #endif
         }
 
-        this->SetMMIOFnsInternal(m_state.disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, true, false);
+        this->SetMMIOFnsInternal(m_state.disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, fdc_scope);
 #if BBCMICRO_DEBUGGER
         // TODO: should really handle the read only case in a similar way with
         // the ordinary I/O functions too.
         if (m_state.disc_interface->flags & DiscInterfaceFlag_ControlIsReadOnly) {
-            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, nullptr, nullptr, true, false);
+            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, nullptr, nullptr, fdc_scope);
         } else {
-            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, &DebugRead1770ControlRegister, &GetDebugMMIORead1770ControlRegisterContext, true, false);
+            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, &DebugRead1770ControlRegister, &GetDebugMMIORead1770ControlRegisterContext, fdc_scope);
         }
 #endif
 
@@ -3377,27 +3419,36 @@ void BBCMicro::UpdateCPUDataBusFn() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool MatchesHostIOFlags(uint8_t host_io_flags, uint16_t addr, bool set_external, bool set_internal) {
+static bool IsAddressInScopeForFlags(uint16_t addr, uint8_t scope, uint8_t host_io_flags) {
     ASSERT(addr >= 0xfc00 && addr < 0xff00);
+
     if (addr >= 0xfc00 && addr < 0xfe00) {
-        if (set_external && !(host_io_flags & HostIOFlag_IFJ)) {
-            return true;
-        } else if (set_internal && (host_io_flags & HostIOFlag_IFJ)) {
-            return true;
+        if (host_io_flags & HostIOFlag_IFJ) {
+            if (scope & BBCMicroMMIOScopeFlag_IFJ) {
+                return true;
+            }
+        } else {
+            if (scope & BBCMicroMMIOScopeFlag_XFJ) {
+                return true;
+            }
         }
     } else {
-        if (set_external && !(host_io_flags & HostIOFlag_ITU)) {
-            return true;
-        } else if (set_internal && (host_io_flags & HostIOFlag_ITU)) {
-            return true;
+        if (host_io_flags & HostIOFlag_ITU) {
+            if (scope & BBCMicroMMIOScopeFlag_ITU) {
+                return true;
+            }
+        } else {
+            if (scope & BBCMicroMMIOScopeFlag_XTU) {
+                return true;
+            }
         }
     }
 
     return false;
 }
 
-void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_external, bool set_internal) {
-    ASSERT(set_external || set_internal);
+void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, uint8_t scope) {
+    ASSERT(scope != 0);
     ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
 
     uint16_t index = addr - 0xfc00;
@@ -3417,7 +3468,7 @@ void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_
     }
 
     for (uint8_t host_io_flags = 0; host_io_flags < 4; ++host_io_flags) {
-        if (MatchesHostIOFlags(host_io_flags, addr, set_external, set_internal)) {
+        if (IsAddressInScopeForFlags(addr, scope, host_io_flags)) {
             m_write_mmios_hw[host_io_flags][index] = write_mmio;
             m_read_mmios_hw[host_io_flags][index] = read_mmio;
         }
@@ -3425,8 +3476,8 @@ void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_
 }
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool set_external, bool set_internal) {
-    ASSERT(set_external || set_internal);
+void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, uint8_t scope) {
+    ASSERT(scope != 0);
     ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
 
     DebugReadMMIO debug_read_mmio;
@@ -3437,12 +3488,11 @@ void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read
     uint16_t index = addr - 0xfc00;
 
     for (uint8_t host_io_flags = 0; host_io_flags < 4; ++host_io_flags) {
-        if (MatchesHostIOFlags(host_io_flags, addr, set_external, set_internal)) {
+        if (IsAddressInScopeForFlags(addr, scope, host_io_flags)) {
             m_debug_read_mmio_data->debug_read_mmios[host_io_flags][index] = debug_read_mmio;
         }
     }
 }
-
 #endif
 
 //////////////////////////////////////////////////////////////////////////
