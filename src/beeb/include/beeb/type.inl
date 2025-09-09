@@ -37,9 +37,9 @@ EEND()
 EBEGIN_DERIVED(uint8_t)
 // These 3 bit assignments are not arbitrary - they match the bit ordering in
 // Master 128 ACCCON.
-EPNV(ITU, 1 << 0)
-EPNV(IFJ, 1 << 1)
-EPNV(WriteOnly, 1 << 2)
+EPNV(ITU, 1 << 0) //set for internal Tube
+EPNV(IFJ, 1 << 1) //set for internal FRED/JIM
+EPNV(TST, 1 << 2) //set for ROM visible at $fc00...$feff
 
 // The inverted logic means the value can be used as an index when this value
 // isn't set.

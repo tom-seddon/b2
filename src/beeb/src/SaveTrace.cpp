@@ -313,7 +313,7 @@ class TraceSaver {
                 // TODO: bit of a duplicate of similar logic in debugger.cpp.
                 if (!(bp->host_io_flags & HostIOFlag_NoIO) &&
                     addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
-                    (!(bp->host_io_flags & HostIOFlag_WriteOnly) || instr->instruction_category == M6502InstructionCategory_Write)) {
+                    (!(bp->host_io_flags & HostIOFlag_TST) || instr->instruction_category == M6502InstructionCategory_Write)) {
                     codes = align ? bp->aligned_io_codes : bp->minimal_io_codes;
                 } else {
                     codes = align ? bp->aligned_codes : bp->minimal_codes;

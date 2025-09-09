@@ -324,7 +324,7 @@ void BBCMicro::UpdatePaging() {
 
     uint32_t host_io_flags = tables.mem_big_pages[0][15].i - FIRST_IO_BIG_PAGE_INDEX.i;
 
-    if (host_io_flags & HostIOFlag_WriteOnly) {
+    if (host_io_flags & HostIOFlag_TST) {
         m_read_mmios = m_read_mmios_rom.data();
         m_read_mmios_stretch = m_mmios_stretch_rom.data();
     } else {

@@ -517,7 +517,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         char io_code = IO_CODE;
 
         std::string description = "MOS ROM+";
-        if (host_io_flags & HostIOFlag_WriteOnly) {
+        if (host_io_flags & HostIOFlag_TST) {
             description += "w";
 #if BBCMICRO_DEBUGGER
             dso_set = BBCMicroDebugStateOverride_OS;

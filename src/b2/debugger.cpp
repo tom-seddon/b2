@@ -499,7 +499,7 @@ DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
         if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
             result.bits.io_write = true;
 
-            if (!(dbp->host_io_flags & HostIOFlag_WriteOnly)) {
+            if (!(dbp->host_io_flags & HostIOFlag_TST)) {
                 DebugReadMMIOResult debug_read_result = m_beeb_state->DebugReadMMIO(value, addr, dbp->host_io_flags);
                 switch (debug_read_result) {
                 case DebugReadMMIOResult_Unset:
