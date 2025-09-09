@@ -3086,7 +3086,7 @@ class PagingDebugWindow : public DebugUI {
         ImGui::Separator();
 
         for (unsigned i = 0; i < 16; ++i) {
-            ImGui::Text("%04zx - %04zx", i << 12, i << 12 | 0xfff);
+            ImGui::Text("%04x - %04x", i << 12, i << 12 | 0xfff);
             ImGui::NextColumn();
 
             this->DoTypeColumn(m_beeb_state->type, tables, 0, i);
@@ -3136,8 +3136,6 @@ class PagingDebugWindow : public DebugUI {
 
   private:
     void DoTypeColumn(const std::shared_ptr<const BBCMicroType> &type, const MemoryBigPageTables &tables, unsigned index, unsigned mem_big_page_index) {
-        static const char BIG_PAGE_METADATA_POPUP[] = "big_page_metadata_popup";
-
         BigPageIndex big_page_index = tables.mem_big_pages[index][mem_big_page_index];
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
