@@ -156,3 +156,17 @@ warnings.
 # Running the automated tests
 
 `ninja test` will run the full set of tests.
+
+# Want to build with some other compiler?
+
+CMake picks a sensible compiler, but if you've got several installed
+then you might want to choose. Set the `CC` and `CXX` variables before
+doing `make init` to do this. For example:
+
+    export CC=$(which clang-19)
+    export CXX=$(which clang++-19)
+
+(You may have to install additional packages and/or do some additional
+setup to make this actually work, and this document isn't going to
+attempt to cover the (probably infinite) possible cases. But I've had
+success by starting with the above and following the errors.)
