@@ -98,9 +98,11 @@ EQPNV(MapperRegionMask, NUM_MAPPER_REGIONS - 1)
 EPNV(OverrideIFJ, 1 << 21)
 EPNV(IFJ, 1 << 22)
 
-// TODO: XTU/ITU...
+// If OverrideITU, ITU selects behaviour of Tube: ITU (1) or XTU (0).
+EPNV(OverrideITU, 1 << 23)
+EPNV(ITU, 1 << 24)
 
-//next free bit is 23
+//next free bit is 25
 
 EEND()
 #undef ENAME

@@ -293,7 +293,7 @@ parasite_update_done:
             result |= BBCMicroUpdateResultFlag_Host;
             (*m_state.cpu.tfn)(&m_state.cpu);
 
-            M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - 0xfc00u)};
+            M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
             if (mmio_addr.b.h < 3) {
                 if (m_state.cpu.read) {
                     m_state.stretch = m_read_mmios_stretch[mmio_addr.w];
@@ -491,7 +491,7 @@ parasite_update_done:
                 static_assert(AlwaysFalseUInt<UPDATE_FLAGS>::value);
             }
 
-            M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - 0xfc00u)};
+            M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
 
             if (const uint8_t read = m_state.cpu.read) {
                 if (mmio_addr.b.h < 3) {

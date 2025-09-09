@@ -116,14 +116,14 @@
 // o - OS ROM
 // p - parasite RAM
 // q - parasite boot ROM
-// r - current sideways ROM (equivalent to selecting appropriate 0-9/a-f)
+// r - current sideways ROM (not ANDY) (equivalent to selecting appropriate 0-9/a-f)
 // s - shadow RAM
 // t -
 // u -
 // v -
 // w -
-// x -
-// y -
+// x - external Tube
+// y - internal Tube
 // z -
 // A - ROM mapper region 0
 // B - ROM mapper region 1
@@ -169,6 +169,8 @@ static constexpr char PARASITE_CODE = 'p';
 static constexpr char PARASITE_ROM_CODE = 'q';
 static constexpr char ROM_CODE = 'r';
 static constexpr char SHADOW_CODE = 's';
+static constexpr char XTU_CODE = 'x';
+static constexpr char ITU_CODE = 'y';
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -252,7 +254,9 @@ static const std::string g_all_big_page_codes = std::string(ROM_BANK_CODES) +
                                                 std::string(1, PARASITE_CODE) +
                                                 std::string(1, PARASITE_ROM_CODE) +
                                                 std::string(1, ROM_CODE) +
-                                                std::string(1, SHADOW_CODE);
+                                                std::string(1, SHADOW_CODE) +
+                                                std::string(1, XTU_CODE) +
+                                                std::string(1, ITU_CODE);
 
 static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  BigPageIndex index,
@@ -297,16 +301,14 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
     }
 }
 
-static void InitBigPageIOMetadata(std::vector<BigPageMetadata> *big_pages, BigPageIndex index, uint8_t host_io_flags, char io_code) {
+static void InitBigPageIOMetadata(std::vector<BigPageMetadata> *big_pages, BigPageIndex index, uint8_t host_io_flags, char io_code0, char io_code1) {
     BigPageMetadata *metadata = &(*big_pages)[index.i];
 
     ASSERT(metadata->host_io_flags & HostIOFlag_NoIO);
     metadata->host_io_flags = host_io_flags;
 
-    metadata->aligned_io_codes[0] = io_code;
-    metadata->aligned_io_codes[1] = ' ';
-
-    metadata->minimal_io_codes[0] = io_code;
+    metadata->minimal_io_codes[0] = metadata->aligned_io_codes[0] = io_code0;
+    metadata->minimal_io_codes[1] = metadata->aligned_io_codes[1] = io_code1;
 }
 
 uint32_t GetROMTypeRegionMask(ROMType rom_type) {
@@ -512,9 +514,9 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     for (uint8_t host_io_flags = 0; host_io_flags < 8; ++host_io_flags) {
 #if BBCMICRO_DEBUGGER
         uint32_t dso_clear = BBCMicroDebugStateOverride_HAZEL;
-        uint32_t dso_set = BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ;
+        uint32_t dso_set = BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_OverrideITU;
 #endif
-        char io_code = IO_CODE;
+        char io_code0 = 0, io_code1 = 0;
 
         std::string description = "MOS ROM+";
         if (host_io_flags & HostIOFlag_TST) {
@@ -534,18 +536,27 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 #if BBCMICRO_DEBUGGER
             dso_set = BBCMicroDebugStateOverride_IFJ;
 #endif
-            io_code = IFJ_IO_CODE;
+            io_code0 = IFJ_IO_CODE;
         } else {
             description += "XFJ";
 #if BBCMICRO_DEBUGGER
             dso_clear = BBCMicroDebugStateOverride_IFJ;
 #endif
+            io_code0 = IO_CODE;
         }
         description += "/";
         if (host_io_flags & HostIOFlag_ITU) {
             description += "ITU";
+#if BBCMICRO_DEBUGGER
+            dso_set = BBCMicroDebugStateOverride_ITU;
+#endif
+            io_code1 = ITU_CODE;
         } else {
             description += "XTU";
+#if BBCMICRO_DEBUGGER
+            dso_clear = BBCMicroDebugStateOverride_ITU;
+#endif
+            io_code1 = XTU_CODE;
         }
         description += " I/O";
 
@@ -556,7 +567,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 #endif
                              0xf000);
 
-        InitBigPageIOMetadata(&big_pages, index, host_io_flags, io_code);
+        InitBigPageIOMetadata(&big_pages, index, host_io_flags, io_code0, io_code1);
     }
 
     // Parasite RAM
@@ -906,6 +917,14 @@ static void ApplyDSOMaster(PagingState *paging, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_OverrideOS) {
         paging->acccon.m128_bits.tst = !!(dso & BBCMicroDebugStateOverride_OS);
     }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideITU) {
+        paging->acccon.m128_bits.itu = !!(dso & BBCMicroDebugStateOverride_ITU);
+    }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideIFJ) {
+        paging->acccon.m128_bits.ifj = !!(dso & BBCMicroDebugStateOverride_IFJ);
+    }
 }
 #endif
 
@@ -934,6 +953,16 @@ static uint32_t GetDSOMaster(const PagingState &paging) {
         dso |= BBCMicroDebugStateOverride_OS;
     }
     dso |= BBCMicroDebugStateOverride_OverrideOS;
+
+    if (paging.acccon.m128_bits.itu) {
+        dso |= BBCMicroDebugStateOverride_ITU;
+    }
+    dso |= BBCMicroDebugStateOverride_OverrideITU;
+
+    if (paging.acccon.m128_bits.ifj) {
+        dso |= BBCMicroDebugStateOverride_IFJ;
+    }
+    dso |= BBCMicroDebugStateOverride_OverrideIFJ;
 
     return dso;
 }
@@ -1118,7 +1147,9 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                           BBCMicroDebugStateOverride_OS |
                           BBCMicroDebugStateOverride_OverrideOS |
                           BBCMicroDebugStateOverride_IFJ |
-                          BBCMicroDebugStateOverride_OverrideIFJ);
+                          BBCMicroDebugStateOverride_OverrideIFJ |
+                          BBCMicroDebugStateOverride_ITU |
+                          BBCMicroDebugStateOverride_OverrideITU);
         type->apply_dso_fn = &ApplyDSOMaster;
         type->get_dso_fn = &GetDSOMaster;
         break;
@@ -1324,9 +1355,15 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
             dso &= ~BBCMicroDebugStateOverride_HAZEL;
         } else if (c == IO_CODE) {
             dso |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideIFJ;
-            dso &= ~BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_IFJ;
+            dso &= ~(BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_IFJ);
         } else if (c == IFJ_IO_CODE) {
             dso |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_IFJ;
+            dso &= ~BBCMicroDebugStateOverride_OS;
+        } else if (c == XTU_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideITU;
+            dso &= ~(BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_ITU);
+        } else if (c == ITU_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideITU | BBCMicroDebugStateOverride_ITU;
             dso &= ~BBCMicroDebugStateOverride_OS;
         } else {
             if (log) {
@@ -1336,6 +1373,9 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
             return false;
         }
     }
+
+    // TODO: should the type be optional? Would it be better for the caller to do this?
+    dso &= type->dso_mask;
 
     *dso_ptr = dso;
 
@@ -1423,5 +1463,22 @@ uint32_t GetDSOMaskForOverrides(uint32_t dso) {
     }
 
     return mask;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const char *GetAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write, const char *codes, const char *io_codes) {
+    if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
+        if (offset.p.o >= IO_BEGIN_ADDRESS.p.o && offset.p.o < IO_END_ADDRESS.p.o) {
+            if (!(metadata->host_io_flags & HostIOFlag_TST) || is_write) {
+                return io_codes;
+            }
+        }
+    }
+
+    return codes;
 }
 #endif

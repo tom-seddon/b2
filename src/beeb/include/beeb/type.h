@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <6502/6502.h>
 
 static constexpr size_t NUM_MAPPER_REGIONS = 16;
 
@@ -102,6 +103,15 @@ static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_M
 static_assert(NUM_BIG_PAGES <= (BigPageIndex::Type)~0xf, "too many big pages");
 
 static constexpr BigPageIndex INVALID_BIG_PAGE_INDEX = {(BigPageIndex::Type) ~(BigPageIndex::Type)0};
+
+static constexpr M6502Word IO_BEGIN_ADDRESS = {0xfc00};
+static constexpr M6502Word IO_END_ADDRESS = {0xff00};
+
+static constexpr M6502Word FJ_IO_BEGIN_ADDRESS = {0xfc00};
+static constexpr M6502Word FJ_IO_END_ADDRESS = {0xfe00};
+
+static constexpr M6502Word S_IO_BEGIN_ADDRESS = {0xfe00};
+static constexpr M6502Word S_IO_END_ADDRESS = {0xff00};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -355,6 +365,20 @@ uint32_t GetDSOMaskForOverrides(uint32_t dso);
 //
 //    return false;
 //}
+
+const char *GetAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write, const char *codes, const char *io_codes);
+
+// Return appropriate codes for the given access at the given offset, taking
+// into account I/O if the page includes it. (Only the offset part of offset is
+// checked.)
+
+inline const char *GetAlignedAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write = false) {
+    return GetAddressSuffixForOffset(metadata, offset, is_write, metadata->aligned_codes, metadata->aligned_io_codes);
+}
+
+inline const char *GetMinimalAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write = false) {
+    return GetAddressSuffixForOffset(metadata, offset, is_write, metadata->minimal_codes, metadata->minimal_io_codes);
+}
 
 #endif
 

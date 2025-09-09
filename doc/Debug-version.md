@@ -116,7 +116,11 @@ Host memory:
 - `n` - ANDY (B+/Master only) (B+: $8000...$afff; Master: $8000...$8fff)
 - `h` - HAZEL (Master only) ($c000...$dfff)
 - `o` - OS ROM ($c000...$ffff)
-- `i` - I/O area ($fc00...$feff)
+- `i` - I/O area ($fc00...$feff) - FRED/JIM via 1 MHz bus connector
+- `j` - I/O area ($fc00...$feff) - FRED/JIM via cartridge port (Master only)
+- `x` - I/O area ($fc00...$feff) - Tube access via external connector
+- `y` - I/O area ($fc00...$feff) - Tube access via internal connector
+  (Master only)
 - `A` ... `P` - ROM mapper region, 0-15
 
 Parasite memory:

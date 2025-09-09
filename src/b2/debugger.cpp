@@ -496,7 +496,7 @@ DebugUI::ReadByteResult DebugUI::ReadByte(uint8_t *value,
 
     // Set up can_write/io_write flags. Early out if it's read/write I/O.
     if (!(dbp->host_io_flags & HostIOFlag_NoIO)) {
-        if (addr.p.o >= 0xc00 && addr.p.o < 0xf00) {
+        if (addr.p.o >= IO_BEGIN_ADDRESS.p.o && addr.p.o < IO_END_ADDRESS.p.o) {
             result.bits.io_write = true;
 
             if (!(dbp->host_io_flags & HostIOFlag_TST)) {
@@ -569,6 +569,8 @@ void DebugUI::DoDebugPageOverrideImGui() {
     static const char HAZEL_POPUP[] = "hazel_popup";
     static const char OS_POPUP[] = "os_popup";
     static const char PARASITE_ROM_POPUP[] = "parasite_rom_popup";
+    static const char IFJ_POPUP[] = "ifj_popup";
+    static const char ITU_POPUP[] = "itu_popup";
 
     uint32_t dso_mask = this->GetDebugStateOverrideMask();
     uint32_t dso_current = BBCMicro::DebugGetCurrentStateOverride(m_beeb_state.get());
@@ -696,6 +698,20 @@ void DebugUI::DoDebugPageOverrideImGui() {
                                            OS_POPUP,
                                            BBCMicroDebugStateOverride_OverrideOS,
                                            BBCMicroDebugStateOverride_OS);
+
+        this->DoDebugPageOverrideFlagImGui(dso_mask,
+                                           dso_current,
+                                           "IFJ",
+                                           IFJ_POPUP,
+                                           BBCMicroDebugStateOverride_OverrideIFJ,
+                                           BBCMicroDebugStateOverride_IFJ);
+
+        this->DoDebugPageOverrideFlagImGui(dso_mask,
+                                           dso_current,
+                                           "ITU",
+                                           ITU_POPUP,
+                                           BBCMicroDebugStateOverride_OverrideITU,
+                                           BBCMicroDebugStateOverride_ITU);
     }
 
     ImGui::SameLine();
@@ -788,9 +804,10 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
 
         ImGui::Separator();
 
-        char byte_str[10];
+        const char *address_suffix = GetMinimalAddressSuffixForOffset(dbp->bp.metadata, addr);
+        char byte_str[20];
         snprintf(byte_str, sizeof byte_str, "%s%04x%c%s",
-                 g_hex, addr.w, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+                 g_hex, addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
 
         ImGui::Text("Byte: %s (%s)",
                     byte_str,
@@ -1461,6 +1478,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
                             size_t offset,
                             bool upper_case) override {
             const DebugBigPage *dbp = m_window->GetDebugBigPageForAddress({(uint16_t)offset}, this->mos);
+            const char *address_suffix = GetAlignedAddressSuffixForOffset(dbp->bp.metadata, {(uint16_t)offset});
 
             snprintf(text,
                      text_size,
@@ -1468,7 +1486,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
                      g_hex,
                      (unsigned)offset,
                      ADDRESS_SUFFIX_SEPARATOR,
-                     dbp->bp.metadata->aligned_codes);
+                     address_suffix);
         }
 
         bool ParseAddressText(size_t *offset, const char *text) override {
@@ -1875,7 +1893,8 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
             }
 
             const DebugBigPage *line_dbp = this->GetDebugBigPageForAddress(line_addr, false);
-            ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, line_dbp->bp.metadata->aligned_codes);
+            const char *address_suffix = GetAlignedAddressSuffixForOffset(line_dbp->bp.metadata, line_addr);
+            ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
             this->DoBytePopupGui(line_dbp, line_addr);
 
             if (m_persistent.show_symbols) {
@@ -2212,6 +2231,8 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     void AddAddress(const char *prefix, uint16_t addr, bool mos, const char *suffix, const char *hex_format) {
         const DebugBigPage *dbp = this->GetDebugBigPageForAddress({addr}, mos);
 
+        const char *address_suffix = GetMinimalAddressSuffixForOffset(dbp->bp.metadata, {addr});
+
         char label[100];
 
         // Check if we should use symbols instead of hex addresses
@@ -2223,14 +2244,14 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
 
             if (symbol_name) {
                 // Use symbol name instead of hex address
-                snprintf(label, sizeof label, "%s%c%s", symbol_name->c_str(), ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+                snprintf(label, sizeof label, "%s%c%s", symbol_name->c_str(), ADDRESS_SUFFIX_SEPARATOR, address_suffix);
             } else {
                 // No symbol found, use hex as fallback
-                snprintf(label, sizeof label, hex_format, g_hex, addr, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+                snprintf(label, sizeof label, hex_format, g_hex, addr, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
             }
         } else {
             // Labels disabled, use hex address
-            snprintf(label, sizeof label, hex_format, g_hex, addr, ADDRESS_SUFFIX_SEPARATOR, dbp->bp.metadata->minimal_codes);
+            snprintf(label, sizeof label, hex_format, g_hex, addr, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
         }
 
         this->DoClickableAddress(prefix, label, suffix, dbp, {addr});
@@ -3223,13 +3244,15 @@ class BreakpointsDebugWindow : public DebugUI {
                         //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
 
                         const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[bp->big_page.i];
+                        ASSERT(bp->offset < BIG_PAGE_SIZE_BYTES);
+                        const char *address_suffix = GetAlignedAddressSuffixForOffset(metadata, {bp->offset});
 
                         if (uint8_t *flags = this->Row(bp,
                                                        "%s%04x%c%s",
                                                        g_hex,
                                                        metadata->addr + bp->offset,
                                                        ADDRESS_SUFFIX_SEPARATOR,
-                                                       metadata->aligned_codes)) {
+                                                       address_suffix)) {
                             m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
                                                                                                      bp->offset,
                                                                                                      *flags));
@@ -3402,7 +3425,8 @@ class PixelMetadataUI : public DebugUI {
 
                 M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
 
-                ImGui::Text("Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, metadata->minimal_codes);
+                const char *address_suffix = GetMinimalAddressSuffixForOffset(metadata, cpu_addr);
+                ImGui::Text("Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
                 ImGui::Text("CRTC Address: %s%04x", g_hex, unit->metadata.crtc_address);
 
                 const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);

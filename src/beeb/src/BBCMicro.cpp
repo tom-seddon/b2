@@ -80,11 +80,11 @@ class BBCMicroReadOnlyStateWithDebugMMIO : public BBCMicroReadOnlyState {
     }
 
     DebugReadMMIOResult DebugReadMMIO(uint8_t *value, M6502Word addr, uint8_t host_io_flags) const override {
-        ASSERT(addr.w >= 0xfc00 && addr.w < 0xff00);
+        ASSERT(addr.w >= IO_BEGIN_ADDRESS.w && addr.w < IO_END_ADDRESS.w);
 
         const std::vector<BBCMicro::DebugReadMMIO> *table = &m_debug_read_mmio_data->debug_read_mmios[host_io_flags & 3];
 
-        uint16_t index = addr.w - 0xfc00;
+        uint16_t index = addr.w - IO_BEGIN_ADDRESS.w;
         const BBCMicro::DebugReadMMIO *debug_read_mmio = &(*table)[index];
 
         if (!debug_read_mmio->set) {
@@ -1308,13 +1308,13 @@ static uint8_t GetSScopeFlags(bool xtu, bool itu) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool xtu, bool itu) {
-    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    ASSERT(addr >= S_IO_BEGIN_ADDRESS.w && addr < S_IO_END_ADDRESS.w);
     this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, GetSScopeFlags(xtu, itu));
 }
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, bool xtu, bool itu) {
-    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    ASSERT(addr >= S_IO_BEGIN_ADDRESS.w && addr < S_IO_END_ADDRESS.w);
     this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, GetSScopeFlags(xtu, itu));
 }
 #endif
@@ -1323,13 +1323,13 @@ void BBCMicro::SetDebugSIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGe
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
-    ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
+    ASSERT(addr >= FJ_IO_BEGIN_ADDRESS.w && addr <= FJ_IO_END_ADDRESS.w);
     this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, GetFJScopeFlags(true, false));
 }
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
-    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    ASSERT(addr >= S_IO_BEGIN_ADDRESS.w && addr <= S_IO_END_ADDRESS.w);
     this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, GetFJScopeFlags(true, false));
 }
 #endif
@@ -1338,13 +1338,13 @@ void BBCMicro::SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, Debug
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
-    ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
+    ASSERT(addr >= FJ_IO_BEGIN_ADDRESS.w && addr <= FJ_IO_END_ADDRESS.w);
     this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, GetFJScopeFlags(false, true));
 }
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
-    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    ASSERT(addr >= FJ_IO_BEGIN_ADDRESS.w && addr <= FJ_IO_END_ADDRESS.w);
     this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, GetFJScopeFlags(false, true));
 }
 #endif
@@ -2692,7 +2692,7 @@ void BBCMicro::InitStuff() {
     //m_rom_mmio = false;
 
     // initially no I/O
-    for (uint16_t i = 0xfc00; i < 0xff00; ++i) {
+    for (uint16_t i = IO_BEGIN_ADDRESS.w; i < IO_END_ADDRESS.w; ++i) {
         this->SetMMIOFnsInternal(i, nullptr, nullptr, nullptr, nullptr, BBCMicroMMIOScopeFlag_All);
     }
 
@@ -3415,9 +3415,9 @@ void BBCMicro::UpdateCPUDataBusFn() {
 //////////////////////////////////////////////////////////////////////////
 
 static bool IsAddressInScopeForFlags(uint16_t addr, uint8_t scope, uint8_t host_io_flags) {
-    ASSERT(addr >= 0xfc00 && addr < 0xff00);
+    ASSERT(addr >= IO_BEGIN_ADDRESS.w && addr < IO_END_ADDRESS.w);
 
-    if (addr >= 0xfc00 && addr < 0xfe00) {
+    if (addr >= FJ_IO_BEGIN_ADDRESS.w && addr < FJ_IO_END_ADDRESS.w) {
         if (host_io_flags & HostIOFlag_IFJ) {
             if (scope & BBCMicroMMIOScopeFlag_IFJ) {
                 return true;
@@ -3444,9 +3444,9 @@ static bool IsAddressInScopeForFlags(uint16_t addr, uint8_t scope, uint8_t host_
 
 void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, uint8_t scope) {
     ASSERT(scope != 0);
-    ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
+    ASSERT(addr >= IO_BEGIN_ADDRESS.w && addr < IO_END_ADDRESS.w);
 
-    uint16_t index = addr - 0xfc00;
+    uint16_t index = addr - IO_BEGIN_ADDRESS.w;
 
     ReadMMIO read_mmio;
     if (read_fn) {
@@ -3473,14 +3473,14 @@ void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugMMIOFnsInternal(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn, uint8_t scope) {
     ASSERT(scope != 0);
-    ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
+    ASSERT(addr >= IO_BEGIN_ADDRESS.w && addr < IO_END_ADDRESS.w);
 
     DebugReadMMIO debug_read_mmio;
     debug_read_mmio.set = true;
     debug_read_mmio.fn = debug_read_fn;
     debug_read_mmio.context_fn = debug_get_context_fn;
 
-    uint16_t index = addr - 0xfc00;
+    uint16_t index = addr - IO_BEGIN_ADDRESS.w;
 
     for (uint8_t host_io_flags = 0; host_io_flags < 4; ++host_io_flags) {
         if (IsAddressInScopeForFlags(addr, scope, host_io_flags)) {
