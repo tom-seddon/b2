@@ -2886,6 +2886,9 @@ void BBCMicro::InitStuff() {
     if (m_state.init_flags & BBCMicroInitFlag_ADJI) {
         uint8_t adji_addr = m_state.init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
         this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
+#if BBCMICRO_DEBUGGER
+        this->SetDebugIFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
+#endif
     }
 
 #if ENABLE_SCSI
