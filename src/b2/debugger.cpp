@@ -3064,7 +3064,7 @@ class PagingDebugWindow : public DebugUI {
 
         ImGui::Separator();
 
-        for (size_t i = 0; i < 16; ++i) {
+        for (unsigned i = 0; i < 16; ++i) {
             ImGui::Text("%04zx - %04zx", i << 12, i << 12 | 0xfff);
             ImGui::NextColumn();
 
@@ -3114,11 +3114,30 @@ class PagingDebugWindow : public DebugUI {
     }
 
   private:
-    void DoTypeColumn(const std::shared_ptr<const BBCMicroType> &type, const MemoryBigPageTables &tables, size_t index, size_t mem_big_page_index) {
+    void DoTypeColumn(const std::shared_ptr<const BBCMicroType> &type, const MemoryBigPageTables &tables, unsigned index, unsigned mem_big_page_index) {
+        static const char BIG_PAGE_METADATA_POPUP[] = "big_page_metadata_popup";
+
         BigPageIndex big_page_index = tables.mem_big_pages[index][mem_big_page_index];
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
-        ImGui::Text("%s (%u)", metadata->description.c_str(), metadata->debug_flags_index.i);
+        ImGuiIDPusher pusher(index * 16 + mem_big_page_index);
+        ImGui::Text("%s (%s%04x)", metadata->description.c_str(), g_hex, metadata->addr);
+        //, metadata->debug_flags_index.i);
+        if (ImGui::IsItemHovered()) {
+            if (ImGui::BeginTooltip()) {
+                ImGui::Text("Index: %u", big_page_index.i);
+                ImGui::Text("Address suffix: %s", metadata->minimal_codes);
+                if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
+                    ImGui::Text("Address suffix (I/O): %s", metadata->minimal_io_codes);
+                }
+                ImGui::Text("HostIOFlags: ITU=%s; IFJ=%s; TST=%s", BOOL_STR(metadata->host_io_flags & HostIOFlag_ITU), BOOL_STR(metadata->host_io_flags & HostIOFlag_IFJ), BOOL_STR(metadata->host_io_flags & HostIOFlag_TST));
+
+                const BigPageMetadata *df_metadata = &type->big_pages_metadata[metadata->debug_flags_index.i];
+                ImGui::Text("Debug flags index: %u (%s (%s%04x))", metadata->debug_flags_index.i, df_metadata->description.c_str(), g_hex, df_metadata->addr);
+
+                ImGui::EndTooltip();
+            }
+        }
     }
 };
 
