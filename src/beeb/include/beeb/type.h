@@ -73,8 +73,9 @@ static constexpr BigPageIndex::Type NUM_SHADOW_BIG_PAGES = {20 / 4};
 static constexpr BigPageIndex ROM0_BIG_PAGE_INDEX = {SHADOW_BIG_PAGE_INDEX.i + NUM_SHADOW_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {NUM_MAPPER_REGIONS * 16 / 4};
 
+// There are only 3 MOS big pages. The 4th is covered by one of the I/O area options.
 static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = {16 / 4};
+static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = 3;
 
 // Big page indexes for whatever's in the MOS big page that overlaps with the
 // I/O area, plus the I/O region on top at +$c00...$eff.
@@ -194,16 +195,14 @@ struct BigPageMetadata {
 #endif
 
     // Page override char(s) to display in the debugger. (At the moment, only 2
-    // are required.)
+    // are required.) codes[!!aligned] is the 2-char string of interest.
     //
     // If only 1 code applies, the second char of aligned_codes is a space.
-    char aligned_codes[3] = {};
-    char minimal_codes[3] = {};
+    char codes[2][3] = {};
 
     // And as above, if host_io_type!=HostIOType_None, and the access is to the
-    // I/O part.
-    char aligned_io_codes[3] = {};
-    char minimal_io_codes[3] = {};
+    // I/O part. codes[!!aligned][io region] is the 2-char string of interest.
+    char io_codes[2][24][3] = {};
 
     // More elaborate description, printed in UI.
     std::string description;
@@ -366,18 +365,18 @@ uint32_t GetDSOMaskForOverrides(uint32_t dso);
 //    return false;
 //}
 
-const char *GetAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write, const char *codes, const char *io_codes);
+const char *GetAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write, uint8_t aligned);
 
 // Return appropriate codes for the given access at the given offset, taking
 // into account I/O if the page includes it. (Only the offset part of offset is
 // checked.)
 
 inline const char *GetAlignedAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write = false) {
-    return GetAddressSuffixForOffset(metadata, offset, is_write, metadata->aligned_codes, metadata->aligned_io_codes);
+    return GetAddressSuffixForOffset(metadata, offset, is_write, 1);
 }
 
 inline const char *GetMinimalAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write = false) {
-    return GetAddressSuffixForOffset(metadata, offset, is_write, metadata->minimal_codes, metadata->minimal_io_codes);
+    return GetAddressSuffixForOffset(metadata, offset, is_write, 0);
 }
 
 #endif

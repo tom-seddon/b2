@@ -119,6 +119,13 @@ class BBCMicro : private WD1770Handler {
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
 
+        // For byte-specific breakpoint purposes, the I/O region is divided up
+        // into 32-byte pieces.
+        //
+        // (It's not great, having these all jammed into one slightly inscrutable
+        // array, but it simplifies an assert.)
+        uint8_t io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_Count][32] = {};
+
         // Byte-specific breakpoint flags.
         uint8_t big_pages_byte_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
 
@@ -151,10 +158,6 @@ class BBCMicro : private WD1770Handler {
     };
 #endif
 
-    // This is just to keep things regular. There aren't currently any big
-    // pages actually of this type.
-    static const BigPageType IO_BIG_PAGE_TYPE;
-
     struct BigPage {
         // if non-NULL, points to BIG_PAGE_SIZE_BYTES bytes. NULL if this
         // big page isn't readable.
@@ -168,6 +171,10 @@ class BBCMicro : private WD1770Handler {
         // if non-NULL, points to BIG_PAGE_SIZE_BYTES values. NULL if this
         // BBCMicro has no associated DebugState.
         uint8_t *byte_debug_flags = nullptr;
+
+        // Pointers to 768 byte's-worth of byte debug flags for the I/O region.
+        uint8_t *write_io_byte_debug_flags[24] = {};
+        uint8_t *read_io_byte_debug_flags[24] = {};
 
         // if non-NULL, points to BIG_PAGE_SIZE_BYTES values. NULL if this
         // BBCMicro has no associated DebugState.
@@ -198,6 +205,9 @@ class BBCMicro : private WD1770Handler {
         // Multiple big pages can occupy the same address. The address flags
         // often overlap.
         const uint8_t *address_debug_flags = nullptr;
+
+        const uint8_t *write_io_byte_debug_flags[24] = {};
+        const uint8_t *read_io_byte_debug_flags[24] = {};
 #endif
         BigPageIndex index = {0};
         const BigPageMetadata *metadata = nullptr;
@@ -249,6 +259,8 @@ class BBCMicro : private WD1770Handler {
         const uint8_t *r[16] = {};
 #if BBCMICRO_DEBUGGER
         uint8_t *byte_debug_flags[16] = {};
+        uint8_t *const *read_io_byte_debug_flags = nullptr;
+        uint8_t *const *write_io_byte_debug_flags = nullptr;
         const BigPage *bp[16] = {};
 #endif
     };
@@ -455,8 +467,17 @@ class BBCMicro : private WD1770Handler {
     static void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const BBCMicroState *state, uint32_t dso);
 
     // Get/set per-byte debug flags for one byte.
-    uint8_t DebugGetByteDebugFlags(const BigPage *big_page, uint32_t offset) const;
-    void DebugSetByteDebugFlags(BigPageIndex big_page_index, uint32_t offset, uint8_t flags);
+    //
+    // Read/write refers to the memory operation being performed, and doesn't
+    // limit the flags being set.
+    //
+    // TODO: does it *really* need this many different versions?!
+    static const uint8_t *DebugGetReadByteDebugFlags(const BigPage *big_page, uint16_t offset);
+    static const uint8_t *DebugGetWriteByteDebugFlags(const BigPage *big_page, uint16_t offset);
+    static const uint8_t *DebugGetReadByteDebugFlags(const ReadOnlyBigPage *big_page, uint16_t offset);
+    static const uint8_t *DebugGetWriteByteDebugFlags(const ReadOnlyBigPage *big_page, uint16_t offset);
+    void DebugSetReadByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t flags);
+    void DebugSetWriteByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t flags);
 
     // Get/set per-address byte debug flags for one address.
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
@@ -742,6 +763,11 @@ class BBCMicro : private WD1770Handler {
                                     const DebugState *debug_state,
 #endif
                                     BigPageIndex big_page_index);
+    static void GetBigPageProperties(const uint8_t **read_ptr,
+                                     bool *writeable_ptr,
+                                     const BigPageMetadata **metadata_ptr,
+                                     BigPageIndex big_page_index,
+                                     const BBCMicroState *state);
 
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);
 
@@ -787,6 +813,16 @@ class BBCMicro : private WD1770Handler {
 #endif
 
     void UpdateMapperRegion(uint8_t region);
+
+#if BBCMICRO_DEBUGGER
+    static uint8_t *DebugGetByteDebugFlags(const BigPageMetadata *metadata,
+                                           uint8_t *byte_debug_flags,
+                                           uint8_t *const *read_io_byte_debug_flags,
+                                           uint8_t *const *write_io_byte_debug_flags,
+                                           M6502Word offset,
+                                           bool write);
+    void DebugSetByteDebugFlags(BigPageIndex big_page_index, M6502Word offset, uint8_t flags, bool write);
+#endif
 
     static void HandleRTCNVRAMChange(void *context);
     static void HandleEEPROMNVRAMChange(void *context);

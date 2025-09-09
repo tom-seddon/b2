@@ -273,21 +273,21 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
         ASSERT(index.i + i < NUM_BIG_PAGES);
         BigPageMetadata *bp = &(*big_pages)[index.i + i];
 
-        static_assert(sizeof bp->aligned_codes >= 3);
-        static_assert(sizeof bp->minimal_codes >= 3);
+        static_assert(sizeof bp->codes[0] >= 3);
+        static_assert(sizeof bp->codes[1] >= 3);
         ASSERT(code0 != 0);
 
         if (code1 == 0) {
-            bp->aligned_codes[0] = code0;
-            bp->aligned_codes[1] = ' ';
+            bp->codes[1][0] = code0;
+            bp->codes[1][1] = ' ';
 
-            bp->minimal_codes[0] = code0;
+            bp->codes[0][0] = code0;
         } else {
-            bp->aligned_codes[0] = code0;
-            bp->aligned_codes[1] = code1;
+            bp->codes[1][0] = code0;
+            bp->codes[1][1] = code1;
 
-            bp->minimal_codes[0] = code0;
-            bp->minimal_codes[1] = code1;
+            bp->codes[0][0] = code0;
+            bp->codes[0][1] = code1;
         }
 
         bp->description = description;
@@ -299,16 +299,6 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
 
         bp->addr = (uint16_t)(base + i * 4096);
     }
-}
-
-static void InitBigPageIOMetadata(std::vector<BigPageMetadata> *big_pages, BigPageIndex index, uint8_t host_io_flags, char io_code0, char io_code1) {
-    BigPageMetadata *metadata = &(*big_pages)[index.i];
-
-    ASSERT(metadata->host_io_flags & HostIOFlag_NoIO);
-    metadata->host_io_flags = host_io_flags;
-
-    metadata->minimal_io_codes[0] = metadata->aligned_io_codes[0] = io_code0;
-    metadata->minimal_io_codes[1] = metadata->aligned_io_codes[1] = io_code1;
 }
 
 uint32_t GetROMTypeRegionMask(ROMType rom_type) {
@@ -516,7 +506,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         uint32_t dso_clear = BBCMicroDebugStateOverride_HAZEL;
         uint32_t dso_set = BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_OverrideITU;
 #endif
-        char io_code0 = 0, io_code1 = 0;
 
         std::string description = "MOS ROM+";
         if (host_io_flags & HostIOFlag_TST) {
@@ -531,32 +520,36 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 #endif
         }
         description += " ";
+
+        char ifj_code;
         if (host_io_flags & HostIOFlag_IFJ) {
             description += "IFJ";
 #if BBCMICRO_DEBUGGER
             dso_set = BBCMicroDebugStateOverride_IFJ;
 #endif
-            io_code0 = IFJ_IO_CODE;
+            ifj_code = IFJ_IO_CODE;
         } else {
             description += "XFJ";
 #if BBCMICRO_DEBUGGER
             dso_clear = BBCMicroDebugStateOverride_IFJ;
 #endif
-            io_code0 = IO_CODE;
+            ifj_code = IO_CODE;
         }
+
+        char itu_code;
         description += "/";
         if (host_io_flags & HostIOFlag_ITU) {
             description += "ITU";
 #if BBCMICRO_DEBUGGER
             dso_set = BBCMicroDebugStateOverride_ITU;
 #endif
-            io_code1 = ITU_CODE;
+            itu_code = ITU_CODE;
         } else {
             description += "XTU";
 #if BBCMICRO_DEBUGGER
             dso_clear = BBCMicroDebugStateOverride_ITU;
 #endif
-            io_code1 = XTU_CODE;
+            itu_code = XTU_CODE;
         }
         description += " I/O";
 
@@ -567,7 +560,31 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 #endif
                              0xf000);
 
-        InitBigPageIOMetadata(&big_pages, index, host_io_flags, io_code0, io_code1);
+        BigPageMetadata *metadata = &big_pages[index.i];
+
+        metadata->host_io_flags = host_io_flags;
+
+        for (uint8_t io_region = 0; io_region < 24; ++io_region) {
+            if (io_region < 16) {
+                // FRED/JIM
+                metadata->io_codes[0][io_region][0] = ifj_code;
+
+                metadata->io_codes[1][io_region][0] = ifj_code;
+                metadata->io_codes[1][io_region][1] = ' ';
+            } else if (io_region < 23) {
+                // SHEILA
+                metadata->io_codes[0][io_region][0] = IO_CODE;
+
+                metadata->io_codes[1][io_region][0] = IO_CODE;
+                metadata->io_codes[1][io_region][1] = ' ';
+            } else {
+                // SHEILA XTU/ITU
+                metadata->io_codes[0][io_region][0] = itu_code;
+
+                metadata->io_codes[1][io_region][0] = itu_code;
+                metadata->io_codes[1][io_region][1] = ' ';
+            }
+        }
     }
 
     // Parasite RAM
@@ -1009,11 +1026,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
         big_pages[MOS_BIG_PAGE_INDEX.i + i].dso_mask &= ~BBCMicroDebugStateOverride_HAZEL;
         big_pages[MOS_BIG_PAGE_INDEX.i + i].dso_value |= BBCMicroDebugStateOverride_OverrideHAZEL;
     }
-
-    // Switch IO off to see all of the last 4K of MOS.
-    //
-    // Might as well, since the hardware lets you...
-    big_pages[MOS_BIG_PAGE_INDEX.i + 3].dso_value |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
 #endif
 
     return big_pages;
@@ -1098,10 +1110,10 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
 
                 bp->debug_flags_index.i = *index;
             } else if (i >= FIRST_IO_BIG_PAGE_INDEX.i && i < FIRST_IO_BIG_PAGE_INDEX.i + NUM_IO_BIG_PAGES) {
-                // Top 4 KB of MOS ROM. All copies of this share the same debug flags.
-                BigPageIndex mos_debug_flags_index = type->big_pages_metadata[MOS_BIG_PAGE_INDEX.i + 3].debug_flags_index;
-                ASSERT(mos_debug_flags_index.i != 0); //0 is not allowed to be a MOS big page.
-                bp->debug_flags_index = mos_debug_flags_index;
+                // Top 4 KB of MOS ROM plus I/O. All copies of this share the
+                // same debug flags, covering accesses to the non-I/O region,
+                // and I/O region accesses are looked after independently.
+                bp->debug_flags_index = FIRST_IO_BIG_PAGE_INDEX;
             } else {
                 // A non-sideways big page. These always have their own debug
                 // flags.
@@ -1470,15 +1482,15 @@ uint32_t GetDSOMaskForOverrides(uint32_t dso) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-const char *GetAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write, const char *codes, const char *io_codes) {
+const char *GetAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word offset, bool is_write, uint8_t aligned) {
     if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
         if (offset.p.o >= IO_BEGIN_ADDRESS.p.o && offset.p.o < IO_END_ADDRESS.p.o) {
             if (!(metadata->host_io_flags & HostIOFlag_TST) || is_write) {
-                return io_codes;
+                return metadata->io_codes[aligned][offset.io.r];
             }
         }
     }
 
-    return codes;
+    return metadata->codes[aligned];
 }
 #endif

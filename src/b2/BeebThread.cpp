@@ -1569,7 +1569,7 @@ bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> 
                                                        ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb->DebugSetByteDebugFlags(m_big_page_index, m_offset, m_byte_flags);
+    ts->beeb->DebugSetReadByteDebugFlags(m_big_page_index, m_offset, m_byte_flags);
 
     ptr->reset();
     return true;

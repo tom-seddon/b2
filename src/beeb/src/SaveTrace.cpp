@@ -280,6 +280,8 @@ class TraceSaver {
     }
 
     [[nodiscard]] char *AddAddress(const TraceEvent *ev, char *c, const M6502DisassemblyInfo *instr, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix, bool align = false) {
+        ASSERT(align == 0 || align == 1);
+
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -314,9 +316,9 @@ class TraceSaver {
                 if (!(bp->host_io_flags & HostIOFlag_NoIO) &&
                     addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
                     (!(bp->host_io_flags & HostIOFlag_TST) || instr->instruction_category == M6502InstructionCategory_Write)) {
-                    codes = align ? bp->aligned_io_codes : bp->minimal_io_codes;
+                    codes = bp->io_codes[align][addr.io.r];
                 } else {
-                    codes = align ? bp->aligned_codes : bp->minimal_codes;
+                    codes = bp->codes[align];
                 }
             }
             break;

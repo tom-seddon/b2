@@ -497,6 +497,16 @@ parasite_update_done:
                 if (mmio_addr.b.h < 3) {
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
                     m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
+
+#if BBCMICRO_DEBUGGER
+                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+                        uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
+                                         m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->read_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
+                        if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
+                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                        }
+                    }
+#endif
                 } else {
                     if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_EmptySocket) {
                         const uint8_t *r = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p];
@@ -542,17 +552,21 @@ parasite_update_done:
                             }
 #endif
                         }
+
+#if BBCMICRO_DEBUGGER
+                        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+                            uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
+                                             m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
+                            if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
+                                this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                            }
+                        }
+#endif
                     }
                 }
 
 #if BBCMICRO_DEBUGGER
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                    uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
-                                     m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
-                    if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
-                        this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
-                    }
-
                     if (read == M6502ReadType_Interrupt) {
                         if (M6502_IsProbablyIRQ(&m_state.cpu)) {
                             if ((m_state.system_via.ifr.value & m_state.system_via.ier.value & m_debug->hw.system_via_irq_breakpoints.value) ||
@@ -567,20 +581,29 @@ parasite_update_done:
                 if (mmio_addr.b.h < 3) {
                     const WriteMMIO *write_mmio = &m_write_mmios[mmio_addr.w];
                     (*write_mmio->fn)(write_mmio->context, m_state.cpu.abus, m_state.cpu.dbus);
+#if BBCMICRO_DEBUGGER
+                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+                        uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
+                                         m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->write_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
+                        if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
+                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                        }
+                    }
+#endif
                 } else {
                     m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
-                }
 
 #if BBCMICRO_DEBUGGER
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                    uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
-                                     m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
+                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+                        uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
+                                         m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
 
-                    if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
-                        this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                        if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
+                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                        }
                     }
-                }
 #endif
+                }
             }
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_NonFastPath) != 0) {

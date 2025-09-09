@@ -236,3 +236,17 @@ EPNV(Serial, 1 << 14)
 
 EEND()
 #undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME BBCMicroIOByteDebugFlagRegion
+EBEGIN_DERIVED(uint8_t)
+EPNV(XFJ, 0)
+EPNV(IFJ, 16)
+EPNV(S_XTU, 24)
+EPNV(S_ITU, 24 + 8)//only one region here
+
+EPN(Count)
+EEND()
+#undef ENAME

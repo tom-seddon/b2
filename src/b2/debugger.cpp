@@ -813,8 +813,8 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
                     byte_str,
                     dbp->bp.metadata->description.c_str());
 
-        if (dbp->bp.byte_debug_flags) {
-            uint8_t byte_flags = dbp->bp.byte_debug_flags[addr.p.o];
+        if (const uint8_t *byte_flags_ = BBCMicro::DebugGetReadByteDebugFlags(&dbp->bp, addr.p.o)) {
+            uint8_t byte_flags = *byte_flags_;
             if (this->DoDebugByteFlagsGui(byte_str, &byte_flags)) {
                 m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->bp.metadata->debug_flags_index,
                                                                                          (uint16_t)addr.p.o,
@@ -3147,10 +3147,10 @@ class PagingDebugWindow : public DebugUI {
         if (ImGui::IsItemHovered()) {
             if (ImGui::BeginTooltip()) {
                 ImGui::Text("Index: %u", big_page_index.i);
-                ImGui::Text("Address suffix: %s", metadata->minimal_codes);
-                if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
-                    ImGui::Text("Address suffix (I/O): %s", metadata->minimal_io_codes);
-                }
+                ImGui::Text("Address suffix: %s", metadata->codes[0]);
+                //if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
+                //    ImGui::Text("Address suffix (I/O): %s", metadata->minimal_io_codes);
+                //}
                 ImGui::Text("HostIOFlags: ITU=%s; IFJ=%s; TST=%s", BOOL_STR(metadata->host_io_flags & HostIOFlag_ITU), BOOL_STR(metadata->host_io_flags & HostIOFlag_IFJ), BOOL_STR(metadata->host_io_flags & HostIOFlag_TST));
 
                 const BigPageMetadata *df_metadata = &type->big_pages_metadata[metadata->debug_flags_index.i];

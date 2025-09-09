@@ -20,20 +20,38 @@ struct M6502WordBytes {
     uint8_t l, h;
 };
 
-/* This is b2-specific. Strictly speaking, 6502_lib is its own indepndent thing,
- * and there should be some way for the consuming project to supply its own
- * extra M6502Word bits; but that's annoying enough to arrange for that there's
- * no harm in taking advantage of the fact that actually, nothing other than b2
- * uses it.
+/* These are b2-specific. Strictly speaking, 6502_lib is its own indepndent
+ * thing, and there should be some way for the consuming project to supply its
+ * own extra M6502Word bits; but that's annoying enough to arrange for that
+ * there's no harm in taking advantage of the fact that actually, nothing other
+ * than b2 uses it.
  */
 struct M6502WordBigPage {
     uint16_t o : 12, p : 4;
+};
+
+// <pre>
+//   f   e   d   c   b   a   9   8   7   6   5   4   3   2   1   0
+// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+// | 1   1   1   1 | 1   1   0   0 | 0   0   0   0 | 0   0   0   0 | - fc00 (I/O begin)
+// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+// | 1   1   1   1 | 1   1   1   0 | 1   1   1   1 | 1   1   1   1 | - feff (I/O end)
+// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+// |-p (page)------|-o (offset)------------------------------------| - M6502WordBigPage
+// |-N/A (always 111111)---|-r (region)--------|-o (offset)--------| - M6502WordIO
+// <pre>
+//
+// M6502WordIO region will only ever go up to 23.
+
+struct M6502WordIO {
+    uint16_t o : 5, r : 5;
 };
 
 union M6502Word {
     uint16_t w;
     struct M6502WordBytes b;
     struct M6502WordBigPage p;
+    struct M6502WordIO io;
 };
 typedef union M6502Word M6502Word;
 
