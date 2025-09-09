@@ -281,10 +281,6 @@ struct BBCMicroType {
     uint16_t adc_addr = 0;
     uint16_t adc_count = 0;
 
-#if BBCMICRO_DEBUGGER
-    bool (*parse_suffix_char_fn)(uint32_t *dso, char c);
-#endif
-
     ROMType rom_types[16] = {};
 };
 

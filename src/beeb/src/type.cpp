@@ -159,16 +159,16 @@
 // - 'r' exists to be the opposite of 'n'
 //
 
-static const char HAZEL_CODE = 'h';
-static const char IO_CODE = 'i';
-static const char IFJ_IO_CODE = 'j';
-static const char MAIN_CODE = 'm';
-static const char ANDY_CODE = 'n';
-static const char OS_CODE = 'o';
-static const char PARASITE_CODE = 'p';
-static const char PARASITE_ROM_CODE = 'q';
-static const char ROM_CODE = 'r';
-static const char SHADOW_CODE = 's';
+static constexpr char HAZEL_CODE = 'h';
+static constexpr char IO_CODE = 'i';
+static constexpr char IFJ_IO_CODE = 'j';
+static constexpr char MAIN_CODE = 'm';
+static constexpr char ANDY_CODE = 'n';
+static constexpr char OS_CODE = 'o';
+static constexpr char PARASITE_CODE = 'p';
+static constexpr char PARASITE_ROM_CODE = 'q';
+static constexpr char ROM_CODE = 'r';
+static constexpr char SHADOW_CODE = 's';
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -591,47 +591,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
     return big_pages;
 }
 
-#if BBCMICRO_DEBUGGER
-static bool HandleROMSuffixChar(uint32_t *dso, int rom) {
-    ASSERT(rom >= -1 && rom <= 15);
-
-    // OverrideANDY=1, ANDY=0
-    // OverrideMapperRegion=0
-    // if rom>=0: OverrideROM=1, ROM=rom
-    // if rom<0: OverrideROM=0
-
-    *dso &= ~(BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_OverrideMapperRegion | BBCMicroDebugStateOverride_ANDY);
-    *dso |= BBCMicroDebugStateOverride_OverrideANDY;
-
-    if (rom >= 0) {
-        *dso &= ~BBCMicroDebugStateOverride_ROM;
-        *dso |= BBCMicroDebugStateOverride_OverrideROM | (uint32_t)rom;
-    }
-
-    return true;
-}
-#endif
-
-#if BBCMICRO_DEBUGGER
-// select ROM
-static bool ParseROMSuffixChar(uint32_t *dso, char c) {
-    if (c >= '0' && c <= '9') {
-        return HandleROMSuffixChar(dso, (uint8_t)(c - '0'));
-    } else if (c >= 'a' && c <= 'f') {
-        return HandleROMSuffixChar(dso, (uint8_t)(c - 'a' + 10));
-    } else if (c == ROM_CODE) {
-        return HandleROMSuffixChar(dso, -1);
-    } else if (c >= 'A' && c < (char)('A' + NUM_MAPPER_REGIONS)) {
-        *dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
-        *dso |= BBCMicroDebugStateOverride_OverrideMapperRegion | (uint32_t)(c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
-
-        return true;
-    } else {
-        return false;
-    }
-}
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -684,18 +643,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB(const ROMType *rom_type
 
     return big_pages;
 }
-
-#if BBCMICRO_DEBUGGER
-static bool ParseSuffixCharB(uint32_t *dso, char c) {
-    if (ParseROMSuffixChar(dso, c)) {
-        // ...
-    } else {
-        return false;
-    }
-
-    return true;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -838,28 +785,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus(const ROMType *rom_
 
     return big_pages;
 }
-
-#if BBCMICRO_DEBUGGER
-static bool ParseSuffixCharBPlus(uint32_t *dso, char c) {
-    if (ParseROMSuffixChar(dso, c)) {
-        // ...
-    } else if (c == SHADOW_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
-    } else if (c == MAIN_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideShadow;
-        *dso &= ~BBCMicroDebugStateOverride_Shadow;
-    } else if (c == ANDY_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
-        //} else if (c == 'i' || c == 'I' || c == 'o' || c == 'O') {
-        //    // Valid, but no effect. These are supported on the basis that if you
-        //    // can see them in the UI, you ought to be able to type them in...
-    } else {
-        return false;
-    }
-
-    return true;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1065,33 +990,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
     return big_pages;
 }
 
-#if BBCMICRO_DEBUGGER
-static bool ParseSuffixCharMaster(uint32_t *dso, char c) {
-    if (ParseROMSuffixChar(dso, c)) {
-        // ...
-    } else if (c == SHADOW_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
-    } else if (c == MAIN_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideShadow;
-        *dso &= ~BBCMicroDebugStateOverride_Shadow;
-    } else if (c == HAZEL_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL;
-    } else if (c == ANDY_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
-    } else if (c == OS_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
-        *dso &= ~BBCMicroDebugStateOverride_HAZEL;
-    } else if (c == IO_CODE) {
-        *dso |= BBCMicroDebugStateOverride_OverrideOS;
-        *dso &= ~BBCMicroDebugStateOverride_OS;
-    } else {
-        return false;
-    }
-
-    return true;
-}
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1194,7 +1092,6 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                           BBCMicroDebugStateOverride_ROM);
         type->apply_dso_fn = &ApplyDSOB;
         type->get_dso_fn = &GetDSOB;
-        type->parse_suffix_char_fn = &ParseSuffixCharB;
         break;
 
     case BBCMicroTypeID_BPlus:
@@ -1206,7 +1103,6 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                           BBCMicroDebugStateOverride_OverrideShadow);
         type->apply_dso_fn = &ApplyDSOBPlus;
         type->get_dso_fn = &GetDSOBPlus;
-        type->parse_suffix_char_fn = &ParseSuffixCharBPlus;
         break;
 
     case BBCMicroTypeID_Master:
@@ -1220,10 +1116,11 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                           BBCMicroDebugStateOverride_Shadow |
                           BBCMicroDebugStateOverride_OverrideShadow |
                           BBCMicroDebugStateOverride_OS |
-                          BBCMicroDebugStateOverride_OverrideOS);
+                          BBCMicroDebugStateOverride_OverrideOS |
+                          BBCMicroDebugStateOverride_IFJ |
+                          BBCMicroDebugStateOverride_OverrideIFJ);
         type->apply_dso_fn = &ApplyDSOMaster;
         type->get_dso_fn = &GetDSOMaster;
-        type->parse_suffix_char_fn = &ParseSuffixCharMaster;
         break;
     }
 
@@ -1372,6 +1269,25 @@ const char *GetModelName(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+static void HandleROMSuffixChar(uint32_t *dso, int rom) {
+    ASSERT(rom >= -1 && rom <= 15);
+
+    // OverrideANDY=1, ANDY=0
+    // OverrideMapperRegion=0
+    // if rom>=0: OverrideROM=1, ROM=rom
+    // if rom<0: OverrideROM=0
+
+    *dso &= ~(BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_OverrideMapperRegion | BBCMicroDebugStateOverride_ANDY);
+    *dso |= BBCMicroDebugStateOverride_OverrideANDY;
+
+    if (rom >= 0) {
+        *dso &= ~BBCMicroDebugStateOverride_ROM;
+        *dso |= BBCMicroDebugStateOverride_OverrideROM | (uint32_t)rom;
+    }
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
 bool ParseAddressSuffix(uint32_t *dso_ptr,
                         const std::shared_ptr<const BBCMicroType> &type,
                         const char *suffix,
@@ -1385,10 +1301,33 @@ bool ParseAddressSuffix(uint32_t *dso_ptr,
             dso |= BBCMicroDebugStateOverride_Parasite;
         } else if (c == PARASITE_ROM_CODE) {
             dso |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;
-        } else if ((*type->parse_suffix_char_fn)(&dso, c)) {
-            // Valid flag for this model.
-        } else if (g_all_big_page_codes.find(c) != std::string::npos) {
-            // Valid flag - but not for this model, so ignore.
+        } else if (c >= '0' && c <= '9') {
+            HandleROMSuffixChar(&dso, (uint8_t)(c - '0'));
+        } else if (c >= 'a' && c <= 'f') {
+            HandleROMSuffixChar(&dso, (uint8_t)(c - 'a' + 10));
+        } else if (c == ROM_CODE) {
+            HandleROMSuffixChar(&dso, -1);
+        } else if (c >= 'A' && c < (char)('A' + NUM_MAPPER_REGIONS)) {
+            dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
+            dso |= BBCMicroDebugStateOverride_OverrideMapperRegion | (uint32_t)(c - 'A') << BBCMicroDebugStateOverride_MapperRegionShift;
+        } else if (c == SHADOW_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
+        } else if (c == MAIN_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideShadow;
+            dso &= ~BBCMicroDebugStateOverride_Shadow;
+        } else if (c == HAZEL_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL;
+        } else if (c == ANDY_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
+        } else if (c == OS_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
+            dso &= ~BBCMicroDebugStateOverride_HAZEL;
+        } else if (c == IO_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideIFJ;
+            dso &= ~BBCMicroDebugStateOverride_OS | BBCMicroDebugStateOverride_IFJ;
+        } else if (c == IFJ_IO_CODE) {
+            dso |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_IFJ;
+            dso &= ~BBCMicroDebugStateOverride_OS;
         } else {
             if (log) {
                 log->f("'%c': unknown address suffix", *suffix_char);
