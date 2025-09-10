@@ -57,6 +57,10 @@ _unix2:
 .PHONY:buildall
 buildall:
 	$(MAKE) _buildall SANITIZER=
+
+.PHONY:buildall_no_sanitizers
+buildall_with_sanitizers:
+	$(MAKE) buildall
 	$(MAKE) _buildall SANITIZER=u
 	$(MAKE) _buildall SANITIZER=a
 	$(MAKE) _buildall SANITIZER=t
