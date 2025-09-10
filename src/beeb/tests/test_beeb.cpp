@@ -1948,8 +1948,8 @@ class DebuggerTestBreakpointsB : public Test {
 
   protected:
   private:
-    TestBBCMicroType m_type = TestBBCMicroType_BTape;
     std::string m_name;
+    TestBBCMicroType m_type = TestBBCMicroType_BTape;
     bool m_verbose = false;
 
     void TestIO(uint8_t host_io_flags, uint16_t addr, bool write, bool should_succeed) {
@@ -1987,9 +1987,7 @@ class DebuggerTestBreakpointsB : public Test {
         w.Addbw(opcode, addr);
         w.Addb(rts);
 
-        std::string paste = strprintf("CALL &70\r", opcode, addr);
-        //printf("paste: %s\n", paste.c_str());
-        bbc.Paste(paste);
+        bbc.Paste("CALL &70\r");
 
         bbc.RunUntilOSWORD0(10.0);
 
@@ -2005,7 +2003,8 @@ class DebuggerTestBreakpointsB : public Test {
         if (should_succeed) {
             TEST_TRUE(bbc.DebugIsHalted());
             TEST_EQ_UU(debug->halt_reason, halt_reason);
-            TEST_EQ_UU(debug->halt_addr, addr);
+            TEST_GT_II(debug->halt_addr,0);
+            TEST_EQ_UU((unsigned)debug->halt_addr, addr);
         } else {
             TEST_FALSE(bbc.DebugIsHalted());
         }
@@ -2109,9 +2108,8 @@ class DebuggerTestBreakpointsMaster : public Test {
 
   protected:
   private:
-    TestBBCMicroType m_type = TestBBCMicroType_BTape;
     std::string m_name;
-    bool m_verbose = false;
+    TestBBCMicroType m_type = TestBBCMicroType_BTape;
     uint8_t m_host_io_flags_for_breakpoint = 0;
     bool m_trace = false;
 
@@ -2186,7 +2184,8 @@ class DebuggerTestBreakpointsMaster : public Test {
         if (should_succeed) {
             TEST_TRUE(bbc.DebugIsHalted());
             TEST_EQ_UU(debug->halt_reason, write ? BBCMicroHaltReason_Write : BBCMicroHaltReason_Read);
-            TEST_EQ_UU(debug->halt_addr, addr);
+            TEST_GT_II(debug->halt_addr,0);
+            TEST_EQ_UU((unsigned)debug->halt_addr, addr);
         } else {
             TEST_FALSE(bbc.DebugIsHalted());
         }
