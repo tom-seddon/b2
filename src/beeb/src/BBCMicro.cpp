@@ -112,7 +112,7 @@ static void GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint8_t
                     }
                 }
 
-                for (uint8_t region = 0; region < 15; ++region) {
+                for (uint8_t region = 0; region < 7; ++region) {
                     write_io_debug_flags[16 + region] = debug->io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_S_XTU + region];
                 }
 
