@@ -245,8 +245,25 @@ EBEGIN_DERIVED(uint8_t)
 EPNV(XFJ, 0)
 EPNV(IFJ, 16)
 EPNV(S_XTU, 24)
-EPNV(S_ITU, 24 + 8)//only one region here
-
+EPNV(S_ITU, 24 + 8) //only one region here
 EPN(Count)
 EEND()
 #undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME BBCMicroHaltReason
+EBEGIN_DERIVED(uint8_t)
+EPN(None)       //system is running
+EPN(Write)      //write breakpoint
+EPN(SingleStep) //single step
+EPN(Execute)    //execute breakpoint
+EPN(Read)       //read breakpoint
+EPN(Interrupt)  //interrupt breakpoint
+EPN(ManualHalt) //explicit full-system stop
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

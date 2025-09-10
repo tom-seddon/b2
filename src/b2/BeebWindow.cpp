@@ -1559,7 +1559,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     m_cst.SetEnabled(g_debug_stop_command, !m_cst.GetEnabled(g_debug_run_command));
     if (m_cst.WasActioned(g_debug_stop_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
-            m->DebugHalt("manual stop");
+            m->DebugHalt(BBCMicroHaltReason_ManualHalt, nullptr, -1, "manual stop");
         }));
     }
 #endif

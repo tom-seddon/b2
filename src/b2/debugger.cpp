@@ -1140,12 +1140,14 @@ class SystemDebugWindow : public DebugUI {
 
         ImGui::Text("Run time = %s", GetCycleCountString(m_beeb_state->cycle_count).c_str());
 
-        if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
-            if (m_beeb_debug_state->halt_reason[0] == 0) {
-                ImGui::TextUnformatted("State = halted");
-            } else {
-                ImGui::Text("State = halted: %s", m_beeb_debug_state->halt_reason);
-            }
+        if (m_beeb_debug_state && m_beeb_debug_state->halt_reason != BBCMicroHaltReason_None) {
+            ImGui::TextUnformatted("State = halted");
+            ImGui::Text("Halt reason = %s (%s)", GetBBCMicroHaltReasonEnumName(m_beeb_debug_state->halt_reason), m_beeb_debug_state->halt_reason_elaboration);
+            //if (m_beeb_debug_state->halt_reason[0] == 0) {
+            //    ImGui::TextUnformatted("Halted= %s");
+            //} else {
+            //    ImGui::Text("State = halted: %s", m_beeb_debug_state->halt_reason_elaboration);
+            //}
         } else {
             ImGui::TextUnformatted("State = running");
         }
@@ -1827,7 +1829,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         this->cst->DoToggleCheckbox(g_toggle_show_labels_command);
 
         if (m_persistent.track_pc) {
-            if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
+            if (m_beeb_debug_state && m_beeb_debug_state->halt_reason != BBCMicroHaltReason_None) {
                 if (m_old_pc != cpu->opcode_pc.w) {
                     // well, *something* happened since last time...
                     m_addr = cpu->opcode_pc.w;

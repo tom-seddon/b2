@@ -5684,7 +5684,19 @@ Convert DSO to suffix string:
 
 * Byte debug flags spring clean
 
-0x000001f232dba4a8
+Need to be able to breakpoint IFJ vs XFJ and ITU vs XTU (and of course
+TST).
 
+Add new tables for I/O area. 1 pointer for every 32 bytes, the minimal
+resolution (the Tube region being 32 bytes). There's now different
+breakpoint-testing code for accessing I/O and ordinary memory in
+BBCMicro::UpdateTemplated.
+
+The relevant tables of pointers are held in the corresponding BigPage,
+for examination and modification.
+
+The MemoryBigPages has a single such table (since there's only ever
+one I/O region), set up by copying the uint8_t ** from the 15th big
+page (since that's where the I/O region always is).
 
 * eof.

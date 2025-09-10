@@ -71,6 +71,28 @@ class TestBBCMicro : public BBCMicro {
     std::string spool_output;
     std::string spool_output_name;
 
+#if BBCMICRO_DEBUGGER
+    class Writer {
+      public:
+        M6502Word addr = {};
+
+        Writer(const Writer &) = default;
+
+        void Addb(uint8_t a);
+        void Addbw(uint8_t a, uint16_t b);
+        void Addbb(uint8_t a, uint8_t b);
+
+      protected:
+      private:
+        Writer() = default;
+
+        TestBBCMicro *m_bbc = nullptr;
+        uint32_t m_dso = 0;
+
+        friend class TestBBCMicro;
+    };
+#endif
+
     // Flags are a combination of TestBBCMicroFlags
     explicit TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args = {});
 
@@ -80,7 +102,7 @@ class TestBBCMicro : public BBCMicro {
     void LoadFile(const std::string &path, uint32_t addr);
     void LoadSSD(int drive, const std::string &path);
 
-    void RunUntilOSWORD0(double max_num_seconds);
+    bool RunUntilOSWORD0(double max_num_seconds);
 
     // return value is video output.
     std::vector<uint32_t> RunForNFrames(size_t num_frames);
@@ -97,6 +119,13 @@ class TestBBCMicro : public BBCMicro {
 
     void SaveTestTrace(const std::string &stem);
 
+#if BBCMICRO_DEBUGGER
+    Writer GetWriter(uint16_t addr);
+#endif
+
+    uint8_t MustFindOpcode(const char *mnemonic) const;
+    uint8_t MustFindOpcode(const char *mnemonic, M6502AddrMode mode) const;
+
   protected:
     void GotOSWRCH();
     virtual bool GotOSCLI(); //true=handled, false=ok to pass on to real OSCLI
@@ -104,7 +133,6 @@ class TestBBCMicro : public BBCMicro {
     bool m_spooling = false;
     size_t m_oswrch_capture_count = 0;
     size_t m_video_data_unit_idx = 0;
-    std::vector<VideoDataUnit> m_video_data_units;
     SoundDataUnit m_temp_sound_data_unit;
     uint64_t m_num_ticks = 0;
     CycleCount m_num_cycles = {0};
@@ -150,6 +178,11 @@ static constexpr size_t NUM_VIDEO_DATA_UNITS_LOG2 = 24;
 
 static constexpr size_t NUM_VIDEO_DATA_UNITS = 1 << NUM_VIDEO_DATA_UNITS_LOG2;
 static constexpr size_t VIDEO_DATA_UNIT_INDEX_MASK = (1 << NUM_VIDEO_DATA_UNITS_LOG2) - 1;
+
+// This is a measurable amount of RAM (~384 MB) and the allocation overhead is
+// noticeable if doing it for every BBCMicro created. So there's just one global
+// buffer...
+static VideoDataUnit g_video_data_units[NUM_VIDEO_DATA_UNITS];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -531,9 +564,10 @@ static std::shared_ptr<const std::array<uint8_t, 16384>> LoadOSROM(const std::st
     auto rom = std::make_shared<std::array<uint8_t, 16384>>();
 
     TEST_LE_UU(data.size(), rom->size());
-    for (size_t i = 0; i < data.size(); ++i) {
-        (*rom)[i] = data[i];
-    }
+    memcpy(rom->data(), data.data(), data.size());
+    //for (size_t i = 0; i < data.size(); ++i) {
+    //    (*rom)[i] = data[i];
+    //}
 
     return rom;
 }
@@ -684,6 +718,31 @@ static uint32_t GetBBCMicroInitFlags(TestBBCMicroType type, uint32_t flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void TestBBCMicro::Writer::Addb(uint8_t a) {
+    m_bbc->DebugSetBytes(this->addr, m_dso, false, &a, 1);
+    ++this->addr.w;
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+void TestBBCMicro::Writer::Addbw(uint8_t a, uint16_t b) {
+    this->Addb(a);
+    this->Addb(b & 0xff);
+    this->Addb(b >> 8);
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+void TestBBCMicro::Writer::Addbb(uint8_t a, uint8_t b) {
+    this->Addb(a);
+    this->Addb(b);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static_assert(ROMType_16KB == 0);
 static const ROMType DEFAULT_ROM_TYPES[16] = {};
 
@@ -746,8 +805,6 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
     }
 
     this->SetXFJIO(0xfc10, &ReadTestCommand, this, &WriteTestCommand, this);
-
-    m_video_data_units.resize(NUM_VIDEO_DATA_UNITS);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -797,13 +854,15 @@ void TestBBCMicro::LoadSSD(int drive, const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
+bool TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
     const uint8_t *ram = this->GetRAM();
     const M6502 *cpu = this->GetM6502();
 
     CycleCount max_num_cycles = {(uint64_t)(max_num_seconds * CYCLES_PER_SECOND)};
 
     uint64_t start_ticks = GetCurrentTickCount();
+
+    bool hit_osword0 = false;
 
     CycleCount num_cycles = {0};
     while (num_cycles.n < max_num_cycles.n) {
@@ -816,6 +875,7 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
                 if (cpu->abus.b.l == ram[WORDV + 0] &&
                     cpu->abus.b.h == ram[WORDV + 1] &&
                     cpu->a == 0) {
+                    hit_osword0 = true;
                     break;
                 }
             }
@@ -825,6 +885,8 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
     m_num_ticks += GetCurrentTickCount() - start_ticks;
 
     TEST_LE_UU(num_cycles.n, max_num_cycles.n);
+
+    return hit_osword0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -842,20 +904,20 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
         size_t a = m_video_data_unit_idx;
 
         for (size_t i = 0; i < 1024; ++i) {
-            uint32_t update_result = this->Update(&m_video_data_units[m_video_data_unit_idx],
+            uint32_t update_result = this->Update(&g_video_data_units[m_video_data_unit_idx],
                                                   &m_temp_sound_data_unit);
 
             if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
                 ++m_video_data_unit_idx;
                 if (m_video_data_unit_idx > VIDEO_DATA_UNIT_INDEX_MASK) {
-                    tv.Update(&m_video_data_units[a], m_video_data_unit_idx - a);
+                    tv.Update(&g_video_data_units[a], m_video_data_unit_idx - a);
                     m_video_data_unit_idx = 0;
                     a = m_video_data_unit_idx;
                 }
             }
         }
 
-        tv.Update(&m_video_data_units[a], m_video_data_unit_idx - a);
+        tv.Update(&g_video_data_units[a], m_video_data_unit_idx - a);
 
         VideoDataUnitCount new_version;
         pixels = tv.GetTexturePixels(&new_version);
@@ -888,7 +950,7 @@ void TestBBCMicro::Paste(std::string text) {
 //////////////////////////////////////////////////////////////////////////
 
 uint32_t TestBBCMicro::Update1() {
-    uint32_t update_result = this->Update(&m_video_data_units[m_video_data_unit_idx],
+    uint32_t update_result = this->Update(&g_video_data_units[m_video_data_unit_idx],
                                           &m_temp_sound_data_unit);
 
     ++m_num_cycles.n;
@@ -979,6 +1041,57 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
         f = nullptr;
     }
 #endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+TestBBCMicro::Writer TestBBCMicro::GetWriter(uint16_t addr) {
+    Writer writer;
+
+    writer.m_bbc = this;
+    writer.addr.w = addr;
+
+    return writer;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic) const {
+    const M6502 *cpu = this->GetM6502();
+
+    int opcode = -1;
+    for (int i = 0; i < 256; ++i) {
+        const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[i];
+
+        if (strcasecmp(di->mnemonic, mnemonic) == 0) {
+            if (opcode >= 0) {
+                TEST_FAIL("ambiguous by-name opcode search for: %s", mnemonic);
+            }
+
+            opcode = i;
+        }
+    }
+
+    return (uint8_t)opcode;
+}
+
+uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic, M6502AddrMode mode) const {
+    const M6502 *cpu = this->GetM6502();
+
+    for (int i = 0; i < 256; ++i) {
+        const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[i];
+
+        if (di->mode == mode && strcasecmp(di->mnemonic, mnemonic) == 0) {
+            return (uint8_t)i;
+        }
+    }
+
+    TEST_FAIL("opcode not found: mnemonic=%s; mode=%d", mnemonic, mode);
+    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1810,6 +1923,313 @@ class VideoNuLATest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+class DebuggerTestBreakpointsB : public Test {
+  public:
+    DebuggerTestBreakpointsB(std::string name, TestBBCMicroType type)
+        : m_name(std::move(name))
+        , m_type(type) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        uint8_t host_io_flags;
+        for (host_io_flags = 0; host_io_flags < 8; ++host_io_flags) {
+            for (uint8_t write = 0; write < 2; ++write) {
+                this->TestIO(host_io_flags, 0xfe02, !!write, true);
+                this->TestIO(host_io_flags, 0xfc00, !!write, !(host_io_flags & HostIOFlag_IFJ));
+                this->TestIO(host_io_flags, 0xfee0, !!write, !(host_io_flags & HostIOFlag_ITU));
+            }
+        }
+    }
+
+  protected:
+  private:
+    TestBBCMicroType m_type = TestBBCMicroType_BTape;
+    std::string m_name;
+    bool m_verbose = false;
+
+    void TestIO(uint8_t host_io_flags, uint16_t addr, bool write, bool should_succeed) {
+        if (host_io_flags & HostIOFlag_TST) {
+            should_succeed = false;
+        }
+
+        printf("host_io_flags=%d addr=0x%x write=%s: should_succeed=%s\n", host_io_flags, addr, BOOL_STR(write), BOOL_STR(should_succeed));
+        TestBBCMicro bbc(m_type);
+        TEST_TRUE(bbc.GetTypeID() == BBCMicroTypeID_B || bbc.GetTypeID() == BBCMicroTypeID_BPlus);
+        bbc.SetDebugState(std::make_shared<BBCMicro::DebugState>());
+        if (m_verbose) {
+            bbc.StartCaptureOSWRCH();
+        }
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        uint8_t opcode;
+        uint8_t break_flag;
+        BBCMicroHaltReason halt_reason;
+        if (write) {
+            opcode = bbc.MustFindOpcode("sta", M6502AddrMode_ABS);
+            break_flag = BBCMicroByteDebugFlag_BreakWrite;
+            halt_reason = BBCMicroHaltReason_Write;
+        } else {
+            opcode = bbc.MustFindOpcode("lda", M6502AddrMode_ABS);
+            break_flag = BBCMicroByteDebugFlag_BreakRead;
+            halt_reason = BBCMicroHaltReason_Read;
+        }
+        uint8_t rts = bbc.MustFindOpcode("rts");
+
+        bbc.DebugSetReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + host_io_flags)}, addr, break_flag);
+
+        TestBBCMicro::Writer w = bbc.GetWriter(0x70);
+        w.Addbw(opcode, addr);
+        w.Addb(rts);
+
+        std::string paste = strprintf("CALL &70\r", opcode, addr);
+        //printf("paste: %s\n", paste.c_str());
+        bbc.Paste(paste);
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        if (m_verbose) {
+            LOGF(BBC_OUTPUT, "All Output: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
+        }
+
+        std::shared_ptr<const BBCMicro::DebugState> debug = bbc.GetDebugState();
+        TEST_NON_NULL(debug);
+        if (should_succeed) {
+            TEST_TRUE(bbc.DebugIsHalted());
+            TEST_EQ_UU(debug->halt_reason, halt_reason);
+            TEST_EQ_UU(debug->halt_addr, addr);
+        } else {
+            TEST_FALSE(bbc.DebugIsHalted());
+        }
+    }
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+class DebuggerTestBreakpointsMaster : public Test {
+  public:
+    DebuggerTestBreakpointsMaster(std::string name, TestBBCMicroType type, uint8_t host_io_flags_for_breakpoint)
+        : m_name(std::move(name))
+        , m_type(type)
+        , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint) {
+        TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7, 0u);
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        for (uint8_t host_io_flags_for_system = 0; host_io_flags_for_system < 8; ++host_io_flags_for_system) {
+            for (uint8_t write = 0; write < 2; ++write) {
+                bool sys_tst = !!(host_io_flags_for_system & HostIOFlag_TST);
+                bool bp_tst = !!(m_host_io_flags_for_breakpoint & HostIOFlag_TST);
+
+                bool should_succeed_sheila;
+
+                if (!sys_tst && !bp_tst) {
+                    // BP is in IO; R=access IO, W=access IO; bp always hit.
+                    should_succeed_sheila = true;
+                } else if (!sys_tst && bp_tst) {
+                    // BP is in ROM; R=access IO, W=access IO; bp never hit.
+                    should_succeed_sheila = false;
+                } else if (sys_tst && !bp_tst) {
+                    // BP is in IO; R=access ROM, W=access IO; bp hit for writes
+                    should_succeed_sheila = !!write;
+                } else if (sys_tst && bp_tst) {
+                    // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
+                    should_succeed_sheila = !write;
+                } else {
+                    ASSERT(false); //(in)sanity check
+                    should_succeed_sheila = false;
+                }
+
+                this->TestIO(host_io_flags_for_system, 0xfe02, !!write, should_succeed_sheila);
+
+                bool sys_ifj = !!(host_io_flags_for_system & HostIOFlag_IFJ);
+                bool bp_ifj = !!(m_host_io_flags_for_breakpoint & HostIOFlag_IFJ);
+
+                bool should_succeed_fj;
+
+                if (!sys_tst && !bp_tst) {
+                    // BP is in IO; R=access IO, W=access IO; bp hit if IFJ matches.
+                    should_succeed_fj = sys_ifj == bp_ifj;
+                } else if (!sys_tst && bp_tst) {
+                    // BP is in ROM; R=access IO, W=access IO; bp never hit.
+                    should_succeed_fj = false;
+                } else if (sys_tst && !bp_tst) {
+                    // BP is in IO; R=access ROM, W=access IO; bp hit for writes if IFJ matches
+                    should_succeed_fj = write && sys_ifj == bp_ifj;
+                } else if (sys_tst && bp_tst) {
+                    // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
+                    should_succeed_fj = !write;
+                } else {
+                    ASSERT(false); //(in)sanity check
+                    should_succeed_fj = false;
+                }
+
+                this->TestIO(host_io_flags_for_system, 0xfc00, !!write, should_succeed_fj);
+
+                bool sys_itu = !!(host_io_flags_for_system & HostIOFlag_ITU);
+                bool bp_itu = !!(m_host_io_flags_for_breakpoint & HostIOFlag_ITU);
+
+                bool should_succeed_tube;
+                if (!sys_tst && !bp_tst) {
+                    // BP is in IO; R=access IO, W=access IO; bp hit if IFJ matches.
+                    should_succeed_tube = sys_itu == bp_itu;
+                } else if (!sys_tst && bp_tst) {
+                    // BP is in ROM; R=access IO, W=access IO; bp never hit.
+                    should_succeed_tube = false;
+                } else if (sys_tst && !bp_tst) {
+                    // BP is in IO; R=access ROM, W=access IO; bp hit for writes if IFJ matches
+                    should_succeed_tube = write && sys_itu == bp_itu;
+                } else if (sys_tst && bp_tst) {
+                    // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
+                    should_succeed_tube = !write;
+                } else {
+                    ASSERT(false); //(in)sanity check
+                    should_succeed_tube = false;
+                }
+
+                this->TestIO(host_io_flags_for_system, 0xfee0, !!write, should_succeed_tube);
+            }
+        }
+    }
+
+  protected:
+  private:
+    TestBBCMicroType m_type = TestBBCMicroType_BTape;
+    std::string m_name;
+    bool m_verbose = false;
+    uint8_t m_host_io_flags_for_breakpoint = 0;
+    bool m_trace = false;
+
+    std::string GetDescription(uint8_t f) {
+        std::string s;
+
+        s += f & HostIOFlag_TST ? "TST" : "___";
+        s += "|";
+        s += f & HostIOFlag_IFJ ? "IFJ" : "XFJ";
+        s += "|";
+        s += f & HostIOFlag_ITU ? "ITU" : "XTU";
+        s += " (" + std::to_string(f) + ")";
+
+        return s;
+    }
+
+    void TestIO(uint8_t host_io_flags_for_system, uint16_t addr, bool write, bool should_succeed) {
+        printf("bp=%s sys=%s addr=0x%x write=%s: should_succeed=%s\n", GetDescription(m_host_io_flags_for_breakpoint).c_str(), GetDescription(host_io_flags_for_system).c_str(), addr, BOOL_STR(write), BOOL_STR(should_succeed));
+
+        TestBBCMicro bbc(m_type);
+        bbc.SetDebugState(std::make_shared<BBCMicro::DebugState>());
+        TEST_TRUE(bbc.GetTypeID() == BBCMicroTypeID_Master || bbc.GetTypeID() == BBCMicroTypeID_MasterCompact);
+        bbc.RunUntilOSWORD0(10.0);
+
+        const uint8_t php = bbc.MustFindOpcode("php");
+        const uint8_t plp = bbc.MustFindOpcode("plp");
+        const uint8_t pha = bbc.MustFindOpcode("pha");
+        const uint8_t pla = bbc.MustFindOpcode("pla");
+        const uint8_t sei = bbc.MustFindOpcode("sei");
+        const uint8_t rts = bbc.MustFindOpcode("rts");
+        const uint8_t and_imm = bbc.MustFindOpcode("and", M6502AddrMode_IMM);
+        const uint8_t ora_imm = bbc.MustFindOpcode("ora", M6502AddrMode_IMM);
+        const uint8_t lda_abs = bbc.MustFindOpcode("lda", M6502AddrMode_ABS);
+        const uint8_t sta_abs = bbc.MustFindOpcode("sta", M6502AddrMode_ABS);
+        //const uint8_t lda_imm = bbc.MustFindOpcode("lda", M6502AddrMode_IMM);
+        const uint8_t opcode = write ? sta_abs : lda_abs;
+
+        TestBBCMicro::Writer w = bbc.GetWriter(0x70);
+
+        w.Addb(php);
+        w.Addb(sei);
+        w.Addbw(lda_abs, 0xfe34);
+        w.Addb(pha);
+        w.Addbb(and_imm, (uint8_t)~0x70);                //clear ITU+IFJ+TSTS
+        w.Addbb(ora_imm, host_io_flags_for_system << 4); //they're the same layout as the ACCCON bits
+        w.Addbw(sta_abs, 0xfe34);
+        w.Addbw(opcode, addr);
+        w.Addb(pla);
+        w.Addbw(sta_abs, 0xfe34);
+        w.Addb(plp);
+        w.Addb(rts);
+
+        ASSERT(w.addr.w <= 0x90);
+
+        bbc.DebugSetReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + m_host_io_flags_for_breakpoint)},
+                                       addr,
+                                       write ? BBCMicroByteDebugFlag_BreakWrite : BBCMicroByteDebugFlag_BreakRead);
+
+        if (m_trace) {
+            bbc.StartTrace(0, 256 * 1024 * 1024);
+        }
+
+        bbc.Paste("CALL&70\r");
+        bbc.RunUntilOSWORD0(10.0);
+
+        if (m_trace) {
+            bbc.SaveTestTrace(m_name + "." + std::to_string(host_io_flags_for_system) + "." + strprintf("%04x", addr) + "." + (write ? "w" : "r"));
+        }
+
+        std::shared_ptr<const BBCMicro::DebugState> debug = bbc.GetDebugState();
+        TEST_NON_NULL(debug);
+        if (should_succeed) {
+            TEST_TRUE(bbc.DebugIsHalted());
+            TEST_EQ_UU(debug->halt_reason, write ? BBCMicroHaltReason_Write : BBCMicroHaltReason_Read);
+            TEST_EQ_UU(debug->halt_addr, addr);
+        } else {
+            TEST_FALSE(bbc.DebugIsHalted());
+        }
+    }
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+
+#define DEBUGGER_ONLY(T) T
+
+#else
+
+class PlaceholderDebuggerTest : public Test {
+  public:
+    template <class... Types>
+    PlaceholderDebuggerTest(std::string name, Types...)
+        : m_name(std::move(name)) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        // ...
+    }
+
+  protected:
+  private:
+    std::string m_name;
+};
+
+#define DEBUGGER_ONLY(T) PlaceholderDebuggerTest
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct Options {
     bool verbose = false;
     std::vector<std::string> test_name_strs;
@@ -1979,6 +2399,12 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<VideoNuLADetectTest>("video_nula.detect_nula.enabled", false, "", false));
     all_tests.push_back(std::make_unique<VideoNuLADetectTest>("video_nula.detect_nula.disabled", false, "?&FE22=&50\r", false));
 
+    all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.b", TestBBCMicroType_BTape));
+    all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.bplus", TestBBCMicroType_BPlusTape));
+    for (uint8_t acccon = 0; acccon < 8; ++acccon) {
+        all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsMaster)>("debug.bp.master128." + std::to_string(acccon), TestBBCMicroType_Master128MOS320, acccon));
+    }
+
     if (options.list) {
         std::set<std::string> names;
 
@@ -1994,6 +2420,8 @@ int main(int argc, char *argv[]) {
     }
 
     g_infer_wanted_images = options.infer_wanted_images;
+
+    bool ran_any_tests = false;
 
     for (const std::unique_ptr<Test> &test : all_tests) {
         bool run = options.test_name_regexes.empty() && options.test_name_strs.empty();
@@ -2026,9 +2454,12 @@ int main(int argc, char *argv[]) {
         uint64_t start_ticks = GetCurrentTickCount();
 
         test->Run();
+        ran_any_tests = true;
 
         uint64_t end_ticks = GetCurrentTickCount();
 
         printf("test finished: %s (took %.3f seconds)\n", test->GetFullName().c_str(), GetSecondsFromTicks(end_ticks - start_ticks));
     }
+
+    TEST_TRUE(ran_any_tests);
 }

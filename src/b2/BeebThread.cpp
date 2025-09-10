@@ -2433,7 +2433,7 @@ void BeebThread::MainThreadIsReady() {
 
 #if BBCMICRO_DEBUGGER
 bool BeebThread::DebugIsHalted() const {
-    return m_debug_is_halted.load(std::memory_order_acquire);
+    return m_debug_halt_reason.load(std::memory_order_acquire) == BBCMicroHaltReason_None;
 }
 #endif
 
@@ -3258,9 +3258,9 @@ void BeebThread::ThreadMain(void) {
                 m_beeb_state = ts.beeb->DebugGetState();
                 m_beeb_debug_state = ts.beeb->GetDebugState();
                 if (!!m_beeb_debug_state) {
-                    m_debug_is_halted.store(m_beeb_debug_state->is_halted, std::memory_order_release);
+                    m_debug_halt_reason.store(m_beeb_debug_state->halt_reason, std::memory_order_release);
                 } else {
-                    m_debug_is_halted.store(false, std::memory_order_release);
+                    m_debug_halt_reason.store(BBCMicroHaltReason_None, std::memory_order_release);
                 }
                 m_update_mfn_data = ts.beeb->GetUpdateMFnData();
             }

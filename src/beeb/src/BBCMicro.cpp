@@ -1810,18 +1810,21 @@ void BBCMicro::SetExtMemory(uint32_t addr, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugHalt(const char *fmt, ...) {
+void BBCMicro::DebugHalt(BBCMicroHaltReason reason, const M6502Metadata *cpu_metadata, int32_t addr, const char *fmt, ...) {
+    ASSERT(reason != BBCMicroHaltReason_None);
     if (m_debug) {
-        m_debug->is_halted = m_debug_is_halted = true;
+        m_debug->halt_reason = m_debug_halt_reason = reason;
+        m_debug->halt_cpu_metadata = cpu_metadata;
+        m_debug->halt_addr = addr;
 
         if (fmt) {
             va_list v;
 
             va_start(v, fmt);
-            vsnprintf(m_debug->halt_reason, sizeof m_debug->halt_reason, fmt, v);
+            vsnprintf(m_debug->halt_reason_elaboration, sizeof m_debug->halt_reason_elaboration, fmt, v);
             va_end(v);
         } else {
-            m_debug->halt_reason[0] = 0;
+            m_debug->halt_reason_elaboration[0] = 0;
         }
 
         if (!m_debug->temp_execute_breakpoints.empty()) {
@@ -1865,11 +1868,11 @@ const char *BBCMicro::DebugGetHaltReason() const {
         return nullptr;
     }
 
-    if (m_debug->halt_reason[0] == 0) {
+    if (m_debug_halt_reason == BBCMicroHaltReason_None) {
         return nullptr;
     }
 
-    return m_debug->halt_reason;
+    return m_debug->halt_reason_elaboration;
 }
 #endif
 
@@ -1878,7 +1881,7 @@ const char *BBCMicro::DebugGetHaltReason() const {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugRun() {
-    m_debug->is_halted = m_debug_is_halted = false;
+    m_debug->halt_reason = m_debug_halt_reason = BBCMicroHaltReason_None;
 }
 #endif
 
@@ -2492,9 +2495,9 @@ void BBCMicro::UpdateDebugState() {
     }
 
     if (m_debug) {
-        m_debug_is_halted = m_debug->is_halted;
+        m_debug_halt_reason = m_debug->halt_reason;
     } else {
-        m_debug_is_halted = false;
+        m_debug_halt_reason = BBCMicroHaltReason_None;
     }
 }
 #endif
@@ -2529,12 +2532,12 @@ void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::Relati
     if (cpu->read == 0) {
         if (flags & BBCMicroByteDebugFlag_BreakWrite) {
             maybe_update_base = true;
-            DebugHalt("%s data write: $%04x", metadata->name, m_state.cpu.abus.w);
+            this->DebugHalt(BBCMicroHaltReason_Write, metadata, cpu->abus.w, "%s data write: $%04x", metadata->name, cpu->abus.w);
         }
     } else {
         if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
             if (cpu->read == M6502ReadType_Opcode) {
-                this->DebugHalt("%s single step", metadata->name);
+                this->DebugHalt(BBCMicroHaltReason_SingleStep, metadata, -1, "%s single step", metadata->name);
             }
         } else if (flags & BBCMicroByteDebugFlag_BreakExecute) {
             if (cpu->read == M6502ReadType_Opcode) {
@@ -2543,14 +2546,14 @@ void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::Relati
                     maybe_update_base = true;
                 }
 
-                this->DebugHalt("%s execute: $%04x", metadata->name, m_state.cpu.abus.w);
+                this->DebugHalt(BBCMicroHaltReason_Execute, metadata, cpu->abus.w, "%s execute: $%04x", metadata->name, cpu->abus.w);
             }
         }
 
         if (flags & BBCMicroByteDebugFlag_BreakRead) {
             if (cpu->read <= M6502ReadType_LastInterestingDataRead) {
                 maybe_update_base = true;
-                this->DebugHalt("%s data read: $%04x", metadata->name, m_state.cpu.abus.w);
+                this->DebugHalt(BBCMicroHaltReason_Read, metadata, cpu->abus.w, "%s data read: $%04x", metadata->name, cpu->abus.w);
             }
         }
     }
@@ -2587,7 +2590,7 @@ void BBCMicro::DebugHandleStep() {
 
             if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
                 // Done.
-                this->DebugHalt("%s single step", metadata->name);
+                this->DebugHalt(BBCMicroHaltReason_SingleStep, metadata, -1, "%s single step", metadata->name);
             } else if (m_debug->step_cpu->read == M6502ReadType_Interrupt) {
                 // The instruction was interrupted, so set a temp
                 // breakpoint in the right place.
@@ -2608,7 +2611,7 @@ void BBCMicro::DebugHandleStep() {
 
             ASSERT(m_debug->step_cpu->read == M6502ReadType_Opcode || m_debug->step_cpu->read == M6502ReadType_Interrupt);
             if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
-                this->DebugHalt("%s IRQ/NMI", metadata->name);
+                this->DebugHalt(BBCMicroHaltReason_Interrupt, metadata, -1, "%s IRQ/NMI", metadata->name);
             }
         }
         break;

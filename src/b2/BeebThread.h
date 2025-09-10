@@ -1084,7 +1084,7 @@ class BeebThread {
     std::atomic<size_t> m_printer_data_size_bytes{false};
     std::atomic<uint64_t> m_num_mq_polls{0};
     std::atomic<uint64_t> m_num_mq_waits{0};
-    std::atomic<bool> m_debug_is_halted{false};
+    std::atomic<BBCMicroHaltReason> m_debug_halt_reason{BBCMicroHaltReason_None};
     std::atomic<uint32_t> m_update_flags{0};
 
     // Set once the main thread is ready for the BBC to start running.

@@ -66,6 +66,14 @@ class BBCMicro : private WD1770Handler {
 
     typedef void (*NVRAMChangedCallbackFn)(BBCMicro *, void *context);
 
+    // TODO: is this the right thing.
+    struct M6502Metadata {
+        const char *name = nullptr;
+#if BBCMICRO_DEBUGGER
+        uint32_t dso = 0;
+#endif
+    };
+
 #if BBCMICRO_DEBUGGER
 
     struct UpdateMFnData {
@@ -106,7 +114,9 @@ class BBCMicro : private WD1770Handler {
             uint64_t id = 0;
         };
 
-        bool is_halted = false;
+        BBCMicroHaltReason halt_reason = BBCMicroHaltReason_None;
+        const M6502Metadata *halt_cpu_metadata = nullptr;
+        int32_t halt_addr = -1; //may be negative, indicating irrelevant...
 
         BBCMicroStepType step_type = BBCMicroStepType_None;
         const M6502 *step_cpu = nullptr;
@@ -154,7 +164,7 @@ class BBCMicro : private WD1770Handler {
         // isn't enough to worry about any more.)
         uint8_t parasite_address_debug_flags[65536] = {};
 
-        char halt_reason[1000] = {};
+        char halt_reason_elaboration[1000] = {};
     };
 #endif
 
@@ -471,6 +481,8 @@ class BBCMicro : private WD1770Handler {
     // Read/write refers to the memory operation being performed, and doesn't
     // limit the flags being set.
     //
+    // Irrelevant bits of offset are ignored.
+    //
     // TODO: does it *really* need this many different versions?!
     static const uint8_t *DebugGetReadByteDebugFlags(const BigPage *big_page, uint16_t offset);
     static const uint8_t *DebugGetWriteByteDebugFlags(const BigPage *big_page, uint16_t offset);
@@ -488,10 +500,10 @@ class BBCMicro : private WD1770Handler {
 
     void SetExtMemory(uint32_t addr, uint8_t value);
 
-    void DebugHalt(const char *fmt, ...) PRINTF_LIKE(2, 3);
+    void DebugHalt(BBCMicroHaltReason reason, const M6502Metadata *cpu_metadata, int32_t addr, const char *fmt, ...) PRINTF_LIKE(5, 6);
 
     inline bool DebugIsHalted() const {
-        return m_debug_is_halted;
+        return m_debug_halt_reason != BBCMicroHaltReason_None;
     }
 
     const char *DebugGetHaltReason() const;
@@ -573,14 +585,6 @@ class BBCMicro : private WD1770Handler {
     //
     // CPU must be about to execute.
     void TestRTS();
-
-  private:
-    struct M6502Metadata {
-        const char *name = nullptr;
-#if BBCMICRO_DEBUGGER
-        uint32_t dso = 0;
-#endif
-    };
 
   private:
     //////////////////////////////////////////////////////////////////////////
@@ -693,7 +697,7 @@ class BBCMicro : private WD1770Handler {
 
     // try to avoid appalling debug build performance...
     DebugState *m_debug = nullptr;
-    bool m_debug_is_halted = false;
+    BBCMicroHaltReason m_debug_halt_reason = BBCMicroHaltReason_None;
 #else
     static const bool m_debug_is_halted = false;
 #endif
