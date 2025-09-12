@@ -1133,8 +1133,8 @@ class BeebThread {
     // Last recorded trace. Controlled by m_last_trace_mutex.
     std::shared_ptr<Trace> m_last_trace;
 
-    // Controlled by m_mutex.
-    std::vector<uint8_t> m_printer_buffer;
+    // Has its own mutex internally.
+    PrinterBuffer m_printer_buffer;
 
 #if BBCMICRO_TRACE
     // Trace stats. Updated regularly when a trace is active. There's

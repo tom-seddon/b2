@@ -1745,7 +1745,7 @@ bool BeebThread::ResetPrinterBufferMessage::ThreadPrepare(std::shared_ptr<Messag
                                                           ThreadState *ts) {
     (void)completion_fun, (void)ts;
 
-    ts->beeb_thread->m_printer_buffer.clear();
+    ts->beeb_thread->m_printer_buffer.Clear();
     ptr->reset();
     return true;
 }
@@ -2363,9 +2363,7 @@ size_t BeebThread::GetPrinterDataSizeBytes() const {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BeebThread::GetPrinterData() const {
-    LockGuard<Mutex> lock(m_mutex);
-
-    return m_printer_buffer;
+    return m_printer_buffer.GetData();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3221,7 +3219,7 @@ void BeebThread::ThreadMain(void) {
 #if BBCMICRO_TRACE
                 ts.beeb->GetTraceStats(&m_trace_stats);
 #endif
-                m_printer_data_size_bytes.store(m_printer_buffer.size(), std::memory_order_release);
+                m_printer_data_size_bytes.store(m_printer_buffer.GetDataSizeBytes(), std::memory_order_release);
             }
 
             if (ts.boot) {

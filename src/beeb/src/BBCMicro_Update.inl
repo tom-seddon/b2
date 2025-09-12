@@ -1042,7 +1042,7 @@ parasite_update_done:
                 } else {
                     if (!m_state.user_via.a.c2) {
                         if (m_printer_buffer) {
-                            m_printer_buffer->push_back(m_state.user_via.a.p);
+                            m_printer_buffer->AddByte(m_state.user_via.a.p);
                         }
                         //uint8_t printer_byte = m_state.user_via.a.p;
                         //printf("Printer byte: %03d 0x%02x ", printer_byte, printer_byte);

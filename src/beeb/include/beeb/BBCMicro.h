@@ -24,6 +24,7 @@ class HardDiskImage;
 #include "keys.h"
 #include "BBCMicroParasiteType.h"
 #include "BBCMicroState.h"
+#include <shared/mutex.h>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -44,6 +45,30 @@ constexpr BBCMicroUpdateROMType GetBBCMicroUpdateFlagsUpdateROMType(uint32_t upd
 //////////////////////////////////////////////////////////////////////////
 
 static constexpr size_t NUM_BBCMICRO_UPDATE_MFNS = 32768;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class PrinterBuffer {
+  public:
+    PrinterBuffer();
+
+    PrinterBuffer(const PrinterBuffer &) = delete;
+    PrinterBuffer &operator=(const PrinterBuffer &) = delete;
+    PrinterBuffer(PrinterBuffer &&) = delete;
+    PrinterBuffer &operator=(PrinterBuffer &&) = delete;
+
+    void Clear();
+    void AddByte(uint8_t value);
+    size_t GetDataSizeBytes() const;
+
+    std::vector<uint8_t> GetData() const;
+
+  protected:
+  private:
+    mutable Mutex m_mutex;
+    std::vector<uint8_t> m_data;
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -550,7 +575,7 @@ class BBCMicro : private WD1770Handler {
     void SetPrinterEnabled(bool is_printer_enabled);
 
     // Overly simplistic mechanism?
-    void SetPrinterBuffer(std::vector<uint8_t> *buffer);
+    void SetPrinterBuffer(PrinterBuffer *printer_buffer);
 
     bool HasADC() const;
 
@@ -707,7 +732,7 @@ class BBCMicro : private WD1770Handler {
     BeebLinkHandler *m_beeblink_handler = nullptr;
     std::unique_ptr<BeebLink> m_beeblink;
 
-    std::vector<uint8_t> *m_printer_buffer = nullptr;
+    PrinterBuffer *m_printer_buffer = nullptr;
 
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<UpdateMFnData> m_update_mfn_data_ptr;
