@@ -5699,4 +5699,44 @@ The MemoryBigPages has a single such table (since there's only ever
 one I/O region), set up by copying the uint8_t ** from the 15th big
 page (since that's where the I/O region always is).
 
+* Visual Studio build time stuff
+
+b2's configure process felt noticeably slower after updating on one
+PC. Before/after timings from the other:
+
+| What                          |  Version |  Time | Notes                         |
+|-------------------------------+----------+-------+-------------------------------|
+| make init_vs2022 #1           | 17.14.13 |  52.8 | Configure=51.4; Generate=1.4  |
+| make init_vs2022 #2           | 17.14.13 |  49.4 | Confogure=47.9; Generate=1.5  |
+| Debug Rebuild All #1          | 17.14.13 | 127.4 |                               |
+| Debug Rebuild All #2          | 17.14.13 | 123.1 |                               |
+| RelWithDebInfo Rebuild All #1 | 17.14.13 | 433.8 |                               |
+| RelWithDebInfo Rebuild All #2 | 17.14.13 | 429.0 |                               |
+| Final Rebuild All #1          | 17.14.13 | 230.2 |                               |
+| Final Rebuild All #2          | 17.14.13 | 225.2 |                               |
+| make init_vs2022 #1           | 17.14.14 | 128.3 | Configure=126.9; Generate=1.4 |
+| make init_vs2022 #2           | 17.14.14 | 121.5 | Confogure=120.1; Generate=1.4 |
+| Debug Rebuild All #1          | 17.14.14 | 129.9 |                               |
+| Debug Rebuild All #2          | 17.14.14 | 123.9 |                               |
+| RelWithDebInfo Rebuild All #1 | 17.14.14 | 431.0 |                               |
+| RelWithDebInfo Rebuild All #2 | 17.14.14 | 426.7 |                               |
+| Final Rebuild All #1          | 17.14.14 | 227.8 |                               |
+| Final Rebuild All #2          | 17.14.14 | 227.6 |                               |
+
+** 17.14.13
+
+cmake version 3.31.6-msvc6
+
+: -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.19045.
+: -- The C compiler identification is MSVC 19.44.35215.0
+: -- The CXX compiler identification is MSVC 19.44.35215.0
+
+** 17.14.14
+
+cmake version 3.31.6-msvc6
+
+: -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.19045.
+: -- The C compiler identification is MSVC 19.44.35216.0
+: -- The CXX compiler identification is MSVC 19.44.35216.0
+
 * eof.
