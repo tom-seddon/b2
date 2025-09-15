@@ -19,6 +19,7 @@
 #include <shared/sha1.h>
 #include <shared/file_io.h>
 #include <shared/strings.h>
+#include <inttypes.h>
 
 #include <shared/enum_decl.h>
 #include "test_beeb.inl"
@@ -2003,7 +2004,7 @@ class DebuggerTestBreakpointsB : public Test {
         if (should_succeed) {
             TEST_TRUE(bbc.DebugIsHalted());
             TEST_EQ_UU(debug->halt_reason, halt_reason);
-            TEST_GT_II(debug->halt_addr,0);
+            TEST_GT_II(debug->halt_addr, 0);
             TEST_EQ_UU((unsigned)debug->halt_addr, addr);
         } else {
             TEST_FALSE(bbc.DebugIsHalted());
@@ -2184,7 +2185,7 @@ class DebuggerTestBreakpointsMaster : public Test {
         if (should_succeed) {
             TEST_TRUE(bbc.DebugIsHalted());
             TEST_EQ_UU(debug->halt_reason, write ? BBCMicroHaltReason_Write : BBCMicroHaltReason_Read);
-            TEST_GT_II(debug->halt_addr,0);
+            TEST_GT_II(debug->halt_addr, 0);
             TEST_EQ_UU((unsigned)debug->halt_addr, addr);
         } else {
             TEST_FALSE(bbc.DebugIsHalted());
@@ -2236,6 +2237,7 @@ struct Options {
     bool list = false;
     bool infer_wanted_images = false;
     bool wip = false;
+    std::string check_last_test_log_path;
 };
 
 static Options GetOptions(int argc, char *argv[]) {
@@ -2254,6 +2256,7 @@ static Options GetOptions(int argc, char *argv[]) {
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
+    p.AddOption(0, "check-last-test-log").Meta("FILE").Arg(&options.check_last_test_log_path).Help("read last ctest log from FILE and make sure every test was run once");
 
     if (!p.Parse(argc, argv)) {
         exit(1);
@@ -2299,11 +2302,53 @@ static Options GetOptions(int argc, char *argv[]) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void ForEachLine(const std::string &str, std::function<void(const std::string_view &line)> fun) {
+    const char *a = str.data(), *end = a + str.size(), *b = a;
+    while (b != end) {
+        char c = *b;
+        if (c == '\r' || c == '\n') {
+            fun(std::string_view(a, b - a));
+
+            ++b;
+            if ((*b == '\r' || *b == '\n') && *b != c) {
+                ++b;
+            }
+
+            a = b;
+        } else {
+            ++b;
+        }
+    }
+}
+//    std::string::const_iterator a = str.begin(), b = a;
+//    while (b != str.end()) {
+//        char c = *b;
+//        if (c == '\r' || c == '\n') {
+//            fun(std::string_view(a, b));
+//
+//            ++b;
+//            if (b != str.end()) {
+//                if ((*b == '\r' || *b == '\n') && *b != c) {
+//                    ++b;
+//                }
+//            }
+//
+//            a = b;
+//        } else {
+//            ++b;
+//        }
+//    }
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const std::string STARTING_TEST_PREFIX = "ea73a8dc-2d1a-43bc-ae41-078e441e53c5:";
+
 int main(int argc, char *argv[]) {
     Options options = GetOptions(argc, argv);
 
     std::vector<std::unique_ptr<Test>> all_tests;
-    all_tests.push_back(std::make_unique<StandardTest>("VTIMERS"));
     all_tests.push_back(std::make_unique<StandardTest>("VTIMERS"));
     all_tests.push_back(std::make_unique<StandardTest>("VIA.AC1"));
     all_tests.push_back(std::make_unique<StandardTest>("VIA.AC2"));
@@ -2418,6 +2463,50 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    if (!options.check_last_test_log_path.empty()) {
+        std::string log;
+        if (!LoadTextFile(&log, options.check_last_test_log_path, nullptr)) {
+            fprintf(stderr, "FATAL: failed to load last test log: %s\n", options.check_last_test_log_path.c_str());
+            return 1;
+        }
+
+        std::map<std::string, uint64_t> num_runs_by_test_name;
+        ForEachLine(log,
+                    [&num_runs_by_test_name](const std::string_view &line) {
+                        if (line.substr(0, STARTING_TEST_PREFIX.size()) == STARTING_TEST_PREFIX) {
+                            std::string test_name(line.substr(STARTING_TEST_PREFIX.size()));
+                            ++num_runs_by_test_name[test_name];
+                        }
+                    });
+
+        bool good = true;
+
+        std::set<std::string> all_test_names;
+        for (const std::unique_ptr<Test> &test : all_tests) {
+            std::string test_name = test->GetFullName();
+            all_test_names.insert(test_name);
+
+            uint64_t num_runs = num_runs_by_test_name[test_name];
+            if (num_runs != 1) {
+                fprintf(stderr, "FATAL: test not run once: %s, %" PRIu64 " x\n", test_name.c_str(), num_runs);
+                good = false;
+            }
+        }
+
+        for (const auto &test_name_and_num_runs : num_runs_by_test_name) {
+            if (all_test_names.find(test_name_and_num_runs.first) == all_test_names.end()) {
+                fprintf(stderr, "FATAL: last run included unknown test: %s\n", test_name_and_num_runs.first.c_str());
+                good = false;
+            }
+
+            if (good) {
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+    }
+
     g_infer_wanted_images = options.infer_wanted_images;
 
     bool ran_any_tests = false;
@@ -2449,6 +2538,7 @@ int main(int argc, char *argv[]) {
         }
 
         printf("starting test: %s\n", test->GetFullName().c_str());
+        printf("%s%s\n", STARTING_TEST_PREFIX.c_str(), test->GetFullName().c_str());
 
         uint64_t start_ticks = GetCurrentTickCount();
 
