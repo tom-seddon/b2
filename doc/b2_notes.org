@@ -5722,6 +5722,15 @@ PC. Before/after timings from the other:
 | RelWithDebInfo Rebuild All #2 | 17.14.14 | 426.7 |                               |
 | Final Rebuild All #1          | 17.14.14 | 227.8 |                               |
 | Final Rebuild All #2          | 17.14.14 | 227.6 |                               |
+| make init_vs2022 #1           | 17.14.15 |  71.9 | Configure=69.9; Generate=2.0  |
+| make init_vs2022 #2           | 17.14.15 |  59.0 | Configure=57.5; Generate=1.5  |
+| Debug Rebuild All #1          | 17.14.15 | 142.8 |                               |
+| Debug Rebuild All #2          | 17.14.15 | 130.0 |                               |
+| RelWithDebInfo Rebuild All #1 | 17.14.15 |       |                               |
+| RelWithDebInfo Rebuild All #2 | 17.14.15 |       |                               |
+| Final Rebuild All #1          | 17.14.15 |       |                               |
+| Final Rebuild All #2          | 17.14.15 |       |                               |
+
 
 ** 17.14.13
 
@@ -5738,5 +5747,13 @@ cmake version 3.31.6-msvc6
 : -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.19045.
 : -- The C compiler identification is MSVC 19.44.35216.0
 : -- The CXX compiler identification is MSVC 19.44.35216.0
+
+** 17.14.15
+
+cmake version 3.31.6-msvc6
+
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.19045.
+-- The C compiler identification is MSVC 19.44.35217.0
+-- The CXX compiler identification is MSVC 19.44.35217.0
 
 * eof.
