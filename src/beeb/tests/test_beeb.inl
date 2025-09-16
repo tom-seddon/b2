@@ -12,6 +12,10 @@ EPN(Master128MOS320)
 EPN(Master128MOS350)
 EPN(Master128MOS320WithMasterTurbo)
 EPN(Master128MOS320WithExternal3MHz6502)
+EPN(MasterCompactMOS500)
+EPN(MasterCompactMOS510)
+EPN(MasterCompactMOS511i)
+EPN(OlivettiPC128S)
 EEND()
 #undef ENAME
 

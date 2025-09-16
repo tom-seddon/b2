@@ -147,6 +147,7 @@ class TestBBCMicro : public BBCMicro {
     void LoadROMsB();
     void LoadROMsBPlus();
     void LoadROMsMaster(const std::string &version);
+    void LoadROMsMasterCompact(const std::string &version);
     void LoadParasiteOS(const std::string &name);
 
     static uint8_t ReadTestCommand(void *context, M6502Word addr);
@@ -598,6 +599,12 @@ static BBCMicroTypeID GetBBCMicroTypeID(TestBBCMicroType type, uint32_t) {
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
         return BBCMicroTypeID_Master;
+
+    case TestBBCMicroType_MasterCompactMOS500:
+    case TestBBCMicroType_MasterCompactMOS510:
+    case TestBBCMicroType_MasterCompactMOS511i:
+    case TestBBCMicroType_OlivettiPC128S:
+        return BBCMicroTypeID_MasterCompact;
     }
 }
 
@@ -620,6 +627,10 @@ static const DiscInterface *GetDiscInterface(TestBBCMicroType type, uint32_t) {
     case TestBBCMicroType_Master128MOS350:
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
+    case TestBBCMicroType_MasterCompactMOS500:
+    case TestBBCMicroType_MasterCompactMOS510:
+    case TestBBCMicroType_MasterCompactMOS511i:
+    case TestBBCMicroType_OlivettiPC128S:
         return &DISC_INTERFACE_MASTER128;
     }
 }
@@ -637,6 +648,10 @@ static BBCMicroParasiteType GetBBCMicroParasiteType(TestBBCMicroType type, uint3
     case TestBBCMicroType_BAcorn1770DFS:
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
+    case TestBBCMicroType_MasterCompactMOS500:
+    case TestBBCMicroType_MasterCompactMOS510:
+    case TestBBCMicroType_MasterCompactMOS511i:
+    case TestBBCMicroType_OlivettiPC128S:
         return BBCMicroParasiteType_None;
 
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
@@ -665,22 +680,20 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
         {
-            std::vector<uint8_t> nvram;
+            std::vector<uint8_t> nvram(50);
 
-            nvram.resize(50);
-
-            nvram[5] = 0xC9;  // 5 - LANG 12; FS 9
-            nvram[6] = 0xFF;  // 6 - INSERT 0 ... INSERT 7
-            nvram[7] = 0xFF;  // 7 - INSERT 8 ... INSERT 15
-            nvram[8] = 0x00;  // 8
-            nvram[9] = 0x00;  // 9
-            nvram[10] = 0x17; //10 - MODE 7; SHADOW 0; TV 0 1
-            nvram[11] = 0x80; //11 - FLOPPY
-            nvram[12] = 55;   //12 - DELAY 55
-            nvram[13] = 0x03; //13 - REPEAT 3
-            nvram[14] = 0x00; //14
-            nvram[15] = 0x01; //15 - TUBE
-            nvram[16] = 0x02; //16 - LOUD; INTUBE
+            nvram[5] = 0xC9;        // 5 - LANG 12; FS 9
+            nvram[6] = 0xFF;        // 6 - INSERT 0 ... INSERT 7
+            nvram[7] = 0xFF;        // 7 - INSERT 8 ... INSERT 15
+            nvram[8] = 0x00;        // 8
+            nvram[9] = 0x00;        // 9
+            nvram[10] = 0x17;       //10 - MODE 7; SHADOW 0; TV 0 1
+            nvram[11] = 0x80;       //11 - FLOPPY
+            nvram[12] = 55;         //12 - DELAY 55
+            nvram[13] = 0x03;       //13 - REPEAT 3
+            nvram[14] = 0x00;       //14
+            nvram[15] = 1 << 5 | 1; //15 - PRINT 1; TUBE
+            nvram[16] = 0x02;       //16 - LOUD; INTUBE
 
             if (flags & TestBBCMicroFlags_ConfigureExTube) {
                 nvram[16] |= 4;
@@ -688,6 +701,53 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
 
             if (flags & TestBBCMicroFlags_ConfigureNoTube) {
                 nvram[15] &= ~1u;
+            }
+
+            return nvram;
+        }
+        break;
+
+    case TestBBCMicroType_MasterCompactMOS500:
+    case TestBBCMicroType_MasterCompactMOS510:
+    case TestBBCMicroType_MasterCompactMOS511i:
+    case TestBBCMicroType_OlivettiPC128S:
+        {
+            std::vector<uint8_t> nvram(128);
+
+            nvram[5] = 0xED;        // 5 - LANG 14; FS 13
+            nvram[6] = 0xFF;        // 6 - INSERT 0 ... INSERT 7
+            nvram[7] = 0xFF;        // 7 - INSERT 8 ... INSERT 15
+            nvram[8] = 0x00;        // 8
+            nvram[9] = 0x00;        // 9
+            nvram[10] = 0x17;       //10 - MODE 7; SHADOW 0; TV 0 1
+            nvram[11] = 0xC0;       //11 - FLOPPY; NODIR
+            nvram[12] = 55;         //12 - DELAY 55
+            nvram[13] = 0x03;       //13 - REPEAT 3
+            nvram[14] = 0x00;       //14
+            nvram[15] = 1 << 5 | 1; //15 - PRINT 1; TUBE
+            nvram[16] = 0x02;       //16 - LOUD
+            nvram[17] = 0x00;       //17 - unused?
+            nvram[18] = 0x00;       //18 - joystick settings
+            nvram[19] = 0x00;       //19 - country code
+
+            // Additional flag to indicate contents are valid.
+            //
+            // Values for this are $b0 for MOS 5.00/MOS 5.10 or $b2 for MOS I5.10C/MOS
+            // 5.11.
+            switch (type) {
+            default:
+                TEST_FAIL("%s: unknown Compact-type TestBBCMicroType", __func__);
+                break;
+
+            case TestBBCMicroType_MasterCompactMOS500:
+            case TestBBCMicroType_MasterCompactMOS510:
+                nvram[127] = 0xb0;
+                break;
+
+            case TestBBCMicroType_MasterCompactMOS511i:
+            case TestBBCMicroType_OlivettiPC128S:
+                nvram[127] = 0xb2;
+                break;
             }
 
             return nvram;
@@ -802,6 +862,22 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
         this->LoadROMsMaster("3.20");
         this->LoadParasiteOS("TUBE110.rom");
+        break;
+
+    case TestBBCMicroType_MasterCompactMOS500:
+        this->LoadROMsMasterCompact("5.00");
+        break;
+
+    case TestBBCMicroType_MasterCompactMOS510:
+        this->LoadROMsMasterCompact("5.10");
+        break;
+
+    case TestBBCMicroType_MasterCompactMOS511i:
+        this->LoadROMsMasterCompact("5.11i");
+        break;
+
+    case TestBBCMicroType_OlivettiPC128S:
+        this->LoadROMsMasterCompact("I5.10C");
         break;
     }
 
@@ -1123,6 +1199,17 @@ void TestBBCMicro::LoadROMsMaster(const std::string &version) {
     this->SetSidewaysROM(11, LoadSidewaysROM(PathJoined("M128", version, "edit.rom")), ROMType_16KB);
     this->SetSidewaysROM(10, LoadSidewaysROM(PathJoined("M128", version, "viewsht.rom")), ROMType_16KB);
     this->SetSidewaysROM(9, LoadSidewaysROM(PathJoined("M128", version, "dfs.rom")), ROMType_16KB);
+
+    for (uint8_t i = 4; i < 8; ++i) {
+        this->SetSidewaysRAM(i, nullptr);
+    }
+}
+
+void TestBBCMicro::LoadROMsMasterCompact(const std::string &version) {
+    this->SetOSROM(LoadOSROM(PathJoined("MCompact", version, "mos.rom")));
+    this->SetSidewaysROM(15, LoadSidewaysROM(PathJoined("MCompact", version, "utils.rom")), ROMType_16KB);
+    this->SetSidewaysROM(14, LoadSidewaysROM(PathJoined("MCompact", version, "basic4.rom")), ROMType_16KB);
+    this->SetSidewaysROM(13, LoadSidewaysROM(PathJoined("MCompact", version, "adfs.rom")), ROMType_16KB);
 
     for (uint8_t i = 4; i < 8; ++i) {
         this->SetSidewaysRAM(i, nullptr);
@@ -2198,6 +2285,44 @@ class DebuggerTestBreakpointsMaster : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class PrinterTest : public Test {
+  public:
+    PrinterTest(std::string name, TestBBCMicroType type)
+        : m_name(std::move(name))
+        , m_type(type) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        TestBBCMicro bbc(m_type);
+        bbc.RunUntilOSWORD0(10.0);
+
+        PrinterBuffer printer_buffer;
+
+        bbc.SetPrinterEnabled(true);
+        bbc.SetPrinterBuffer(&printer_buffer);
+
+        bbc.Paste("*FX6\rVDU 2:PRINT \"PRINTER TEST\":VDU 3\r");
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        std::vector<uint8_t> data = printer_buffer.GetData();
+        data.push_back(0); //don't mind me...
+        TEST_EQ_SS((char *)data.data(), "PRINTER TEST\n\r");
+    }
+
+  protected:
+  private:
+    std::string m_name;
+    const TestBBCMicroType m_type;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 
 #define DEBUGGER_ONLY(T) T
@@ -2472,6 +2597,15 @@ int main(int argc, char *argv[]) {
             }
         }
     }
+
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.os120", TestBBCMicroType_BTape));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.os200", TestBBCMicroType_BPlusTape));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos320", TestBBCMicroType_Master128MOS320));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos350", TestBBCMicroType_Master128MOS350));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos500", TestBBCMicroType_MasterCompactMOS500));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos510", TestBBCMicroType_MasterCompactMOS510));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", TestBBCMicroType_MasterCompactMOS511i));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", TestBBCMicroType_OlivettiPC128S));
 
     if (options.list) {
         std::set<std::string> names;
