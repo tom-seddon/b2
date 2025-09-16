@@ -1927,9 +1927,12 @@ class VideoNuLATest : public Test {
 #if BBCMICRO_DEBUGGER
 class DebuggerTestBreakpointsB : public Test {
   public:
-    DebuggerTestBreakpointsB(std::string name, TestBBCMicroType type)
+    DebuggerTestBreakpointsB(std::string name, TestBBCMicroType type, uint8_t host_io_flags_for_breakpoint, bool write)
         : m_name(std::move(name))
-        , m_type(type) {
+        , m_type(type)
+        , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint)
+        , m_write(write) {
+        TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7, 0);
     }
 
     std::string GetFullName() const override {
@@ -1937,28 +1940,25 @@ class DebuggerTestBreakpointsB : public Test {
     }
 
     void Run() override {
-        uint8_t host_io_flags;
-        for (host_io_flags = 0; host_io_flags < 8; ++host_io_flags) {
-            for (uint8_t write = 0; write < 2; ++write) {
-                this->TestIO(host_io_flags, 0xfe02, !!write, true);
-                this->TestIO(host_io_flags, 0xfc00, !!write, !(host_io_flags & HostIOFlag_IFJ));
-                this->TestIO(host_io_flags, 0xfee0, !!write, !(host_io_flags & HostIOFlag_ITU));
-            }
-        }
+        this->TestIO(0xfe02, true);
+        this->TestIO(0xfc00, !(m_host_io_flags_for_breakpoint & HostIOFlag_IFJ));
+        this->TestIO(0xfee0, !(m_host_io_flags_for_breakpoint & HostIOFlag_ITU));
     }
 
   protected:
   private:
     std::string m_name;
     TestBBCMicroType m_type = TestBBCMicroType_BTape;
+    uint8_t m_host_io_flags_for_breakpoint = 0;
+    bool m_write = false;
     bool m_verbose = false;
 
-    void TestIO(uint8_t host_io_flags, uint16_t addr, bool write, bool should_succeed) {
-        if (host_io_flags & HostIOFlag_TST) {
+    void TestIO(uint16_t addr, bool should_succeed) {
+        if (m_host_io_flags_for_breakpoint & HostIOFlag_TST) {
             should_succeed = false;
         }
 
-        printf("host_io_flags=%d addr=0x%x write=%s: should_succeed=%s\n", host_io_flags, addr, BOOL_STR(write), BOOL_STR(should_succeed));
+        printf("host_io_flags_for_breakpoint=%d addr=0x%x write=%s: should_succeed=%s\n", m_host_io_flags_for_breakpoint, addr, BOOL_STR(m_write), BOOL_STR(should_succeed));
         TestBBCMicro bbc(m_type);
         TEST_TRUE(bbc.GetTypeID() == BBCMicroTypeID_B || bbc.GetTypeID() == BBCMicroTypeID_BPlus);
         bbc.SetDebugState(std::make_shared<BBCMicro::DebugState>());
@@ -1971,7 +1971,7 @@ class DebuggerTestBreakpointsB : public Test {
         uint8_t opcode;
         uint8_t break_flag;
         BBCMicroHaltReason halt_reason;
-        if (write) {
+        if (m_write) {
             opcode = bbc.MustFindOpcode("sta", M6502AddrMode_ABS);
             break_flag = BBCMicroByteDebugFlag_BreakWrite;
             halt_reason = BBCMicroHaltReason_Write;
@@ -1982,7 +1982,7 @@ class DebuggerTestBreakpointsB : public Test {
         }
         uint8_t rts = bbc.MustFindOpcode("rts");
 
-        bbc.DebugSetReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + host_io_flags)}, addr, break_flag);
+        bbc.DebugSetReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + m_host_io_flags_for_breakpoint)}, addr, break_flag);
 
         TestBBCMicro::Writer w = bbc.GetWriter(0x70);
         w.Addbw(opcode, addr);
@@ -2019,11 +2019,14 @@ class DebuggerTestBreakpointsB : public Test {
 #if BBCMICRO_DEBUGGER
 class DebuggerTestBreakpointsMaster : public Test {
   public:
-    DebuggerTestBreakpointsMaster(std::string name, TestBBCMicroType type, uint8_t host_io_flags_for_breakpoint)
+    DebuggerTestBreakpointsMaster(std::string name, TestBBCMicroType type, uint8_t host_io_flags_for_breakpoint, uint8_t host_io_flags_for_system, bool write)
         : m_name(std::move(name))
         , m_type(type)
-        , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint) {
+        , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint)
+        , m_host_io_flags_for_system(host_io_flags_for_system)
+        , m_write(write) {
         TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7, 0u);
+        TEST_EQ_UU(m_host_io_flags_for_system & ~7, 0u);
     }
 
     std::string GetFullName() const override {
@@ -2031,80 +2034,76 @@ class DebuggerTestBreakpointsMaster : public Test {
     }
 
     void Run() override {
-        for (uint8_t host_io_flags_for_system = 0; host_io_flags_for_system < 8; ++host_io_flags_for_system) {
-            for (uint8_t write = 0; write < 2; ++write) {
-                bool sys_tst = !!(host_io_flags_for_system & HostIOFlag_TST);
-                bool bp_tst = !!(m_host_io_flags_for_breakpoint & HostIOFlag_TST);
+        bool sys_tst = !!(m_host_io_flags_for_system & HostIOFlag_TST);
+        bool bp_tst = !!(m_host_io_flags_for_breakpoint & HostIOFlag_TST);
 
-                bool should_succeed_sheila;
+        bool should_succeed_sheila;
 
-                if (!sys_tst && !bp_tst) {
-                    // BP is in IO; R=access IO, W=access IO; bp always hit.
-                    should_succeed_sheila = true;
-                } else if (!sys_tst && bp_tst) {
-                    // BP is in ROM; R=access IO, W=access IO; bp never hit.
-                    should_succeed_sheila = false;
-                } else if (sys_tst && !bp_tst) {
-                    // BP is in IO; R=access ROM, W=access IO; bp hit for writes
-                    should_succeed_sheila = !!write;
-                } else if (sys_tst && bp_tst) {
-                    // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
-                    should_succeed_sheila = !write;
-                } else {
-                    ASSERT(false); //(in)sanity check
-                    should_succeed_sheila = false;
-                }
-
-                this->TestIO(host_io_flags_for_system, 0xfe02, !!write, should_succeed_sheila);
-
-                bool sys_ifj = !!(host_io_flags_for_system & HostIOFlag_IFJ);
-                bool bp_ifj = !!(m_host_io_flags_for_breakpoint & HostIOFlag_IFJ);
-
-                bool should_succeed_fj;
-
-                if (!sys_tst && !bp_tst) {
-                    // BP is in IO; R=access IO, W=access IO; bp hit if IFJ matches.
-                    should_succeed_fj = sys_ifj == bp_ifj;
-                } else if (!sys_tst && bp_tst) {
-                    // BP is in ROM; R=access IO, W=access IO; bp never hit.
-                    should_succeed_fj = false;
-                } else if (sys_tst && !bp_tst) {
-                    // BP is in IO; R=access ROM, W=access IO; bp hit for writes if IFJ matches
-                    should_succeed_fj = write && sys_ifj == bp_ifj;
-                } else if (sys_tst && bp_tst) {
-                    // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
-                    should_succeed_fj = !write;
-                } else {
-                    ASSERT(false); //(in)sanity check
-                    should_succeed_fj = false;
-                }
-
-                this->TestIO(host_io_flags_for_system, 0xfc00, !!write, should_succeed_fj);
-
-                bool sys_itu = !!(host_io_flags_for_system & HostIOFlag_ITU);
-                bool bp_itu = !!(m_host_io_flags_for_breakpoint & HostIOFlag_ITU);
-
-                bool should_succeed_tube;
-                if (!sys_tst && !bp_tst) {
-                    // BP is in IO; R=access IO, W=access IO; bp hit if IFJ matches.
-                    should_succeed_tube = sys_itu == bp_itu;
-                } else if (!sys_tst && bp_tst) {
-                    // BP is in ROM; R=access IO, W=access IO; bp never hit.
-                    should_succeed_tube = false;
-                } else if (sys_tst && !bp_tst) {
-                    // BP is in IO; R=access ROM, W=access IO; bp hit for writes if IFJ matches
-                    should_succeed_tube = write && sys_itu == bp_itu;
-                } else if (sys_tst && bp_tst) {
-                    // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
-                    should_succeed_tube = !write;
-                } else {
-                    ASSERT(false); //(in)sanity check
-                    should_succeed_tube = false;
-                }
-
-                this->TestIO(host_io_flags_for_system, 0xfee0, !!write, should_succeed_tube);
-            }
+        if (!sys_tst && !bp_tst) {
+            // BP is in IO; R=access IO, W=access IO; bp always hit.
+            should_succeed_sheila = true;
+        } else if (!sys_tst && bp_tst) {
+            // BP is in ROM; R=access IO, W=access IO; bp never hit.
+            should_succeed_sheila = false;
+        } else if (sys_tst && !bp_tst) {
+            // BP is in IO; R=access ROM, W=access IO; bp hit for writes
+            should_succeed_sheila = !!m_write;
+        } else if (sys_tst && bp_tst) {
+            // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
+            should_succeed_sheila = !m_write;
+        } else {
+            ASSERT(false); //(in)sanity check
+            should_succeed_sheila = false;
         }
+
+        this->TestIO(0xfe02, should_succeed_sheila);
+
+        bool sys_ifj = !!(m_host_io_flags_for_system & HostIOFlag_IFJ);
+        bool bp_ifj = !!(m_host_io_flags_for_breakpoint & HostIOFlag_IFJ);
+
+        bool should_succeed_fj;
+
+        if (!sys_tst && !bp_tst) {
+            // BP is in IO; R=access IO, W=access IO; bp hit if IFJ matches.
+            should_succeed_fj = sys_ifj == bp_ifj;
+        } else if (!sys_tst && bp_tst) {
+            // BP is in ROM; R=access IO, W=access IO; bp never hit.
+            should_succeed_fj = false;
+        } else if (sys_tst && !bp_tst) {
+            // BP is in IO; R=access ROM, W=access IO; bp hit for writes if IFJ matches
+            should_succeed_fj = m_write && sys_ifj == bp_ifj;
+        } else if (sys_tst && bp_tst) {
+            // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
+            should_succeed_fj = !m_write;
+        } else {
+            ASSERT(false); //(in)sanity check
+            should_succeed_fj = false;
+        }
+
+        this->TestIO(0xfc00, should_succeed_fj);
+
+        bool sys_itu = !!(m_host_io_flags_for_system & HostIOFlag_ITU);
+        bool bp_itu = !!(m_host_io_flags_for_breakpoint & HostIOFlag_ITU);
+
+        bool should_succeed_tube;
+        if (!sys_tst && !bp_tst) {
+            // BP is in IO; R=access IO, W=access IO; bp hit if IFJ matches.
+            should_succeed_tube = sys_itu == bp_itu;
+        } else if (!sys_tst && bp_tst) {
+            // BP is in ROM; R=access IO, W=access IO; bp never hit.
+            should_succeed_tube = false;
+        } else if (sys_tst && !bp_tst) {
+            // BP is in IO; R=access ROM, W=access IO; bp hit for writes if IFJ matches
+            should_succeed_tube = m_write && sys_itu == bp_itu;
+        } else if (sys_tst && bp_tst) {
+            // BP is in ROM; R=access ROM, W=access IO; bp hit for reads
+            should_succeed_tube = !m_write;
+        } else {
+            ASSERT(false); //(in)sanity check
+            should_succeed_tube = false;
+        }
+
+        this->TestIO(0xfee0, should_succeed_tube);
     }
 
   protected:
@@ -2112,6 +2111,8 @@ class DebuggerTestBreakpointsMaster : public Test {
     std::string m_name;
     TestBBCMicroType m_type = TestBBCMicroType_BTape;
     uint8_t m_host_io_flags_for_breakpoint = 0;
+    uint8_t m_host_io_flags_for_system = 0;
+    bool m_write = false;
     bool m_trace = false;
 
     std::string GetDescription(uint8_t f) {
@@ -2127,8 +2128,8 @@ class DebuggerTestBreakpointsMaster : public Test {
         return s;
     }
 
-    void TestIO(uint8_t host_io_flags_for_system, uint16_t addr, bool write, bool should_succeed) {
-        printf("bp=%s sys=%s addr=0x%x write=%s: should_succeed=%s\n", GetDescription(m_host_io_flags_for_breakpoint).c_str(), GetDescription(host_io_flags_for_system).c_str(), addr, BOOL_STR(write), BOOL_STR(should_succeed));
+    void TestIO(uint16_t addr, bool should_succeed) {
+        printf("bp=%s sys=%s addr=0x%x write=%s: should_succeed=%s\n", GetDescription(m_host_io_flags_for_breakpoint).c_str(), GetDescription(m_host_io_flags_for_system).c_str(), addr, BOOL_STR(m_write), BOOL_STR(should_succeed));
 
         TestBBCMicro bbc(m_type);
         bbc.SetDebugState(std::make_shared<BBCMicro::DebugState>());
@@ -2146,7 +2147,7 @@ class DebuggerTestBreakpointsMaster : public Test {
         const uint8_t lda_abs = bbc.MustFindOpcode("lda", M6502AddrMode_ABS);
         const uint8_t sta_abs = bbc.MustFindOpcode("sta", M6502AddrMode_ABS);
         //const uint8_t lda_imm = bbc.MustFindOpcode("lda", M6502AddrMode_IMM);
-        const uint8_t opcode = write ? sta_abs : lda_abs;
+        const uint8_t opcode = m_write ? sta_abs : lda_abs;
 
         TestBBCMicro::Writer w = bbc.GetWriter(0x70);
 
@@ -2154,8 +2155,8 @@ class DebuggerTestBreakpointsMaster : public Test {
         w.Addb(sei);
         w.Addbw(lda_abs, 0xfe34);
         w.Addb(pha);
-        w.Addbb(and_imm, (uint8_t)~0x70);                //clear ITU+IFJ+TSTS
-        w.Addbb(ora_imm, host_io_flags_for_system << 4); //they're the same layout as the ACCCON bits
+        w.Addbb(and_imm, (uint8_t)~0x70);                  //clear ITU+IFJ+TSTS
+        w.Addbb(ora_imm, m_host_io_flags_for_system << 4); //they're the same layout as the ACCCON bits
         w.Addbw(sta_abs, 0xfe34);
         w.Addbw(opcode, addr);
         w.Addb(pla);
@@ -2167,7 +2168,7 @@ class DebuggerTestBreakpointsMaster : public Test {
 
         bbc.DebugSetReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + m_host_io_flags_for_breakpoint)},
                                        addr,
-                                       write ? BBCMicroByteDebugFlag_BreakWrite : BBCMicroByteDebugFlag_BreakRead);
+                                       m_write ? BBCMicroByteDebugFlag_BreakWrite : BBCMicroByteDebugFlag_BreakRead);
 
         if (m_trace) {
             bbc.StartTrace(0, 256 * 1024 * 1024);
@@ -2177,14 +2178,14 @@ class DebuggerTestBreakpointsMaster : public Test {
         bbc.RunUntilOSWORD0(10.0);
 
         if (m_trace) {
-            bbc.SaveTestTrace(m_name + "." + std::to_string(host_io_flags_for_system) + "." + strprintf("%04x", addr) + "." + (write ? "w" : "r"));
+            bbc.SaveTestTrace(m_name + "." + strprintf("%04x", addr));
         }
 
         std::shared_ptr<const BBCMicro::DebugState> debug = bbc.GetDebugState();
         TEST_NON_NULL(debug);
         if (should_succeed) {
             TEST_TRUE(bbc.DebugIsHalted());
-            TEST_EQ_UU(debug->halt_reason, write ? BBCMicroHaltReason_Write : BBCMicroHaltReason_Read);
+            TEST_EQ_UU(debug->halt_reason, m_write ? BBCMicroHaltReason_Write : BBCMicroHaltReason_Read);
             TEST_GT_II(debug->halt_addr, 0);
             TEST_EQ_UU((unsigned)debug->halt_addr, addr);
         } else {
@@ -2443,10 +2444,33 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<VideoNuLADetectTest>("video_nula.detect_nula.enabled", false, "", false));
     all_tests.push_back(std::make_unique<VideoNuLADetectTest>("video_nula.detect_nula.disabled", false, "?&FE22=&50\r", false));
 
-    all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.b", TestBBCMicroType_BTape));
-    all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.bplus", TestBBCMicroType_BPlusTape));
-    for (uint8_t acccon = 0; acccon < 8; ++acccon) {
-        all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsMaster)>("debug.bp.master128." + std::to_string(acccon), TestBBCMicroType_Master128MOS320, acccon));
+    for (uint8_t host_io_flags_for_breakpoint = 0; host_io_flags_for_breakpoint < 8; ++host_io_flags_for_breakpoint) {
+        for (int write = 0; write < 2; ++write) {
+            std::string suffix = ".BP" + std::to_string(host_io_flags_for_breakpoint) + "." + (write ? "w" : "r");
+            all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.b" + suffix,
+                                                                                          TestBBCMicroType_BTape,
+                                                                                          host_io_flags_for_breakpoint,
+                                                                                          !!write));
+            all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.bplus" + suffix,
+                                                                                          TestBBCMicroType_BPlusTape,
+                                                                                          host_io_flags_for_breakpoint,
+                                                                                          !!write));
+        }
+    }
+
+    for (uint8_t host_io_flags_for_breakpoint = 0; host_io_flags_for_breakpoint < 8; ++host_io_flags_for_breakpoint) {
+        for (uint8_t host_io_flags_for_system = 0; host_io_flags_for_system < 8; ++host_io_flags_for_system) {
+            for (int write = 0; write < 2; ++write) {
+                all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsMaster)>((std::string("debug.bp.master128") +
+                                                                                                    ".BP" + std::to_string(host_io_flags_for_breakpoint) +
+                                                                                                    ".SYS" + std::to_string(host_io_flags_for_system) +
+                                                                                                    "." + (write ? "w" : "r")),
+                                                                                                   TestBBCMicroType_Master128MOS320,
+                                                                                                   host_io_flags_for_breakpoint,
+                                                                                                   host_io_flags_for_system,
+                                                                                                   !!write));
+            }
+        }
     }
 
     if (options.list) {
