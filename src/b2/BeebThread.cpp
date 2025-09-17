@@ -2431,7 +2431,7 @@ void BeebThread::MainThreadIsReady() {
 
 #if BBCMICRO_DEBUGGER
 bool BeebThread::DebugIsHalted() const {
-    return m_debug_halt_reason.load(std::memory_order_acquire) == BBCMicroHaltReason_None;
+    return m_debug_halt_reason.load(std::memory_order_acquire) != BBCMicroHaltReason_None;
 }
 #endif
 
