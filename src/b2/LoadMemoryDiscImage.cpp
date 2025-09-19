@@ -152,5 +152,5 @@ std::shared_ptr<MemoryDiscImage> LoadMemoryDiscImage(std::string path, const Log
         method = MemoryDiscImage::LOAD_METHOD_FILE;
     }
 
-    return MemoryDiscImage::LoadFromBuffer(path, method, data.data(), data.size(), geometry, logs);
+    return MemoryDiscImage::LoadFromBuffer(path, method, data.data(), data.size(), geometry, &logs);
 }

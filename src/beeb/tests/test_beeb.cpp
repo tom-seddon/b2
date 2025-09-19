@@ -15,11 +15,12 @@
 #include <shared/debug.h>
 #include <beeb/SaveTrace.h>
 #include <beeb/TVOutput.h>
-#include <beeb/DiscImage.h>
+#include <beeb/MemoryDiscImage.h>
 #include <shared/sha1.h>
 #include <shared/file_io.h>
 #include <shared/strings.h>
 #include <inttypes.h>
+#include <beeb/DiscGeometry.h>
 
 #include <shared/enum_decl.h>
 #include "test_beeb.inl"
@@ -77,13 +78,13 @@ static std::string GetPathForStandardROM(StandardROM rom) {
     case StandardROM_Acorn1770DFS:
         return "acorn/DFS-2.26.rom";
     case StandardROM_WatfordDDFS_DDB2:
-        return "DDFS-1.53.rom";
+        return "watford/DDFS-1.53.rom";
     case StandardROM_WatfordDDFS_DDB3:
-        return "DDFS-1.54T.rom";
+        return "watford/DDFS-1.54T.rom";
     case StandardROM_OpusDDOS:
-        return "OPUS-DDOS-3.45.rom";
+        return "opus/OPUS-DDOS-3.45.rom";
     case StandardROM_OpusChallenger:
-        return "challenger-1.01.rom";
+        return "opus/challenger-1.01.rom";
 
     case StandardROM_MOS320_ADFS:
         return "m128/3.20/adfs.rom";
@@ -542,7 +543,7 @@ class TestBBCMicro : public BBCMicro {
     void StopCaptureOSWRCH();
 
     void LoadFile(const std::string &path, uint32_t addr);
-    void LoadSSD(int drive, const std::string &path);
+    void LoadDiskImage(int drive, const std::string &path);
 
     bool RunUntilOSWORD0(double max_num_seconds);
 
@@ -781,221 +782,8 @@ std::string GetTestFileName(const std::string &beeblink_volume_path,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TestDiscImage : public DiscImage {
-  public:
-    TestDiscImage(std::string name, std::vector<uint8_t> contents);
-
-    std::shared_ptr<DiscImage> Clone() const override;
-    std::string GetHash() const override;
-    std::string GetName() const override;
-    std::string GetLoadMethod() const override;
-    std::string GetDescription() const override;
-    std::vector<FileDialogFilter> GetFileDialogFilters() const override;
-    bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
-    bool Read(uint8_t *value,
-              uint8_t side,
-              uint8_t track,
-              uint8_t sector,
-              size_t offset) const override;
-    bool Write(uint8_t side,
-               uint8_t track,
-               uint8_t sector,
-               size_t offset,
-               uint8_t value) override;
-    void Flush() override;
-    bool GetDiscSectorSize(size_t *size,
-                           uint8_t side,
-                           uint8_t track,
-                           uint8_t sector,
-                           bool double_density) const override;
-    bool IsWriteProtected() const override;
-
-  protected:
-  private:
-    std::string m_name;
-    std::vector<uint8_t> m_contents;
-
-    bool GetByteIndex(size_t *index,
-                      uint8_t side,
-                      uint8_t track,
-                      uint8_t sector,
-                      size_t offset) const;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-TestDiscImage::TestDiscImage(std::string name, std::vector<uint8_t> contents)
-    : m_name(std::move(name))
-    , m_contents(std::move(contents)) {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::shared_ptr<DiscImage> TestDiscImage::Clone() const {
-    return nullptr;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string TestDiscImage::GetHash() const {
-    char hash_str[SHA1::DIGEST_STR_SIZE];
-    SHA1::HashBuffer(nullptr, hash_str, m_contents.data(), m_contents.size());
-
-    return hash_str;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string TestDiscImage::GetName() const {
-    return m_name;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string TestDiscImage::GetLoadMethod() const {
-    return "test";
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string TestDiscImage::GetDescription() const {
-    return "";
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::vector<FileDialogFilter> TestDiscImage::GetFileDialogFilters() const {
-    return {};
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool TestDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
-    (void)file_name, (void)logs;
-
-    return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool TestDiscImage::Read(uint8_t *value,
-                         uint8_t side,
-                         uint8_t track,
-                         uint8_t sector,
-                         size_t offset) const {
-    size_t index;
-    if (!this->GetByteIndex(&index, side, track, sector, offset)) {
-        return false;
-    }
-
-    if (index >= m_contents.size()) {
-        *value = 0;
-    } else {
-        *value = m_contents[index];
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool TestDiscImage::Write(uint8_t side,
-                          uint8_t track,
-                          uint8_t sector,
-                          size_t offset,
-                          uint8_t value) {
-    size_t index;
-    if (!this->GetByteIndex(&index, side, track, sector, offset)) {
-        return false;
-    }
-
-    if (index >= m_contents.size()) {
-        m_contents.resize(index + 1);
-    }
-
-    m_contents[index] = value;
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TestDiscImage::Flush() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool TestDiscImage::GetDiscSectorSize(size_t *size,
-                                      uint8_t side,
-                                      uint8_t track,
-                                      uint8_t sector,
-                                      bool double_density) const {
-    if (double_density) {
-        return false;
-    }
-
-    if (!this->GetByteIndex(nullptr, side, track, sector, 0)) {
-        return false;
-    }
-
-    *size = 256;
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool TestDiscImage::IsWriteProtected() const {
-    return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool TestDiscImage::GetByteIndex(size_t *index,
-                                 uint8_t side,
-                                 uint8_t track,
-                                 uint8_t sector,
-                                 size_t offset) const {
-    if (side != 0) {
-        return false;
-    }
-
-    if (track > 80) {
-        return false;
-    }
-
-    if (sector > 10) {
-        return false;
-    }
-
-    if (offset > 256) {
-        return false;
-    }
-
-    if (index) {
-        *index = (track * 10u + sector) * 256u + offset;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static std::shared_ptr<const std::array<uint8_t, 16384>> LoadOSROM(const std::string &name) {
-    std::string path = PathJoined(ROMS_FOLDER, name);
+    std::string path = PathJoined(b2_SOURCE_DIR, "etc/roms", name);
 
     std::vector<uint8_t> data;
     TEST_TRUE(LoadFile(&data, path, nullptr));
@@ -1122,10 +910,17 @@ void TestBBCMicro::LoadFile(const std::string &path, uint32_t addr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestBBCMicro::LoadSSD(int drive, const std::string &path) {
+void TestBBCMicro::LoadDiskImage(int drive, const std::string &path) {
     std::vector<uint8_t> contents;
     TEST_TRUE(::LoadFile(&contents, path, nullptr));
-    this->SetDiscImage(drive, std::make_shared<TestDiscImage>(path, std::move(contents)));
+
+    DiscGeometry geometry;
+    TEST_TRUE(FindDiscGeometryFromFileDetails(&geometry, path.c_str(), contents.size(), nullptr));
+
+    std::shared_ptr<MemoryDiscImage> image = MemoryDiscImage::LoadFromBuffer(path, "file", contents.data(), contents.size(), geometry, nullptr);
+    TEST_NON_NULL(image);
+
+    this->SetDiscImage(drive, std::move(image));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1375,7 +1170,7 @@ uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic, M6502AddrMode mode) c
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadParasiteOS(const std::string &name) {
-    std::string path = PathJoined(ROMS_FOLDER, name);
+    std::string path = PathJoined(b2_SOURCE_DIR, "etc/roms", name);
 
     std::vector<uint8_t> data;
     TEST_TRUE(::LoadFile(&data, path, nullptr));
@@ -1831,7 +1626,7 @@ class dp111TimingTest : public Test {
         TestBBCMicro bbc(m_type);
 
         bbc.StartCaptureOSWRCH();
-        bbc.LoadSSD(0, ssd_path.c_str());
+        bbc.LoadDiskImage(0, ssd_path.c_str());
         bbc.RunUntilOSWORD0(10.0);
         bbc.Paste("*CAT\r");
         bbc.Paste("*RUN 6502tim\r");
@@ -2444,6 +2239,16 @@ class DebuggerTestBreakpointsMaster : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::string GetPrinterBufferDataString(const PrinterBuffer &printer_buffer) {
+    std::vector<uint8_t> data = printer_buffer.GetData();
+    data.push_back(0); //don't mind me...
+
+    return std::string((char *)data.data());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class PrinterTest : public Test {
   public:
     PrinterTest(std::string name, TestBBCType type)
@@ -2468,15 +2273,111 @@ class PrinterTest : public Test {
 
         bbc.RunUntilOSWORD0(10.0);
 
-        std::vector<uint8_t> data = printer_buffer.GetData();
-        data.push_back(0); //don't mind me...
-        TEST_EQ_SS((char *)data.data(), "PRINTER TEST\n\r");
+        TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "PRINTER TEST\n\r");
     }
 
   protected:
   private:
     std::string m_name;
     TestBBCType m_type;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class DiskAccessTest : public Test {
+  public:
+    DiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name)
+        : m_name(std::move(name))
+        , m_type(std::move(type))
+        , m_fs_type(fs_type)
+        , m_blank_disk_image_name(std::move(blank_disk_image_name)) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        std::shared_ptr<DiscImage> disc_image;
+
+        // Capturing OSWRCH for the load step would include all the LOAD
+        // statements and whatnot. So the test program does a VDU2/VDU3 so the
+        // printer buffer mechanism can be used instead.
+
+        {
+            TestBBCMicro bbc(m_type);
+            bbc.LoadDiskImage(0, PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name));
+            bbc.RunUntilOSWORD0(10.0);
+
+            this->Start(&bbc);
+
+            bbc.Paste("10VDU2\r20PRINT\"TEST\"\r30VDU3\rSAVE \"TEST0\"\r");
+            bbc.RunUntilOSWORD0(10.0);
+
+            if (m_fs_type == FSType_DFS) {
+                bbc.Paste("20PRINT\"TEST2\"\rSAVE \":2.TEST2\"\r");
+                bbc.RunUntilOSWORD0(10.0);
+            }
+
+            disc_image = bbc.TakeDiscImage(0);
+        }
+
+        {
+            PrinterBuffer printer_buffer;
+
+            TestBBCMicro bbc(m_type);
+            bbc.SetPrinterBuffer(&printer_buffer);
+            bbc.SetPrinterEnabled(true);
+
+            bbc.SetDiscImage(0, disc_image);
+            bbc.RunUntilOSWORD0(10.0);
+
+            this->Start(&bbc);
+
+            printer_buffer.Clear();
+
+            bbc.Paste("CHAIN \"TEST0\"\r");
+            bbc.RunUntilOSWORD0(10.0);
+
+            TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST\n\r");
+
+            if (m_fs_type == FSType_DFS) {
+                printer_buffer.Clear();
+
+                bbc.Paste("CHAIN \":2.TEST2\"\r");
+                bbc.RunUntilOSWORD0(10.0);
+
+                TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST2\n\r");
+            }
+        }
+    }
+
+  protected:
+  private:
+    std::string m_name;
+    TestBBCType m_type;
+    FSType m_fs_type;
+    std::string m_blank_disk_image_name;
+
+    void Start(TestBBCMicro *bbc) {
+        bbc->Paste("*" + this->GetSelectFSCommand() + "\r*FX 6\r");
+        bbc->RunUntilOSWORD0(10.0);
+    }
+
+    std::string GetSelectFSCommand() const {
+        switch (m_fs_type) {
+        default:
+            TEST_FAIL("%s: unknown FS type: %d (%s)", __func__, m_fs_type, GetFSTypeEnumName(m_fs_type));
+            break;
+
+        case FSType_DFS:
+            return "DISK";
+
+        case FSType_ADFS:
+            return "ADFS";
+        }
+    }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -2523,6 +2424,7 @@ struct Options {
     bool infer_wanted_images = false;
     bool wip = false;
     std::string check_last_test_log_path;
+    bool reverse = false;
 };
 
 static Options GetOptions(int argc, char *argv[]) {
@@ -2542,6 +2444,10 @@ static Options GetOptions(int argc, char *argv[]) {
     p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
     p.AddOption(0, "check-last-test-log").Meta("FILE").Arg(&options.check_last_test_log_path).Help("read last ctest log from FILE and make sure every test was run once");
+
+    // intended for use when adding new tests, in conjunction with -T, on the
+    // basis that the last one added is the most likely to fail.
+    p.AddOption(0, "reverse").SetIfPresent(&options.reverse).Help("work through the test list in reverse order");
 
     if (!p.Parse(argc, argv)) {
         exit(1);
@@ -2792,6 +2698,30 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", GetMasterCompactMOS511iType()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", GetMasterCompactMOSI510CType()));
 
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.acorndfs", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "80.dsd"));
+
+    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
+    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "blank_ddos_disc.ddd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "blank_ddos_disc.ddd"));
+
+    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.bplus", GetBPlusType(), FSType_DFS, "80.dsd"));
+
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos320.dfs", GetMasterMOS320Type(), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos320.adfs", GetMasterMOS320Type(), FSType_ADFS, "adl.adl"));
+
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos350.dfs", GetMasterMOS350Type(), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos350.adfs", GetMasterMOS350Type(), FSType_ADFS, "adl.adl"));
+
+    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos500.adfs", GetMasterCompactMOS500Type(), FSType_ADFS, "adl.adl"));
+    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos510.adfs", GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl"));
+    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mosI510C.adfs", GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl"));
+    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos511i.adfs", GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl"));
+
     if (options.list) {
         std::set<std::string> names;
 
@@ -2854,7 +2784,8 @@ int main(int argc, char *argv[]) {
 
     bool ran_any_tests = false;
 
-    for (const std::unique_ptr<Test> &test : all_tests) {
+    for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {
+        std::unique_ptr<Test> &test = options.reverse ? all_tests[all_tests.size() - 1 - test_index] : all_tests[test_index];
         bool run = options.test_name_regexes.empty() && options.test_name_strs.empty();
 
         if (!run) {

@@ -2183,7 +2183,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
                                                              file_item.new_disc_data.data(),
                                                              file_item.new_disc_data.size(),
                                                              *file_item.new_disc_type->geometry,
-                                                             m_msg);
+                                                             &m_msg);
         } else {
             new_disc_image = LoadMemoryDiscImage(file_item.path, m_msg);
         }

@@ -65,15 +65,19 @@ std::shared_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromBuffer(
     std::string load_method,
     const void *data, size_t data_size,
     const DiscGeometry &geometry,
-    const LogSet &logs) {
+    const LogSet *logs) {
     if (data_size == 0) {
-        logs.e.f("%s: disc image is empty\n", path.c_str());
+        if (logs) {
+            logs->e.f("%s: disc image is empty\n", path.c_str());
+        }
         return nullptr;
     }
 
     if (data_size % geometry.bytes_per_sector != 0) {
-        logs.e.f("%s: not a multiple of sector size (%zu)\n",
-                 path.c_str(), geometry.bytes_per_sector);
+        if (logs) {
+            logs->e.f("%s: not a multiple of sector size (%zu)\n",
+                      path.c_str(), geometry.bytes_per_sector);
+        }
         return nullptr;
     }
 

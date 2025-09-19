@@ -1,1 +1,6 @@
-// Currently surplus to requirements. But maybe it'll become necessary again?
+#define ENAME FSType
+EBEGIN()
+EPN(DFS)
+EPN(ADFS)
+EEND()
+#undef ENAME

@@ -37,7 +37,6 @@ add_executable(test_beeb
   test_beeb.cpp test_beeb.inl)
 target_compile_definitions(test_beeb PRIVATE
   -Db2_SOURCE_DIR="${b2_SOURCE_DIR}"
-  -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
   -DBBC_TESTS_OUTPUT_FOLDER="${CMAKE_BINARY_DIR}/b2_tests_output")
 target_link_libraries(test_beeb PRIVATE shared_lib beeb_lib stb_image_lib)
 b2_target_boilerplate(test_beeb SANITIZERS)
@@ -71,3 +70,6 @@ foreach(IO_FLAGS RANGE 7)
   add_test_beeb_wildcard_category(debug.bp.master128.BP${IO_FLAGS})
 endforeach()
 add_test_beeb_wildcard_category(printer)
+add_test_beeb_wildcard_category(disk.b.sd)
+add_test_beeb_wildcard_category(disk.b.dd)
+add_test_beeb_wildcard_category(disk.master)
