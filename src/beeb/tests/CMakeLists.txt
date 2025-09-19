@@ -72,4 +72,6 @@ endforeach()
 add_test_beeb_wildcard_category(printer)
 add_test_beeb_wildcard_category(disk.b.sd)
 add_test_beeb_wildcard_category(disk.b.dd)
+add_test_beeb_literal_category(disk.bplus) # slightly special case
 add_test_beeb_wildcard_category(disk.master)
+add_test_beeb_wildcard_category(disk.compact)

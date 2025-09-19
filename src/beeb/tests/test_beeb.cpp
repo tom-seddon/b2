@@ -293,7 +293,7 @@ static TestBBCType GetBTapeType() {
 static TestBBCType GetBPlusType() {
     TestBBCType type;
 
-    InitROMs(&type, StandardROM_BPlusMOS, StandardROM_BASIC2);
+    InitROMs(&type, StandardROM_BPlusMOS, StandardROM_BASIC2, StandardROM_Acorn1770DFS);
 
     type.disc_interface = &DISC_INTERFACE_ACORN_1770;
 
@@ -2320,6 +2320,11 @@ class DiskAccessTest : public Test {
                 bbc.RunUntilOSWORD0(10.0);
             }
 
+            if (m_fs_type == FSType_ADFS) {
+                bbc.Paste("*DISMOUNT\r");
+                bbc.RunUntilOSWORD0(10.0);
+            }
+
             disc_image = bbc.TakeDiscImage(0);
         }
 
@@ -2327,10 +2332,14 @@ class DiskAccessTest : public Test {
             PrinterBuffer printer_buffer;
 
             TestBBCMicro bbc(m_type);
+            if (m_verbose) {
+                bbc.StartCaptureOSWRCH();
+            }
             bbc.SetPrinterBuffer(&printer_buffer);
             bbc.SetPrinterEnabled(true);
-
+            TEST_NON_NULL(disc_image);
             bbc.SetDiscImage(0, disc_image);
+
             bbc.RunUntilOSWORD0(10.0);
 
             this->Start(&bbc);
@@ -2339,6 +2348,14 @@ class DiskAccessTest : public Test {
 
             bbc.Paste("CHAIN \"TEST0\"\r");
             bbc.RunUntilOSWORD0(10.0);
+
+            if (m_verbose) {
+                bbc.StopCaptureOSWRCH();
+                LOGF(BBC_OUTPUT, "All Output: ");
+                LOGI(BBC_OUTPUT);
+                LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
+                LOG(BBC_OUTPUT).EnsureBOL();
+            }
 
             TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST\n\r");
 
@@ -2359,24 +2376,36 @@ class DiskAccessTest : public Test {
     TestBBCType m_type;
     FSType m_fs_type;
     std::string m_blank_disk_image_name;
+    bool m_verbose = false;
 
     void Start(TestBBCMicro *bbc) {
-        bbc->Paste("*" + this->GetSelectFSCommand() + "\r*FX 6\r");
-        bbc->RunUntilOSWORD0(10.0);
-    }
+        std::string stuff;
 
-    std::string GetSelectFSCommand() const {
         switch (m_fs_type) {
         default:
             TEST_FAIL("%s: unknown FS type: %d (%s)", __func__, m_fs_type, GetFSTypeEnumName(m_fs_type));
             break;
 
         case FSType_DFS:
-            return "DISK";
+            stuff += "*DISK\r";
+            break;
 
         case FSType_ADFS:
-            return "ADFS";
+            stuff += "*ADFS\r";
+
+            // Always do an explicit *MOUNT, as NODIR is the config default for
+            // MOS 5.00+.
+            stuff += "*MOUNT 0\r";
+            break;
         }
+
+        stuff += "*FX6\r";
+
+        bbc->Paste(stuff);
+        bbc->RunUntilOSWORD0(10.0);
+    }
+
+    std::string GetSelectFSCommand() const {
     }
 };
 
@@ -2709,7 +2738,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "blank_ddos_disc.ddd"));
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "blank_ddos_disc.ddd"));
 
-    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.bplus", GetBPlusType(), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.bplus", GetBPlusType(), FSType_DFS, "80.dsd"));
 
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos320.dfs", GetMasterMOS320Type(), FSType_DFS, "80.dsd"));
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos320.adfs", GetMasterMOS320Type(), FSType_ADFS, "adl.adl"));
@@ -2717,10 +2746,10 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos350.dfs", GetMasterMOS350Type(), FSType_DFS, "80.dsd"));
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos350.adfs", GetMasterMOS350Type(), FSType_ADFS, "adl.adl"));
 
-    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos500.adfs", GetMasterCompactMOS500Type(), FSType_ADFS, "adl.adl"));
-    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos510.adfs", GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl"));
-    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mosI510C.adfs", GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl"));
-    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos511i.adfs", GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos500.adfs", GetMasterCompactMOS500Type(), FSType_ADFS, "adl.adl"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos510.adfs", GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mosI510C.adfs", GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos511i.adfs", GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl"));
 
     if (options.list) {
         std::set<std::string> names;

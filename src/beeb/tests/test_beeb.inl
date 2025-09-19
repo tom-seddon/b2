@@ -1,4 +1,5 @@
 #define ENAME FSType
+#define ENAME FSType
 EBEGIN()
 EPN(DFS)
 EPN(ADFS)
