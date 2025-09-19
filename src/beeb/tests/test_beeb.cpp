@@ -59,9 +59,451 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct TestBBCMicroArgs {
-    uint32_t flags = 0;
+static std::string GetPathForStandardROM(StandardROM rom) {
+    switch (rom) {
+    default:
+        TEST_FAIL("%s: unsupported StandardROM: %d (%s)", __func__, rom, GetStandardROMEnumName(rom));
+        return "";
+
+    case StandardROM_OS12:
+        return "OS12.ROM";
+
+    case StandardROM_BPlusMOS:
+        return "B+MOS.ROM";
+
+    case StandardROM_BASIC2:
+        return "BASIC2.ROM";
+
+    case StandardROM_Acorn1770DFS:
+        return "acorn/DFS-2.26.rom";
+    case StandardROM_WatfordDDFS_DDB2:
+        return "DDFS-1.53.rom";
+    case StandardROM_WatfordDDFS_DDB3:
+        return "DDFS-1.54T.rom";
+    case StandardROM_OpusDDOS:
+        return "OPUS-DDOS-3.45.rom";
+    case StandardROM_OpusChallenger:
+        return "challenger-1.01.rom";
+
+    case StandardROM_MOS320_ADFS:
+        return "m128/3.20/adfs.rom";
+    case StandardROM_MOS320_BASIC4:
+        return "m128/3.20/basic4.rom";
+    case StandardROM_MOS320_DFS:
+        return "m128/3.20/dfs.rom";
+    case StandardROM_MOS320_EDIT:
+        return "m128/3.20/edit.rom";
+    case StandardROM_MOS320_MOS:
+        return "m128/3.20/mos.rom";
+    case StandardROM_MOS320_TERMINAL:
+        return "m128/3.20/terminal.rom";
+    case StandardROM_MOS320_VIEW:
+        return "m128/3.20/view.rom";
+    case StandardROM_MOS320_VIEWSHEET:
+        return "m128/3.20/viewsht.rom";
+
+    case StandardROM_MOS350_ADFS:
+        return "m128/3.50/adfs.rom";
+    case StandardROM_MOS350_BASIC4:
+        return "m128/3.50/basic4.rom";
+    case StandardROM_MOS350_DFS:
+        return "m128/3.50/dfs.rom";
+    case StandardROM_MOS350_EDIT:
+        return "m128/3.50/edit.rom";
+    case StandardROM_MOS350_MOS:
+        return "m128/3.50/mos.rom";
+    case StandardROM_MOS350_TERMINAL:
+        return "m128/3.50/terminal.rom";
+    case StandardROM_MOS350_VIEW:
+        return "m128/3.50/view.rom";
+    case StandardROM_MOS350_VIEWSHEET:
+        return "m128/3.50/viewsht.rom";
+
+    case StandardROM_MasterTurboParasite:
+        return "MasterTurboParasite.rom";
+    case StandardROM_TUBE110:
+        return "TUBE110.rom";
+
+    case StandardROM_MOS500_ADFS:
+        return "mcompact/5.00/adfs.rom";
+    case StandardROM_MOS500_BASIC4:
+        return "mcompact/5.00/basic4.rom";
+    case StandardROM_MOS500_UTILS:
+        return "mcompact/5.00/utils.rom";
+    case StandardROM_MOS500_MOS:
+        return "mcompact/5.00/mos.rom";
+
+    case StandardROM_MOS510_ADFS:
+        return "mcompact/5.10/adfs.rom";
+    case StandardROM_MOS510_BASIC4:
+        return "mcompact/5.10/basic4.rom";
+    case StandardROM_MOS510_UTILS:
+        return "mcompact/5.10/utils.rom";
+    case StandardROM_MOS510_MOS:
+        return "mcompact/5.10/mos.rom";
+
+    case StandardROM_MOSI510C_ADFS:
+        return "mcompact/I5.10C/adfs.rom";
+    case StandardROM_MOSI510C_BASIC4:
+        return "mcompact/I5.10C/basic4.rom";
+    case StandardROM_MOSI510C_UTILS:
+        return "mcompact/I5.10C/utils.rom";
+    case StandardROM_MOSI510C_MOS:
+        return "mcompact/I5.10C/mos.rom";
+
+    case StandardROM_MOS511i_ADFS:
+        return "mcompact/5.11i/adfs.rom";
+    case StandardROM_MOS511i_BASIC4:
+        return "mcompact/5.11i/basic4.rom";
+    case StandardROM_MOS511i_UTILS:
+        return "mcompact/5.11i/utils.rom";
+    case StandardROM_MOS511i_MOS:
+        return "mcompact/5.11i/mos.rom";
+    case StandardROM_MOS511i_ARABIC:
+        return "mcompact/5.11i/arabic.rom";
+    case StandardROM_MOS511i_INTERNATIONAL:
+        return "mcompact/5.11i/international.rom";
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct TestBBCType {
+    const DiscInterface *disc_interface = nullptr;
+    BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
+    bool configure_extube = false; //Default for test Master is INTUBE.
+    bool configure_notube = false; //Default for test Master is TUBE.
+    bool video_nula = false;
+
+    static_assert(ROMType_16KB == 0);
+    ROMType rom_types[16] = {};
+    std::string rom_paths[16];
+    bool is_ram[16] = {};
+    StandardROM os_rom = StandardROM_None;
+    std::string os_path;
+    std::string parasite_os_path;
+
+    TestBBCType WithSecondProcessor(BBCMicroParasiteType parasite_type) const;
+    TestBBCType WithConfigureEXTUBE() const;
+    TestBBCType WithConfigureNOTUBE() const;
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TestBBCType TestBBCType::WithSecondProcessor(BBCMicroParasiteType parasite_type_) const {
+    TEST_EQ_II(this->parasite_type, BBCMicroParasiteType_None);
+
+    TestBBCType type = *this;
+    type.parasite_type = parasite_type_;
+
+    switch (type.parasite_type) {
+    default:
+        break;
+
+    case BBCMicroParasiteType_External3MHz6502:
+        type.parasite_os_path = GetPathForStandardROM(StandardROM_TUBE110);
+        break;
+
+    case BBCMicroParasiteType_MasterTurbo:
+        type.parasite_os_path = GetPathForStandardROM(StandardROM_MasterTurboParasite);
+        break;
+    }
+
+    return type;
+}
+
+TestBBCType TestBBCType::WithConfigureEXTUBE() const {
+    TestBBCType type = *this;
+
+    type.configure_extube = true;
+
+    return type;
+}
+
+TestBBCType TestBBCType::WithConfigureNOTUBE() const {
+    TestBBCType type = *this;
+
+    type.configure_notube = true;
+
+    return type;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void InitROM(TestBBCType *type, uint8_t bank, StandardROM rom) {
+    TEST_GE_UU(bank, 0);
+    TEST_LE_UU(bank, 15);
+    TEST_TRUE(type->rom_paths[bank].empty());
+    if (rom != StandardROM_None) {
+        type->rom_paths[bank] = GetPathForStandardROM(rom);
+    }
+}
+
+static void InitROMs(TestBBCType *type,
+                     StandardROM os,
+                     StandardROM romf = StandardROM_None,
+                     StandardROM rome = StandardROM_None,
+                     StandardROM romd = StandardROM_None,
+                     StandardROM romc = StandardROM_None,
+                     StandardROM romb = StandardROM_None,
+                     StandardROM roma = StandardROM_None,
+                     StandardROM rom9 = StandardROM_None,
+                     StandardROM rom8 = StandardROM_None,
+                     StandardROM rom7 = StandardROM_None,
+                     StandardROM rom6 = StandardROM_None,
+                     StandardROM rom5 = StandardROM_None,
+                     StandardROM rom4 = StandardROM_None,
+                     StandardROM rom3 = StandardROM_None,
+                     StandardROM rom2 = StandardROM_None,
+                     StandardROM rom1 = StandardROM_None,
+                     StandardROM rom0 = StandardROM_None) {
+    type->os_rom = os;
+    type->os_path = GetPathForStandardROM(os);
+
+    InitROM(type, 0xf, romf);
+    InitROM(type, 0xe, rome);
+    InitROM(type, 0xd, romd);
+    InitROM(type, 0xc, romc);
+    InitROM(type, 0xb, romb);
+    InitROM(type, 0xa, roma);
+    InitROM(type, 0x9, rom9);
+    InitROM(type, 0x8, rom8);
+    InitROM(type, 0x7, rom7);
+    InitROM(type, 0x6, rom6);
+    InitROM(type, 0x5, rom5);
+    InitROM(type, 0x4, rom4);
+    InitROM(type, 0x3, rom3);
+    InitROM(type, 0x2, rom2);
+    InitROM(type, 0x1, rom1);
+    InitROM(type, 0x0, rom0);
+}
+
+static TestBBCType GetBTapeType() {
+    TestBBCType type;
+
+    InitROMs(&type, StandardROM_OS12, StandardROM_BASIC2);
+
+    return type;
+}
+
+static TestBBCType GetBPlusType() {
+    TestBBCType type;
+
+    InitROMs(&type, StandardROM_BPlusMOS, StandardROM_BASIC2);
+
+    type.disc_interface = &DISC_INTERFACE_ACORN_1770;
+
+    return type;
+}
+
+static TestBBCType GetBBCBDiskType(const DiscInterface *disc_interface) {
+    TestBBCType type = GetBTapeType();
+
+    type.disc_interface = disc_interface;
+
+    InitROM(&type, 14, type.disc_interface->fs_rom);
+
+    return type;
+}
+
+static TestBBCType GetMasterType() {
+    TestBBCType type;
+
+    type.disc_interface = &DISC_INTERFACE_MASTER128;
+
+    for (uint8_t bank = 4; bank < 8; ++bank) {
+        type.is_ram[bank] = true;
+    }
+
+    return type;
+}
+
+static TestBBCType GetMasterMOS320Type() {
+    TestBBCType type = GetMasterType();
+
+    InitROMs(&type, StandardROM_MOS320_MOS, StandardROM_MOS320_TERMINAL, StandardROM_MOS320_VIEW, StandardROM_MOS320_ADFS, StandardROM_MOS320_BASIC4, StandardROM_MOS320_EDIT, StandardROM_MOS320_VIEWSHEET, StandardROM_MOS320_DFS);
+
+    return type;
+}
+
+static TestBBCType GetMasterMOS350Type() {
+    TestBBCType type = GetMasterType();
+
+    InitROMs(&type, StandardROM_MOS350_MOS, StandardROM_MOS350_TERMINAL, StandardROM_MOS350_VIEW, StandardROM_MOS350_ADFS, StandardROM_MOS350_BASIC4, StandardROM_MOS350_EDIT, StandardROM_MOS350_VIEWSHEET, StandardROM_MOS350_DFS);
+
+    return type;
+}
+
+static TestBBCType GetMasterCompactMOS500Type() {
+    TestBBCType type = GetMasterType();
+
+    InitROMs(&type, StandardROM_MOS500_MOS, StandardROM_MOS500_UTILS, StandardROM_MOS500_BASIC4, StandardROM_MOS500_ADFS);
+
+    return type;
+}
+
+static TestBBCType GetMasterCompactMOS510Type() {
+    TestBBCType type = GetMasterType();
+
+    InitROMs(&type, StandardROM_MOS510_MOS, StandardROM_MOS510_UTILS, StandardROM_MOS510_BASIC4, StandardROM_MOS510_ADFS);
+
+    return type;
+}
+
+static TestBBCType GetMasterCompactMOSI510CType() {
+    TestBBCType type = GetMasterType();
+
+    InitROMs(&type, StandardROM_MOSI510C_MOS, StandardROM_MOSI510C_UTILS, StandardROM_MOSI510C_BASIC4, StandardROM_MOSI510C_ADFS);
+
+    return type;
+}
+
+static TestBBCType GetMasterCompactMOS511iType() {
+    TestBBCType type = GetMasterType();
+
+    InitROMs(&type, StandardROM_MOS511i_MOS, StandardROM_MOS511i_UTILS, StandardROM_MOS511i_BASIC4, StandardROM_MOS511i_ADFS);
+    InitROM(&type, 8, StandardROM_MOS511i_ARABIC);
+    InitROM(&type, 2, StandardROM_MOS511i_INTERNATIONAL);
+
+    return type;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static BBCMicroTypeID GetBBCMicroTypeID(const TestBBCType &type) {
+    switch (type.os_rom) {
+    default:
+        TEST_FAIL("%s: unknown OS ROM: %d (%s)", __func__, type.os_rom, GetStandardROMEnumName(type.os_rom));
+        break;
+
+    case StandardROM_OS12:
+        return BBCMicroTypeID_B;
+
+    case StandardROM_BPlusMOS:
+        return BBCMicroTypeID_BPlus;
+
+    case StandardROM_MOS320_MOS:
+    case StandardROM_MOS350_MOS:
+        return BBCMicroTypeID_Master;
+
+    case StandardROM_MOS500_MOS:
+    case StandardROM_MOS510_MOS:
+    case StandardROM_MOSI510C_MOS:
+    case StandardROM_MOS511i_MOS:
+        return BBCMicroTypeID_MasterCompact;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static uint32_t GetBBCMicroInitFlags(const TestBBCType &type) {
+    uint32_t init_flags = 0;
+
+    if (type.video_nula) {
+        init_flags |= BBCMicroInitFlag_VideoNuLA;
+    }
+
+    // The B/B+/Master OS don't expect missing serial hardware!
+    if (HasSerial(GetBBCMicroTypeID(type))) {
+        init_flags |= BBCMicroInitFlag_Serial;
+    }
+
+    return init_flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static std::vector<uint8_t> GetNVRAMContents(const TestBBCType &type) {
+    BBCMicroTypeID type_id = GetBBCMicroTypeID(type);
+    switch (type_id) {
+    default:
+        TEST_FAIL("%s: unknown BBCMicroTypeID: %d (%s)", __func__, type_id, GetBBCMicroTypeIDEnumName(type_id));
+        // fall through
+    case BBCMicroTypeID_B:
+        [[fallthrough]];
+    case BBCMicroTypeID_BPlus:
+        return {};
+
+    case BBCMicroTypeID_Master:
+        {
+            std::vector<uint8_t> nvram(50);
+
+            nvram[5] = 0xC9;        // 5 - LANG 12; FS 9
+            nvram[6] = 0xFF;        // 6 - INSERT 0 ... INSERT 7
+            nvram[7] = 0xFF;        // 7 - INSERT 8 ... INSERT 15
+            nvram[8] = 0x00;        // 8
+            nvram[9] = 0x00;        // 9
+            nvram[10] = 0x17;       //10 - MODE 7; SHADOW 0; TV 0 1
+            nvram[11] = 0x80;       //11 - FLOPPY
+            nvram[12] = 55;         //12 - DELAY 55
+            nvram[13] = 0x03;       //13 - REPEAT 3
+            nvram[14] = 0x00;       //14
+            nvram[15] = 1 << 5 | 1; //15 - PRINT 1; TUBE
+            nvram[16] = 0x02;       //16 - LOUD; INTUBE
+
+            if (type.configure_extube) {
+                nvram[16] |= 4;
+            }
+
+            if (type.configure_notube) {
+                nvram[15] &= ~1u;
+            }
+
+            return nvram;
+        }
+        break;
+
+    case BBCMicroTypeID_MasterCompact:
+        {
+            std::vector<uint8_t> nvram(128);
+
+            nvram[5] = 0xED;        // 5 - LANG 14; FS 13
+            nvram[6] = 0xFF;        // 6 - INSERT 0 ... INSERT 7
+            nvram[7] = 0xFF;        // 7 - INSERT 8 ... INSERT 15
+            nvram[8] = 0x00;        // 8
+            nvram[9] = 0x00;        // 9
+            nvram[10] = 0x17;       //10 - MODE 7; SHADOW 0; TV 0 1
+            nvram[11] = 0xC0;       //11 - FLOPPY; NODIR
+            nvram[12] = 55;         //12 - DELAY 55
+            nvram[13] = 0x03;       //13 - REPEAT 3
+            nvram[14] = 0x00;       //14
+            nvram[15] = 1 << 5 | 1; //15 - PRINT 1; TUBE
+            nvram[16] = 0x02;       //16 - LOUD
+            nvram[17] = 0x00;       //17 - unused?
+            nvram[18] = 0x00;       //18 - joystick settings
+            nvram[19] = 0x00;       //19 - country code
+
+            // Additional flag to indicate contents are valid.
+            //
+            // Values for this are $b0 for MOS 5.00/MOS 5.10 or $b2 for MOS I5.10C/MOS
+            // 5.11.
+            switch (type.os_rom) {
+            default:
+                TEST_FAIL("%s: unknown Compact-type OS: %d (%s)", __func__, type.os_rom, GetStandardROMEnumName(type.os_rom));
+                break;
+
+            case StandardROM_MOS500_MOS:
+            case StandardROM_MOS510_MOS:
+                nvram[127] = 0xb0;
+                break;
+
+            case StandardROM_MOSI510C_MOS:
+            case StandardROM_MOS511i_MOS:
+                nvram[127] = 0xb2;
+                break;
+            }
+
+            return nvram;
+        }
+        break;
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -94,8 +536,7 @@ class TestBBCMicro : public BBCMicro {
     };
 #endif
 
-    // Flags are a combination of TestBBCMicroFlags
-    explicit TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args = {});
+    explicit TestBBCMicro(const TestBBCType &type);
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();
@@ -144,10 +585,6 @@ class TestBBCMicro : public BBCMicro {
     const uint32_t m_trace_flags = 0;
 #endif
 
-    void LoadROMsB();
-    void LoadROMsBPlus();
-    void LoadROMsMaster(const std::string &version);
-    void LoadROMsMasterCompact(const std::string &version);
     void LoadParasiteOS(const std::string &name);
 
     static uint8_t ReadTestCommand(void *context, M6502Word addr);
@@ -582,203 +1019,6 @@ static std::shared_ptr<const std::vector<uint8_t>> LoadSidewaysROM(const std::st
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static BBCMicroTypeID GetBBCMicroTypeID(TestBBCMicroType type, uint32_t) {
-    switch (type) {
-    default:
-        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
-        // fall through
-    case TestBBCMicroType_BTape:
-    case TestBBCMicroType_BAcorn1770DFS:
-        return BBCMicroTypeID_B;
-
-    case TestBBCMicroType_BPlusTape:
-        return BBCMicroTypeID_BPlus;
-
-    case TestBBCMicroType_Master128MOS320:
-    case TestBBCMicroType_Master128MOS350:
-    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
-    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        return BBCMicroTypeID_Master;
-
-    case TestBBCMicroType_MasterCompactMOS500:
-    case TestBBCMicroType_MasterCompactMOS510:
-    case TestBBCMicroType_MasterCompactMOS511i:
-    case TestBBCMicroType_OlivettiPC128S:
-        return BBCMicroTypeID_MasterCompact;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const DiscInterface *GetDiscInterface(TestBBCMicroType type, uint32_t) {
-    switch (type) {
-    default:
-        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
-        // fall through
-    case TestBBCMicroType_BTape:
-    case TestBBCMicroType_BPlusTape:
-        return nullptr;
-
-    case TestBBCMicroType_BAcorn1770DFS:
-        return &DISC_INTERFACE_ACORN_1770;
-
-    case TestBBCMicroType_Master128MOS320:
-    case TestBBCMicroType_Master128MOS350:
-    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
-    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-    case TestBBCMicroType_MasterCompactMOS500:
-    case TestBBCMicroType_MasterCompactMOS510:
-    case TestBBCMicroType_MasterCompactMOS511i:
-    case TestBBCMicroType_OlivettiPC128S:
-        return &DISC_INTERFACE_MASTER128;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static BBCMicroParasiteType GetBBCMicroParasiteType(TestBBCMicroType type, uint32_t) {
-    switch (type) {
-    default:
-        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
-        // fall through
-    case TestBBCMicroType_BTape:
-    case TestBBCMicroType_BPlusTape:
-    case TestBBCMicroType_BAcorn1770DFS:
-    case TestBBCMicroType_Master128MOS320:
-    case TestBBCMicroType_Master128MOS350:
-    case TestBBCMicroType_MasterCompactMOS500:
-    case TestBBCMicroType_MasterCompactMOS510:
-    case TestBBCMicroType_MasterCompactMOS511i:
-    case TestBBCMicroType_OlivettiPC128S:
-        return BBCMicroParasiteType_None;
-
-    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
-        return BBCMicroParasiteType_MasterTurbo;
-
-    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        return BBCMicroParasiteType_External3MHz6502;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t flags) {
-    switch (type) {
-    default:
-        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
-        // fall through
-    case TestBBCMicroType_BTape:
-    case TestBBCMicroType_BPlusTape:
-    case TestBBCMicroType_BAcorn1770DFS:
-        return {};
-
-    case TestBBCMicroType_Master128MOS320:
-    case TestBBCMicroType_Master128MOS350:
-    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
-    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        {
-            std::vector<uint8_t> nvram(50);
-
-            nvram[5] = 0xC9;        // 5 - LANG 12; FS 9
-            nvram[6] = 0xFF;        // 6 - INSERT 0 ... INSERT 7
-            nvram[7] = 0xFF;        // 7 - INSERT 8 ... INSERT 15
-            nvram[8] = 0x00;        // 8
-            nvram[9] = 0x00;        // 9
-            nvram[10] = 0x17;       //10 - MODE 7; SHADOW 0; TV 0 1
-            nvram[11] = 0x80;       //11 - FLOPPY
-            nvram[12] = 55;         //12 - DELAY 55
-            nvram[13] = 0x03;       //13 - REPEAT 3
-            nvram[14] = 0x00;       //14
-            nvram[15] = 1 << 5 | 1; //15 - PRINT 1; TUBE
-            nvram[16] = 0x02;       //16 - LOUD; INTUBE
-
-            if (flags & TestBBCMicroFlags_ConfigureExTube) {
-                nvram[16] |= 4;
-            }
-
-            if (flags & TestBBCMicroFlags_ConfigureNoTube) {
-                nvram[15] &= ~1u;
-            }
-
-            return nvram;
-        }
-        break;
-
-    case TestBBCMicroType_MasterCompactMOS500:
-    case TestBBCMicroType_MasterCompactMOS510:
-    case TestBBCMicroType_MasterCompactMOS511i:
-    case TestBBCMicroType_OlivettiPC128S:
-        {
-            std::vector<uint8_t> nvram(128);
-
-            nvram[5] = 0xED;        // 5 - LANG 14; FS 13
-            nvram[6] = 0xFF;        // 6 - INSERT 0 ... INSERT 7
-            nvram[7] = 0xFF;        // 7 - INSERT 8 ... INSERT 15
-            nvram[8] = 0x00;        // 8
-            nvram[9] = 0x00;        // 9
-            nvram[10] = 0x17;       //10 - MODE 7; SHADOW 0; TV 0 1
-            nvram[11] = 0xC0;       //11 - FLOPPY; NODIR
-            nvram[12] = 55;         //12 - DELAY 55
-            nvram[13] = 0x03;       //13 - REPEAT 3
-            nvram[14] = 0x00;       //14
-            nvram[15] = 1 << 5 | 1; //15 - PRINT 1; TUBE
-            nvram[16] = 0x02;       //16 - LOUD
-            nvram[17] = 0x00;       //17 - unused?
-            nvram[18] = 0x00;       //18 - joystick settings
-            nvram[19] = 0x00;       //19 - country code
-
-            // Additional flag to indicate contents are valid.
-            //
-            // Values for this are $b0 for MOS 5.00/MOS 5.10 or $b2 for MOS I5.10C/MOS
-            // 5.11.
-            switch (type) {
-            default:
-                TEST_FAIL("%s: unknown Compact-type TestBBCMicroType", __func__);
-                break;
-
-            case TestBBCMicroType_MasterCompactMOS500:
-            case TestBBCMicroType_MasterCompactMOS510:
-                nvram[127] = 0xb0;
-                break;
-
-            case TestBBCMicroType_MasterCompactMOS511i:
-            case TestBBCMicroType_OlivettiPC128S:
-                nvram[127] = 0xb2;
-                break;
-            }
-
-            return nvram;
-        }
-        break;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static uint32_t GetBBCMicroInitFlags(TestBBCMicroType type, uint32_t flags) {
-    uint32_t init_flags = 0;
-
-    (void)type;
-
-    if (flags & TestBBCMicroFlags_VideoNuLA) {
-        init_flags |= BBCMicroInitFlag_VideoNuLA;
-    }
-
-    // The B/B+/Master OS don't expect missing serial hardware!
-    if (HasSerial(GetBBCMicroTypeID(type, flags))) {
-        init_flags |= BBCMicroInitFlag_Serial;
-    }
-
-    return init_flags;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_DEBUGGER
 void TestBBCMicro::Writer::Addb(uint8_t a) {
     m_bbc->DebugSetBytes(this->addr, m_dso, false, &a, 1);
@@ -804,16 +1044,13 @@ void TestBBCMicro::Writer::Addbb(uint8_t a, uint8_t b) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static_assert(ROMType_16KB == 0);
-static const ROMType DEFAULT_ROM_TYPES[16] = {};
-
-TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
-    : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type, args.flags), DEFAULT_ROM_TYPES),
-               GetDiscInterface(type, args.flags),
-               GetBBCMicroParasiteType(type, args.flags),
-               GetNVRAMContents(type, args.flags),
+TestBBCMicro::TestBBCMicro(const TestBBCType &type)
+    : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type), type.rom_types),
+               type.disc_interface,
+               type.parasite_type,
+               GetNVRAMContents(type),
                nullptr,
-               GetBBCMicroInitFlags(type, args.flags),
+               GetBBCMicroInitFlags(type),
                nullptr,
                HardDiskImageSet(),
                {0}) {
@@ -828,60 +1065,23 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
 
     this->SetTeletextDimFlash(true);
 
-    switch (type) {
-    default:
-        TEST_FAIL("unknown TestBBCMicroType");
-        break;
+    this->SetXFJIO(0xfc10, &ReadTestCommand, this, &WriteTestCommand, this);
 
-    case TestBBCMicroType_BTape:
-        this->LoadROMsB();
-        break;
-
-    case TestBBCMicroType_BAcorn1770DFS:
-        this->LoadROMsB();
-        this->SetSidewaysROM(14, LoadSidewaysROM("acorn/DFS-2.26.rom"), ROMType_16KB);
-        break;
-
-    case TestBBCMicroType_BPlusTape:
-        this->LoadROMsBPlus();
-        break;
-
-    case TestBBCMicroType_Master128MOS320:
-        this->LoadROMsMaster("3.20");
-        break;
-
-    case TestBBCMicroType_Master128MOS350:
-        this->LoadROMsMaster("3.50");
-        break;
-
-    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
-        this->LoadROMsMaster("3.20");
-        this->LoadParasiteOS("MasterTurboParasite.rom");
-        break;
-
-    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        this->LoadROMsMaster("3.20");
-        this->LoadParasiteOS("TUBE110.rom");
-        break;
-
-    case TestBBCMicroType_MasterCompactMOS500:
-        this->LoadROMsMasterCompact("5.00");
-        break;
-
-    case TestBBCMicroType_MasterCompactMOS510:
-        this->LoadROMsMasterCompact("5.10");
-        break;
-
-    case TestBBCMicroType_MasterCompactMOS511i:
-        this->LoadROMsMasterCompact("5.11i");
-        break;
-
-    case TestBBCMicroType_OlivettiPC128S:
-        this->LoadROMsMasterCompact("I5.10C");
-        break;
+    this->SetOSROM(LoadOSROM(type.os_path));
+    for (uint8_t bank = 0; bank < 16; ++bank) {
+        if (type.rom_paths[bank].empty()) {
+            if (type.is_ram[bank]) {
+                this->SetSidewaysRAM(bank, nullptr);
+            }
+        } else {
+            TEST_FALSE(type.is_ram[bank]);
+            this->SetSidewaysROM(bank, LoadSidewaysROM(type.rom_paths[bank]), type.rom_types[bank]);
+        }
     }
 
-    this->SetXFJIO(0xfc10, &ReadTestCommand, this, &WriteTestCommand, this);
+    if (!type.parasite_os_path.empty()) {
+        this->LoadParasiteOS(type.parasite_os_path);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1169,51 +1369,6 @@ uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic, M6502AddrMode mode) c
 
     TEST_FAIL("opcode not found: mnemonic=%s; mode=%d", mnemonic, mode);
     return 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TestBBCMicro::LoadROMsB() {
-    this->SetOSROM(LoadOSROM("OS12.ROM"));
-    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"), ROMType_16KB);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TestBBCMicro::LoadROMsBPlus() {
-    this->SetOSROM(LoadOSROM("B+MOS.ROM"));
-    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"), ROMType_16KB);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TestBBCMicro::LoadROMsMaster(const std::string &version) {
-    this->SetOSROM(LoadOSROM(PathJoined("M128", version, "mos.rom")));
-    this->SetSidewaysROM(15, LoadSidewaysROM(PathJoined("M128", version, "terminal.rom")), ROMType_16KB);
-    this->SetSidewaysROM(14, LoadSidewaysROM(PathJoined("M128", version, "view.rom")), ROMType_16KB);
-    this->SetSidewaysROM(13, LoadSidewaysROM(PathJoined("M128", version, "adfs.rom")), ROMType_16KB);
-    this->SetSidewaysROM(12, LoadSidewaysROM(PathJoined("M128", version, "basic4.rom")), ROMType_16KB);
-    this->SetSidewaysROM(11, LoadSidewaysROM(PathJoined("M128", version, "edit.rom")), ROMType_16KB);
-    this->SetSidewaysROM(10, LoadSidewaysROM(PathJoined("M128", version, "viewsht.rom")), ROMType_16KB);
-    this->SetSidewaysROM(9, LoadSidewaysROM(PathJoined("M128", version, "dfs.rom")), ROMType_16KB);
-
-    for (uint8_t i = 4; i < 8; ++i) {
-        this->SetSidewaysRAM(i, nullptr);
-    }
-}
-
-void TestBBCMicro::LoadROMsMasterCompact(const std::string &version) {
-    this->SetOSROM(LoadOSROM(PathJoined("MCompact", version, "mos.rom")));
-    this->SetSidewaysROM(15, LoadSidewaysROM(PathJoined("MCompact", version, "utils.rom")), ROMType_16KB);
-    this->SetSidewaysROM(14, LoadSidewaysROM(PathJoined("MCompact", version, "basic4.rom")), ROMType_16KB);
-    this->SetSidewaysROM(13, LoadSidewaysROM(PathJoined("MCompact", version, "adfs.rom")), ROMType_16KB);
-
-    for (uint8_t i = 4; i < 8; ++i) {
-        this->SetSidewaysRAM(i, nullptr);
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1507,8 +1662,8 @@ Test::~Test() {
 
 class StandardTest : public Test {
   public:
-    StandardTest(const std::string &name, TestBBCMicroType bbc_micro_type_ = TestBBCMicroType_BTape, const char *drive = "0")
-        : m_bbc_micro_type(bbc_micro_type_)
+    StandardTest(const std::string &name, const TestBBCType type, const char *drive = "0")
+        : m_type(std::move(type))
         , m_drive(drive)
         , m_name(name) {
     }
@@ -1525,7 +1680,7 @@ class StandardTest : public Test {
         //                0,
         //                0);
 
-        TestBBCMicro bbc(m_bbc_micro_type);
+        TestBBCMicro bbc(m_type);
 
         //{
         //    uint32_t trace_flags = bbc.GetTestTraceFlags();
@@ -1539,6 +1694,11 @@ class StandardTest : public Test {
         bbc.StartCaptureOSWRCH();
         bbc.RunUntilOSWORD0(10.0);
         //bbc.StartTrace(0, 256 * 1024 * 1024);
+
+        //if (m_type.os_rom == StandardROM_MOS320_MOS) {
+        //    bbc.Paste("*ROMS\r");
+        //    bbc.RunUntilOSWORD0(20.0);
+        //}
 
         // Putting PAGE at $1900 makes it easier to replicate the same
         // conditions on a real BBC B with DFS.
@@ -1559,7 +1719,10 @@ class StandardTest : public Test {
             LOG(BBC_OUTPUT).EnsureBOL();
         }
 
-        std::string stem = strprintf("%s.%s", this->GetFullName().c_str(), GetTestBBCMicroTypeEnumName(m_bbc_micro_type));
+        std::string stem = strprintf("%s.%s.%s",
+                                     this->GetFullName().c_str(),
+                                     GetBBCMicroTypeIDEnumName(GetBBCMicroTypeID(m_type)),
+                                     GetStandardROMEnumName(m_type.os_rom));
 
         TEST_TRUE(SaveTextFile(bbc.oswrch_output,
                                GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str()))));
@@ -1576,7 +1739,7 @@ class StandardTest : public Test {
 
   protected:
   private:
-    TestBBCMicroType m_bbc_micro_type;
+    TestBBCType m_type;
     std::string m_drive;
     std::string m_name;
 };
@@ -1598,7 +1761,7 @@ class KevinEdwardsTest : public Test {
     void Run() override {
         bool save_trace = false; //TODO...
 
-        TestBBCMicro bbc(TestBBCMicroType_BTape);
+        TestBBCMicro bbc(GetBTapeType());
 
         bbc.SetTestTraceFlags(0);
         bbc.StartCaptureOSWRCH();
@@ -1653,9 +1816,9 @@ class KevinEdwardsTest : public Test {
 
 class dp111TimingTest : public Test {
   public:
-    dp111TimingTest(const std::string &name, TestBBCMicroType bbc_micro_type)
+    dp111TimingTest(const std::string &name, TestBBCType type)
         : m_ssd_stem(name)
-        , m_bbc_micro_type(bbc_micro_type) {
+        , m_type(std::move(type)) {
     }
 
     std::string GetFullName() const override {
@@ -1665,7 +1828,7 @@ class dp111TimingTest : public Test {
     void Run() override {
         std::string ssd_path = PathJoined(b2_SOURCE_DIR, "submodules/6502Timing", m_ssd_stem + ".ssd");
 
-        TestBBCMicro bbc(m_bbc_micro_type);
+        TestBBCMicro bbc(m_type);
 
         bbc.StartCaptureOSWRCH();
         bbc.LoadSSD(0, ssd_path.c_str());
@@ -1689,7 +1852,7 @@ class dp111TimingTest : public Test {
   protected:
   private:
     std::string m_ssd_stem;
-    TestBBCMicroType m_bbc_micro_type;
+    TestBBCType m_type;
     int m_num_failures = -1;
 
     static void WriteFailureCount(void *context, M6502Word addr, uint8_t value) {
@@ -1705,11 +1868,10 @@ class dp111TimingTest : public Test {
 
 class TubeTest : public Test {
   public:
-    TubeTest(std::string name, std::string file_name, TestBBCMicroType bbc_micro_type, uint32_t test_bbc_micro_flags, uint32_t load_addr, std::string pre_paste_text, std::string post_paste_text)
+    TubeTest(std::string name, std::string file_name, TestBBCType type, uint32_t load_addr, std::string pre_paste_text, std::string post_paste_text)
         : m_name(std::move(name))
         , m_file_name(std::move(file_name))
-        , m_bbc_micro_type(bbc_micro_type)
-        , m_test_bbc_micro_flags(test_bbc_micro_flags)
+        , m_type(std::move(type))
         , m_load_addr(load_addr)
         , m_pre_paste_text(std::move(pre_paste_text))
         , m_post_paste_text(post_paste_text) {
@@ -1720,10 +1882,7 @@ class TubeTest : public Test {
     }
 
     void Run() override {
-        TestBBCMicroArgs args;
-        args.flags = m_test_bbc_micro_flags;
-
-        TestBBCMicro bbc(m_bbc_micro_type, args);
+        TestBBCMicro bbc(m_type);
 
         //bbc.StartTrace(0, 256 * 1024 * 1024);
         bbc.StartCaptureOSWRCH();
@@ -1764,8 +1923,7 @@ class TubeTest : public Test {
   private:
     std::string m_name;
     std::string m_file_name;
-    TestBBCMicroType m_bbc_micro_type;
-    uint32_t m_test_bbc_micro_flags;
+    TestBBCType m_type;
     uint32_t m_load_addr;
     std::string m_pre_paste_text;
     std::string m_post_paste_text;
@@ -1791,7 +1949,7 @@ class TeletextTest : public Test {
     void Run() override {
         std::string beeblink_volume_path = PathJoined(b2_SOURCE_DIR, "etc", m_volume_name);
 
-        TestBBCMicro bbc(TestBBCMicroType_BTape);
+        TestBBCMicro bbc(GetBTapeType());
 
         bbc.RunUntilOSWORD0(10.0);
 
@@ -1852,11 +2010,13 @@ class VideoULAModeTest : public Test {
     }
 
     void Run() override {
-        TestBBCMicroArgs args;
-        if (m_nula) {
-            args.flags |= TestBBCMicroFlags_VideoNuLA;
-        }
-        TestBBCMicro bbc(TestBBCMicroType_Master128MOS320, args);
+        TestBBCType type = GetMasterMOS320Type();
+        type.video_nula = m_nula;
+        //TestBBCMicroArgs args;
+        //if (m_nula) {
+        //    args.flags |= TestBBCMicroFlags_VideoNuLA;
+        //}
+        TestBBCMicro bbc(type); //TestBBCMicroType_Master128MOS320, args);
 
         bbc.RunUntilOSWORD0(10.0);
 
@@ -1924,12 +2084,9 @@ class VideoNuLADetectTest : public Test {
     }
 
     void Run() override {
-        TestBBCMicroArgs args;
-        if (m_has_nula) {
-            args.flags |= TestBBCMicroFlags_VideoNuLA;
-        }
-
-        TestBBCMicro bbc(TestBBCMicroType_BTape, args);
+        TestBBCType type = GetBTapeType();
+        type.video_nula = m_has_nula;
+        TestBBCMicro bbc(type);
 
         bbc.StartCaptureOSWRCH();
         bbc.RunUntilOSWORD0(10.0);
@@ -1976,7 +2133,9 @@ class VideoNuLATest : public Test {
     }
 
     void Run() override {
-        TestBBCMicro bbc(TestBBCMicroType_BTape, {TestBBCMicroFlags_VideoNuLA});
+        TestBBCType type = GetBTapeType();
+        type.video_nula = true;
+        TestBBCMicro bbc(type);
 
         bbc.RunUntilOSWORD0(10.0);
 
@@ -2014,9 +2173,9 @@ class VideoNuLATest : public Test {
 #if BBCMICRO_DEBUGGER
 class DebuggerTestBreakpointsB : public Test {
   public:
-    DebuggerTestBreakpointsB(std::string name, TestBBCMicroType type, uint8_t host_io_flags_for_breakpoint, bool write)
+    DebuggerTestBreakpointsB(std::string name, TestBBCType type, uint8_t host_io_flags_for_breakpoint, bool write)
         : m_name(std::move(name))
-        , m_type(type)
+        , m_type(std::move(type))
         , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint)
         , m_write(write) {
         TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7, 0);
@@ -2035,7 +2194,7 @@ class DebuggerTestBreakpointsB : public Test {
   protected:
   private:
     std::string m_name;
-    TestBBCMicroType m_type = TestBBCMicroType_BTape;
+    TestBBCType m_type;
     uint8_t m_host_io_flags_for_breakpoint = 0;
     bool m_write = false;
     bool m_verbose = false;
@@ -2106,9 +2265,9 @@ class DebuggerTestBreakpointsB : public Test {
 #if BBCMICRO_DEBUGGER
 class DebuggerTestBreakpointsMaster : public Test {
   public:
-    DebuggerTestBreakpointsMaster(std::string name, TestBBCMicroType type, uint8_t host_io_flags_for_breakpoint, uint8_t host_io_flags_for_system, bool write)
+    DebuggerTestBreakpointsMaster(std::string name, TestBBCType type, uint8_t host_io_flags_for_breakpoint, uint8_t host_io_flags_for_system, bool write)
         : m_name(std::move(name))
-        , m_type(type)
+        , m_type(std::move(type))
         , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint)
         , m_host_io_flags_for_system(host_io_flags_for_system)
         , m_write(write) {
@@ -2196,7 +2355,7 @@ class DebuggerTestBreakpointsMaster : public Test {
   protected:
   private:
     std::string m_name;
-    TestBBCMicroType m_type = TestBBCMicroType_BTape;
+    TestBBCType m_type;
     uint8_t m_host_io_flags_for_breakpoint = 0;
     uint8_t m_host_io_flags_for_system = 0;
     bool m_write = false;
@@ -2287,9 +2446,9 @@ class DebuggerTestBreakpointsMaster : public Test {
 
 class PrinterTest : public Test {
   public:
-    PrinterTest(std::string name, TestBBCMicroType type)
+    PrinterTest(std::string name, TestBBCType type)
         : m_name(std::move(name))
-        , m_type(type) {
+        , m_type(std::move(type)) {
     }
 
     std::string GetFullName() const override {
@@ -2317,7 +2476,7 @@ class PrinterTest : public Test {
   protected:
   private:
     std::string m_name;
-    const TestBBCMicroType m_type;
+    TestBBCType m_type;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -2475,42 +2634,68 @@ int main(int argc, char *argv[]) {
     Options options = GetOptions(argc, argv);
 
     std::vector<std::unique_ptr<Test>> all_tests;
-    all_tests.push_back(std::make_unique<StandardTest>("VTIMERS"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC1"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC2"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC3"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC4"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC5"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC6"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC7"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.C1"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.C2"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.C3"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.C4", TestBBCMicroType_Master128MOS320));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.C5"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.I1"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.I2"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB2"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB7"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.T11"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.T21"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.T22"));
-    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB6"));
-    all_tests.push_back(std::make_unique<StandardTest>("TIMINGS"));
-    all_tests.push_back(std::make_unique<StandardTest>("VTIMEOU", TestBBCMicroType_Master128MOS320));
-    all_tests.push_back(std::make_unique<StandardTest>("VPOLL", TestBBCMicroType_Master128MOS320));
-    all_tests.push_back(std::make_unique<StandardTest>("NOP1", TestBBCMicroType_Master128MOS350, "1"));
+    all_tests.push_back(std::make_unique<StandardTest>("VTIMERS", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC1", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC2", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC3", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC4", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC5", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC6", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.AC7", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C1", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C2", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C3", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C4", GetMasterMOS320Type()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.C5", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.I1", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.I2", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB2", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB7", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.T11", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.T21", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.T22", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VIA.PB6", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("TIMINGS", GetBTapeType()));
+    all_tests.push_back(std::make_unique<StandardTest>("VTIMEOU", GetMasterMOS320Type()));
+    all_tests.push_back(std::make_unique<StandardTest>("VPOLL", GetMasterMOS320Type()));
+    all_tests.push_back(std::make_unique<StandardTest>("NOP1", GetMasterMOS320Type(), "1"));
     all_tests.push_back(std::make_unique<KevinEdwardsTest>("Alien8", "P%=&900:[OPT 2:LDX #4:LDY #0:.loop LDA &3000,Y:STA &C00,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #1:STA &FC10:JMP &CEA:]\rCALL &900\r"));
     all_tests.push_back(std::make_unique<KevinEdwardsTest>("Nightsh", "P%=&3900:[OPT3:LDX #9:LDY #0:.loop LDA &3000,Y:STA &700,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&40:STA0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &3900\r"));
     all_tests.push_back(std::make_unique<KevinEdwardsTest>("Jetman", "P%=&380:[OPT 3:LDX #10:LDY #0:.loop LDA &3000,Y:STA &600,Y:INY:BNE loop:INC loop+2:INC loop+5:DEX:BNE loop:LDA #&1F:STA 0:LDA #&F:STA 1:LDA #1:STA &FC10:JMP &F01:]\rCALL &380\r"));
-    all_tests.push_back(std::make_unique<dp111TimingTest>("6502timing", TestBBCMicroType_BAcorn1770DFS));
-    all_tests.push_back(std::make_unique<dp111TimingTest>("6502timing1M", TestBBCMicroType_BAcorn1770DFS));
-    all_tests.push_back(std::make_unique<dp111TimingTest>("65C12timing", TestBBCMicroType_Master128MOS320));
-    all_tests.push_back(std::make_unique<dp111TimingTest>("65C12timing1M", TestBBCMicroType_Master128MOS320));
-    all_tests.push_back(std::make_unique<TubeTest>("xtu_prst", "PRST", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=FALSE\r", ""));
-    all_tests.push_back(std::make_unique<TubeTest>("itu_prst", "PRST", TestBBCMicroType_Master128MOS320WithMasterTurbo, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=TRUE\r", ""));
-    all_tests.push_back(std::make_unique<TubeTest>("xtu_r124", "R124", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureExTube, 0x800, "OLD\r*SPOOL X.R124\r", "*SPOOL\r"));
-    all_tests.push_back(std::make_unique<TubeTest>("xtu_r3", "R3", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, 0, 0x800, "OLD\r*SPOOL X.R3\r", "*SPOOL\r"));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("6502timing", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770)));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("6502timing1M", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770)));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("65C12timing", GetMasterMOS320Type()));
+    all_tests.push_back(std::make_unique<dp111TimingTest>("65C12timing1M", GetMasterMOS320Type()));
+    //all_tests.push_back(std::make_unique<TubeTest>("xtu_prst", "PRST", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=FALSE\r", ""));
+    //all_tests.push_back(std::make_unique<TubeTest>("itu_prst", "PRST", TestBBCMicroType_Master128MOS320WithMasterTurbo, TestBBCMicroFlags_ConfigureNoTube, 0xffff1900, "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=TRUE\r", ""));
+    //all_tests.push_back(std::make_unique<TubeTest>("xtu_r124", "R124", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, TestBBCMicroFlags_ConfigureExTube, 0x800, "OLD\r*SPOOL X.R124\r", "*SPOOL\r"));
+    //all_tests.push_back(std::make_unique<TubeTest>("xtu_r3", "R3", TestBBCMicroType_Master128MOS320WithExternal3MHz6502, 0, 0x800, "OLD\r*SPOOL X.R3\r", "*SPOOL\r"));
+
+    all_tests.push_back(std::make_unique<TubeTest>("xtu_prst",
+                                                   "PRST",
+                                                   GetMasterMOS320Type().WithSecondProcessor(BBCMicroParasiteType_External3MHz6502).WithConfigureNOTUBE(),
+                                                   0xffff1900,
+                                                   "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=FALSE\r",
+                                                   ""));
+    all_tests.push_back(std::make_unique<TubeTest>("itu_prst",
+                                                   "PRST",
+                                                   GetMasterMOS320Type().WithSecondProcessor(BBCMicroParasiteType_MasterTurbo).WithConfigureNOTUBE(),
+                                                   0xffff1900,
+                                                   "PAGE=&1900\rOLD\r!&70=&C4FF3AD5\rI%=TRUE\r",
+                                                   ""));
+    all_tests.push_back(std::make_unique<TubeTest>("xtu_r124",
+                                                   "R124",
+                                                   GetMasterMOS320Type().WithSecondProcessor(BBCMicroParasiteType_External3MHz6502).WithConfigureEXTUBE(),
+                                                   0x800,
+                                                   "OLD\r*SPOOL X.R124\r",
+                                                   "*SPOOL\r"));
+    all_tests.push_back(std::make_unique<TubeTest>("xtu_r3",
+                                                   "R3",
+                                                   GetMasterMOS320Type().WithSecondProcessor(BBCMicroParasiteType_External3MHz6502),
+                                                   0x800,
+                                                   "OLD\r*SPOOL X.R3\r",
+                                                   "*SPOOL\r"));
+
     all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "ENGTEST", 0x7c00, "", "engtest.png"));
     all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "RED", 0x7c00, "", "red.png"));
     all_tests.push_back(std::make_unique<TeletextTest>("teletest_v1", "TELETST", 0xe00, "OLD\rRUN\r", "teletst.png"));
@@ -2573,11 +2758,11 @@ int main(int argc, char *argv[]) {
         for (int write = 0; write < 2; ++write) {
             std::string suffix = ".BP" + std::to_string(host_io_flags_for_breakpoint) + "." + (write ? "w" : "r");
             all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.b" + suffix,
-                                                                                          TestBBCMicroType_BTape,
+                                                                                          GetBTapeType(),
                                                                                           host_io_flags_for_breakpoint,
                                                                                           !!write));
             all_tests.push_back(std::make_unique<DEBUGGER_ONLY(DebuggerTestBreakpointsB)>("debug.bp.bplus" + suffix,
-                                                                                          TestBBCMicroType_BPlusTape,
+                                                                                          GetBPlusType(),
                                                                                           host_io_flags_for_breakpoint,
                                                                                           !!write));
         }
@@ -2590,7 +2775,7 @@ int main(int argc, char *argv[]) {
                                                                                                     ".BP" + std::to_string(host_io_flags_for_breakpoint) +
                                                                                                     ".SYS" + std::to_string(host_io_flags_for_system) +
                                                                                                     "." + (write ? "w" : "r")),
-                                                                                                   TestBBCMicroType_Master128MOS320,
+                                                                                                   GetMasterMOS320Type(),
                                                                                                    host_io_flags_for_breakpoint,
                                                                                                    host_io_flags_for_system,
                                                                                                    !!write));
@@ -2598,14 +2783,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.os120", TestBBCMicroType_BTape));
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.os200", TestBBCMicroType_BPlusTape));
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos320", TestBBCMicroType_Master128MOS320));
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos350", TestBBCMicroType_Master128MOS350));
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos500", TestBBCMicroType_MasterCompactMOS500));
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos510", TestBBCMicroType_MasterCompactMOS510));
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", TestBBCMicroType_MasterCompactMOS511i));
-    all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", TestBBCMicroType_OlivettiPC128S));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.os120", GetBTapeType()));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.os200", GetBPlusType()));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos320", GetMasterMOS320Type()));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos350", GetMasterMOS350Type()));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos500", GetMasterCompactMOS500Type()));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos510", GetMasterCompactMOS510Type()));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", GetMasterCompactMOS511iType()));
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", GetMasterCompactMOSI510CType()));
 
     if (options.list) {
         std::set<std::string> names;
