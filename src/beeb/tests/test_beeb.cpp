@@ -2287,11 +2287,15 @@ class PrinterTest : public Test {
 
 class DiskAccessTest : public Test {
   public:
-    DiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name)
+    DiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name, int master_acccon_io_flags = -1)
         : m_name(std::move(name))
         , m_type(std::move(type))
         , m_fs_type(fs_type)
-        , m_blank_disk_image_name(std::move(blank_disk_image_name)) {
+        , m_blank_disk_image_name(std::move(blank_disk_image_name))
+        , m_master_acccon_io_flags(master_acccon_io_flags) {
+        if (m_master_acccon_io_flags >= 0) {
+            TEST_EQ_UU(m_master_acccon_io_flags & ~3u, 0u);
+        }
     }
 
     std::string GetFullName() const override {
@@ -2376,10 +2380,17 @@ class DiskAccessTest : public Test {
     TestBBCType m_type;
     FSType m_fs_type;
     std::string m_blank_disk_image_name;
-    bool m_verbose = false;
+    bool m_verbose = true;
+    int m_master_acccon_io_flags = -1;
 
     void Start(TestBBCMicro *bbc) {
         std::string stuff;
+
+        // There's no check that the setting makes sense. The caller just has to
+        // supply -1 when inappropriate.
+        if (m_master_acccon_io_flags >= 0) {
+            stuff += strprintf("?&FE34=(?&FE34 AND &%02X) OR &%02X\r", (uint8_t)~(3 << 4), m_master_acccon_io_flags << 4);
+        }
 
         switch (m_fs_type) {
         default:
@@ -2740,16 +2751,16 @@ int main(int argc, char *argv[]) {
 
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.bplus", GetBPlusType(), FSType_DFS, "80.dsd"));
 
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos320.dfs", GetMasterMOS320Type(), FSType_DFS, "80.dsd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos320.adfs", GetMasterMOS320Type(), FSType_ADFS, "adl.adl"));
-
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos350.dfs", GetMasterMOS350Type(), FSType_DFS, "80.dsd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.master.mos350.adfs", GetMasterMOS350Type(), FSType_ADFS, "adl.adl"));
-
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos500.adfs", GetMasterCompactMOS500Type(), FSType_ADFS, "adl.adl"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos510.adfs", GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mosI510C.adfs", GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.compact.mos511i.adfs", GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl"));
+    for (int io_flags = 0; io_flags < 4; ++io_flags) {
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos320.dfs", io_flags), GetMasterMOS320Type(), FSType_DFS, "80.dsd", io_flags));
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos320.adfs", io_flags), GetMasterMOS320Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos350.dfs", io_flags), GetMasterMOS350Type(), FSType_DFS, "80.dsd", io_flags));
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos350.adfs", io_flags), GetMasterMOS350Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mos500.adfs", io_flags), GetMasterCompactMOS500Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mos510.adfs", io_flags), GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mosI510C.adfs", io_flags), GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mos511i.adfs", io_flags), GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl", io_flags));
+    }
 
     if (options.list) {
         std::set<std::string> names;
