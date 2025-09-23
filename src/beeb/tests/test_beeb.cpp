@@ -2309,18 +2309,39 @@ class DiskAccessTest : public Test {
         // statements and whatnot. So the test program does a VDU2/VDU3 so the
         // printer buffer mechanism can be used instead.
 
+        std::vector<uint8_t> wanted_data[2];
+        for (size_t i = 0; i < 2; ++i) {
+            TEST_TRUE(LoadFile(&wanted_data[i], PathJoined(b2_SOURCE_DIR, "etc/tests/random." + std::to_string(i)) + ".dat", nullptr));
+            TEST_EQ_UU(wanted_data[i].size(), 8192);
+            //wanted_data[i].resize(200); //can do this sort of thing to test shorter writes
+        }
+
+        const M6502Word ADDRESS = {0x2000};
+
         {
             TestBBCMicro bbc(m_type);
+
+            TestFailFnAdder fn_adder;
+            if (m_verbose) {
+                bbc.StartCaptureOSWRCH();
+
+                fn_adder.Add([&bbc](const TestFailArgs *) {
+                    PrintCapturedOutput(bbc, "failed save");
+                });
+            }
+
             bbc.LoadDiskImage(0, PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name));
             bbc.RunUntilOSWORD0(10.0);
 
             this->Start(&bbc);
 
-            bbc.Paste("10VDU2\r20PRINT\"TEST\"\r30VDU3\rSAVE \"TEST0\"\r");
+            bbc.DebugSetBytes(ADDRESS, 0, false, wanted_data[0].data(), wanted_data[0].size());
+            bbc.Paste(strprintf("*SAVE TEST %04X+%04X\r", ADDRESS.w, wanted_data[0].size()));
             bbc.RunUntilOSWORD0(10.0);
 
             if (m_fs_type == FSType_DFS) {
-                bbc.Paste("20PRINT\"TEST2\"\rSAVE \":2.TEST2\"\r");
+                bbc.DebugSetBytes(ADDRESS, 0, false, wanted_data[1].data(), wanted_data[1].size());
+                bbc.Paste(strprintf("*SAVE :2.TEST2 %04X+%04X\r", ADDRESS.w, wanted_data[1].size()));
                 bbc.RunUntilOSWORD0(10.0);
             }
 
@@ -2330,24 +2351,28 @@ class DiskAccessTest : public Test {
             }
 
             disc_image = bbc.TakeDiscImage(0);
+
+            if (m_verbose) {
+                PrintCapturedOutput(bbc, "successful save");
+            }
         }
 
         {
-            PrinterBuffer printer_buffer;
-
-            TestFailFnAdder fn_adder;
+            //PrinterBuffer printer_buffer;
 
             TestBBCMicro bbc(m_type);
+
+            TestFailFnAdder fn_adder;
             if (m_verbose) {
                 bbc.StartCaptureOSWRCH();
 
                 fn_adder.Add([&bbc](const TestFailArgs *) {
-                    PrintCapturedOutput(bbc);
+                    PrintCapturedOutput(bbc, "failed load");
                 });
             }
 
-            bbc.SetPrinterBuffer(&printer_buffer);
-            bbc.SetPrinterEnabled(true);
+            //bbc.SetPrinterBuffer(&printer_buffer);
+            //bbc.SetPrinterEnabled(true);
             TEST_NON_NULL(disc_image);
             bbc.SetDiscImage(0, disc_image);
 
@@ -2355,24 +2380,33 @@ class DiskAccessTest : public Test {
 
             this->Start(&bbc);
 
-            printer_buffer.Clear();
-
-            bbc.Paste("CHAIN \"TEST0\"\r");
+            bbc.Paste("*LOAD TEST\r");
             bbc.RunUntilOSWORD0(10.0);
 
-            TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST\n\r");
+            std::vector<uint8_t> got_data(wanted_data[0].size());
+            bbc.DebugGetBytes(got_data.data(), got_data.size(), ADDRESS, 0, false);
+            TEST_EQ_UU(got_data.size(), wanted_data[0].size());
+            TEST_EQ_AA(got_data.data(), wanted_data[0].data(), wanted_data[0].size());
+
+            //printer_buffer.Clear();
+
+            //bbc.Paste("CHAIN \"TEST0\"\r");
+            //bbc.RunUntilOSWORD0(10.0);
+
+            //TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST\n\r");
 
             if (m_fs_type == FSType_DFS) {
-                printer_buffer.Clear();
-
-                bbc.Paste("CHAIN \":2.TEST2\"\r");
+                bbc.Paste("*LOAD :2.TEST2\r");
                 bbc.RunUntilOSWORD0(10.0);
 
-                TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST2\n\r");
+                got_data.resize(wanted_data[1].size());
+                bbc.DebugGetBytes(got_data.data(), got_data.size(), ADDRESS, 0, false);
+                TEST_EQ_UU(got_data.size(), wanted_data[1].size());
+                TEST_EQ_AA(got_data.data(), wanted_data[1].data(), wanted_data[1].size());
             }
 
             if (m_verbose) {
-                PrintCapturedOutput(bbc);
+                PrintCapturedOutput(bbc, "successful load");
             }
         }
     }
@@ -2386,8 +2420,8 @@ class DiskAccessTest : public Test {
     bool m_verbose = true;
     int m_master_acccon_io_flags = -1;
 
-    static void PrintCapturedOutput(const TestBBCMicro &bbc) {
-        LOGF(BBC_OUTPUT, "All Output: ");
+    static void PrintCapturedOutput(const TestBBCMicro &bbc, const char *step) {
+        LOGF(BBC_OUTPUT, "All %s output: ", step);
         LOGI(BBC_OUTPUT);
         LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
         LOG(BBC_OUTPUT).EnsureBOL();
@@ -2395,6 +2429,8 @@ class DiskAccessTest : public Test {
 
     void Start(TestBBCMicro *bbc) {
         std::string stuff;
+
+        stuff += "MODE 7\r"; //make room for test data
 
         // There's no check that the setting makes sense. The caller just has to
         // supply -1 when inappropriate.
@@ -2420,7 +2456,7 @@ class DiskAccessTest : public Test {
             break;
         }
 
-        stuff += "*FX6\r";
+        //stuff += "*FX6\r";
 
         bbc->Paste(stuff);
         bbc->RunUntilOSWORD0(10.0);
