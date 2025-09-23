@@ -197,7 +197,7 @@ void WD1770::Print1770Registers(Log *log) {
     if (m_status.value != 0) {
         log->f(" (");
 
-        const char *bits[] = {"Bu", "D/I", "L/0", "CRC", "RNF", "R/S", "WP", "Mo"};
+        static const char *const STATUS_BIT_NAMES[] = {"Bu", "D/I", "L/0", "CRC", "RNF", "R/S", "WP", "Mo"};
         int any = 0;
 
         for (size_t i = 0; i < 8; ++i) {
@@ -206,7 +206,7 @@ void WD1770::Print1770Registers(Log *log) {
                     log->f(" ");
                 }
 
-                log->f("%s", bits[i]);
+                log->f("%s", STATUS_BIT_NAMES[i]);
                 any = 1;
             }
         }
@@ -881,7 +881,18 @@ WD1770::Pins WD1770::Update() {
             this->UpdateTrack0Status();
 
             if (m_command.bits_i.v) {
-                this->Wait(SETTLE_uS_1770, WD1770State_FinishCommand);
+                uint8_t track;
+                uint8_t side;
+                size_t size;
+                if (!m_handler->GetSectorDetails(&track, &side, &size, 0, m_dden)) {
+                    // Failed to query the data.
+                    this->Wait(SETTLE_uS_1770, WD1770State_RecordNotFound);
+                } else if (m_track != m_data) {
+                    // Failed to seek to expected track.
+                    this->Wait(SETTLE_uS_1770, WD1770State_RecordNotFound);
+                } else {
+                    this->Wait(SETTLE_uS_1770, WD1770State_FinishCommand);
+                }
             } else {
                 m_state = WD1770State_FinishCommand;
             }
@@ -896,10 +907,10 @@ WD1770::Pins WD1770::Update() {
 
     case WD1770State_ForceInterrupt2:
         {
-            this->ResetStatusRegister();
-
-            //m_status.bits.deleted_or_spinup=1;
+            m_status.bits.drq_or_idx = 1;
             this->UpdateTrack0Status();
+
+            m_status.bits.busy = 0;
 
             this->SetINTRQ(m_command.bits_iv.immediate || m_command.bits_iv.index);
             this->SetState(WD1770State_BeginIdle);

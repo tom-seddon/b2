@@ -2754,8 +2754,8 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "80.dsd"));
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "80.dsd"));
 
-    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
-    //all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
+    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "blank_ddos_disc.ddd"));
     all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "blank_ddos_disc.ddd"));
 
