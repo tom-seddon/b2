@@ -2335,10 +2335,17 @@ class DiskAccessTest : public Test {
         {
             PrinterBuffer printer_buffer;
 
+            TestFailFnAdder fn_adder;
+
             TestBBCMicro bbc(m_type);
             if (m_verbose) {
                 bbc.StartCaptureOSWRCH();
+
+                fn_adder.Add([&bbc](const TestFailArgs *) {
+                    PrintCapturedOutput(bbc);
+                });
             }
+
             bbc.SetPrinterBuffer(&printer_buffer);
             bbc.SetPrinterEnabled(true);
             TEST_NON_NULL(disc_image);
@@ -2353,14 +2360,6 @@ class DiskAccessTest : public Test {
             bbc.Paste("CHAIN \"TEST0\"\r");
             bbc.RunUntilOSWORD0(10.0);
 
-            if (m_verbose) {
-                bbc.StopCaptureOSWRCH();
-                LOGF(BBC_OUTPUT, "All Output: ");
-                LOGI(BBC_OUTPUT);
-                LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
-                LOG(BBC_OUTPUT).EnsureBOL();
-            }
-
             TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST\n\r");
 
             if (m_fs_type == FSType_DFS) {
@@ -2370,6 +2369,10 @@ class DiskAccessTest : public Test {
                 bbc.RunUntilOSWORD0(10.0);
 
                 TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST2\n\r");
+            }
+
+            if (m_verbose) {
+                PrintCapturedOutput(bbc);
             }
         }
     }
@@ -2382,6 +2385,13 @@ class DiskAccessTest : public Test {
     std::string m_blank_disk_image_name;
     bool m_verbose = true;
     int m_master_acccon_io_flags = -1;
+
+    static void PrintCapturedOutput(const TestBBCMicro &bbc) {
+        LOGF(BBC_OUTPUT, "All Output: ");
+        LOGI(BBC_OUTPUT);
+        LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
+        LOG(BBC_OUTPUT).EnsureBOL();
+    }
 
     void Start(TestBBCMicro *bbc) {
         std::string stuff;
