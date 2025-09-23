@@ -887,7 +887,7 @@ WD1770::Pins WD1770::Update() {
                 if (!m_handler->GetSectorDetails(&track, &side, &size, 0, m_dden)) {
                     // Failed to query the data.
                     this->Wait(SETTLE_uS_1770, WD1770State_RecordNotFound);
-                } else if (m_track != m_data) {
+                } else if (m_track != track) {
                     // Failed to seek to expected track.
                     this->Wait(SETTLE_uS_1770, WD1770State_RecordNotFound);
                 } else {

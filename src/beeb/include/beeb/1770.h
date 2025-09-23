@@ -190,7 +190,7 @@ struct WD1770 {
     bool m_dden = false;
 
     Pins m_pins = {};
-    uint8_t m_direction = 0; //step IN (todo)
+    uint8_t m_direction = 0;
     uint8_t m_restore_count = 0;
     size_t m_offset = 0;
     size_t m_sector_size = 0;
