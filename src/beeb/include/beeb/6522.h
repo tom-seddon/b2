@@ -32,8 +32,8 @@ class R6522 {
 #include <shared/popwarn.h>
 
     union PCR {
-        PCRBits bits;
         uint8_t value;
+        PCRBits bits;
     };
 
 #include <shared/pushwarn_bitfields.h>
@@ -48,8 +48,8 @@ class R6522 {
 #include <shared/popwarn.h>
 
     union ACR {
-        ACRBits bits;
         uint8_t value;
+        ACRBits bits;
     };
     typedef union R6522ACR R6522ACR;
 

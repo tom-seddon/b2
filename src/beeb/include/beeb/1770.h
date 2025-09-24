@@ -88,8 +88,8 @@ struct WD1770 {
 #include <shared/popwarn.h>
 
     union Status {
-        StatusBits bits;
         uint8_t value;
+        StatusBits bits;
     };
 
 #include <shared/pushwarn_bitfields.h>
@@ -123,12 +123,12 @@ struct WD1770 {
 #include <shared/popwarn.h>
 
     union Command {
+        uint8_t value;
         CommandTypeIBits bits_i;
         CommandStepBits bits_step;
         CommandTypeIIBits bits_ii;
         CommandTypeIIIBits bits_iii;
         CommandTypeIVBits bits_iv;
-        uint8_t value;
     };
 
 #include <shared/pushwarn_bitfields.h>
@@ -138,8 +138,8 @@ struct WD1770 {
 #include <shared/popwarn.h>
 
     union Pins {
-        PinsBits bits;
         uint8_t value;
+        PinsBits bits;
     };
 
     explicit WD1770();

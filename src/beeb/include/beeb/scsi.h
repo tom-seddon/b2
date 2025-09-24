@@ -72,8 +72,8 @@ class SCSI {
     };
 
     union SCSIStatusRegister {
-        SCSIStatusRegisterBits bits;
         uint8_t value;
+        SCSIStatusRegisterBits bits;
     };
     CHECK_SIZEOF(SCSIStatusRegister, 1);
 

@@ -27,8 +27,8 @@ struct TubeFIFOStatusBits {
 };
 
 union TubeFIFOStatus {
-    TubeFIFOStatusBits bits;
     uint8_t value;
+    TubeFIFOStatusBits bits;
 };
 static_assert(sizeof(TubeFIFOStatus) == 1, "");
 
@@ -44,8 +44,8 @@ struct TubeStatusBits {
 };
 
 union TubeStatus {
-    TubeStatusBits bits;
     uint8_t value;
+    TubeStatusBits bits;
 };
 static_assert(sizeof(TubeStatus) == 1, "");
 

@@ -49,14 +49,14 @@ struct VideoDataPixelBits {
 };
 
 union VideoDataPixel {
-    VideoDataPixelBits bits;
     uint16_t all;
+    VideoDataPixelBits bits;
 };
 CHECK_SIZEOF(VideoDataPixel, 2);
 
 union VideoDataUnitPixels {
-    VideoDataPixel pixels[8];
     uint64_t values[2];
+    VideoDataPixel pixels[8];
 };
 
 #if VIDEO_TRACK_METADATA

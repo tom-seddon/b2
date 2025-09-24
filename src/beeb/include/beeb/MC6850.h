@@ -36,8 +36,8 @@ class MC6850 {
     };
 
     union ControlRegister {
-        ControlRegisterBits bits;
         uint8_t value;
+        ControlRegisterBits bits;
     };
     CHECK_SIZEOF(ControlRegister, 1);
 
@@ -53,8 +53,8 @@ class MC6850 {
     };
 
     union StatusRegister {
-        StatusRegisterBits bits;
         uint8_t value;
+        StatusRegisterBits bits;
     };
     CHECK_SIZEOF(StatusRegister, 1);
 
@@ -64,8 +64,8 @@ class MC6850 {
     };
 
     union IRQ {
-        IRQBits bits;
         uint8_t value;
+        IRQBits bits;
     };
     CHECK_SIZEOF(IRQ, 1);
 

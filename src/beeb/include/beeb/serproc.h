@@ -80,8 +80,8 @@ class SERPROC {
     };
 
     union ControlRegister {
-        ControlRegisterBits bits;
         uint8_t value;
+        ControlRegisterBits bits;
     };
     CHECK_SIZEOF(ControlRegister, 1);
 
