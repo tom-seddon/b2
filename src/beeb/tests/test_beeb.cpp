@@ -584,6 +584,9 @@ class TestBBCMicro : public BBCMicro {
     uint8_t MustFindOpcode(const char *mnemonic) const;
     uint8_t MustFindOpcode(const char *mnemonic, M6502AddrMode mode) const;
 
+    void SetBytes(M6502Word addr, const std::vector<uint8_t> &data);
+    std::vector<uint8_t> GetBytes(M6502Word addr, size_t num_bytes) const;
+
   protected:
     void GotOSWRCH();
     virtual bool GotOSCLI(); //true=handled, false=ok to pass on to real OSCLI
@@ -1184,6 +1187,35 @@ uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic, M6502AddrMode mode) c
 
     TEST_FAIL("opcode not found: mnemonic=%s; mode=%d", mnemonic, mode);
     return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestBBCMicro::SetBytes(M6502Word addr_, const std::vector<uint8_t> &bytes) {
+    M6502Word addr = addr_;
+
+    for (uint8_t byte : bytes) {
+        ASSERT(addr.w < 0x8000);
+        this->TestSetByte(addr.w++, byte);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<uint8_t> TestBBCMicro::GetBytes(M6502Word addr_, size_t num_bytes) const {
+    std::vector<uint8_t> bytes;
+    const uint8_t *ram = this->GetRAM();
+
+    M6502Word addr = addr_;
+
+    for (size_t i = 0; i < num_bytes; ++i) {
+        ASSERT(addr.w < 0x8000);
+        bytes.push_back(ram[addr.w++]);
+    }
+
+    return bytes;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2349,12 +2381,12 @@ class DiskAccessTest : public Test {
 
             this->Start(&bbc);
 
-            bbc.DebugSetBytes(ADDRESS, 0, false, random_data[0].data(), random_data[0].size());
+            bbc.SetBytes(ADDRESS, random_data[0]);
             bbc.Paste(strprintf("*SAVE TEST %04X+%04X\r", ADDRESS.w, random_data[0].size()));
             bbc.RunUntilOSWORD0(10.0);
 
             if (m_fs_type == FSType_DFS) {
-                bbc.DebugSetBytes(ADDRESS, 0, false, random_data[1].data(), random_data[1].size());
+                bbc.SetBytes(ADDRESS, random_data[1]);
                 bbc.Paste(strprintf("*SAVE :2.TEST2 %04X+%04X\r", ADDRESS.w, random_data[1].size()));
                 bbc.RunUntilOSWORD0(10.0);
             }
@@ -2477,7 +2509,7 @@ class DiskAccessTest : public Test {
         for (size_t i = 0; i < random_data.size(); ++i) {
             clear_data[i] = 0xff;
         }
-        bbc.DebugSetBytes(ADDRESS, 0, false, clear_data.data(), clear_data.size());
+        bbc.SetBytes(ADDRESS, clear_data);
 
         bbc.Paste("*LOAD " + file_name + "\r");
 
@@ -2488,9 +2520,7 @@ class DiskAccessTest : public Test {
         std::vector<uint8_t> wanted_data = random_data;
         wanted_data.resize(wanted_data.size() + extra_size);
 
-        std::vector<uint8_t> got_data;
-        got_data.resize(wanted_data.size());
-        bbc.DebugGetBytes(got_data.data(), got_data.size(), ADDRESS, 0, false);
+        std::vector<uint8_t> got_data = bbc.GetBytes(ADDRESS, wanted_data.size());
 
         TEST_EQ_AA(got_data.data(), wanted_data.data(), wanted_data.size());
 
