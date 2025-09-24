@@ -1098,7 +1098,7 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
     if (!!m_test_trace) {
         std::string path = GetOutputFileName(strprintf("%s.trace.txt", stem.c_str()));
         LOGF(OUTPUT, "Saving trace to: %s\n", path.c_str());
-        FILE *f = fopen(path.c_str(), "wt");
+        FILE *f = fopen(path.c_str(), "wb");//always save with Unix-type line endings
         TEST_NON_NULL(f);
 
         ::SaveTrace(m_test_trace,
