@@ -607,10 +607,12 @@ int WD1770::DoTypeIIFindSector() {
     uint8_t side;
     uint8_t track;
     if (!m_handler->GetSectorDetails(&track, &side, &m_sector_size, m_sector, m_dden)) {
+        TRACE("1770 - Type II Find Sector: RNF: couldn't get sector details: sector=%u DDEN=%d", m_sector, m_dden);
         goto rnf;
     }
 
     if (track != m_track) {
+        TRACE("1770 - Type II Find Sector: RNF: expected track %u, found track %u", m_track, track);
         goto rnf;
     }
 
@@ -620,6 +622,7 @@ int WD1770::DoTypeIIFindSector() {
     }
 #endif
 
+    TRACE("1770 - Type II Find Sector: OK: found sector: track=%u side=%u sector=%u DDEN=%d", track, side, m_sector, m_dden);
     m_status.bits.deleted_or_spinup = 0; //not deleted data
 
     return 1;
@@ -656,7 +659,7 @@ void WD1770::DoTypeIINextByte(WD1770State next_byte_state, WD1770State next_sect
 #if BBCMICRO_TRACE
         BEGIN_LOG_TRACE(this, HEX_DUMP_TRACE_LEN) {
             ASSERT(m_offset < sizeof m_sector_data);
-            log->f("1770 - got sector: ");
+            log->f("1770 - last read/written sector: ");
             this->Print1770Registers(log);
             log->f("\n");
             LogDumpBytes(log, m_sector_data, m_sector_size);
