@@ -494,6 +494,7 @@ parasite_update_done:
             M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
 
             if (const uint8_t read = m_state.cpu.read) {
+                (void)read;
                 if (mmio_addr.b.h < 3) {
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
                     m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
