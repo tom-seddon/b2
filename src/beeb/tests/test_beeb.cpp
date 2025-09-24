@@ -2345,7 +2345,7 @@ class DiskAccessTest : public Test {
         , m_fs_type(fs_type)
         , m_master_acccon_io_flags(master_acccon_io_flags) {
         if (m_master_acccon_io_flags >= 0) {
-            TEST_EQ_UU(m_master_acccon_io_flags & ~3u, 0u);
+            TEST_EQ_UU((unsigned)m_master_acccon_io_flags & ~3u, 0u);
         }
     }
 
@@ -2382,12 +2382,12 @@ class DiskAccessTest : public Test {
             this->Start(&bbc);
 
             bbc.SetBytes(ADDRESS, random_data[0]);
-            bbc.Paste(strprintf("*SAVE TEST %04X+%04X\r", ADDRESS.w, random_data[0].size()));
+            bbc.Paste(strprintf("*SAVE TEST %04X+%04zX\r", ADDRESS.w, random_data[0].size()));
             bbc.RunUntilOSWORD0(10.0);
 
             if (m_fs_type == FSType_DFS) {
                 bbc.SetBytes(ADDRESS, random_data[1]);
-                bbc.Paste(strprintf("*SAVE :2.TEST2 %04X+%04X\r", ADDRESS.w, random_data[1].size()));
+                bbc.Paste(strprintf("*SAVE :2.TEST2 %04X+%04zX\r", ADDRESS.w, random_data[1].size()));
                 bbc.RunUntilOSWORD0(10.0);
             }
 
@@ -2715,7 +2715,7 @@ void ForEachLine(const std::string &str, std::function<void(const std::string_vi
     while (b != end) {
         char c = *b;
         if (c == '\r' || c == '\n') {
-            fun(std::string_view(a, b - a));
+            fun(std::string_view(a, (size_t)(b - a)));
 
             ++b;
             if ((*b == '\r' || *b == '\n') && *b != c) {
