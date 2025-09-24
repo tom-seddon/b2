@@ -21,6 +21,7 @@
 #include <shared/strings.h>
 #include <inttypes.h>
 #include <beeb/DiscGeometry.h>
+#include <beeb/HardDiskImage.h>
 
 #include <shared/enum_decl.h>
 #include "test_beeb.inl"
@@ -175,7 +176,9 @@ struct TestBBCType {
     BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
     bool configure_extube = false; //Default for test Master is INTUBE.
     bool configure_notube = false; //Default for test Master is TUBE.
+    bool configure_hard = false;   //Default for test Master is FLOPPY.
     bool video_nula = false;
+    bool scsi = false;
 
     static_assert(ROMType_16KB == 0);
     ROMType rom_types[16] = {};
@@ -215,20 +218,20 @@ TestBBCType TestBBCType::WithSecondProcessor(BBCMicroParasiteType parasite_type_
     return type;
 }
 
-TestBBCType TestBBCType::WithConfigureEXTUBE() const {
-    TestBBCType type = *this;
+static TestBBCType WithFlagSet(const TestBBCType *src, bool TestBBCType::*flag_mptr) {
+    TestBBCType type = *src;
 
-    type.configure_extube = true;
+    type.*flag_mptr = true;
 
     return type;
 }
 
+TestBBCType TestBBCType::WithConfigureEXTUBE() const {
+    return WithFlagSet(this, &TestBBCType::configure_extube);
+}
+
 TestBBCType TestBBCType::WithConfigureNOTUBE() const {
-    TestBBCType type = *this;
-
-    type.configure_notube = true;
-
-    return type;
+    return WithFlagSet(this, &TestBBCType::configure_notube);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -414,6 +417,10 @@ static uint32_t GetBBCMicroInitFlags(const TestBBCType &type) {
         init_flags |= BBCMicroInitFlag_Serial;
     }
 
+    if (type.scsi) {
+        init_flags |= BBCMicroInitFlag_SCSI;
+    }
+
     return init_flags;
 }
 
@@ -456,12 +463,20 @@ static std::vector<uint8_t> GetNVRAMContents(const TestBBCType &type) {
                 nvram[15] &= ~1u;
             }
 
+            if (type.scsi) {
+                nvram[11] &= ~0x80u;
+            }
+
             return nvram;
         }
         break;
 
     case BBCMicroTypeID_MasterCompact:
         {
+            TEST_FALSE(type.configure_extube);
+            TEST_FALSE(type.configure_notube);
+            TEST_FALSE(type.scsi);
+
             std::vector<uint8_t> nvram(128);
 
             nvram[5] = 0xED;        // 5 - LANG 14; FS 13
@@ -537,7 +552,7 @@ class TestBBCMicro : public BBCMicro {
     };
 #endif
 
-    explicit TestBBCMicro(const TestBBCType &type);
+    explicit TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard_disk_images = {});
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();
@@ -832,7 +847,7 @@ void TestBBCMicro::Writer::Addbb(uint8_t a, uint8_t b) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TestBBCMicro::TestBBCMicro(const TestBBCType &type)
+TestBBCMicro::TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard_disk_images)
     : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type), type.rom_types),
                type.disc_interface,
                type.parasite_type,
@@ -840,7 +855,7 @@ TestBBCMicro::TestBBCMicro(const TestBBCType &type)
                nullptr,
                GetBBCMicroInitFlags(type),
                nullptr,
-               HardDiskImageSet(),
+               hard_disk_images,
                {0}) {
 #if BBCMICRO_TRACE
     m_trace_flags = (BBCMicroTraceFlag_RTC |
@@ -910,7 +925,7 @@ void TestBBCMicro::LoadFile(const std::string &path, uint32_t addr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestBBCMicro::LoadDiskImage(int drive, const std::string &path) {
+static std::shared_ptr<MemoryDiscImage> LoadDiskImage(const std::string &path) {
     std::vector<uint8_t> contents;
     TEST_TRUE(::LoadFile(&contents, path, nullptr));
 
@@ -920,7 +935,12 @@ void TestBBCMicro::LoadDiskImage(int drive, const std::string &path) {
     std::shared_ptr<MemoryDiscImage> image = MemoryDiscImage::LoadFromBuffer(path, "file", contents.data(), contents.size(), geometry, nullptr);
     TEST_NON_NULL(image);
 
-    this->SetDiscImage(drive, std::move(image));
+    return image;
+}
+
+void TestBBCMicro::LoadDiskImage(int drive, const std::string &path) {
+
+    this->SetDiscImage(drive, ::LoadDiskImage(path));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1098,7 +1118,7 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
     if (!!m_test_trace) {
         std::string path = GetOutputFileName(strprintf("%s.trace.txt", stem.c_str()));
         LOGF(OUTPUT, "Saving trace to: %s\n", path.c_str());
-        FILE *f = fopen(path.c_str(), "wb");//always save with Unix-type line endings
+        FILE *f = fopen(path.c_str(), "wb"); //always save with Unix-type line endings
         TEST_NON_NULL(f);
 
         ::SaveTrace(m_test_trace,
@@ -2285,13 +2305,12 @@ class PrinterTest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class FloppyDiskAccessTest : public Test {
+class DiskAccessTest : public Test {
   public:
-    FloppyDiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name, int master_acccon_io_flags = -1)
+    DiskAccessTest(std::string name, TestBBCType type, FSType fs_type, int master_acccon_io_flags = -1)
         : m_name(std::move(name))
         , m_type(std::move(type))
         , m_fs_type(fs_type)
-        , m_blank_disk_image_name(std::move(blank_disk_image_name))
         , m_master_acccon_io_flags(master_acccon_io_flags) {
         if (m_master_acccon_io_flags >= 0) {
             TEST_EQ_UU(m_master_acccon_io_flags & ~3u, 0u);
@@ -2303,11 +2322,7 @@ class FloppyDiskAccessTest : public Test {
     }
 
     void Run() override {
-        std::shared_ptr<DiscImage> disc_image;
-
-        // Capturing OSWRCH for the load step would include all the LOAD
-        // statements and whatnot. So the test program does a VDU2/VDU3 so the
-        // printer buffer mechanism can be used instead.
+        this->InitDiskImage();
 
         std::vector<uint8_t> random_data[2];
         for (size_t i = 0; i < 2; ++i) {
@@ -2317,7 +2332,7 @@ class FloppyDiskAccessTest : public Test {
         }
 
         {
-            TestBBCMicro bbc(m_type);
+            TestBBCMicro bbc(m_type, this->GetHardDiskImageSet());
 
             TestFailFnAdder fn_adder;
             if (m_verbose) {
@@ -2328,7 +2343,8 @@ class FloppyDiskAccessTest : public Test {
                 });
             }
 
-            bbc.LoadDiskImage(0, PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name));
+            bbc.SetDiscImage(0, this->GetFloppyDiskImage());
+            //bbc.LoadDiskImage(0, PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name));
             bbc.RunUntilOSWORD0(10.0);
 
             this->Start(&bbc);
@@ -2348,8 +2364,6 @@ class FloppyDiskAccessTest : public Test {
                 bbc.RunUntilOSWORD0(10.0);
             }
 
-            disc_image = bbc.TakeDiscImage(0);
-
             if (m_verbose) {
                 PrintCapturedOutput(bbc, "successful save");
             }
@@ -2357,21 +2371,38 @@ class FloppyDiskAccessTest : public Test {
 
         //disc_image->SaveToFile("C:\\temp\\agh.dsd", nullptr);
 
-        this->TestLoad(disc_image->Clone(), "TEST", random_data[0]);
+        this->TestLoad("TEST", random_data[0]);
         if (m_fs_type == FSType_DFS) {
-            this->TestLoad(disc_image->Clone(), ":2.TEST2", random_data[1]);
+            this->TestLoad(":2.TEST2", random_data[1]);
         }
     }
 
   protected:
-  private:
     static constexpr M6502Word ADDRESS = {0x2000};
     std::string m_name;
     TestBBCType m_type;
-    FSType m_fs_type;
-    std::string m_blank_disk_image_name;
-    bool m_verbose = true;
+    const FSType m_fs_type;
     int m_master_acccon_io_flags = -1;
+    bool m_verbose = true;
+
+    virtual void InitDiskImage() = 0;
+
+    virtual std::shared_ptr<DiscImage> GetFloppyDiskImage() const {
+        return {};
+    }
+
+    virtual std::shared_ptr<HardDiskImage> GetHardDiskImage() const {
+        return {};
+    }
+
+  private:
+    HardDiskImageSet GetHardDiskImageSet() const {
+        HardDiskImageSet set;
+
+        set.images[0] = this->GetHardDiskImage();
+
+        return set;
+    }
 
     static void PrintCapturedOutput(const TestBBCMicro &bbc, const char *step) {
         LOGF(BBC_OUTPUT, "All %s output: ", step);
@@ -2415,8 +2446,8 @@ class FloppyDiskAccessTest : public Test {
         bbc->RunUntilOSWORD0(10.0);
     }
 
-    void TestLoad(std::shared_ptr<DiscImage> disc_image, const std::string &file_name, const std::vector<uint8_t> &random_data) {
-        TestBBCMicro bbc(m_type);
+    void TestLoad(const std::string &file_name, const std::vector<uint8_t> &random_data) {
+        TestBBCMicro bbc(m_type, this->GetHardDiskImageSet());
 
         TestFailFnAdder fn_adder;
         if (m_verbose) {
@@ -2428,10 +2459,10 @@ class FloppyDiskAccessTest : public Test {
             });
         }
 
-        //bbc.SetPrinterBuffer(&printer_buffer);
-        //bbc.SetPrinterEnabled(true);
-        TEST_NON_NULL(disc_image);
-        bbc.SetDiscImage(0, disc_image);
+        ////bbc.SetPrinterBuffer(&printer_buffer);
+        ////bbc.SetPrinterEnabled(true);
+        //TEST_NON_NULL(disc_image);
+        bbc.SetDiscImage(0, this->GetFloppyDiskImage());
 
         bbc.RunUntilOSWORD0(10.0);
 
@@ -2466,6 +2497,73 @@ class FloppyDiskAccessTest : public Test {
         if (m_verbose) {
             PrintCapturedOutput(bbc, "successful load");
         }
+    }
+
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class FloppyDiskAccessTest : public DiskAccessTest {
+  public:
+    FloppyDiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name, int master_acccon_io_flags = -1)
+        : DiskAccessTest(std::move(name), std::move(type), fs_type, master_acccon_io_flags)
+        , m_blank_disk_image_name(std::move(blank_disk_image_name)) {
+    }
+
+  protected:
+    void InitDiskImage() override {
+        TEST_NULL(m_disk_image);
+
+        std::string path = PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name);
+
+        m_disk_image = LoadDiskImage(path);
+    }
+
+    std::shared_ptr<DiscImage> GetFloppyDiskImage() const override {
+        return m_disk_image;
+    }
+
+  private:
+    std::string m_blank_disk_image_name;
+    std::shared_ptr<MemoryDiscImage> m_disk_image;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class HardDiskAccessTest : public DiskAccessTest {
+  public:
+    HardDiskAccessTest(std::string name, TestBBCType type, int master_acccon_io_flags)
+        : DiskAccessTest(std::move(name), std::move(type), FSType_ADFS, master_acccon_io_flags) {
+        m_type.scsi = true;
+    }
+
+  protected:
+    std::string GetNameStem() const {
+        return GetOutputFileName(this->GetFullName() + ".hd");
+    }
+
+    void InitDiskImage() override {
+        std::string src_stem = PathJoined(b2_SOURCE_DIR, "etc/discs", "10MB");
+        std::string dest_stem = this->GetNameStem();
+
+        this->CopyFile(src_stem, dest_stem, ".dat");
+        this->CopyFile(src_stem, dest_stem, ".dsc");
+    }
+
+    std::shared_ptr<HardDiskImage> GetHardDiskImage() const override {
+        std::shared_ptr<HardDiskImage> image = HardDiskImage::CreateForFile(this->GetNameStem() + ".dat", nullptr);
+        TEST_NON_NULL(image);
+        return image;
+    }
+
+  private:
+    void CopyFile(const std::string &src_stem, const std::string &dest_stem, const std::string &ext) {
+        std::vector<uint8_t> data;
+        TEST_TRUE(LoadFile(&data, src_stem + ext, nullptr));
+        TEST_TRUE(SaveFile(data, dest_stem + ext, nullptr));
     }
 };
 
@@ -2809,6 +2907,12 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.compact.%d.mos510.adfs", io_flags), GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl", io_flags));
         all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.compact.%d.mosI510C.adfs", io_flags), GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl", io_flags));
         all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.compact.%d.mos511i.adfs", io_flags), GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl", io_flags));
+    }
+
+    // SCSI doesn't apply when IFJ.
+    for (uint8_t io_flags : std::vector<uint8_t>{0, HostIOFlag_ITU}) {
+        all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.master.%d.mos320.adfs", io_flags), GetMasterMOS320Type(), io_flags));
+        all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.master.%d.mos350.adfs", io_flags), GetMasterMOS350Type(), io_flags));
     }
 
     if (options.list) {
