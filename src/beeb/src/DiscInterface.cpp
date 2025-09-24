@@ -176,7 +176,6 @@ class DiscInterfaceWatford1770DDB2 : public DiscInterface {
         DiscInterfaceControl control;
         control.dden = (value & 1) == 0;
         control.side = (value & 2) != 0;
-        control.reset = (value & 8) == 0;
 
         if (value & 4) {
             control.drive = 1;
