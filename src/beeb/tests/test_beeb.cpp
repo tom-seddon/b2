@@ -2309,14 +2309,12 @@ class DiskAccessTest : public Test {
         // statements and whatnot. So the test program does a VDU2/VDU3 so the
         // printer buffer mechanism can be used instead.
 
-        std::vector<uint8_t> wanted_data[2];
+        std::vector<uint8_t> random_data[2];
         for (size_t i = 0; i < 2; ++i) {
-            TEST_TRUE(LoadFile(&wanted_data[i], PathJoined(b2_SOURCE_DIR, "etc/tests/random." + std::to_string(i)) + ".dat", nullptr));
-            TEST_EQ_UU(wanted_data[i].size(), 8192);
-            //wanted_data[i].resize(200); //can do this sort of thing to test shorter writes
+            TEST_TRUE(LoadFile(&random_data[i], PathJoined(b2_SOURCE_DIR, "etc/tests/random." + std::to_string(i)) + ".dat", nullptr));
+            TEST_EQ_UU(random_data[i].size(), 8192);
+            random_data[i].resize(random_data[i].size() - 200); //make it not an exact multiple of sector or track size
         }
-
-        const M6502Word ADDRESS = {0x2000};
 
         {
             TestBBCMicro bbc(m_type);
@@ -2335,13 +2333,13 @@ class DiskAccessTest : public Test {
 
             this->Start(&bbc);
 
-            bbc.DebugSetBytes(ADDRESS, 0, false, wanted_data[0].data(), wanted_data[0].size());
-            bbc.Paste(strprintf("*SAVE TEST %04X+%04X\r", ADDRESS.w, wanted_data[0].size()));
+            bbc.DebugSetBytes(ADDRESS, 0, false, random_data[0].data(), random_data[0].size());
+            bbc.Paste(strprintf("*SAVE TEST %04X+%04X\r", ADDRESS.w, random_data[0].size()));
             bbc.RunUntilOSWORD0(10.0);
 
             if (m_fs_type == FSType_DFS) {
-                bbc.DebugSetBytes(ADDRESS, 0, false, wanted_data[1].data(), wanted_data[1].size());
-                bbc.Paste(strprintf("*SAVE :2.TEST2 %04X+%04X\r", ADDRESS.w, wanted_data[1].size()));
+                bbc.DebugSetBytes(ADDRESS, 0, false, random_data[1].data(), random_data[1].size());
+                bbc.Paste(strprintf("*SAVE :2.TEST2 %04X+%04X\r", ADDRESS.w, random_data[1].size()));
                 bbc.RunUntilOSWORD0(10.0);
             }
 
@@ -2357,62 +2355,17 @@ class DiskAccessTest : public Test {
             }
         }
 
-        {
-            //PrinterBuffer printer_buffer;
+        //disc_image->SaveToFile("C:\\temp\\agh.dsd", nullptr);
 
-            TestBBCMicro bbc(m_type);
-
-            TestFailFnAdder fn_adder;
-            if (m_verbose) {
-                bbc.StartCaptureOSWRCH();
-
-                fn_adder.Add([&bbc](const TestFailArgs *) {
-                    PrintCapturedOutput(bbc, "failed load");
-                });
-            }
-
-            //bbc.SetPrinterBuffer(&printer_buffer);
-            //bbc.SetPrinterEnabled(true);
-            TEST_NON_NULL(disc_image);
-            bbc.SetDiscImage(0, disc_image);
-
-            bbc.RunUntilOSWORD0(10.0);
-
-            this->Start(&bbc);
-
-            bbc.Paste("*LOAD TEST\r");
-            bbc.RunUntilOSWORD0(10.0);
-
-            std::vector<uint8_t> got_data(wanted_data[0].size());
-            bbc.DebugGetBytes(got_data.data(), got_data.size(), ADDRESS, 0, false);
-            TEST_EQ_UU(got_data.size(), wanted_data[0].size());
-            TEST_EQ_AA(got_data.data(), wanted_data[0].data(), wanted_data[0].size());
-
-            //printer_buffer.Clear();
-
-            //bbc.Paste("CHAIN \"TEST0\"\r");
-            //bbc.RunUntilOSWORD0(10.0);
-
-            //TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "TEST\n\r");
-
-            if (m_fs_type == FSType_DFS) {
-                bbc.Paste("*LOAD :2.TEST2\r");
-                bbc.RunUntilOSWORD0(10.0);
-
-                got_data.resize(wanted_data[1].size());
-                bbc.DebugGetBytes(got_data.data(), got_data.size(), ADDRESS, 0, false);
-                TEST_EQ_UU(got_data.size(), wanted_data[1].size());
-                TEST_EQ_AA(got_data.data(), wanted_data[1].data(), wanted_data[1].size());
-            }
-
-            if (m_verbose) {
-                PrintCapturedOutput(bbc, "successful load");
-            }
+        this->TestLoad(disc_image->Clone(), "TEST", random_data[0]);
+        if (m_fs_type == FSType_DFS) {
+            this->TestLoad(disc_image->Clone(), ":2.TEST2", random_data[1]);
         }
     }
 
   protected:
   private:
+    static constexpr M6502Word ADDRESS = {0x2000};
     std::string m_name;
     TestBBCType m_type;
     FSType m_fs_type;
@@ -2462,7 +2415,57 @@ class DiskAccessTest : public Test {
         bbc->RunUntilOSWORD0(10.0);
     }
 
-    std::string GetSelectFSCommand() const {
+    void TestLoad(std::shared_ptr<DiscImage> disc_image, const std::string &file_name, const std::vector<uint8_t> &random_data) {
+        TestBBCMicro bbc(m_type);
+
+        TestFailFnAdder fn_adder;
+        if (m_verbose) {
+            bbc.StartCaptureOSWRCH();
+
+            fn_adder.Add([&bbc, name = this->GetFullName()](const TestFailArgs *) {
+                //bbc.SaveTestTrace(name);
+                PrintCapturedOutput(bbc, "failed load");
+            });
+        }
+
+        //bbc.SetPrinterBuffer(&printer_buffer);
+        //bbc.SetPrinterEnabled(true);
+        TEST_NON_NULL(disc_image);
+        bbc.SetDiscImage(0, disc_image);
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        this->Start(&bbc);
+
+        size_t extra_size = 100;
+
+        // OS 1.20 skips clearing the first byte in every page, so overwrite the
+        // memory with known data. (Since b2's behaviour might change if
+        // https://github.com/tom-seddon/b2/issues/49 ever gets fixed)
+        std::vector<uint8_t> clear_data(random_data.size() + extra_size, 0);
+        for (size_t i = 0; i < random_data.size(); ++i) {
+            clear_data[i] = 0xff;
+        }
+        bbc.DebugSetBytes(ADDRESS, 0, false, clear_data.data(), clear_data.size());
+
+        bbc.Paste("*LOAD " + file_name + "\r");
+
+        //bbc.StartTrace(BBCMicroTraceFlag_1770, 1024 * 1024 * 1024);
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        std::vector<uint8_t> wanted_data = random_data;
+        wanted_data.resize(wanted_data.size() + extra_size);
+
+        std::vector<uint8_t> got_data;
+        got_data.resize(wanted_data.size());
+        bbc.DebugGetBytes(got_data.data(), got_data.size(), ADDRESS, 0, false);
+
+        TEST_EQ_AA(got_data.data(), wanted_data.data(), wanted_data.size());
+
+        if (m_verbose) {
+            PrintCapturedOutput(bbc, "successful load");
+        }
     }
 };
 
