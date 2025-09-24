@@ -1831,7 +1831,9 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
     MUTEX_SET_NAME(m_mutex, "BeebThread");
     MUTEX_SET_NAME(m_timeline_state_mutex, "BeebThread timeline_state");
     MUTEX_SET_NAME(m_last_trace_mutex, "BeebThread last_trace");
+#if BBCMICRO_DEBUGGER
     MUTEX_SET_NAME(m_beeb_state_mutex, "BeebThread beeb_state");
+#endif
     m_mq.SetName("BeebThread MQ");
 }
 
