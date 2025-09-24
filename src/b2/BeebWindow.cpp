@@ -2117,7 +2117,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
         if (disc_image->CanSave()) {
             if (ImGui::MenuItem("Save")) {
-                disc_image->SaveToFile(disc_image->GetName(), m_msg);
+                disc_image->SaveToFile(disc_image->GetName(), &m_msg);
             }
         }
 
@@ -2132,7 +2132,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
             std::string path;
             if (fd.Open(&path)) {
-                if (disc_image->SaveToFile(path, m_msg)) {
+                if (disc_image->SaveToFile(path, &m_msg)) {
                     fd.AddLastPathToRecentPaths();
                 }
             }

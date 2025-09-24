@@ -212,8 +212,8 @@ std::vector<FileDialogFilter> MemoryDiscImage::GetFileDialogFilters() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool MemoryDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
-    return SaveFile(m_data->data, file_name, &logs);
+bool MemoryDiscImage::SaveToFile(const std::string &file_name, const LogSet *logs) const {
+    return SaveFile(m_data->data, file_name, logs);
 }
 
 //////////////////////////////////////////////////////////////////////////

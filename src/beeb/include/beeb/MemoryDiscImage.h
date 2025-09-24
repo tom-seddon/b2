@@ -44,7 +44,7 @@ class MemoryDiscImage : public DiscImage {
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
     std::vector<FileDialogFilter> GetFileDialogFilters() const override;
-    bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
+    bool SaveToFile(const std::string &file_name, const LogSet *logs) const override;
     //void SetNameAndLoadMethod(std::string name,std::string load_method);
 
     bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const override;
