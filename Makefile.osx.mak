@@ -31,9 +31,11 @@ run_tests:
 	cd build/Xcode && rm -Rf $(_OUTPUT) && ctest -C $(BUILD) -j$(NPROC) -LE 'slow|kevin_edwards' --output-on-failure || $(MELD) $(_OUTPUT)/got/ $(_OUTPUT)/wanted/
 
 .PHONY:run_all_tests
-run_all_tests: BUILD?=RelWithDebInfo
-run_all_tests:
-	cd build/Xcode && ctest -C $(BUILD) -j$(NPROC) --output-on-failure
+run_tests_xcode: CONFIG=$(error Must specify CONFIG)
+run_tests_xcode:
+	cd "build/Xcode" && ctest -C $(CONFIG) -j$(NPROC) --output-on-failure
+	cd "build/Xcode" && "./src/beeb/tests/$(CONFIG)/test_beeb" "--check-last-test-log=Testing/Temporary/LastTest.log"
+
 
 ##########################################################################
 ##########################################################################
