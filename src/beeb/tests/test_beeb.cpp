@@ -2285,9 +2285,9 @@ class PrinterTest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class DiskAccessTest : public Test {
+class FloppyDiskAccessTest : public Test {
   public:
-    DiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name, int master_acccon_io_flags = -1)
+    FloppyDiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name, int master_acccon_io_flags = -1)
         : m_name(std::move(name))
         , m_type(std::move(type))
         , m_fs_type(fs_type)
@@ -2787,28 +2787,28 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", GetMasterCompactMOS511iType()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", GetMasterCompactMOSI510CType()));
 
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.acorndfs", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770), FSType_DFS, "80.dsd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "80.dsd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "80.dsd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "80.dsd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.sd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.acorndfs", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "80.dsd"));
 
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "blank_ddos_disc.ddd"));
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.b.dd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "blank_ddos_disc.ddd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.dd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.dd.watford.ddb3", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB3), FSType_DFS, "blank_wddfs_disc.31files.ddd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.dd.opus", GetBBCBDiskType(&DISC_INTERFACE_OPUS), FSType_DFS, "blank_ddos_disc.ddd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.dd.challenger", GetBBCBDiskType(&DISC_INTERFACE_CHALLENGER_512K), FSType_DFS, "blank_ddos_disc.ddd"));
 
-    all_tests.push_back(std::make_unique<DiskAccessTest>("disk.bplus", GetBPlusType(), FSType_DFS, "80.dsd"));
+    all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.bplus", GetBPlusType(), FSType_DFS, "80.dsd"));
 
     for (int io_flags = 0; io_flags < 4; ++io_flags) {
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos320.dfs", io_flags), GetMasterMOS320Type(), FSType_DFS, "80.dsd", io_flags));
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos320.adfs", io_flags), GetMasterMOS320Type(), FSType_ADFS, "adl.adl", io_flags));
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos350.dfs", io_flags), GetMasterMOS350Type(), FSType_DFS, "80.dsd", io_flags));
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.master.%d.mos350.adfs", io_flags), GetMasterMOS350Type(), FSType_ADFS, "adl.adl", io_flags));
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mos500.adfs", io_flags), GetMasterCompactMOS500Type(), FSType_ADFS, "adl.adl", io_flags));
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mos510.adfs", io_flags), GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl", io_flags));
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mosI510C.adfs", io_flags), GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl", io_flags));
-        all_tests.push_back(std::make_unique<DiskAccessTest>(strprintf("disk.compact.%d.mos511i.adfs", io_flags), GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.master.%d.mos320.dfs", io_flags), GetMasterMOS320Type(), FSType_DFS, "80.dsd", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.master.%d.mos320.adfs", io_flags), GetMasterMOS320Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.master.%d.mos350.dfs", io_flags), GetMasterMOS350Type(), FSType_DFS, "80.dsd", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.master.%d.mos350.adfs", io_flags), GetMasterMOS350Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.compact.%d.mos500.adfs", io_flags), GetMasterCompactMOS500Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.compact.%d.mos510.adfs", io_flags), GetMasterCompactMOS510Type(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.compact.%d.mosI510C.adfs", io_flags), GetMasterCompactMOSI510CType(), FSType_ADFS, "adl.adl", io_flags));
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.compact.%d.mos511i.adfs", io_flags), GetMasterCompactMOS511iType(), FSType_ADFS, "adl.adl", io_flags));
     }
 
     if (options.list) {
