@@ -2193,8 +2193,8 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
                                       ReadByteResult result) {
         char text[3];
         if (result.bits.got_value) {
-            text[0] = HEX_CHARS_LC[value & 0xf];
-            text[1] = HEX_CHARS_LC[value >> 4];
+            text[0] = HEX_CHARS_LC[value >> 4];
+            text[1] = HEX_CHARS_LC[value & 0xf];
         } else {
             text[0] = '-';
             text[1] = '-';
