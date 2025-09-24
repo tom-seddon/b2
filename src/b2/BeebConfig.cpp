@@ -622,7 +622,7 @@ bool BeebLoadedConfig::Load(
     bool any_hard_disk_failures = false;
     for (size_t i = 0; i < NUM_HARD_DISKS; ++i) {
         if (!src.hard_disk_dat_paths[i].empty()) {
-            dest->hard_disk_images.images[i] = HardDiskImage::CreateForFile(src.hard_disk_dat_paths[i], *msg);
+            dest->hard_disk_images.images[i] = HardDiskImage::CreateForFile(src.hard_disk_dat_paths[i], msg);
             if (!dest->hard_disk_images.images[i]) {
                 any_hard_disk_failures = true;
                 // (but carry on, to note any additional failures)

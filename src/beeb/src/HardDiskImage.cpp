@@ -48,11 +48,11 @@ HardDiskImage::~HardDiskImage() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<HardDiskImage> HardDiskImage::CreateForFile(std::string dat_path, const LogSet &logs) {
+std::shared_ptr<HardDiskImage> HardDiskImage::CreateForFile(std::string dat_path, const LogSet *logs) {
     std::string dsc_path = GetDSCPath(dat_path);
 
     std::vector<uint8_t> dsc_data;
-    if (!LoadFile(&dsc_data, dsc_path, &logs)) {
+    if (!LoadFile(&dsc_data, dsc_path, logs)) {
         dsc_data.resize(EXPECTED_DSC_SIZE, 0);
 
         // See
@@ -66,22 +66,30 @@ std::shared_ptr<HardDiskImage> HardDiskImage::CreateForFile(std::string dat_path
         dsc_data[19] = 0x80;
         dsc_data[21] = 0; //3ms
 
-        logs.w.f("No .dsc file for disk image: %s\n", dat_path.c_str());
+        if (logs) {
+            logs->w.f("No .dsc file for disk image: %s\n", dat_path.c_str());
+        }
     } else {
         if (dsc_data.size() != EXPECTED_DSC_SIZE) {
-            logs.e.f("Hard disk .dsc file is %zu bytes (%zu expected): %s\n", dsc_data.size(), EXPECTED_DSC_SIZE, dat_path.c_str());
+            if (logs) {
+                logs->e.f("Hard disk .dsc file is %zu bytes (%zu expected): %s\n", dsc_data.size(), EXPECTED_DSC_SIZE, dat_path.c_str());
+            }
             return nullptr;
         }
     }
 
     FILE *fp = fopenUTF8(dat_path.c_str(), "r+b");
     if (!fp) {
-        logs.w.f("Couldn't open hard disk .dat file: %s\n", dat_path.c_str());
+        if (logs) {
+            logs->w.f("Couldn't open hard disk .dat file: %s\n", dat_path.c_str());
+        }
 
         // ...but that's ok! You can format it.
     }
 
-    logs.i.f("%u H x %u C x %u S: %s\n", dsc_data[15], Load16BE(&dsc_data[13]), NUM_HARD_DISK_SECTORS, dat_path.c_str());
+    if (logs) {
+        logs->i.f("%u H x %u C x %u S: %s\n", dsc_data[15], Load16BE(&dsc_data[13]), NUM_HARD_DISK_SECTORS, dat_path.c_str());
+    }
 
     auto image = std::make_shared<HardDiskImage>(std::move(dat_path), std::move(dsc_data), fp);
 

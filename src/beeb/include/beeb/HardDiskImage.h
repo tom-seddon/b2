@@ -50,7 +50,7 @@ class HardDiskImage : public std::enable_shared_from_this<HardDiskImage> {
     HardDiskImage &operator=(const HardDiskImage &) = delete;
     HardDiskImage &operator=(HardDiskImage &&) = delete;
 
-    static std::shared_ptr<HardDiskImage> CreateForFile(std::string dat_path, const LogSet &logs);
+    static std::shared_ptr<HardDiskImage> CreateForFile(std::string dat_path, const LogSet *logs);
 
     bool ReadSector(uint8_t *dest, uint32_t block);
     bool WriteSector(const uint8_t *src, uint32_t block);
