@@ -622,6 +622,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+template <uint8_t ROMSEL_OR_MASK>
 static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
                                  uint32_t *paging_flags,
                                  const PagingState &paging) {
@@ -634,7 +635,8 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][6].i = MAIN_BIG_PAGE_INDEX.i + 6;
     tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
 
-    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.b_bits.pr * NUM_ROM_BIG_PAGES + paging.rom_regions[paging.romsel.b_bits.pr] * 4;
+    uint8_t pr = paging.romsel.b_bits.pr | ROMSEL_OR_MASK;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + pr * NUM_ROM_BIG_PAGES + paging.rom_regions[pr] * 4;
     tables->mem_big_pages[0][0x8].i = rom + 0;
     tables->mem_big_pages[0][0x9].i = rom + 1;
     tables->mem_big_pages[0][0xa].i = rom + 2;
@@ -1034,7 +1036,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types_) {
+std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types_, uint32_t flags) {
     auto type = std::make_shared<BBCMicroType>();
 
     type->type_id = type_id;
@@ -1067,7 +1069,11 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         [[fallthrough]];
     case BBCMicroTypeID_B:
         type->big_pages_metadata = GetBigPagesMetadataB(type->rom_types);
-        type->get_mem_big_page_tables_fn = &GetMemBigPageTablesB;
+        if (flags & BBCMicroTypeFlag_ROMBoard) {
+            type->get_mem_big_page_tables_fn = &GetMemBigPageTablesB<0b0000>;
+        } else {
+            type->get_mem_big_page_tables_fn = &GetMemBigPageTablesB<0b1100>; //force banks 12-15
+        }
         break;
 
     case BBCMicroTypeID_BPlus:

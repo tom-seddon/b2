@@ -299,7 +299,7 @@ struct BBCMicroType {
 uint32_t GetROMTypeRegionMask(ROMType rom_type);
 size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t region);
 
-std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types);
+std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types, uint32_t flags);
 
 // a few per-type ID fixed properties.
 bool HasNVRAM(BBCMicroTypeID type_id);

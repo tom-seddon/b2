@@ -607,6 +607,7 @@ void BeebThread::HardResetMessage::HardReset(
     }
 
     uint32_t init_flags = 0;
+    uint32_t type_flags = 0;
     if (ts->current_config.config.video_nula) {
         init_flags |= BBCMicroInitFlag_VideoNuLA;
     }
@@ -629,7 +630,7 @@ void BeebThread::HardResetMessage::HardReset(
     }
 
     if (ts->current_config.config.rom_board) {
-        init_flags |= BBCMicroInitFlag_ROMBoard;
+        type_flags |= BBCMicroTypeFlag_ROMBoard;
     }
 
     if (HasSerial(ts->current_config.config.type_id) || ts->current_config.config.serial) {
@@ -646,7 +647,7 @@ void BeebThread::HardResetMessage::HardReset(
     for (int i = 0; i < 16; ++i) {
         rom_types[i] = ts->current_config.config.roms[i].type;
     }
-    auto beeb = std::make_unique<BBCMicro>(CreateBBCMicroType(ts->current_config.config.type_id, rom_types),
+    auto beeb = std::make_unique<BBCMicro>(CreateBBCMicroType(ts->current_config.config.type_id, rom_types, type_flags),
                                            ts->current_config.config.disc_interface,
                                            ts->current_config.config.parasite_type,
                                            nvram_contents,

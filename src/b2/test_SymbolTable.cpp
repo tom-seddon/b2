@@ -47,7 +47,7 @@ static std::shared_ptr<const BBCMicroType> CreateTestBBCMicroType() {
         rom_types[i] = ROMType_16KB;
     }
 
-    std::shared_ptr<const BBCMicroType> type = CreateBBCMicroType(BBCMicroTypeID_B, rom_types);
+    std::shared_ptr<const BBCMicroType> type = CreateBBCMicroType(BBCMicroTypeID_B, rom_types, BBCMicroTypeFlag_ROMBoard);
     return type;
 }
 

@@ -760,7 +760,7 @@ class BBCMicro : private WD1770Handler {
 #if BBCMICRO_DEBUGGER
     static uint8_t DebugReadROMSEL(const void *state_, M6502Word a);
 #endif
-    template <uint8_t AND_VALUE, uint8_t OR_VALUE>
+    template <uint8_t MASK>
     static void WriteROMSEL(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadACCCON(void *m_, M6502Word a);
 #if BBCMICRO_DEBUGGER

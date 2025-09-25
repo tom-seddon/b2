@@ -883,13 +883,13 @@ uint8_t BBCMicro::DebugReadROMSEL(const void *state_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <uint8_t AND_VALUE, uint8_t OR_VALUE>
+template <uint8_t MASK>
 void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    if ((m->m_state.paging.romsel.value ^ value) & AND_VALUE) {
-        m->m_state.paging.romsel.value = (value & AND_VALUE) | OR_VALUE;
+    if ((m->m_state.paging.romsel.value ^ value) & MASK) {
+        m->m_state.paging.romsel.value = value & MASK;
 
         m->UpdatePaging();
         m->UpdateCPUDataBusFn();
@@ -2943,7 +2943,7 @@ void BBCMicro::InitStuff() {
         // no problem. You can't read ROMSEL on the B.
         for (uint16_t i = 0; i < 16; ++i) {
             uint16_t romsel_addr = (uint16_t)(0xfe30 + i);
-            this->SetSIO(romsel_addr, &ReadUnmappedMMIO, this, m_state.init_flags & BBCMicroInitFlag_ROMBoard ? &WriteROMSEL<0xf, 0x0> : &WriteROMSEL<0x3, 0xc>, this);
+            this->SetSIO(romsel_addr, &ReadUnmappedMMIO, this, &WriteROMSEL<0x0f>, this);
 #if BBCMICRO_DEBUGGER
             this->SetDebugSIO(romsel_addr, nullptr, nullptr);
 #endif
@@ -2954,7 +2954,7 @@ void BBCMicro::InitStuff() {
         for (uint16_t i = 0; i < 4; ++i) {
             uint16_t romsel_addr = (uint16_t)(0xfe30 + i);
             uint16_t acccon_addr = (uint16_t)(0xfe34 + i);
-            this->SetSIO(romsel_addr, &ReadUnmappedMMIO, this, &WriteROMSEL<0x8f, 0x0>, this);
+            this->SetSIO(romsel_addr, &ReadUnmappedMMIO, this, &WriteROMSEL<0x8f>, this);
             this->SetSIO(acccon_addr, &ReadUnmappedMMIO, this, &WriteACCCON<0x80>, this);
 #if BBCMICRO_DEBUGGER
             this->SetDebugSIO(romsel_addr, nullptr, nullptr);
@@ -2968,7 +2968,7 @@ void BBCMicro::InitStuff() {
         for (uint16_t i = 0; i < 4; ++i) {
             uint16_t romsel_addr = (uint16_t)(0xfe30 + i);
             uint16_t acccon_addr = (uint16_t)(0xfe34 + i);
-            this->SetSIO(romsel_addr, &ReadROMSEL, this, &WriteROMSEL<0x8f, 0x0>, this);
+            this->SetSIO(romsel_addr, &ReadROMSEL, this, &WriteROMSEL<0x8f>, this);
             this->SetSIO(acccon_addr, &ReadACCCON, this, &WriteACCCON<0xff>, this);
 #if BBCMICRO_DEBUGGER
             this->SetDebugSIO(romsel_addr, &DebugReadROMSEL, &GetDebugMMIOReadROMSELContext);

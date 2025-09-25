@@ -851,7 +851,7 @@ void TestBBCMicro::Writer::Addbb(uint8_t a, uint8_t b) {
 //////////////////////////////////////////////////////////////////////////
 
 TestBBCMicro::TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard_disk_images)
-    : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type), type.rom_types),
+    : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type), type.rom_types, BBCMicroTypeFlag_ROMBoard),
                type.disc_interface,
                type.parasite_type,
                GetNVRAMContents(type),

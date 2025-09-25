@@ -66,18 +66,14 @@ EPNV(ADJI, 1 << 4)
 // If ADJI bit set, there's a 2-bit value encoding the base address.
 EQPNV(ADJIDIPSwitchesShift, 5)
 
-// BBC B only - if set, has a 16 slot ROM board rather than just the onboard 4
-// banks.
-EPNV(ROMBoard, 1 << 7)
+// Compact only - if set, has serial upgrade fitted. (B/B+/Master 128 always
+// have the serial upgrade fitted.)
+EPNV(Serial, 1 << 7)
 
 #if ENABLE_SCSI
 // If set, has SCSI interface available via XFJ.
 EPNV(SCSI, 1 << 8)
 #endif
-
-// Compact only - if set, has serial upgrade fitted. (B/B+/Master 128 always
-// have the serial upgrade fitted.)
-EPNV(Serial, 1 << 9)
 
 EEND()
 #undef ENAME
