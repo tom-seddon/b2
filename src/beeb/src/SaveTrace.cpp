@@ -216,6 +216,13 @@ class TraceSaver {
     SaveTraceWasCanceledFn m_was_canceled_fn = nullptr;
     void *m_was_canceled_context = nullptr;
 
+    // Check for cancellation every 65536 events. There'll be a lot of events
+    // (500,000+ per emulated second...) so cancellation will be picked up soon
+    // enough.
+    //
+    // Makes a useful improvement to trace save speed from the UI.
+    uint16_t m_cancel_counter = 0;
+
     SaveTraceProgress *m_progress = nullptr;
 
     class LogPrinterTraceSaver : public LogPrinter {
@@ -1062,9 +1069,11 @@ class TraceSaver {
 
         //this_->m_output->Flush();
 
-        if (this_->m_was_canceled_fn) {
-            if ((*this_->m_was_canceled_fn)(this_->m_was_canceled_context)) {
-                return false;
+        if (this_->m_cancel_counter++ == 0) {
+            if (this_->m_was_canceled_fn) {
+                if ((*this_->m_was_canceled_fn)(this_->m_was_canceled_context)) {
+                    return false;
+                }
             }
         }
 
