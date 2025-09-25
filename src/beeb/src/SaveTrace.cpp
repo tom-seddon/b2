@@ -35,14 +35,19 @@ class TraceSaver {
                void *save_data_context,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
-               SaveTraceProgress *progress)
+               SaveTraceProgress *progress,
+               ISaveTraceSymbolFinder *symbol_finder)
         : m_trace(std::move(trace))
         , m_output_flags(output_flags)
         , m_save_data_fn(save_data_fn)
         , m_save_data_context(save_data_context)
         , m_was_canceled_fn(was_canceled_fn)
         , m_was_canceled_context(was_canceled_context)
-        , m_progress(progress) {
+        , m_progress(progress)
+        , m_symbol_finder(symbol_finder) {
+#if BBCMICRO_DEBUGGER
+        ASSERT(!m_symbol_finder);
+#endif
     }
 
     bool Execute() {
@@ -224,6 +229,8 @@ class TraceSaver {
     uint16_t m_cancel_counter = 0;
 
     SaveTraceProgress *m_progress = nullptr;
+
+    ISaveTraceSymbolFinder *m_symbol_finder = nullptr;
 
     class LogPrinterTraceSaver : public LogPrinter {
       public:
@@ -1103,12 +1110,14 @@ bool SaveTrace(std::shared_ptr<Trace> trace,
                void *save_data_context,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
-               SaveTraceProgress *progress) {
+               SaveTraceProgress *progress,
+               ISaveTraceSymbolFinder *symbol_finder) {
     TraceSaver saver(std::move(trace),
                      output_flags,
                      save_data_fn, save_data_context,
                      was_canceled_fn, was_canceled_context,
-                     progress);
+                     progress,
+                     symbol_finder);
 
     bool canceled = saver.Execute();
     return canceled;

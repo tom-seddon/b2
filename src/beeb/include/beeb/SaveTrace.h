@@ -12,6 +12,29 @@
 
 static constexpr uint32_t DEFAULT_TRACE_OUTPUT_FLAGS = TraceOutputFlags_Cycles | TraceOutputFlags_RegisterNames;
 
+#if BBCMICRO_DEBUGGER
+
+// This class only makes sense when the debugger is enabled, as it needs the
+// debug state override flags.
+//
+// With debugger disabled, it's forward-declared only, and the caller must
+// provide nullptr.
+
+class ISaveTraceSymbolFinder {
+
+  public:
+    virtual bool FindNameForAddress(uint32_t addr, uint32_t dso) const = 0;
+
+  protected:
+  private:
+};
+
+#else
+
+class ISaveTraceSymbolFinder;
+
+#endif
+
 #if BBCMICRO_TRACE
 
 #include <memory>
@@ -41,7 +64,8 @@ bool SaveTrace(std::shared_ptr<Trace> trace,
                void *save_data_context,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
-               SaveTraceProgress *progress);
+               SaveTraceProgress *progress,
+               ISaveTraceSymbolFinder *symbol_finder);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

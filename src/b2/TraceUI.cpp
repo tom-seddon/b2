@@ -127,7 +127,8 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
                       m_output_flags,
                       &SaveData, f,
                       &WasCanceledThunk, this,
-                      &m_progress)) {
+                      &m_progress,
+                      nullptr)) {
             m_msgs.i.f(
                 "trace output file saved: %s\n",
                 m_file_name.c_str());

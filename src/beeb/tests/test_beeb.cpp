@@ -1130,6 +1130,7 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
                     f,
                     nullptr,
                     nullptr,
+                    nullptr,
                     nullptr);
 
         fclose(f);

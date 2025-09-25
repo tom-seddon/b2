@@ -111,6 +111,13 @@ class SymbolTable {
     SymbolTable();
     ~SymbolTable();
 
+    SymbolTable(const SymbolTable &src);
+
+    // The symbol table is not otherwise genrerally copyable.
+    SymbolTable &operator=(const SymbolTable &src) = delete;
+    SymbolTable(SymbolTable &&) = delete;
+    SymbolTable &operator=(SymbolTable &&) = delete;
+
     class SymbolParser;
 
     // Core functionality
