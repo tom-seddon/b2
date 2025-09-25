@@ -1547,7 +1547,7 @@ void BeebWindow::DoCommands(bool *close_window) {
                        g_printer_toggle_handle_delete);
 
 #if BBCMICRO_DEBUGGER
-    m_cst.SetEnabled(g_debug_run_command, this->DebugIsHalted());
+    m_cst.SetEnabled(g_debug_run_command, this->DebugGetHaltReason() != BBCMicroHaltReason_None);
     if (m_cst.WasActioned(g_debug_run_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
             m->DebugRun();
@@ -1559,7 +1559,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     m_cst.SetEnabled(g_debug_stop_command, !m_cst.GetEnabled(g_debug_run_command));
     if (m_cst.WasActioned(g_debug_stop_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
-            m->DebugHalt(BBCMicroHaltReason_ManualHalt, nullptr, -1, "manual stop");
+            m->DebugHalt(BBCMicroHaltReason_ManualHalt, nullptr, -1);
         }));
     }
 #endif
@@ -3958,7 +3958,7 @@ void BeebWindow::DebugStepIn(uint32_t dso) {
 
 #if BBCMICRO_DEBUGGER
 bool BeebWindow::DebugIsRunEnabled() const {
-    return this->DebugIsHalted();
+    return this->DebugGetHaltReason() != BBCMicroHaltReason_None;
 }
 #endif
 
@@ -3966,8 +3966,8 @@ bool BeebWindow::DebugIsRunEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-bool BeebWindow::DebugIsHalted() const {
-    return m_beeb_thread->DebugIsHalted();
+BBCMicroHaltReason BeebWindow::DebugGetHaltReason() const {
+    return m_beeb_thread->DebugGetHaltReason();
 }
 #endif
 

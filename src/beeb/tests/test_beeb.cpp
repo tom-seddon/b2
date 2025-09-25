@@ -2095,12 +2095,12 @@ class DebuggerTestBreakpointsB : public Test {
         std::shared_ptr<const BBCMicro::DebugState> debug = bbc.GetDebugState();
         TEST_NON_NULL(debug);
         if (should_succeed) {
-            TEST_TRUE(bbc.DebugIsHalted());
+            TEST_NE_II(bbc.DebugGetHaltReason(), BBCMicroHaltReason_None);
             TEST_EQ_UU(debug->halt_reason, halt_reason);
             TEST_GT_II(debug->halt_addr, 0);
             TEST_EQ_UU((unsigned)debug->halt_addr, addr);
         } else {
-            TEST_FALSE(bbc.DebugIsHalted());
+            TEST_EQ_II(bbc.DebugGetHaltReason(), BBCMicroHaltReason_None);
         }
     }
 };
@@ -2277,12 +2277,12 @@ class DebuggerTestBreakpointsMaster : public Test {
         std::shared_ptr<const BBCMicro::DebugState> debug = bbc.GetDebugState();
         TEST_NON_NULL(debug);
         if (should_succeed) {
-            TEST_TRUE(bbc.DebugIsHalted());
+            TEST_NE_II(bbc.DebugGetHaltReason(), BBCMicroHaltReason_None);
             TEST_EQ_UU(debug->halt_reason, m_write ? BBCMicroHaltReason_Write : BBCMicroHaltReason_Read);
             TEST_GT_II(debug->halt_addr, 0);
             TEST_EQ_UU((unsigned)debug->halt_addr, addr);
         } else {
-            TEST_FALSE(bbc.DebugIsHalted());
+            TEST_EQ_II(bbc.DebugGetHaltReason(), BBCMicroHaltReason_None);
         }
     }
 };

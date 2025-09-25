@@ -1008,7 +1008,7 @@ class BeebThread {
     std::vector<uint8_t> GetPrinterData() const;
 
 #if BBCMICRO_DEBUGGER
-    bool DebugIsHalted() const;
+    BBCMicroHaltReason DebugGetHaltReason() const;
     void DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
 #endif
 

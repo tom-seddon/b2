@@ -49,6 +49,7 @@ class SymbolTable;
 #include <condition_variable>
 #include <thread>
 #include <shared/json.h>
+#include <beeb/BBCMicro.h>
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -328,7 +329,7 @@ class BeebWindow {
 #if BBCMICRO_DEBUGGER
     bool DebugIsStopEnabled() const;
     bool DebugIsRunEnabled() const;
-    bool DebugIsHalted() const;
+    BBCMicroHaltReason DebugGetHaltReason() const;
     void DebugStepOver(uint32_t dso);
     void DebugStepIn(uint32_t dso);
 #endif

@@ -2432,8 +2432,8 @@ void BeebThread::MainThreadIsReady() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-bool BeebThread::DebugIsHalted() const {
-    return m_debug_halt_reason.load(std::memory_order_acquire) != BBCMicroHaltReason_None;
+BBCMicroHaltReason BeebThread::DebugGetHaltReason() const {
+    return m_debug_halt_reason.load(std::memory_order_acquire);
 }
 #endif
 
@@ -3072,7 +3072,7 @@ void BeebThread::ThreadMain(void) {
             paused = true;
         } else {
 #if BBCMICRO_DEBUGGER
-            if (ts.beeb->DebugIsHalted()) {
+            if (ts.beeb->DebugGetHaltReason() != BBCMicroHaltReason_None) {
                 paused = true;
             }
 #endif
@@ -3329,7 +3329,7 @@ void BeebThread::ThreadMain(void) {
 
                 for (;;) {
 #if BBCMICRO_DEBUGGER
-                    if (ts.beeb->DebugIsHalted()) {
+                    if (ts.beeb->DebugGetHaltReason() != BBCMicroHaltReason_None) {
                         break;
                     }
 #endif

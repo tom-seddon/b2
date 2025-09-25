@@ -1141,13 +1141,13 @@ class SystemDebugWindow : public DebugUI {
         ImGui::Text("Run time = %s", GetCycleCountString(m_beeb_state->cycle_count).c_str());
 
         if (m_beeb_debug_state && m_beeb_debug_state->halt_reason != BBCMicroHaltReason_None) {
-            ImGui::TextUnformatted("State = halted");
-            ImGui::Text("Halt reason = %s (%s)", GetBBCMicroHaltReasonEnumName(m_beeb_debug_state->halt_reason), m_beeb_debug_state->halt_reason_elaboration);
-            //if (m_beeb_debug_state->halt_reason[0] == 0) {
-            //    ImGui::TextUnformatted("Halted= %s");
-            //} else {
-            //    ImGui::Text("State = halted: %s", m_beeb_debug_state->halt_reason_elaboration);
-            //}
+            ImGui::Text("State = halted (%s)", GetBBCMicroHaltReasonEnumName(m_beeb_debug_state->halt_reason));
+            if (m_beeb_debug_state->halt_addr >= 0) {
+                ImGui::Text("Halt address = %s%04x", g_hex, m_beeb_debug_state->halt_addr);
+            }
+            if (m_beeb_debug_state->halt_cpu_metadata) {
+                ImGui::Text("Halt CPU = %s", m_beeb_debug_state->halt_cpu_metadata->name);
+            }
         } else {
             ImGui::TextUnformatted("State = running");
         }

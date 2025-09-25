@@ -188,8 +188,6 @@ class BBCMicro : private WD1770Handler {
         // (This buffer exists even if the parasite is disabled. 64 KB just
         // isn't enough to worry about any more.)
         uint8_t parasite_address_debug_flags[65536] = {};
-
-        char halt_reason_elaboration[1000] = {};
     };
 #endif
 
@@ -525,13 +523,11 @@ class BBCMicro : private WD1770Handler {
 
     void SetExtMemory(uint32_t addr, uint8_t value);
 
-    void DebugHalt(BBCMicroHaltReason reason, const M6502Metadata *cpu_metadata, int32_t addr, const char *fmt, ...) PRINTF_LIKE(5, 6);
+    void DebugHalt(BBCMicroHaltReason reason, const M6502Metadata *cpu_metadata, int32_t addr);
 
-    inline bool DebugIsHalted() const {
-        return m_debug_halt_reason != BBCMicroHaltReason_None;
+    inline BBCMicroHaltReason DebugGetHaltReason() const {
+        return m_debug_halt_reason;
     }
-
-    const char *DebugGetHaltReason() const;
 
     void DebugRun();
 
