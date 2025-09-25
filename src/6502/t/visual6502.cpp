@@ -4,6 +4,7 @@
 #include <shared/log.h>
 #include <shared/debug.h>
 #include <shared/path.h>
+#include <shared/CommandLineParser.h>
 #include <6502/6502.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -25,6 +26,13 @@ LOG_DEFINE(DEBUG, "", &log_printer_stdout_and_debugger);
 #ifndef VISUAL6502_PATH
 #error
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct Options {
+    bool verbose = false;
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -188,16 +196,9 @@ std::string strprintf(const char *fmt, ...) {
 
 //static const char URL_PREFIX[]="http://visual6502.org/JSSim/expert.html?";
 
-static int GetInt(const char *str, int num_chars, int base) {
-    std::string tmp;
-    if (num_chars < 0) {
-        tmp = str;
-    } else {
-        tmp = std::string(str, str + num_chars);
-    }
-
+static int GetInt(const std::string &str, int base) {
     char *ep;
-    long l = strtol(tmp.c_str(), &ep, base);
+    long l = strtol(str.c_str(), &ep, base);
 
     TEST_EQ_II(*ep, 0);
     TEST_TRUE(l >= INT_MIN && l <= INT_MAX);
@@ -205,14 +206,14 @@ static int GetInt(const char *str, int num_chars, int base) {
     return (int)l;
 }
 
-static void AddIRQ(int level, const char *v) {
-    int irq_cycle = GetInt(v, -1, 10);
+static void AddIRQ(int level, const std::string &str) {
+    int irq_cycle = GetInt(str, 10);
     TEST_TRUE(irq_cycle % 2 == 0);
     g_irqs.emplace_back(level, irq_cycle);
 }
 
-static void AddNMI(int level, const char *v) {
-    int nmi_cycle = GetInt(v, -1, 10);
+static void AddNMI(int level, const std::string &str) {
+    int nmi_cycle = GetInt(str, 10);
     TEST_TRUE(nmi_cycle % 2 == 0);
     g_nmis.emplace_back(level, nmi_cycle);
 }
@@ -228,51 +229,57 @@ static void InitVisual6502(const std::string &url) {
         std::string::size_type query_pos = url.find_first_of("?");
         TEST_TRUE(query_pos != std::string::npos);
 
-        char *args = strdup(url.c_str() + query_pos + 1);
+        std::string args = url.substr(query_pos + 1);
 
         int address = -1;
 
         // this isn't the cleverest
-        for (char *tok = strtok(args, "&"); tok; tok = strtok(NULL, "&")) {
-            char *k = strdup(tok);
+        std::string::size_type begin = 0;
+        while (begin < args.size()) {
+            std::string::size_type end = begin;
+            while (end != args.size() && args[end] != '&') {
+                ++end;
+            }
 
-            char *v = strchr(k, '=');
-            TEST_NON_NULL(v);
-            *v++ = 0;
+            std::string k = args.substr(begin, end - begin);
 
-            if (strcmp(k, "a") == 0) {
-                address = GetInt(v, -1, 16);
-            } else if (strcmp(k, "d") == 0) {
-                TEST_EQ_UU(strlen(v) % 2, 0);
-                for (size_t i = 0; v[i] != 0; i += 2) {
-                    g_mem[(uint16_t)address++] = (uint8_t)GetInt(v + i, 2, 16);
+            std::string::size_type eq_index = k.find_first_of('=');
+            TEST_NE_UU(eq_index, std::string::npos);
+            std::string v = k.substr(eq_index + 1);
+            k = k.substr(0, eq_index);
+
+            if (k == "a") {
+                address = GetInt(v, 16);
+            } else if (k == "d") {
+                TEST_EQ_UU(v.size() % 2, 0);
+                for (size_t i = 0; i < v.size(); i += 2) {
+                    g_mem[(uint16_t)address++] = (uint8_t)GetInt(v.substr(i, 2), 16);
                 }
-            } else if (strcmp(k, "r") == 0) {
-                int r = GetInt(v, -1, 16);
+            } else if (k == "r") {
+                int r = GetInt(v, 16);
                 g_mem[0xfffc] = (uint8_t)(r >> 0);
                 g_mem[0xfffd] = (uint8_t)(r >> 8);
-            } else if (strcmp(k, "irq0") == 0) {
+            } else if (k == "irq0") {
                 AddIRQ(0, v);
-            } else if (strcmp(k, "irq1") == 0) {
+            } else if (k == "irq1") {
                 AddIRQ(1, v);
-            } else if (strcmp(k, "nmi0") == 0) {
+            } else if (k == "nmi0") {
                 AddNMI(0, v);
-            } else if (strcmp(k, "nmi1") == 0) {
+            } else if (k == "nmi1") {
                 AddNMI(1, v);
-            } else if (strcmp(k, "steps") == 0) {
-                int steps = GetInt(v, -1, 10);
+            } else if (k == "steps") {
+                int steps = GetInt(v, 10);
                 TEST_TRUE(steps % 2 == 0);
                 g_num_test_cycles = steps / 2;
-            } else if (strcmp(k, "r") == 0) {
-                address = GetInt(v, -1, 16);
+            } else if (k == "r") {
+                address = GetInt(v, 16);
                 TEST_EQ_II(address & ~0xffff, 0);
                 g_mem[0xfffc] = (uint8_t)(address >> 0);
                 g_mem[0xfffd] = (uint8_t)(address >> 8);
             }
-        }
 
-        free(args);
-        args = NULL;
+            begin = end + 1; //+1 to skip the possible &
+        }
     }
 
     memcpy(memory, g_mem, 65536);
@@ -468,7 +475,7 @@ static void printStatus(state_t *state) {
     printf("\n");
 }
 
-static void TestVisual6502URL(const std::string &description, const std::string &url) {
+static void TestVisual6502URL(const std::string &description, const std::string &url, const Options &options) {
 
     printf("************************************************************************\n");
     printf("\n");
@@ -491,18 +498,18 @@ static void TestVisual6502URL(const std::string &description, const std::string 
     step(perfect6502);
 
     // Create M6502 state.
-    auto s = new M6502;
-    M6502_Init(s, &M6502_nmos6502_config);
-    s->tfn = &M6502_NextInstruction;
+    M6502 s={};
+    M6502_Init(&s, &M6502_nmos6502_config);
+    s.tfn = &M6502_NextInstruction;
 
     // Copy p6502 state.
-    s->a = readA(perfect6502);
-    s->x = readX(perfect6502);
-    s->y = readY(perfect6502);
-    M6502_SetP(s, readP(perfect6502));
-    s->s.b.l = readSP(perfect6502);
-    s->pc.b.l = g_mem[0xfffc];
-    s->pc.b.h = g_mem[0xfffd];
+    s.a = readA(perfect6502);
+    s.x = readX(perfect6502);
+    s.y = readY(perfect6502);
+    M6502_SetP(&s, readP(perfect6502));
+    s.s.b.l = readSP(perfect6502);
+    s.pc.b.l = g_mem[0xfffc];
+    s.pc.b.h = g_mem[0xfffd];
 
     int first_discrepancy_cycle = -1;
 
@@ -512,9 +519,9 @@ static void TestVisual6502URL(const std::string &description, const std::string 
     bool wasSync = false;
 
     // sync up...
-    s->read = !!isNodeHigh(perfect6502, Node_rw);
-    s->abus.w = readAddressBus(perfect6502);
-    s->dbus = readDataBus(perfect6502);
+    s.read = !!isNodeHigh(perfect6502, Node_rw);
+    s.abus.w = readAddressBus(perfect6502);
+    s.dbus = readDataBus(perfect6502);
 
     for (const PinState &state : g_irqs) {
         TEST_FALSE(state.seen);
@@ -545,33 +552,37 @@ static void TestVisual6502URL(const std::string &description, const std::string 
         step(perfect6502);
         ASSERT(!isNodeHigh(perfect6502, Node_clk0));
         uint16_t phi1_addr = readAddressBus(perfect6502);
-        printf("%-3d %-3d ", c / 2, c);
-        printStatus(perfect6502);
-        //chipStatus(perfect6502);
+        if (options.verbose) {
+            printf("%-3d %-3d ", c / 2, c);
+            printStatus(perfect6502);
+            //chipStatus(perfect6502);
+        }
         ++c;
 
         // phi2 trailing edge
         step(perfect6502);
         ASSERT(isNodeHigh(perfect6502, Node_clk0));
         TEST_EQ_UU(phi1_addr, readAddressBus(perfect6502));
-        printf("%-3d %-3d ", c / 2, c);
-        printStatus(perfect6502);
-        //chipStatus(perfect6502);
+        if (options.verbose) {
+            printf("%-3d %-3d ", c / 2, c);
+            printStatus(perfect6502);
+            //chipStatus(perfect6502);
+        }
         ++c;
 
         if (wasSync) {
-            Check(&discrepancy, s->a, readA(perfect6502), "A", 'b');
-            Check(&discrepancy, s->x, readX(perfect6502), "X", 'b');
-            Check(&discrepancy, s->y, readY(perfect6502), "Y", 'b');
-            Check(&discrepancy, s->pc.w, readPC(perfect6502), "PC", 'b');
-            Check(&discrepancy, s->s.b.l, readSP(perfect6502), "S", 'b');
+            Check(&discrepancy, s.a, readA(perfect6502), "A", 'b');
+            Check(&discrepancy, s.x, readX(perfect6502), "X", 'b');
+            Check(&discrepancy, s.y, readY(perfect6502), "Y", 'b');
+            Check(&discrepancy, s.pc.w, readPC(perfect6502), "PC", 'b');
+            Check(&discrepancy, s.s.b.l, readSP(perfect6502), "S", 'b');
 
             // Don't bother checking the unused bit - it's driven by D1x1,
             // which isn't modelled perfectly.
             //
             // If there's a discrepancy when P is pushed, the data bus contents
             // check will pick it up.
-            uint8_t sim_p = (M6502_GetP(s).value) & ~0x10u;
+            uint8_t sim_p = (M6502_GetP(&s).value) & ~0x10u;
             uint8_t real_p = readP(perfect6502) & ~0x10u;
             Check(&discrepancy, sim_p, real_p, "P", 'b');
         }
@@ -581,50 +592,52 @@ static void TestVisual6502URL(const std::string &description, const std::string 
             (void)x;
         }
 
-        const char *old_state = M6502_GetStateName(s, 1);
+        const char *old_state = M6502_GetStateName(&s, 1);
 
         if (irq_state) {
-            M6502_SetDeviceIRQ(s, 1, irq_state->level == 0);
+            M6502_SetDeviceIRQ(&s, 1, irq_state->level == 0);
         }
 
         if (nmi_state) {
-            M6502_SetDeviceNMI(s, 1, nmi_state->level == 0);
+            M6502_SetDeviceNMI(&s, 1, nmi_state->level == 0);
         }
 
-        (*s->tfn)(s);
+        (*s.tfn)(&s);
 
-        if (s->read) {
-            s->dbus = g_mem[s->abus.w];
+        if (s.read) {
+            s.dbus = g_mem[s.abus.w];
         } else {
-            g_mem[s->abus.w] = s->dbus;
+            g_mem[s.abus.w] = s.dbus;
         }
 
-        {
-            M6502P p = M6502_GetP(s);
+        if (options.verbose) {
+            M6502P p = M6502_GetP(&s);
             printf("            AB:%04X      RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X       %d%d%d",
-                   s->abus.w, s->read, s->pc.w, s->a, s->x, s->y, s->s.b.l, p.value,
-                   s->device_irq_flags ? 0 : 1,
-                   s->device_nmi_flags ? 0 : 1,
-                   s->d1x1);
-            printf(" %c$%04X=$%02X", s->read ? 'R' : 'W', s->abus.w, g_mem[s->abus.w]);
+                   s.abus.w, s.read, s.pc.w, s.a, s.x, s.y, s.s.b.l, p.value,
+                   s.device_irq_flags ? 0 : 1,
+                   s.device_nmi_flags ? 0 : 1,
+                   s.d1x1);
+            printf(" %c$%04X=$%02X", s.read ? 'R' : 'W', s.abus.w, g_mem[s.abus.w]);
             printf("  called: %s\n", old_state);
             old_state = NULL;
             printf("                                                                                     ");
-            printf(" next: %s\n", M6502_GetStateName(s, 1));
+            printf(" next: %s\n", M6502_GetStateName(&s, 1));
         }
 
         wasSync = readSync(perfect6502);
 
-        Check(&discrepancy, s->abus.w, readAddressBus(perfect6502), "address bus contents", 'w');
-        Check(&discrepancy, !!s->read, !!readRW(perfect6502), "rw status", 'B');
-        Check(&discrepancy, s->dbus, readDataBus(perfect6502), "data bus contents", 'b');
+        Check(&discrepancy, s.abus.w, readAddressBus(perfect6502), "address bus contents", 'w');
+        Check(&discrepancy, !!s.read, !!readRW(perfect6502), "rw status", 'B');
+        Check(&discrepancy, s.dbus, readDataBus(perfect6502), "data bus contents", 'b');
 
         if (discrepancy) {
             if (first_discrepancy_cycle < 0) {
                 first_discrepancy_cycle = c - 1;
             }
         } else {
-            printf("\n");
+            if (options.verbose) {
+                printf("\n");
+            }
         }
     }
 
@@ -1075,7 +1088,38 @@ static void WriteTestHTML(void) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int main(void) {
+static Options GetOptions(int argc, char *argv[]) {
+    CommandLineParser p;
+
+    Options options;
+
+    bool help;
+    p.AddHelpOption(&help);
+
+    p.AddOption('v', "verbose").SetIfPresent(&options.verbose).Help("be more verbose");
+
+    if (!p.Parse(argc, argv)) {
+        exit(1);
+    }
+
+    if (help) {
+        exit(0);
+    }
+
+    return options;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int main(int argc, char *argv[]) {
+#ifdef _MSC_VER
+    _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+    //_crtBreakAlloc = 107949;
+#endif
+
+    Options options = GetOptions(argc, argv);
+
     (void)&PreferTC;
 
     TestInitVisual6502();
@@ -1106,7 +1150,7 @@ int main(void) {
             }
         }
 
-        TestVisual6502URL(tc->description, tc->url);
+        TestVisual6502URL(tc->description, tc->url, options);
     }
 
     return 0;
