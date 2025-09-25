@@ -49,6 +49,8 @@ Additional credits:
 * SCSI emulation based on code by Jon Welch and Y. Tanaka (see
   https://github.com/stardot/beebem-windows/blob/master/Src/Scsi.cpp)
 
+* Debugger symbol support by Mark Fisher (https://github.com/markjfisher)
+
 b2 makes use of a number of open source libraries, licences for which
 are also included in this file.
 

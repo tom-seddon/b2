@@ -409,6 +409,9 @@ Two step buttons allow instruction-resolution stepping: `Step In` will
 run one instruction for the given CPU and then stop, and `Step Over`
 will run until the given CPU reaches the next instruction visible.
 
+Tick `Show Symbols` to try to show symbols for instruction addresses
+and operands - see the Symbols section below.
+
 As with `Run`/`Stop`, note that the the entire system runs (or not) as
 a unit. When stepping one CPU, the other CPU will continue to run. It
 isn't possible to step just one CPU at a time.
@@ -478,6 +481,104 @@ the keyborad matrix.
 
 Shows current mouse state. Four buttons permit generation of fake
 mouse motion.
+
+## `Symbols`
+
+Shows current loaded symbols file. See the Symbols section below.
+
+# Symbols
+
+**Symbols support is a work in progress!** 
+
+Symbols can be loaded from symbol files output by common 6502
+assemblers. The disassembly view can optionally show symbols for
+matching addresses, and address fields can use the symbol table to
+visit addresses by name.
+
+To load a symbol file, use `Debug` > `Load symbols`, selecting the
+symbol format (see below) from the dropdown list. Pick the file of
+interest from the file selector.
+
+## `Symbols`
+
+Use `Debug` > `Symbols` to show the symbols window, listing all the
+symbol files loaded.
+
+When looking up the symbol for an address, symbol files are searched
+in the order shown, and the first match is used; use the buttons in
+the `Move` column to change this.
+
+Symbol files can be enabled or disabled using the `Enabled` column.
+Symbols in disabled files will never be shown.
+
+Symbol files can be assigned to one of 256 groups, numbered 0-255,
+using the `Group` column. 
+
+Use the `Suffixes` column to control which paged memory regions the
+symbols apply to. (This has its own section, below.)
+
+`Count` shows the number of symbols loaded from the file, and `Source
+File` shows the name part of the file.
+
+## Symbol groups
+
+There are 256 symbol groups, numbered 0-255 inclusive, and any number
+of symbol files can be manually assigned to a given group.
+
+Use the `Symbol Groups` section in the window to bulk enable/disable
+all files in a specific group. Each group can also be given a mnemonic
+name.
+
+The bulk enable/disable option is also available from the `Debug` >
+`Symbol groups` menu option.
+
+Tick `Show used` to show only the used groups. (Unused groups retain
+whatever settings they had when they were used.)
+
+## Symbol file suffixes
+
+Click on the entry in the `Suffixes` column to specify applicable
+address suffixes for this symbol file. Enter a suffix in the popup and
+press Return to add it; click the `x` button next to an existing
+suffix in the popup to remove it.
+
+If the symbol file is enabled, and any of the paging settings implied
+by the address suffixes in the list are currently force, then the
+symbol file will be used.
+
+If entering the name of a symbol from that file in an address field,
+the first suffix in the list will be used to specify paging overrides
+for the corresponding view, as if you'd set them up yourself from the
+paging overrides UI.
+
+For example, if working on a sideways ROM loaded into (say) ROM bank
+D, specify `d` as the suffixes for its symbol file. If ROM bank D is
+paged in, or the paging overrides are set to show ROM bank D, its
+symbols will be used; otherwise, they won't.
+
+(This behaviour may not always be what you want. **Symbols support is
+a work in progress!**)
+
+## Symbol formats
+
+### ACME
+
+As output by [ACME](https://sourceforge.net/projects/acme-crossass/)
+using the `-l` option.
+
+### VICE
+
+As output by a number of C64-minded tools.
+
+### 64tass labels
+
+As output by [64tass](https://tass64.sourceforge.net/) using the `-l`
+option.
+
+### BeebAsm
+
+As output by [BeebAsm](https://github.com/stardot/beebasm) using the
+`-d` or `-dd` option.
 
 # Other debug-related options #
 

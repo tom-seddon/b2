@@ -245,7 +245,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_HardDiskDebug, "toggle_hard_disk_debug", "Hard Disk Debug", &CreateHardDiskDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SCSIDebug, "toggle_scsi_debug", "SCSI Debug", &CreateSCSIDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SerialDebug, "toggle_serial_debug", "Serial Debug", &CreateSerialDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupManagement, "toggle_symbol_group_management", "Symbol Group Management", &CreateSymbolGroupManagementWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupManagement, "toggle_symbol_group_management", "Symbols", &CreateSymbolGroupManagementWindow);
     return true;
 }
 

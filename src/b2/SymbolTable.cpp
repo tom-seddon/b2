@@ -489,11 +489,31 @@ class AcmeParser : public SymbolTable::SymbolParser {
     }
 };
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// This is a bit of a bodge, but it needs to be a separate entry in case any
+// specific changes need making.
+
+class TassLabelsParser : public AcmeParser {
+  public:
+    std::string GetFormatName() const override {
+        return "64tass labels";
+    }
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
     if (s_parsers.empty()) {
         RegisterParser(std::make_unique<ViceParser>());
         RegisterParser(std::make_unique<AcmeParser>());
         RegisterParser(std::make_unique<BeebAsmParser>());
+        RegisterParser(std::make_unique<TassLabelsParser>());
         LOGF(SYMBOLS, "Initialized %zu builtin symbol parsers\n", s_parsers.size());
     }
 }

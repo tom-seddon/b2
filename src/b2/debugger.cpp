@@ -4475,7 +4475,7 @@ class SymbolGroupManagementUI : public SettingsUI {
                 ImGui::TableSetupColumn("Enabled", ImGuiTableColumnFlags_WidthFixed, COL_ENABLED_WIDTH);
                 ImGui::TableSetupColumn("Group", ImGuiTableColumnFlags_WidthStretch, COL_GROUP_NAME_WIDTH);
                 ImGui::TableSetupColumn("Count", ImGuiTableColumnFlags_WidthFixed, COL_COUNT_WIDTH);
-                ImGui::TableSetupColumn("Contexts", ImGuiTableColumnFlags_WidthStretch, COL_CONTEXTS_WIDTH);
+                ImGui::TableSetupColumn("Suffixes", ImGuiTableColumnFlags_WidthStretch, COL_CONTEXTS_WIDTH);
                 ImGui::TableSetupColumn("Source File", ImGuiTableColumnFlags_WidthStretch, COL_SOURCE_FILE_WIDTH);
 
                 // Show headers
@@ -4756,8 +4756,6 @@ class SymbolGroupManagementUI : public SettingsUI {
 
             ImGuiHeader("Symbol Groups");
 
-            ImGui::Checkbox("Show all", &m_show_all_groups);
-            ImGui::SameLine();
             ImGui::Checkbox("Show used", &m_show_used_groups);
 
             if (ImGui::BeginTable("symbol_groups", 3, table_flags)) {
@@ -4809,8 +4807,6 @@ class SymbolGroupManagementUI : public SettingsUI {
     char m_address_suffix_buffer[20] = {};
     std::string m_address_suffix_error;
 
-    // TODO: probably better as an enum.
-    bool m_show_all_groups = false;
     bool m_show_used_groups = true;
 
     static void CentreCheckboxInColumn() {
