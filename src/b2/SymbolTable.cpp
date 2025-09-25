@@ -13,6 +13,7 @@
 #include <shared/file_io.h>
 #include <sstream>
 #include "misc.h"
+#include <shared/strings.h>
 
 #include <shared/enum_def.h>
 #include "SymbolTable.inl"
@@ -21,12 +22,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_DEFINE(SYMBOLS, "SYMBOLS", &log_printer_stdout_and_debugger, false);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::string TrimWhitespace(const std::string &str) {
+template <class StringType>
+static StringType TrimWhitespace(const StringType &str) {
     const char *whitespace = " \t\r\n";
     size_t start = str.find_first_not_of(whitespace);
     if (start == std::string::npos) {
@@ -63,21 +60,18 @@ void SymbolTable::Clear() {
     //m_name_to_addresses.clear();
     m_lsfs.clear();
     this->InvalidateEverything();
-    LOGF(SYMBOLS, "Symbol table cleared\n");
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs) {
-    LOGF(SYMBOLS, "Loading symbols from: %s\n", filepath.c_str());
-
     std::string content;
     if (!LoadTextFile(&content, filepath, logs)) {
         return false;
     }
 
-    if (!this->LoadFromString(content, filepath, parser)) {
+    if (!this->LoadFromString(content, filepath, parser, logs)) {
         return false;
     }
 
@@ -87,7 +81,7 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser) {
+bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser, const LogSet *logs) {
     size_t file_index;
     {
         SymbolFile new_file;
@@ -103,14 +97,13 @@ bool SymbolTable::LoadFromString(const std::string &content, const std::string &
     size_t old_count = GetSymbolCount();
 
     // Detect format and load with appropriate parser
-    bool success = LoadFromContent(content, file_index);
+    bool success = this->LoadFromContent(content, file_index, logs);
 
     if (success) {
-        size_t new_count = GetSymbolCount();
-        LOGF(SYMBOLS, "Successfully loaded %zu symbols (%zu symbols total)\n",
-             new_count - old_count, new_count);
-    } else {
-        LOGF(SYMBOLS, "ERROR: Failed to parse symbol file: %s\n", filepath.c_str());
+        if (logs) {
+            size_t new_count = GetSymbolCount();
+            logs->i.f("Successfully loaded %zu symbols (%zu symbols total)\n", new_count - old_count, new_count);
+        }
     }
 
     return success;
@@ -145,12 +138,24 @@ const SymbolTable::SymbolParser *SymbolTable::SymbolParserRegistry::FindParserBy
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void LogParseError(const std::string &file_path, size_t line_number, const LogSet *logs) {
+    if (logs) {
+        logs->e.EnsureBOL();
+        logs->e.f("Error in line: %zu of %s\n", line_number, file_path.c_str());
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Concrete parser implementations
 
 class BeebAsmParser : public SymbolTable::SymbolParser {
     struct ParseState {
         const char *c = nullptr;
+        const std::string *file_path = nullptr;
         size_t line_number = 1;
+        const LogSet *logs = nullptr;
     };
 
   public:
@@ -170,10 +175,12 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
         }
     }
 
-    bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const override {
+    bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
         ParseState ps;
 
         ps.c = content.c_str();
+        ps.file_path = &file_path;
+        ps.logs = logs;
 
         if (!this->SkipSpacesAndConsumeMatch(&ps, '[')) {
             return this->Error(ps, "didn't find opening [");
@@ -287,14 +294,13 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
   protected:
   private:
     bool Error(const ParseState &ps, const char *fmt, ...) const PRINTF_LIKE(3, 4) {
-        LOGF(SYMBOLS, "Error: line %zu: ", ps.line_number);
-
-        va_list v;
-        va_start(v, fmt);
-        LOGV(SYMBOLS, fmt, v);
-        va_end(v);
-
-        LOG(SYMBOLS).EnsureBOL();
+        if (ps.logs) {
+            va_list v;
+            va_start(v, fmt);
+            ps.logs->e.v(fmt, v);
+            va_end(v);
+            LogParseError(*ps.file_path, ps.line_number, ps.logs);
+        }
 
         return false;
     }
@@ -349,9 +355,7 @@ class ViceParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const override {
-        LOGF(SYMBOLS, "Parsing VICE label format\n");
-
+    bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
         std::istringstream stream(content);
         std::string line;
         size_t line_number = 0;
@@ -388,21 +392,24 @@ class ViceParser : public SymbolTable::SymbolParser {
 
                     symbols->push_back(std::move(symbol));
                 } catch (const std::exception &e) {
-                    LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
+                    if (logs) {
+                        logs->e.f("Parse error: %s\n", e.what());
+                        LogParseError(file_path, line_number, logs);
+                    }
                     return false;
                 }
             } else {
                 // Only log non-empty, non-comment lines that don't match
                 std::string trimmed = TrimWhitespace(line);
                 if (!trimmed.empty()) {
-                    // TODO: should probably reveal this somewhere...
-                    LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
-                         line_number, trimmed.c_str());
+                    if (logs) {
+                        logs->e.f("Unrecognised format: %s\n", trimmed.c_str());
+                        LogParseError(file_path, line_number, logs);
+                    }
                 }
             }
         }
 
-        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols->size());
         return true;
     }
 };
@@ -431,9 +438,7 @@ class AcmeParser : public SymbolTable::SymbolParser {
         return std::regex_match(line, pattern);
     }
 
-    bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const override {
-        LOGF(SYMBOLS, "Parsing ACME label format\n");
-
+    bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
         std::istringstream stream(content);
         std::string line;
         size_t line_number = 0;
@@ -470,21 +475,24 @@ class AcmeParser : public SymbolTable::SymbolParser {
 
                     symbols->push_back(std::move(symbol));
                 } catch (const std::exception &e) {
-                    LOGF(SYMBOLS, "WARNING: Parse error at line %zu: %s\n", line_number, e.what());
+                    if (logs) {
+                        logs->e.f("Parse error: %s\n", e.what());
+                        LogParseError(file_path, line_number, logs);
+                    }
                     return false;
                 }
             } else {
                 // Only log non-empty, non-comment lines that don't match
                 std::string trimmed = TrimWhitespace(line);
                 if (!trimmed.empty()) {
-                    // TODO: should probably reveal this somewhere...
-                    LOGF(SYMBOLS, "WARNING: Unrecognized format at line %zu: '%s'\n",
-                         line_number, trimmed.c_str());
+                    if (logs) {
+                        logs->e.f("Unrecognised format: %s\n", trimmed.c_str());
+                        LogParseError(file_path, line_number, logs);
+                    }
                 }
             }
         }
 
-        LOGF(SYMBOLS, "Parsed %zu lines, loaded %zu symbols\n", line_number, symbols->size());
         return true;
     }
 };
@@ -492,13 +500,95 @@ class AcmeParser : public SymbolTable::SymbolParser {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// This is a bit of a bodge, but it needs to be a separate entry in case any
-// specific changes need making.
-
 class TassLabelsParser : public AcmeParser {
   public:
     std::string GetFormatName() const override {
         return "64tass labels";
+    }
+
+    bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
+        size_t line_number = 0;
+        bool good = ForEachLine(content, [symbols, &file_path, logs, &line_number](const std::string_view &line) -> bool {
+            ++line_number;
+
+            if (line.empty()) {
+                return true;
+            }
+
+            std::string_view::size_type name_end = line.find_first_of('=');
+            if (name_end == std::string_view::npos) {
+                if (logs) {
+                    logs->e.f("Invalid syntax: %-*s\n", (int)line.size(), line.data());
+                    LogParseError(file_path, line_number, logs);
+                }
+                return false;
+            }
+
+            std::string_view::size_type value_begin = name_end + 1;
+
+            if (name_end > 0 && line[name_end - 1] == ':') {
+                // It's :=.
+                --name_end;
+            }
+
+            std::string_view name = TrimWhitespace(line.substr(0, name_end));
+            std::string value_str(TrimWhitespace(line.substr(value_begin)));
+
+            if (name.empty() || value_str.empty()) {
+                if (logs) {
+                    logs->e.f("Invalid syntax: %-*s\n", (int)line.size(), line.data());
+                    LogParseError(file_path, line_number, logs);
+                }
+                return false;
+            }
+
+            bool got_value = false;
+            uint64_t value = 0;
+            if (value_str[0] == '$') {
+                if (GetUInt64FromString(&value, value_str.c_str() + 1, 16)) {
+                    got_value = true;
+                } else {
+                    if (logs) {
+                        logs->e.f("Invalid hex value: %s\n", value_str.c_str());
+                        LogParseError(file_path, line_number, logs);
+                        return false;
+                    }
+                }
+            } else if (value_str[0] == '"') {
+                // Ignore string values.
+            } else if (value_str == "true" || value_str == "false") {
+                // Ignore boolean values.
+            } else {
+                // Assume decimal?
+                if (GetUInt64FromString(&value, value_str.c_str(), 10)) {
+                    got_value = true;
+                } else {
+                    if (logs) {
+                        logs->e.f("Invalid hex value: %s\n", value_str.c_str());
+                        LogParseError(file_path, line_number, logs);
+                        return false;
+                    }
+                }
+            }
+
+            if (got_value) {
+                if (value > 0xffff) {
+                    // For now, silently ignore values that are too large.
+                } else {
+                    Symbol symbol;
+
+                    symbol.line_number = line_number;
+                    symbol.name = name;
+                    symbol.address = (uint16_t)value;
+
+                    symbols->push_back(std::move(symbol));
+                }
+            }
+
+            return true;
+        });
+
+        return good;
     }
 
   protected:
@@ -514,7 +604,6 @@ void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
         RegisterParser(std::make_unique<AcmeParser>());
         RegisterParser(std::make_unique<BeebAsmParser>());
         RegisterParser(std::make_unique<TassLabelsParser>());
-        LOGF(SYMBOLS, "Initialized %zu builtin symbol parsers\n", s_parsers.size());
     }
 }
 
@@ -523,10 +612,7 @@ void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
 
 const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string &content) {
     const auto &parsers = SymbolParserRegistry::GetParsers();
-    if (parsers.empty()) {
-        LOGF(SYMBOLS, "ERROR: No symbol parsers registered!\n");
-        return nullptr;
-    }
+    ASSERT(!parsers.empty());
 
     std::istringstream stream(content);
     std::string line;
@@ -559,10 +645,6 @@ const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string
     bool found_parser = false;
 
     for (size_t i = 0; i < parser_scores.size(); ++i) {
-        LOGF(SYMBOLS, "Parser '%s': %d/%d matches (%.1f%%)\n",
-             parsers[i]->GetFormatName().c_str(), parser_scores[i], lines_checked,
-             lines_checked > 0 ? (double)parser_scores[i] / lines_checked * 100 : 0);
-
         if (parser_scores[i] > max_score) {
             max_score = parser_scores[i];
             best_parser_index = i;
@@ -572,12 +654,6 @@ const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string
     // Check if best parser meets confidence threshold
     if (lines_checked > 0 && max_score >= (confidence_threshold * lines_checked)) {
         found_parser = true;
-        LOGF(SYMBOLS, "Selected parser '%s' with %.1f%% confidence\n",
-             parsers[best_parser_index]->GetFormatName().c_str(),
-             (double)max_score / lines_checked * 100);
-    } else {
-        LOGF(SYMBOLS, "No parser met confidence threshold (need >%.0f%% match)\n",
-             confidence_threshold * 100);
     }
 
     return found_parser ? parsers[best_parser_index].get() : nullptr;
@@ -586,7 +662,7 @@ const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index) {
+bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index, const LogSet *logs) {
     LoadedSymbolFile *lsf = m_lsfs[file_index].get();
 
     const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(lsf->file.file_format_name);
@@ -595,19 +671,24 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index)
     }
 
     if (!parser) {
-        LOGF(SYMBOLS, "WARNING: No suitable parser found\n");
+        if (logs) {
+            logs->e.f("No suitable parser found for %s\n", lsf->file.file_path.c_str());
+        }
         return false;
     }
 
     this->InvalidateEverything();
 
-    LOGF(SYMBOLS, "Using %s parser for content loading\n", parser->GetFormatName().c_str());
-    if (!parser->ParseContent(content, &lsf->symbols)) {
+    lsf->symbols.clear();
+
+    if (!parser->ParseSymbolsFromContent(&lsf->symbols, content, lsf->file.file_path, logs)) {
         return false;
     }
 
     if (lsf->symbols.empty()) {
-        LOGF(SYMBOLS, "WARNING: No symbols loaded from file\n");
+        if (logs) {
+            logs->w.f("No symbols loaded from file: %s\n", lsf->file.file_path.c_str());
+        }
     }
 
     auto &&symbol_it = lsf->symbols.begin();
@@ -615,8 +696,9 @@ bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index)
         Symbol *symbol = &*symbol_it;
 
         if (symbol->name.empty()) {
-            LOGF(SYMBOLS, "WARNING: Invalid symbol at line %zu: address=$%X, name='%s'\n",
-                 symbol->line_number, symbol->address, symbol->name.c_str());
+            if (logs) {
+                logs->e.f("Invalid symbol in file: line %zu of %s\n", symbol->line_number, lsf->file.file_path.c_str());
+            }
 
             symbol_it = lsf->symbols.erase(symbol_it);
             continue;
@@ -976,11 +1058,12 @@ void SymbolTable::ReloadAllFiles(const LogSet *logs) {
         }
 
         // Load symbols into this group (preserving enabled state)
-        LOGF(SYMBOLS, "Reloading symbols from: %s (enabled: %s)\n", file->file_path.c_str(), BOOL_STR(file->enabled));
-        this->LoadFromContent(content, i);
+        this->LoadFromContent(content, i, logs);
     }
 
-    LOGF(SYMBOLS, "Reloaded %zu symbols across %zu files\n", GetSymbolCount(), m_lsfs.size());
+    if (logs) {
+        logs->i.f("Reloaded %zu symbols across %zu files\n", GetSymbolCount(), m_lsfs.size());
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

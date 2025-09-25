@@ -710,13 +710,11 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     // Load symbol table from persistent data if available
     if (!!m_settings.symbol_table_data) {
         try {
-            if (m_symbol_table->LoadFromJSON(m_settings.symbol_table_data, &m_msg)) {
-                LOGF(SYMBOLS, "Restored symbol table persistence data with %zu files\n", m_symbol_table->GetNumFiles());
-            } else {
-                LOGF(SYMBOLS, "WARNING: Failed to load symbol table persistence data - JSON was valid but load failed\n");
+            if (!m_symbol_table->LoadFromJSON(m_settings.symbol_table_data, &m_msg)) {
+                m_msg.w.f("Failed to load persistent symbol table data\n");
             }
         } catch (const std::exception &e) {
-            LOGF(SYMBOLS, "ERROR: Failed to load symbol table persistence data: %s\n", e.what());
+            m_msg.w.f("Failed to load persistent symbol table data: %s\n", e.what());
         }
     }
 #endif

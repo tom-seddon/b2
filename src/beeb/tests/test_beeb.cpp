@@ -2710,47 +2710,6 @@ static Options GetOptions(int argc, char *argv[]) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ForEachLine(const std::string &str, std::function<void(const std::string_view &line)> fun) {
-    const char *a = str.data(), *end = a + str.size(), *b = a;
-    while (b != end) {
-        char c = *b;
-        if (c == '\r' || c == '\n') {
-            fun(std::string_view(a, (size_t)(b - a)));
-
-            ++b;
-            if ((*b == '\r' || *b == '\n') && *b != c) {
-                ++b;
-            }
-
-            a = b;
-        } else {
-            ++b;
-        }
-    }
-}
-//    std::string::const_iterator a = str.begin(), b = a;
-//    while (b != str.end()) {
-//        char c = *b;
-//        if (c == '\r' || c == '\n') {
-//            fun(std::string_view(a, b));
-//
-//            ++b;
-//            if (b != str.end()) {
-//                if ((*b == '\r' || *b == '\n') && *b != c) {
-//                    ++b;
-//                }
-//            }
-//
-//            a = b;
-//        } else {
-//            ++b;
-//        }
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const std::string STARTING_TEST_PREFIX = "ea73a8dc-2d1a-43bc-ae41-078e441e53c5:";
 
 int main(int argc, char *argv[]) {
@@ -2968,11 +2927,13 @@ int main(int argc, char *argv[]) {
 
         std::map<std::string, uint64_t> num_runs_by_test_name;
         ForEachLine(log,
-                    [&num_runs_by_test_name](const std::string_view &line) {
+                    [&num_runs_by_test_name](const std::string_view &line) -> bool {
                         if (line.substr(0, STARTING_TEST_PREFIX.size()) == STARTING_TEST_PREFIX) {
                             std::string test_name(line.substr(STARTING_TEST_PREFIX.size()));
                             ++num_runs_by_test_name[test_name];
                         }
+
+                        return true;
                     });
 
         bool good = true;

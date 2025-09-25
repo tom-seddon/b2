@@ -116,7 +116,7 @@ class SymbolTable {
     // Core functionality
     void Clear();
     bool LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs);
-    bool LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser);
+    bool LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser, const LogSet *logs);
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
     size_t GetSymbolCountForFile(size_t file_index) const;
@@ -157,7 +157,7 @@ class SymbolTable {
         virtual std::string GetFormatName() const = 0;
         virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;
         virtual bool MatchesLine(const std::string &line) const = 0;
-        virtual bool ParseContent(const std::string &content, std::vector<Symbol> *symbols) const = 0;
+        virtual bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const = 0;
     };
 
     // Parser registry system
@@ -171,10 +171,6 @@ class SymbolTable {
       private:
         static std::vector<std::unique_ptr<const SymbolParser>> s_parsers;
     };
-
-    // Format detection and loading
-    const SymbolParser *DetectBestParser(const std::string &content);
-    bool LoadFromContent(const std::string &content, size_t file_index);
 
     // Persistence support
     std::shared_ptr<JSON> SaveToJSON() const;
@@ -221,6 +217,10 @@ class SymbolTable {
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
     mutable bool m_group_properties_valid = false;
+
+    // Format detection and loading
+    const SymbolParser *DetectBestParser(const std::string &content);
+    bool LoadFromContent(const std::string &content, size_t file_index, const LogSet *logs);
 
     // Helper methods
     bool IsValidAddress(uint32_t addr) const;

@@ -21,7 +21,18 @@ static const char TEST_DATA_2[] =
     "ambiguous=$1001\n"
     "file2_only=$2002\n";
 
+static const char TASS_LABELS_TEST_DATA[] =
+    "label1 = $8000\n"
+    "string=     \"hello\"\n"
+    "yes=true\n"
+    "no=false\n"
+    "label2 = 1234\n"
+    "label3 := 999\n";
+
 static const char BEEBASM_TEST_DATA[] = "[{'.SPARE1':0L,'.SPARE2':2L,'.irqTmp':3L,'.runLenCnt':4L,'.joystickEnabledFlag':5L,'.snowWindow':6L,'.packedTileTable':10L,'.itemExtra':16L,'.itemTile':17L,'.itemID':18L,'.itemX':19L,'.itemY':20L}]";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #define TEST_EQ_SYMBOL_S(GOT_NAME_PTR, WANTED_NAME) \
     BEGIN_MACRO {                                   \
@@ -29,6 +40,9 @@ static const char BEEBASM_TEST_DATA[] = "[{'.SPARE1':0L,'.SPARE2':2L,'.irqTmp':3
         TEST_EQ_SS(*(GOT_NAME_PTR), WANTED_NAME);   \
     }                                               \
     END_MACRO
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 static size_t MustFindFileIndex(const SymbolTable &st, const std::string &file_path) {
     for (size_t i = 0; i < st.GetNumFiles(); ++i) {
@@ -41,6 +55,9 @@ static size_t MustFindFileIndex(const SymbolTable &st, const std::string &file_p
     TEST_FAIL("couldn't find expected symbol file: %s", file_path.c_str());
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static std::shared_ptr<const BBCMicroType> CreateTestBBCMicroType() {
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
@@ -51,13 +68,16 @@ static std::shared_ptr<const BBCMicroType> CreateTestBBCMicroType() {
     return type;
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void TestBeebAsmStuff() {
     const SymbolTable::SymbolParser *beebasm_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("BeebAsm");
     TEST_NON_NULL(beebasm_parser);
 
     SymbolTable st;
 
-    TEST_TRUE(st.LoadFromString(BEEBASM_TEST_DATA, "1", beebasm_parser));
+    TEST_TRUE(st.LoadFromString(BEEBASM_TEST_DATA, "1", beebasm_parser, nullptr));
 
     std::shared_ptr<const BBCMicroType> type = CreateTestBBCMicroType();
 
@@ -71,17 +91,47 @@ static void TestBeebAsmStuff() {
     TEST_EQ_UU(addr, 6);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void TestTassLabelsStuff() {
+    const SymbolTable::SymbolParser *tass_labels_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("64tass labels");
+    TEST_NON_NULL(tass_labels_parser);
+
+    SymbolTable st;
+
+    TEST_TRUE(st.LoadFromString(TASS_LABELS_TEST_DATA, "1", tass_labels_parser, nullptr));
+
+    std::shared_ptr<const BBCMicroType> type = CreateTestBBCMicroType();
+
+    TEST_EQ_UU(st.GetSymbolCount(), 3); //should have ignored bools and strings
+    TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0x8000, 0, type), "label1");
+    TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(1234, 0, type), "label2");
+
+    uint16_t addr;
+    uint32_t dso;
+
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "label1"));
+    TEST_EQ_UU(addr, 0x8000);
+
+    TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "label2"));
+    TEST_EQ_UU(addr, 1234);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void TestMultiSymbolTableStuff() {
     const SymbolTable::SymbolParser *acme_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("ACME");
     TEST_NON_NULL(acme_parser);
 
     SymbolTable st;
 
-    TEST_TRUE(st.LoadFromString(TEST_DATA_1, "1", acme_parser));
+    TEST_TRUE(st.LoadFromString(TEST_DATA_1, "1", acme_parser, nullptr));
 
     size_t file1_index = MustFindFileIndex(st, "1");
 
-    TEST_TRUE(st.LoadFromString(TEST_DATA_2, "2", acme_parser));
+    TEST_TRUE(st.LoadFromString(TEST_DATA_2, "2", acme_parser, nullptr));
 
     size_t file2_index = MustFindFileIndex(st, "2");
 
@@ -139,15 +189,15 @@ static void TestMultiSymbolTableStuff() {
     TEST_EQ_UU(addr, 0x1001);
 }
 
-LOG_EXTERN(SYMBOLS);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 int main() {
     SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers();
 
-    LOG(SYMBOLS).Enable();
-
     TestMultiSymbolTableStuff();
     TestBeebAsmStuff();
+    TestTassLabelsStuff();
 }
 
 #else
