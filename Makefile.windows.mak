@@ -48,6 +48,26 @@ _run_tests:
 ##########################################################################
 ##########################################################################
 
+.PHONY: precommit_vs2022
+precommit_vs2022:
+	$(MAKE) _precommit VSYEAR=2022 VSVER=17
+
+.PHONY: _precommit
+_precommit:
+	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=Debug
+	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=RelWithDebInfo
+	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=Final
+
+.PHONY: _precommit2
+_precommit2: _VS_PATH:=$(shell "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -version $(VSVER) -property installationPath)
+_precommit2: _DEVENV_PATH:=$(_VS_PATH)/Common7/IDE/devenv.com
+_precommit2:
+	cd "build\vs$(VSYEAR)" && "..\..\bin\msbuild_bug_wrapper.bat" "$(_DEVENV_PATH)" b2.sln /Build $(CONFIG)
+	$(MAKE) _run_tests VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=$(CONFIG)
+
+##########################################################################
+##########################################################################
+
 .PHONY:github_ci_windows
 github_ci_windows:
 	$(PYTHON3) "./etc/release/release.py" --verbose --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) --gh-release $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
