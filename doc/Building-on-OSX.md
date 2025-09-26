@@ -52,6 +52,10 @@ Don't edit it. The correct file to edit is `template.Info.plist`; the
 `${...}` values are replaced with corresponding values from the CMake
 setup.
 
+I'm not sure when `template.Info.plist` is supposed to be re-read, but
+after making a change, it seems most reliable to do `make
+reinit_xcode` to prod CMake into regenerating it.
+
 # Bundle identifiers (also applies if building Unix-style)
 
 All built app bundles end up with the same bundle identifier:

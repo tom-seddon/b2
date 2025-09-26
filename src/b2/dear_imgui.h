@@ -119,6 +119,8 @@ class ImGuiStuff {
 
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
+    float m_mouse_scale=1.f;
+    ImGuiStyle m_default_style;
     uint64_t m_last_new_frame_ticks = 0;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;

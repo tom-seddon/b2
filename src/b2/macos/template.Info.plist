@@ -35,7 +35,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSHighResolutionCapable</key>
-	<false/>
+	<true/>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
