@@ -223,6 +223,9 @@ struct BeebWindowInitArguments {
 
     // Set if --verbose was supplied on the command line.
     bool verbose = false;
+
+    // Enable high DPI support.
+    bool enable_high_dpi = true;
 };
 
 //////////////////////////////////////////////////////////////////////////

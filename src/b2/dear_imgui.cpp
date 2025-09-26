@@ -10,6 +10,8 @@
 #include "misc.h"
 #include "native_ui.h"
 #include <SDL_opengl.h>
+#include "b2.h"
+#include <SDL_syswm.h>
 
 #include <shared/enum_def.h>
 #include "dear_imgui.inl"
@@ -59,6 +61,14 @@ static bool g_in_frame = false;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_WINDOWS
+// TODO
+static UINT (*g_GetDpiForWindow)(HWND);
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ImGuiContextSetter::ImGuiContextSetter(const ImGuiStuff *stuff)
     : m_old_imgui_context(ImGui::GetCurrentContext()) {
     if (stuff->m_context) {
@@ -81,6 +91,10 @@ ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer)
     m_last_new_frame_ticks = GetCurrentTickCount();
 
     static_assert(sizeof m_imgui_key_from_sdl_scancode / sizeof m_imgui_key_from_sdl_scancode[0] == SDL_NUM_SCANCODES);
+
+#if SYSTEM_WINDOWS
+    FindProcAddress("user32.dll", "GetDpiForWindow", &g_GetDpiForWindow);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -159,6 +173,26 @@ static void SetClipboardText(ImGuiContext *context, const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_WINDOWS
+static float GetDpiScale(HWND hwnd) {
+    if (!g_GetDpiForWindow) {
+        return 1.f;
+    }
+
+    UINT dpi = (*g_GetDpiForWindow)(hwnd);
+    float dpi_scale = (float)dpi / USER_DEFAULT_SCREEN_DPI;
+    return dpi_scale;
+}
+
+static float HandleGetWindowDpiScaleWindows(ImGuiViewport *vp) {
+    if (auto hwnd = (HWND)vp->PlatformHandleRaw) {
+        return GetDpiScale(hwnd);
+    } else {
+        return 1.f;
+    }
+}
+#endif
+
 bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     int rc;
     (void)rc;
@@ -175,6 +209,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
 #if SYSTEM_WINDOWS
 
+    // TODO: I think this will need to be made DPI-aware too?
     {
         float x = (float)GetSystemMetrics(SM_CXDOUBLECLK);
         float y = (float)GetSystemMetrics(SM_CYDOUBLECLK);
@@ -183,6 +218,30 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     }
 
     io.MouseDoubleClickTime = GetDoubleClickTime() / 1000.f;
+
+    // See ImGui_ImplSDL2_Init.
+
+    SDL_Window *window = SDL_RenderGetWindow(m_renderer);
+
+    uint32_t window_flags = SDL_GetWindowFlags(window);
+
+    if (window_flags & SDL_WINDOW_ALLOW_HIGHDPI) {
+        SDL_SysWMinfo wm_info;
+        SDL_GetWindowWMInfo(window, &wm_info);
+
+        ImGuiViewport *main_vp = ImGui::GetMainViewport();
+        main_vp->PlatformHandleRaw = wm_info.info.win.window;
+
+        platform_io.Platform_GetWindowDpiScale = &HandleGetWindowDpiScaleWindows;
+
+        // Update scales if DPI changes.
+        io.ConfigDpiScaleFonts = true;
+        io.ConfigDpiScaleViewports = true;
+
+        // The correct initial scale factor does still need to be set.
+        ImGuiStyle &style = ImGui::GetStyle();
+        style.FontScaleDpi = GetDpiScale(wm_info.info.win.window);
+    }
 
 #elif SYSTEM_OSX
 
@@ -285,7 +344,9 @@ void ImGuiStuff::SetFontScale(float scale) {
     ImGuiContextSetter setter(this);
 
     ImGuiStyle &style = ImGui::GetStyle();
-    style.FontScaleMain = (std::max)(scale, 1.f);
+
+    // Allow the font scale to go below .25f to accommodate the high-DPI case.
+    style.FontScaleMain = (std::max)(scale, .25f);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -331,6 +392,7 @@ void ImGuiStuff::NewFrame() {
             SDL_SetCursor(nullptr);
         }
     }
+
     {
         int output_width, output_height;
         SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
@@ -1128,7 +1190,7 @@ static int ImGuiStdStringInputTextCallback(ImGuiInputTextCallbackData *data) {
 
     if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
         ASSERT(data->Buf == user_data->str->data());
-        ASSERT(data->BufTextLen>=0);
+        ASSERT(data->BufTextLen >= 0);
         user_data->str->resize((size_t)data->BufTextLen);
         data->Buf = user_data->str->data();
         return 0;

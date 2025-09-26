@@ -3276,12 +3276,16 @@ bool BeebWindow::InitInternal() {
     //
     // Anyway, obvious with the test pattern, but in practice not an issue,
     // as the borders are so large...
+    uint32_t window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL;
+    if (m_init_arguments.enable_high_dpi) {
+        window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+    }
     m_window = SDL_CreateWindow("",
                                 SDL_WINDOWPOS_UNDEFINED,
                                 SDL_WINDOWPOS_UNDEFINED,
                                 TV_TEXTURE_WIDTH + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f),
                                 TV_TEXTURE_HEIGHT + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f),
-                                SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+                                window_flags);
     if (!m_window) {
         m_msg.e.f("SDL_CreateWindow failed: %s\n", SDL_GetError());
         return false;
