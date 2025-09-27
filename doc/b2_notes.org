@@ -5396,12 +5396,14 @@ But only "like". The above didn't work.
 * TODO WIP build notes
 
 #+begin_src markdown
-  ,* The GUI Font Size setting has been renamed to GUI Font Scale, now a scale value rather than a pixel size. If you previously changed this setting, that change will be lost, and you'll need to set it up again in the Options dialog. Apologies
+  ,* The GUI Font Size setting has been replaced by a general GUI Scale, now a scale value rather than a pixel size. As a one-off, you'll need to set it up again. Sorry!
   ,* Add initial support for symbols in debugger, thanks to [Mark Fisher](https://github.com/markjfisher)
   ,* Improve debugging support for memory-mapped I/O: breakpoints work, and there's partial support for viewing it in the memory and disassembly views
   ,* Fix some 1770 FDC bugs: fix Watford DDB2/DDB3 double density; fix Watford DDB2 generally
   ,* Fix debugger's view of ROMs when using BBC B without ROM board
-  ,* Windows: improve support for high-DPI displays
+  ,* macOS: improve support for retina displays. Should look a little nicer
+  ,* Windows: improve support for high-DPI displays. Should look quite a bit better if using display scaling
+  ,* Linux: improve "support" for high-DPI displays: you can use the GUI scale to fix it
 #+end_src
 
 * Address suffix spring clean
