@@ -11,7 +11,7 @@ To clone the repo:
 If you're reading this after already cloning it:
 
     git submodule init
-	git submodule update
+    git submodule update
 
 (If anything goes wrong during initial cloning or updating, a `git
 submodule update --force` may or may not fix things. If you're not
