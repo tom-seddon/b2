@@ -193,7 +193,13 @@ static void HackOpcode(M6502 *s) {
             //++s->s.b.l;
             //s->pc.b.h=g_mem[s->s.w];
 
-            LOGF(TEST, "%c", s->a == '\r' ? '\n' : s->a);
+            if (s->a == '\r') {
+                LOGF(TEST, "\n");
+            } else if (s->a < 32 || s->a >= 127) {
+                LOGF(TEST, "\\%03o", s->a);
+            } else {
+                LOGF(TEST, "%c", s->a);
+            }
             LOG(TEST).Flush();
 
             M6502_NextInstruction(s);
