@@ -271,6 +271,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 #if SYSTEM_WINDOWS
         
         SDL_SysWMinfo wm_info;
+        SDL_VERSION(&wm_info.version);
         SDL_GetWindowWMInfo(window, &wm_info);
 
         ImGuiViewport *main_vp = ImGui::GetMainViewport();
