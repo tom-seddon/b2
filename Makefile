@@ -17,7 +17,7 @@ ifeq ($(OS),Windows_NT)
 PYTHON3:=py -3
 
 # https://github.com/muttleyxd/clang-tools-static-binaries/releases
-CLANG_FORMAT:=bin/clang-format-11_windows-amd64.exe
+CLANG_FORMAT:=bin/clang-format-19_windows-amd64.exe
 
 CAT:=cmd /c type
 
