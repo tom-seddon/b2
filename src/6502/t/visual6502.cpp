@@ -498,7 +498,7 @@ static void TestVisual6502URL(const std::string &description, const std::string 
     step(perfect6502);
 
     // Create M6502 state.
-    M6502 s={};
+    M6502 s = {};
     M6502_Init(&s, &M6502_nmos6502_config);
     s.tfn = &M6502_NextInstruction;
 

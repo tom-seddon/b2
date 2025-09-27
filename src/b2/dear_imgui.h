@@ -106,7 +106,7 @@ class ImGuiStuff {
     float GetFontScale() const;
     void SetFontScale(float scale);
 
-    float GetScale()const;
+    float GetScale() const;
     void SetScale(float scale);
 
     // The non-modifier key returned will be marked as no longer pressed.
@@ -124,10 +124,10 @@ class ImGuiStuff {
     ImGuiContext *m_context = nullptr;
 
     ImGuiStyle m_default_style;
-    
+
     // Mouse coordinate scale.
-    float m_mouse_scale=1.f;
-    
+    float m_mouse_scale = 1.f;
+
     // Additional scale, manually set, to apply to everything.
     //
     // On Windows/macOS, everything is about the right size and this
@@ -137,8 +137,8 @@ class ImGuiStuff {
     // On Linux, high DPI display scaling appears to be impossible to
     // detect, so everything might just be too tiny, and this scale is
     // how you fix that.
-    float m_scale=1.f;
-    
+    float m_scale = 1.f;
+
     uint64_t m_last_new_frame_ticks = 0;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;

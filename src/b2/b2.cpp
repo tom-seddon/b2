@@ -714,7 +714,7 @@ struct Options {
     bool enable_high_dpi = true;
 
 #if SYSTEM_LINUX
-    float gui_scale=0.f;
+    float gui_scale = 0.f;
 #endif
 };
 
@@ -1513,9 +1513,8 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             ia.verbose = options.verbose;
             ia.enable_high_dpi = options.enable_high_dpi;
 #if SYSTEM_LINUX
-            ia.gui_scale=options.gui_scale;
+            ia.gui_scale = options.gui_scale;
 #endif
-            
 
 #if SYSTEM_OSX
             ia.frame_name = "b2Frame";

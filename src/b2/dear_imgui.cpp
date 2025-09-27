@@ -202,26 +202,26 @@ static float HandleGetWindowDpiScaleWindows(ImGuiViewport *vp) {
 #endif
 
 #if SYSTEM_OSX
-static float GetDpiScale(SDL_Window*window){
-    SDL_Renderer*renderer=SDL_GetRenderer(window);
-    if(!renderer){
+static float GetDpiScale(SDL_Window *window) {
+    SDL_Renderer *renderer = SDL_GetRenderer(window);
+    if (!renderer) {
         return 1.f;
     }
-    
-    int ww,wh;
-    SDL_GetWindowSize(window,&ww,&wh);
-    
-    int ow,oh;
-    SDL_GetRendererOutputSize(renderer,&ow,&oh);
-    
+
+    int ww, wh;
+    SDL_GetWindowSize(window, &ww, &wh);
+
+    int ow, oh;
+    SDL_GetRendererOutputSize(renderer, &ow, &oh);
+
     // There's only one DPI scale.
-    return (float)ow/ww;
+    return (float)ow / ww;
 }
 
-static float HandleGetWindowDpiScaleOSX(ImGuiViewport*vp){
-    if(auto window=(SDL_Window*)vp->PlatformHandle){
+static float HandleGetWindowDpiScaleOSX(ImGuiViewport *vp) {
+    if (auto window = (SDL_Window *)vp->PlatformHandle) {
         return GetDpiScale(window);
-    }else{
+    } else {
         return 1.f;
     }
 }
@@ -269,7 +269,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     if (window_flags & SDL_WINDOW_ALLOW_HIGHDPI) {
 #if SYSTEM_WINDOWS
-        
+
         SDL_SysWMinfo wm_info;
         SDL_VERSION(&wm_info.version);
         SDL_GetWindowWMInfo(window, &wm_info);
@@ -286,14 +286,14 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
         // The correct initial scale factor does still need to be set.
         ImGuiStyle &style = ImGui::GetStyle();
         style.FontScaleDpi = GetDpiScale(wm_info.info.win.window);
-        
+
 #elif SYSTEM_OSX
-        
-        ImGuiViewport *main_vp=ImGui::GetMainViewport();
-        main_vp->PlatformHandle=window;
-        
-        platform_io.Platform_GetWindowDpiScale=&HandleGetWindowDpiScaleOSX;
-        
+
+        ImGuiViewport *main_vp = ImGui::GetMainViewport();
+        main_vp->PlatformHandle = window;
+
+        platform_io.Platform_GetWindowDpiScale = &HandleGetWindowDpiScaleOSX;
+
         // Update scales if DPI changes.
         io.ConfigDpiScaleFonts = true;
         io.ConfigDpiScaleViewports = true;
@@ -306,7 +306,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
 #endif
     }
-    
+
     m_cursors[ImGuiMouseCursor_Arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
     m_cursors[ImGuiMouseCursor_ResizeAll] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
     m_cursors[ImGuiMouseCursor_ResizeEW] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
@@ -382,7 +382,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     fa_config.PixelSnapH = true;
     io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), font_config.SizePixels, &fa_config, FA_ICONS_RANGES);
 
-    m_default_style=ImGui::GetStyle();
+    m_default_style = ImGui::GetStyle();
 
     return true;
 }
@@ -390,16 +390,16 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-float ImGuiStuff::GetScale()const{
+float ImGuiStuff::GetScale() const {
     return m_scale;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::SetScale(float scale){
+void ImGuiStuff::SetScale(float scale) {
     // Not sure there's much point allowing scale<1?
-    m_scale=(std::max)(scale,1.f);
+    m_scale = (std::max)(scale, 1.f);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -447,32 +447,32 @@ void ImGuiStuff::NewFrame() {
     }
 
     {
-        SDL_Window*window=SDL_RenderGetWindow(m_renderer);
-        
-        int window_width,window_height;
-        SDL_GetWindowSize(window,&window_width,&window_height);
-        
+        SDL_Window *window = SDL_RenderGetWindow(m_renderer);
+
+        int window_width, window_height;
+        SDL_GetWindowSize(window, &window_width, &window_height);
+
         int output_width, output_height;
         SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
 
         io.DisplaySize.x = (float)output_width;
         io.DisplaySize.y = (float)output_height;
-        
+
         // Always ends up as 1.0 on Windows. May end up as 2.0 on macOS with display scaling.
         //
         // TODO: there's probably somewhere better to get this value from... right?!
-        m_mouse_scale=(float)output_width/window_width;
+        m_mouse_scale = (float)output_width / window_width;
     }
 
     ImGui::NewFrame();
 
-    ImGuiStyle *style=&ImGui::GetStyle();
-    *style=m_default_style;
+    ImGuiStyle *style = &ImGui::GetStyle();
+    *style = m_default_style;
 
     // Scale the default sizes up by the additional scale.
-    style->FontScaleDpi*=m_scale;
-    style->ScaleAllSizes(m_mouse_scale*m_scale);
-    
+    style->FontScaleDpi *= m_scale;
+    style->ScaleAllSizes(m_mouse_scale * m_scale);
+
     g_in_frame = true;
 }
 
@@ -723,10 +723,10 @@ void ImGuiStuff::AddMouseButtonEvent(uint32_t mouse_id, uint8_t button, bool sta
 void ImGuiStuff::AddMouseMotionEvent(uint32_t mouse_id, int x, int y) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
-    
+
     //printf("%s: x=%d y=%d\n",__func__,x,y);
     AddMouseSourceEvent(&io, mouse_id);
-    io.AddMousePosEvent(x*m_mouse_scale, y*m_mouse_scale);
+    io.AddMousePosEvent(x * m_mouse_scale, y * m_mouse_scale);
 }
 
 //////////////////////////////////////////////////////////////////////////

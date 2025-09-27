@@ -2452,7 +2452,7 @@ class DiskAccessTest : public Test {
         // There's no check that the setting makes sense. The caller just has to
         // supply -1 when inappropriate.
         if (m_master_acccon_io_flags >= 0) {
-            stuff += strprintf("?&FE34=(?&FE34 AND &%02X) OR &%02X\r", (uint8_t)~(3 << 4), m_master_acccon_io_flags << 4);
+            stuff += strprintf("?&FE34=(?&FE34 AND &%02X) OR &%02X\r", (uint8_t) ~(3 << 4), m_master_acccon_io_flags << 4);
         }
 
         switch (m_fs_type) {

@@ -231,7 +231,7 @@ struct BeebWindowInitArguments {
     // If >0.f, the GUI scale value to use. Used to override the saved
     // GUI scale value set by the UI with a value from the command
     // line.
-    float gui_scale=0.f;
+    float gui_scale = 0.f;
 #endif
 };
 

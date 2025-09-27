@@ -526,9 +526,9 @@ void BeebWindow::OptionsUI::DoImGui() {
 
         float scale;
 
-        scale=m_beeb_window->m_imgui_stuff->GetScale();
-        if(ImGui::InputFloat("GUI Scale",&scale,0.f,0.f)){
-            if(ImGui::IsItemDeactivatedAfterEdit()){
+        scale = m_beeb_window->m_imgui_stuff->GetScale();
+        if (ImGui::InputFloat("GUI Scale", &scale, 0.f, 0.f)) {
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
                 m_beeb_window->m_imgui_stuff->SetScale(scale);
             }
         }
@@ -3161,7 +3161,7 @@ void BeebWindow::SaveSettings() {
     m_settings.symbol_table_data = m_symbol_table->SaveToJSON();
 #endif
 
-    m_settings.gui_scale=m_imgui_stuff->GetScale();
+    m_settings.gui_scale = m_imgui_stuff->GetScale();
 
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = this->GetConfigName();
@@ -3399,7 +3399,7 @@ bool BeebWindow::InitInternal() {
 
     m_imgui_stuff->SetScale(m_settings.gui_scale);
 #if SYSTEM_LINUX
-    if(m_init_arguments.gui_scale>0.f){
+    if (m_init_arguments.gui_scale > 0.f) {
         m_imgui_stuff->SetScale(m_init_arguments.gui_scale);
     }
 #endif
