@@ -34,8 +34,7 @@ run_tests:
 run_tests_xcode: CONFIG=$(error Must specify CONFIG)
 run_tests_xcode:
 	cd "build/Xcode" && ctest -C $(CONFIG) -j$(NPROC) --output-on-failure
-#	cd "build/Xcode" && "./src/beeb/tests/$(CONFIG)/test_beeb" "--check-last-test-log=Testing/Temporary/LastTest.log"
-
+	cd "build/Xcode" && $(PYTHON3) "../../bin/check_ctest_log.py" "Testing/Temporary/LastTest.log"
 
 ##########################################################################
 ##########################################################################

@@ -67,6 +67,7 @@ precommit:
 _precommit: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
 _precommit:
 	cd "$(_FOLDER)" && ninja && ctest -j $(NPROC)
+	cd "$(_FOLDER)" && $(PYTHON3) "../../bin/check_ctest_log.py" "Testing/Temporary/LastTest.log"
 
 ##########################################################################
 ##########################################################################
