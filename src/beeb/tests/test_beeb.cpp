@@ -71,7 +71,7 @@ static std::string GetPathForStandardROM(StandardROM rom) {
         return "OS12.ROM";
 
     case StandardROM_BPlusMOS:
-        return "B+MOS.ROM";
+        return "B+MOS.rom";
 
     case StandardROM_BASIC2:
         return "BASIC2.ROM";
@@ -88,38 +88,38 @@ static std::string GetPathForStandardROM(StandardROM rom) {
         return "opus/challenger-1.01.rom";
 
     case StandardROM_MOS320_ADFS:
-        return "m128/3.20/adfs.rom";
+        return "M128/3.20/adfs.rom";
     case StandardROM_MOS320_BASIC4:
-        return "m128/3.20/basic4.rom";
+        return "M128/3.20/basic4.rom";
     case StandardROM_MOS320_DFS:
-        return "m128/3.20/dfs.rom";
+        return "M128/3.20/dfs.rom";
     case StandardROM_MOS320_EDIT:
-        return "m128/3.20/edit.rom";
+        return "M128/3.20/edit.rom";
     case StandardROM_MOS320_MOS:
-        return "m128/3.20/mos.rom";
+        return "M128/3.20/mos.rom";
     case StandardROM_MOS320_TERMINAL:
-        return "m128/3.20/terminal.rom";
+        return "M128/3.20/terminal.rom";
     case StandardROM_MOS320_VIEW:
-        return "m128/3.20/view.rom";
+        return "M128/3.20/view.rom";
     case StandardROM_MOS320_VIEWSHEET:
-        return "m128/3.20/viewsht.rom";
+        return "M128/3.20/viewsht.rom";
 
     case StandardROM_MOS350_ADFS:
-        return "m128/3.50/adfs.rom";
+        return "M128/3.50/adfs.rom";
     case StandardROM_MOS350_BASIC4:
-        return "m128/3.50/basic4.rom";
+        return "M128/3.50/basic4.rom";
     case StandardROM_MOS350_DFS:
-        return "m128/3.50/dfs.rom";
+        return "M128/3.50/dfs.rom";
     case StandardROM_MOS350_EDIT:
-        return "m128/3.50/edit.rom";
+        return "M128/3.50/edit.rom";
     case StandardROM_MOS350_MOS:
-        return "m128/3.50/mos.rom";
+        return "M128/3.50/mos.rom";
     case StandardROM_MOS350_TERMINAL:
-        return "m128/3.50/terminal.rom";
+        return "M128/3.50/terminal.rom";
     case StandardROM_MOS350_VIEW:
-        return "m128/3.50/view.rom";
+        return "M128/3.50/view.rom";
     case StandardROM_MOS350_VIEWSHEET:
-        return "m128/3.50/viewsht.rom";
+        return "M128/3.50/viewsht.rom";
 
     case StandardROM_MasterTurboParasite:
         return "MasterTurboParasite.rom";
@@ -127,44 +127,44 @@ static std::string GetPathForStandardROM(StandardROM rom) {
         return "TUBE110.rom";
 
     case StandardROM_MOS500_ADFS:
-        return "mcompact/5.00/adfs.rom";
+        return "MCompact/5.00/adfs.rom";
     case StandardROM_MOS500_BASIC4:
-        return "mcompact/5.00/basic4.rom";
+        return "MCompact/5.00/basic4.rom";
     case StandardROM_MOS500_UTILS:
-        return "mcompact/5.00/utils.rom";
+        return "MCompact/5.00/utils.rom";
     case StandardROM_MOS500_MOS:
-        return "mcompact/5.00/mos.rom";
+        return "MCompact/5.00/mos.rom";
 
     case StandardROM_MOS510_ADFS:
-        return "mcompact/5.10/adfs.rom";
+        return "MCompact/5.10/adfs.rom";
     case StandardROM_MOS510_BASIC4:
-        return "mcompact/5.10/basic4.rom";
+        return "MCompact/5.10/basic4.rom";
     case StandardROM_MOS510_UTILS:
-        return "mcompact/5.10/utils.rom";
+        return "MCompact/5.10/utils.rom";
     case StandardROM_MOS510_MOS:
-        return "mcompact/5.10/mos.rom";
+        return "MCompact/5.10/mos.rom";
 
     case StandardROM_MOSI510C_ADFS:
-        return "mcompact/I5.10C/adfs.rom";
+        return "MCompact/I5.10C/adfs.rom";
     case StandardROM_MOSI510C_BASIC4:
-        return "mcompact/I5.10C/basic4.rom";
+        return "MCompact/I5.10C/basic4.rom";
     case StandardROM_MOSI510C_UTILS:
-        return "mcompact/I5.10C/utils.rom";
+        return "MCompact/I5.10C/utils.rom";
     case StandardROM_MOSI510C_MOS:
-        return "mcompact/I5.10C/mos.rom";
+        return "MCompact/I5.10C/mos.rom";
 
     case StandardROM_MOS511i_ADFS:
-        return "mcompact/5.11i/adfs.rom";
+        return "MCompact/5.11i/adfs.rom";
     case StandardROM_MOS511i_BASIC4:
-        return "mcompact/5.11i/basic4.rom";
+        return "MCompact/5.11i/basic4.rom";
     case StandardROM_MOS511i_UTILS:
-        return "mcompact/5.11i/utils.rom";
+        return "MCompact/5.11i/utils.rom";
     case StandardROM_MOS511i_MOS:
-        return "mcompact/5.11i/mos.rom";
+        return "MCompact/5.11i/mos.rom";
     case StandardROM_MOS511i_ARABIC:
-        return "mcompact/5.11i/arabic.rom";
+        return "MCompact/5.11i/arabic.rom";
     case StandardROM_MOS511i_INTERNATIONAL:
-        return "mcompact/5.11i/international.rom";
+        return "MCompact/5.11i/international.rom";
     }
 }
 
@@ -2026,7 +2026,7 @@ class DebuggerTestBreakpointsB : public Test {
         , m_type(std::move(type))
         , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint)
         , m_write(write) {
-        TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7, 0);
+        TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7u, 0);
     }
 
     std::string GetFullName() const override {
@@ -2119,8 +2119,8 @@ class DebuggerTestBreakpointsMaster : public Test {
         , m_host_io_flags_for_breakpoint(host_io_flags_for_breakpoint)
         , m_host_io_flags_for_system(host_io_flags_for_system)
         , m_write(write) {
-        TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7, 0u);
-        TEST_EQ_UU(m_host_io_flags_for_system & ~7, 0u);
+        TEST_EQ_UU(m_host_io_flags_for_breakpoint & ~7u, 0u);
+        TEST_EQ_UU(m_host_io_flags_for_system & ~7u, 0u);
     }
 
     std::string GetFullName() const override {
