@@ -54,11 +54,11 @@ def main2(options):
     good=True
     for name,count in tests_run.items():
         if count!=1:
-            sys.stderr.write('FATAL: test run %d times: %s\n'%(count,name))
+            sys.stderr.write('FATAL: test ran %d times: %s\n'%(count,name))
             good=False
 
         if name not in tests_available:
-            sys.stderr.write('FATAL: unknown test was run: %s\n'%name)
+            sys.stderr.write('FATAL: unknown test ran %d times: %s\n'%(count,name))
             good=False
 
     if not good: sys.exit(1)
