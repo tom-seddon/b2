@@ -524,10 +524,12 @@ void BeebWindow::OptionsUI::DoImGui() {
     {
         ImGuiHeader("UI");
 
-        float scale = m_beeb_window->m_imgui_stuff->GetFontScale();
-        if (ImGui::InputFloat("GUI Font Scale", &scale, 0.f, 0.f)) {
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                m_beeb_window->m_imgui_stuff->SetFontScale(scale);
+        float scale;
+
+        scale=m_beeb_window->m_imgui_stuff->GetScale();
+        if(ImGui::InputFloat("GUI Scale",&scale,0.f,0.f)){
+            if(ImGui::IsItemDeactivatedAfterEdit()){
+                m_beeb_window->m_imgui_stuff->SetScale(scale);
             }
         }
     }
@@ -3159,7 +3161,7 @@ void BeebWindow::SaveSettings() {
     m_settings.symbol_table_data = m_symbol_table->SaveToJSON();
 #endif
 
-    m_settings.gui_font_scale = m_imgui_stuff->GetFontScale();
+    m_settings.gui_scale=m_imgui_stuff->GetScale();
 
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = this->GetConfigName();
@@ -3395,7 +3397,12 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    m_imgui_stuff->SetFontScale(m_settings.gui_font_scale);
+    m_imgui_stuff->SetScale(m_settings.gui_scale);
+#if SYSTEM_LINUX
+    if(m_init_arguments.gui_scale>0.f){
+        m_imgui_stuff->SetScale(m_init_arguments.gui_scale);
+    }
+#endif
 
     if (!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n"); //: %s",BeebThread_GetError(m_beeb_thread));

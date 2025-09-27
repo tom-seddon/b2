@@ -230,7 +230,6 @@ static float HandleGetWindowDpiScaleOSX(ImGuiViewport*vp){
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-
 bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     int rc;
     (void)rc;
@@ -302,11 +301,11 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
         ImGuiStyle &style = ImGui::GetStyle();
         style.FontScaleDpi = GetDpiScale(window);
 
+#elif SYSTEM_LINUX
+
 #endif
     }
     
-    m_default_style=ImGui::GetStyle();
-
     m_cursors[ImGuiMouseCursor_Arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
     m_cursors[ImGuiMouseCursor_ResizeAll] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
     m_cursors[ImGuiMouseCursor_ResizeEW] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
@@ -382,29 +381,24 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     fa_config.PixelSnapH = true;
     io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), font_config.SizePixels, &fa_config, FA_ICONS_RANGES);
 
+    m_default_style=ImGui::GetStyle();
+
     return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-float ImGuiStuff::GetFontScale() const {
-    ImGuiContextSetter setter(this);
-
-    const ImGuiStyle &style = ImGui::GetStyle();
-    return style.FontScaleMain;
+float ImGuiStuff::GetScale()const{
+    return m_scale;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::SetFontScale(float scale) {
-    ImGuiContextSetter setter(this);
-
-    ImGuiStyle &style = ImGui::GetStyle();
-
-    // Allow the font scale to go below .25f to accommodate the high-DPI case.
-    style.FontScaleMain = (std::max)(scale, .25f);
+void ImGuiStuff::SetScale(float scale){
+    // Not sure there's much point allowing scale<1?
+    m_scale=(std::max)(scale,1.f);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -470,9 +464,13 @@ void ImGuiStuff::NewFrame() {
     }
 
     ImGui::NewFrame();
-    
-    ImGui::GetStyle()=m_default_style;
-    ImGui::GetStyle().ScaleAllSizes(m_mouse_scale);
+
+    ImGuiStyle *style=&ImGui::GetStyle();
+    *style=m_default_style;
+
+    // Scale the default sizes up by the additional scale.
+    style->FontScaleDpi*=m_scale;
+    style->ScaleAllSizes(m_mouse_scale*m_scale);
     
     g_in_frame = true;
 }

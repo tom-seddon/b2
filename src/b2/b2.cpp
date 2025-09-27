@@ -712,6 +712,10 @@ struct Options {
     std::string file_association_path;
 
     bool enable_high_dpi = true;
+
+#if SYSTEM_LINUX
+    float gui_scale=0.f;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -814,6 +818,10 @@ static bool ParseCommandLineOptions(
     p.AddOption("config-folder").Arg(&options->override_config_folder).SetIfPresent(&options->override_config_folder_specified).Help("specify folder for config files (will be created if non-existent)").ShowDefault();
 
     p.AddOption("disable-high-dpi").ResetIfPresent(&options->enable_high_dpi).Help("disable handling of high-DPI displays");
+
+#if SYSTEM_LINUX
+    p.AddOption("gui-scale").Arg(&options->gui_scale).Meta("SCALE").Help("set GUI scale to SCALE, overriding any value previously set via the UI");
+#endif
 
     p.AddHelpOption(&options->help);
 
@@ -1504,6 +1512,10 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             ia.preinit_message_list = init_message_list;
             ia.verbose = options.verbose;
             ia.enable_high_dpi = options.enable_high_dpi;
+#if SYSTEM_LINUX
+            ia.gui_scale=options.gui_scale;
+#endif
+            
 
 #if SYSTEM_OSX
             ia.frame_name = "b2Frame";

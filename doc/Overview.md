@@ -281,8 +281,21 @@ get the beep.)
 
 ### UI
 
-If you find the UI text a bit small, use the GUI Font Scale setting to
-scale it up. 1.0 = the original size, 2.0 = twice as large, and so on.
+Use the GUI Scale setting to scale the overall b2 UI up (making it
+appear larger) or down (making it appear smaller).
+
+The b2 UI should appear at the intended size on Windows and mocOS, and
+you can use this setting to tweak it if the overall size isn't to your
+taste.
+
+Ensuring things come out looking right on Linux seems to be quite
+difficult, so b2 just doesn't bother. If it looks wrong, probably most
+likely if you have high-DPI displays, use this setting to try to make
+it look right! (If the UI starts out absolutely unreadable, use the
+Linux-only `--gui-scale` command line option to set it - run b2 with
+`--help` for syntax details. The command line option will be used for
+the setting, and it will be saved to the config file and persist for
+future runs.)
 
 ### HTTP Server
 

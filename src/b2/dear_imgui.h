@@ -106,6 +106,9 @@ class ImGuiStuff {
     float GetFontScale() const;
     void SetFontScale(float scale);
 
+    float GetScale()const;
+    void SetScale(float scale);
+
     // The non-modifier key returned will be marked as no longer pressed.
     uint32_t ConsumePressedKeycode();
 
@@ -119,8 +122,23 @@ class ImGuiStuff {
 
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
-    float m_mouse_scale=1.f;
+
     ImGuiStyle m_default_style;
+    
+    // Mouse coordinate scale.
+    float m_mouse_scale=1.f;
+    
+    // Additional scale, manually set, to apply to everything.
+    //
+    // On Windows/macOS, everything is about the right size and this
+    // scale is there to tweak that (e.g., to make the text look
+    // bigger, since there's no configurable font yet).
+    //
+    // On Linux, high DPI display scaling appears to be impossible to
+    // detect, so everything might just be too tiny, and this scale is
+    // how you fix that.
+    float m_scale=1.f;
+    
     uint64_t m_last_new_frame_ticks = 0;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
