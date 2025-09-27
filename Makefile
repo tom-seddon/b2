@@ -56,10 +56,7 @@ OS:=linux
 NPROC:=$(shell nproc)
 INSTALLER:=1
 
-# clang-format-16 = newest version that doesn't behave meaningfully
-# differently from the clang-format that comes with Visual Studio
-# 2019.
-CLANG_FORMAT:=clang-format-16
+CLANG_FORMAT:=clang-format-19
 
 include Makefile.unix.mak
 endif
@@ -90,8 +87,7 @@ clang-format:
 	$(SHELLCMD) cat experimental/clang-format.header.txt src/.clang-format experimental/clang-format.header.txt > experimental/.clang-format
 
 	$(SHELLCMD) mkdir $(BUILD_FOLDER)
-	$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" --ignore "src/beeb/generated/*" src experimental
-# submodules/shared_lib
+	$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" --ignore "src/beeb/generated/*" src experimental submodules/shared_lib
 	$(MAKE) -f "$(BUILD_FOLDER)/clang-format.mak" -j $(NPROC)
 
 ##########################################################################
