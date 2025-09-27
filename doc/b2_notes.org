@@ -5773,4 +5773,255 @@ https://github.com/ocornut/imgui/labels/dpi
 
 https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows
 
+* lorenz test list
+
+Starts with =start= if no start point specified.
+ 
+0. ldab
+1. ldaz
+2. ldazx
+3. ldaa
+4. ldaax
+5. ldaay
+6. ldaix
+7. ldaiy
+8. staz
+9. stazx
+
+10. staa
+11. staax
+12. staay
+13. staix
+14. staiy
+15. ldxb
+16. ldxz
+17. ldxzy
+18. ldxa
+19. ldxay
+
+20. stxz
+21. stxzy
+22. stxa
+23. ldyb
+24. ldyz
+25. ldyzx
+26. ldya
+27. ldyax
+28. styz
+29. styzx
+
+30. stya
+31. taxn
+32. tayn
+33. txan
+34. tyan
+35. tsxn
+36. txsn
+37. phan
+38. plan
+39. phpn
+
+40. plpn
+41. inxn
+42. inyn
+43. dexn
+44. deyn
+45. incz
+46. inczx
+47. inca
+48. incax
+49. decz
+
+50. deczx
+51. deca
+52. decax
+53. asln
+54. aslz
+55. aslzx
+56. asla
+57. aslax
+58. lsrn
+59. lsrz
+
+60. lsrzx
+61. lsra
+62. lsrax
+63. roln
+64. rolz
+65. rolzx
+66. rola
+67. rolax
+68. rorn
+69. rorz
+
+70. rorzx
+71. rora
+72. rorax
+73. andb
+74. andz
+75. andzx
+76. anda
+77. andax
+78. anday
+79. andix
+
+80. andiy
+81. orab
+82. oraz
+83. orazx
+84. oraa
+85. oraax
+86. oraay
+87. oraix
+88. oraiy
+89. eorb
+
+90. eorz
+91. eorzx
+92. eora
+93. eorax
+94. eoray
+95. eorix
+96. eoriy
+97. clcn
+98. secn
+99. cldn
+
+100. sedn
+101. clin
+102. sein
+103. clvn
+104. adcb
+105. adcz
+106. adczx
+107. adca
+108. adcax
+109. adcay
+
+110. adcix
+111. adciy
+112. sbcb
+113. sbcz
+114. sbczx
+115. sbca
+116. sbcax
+117. sbcay
+118. sbcix
+119. sbciy
+
+120. cmpb
+121. cmpz
+122. cmpzx
+123. cmpa
+124. cmpax
+125. cmpay
+126. cmpix
+127. cmpiy
+128. cpxb
+129. cpxz
+
+130. cpxa
+131. cpyb
+132. cpyz
+133. cpya
+134. bitz
+135. bita
+136. brkn
+137. rtin
+138. jsrw
+139. rtsn
+
+140. jmpw
+141. jmpi
+142. beqr
+143. bner
+144. bmir
+145. bplr
+146. bcsr
+147. bccr
+148. bvsr
+149. bvcr
+
+150. nopn
+151. nopb
+152. nopz
+153. nopzx
+154. nopa
+155. nopax
+156. asoz
+157. asozx
+158. asoa
+159. asoax
+
+160. asoay
+161. asoix
+162. asoiy
+163. rlaz
+164. rlazx
+165. rlaa
+166. rlaax
+167. rlaay
+168. rlaix
+169. rlaiy
+
+170. lsez
+171. lsezx
+172. lsea
+173. lseax
+174. lseay
+175. lseix
+176. lseiy
+177. rraz
+178. rrazx
+179. rraa
+
+180. rraax
+181. rraay
+182. rraix
+183. rraiy
+184. dcmz
+185. dcmzx
+186. dcma
+187. dcmax
+188. dcmay
+189. dcmix
+
+190. dcmiy
+191. insz
+192. inszx
+193. insa
+194. insax
+195. insay
+196. insix
+197. insiy
+198. laxz
+199. laxzy
+
+200. laxa
+201. laxay
+202. laxix
+203. laxiy
+204. axsz
+205. axszy
+206. axsa
+207. axsix
+209. arrb
+208. alrb
+
+210. aneb
+211. lxab
+212. sbxb
+213. shaay
+214. shaiy
+215. shxay
+216. shyax
+217. shsay
+218. ancb
+219. lasay
+220. sbcb(eb)
+221. trap1
+
+Debug = ~60 sec
+RelWithDebInfo = ~35 sec
+
 * eof.

@@ -18,8 +18,37 @@ target_link_libraries(lorenz PRIVATE shared_lib 6502_lib)
 b2_target_boilerplate(lorenz SANITIZERS)
 
 add_test(
-  NAME 6502/lorenz
-  COMMAND $<TARGET_FILE:lorenz>)
+  NAME 6502/lorenz/list
+  COMMAND $<TARGET_FILE:lorenz> --list-for-check_ctest_log)
+
+function(add_lorenz_test begin end)
+  add_test(
+    NAME 6502/lorenz/${begin}_to_${end}
+    COMMAND $<TARGET_FILE:lorenz> --ctest -s ${begin} -e ${end})
+endfunction()
+
+add_lorenz_test(start staa)
+add_lorenz_test(staa stxz)
+add_lorenz_test(stxz stya)
+add_lorenz_test(stya plpn)
+add_lorenz_test(plpn deczx)
+add_lorenz_test(deczx lsrzx)
+add_lorenz_test(lsrzx rorzx)
+add_lorenz_test(rorzx andiy)
+add_lorenz_test(andiy eorz)
+add_lorenz_test(eorz sedn)
+add_lorenz_test(sedn adcix)
+add_lorenz_test(adcix cmpb)
+add_lorenz_test(cmpb cpxa)
+add_lorenz_test(cpxa jmpw)
+add_lorenz_test(jmpw nopn)
+add_lorenz_test(nopn asoay)
+add_lorenz_test(asoay lsez)
+add_lorenz_test(lsez rraax)
+add_lorenz_test(rraax dcmiy)
+add_lorenz_test(dcmiy laxa)
+add_lorenz_test(laxa aneb)
+add_lorenz_test(aneb trap1)
 
 ##########################################################################
 ##########################################################################

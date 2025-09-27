@@ -22,6 +22,7 @@ struct Options {
     std::string end_file;
     bool test_disassembler = false;
     bool running_disassembly = false;
+    bool list_for_check_ctest_log = false;
 };
 typedef struct Options Options;
 
@@ -30,6 +31,7 @@ static std::string g_last_file;
 static M6502Fns g_test_opcodes[256];
 static bool g_done, g_bork;
 static Options g_options;
+static bool g_ctest;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -97,6 +99,13 @@ static void LoadFileAndReset(const std::string &fname, M6502 *s) {
         LOGF(TEST, "\n");
         g_done = 1;
         return;
+    }
+
+    if (g_ctest) {
+        // Make sure the TEST output doesn't interfere. Looks a bit ugly, but, whatever...
+        LOG(TEST).EnsureBOL();
+
+        printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:%s\n", fname.c_str());
     }
 
     if (fname.empty()) {
@@ -243,6 +252,8 @@ static bool DoCommandLine(int argc, char *argv[]) {
     p.AddOption('s', "start-file").Arg(&g_options.start_file).Meta("FILE").Help("stem of name of test suite file to start with");
     p.AddOption('e', "end-file").Arg(&g_options.end_file).Meta("FILE").Help("stem of name of test suite file to end on - when this file is loaded, tests will stop");
     p.AddOption('r').SetIfPresent(&g_options.running_disassembly).Help("continuous disassembly to stdout");
+    p.AddOption("ctest").SetIfPresent(&g_ctest).Help("run in slightly hacky ctest mode");
+    p.AddOption("list-for-check_ctest_log").SetIfPresent(&g_options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
     p.AddHelpOption();
 
     std::vector<std::string> other_args;
@@ -320,6 +331,18 @@ static AddrModeDisassemblyInfo GetDisassemblyInfoForAddrMode(M6502AddrMode mode)
 int main(int argc, char *argv[]) {
     if (!DoCommandLine(argc, argv)) {
         return 1;
+    }
+
+    if (g_options.list_for_check_ctest_log) {
+        // It's not very nice having the test list hard-coded, but the ctest
+        // check will pick up any surprises.
+        static const char *const TEST_NAMES[] = {"start", "ldab", "ldaz", "ldazx", "ldaa", "ldaax", "ldaay", "ldaix", "ldaiy", "staz", "stazx", "staa", "staax", "staay", "staix", "staiy", "ldxb", "ldxz", "ldxzy", "ldxa", "ldxay", "stxz", "stxzy", "stxa", "ldyb", "ldyz", "ldyzx", "ldya", "ldyax", "styz", "styzx", "stya", "taxn", "tayn", "txan", "tyan", "tsxn", "txsn", "phan", "plan", "phpn", "plpn", "inxn", "inyn", "dexn", "deyn", "incz", "inczx", "inca", "incax", "decz", "deczx", "deca", "decax", "asln", "aslz", "aslzx", "asla", "aslax", "lsrn", "lsrz", "lsrzx", "lsra", "lsrax", "roln", "rolz", "rolzx", "rola", "rolax", "rorn", "rorz", "rorzx", "rora", "rorax", "andb", "andz", "andzx", "anda", "andax", "anday", "andix", "andiy", "orab", "oraz", "orazx", "oraa", "oraax", "oraay", "oraix", "oraiy", "eorb", "eorz", "eorzx", "eora", "eorax", "eoray", "eorix", "eoriy", "clcn", "secn", "cldn", "sedn", "clin", "sein", "clvn", "adcb", "adcz", "adczx", "adca", "adcax", "adcay", "adcix", "adciy", "sbcb", "sbcz", "sbczx", "sbca", "sbcax", "sbcay", "sbcix", "sbciy", "cmpb", "cmpz", "cmpzx", "cmpa", "cmpax", "cmpay", "cmpix", "cmpiy", "cpxb", "cpxz", "cpxa", "cpyb", "cpyz", "cpya", "bitz", "bita", "brkn", "rtin", "jsrw", "rtsn", "jmpw", "jmpi", "beqr", "bner", "bmir", "bplr", "bcsr", "bccr", "bvsr", "bvcr", "nopn", "nopb", "nopz", "nopzx", "nopa", "nopax", "asoz", "asozx", "asoa", "asoax", "asoay", "asoix", "asoiy", "rlaz", "rlazx", "rlaa", "rlaax", "rlaay", "rlaix", "rlaiy", "lsez", "lsezx", "lsea", "lseax", "lseay", "lseix", "lseiy", "rraz", "rrazx", "rraa", "rraax", "rraay", "rraix", "rraiy", "dcmz", "dcmzx", "dcma", "dcmax", "dcmay", "dcmix", "dcmiy", "insz", "inszx", "insa", "insax", "insay", "insix", "insiy", "laxz", "laxzy", "laxa", "laxay", "laxix", "laxiy", "axsz", "axszy", "axsa", "axsix", "alrb", "arrb", "aneb", "lxab", "sbxb", "shaay", "shaiy", "shxay", "shyax", "shsay", "ancb", "lasay", "sbcb(eb)"};
+
+        for (const char *test_name : TEST_NAMES) {
+            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", test_name);
+        }
+
+        return 0;
     }
 
     if (g_options.running_disassembly) {
