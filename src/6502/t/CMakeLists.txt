@@ -66,5 +66,28 @@ target_link_libraries(tom_seddon_6502_tests PRIVATE shared_lib 6502_lib)
 b2_target_boilerplate(tom_seddon_6502_tests SANITIZERS)
 
 add_test(
-  NAME 6502/tom_seddon_6502_tests
-  COMMAND $<TARGET_FILE:tom_seddon_6502_tests>)
+  NAME 6502/tom_seddon_6502_tests/list
+  COMMAND $<TARGET_FILE:tom_seddon_6502_tests> --list-for-check_ctest_log)
+
+function(add_tom_seddon_6502_test instr)
+  add_test(
+    NAME 6502/tom_seddon_6502_tests/${instr}
+    COMMAND $<TARGET_FILE:tom_seddon_6502_tests> -T ${instr}.*)
+endfunction()
+
+add_tom_seddon_6502_test(adc)
+add_tom_seddon_6502_test(sbc)
+add_tom_seddon_6502_test(arr)
+add_tom_seddon_6502_test(asr)
+add_tom_seddon_6502_test(anc)
+add_tom_seddon_6502_test(anc2)
+add_tom_seddon_6502_test(dcp)
+add_tom_seddon_6502_test(isb)
+add_tom_seddon_6502_test(lax)
+add_tom_seddon_6502_test(lds)
+add_tom_seddon_6502_test(rla)
+add_tom_seddon_6502_test(rra)
+add_tom_seddon_6502_test(sax)
+add_tom_seddon_6502_test(slo)
+add_tom_seddon_6502_test(sre)
+add_tom_seddon_6502_test(usbc)
