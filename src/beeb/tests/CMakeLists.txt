@@ -46,9 +46,9 @@ function(add_test_beeb_wildcard_category category)
     COMMAND $<TARGET_FILE:test_beeb> -T "${category}.*")
 endfunction()
 
-function(add_test_beeb_literal_category category)
-  add_test(NAME beeb/test_beeb_${category}
-    COMMAND $<TARGET_FILE:test_beeb> -T "${category}")
+function(add_test_beeb_literal_category test_name)
+  add_test(NAME beeb/test_beeb_${test_name}
+    COMMAND $<TARGET_FILE:test_beeb> -t "${test_name}")
 endfunction()
 
 add_test(NAME beeb/test_beeb_list_tests
