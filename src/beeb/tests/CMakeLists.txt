@@ -43,38 +43,97 @@ b2_target_boilerplate(test_beeb SANITIZERS)
 
 function(add_test_beeb_wildcard_category category)
   add_test(NAME beeb/test_beeb_${category}
-    COMMAND $<TARGET_FILE:test_beeb> --verbose -T "${category}.*")
+    COMMAND $<TARGET_FILE:test_beeb> -T "${category}.*")
 endfunction()
 
 function(add_test_beeb_literal_category category)
   add_test(NAME beeb/test_beeb_${category}
-    COMMAND $<TARGET_FILE:test_beeb> --verbose -T "${category}")
+    COMMAND $<TARGET_FILE:test_beeb> -T "${category}")
 endfunction()
 
-add_test_beeb_wildcard_category(standard)
-add_test_beeb_wildcard_category(tube)
-set_tests_properties(beeb/test_beeb_tube PROPERTIES LABELS slow)
-add_test_beeb_wildcard_category(kevin_edwards)
+add_test(NAME beeb/test_beeb_list_tests
+  COMMAND $<TARGET_FILE:test_beeb> --list-for-check_ctest_log)
+
+add_test_beeb_wildcard_category(standard.VIA)
+add_test_beeb_literal_category(standard.VTIMERS)
+add_test_beeb_literal_category(standard.TIMINGS)
+add_test_beeb_literal_category(standard.VTIMEOU)
+add_test_beeb_literal_category(standard.VPOLL)
+add_test_beeb_literal_category(standard.NOP1)
+
+add_test_beeb_literal_category(tube.xtu_prst)
+add_test_beeb_literal_category(tube.itu_prst)
+add_test_beeb_literal_category(tube.xtu_r124)
+add_test_beeb_literal_category(tube.xtu_r3)
+
+add_test_beeb_literal_category(kevin_edwards.Alien8)
+add_test_beeb_literal_category(kevin_edwards.Nightsh)
+add_test_beeb_literal_category(kevin_edwards.Jetman)
+
 add_test_beeb_wildcard_category(teletext)
+
 add_test_beeb_wildcard_category(dp111)
-add_test_beeb_wildcard_category(video_ula)
+
+add_test_beeb_literal_category(video_ula.detect_nula)
 add_test_beeb_wildcard_category(video_nula.detect_nula)
-foreach(MODE RANGE 8)
-  add_test_beeb_wildcard_category(video_nula.scroll1.M${MODE})
-  add_test_beeb_wildcard_category(video_nula.blank1.M${MODE})
+
+foreach(M RANGE 8)
+  foreach(I RANGE 15)
+    # I did "%02d" in C++, because it makes the file names easier to
+    # read, and it's all tied together, so file name and test name are
+    # the same.
+    #
+    # I didn't think about how annoying this might end up in CMake.
+    set(I_STR ${I})
+    if(I LESS 10)
+      string(PREPEND I_STR 0)
+    endif()
+    add_test_beeb_literal_category(video_nula.scroll1.M${M}.O${I_STR})
+    add_test_beeb_literal_category(video_nula.blank1.M${M}.N${I_STR})
+  endforeach()
 endforeach()
-add_test_beeb_wildcard_category(video_nula.ulamode)
-add_test_beeb_wildcard_category(debug.bp.b)
-add_test_beeb_wildcard_category(debug.bp.bplus)
-foreach(IO_FLAGS RANGE 7)
-  add_test_beeb_wildcard_category(debug.bp.master128.BP${IO_FLAGS})
+
+foreach(C RANGE 1)
+  foreach(F RANGE 1)
+    foreach(M RANGE 3)
+      add_test_beeb_literal_category(video_ula.ulamode.C${C}.F${F}.M${M})
+      add_test_beeb_wildcard_category(video_nula.ulamode.C${C}.F${F}.M${M})
+    endforeach()
+  endforeach()
 endforeach()
+
+foreach(BP RANGE 7)
+  foreach(ACCESS r w)
+    add_test_beeb_literal_category(debug.bp.b.BP${BP}.${ACCESS})
+    add_test_beeb_literal_category(debug.bp.bplus.BP${BP}.${ACCESS})
+    foreach(SYS RANGE 7)
+      add_test_beeb_literal_category(debug.bp.master128.BP${BP}.SYS${SYS}.${ACCESS})
+    endforeach()
+  endforeach()
+endforeach()
+
 add_test_beeb_wildcard_category(printer)
-add_test_beeb_wildcard_category(disk.floppy.b.sd)
-add_test_beeb_wildcard_category(disk.floppy.b.dd)
-add_test_beeb_literal_category(disk.floppy.bplus) # slightly special case
-foreach(ACCCON RANGE 3)
-  add_test_beeb_wildcard_category(disk.floppy.master.${ACCCON})
-  add_test_beeb_wildcard_category(disk.floppy.compact.${ACCCON})
+
+add_test_beeb_literal_category(disk.floppy.b.sd.acorndfs)
+
+foreach(DENSITY sd dd)
+  foreach(TYPE watford.ddb2 watford.ddb3 opus challenger)
+    add_test_beeb_literal_category(disk.floppy.b.${DENSITY}.${TYPE})
+  endforeach()
 endforeach()
+
+add_test_beeb_literal_category(disk.floppy.bplus)
+
+foreach(ACCCON RANGE 3)
+  foreach(MOS mos320 mos350)
+    foreach(TYPE dfs adfs)
+      add_test_beeb_literal_category(disk.floppy.master.${ACCCON}.${MOS}.${TYPE})
+    endforeach()
+  endforeach()
+
+  foreach(MOS mos500 mos510 mosI510C mos511i)
+    add_test_beeb_literal_category(disk.floppy.compact.${ACCCON}.${MOS}.adfs)
+  endforeach()
+endforeach()
+
 add_test_beeb_wildcard_category(disk.hard.master)

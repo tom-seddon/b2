@@ -43,7 +43,7 @@ _run_tests: VS_PATH:=$(shell "C:\Program Files (x86)\Microsoft Visual Studio\Ins
 _run_tests: CTEST:=$(VS_PATH)\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe
 _run_tests:
 	cd "build\vs$(VSYEAR)" && "$(CTEST)" -C $(CONFIG) -j $(NUMBER_OF_PROCESSORS)
-	cd "build\vs$(VSYEAR)" && "src\beeb\tests\$(CONFIG)\test_beeb.exe" "--check-last-test-log=Testing\Temporary\LastTest.log"
+	cd "build\vs$(VSYEAR)" && $(PYTHON) "../../bin/check_ctest_log.py" "Testing\Temporary\LastTest.log"
 
 ##########################################################################
 ##########################################################################

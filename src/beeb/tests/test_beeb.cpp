@@ -2637,9 +2637,9 @@ struct Options {
     std::vector<std::string> test_name_strs;
     std::vector<std::regex> test_name_regexes;
     bool list = false;
+    bool list_for_check_ctest_log = false;
     bool infer_wanted_images = false;
     bool wip = false;
-    std::string check_last_test_log_path;
     bool reverse = false;
 };
 
@@ -2657,9 +2657,9 @@ static Options GetOptions(int argc, char *argv[]) {
     p.AddOption('t', "test").Meta("TEST").AddArgToList(&options.test_name_strs).Help("run test(s) matching TEST, a case-insensitive string");
     p.AddOption('T', "test-pattern").Meta("TEST").AddArgToList(&test_name_patterns).Help("run test(s) matching TEST, a case-insensitive glob pattern");
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
+    p.AddOption('l', "list-for-check_ctest_log").SetIfPresent(&options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
     p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
-    p.AddOption(0, "check-last-test-log").Meta("FILE").Arg(&options.check_last_test_log_path).Help("read last ctest log from FILE and make sure every test was run once");
 
     // intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
@@ -2708,8 +2708,6 @@ static Options GetOptions(int argc, char *argv[]) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-static const std::string STARTING_TEST_PREFIX = "ea73a8dc-2d1a-43bc-ae41-078e441e53c5:";
 
 int main(int argc, char *argv[]) {
     Options options = GetOptions(argc, argv);
@@ -2903,13 +2901,13 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.master.%d.mos350.adfs", io_flags), GetMasterMOS350Type(), io_flags));
     }
 
+    std::set<std::string> names;
+    for (const std::unique_ptr<Test> &test : all_tests) {
+        names.insert(test->GetFullName());
+    }
+    TEST_EQ_UU(names.size(), all_tests.size());
+
     if (options.list) {
-        std::set<std::string> names;
-
-        for (const std::unique_ptr<Test> &test : all_tests) {
-            names.insert(test->GetFullName());
-        }
-
         for (const std::string &name : names) {
             printf("%s\n", name.c_str());
         }
@@ -2917,50 +2915,12 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    if (!options.check_last_test_log_path.empty()) {
-        std::string log;
-        if (!LoadTextFile(&log, options.check_last_test_log_path, nullptr)) {
-            fprintf(stderr, "FATAL: failed to load last test log: %s\n", options.check_last_test_log_path.c_str());
-            return 1;
+    if (options.list_for_check_ctest_log) {
+        for (const std::string &name : names) {
+            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", name.c_str());
         }
 
-        std::map<std::string, uint64_t> num_runs_by_test_name;
-        ForEachLine(log,
-                    [&num_runs_by_test_name](const std::string_view &line) -> bool {
-                        if (line.substr(0, STARTING_TEST_PREFIX.size()) == STARTING_TEST_PREFIX) {
-                            std::string test_name(line.substr(STARTING_TEST_PREFIX.size()));
-                            ++num_runs_by_test_name[test_name];
-                        }
-
-                        return true;
-                    });
-
-        bool good = true;
-
-        std::set<std::string> all_test_names;
-        for (const std::unique_ptr<Test> &test : all_tests) {
-            std::string test_name = test->GetFullName();
-            all_test_names.insert(test_name);
-
-            uint64_t num_runs = num_runs_by_test_name[test_name];
-            if (num_runs != 1) {
-                fprintf(stderr, "FATAL: test not run once: %s, %" PRIu64 " x\n", test_name.c_str(), num_runs);
-                good = false;
-            }
-        }
-
-        for (const auto &test_name_and_num_runs : num_runs_by_test_name) {
-            if (all_test_names.find(test_name_and_num_runs.first) == all_test_names.end()) {
-                fprintf(stderr, "FATAL: last run included unknown test: %s\n", test_name_and_num_runs.first.c_str());
-                good = false;
-            }
-
-            if (good) {
-                return 0;
-            } else {
-                return 1;
-            }
-        }
+        return 0;
     }
 
     g_infer_wanted_images = options.infer_wanted_images;
@@ -2990,12 +2950,16 @@ int main(int argc, char *argv[]) {
         }
 
         if (!run) {
-            printf("skipping test: %s\n", test->GetFullName().c_str());
+            if (options.verbose) {
+                printf("skipping test: %s\n", test->GetFullName().c_str());
+            }
             continue;
         }
 
-        printf("starting test: %s\n", test->GetFullName().c_str());
-        printf("%s%s\n", STARTING_TEST_PREFIX.c_str(), test->GetFullName().c_str());
+        if (options.verbose) {
+            printf("starting test: %s\n", test->GetFullName().c_str());
+        }
+        printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:%s\n", test->GetFullName().c_str());
 
         uint64_t start_ticks = GetCurrentTickCount();
 
@@ -3004,7 +2968,9 @@ int main(int argc, char *argv[]) {
 
         uint64_t end_ticks = GetCurrentTickCount();
 
-        printf("test finished: %s (took %.3f seconds)\n", test->GetFullName().c_str(), GetSecondsFromTicks(end_ticks - start_ticks));
+        if (options.verbose) {
+            printf("test finished: %s (took %.3f seconds)\n", test->GetFullName().c_str(), GetSecondsFromTicks(end_ticks - start_ticks));
+        }
     }
 
     TEST_TRUE(ran_any_tests);

@@ -21,9 +21,6 @@ add_test(
   NAME 6502/lorenz
   COMMAND $<TARGET_FILE:lorenz>)
 
-# Don't run this as part of the build. It takes way too long.
-set_tests_properties(6502/lorenz PROPERTIES LABELS slow)
-
 ##########################################################################
 ##########################################################################
 
@@ -36,9 +33,6 @@ add_test(
   NAME klaus
   COMMAND $<TARGET_FILE:klaus>)
 
-# Don't run this as part of the build. It takes way too long.
-set_tests_properties(klaus PROPERTIES LABELS slow)
-
 ##########################################################################
 ##########################################################################
 
@@ -50,7 +44,6 @@ b2_target_boilerplate(visual6502 SANITIZERS)
 add_test(
  NAME 6502/visual6502
  COMMAND $<TARGET_FILE:visual6502>)
-set_tests_properties(6502/visual6502 PROPERTIES LABELS slow)
 
 ##########################################################################
 ##########################################################################
@@ -63,4 +56,3 @@ b2_target_boilerplate(tom_seddon_6502_tests SANITIZERS)
 add_test(
   NAME 6502/tom_seddon_6502_tests
   COMMAND $<TARGET_FILE:tom_seddon_6502_tests>)
-set_tests_properties(6502/tom_seddon_6502_tests PROPERTIES LABELS slow)
