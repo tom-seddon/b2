@@ -2917,7 +2917,7 @@ int main(int argc, char *argv[]) {
 
     if (options.list_for_check_ctest_log) {
         for (const std::string &name : names) {
-            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", name.c_str());
+            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:test_beeb.%s\n", name.c_str());
         }
 
         return 0;
@@ -2959,7 +2959,7 @@ int main(int argc, char *argv[]) {
         if (options.verbose) {
             printf("starting test: %s\n", test->GetFullName().c_str());
         }
-        printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:%s\n", test->GetFullName().c_str());
+        printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:test_beeb.%s\n", test->GetFullName().c_str());
 
         uint64_t start_ticks = GetCurrentTickCount();
 
