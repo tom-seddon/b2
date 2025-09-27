@@ -20,6 +20,7 @@ extern "C" {
 #include <limits.h>
 #include <string>
 #include <vector>
+#include <regex>
 
 LOG_DEFINE(DEBUG, "", &log_printer_stdout_and_debugger);
 
@@ -31,7 +32,12 @@ LOG_DEFINE(DEBUG, "", &log_printer_stdout_and_debugger);
 //////////////////////////////////////////////////////////////////////////
 
 struct Options {
+    bool help = false;
     bool verbose = false;
+    bool list_for_check_ctest_log = false;
+    bool write_test_html = false;
+    std::vector<std::regex> test_include_regexes;
+    std::vector<std::regex> test_exclude_regexes;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -665,12 +671,9 @@ static void TestVisual6502URL(const std::string &description, const std::string 
 //////////////////////////////////////////////////////////////////////////
 
 struct TestCase {
+    std::string name;
     std::string description;
     std::string url;
-
-    // if any test has its prefer flag set, run only tests with the
-    // prefer flag set.
-    bool prefer = false;
 
     //
     int num_cycles = 120;
@@ -790,23 +793,20 @@ static std::string GetTCURL(const std::string &base) {
     return url;
 }
 
-static void AddTC(const char *fmt, ...) {
+static void AddTC(std::string name, std::string description) {
+    for (const TestCase &existing_tc : g_test_cases) {
+        if (existing_tc.name == name) {
+            TEST_FAIL("test case already exists: %s", name.c_str());
+        }
+    }
     TestCase tc;
 
-    va_list v;
-    va_start(v, fmt);
-    tc.description = strprintfv(fmt, v);
-    va_end(v);
+    tc.name = std::move(name);
+    tc.description = std::move(description);
 
     // Not very clever.
     tc.url = GetTCURL("file:///" VISUAL6502_PATH "/expert.html");
     g_test_cases.push_back(tc);
-}
-
-// Mark the last TC as preferred.
-static void PreferTC(void) {
-    TEST_FALSE(g_test_cases.empty());
-    g_test_cases.back().prefer = true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -817,7 +817,7 @@ static void AddTestCases(void) {
     {
         SetTCMem(0x10, "e6ff 90fc"); //.L:inc $ff:bcc L
 
-        AddTC("Preamble + simple loop");
+        AddTC("loop", "Preamble + simple loop");
     }
 
     ResetTC();
@@ -827,7 +827,7 @@ static void AddTestCases(void) {
         for (int i = 0; i < 3; ++i) {
             g_tc_irqs = {74 - i * 2};
 
-            AddTC("IRQ at end-%d of INC, then SEI", i);
+            AddTC("cli_inc_sei." + std::to_string(i), "IRQ at end-" + std::to_string(i) + " of INC, then SEI");
         }
     }
 
@@ -839,7 +839,7 @@ static void AddTestCases(void) {
 
         g_tc_irqs = {0};
 
-        AddTC("Stream of CLI/SEI/CLI/SEI with IRQ held low the whole time");
+        AddTC("cli_sei_repeated", "Stream of CLI/SEI/CLI/SEI with IRQ held low the whole time");
     }
 
     ResetTC();
@@ -850,7 +850,7 @@ static void AddTestCases(void) {
         SetTCMem(0x80, "a900 d000 a900 f000 a900 107f");
         SetTCMem(0x100, "eaeaeaeaeaeaeaeaeaeaeaeaeaeaeaea 4c0001");
 
-        AddTC("Branch instruction timings");
+        AddTC("branches", "Branch instruction timings");
     }
 
     ResetTC();
@@ -862,7 +862,7 @@ static void AddTestCases(void) {
             g_tc_irqs = {c};
 
             //if(cycle!=67&&cycle!=73&&cycle!=79)
-            AddTC("Branch taken to same page - IRQ on cycle %d", g_tc_irqs[0]);
+            AddTC("branch_same_page_irq." + std::to_string(g_tc_irqs[0]), "Branch taken to same page - IRQ on cycle " + std::to_string(g_tc_irqs[0]));
         }
     }
 
@@ -870,7 +870,7 @@ static void AddTestCases(void) {
     {
         SetTCMem(0x10, "ca 88 0a"); //dex:dey:asl A
 
-        AddTC("Single-byte instructions timing");
+        AddTC("singles", "Single-byte instructions timing");
     }
 
     ResetTC();
@@ -889,7 +889,7 @@ static void AddTestCases(void) {
 
         g_tc_num_cycles = 200;
 
-        AddTC("Read instructions timing");
+        AddTC("reads", "Read instructions timing");
     }
 
     ResetTC();
@@ -907,7 +907,7 @@ static void AddTestCases(void) {
 
         g_tc_num_cycles = 200;
 
-        AddTC("Store instructions timing");
+        AddTC("stores", "Store instructions timing");
     }
 
     ResetTC();
@@ -918,7 +918,7 @@ static void AddTestCases(void) {
 
         g_tc_num_cycles = 200;
 
-        AddTC("Read-modify-write instructions");
+        AddTC("rmws", "Read-modify-write instructions");
     }
 
     ResetTC();
@@ -934,7 +934,7 @@ static void AddTestCases(void) {
 
         g_tc_num_cycles = 200;
 
-        AddTC("Miscellaneous instructions timing");
+        AddTC("miscs", "Miscellaneous instructions timing");
     }
 
     ResetTC();
@@ -947,12 +947,12 @@ static void AddTestCases(void) {
             g_tc_irqs = {c};
             g_tc_nmis = {c};
 
-            AddTC("Simultaneous IRQ and NMI on cycle %d", c);
+            AddTC("irq_and_nmi." + std::to_string(c), "Simultaneous IRQ and NMI on cycle " + std::to_string(c));
 
             g_tc_irqs.push_back(c + 2);
             g_tc_nmis.push_back(c + 2);
 
-            AddTC("Simultaneous 2-cycle IRQ+NMI blip on cycle %d", c);
+            AddTC("irq_and_nmi_2." + std::to_string(c), "Simultaneous 2-cycle IRQ+NMI blip on cycle " + std::to_string(c));
         }
     }
 
@@ -1015,7 +1015,7 @@ static void AddTestCases(void) {
             // add a few more cycles, to accommodate the IRQ routine.
             g_tc_num_cycles = num_cycles + 20;
 
-            AddTC("IRQ at +%d during instruction mix", i);
+            AddTC(strprintf("mix.%03d", i), "IRQ at +" + std::to_string(i) + " during instruction mix");
 
             if (i == 65) {
                 //PreferTC();
@@ -1088,29 +1088,76 @@ static void WriteTestHTML(void) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static Options GetOptions(int argc, char *argv[]) {
+static bool GetRegexesFromPatterns(std::vector<std::regex> *regexes, const std::vector<std::string> &patterns) {
+    for (const std::string &pattern : patterns) {
+        std::string regex_str;
+        for (char c : pattern) {
+            if (isalnum(c) || c == '_') {
+                regex_str.push_back(c);
+            } else if (c == '.') {
+                regex_str += "\\.";
+            } else if (c == '*') {
+                regex_str += ".*";
+            } else {
+                fprintf(stderr, "FATAL: unsupported pattern: %s\n", pattern.c_str());
+                return false;
+            }
+        }
+
+        std::regex regex;
+        try {
+            regex = std::regex(regex_str, std::regex_constants::icase | std::regex_constants::extended);
+        } catch (const std::regex_error &e) {
+            fprintf(stderr, "FATAL: error in regex: %s\nFATAL: %s\n", regex_str.c_str(), e.what());
+            return false;
+        }
+
+        regexes->push_back(regex);
+    }
+
+    return true;
+}
+
+static bool GetOptions(Options *options, int argc, char *argv[]) {
     CommandLineParser p;
 
-    Options options;
+    std::vector<std::string> include_name_patterns;
+    std::vector<std::string> exclude_name_patterns;
+    p.AddHelpOption(&options->help);
 
-    bool help;
-    p.AddHelpOption(&help);
-
-    p.AddOption('v', "verbose").SetIfPresent(&options.verbose).Help("be more verbose");
+    p.AddOption('v', "verbose").SetIfPresent(&options->verbose).Help("be more verbose");
+    p.AddOption("list-for-check_ctest_log").SetIfPresent(&options->list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
+    p.AddOption('T').AddArgToList(&include_name_patterns).Meta("PATTERN").Help("run test(s) matching PATTERN");
+    p.AddOption('X').AddArgToList(&exclude_name_patterns).Meta("PATTERN").Help("don't run test(s) matching PATTERN");
 
     if (!p.Parse(argc, argv)) {
-        exit(1);
+        return false;
     }
 
-    if (help) {
-        exit(0);
+    if (!GetRegexesFromPatterns(&options->test_include_regexes, include_name_patterns)) {
+        return false;
     }
 
-    return options;
+    if (!GetRegexesFromPatterns(&options->test_exclude_regexes, exclude_name_patterns)) {
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static bool MatchesAny(const std::string &str, const std::vector<std::regex> &regexes) {
+
+    for (const std::regex &regex : regexes) {
+        if (std::regex_match(str, regex)) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 int main(int argc, char *argv[]) {
 #ifdef _MSC_VER
@@ -1118,39 +1165,53 @@ int main(int argc, char *argv[]) {
     //_crtBreakAlloc = 107949;
 #endif
 
-    Options options = GetOptions(argc, argv);
+    Options options;
+    if (!GetOptions(&options, argc, argv)) {
+        return 1;
+    }
 
-    (void)&PreferTC;
+    if (options.help) {
+        return 0;
+    }
 
     TestInitVisual6502();
 
     AddTestCases();
 
-    WriteTestHTML();
-
-    for (size_t i = 0; i < g_test_cases.size(); ++i)
-        LOGF(DEBUG, "%s\n", g_test_cases[i].url.c_str());
-
-    int check_prefer = 0;
-    for (size_t i = 0; i < g_test_cases.size(); ++i) {
-        const TestCase *tc = &g_test_cases[i];
-
-        if (tc->prefer) {
-            check_prefer = 1;
-            break;
+    if (options.list_for_check_ctest_log) {
+        for (const TestCase &tc : g_test_cases) {
+            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:visual6502.%s\n", tc.name.c_str());
         }
+
+        return 0;
     }
 
+    if (options.write_test_html) {
+        WriteTestHTML();
+    }
+
+    //for (size_t i = 0; i < g_test_cases.size(); ++i) {
+    //    LOGF(DEBUG, "%s\n", g_test_cases[i].url.c_str());
+    //}
+
     for (size_t i = 0; i < g_test_cases.size(); ++i) {
         const TestCase *tc = &g_test_cases[i];
 
-        if (check_prefer) {
-            if (!tc->prefer) {
-                continue;
-            }
+        bool run;
+        if (options.test_include_regexes.empty() && options.test_exclude_regexes.empty()) {
+            run = true;
+        } else {
+            bool include = options.test_include_regexes.empty() || MatchesAny(tc->name, options.test_include_regexes);
+            bool exclude = MatchesAny(tc->name, options.test_exclude_regexes);
+
+            run = include && !exclude;
         }
 
-        TestVisual6502URL(tc->description, tc->url, options);
+        if (run) {
+            printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:visual6502.%s\n", tc->name.c_str());
+
+            TestVisual6502URL(tc->description, tc->url, options);
+        }
     }
 
     return 0;

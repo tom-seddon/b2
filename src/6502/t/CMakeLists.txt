@@ -42,8 +42,20 @@ target_link_libraries(visual6502 PRIVATE shared_lib 6502_lib perfect6502_lib)
 b2_target_boilerplate(visual6502 SANITIZERS)
 
 add_test(
- NAME 6502/visual6502
- COMMAND $<TARGET_FILE:visual6502>)
+  NAME 6502/visual6502/list
+  COMMAND $<TARGET_FILE:visual6502> --list-for-check_ctest_log)
+
+# the mix runs up to 390 cycles.
+foreach(I RANGE 3)
+  add_test(
+    NAME 6502/visual6502/mix/${I}xx
+    COMMAND $<TARGET_FILE:visual6502> -T "mix.${I}*")
+endforeach()
+
+add_test(
+ NAME 6502/visual6502/rest
+ COMMAND $<TARGET_FILE:visual6502> -X "mix.*")
+
 
 ##########################################################################
 ##########################################################################
