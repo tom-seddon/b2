@@ -44,7 +44,7 @@ ifdef OSX_DEPLOYMENT_TARGET
 CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(OSX_DEPLOYMENT_TARGET)
 endif
 # version number roulette.
-CLANG_FORMAT:=clang-format
+CLANG_FORMAT:=clang-format-mp-19
 
 include Makefile.unix.mak
 include Makefile.osx.mak

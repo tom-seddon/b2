@@ -305,7 +305,7 @@ void KeymapsUI::DoImGui() {
 //#define LETTER(L) {BeebKey_##L,#L}
 //#define EDITKEY(N) N,0,2,2,
 #define END \
-    { BeebKey_None, BeebKeySym_None, BeebKeySym_None, -1 }
+    {BeebKey_None, BeebKeySym_None, BeebKeySym_None, -1}
 
 // BBC keyboard caps
 static const Keycap g_keyboard_line1[] = {

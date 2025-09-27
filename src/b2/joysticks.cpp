@@ -240,7 +240,7 @@ static bool AreJoysticksShared() {
 //////////////////////////////////////////////////////////////////////////
 
 static uint16_t GetAnalogueChannelValueFromJoystickAxisValue(int16_t joystick_axis_value) {
-    uint16_t value = (uint16_t) ~((int32_t)joystick_axis_value + 32768);
+    uint16_t value = (uint16_t)~((int32_t)joystick_axis_value + 32768);
     value >>= 6;
     return value;
 }

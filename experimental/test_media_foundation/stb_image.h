@@ -1404,7 +1404,7 @@ static stbi__uint32 stbi__get32le(stbi__context *s) {
 }
 #endif
 
-#define STBI__BYTECAST(x) ((stbi_uc)((x)&255)) // truncate int to byte without warnings
+#define STBI__BYTECAST(x) ((stbi_uc)((x) & 255)) // truncate int to byte without warnings
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -1439,7 +1439,7 @@ static unsigned char *stbi__convert_format(unsigned char *data, int img_n, int r
         unsigned char *src = data + j * x * img_n;
         unsigned char *dest = good + j * x * req_comp;
 
-#define STBI__COMBO(a, b) ((a)*8 + (b))
+#define STBI__COMBO(a, b) ((a) * 8 + (b))
 #define STBI__CASE(a, b)    \
     case STBI__COMBO(a, b): \
         for (i = x - 1; i >= 0; --i, src += a, dest += b)
@@ -1526,7 +1526,7 @@ static stbi__uint16 *stbi__convert_format16(stbi__uint16 *data, int img_n, int r
         stbi__uint16 *src = data + j * x * img_n;
         stbi__uint16 *dest = good + j * x * req_comp;
 
-#define STBI__COMBO(a, b) ((a)*8 + (b))
+#define STBI__COMBO(a, b) ((a) * 8 + (b))
 #define STBI__CASE(a, b)    \
     case STBI__COMBO(a, b): \
         for (i = x - 1; i >= 0; --i, src += a, dest += b)
@@ -2167,7 +2167,7 @@ stbi_inline static stbi_uc stbi__clamp(int x) {
     return (stbi_uc)x;
 }
 
-#define stbi__f2f(x) ((int)(((x)*4096 + 0.5)))
+#define stbi__f2f(x) ((int)(((x) * 4096 + 0.5)))
 #define stbi__fsh(x) ((x) << 12)
 
 // derived from jidctint -- DCT_ISLOW
@@ -3459,7 +3459,7 @@ static stbi_uc *stbi__resample_row_generic(stbi_uc *out, stbi_uc *in_near, stbi_
 
 // this is a reduced-precision calculation of YCbCr-to-RGB introduced
 // to make sure the code produces the same results in both SIMD and scalar
-#define stbi__float2fixed(x) (((int)((x)*4096.0f + 0.5f)) << 8)
+#define stbi__float2fixed(x) (((int)((x) * 4096.0f + 0.5f)) << 8)
 static void stbi__YCbCr_to_RGB_row(stbi_uc *out, const stbi_uc *y, const stbi_uc *pcb, const stbi_uc *pcr, int count, int step) {
     int i;
     for (i = 0; i < count; ++i) {

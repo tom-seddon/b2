@@ -3326,10 +3326,10 @@ struct SeekSound {
     DiscDriveSound sound;
 };
 
-#define SEEK_SOUND(N)                   \
-    {                                   \
-        SOUND_CLOCKS_FROM_MS(N),        \
-            DiscDriveSound_Seek##N##ms, \
+#define SEEK_SOUND(N)               \
+    {                               \
+        SOUND_CLOCKS_FROM_MS(N),    \
+        DiscDriveSound_Seek##N##ms, \
     }
 
 static const SeekSound g_seek_sounds[] = {

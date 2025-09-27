@@ -30,8 +30,7 @@ union ProfilerColour {
 
 #define PROFILER_COLOUR(R, G, B) \
     {                            \
-        { (B), (G), (R), 0xff }  \
-    }
+        {(B), (G), (R), 0xff}}
 
 // https://en.wikipedia.org/wiki/X11_color_names#Color_name_chart
 static constexpr ProfilerColour PROFILER_COLOUR_ALICE_BLUE = PROFILER_COLOUR(0xF0, 0xF8, 0xFF);

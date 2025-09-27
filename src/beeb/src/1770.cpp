@@ -88,7 +88,7 @@ const int WD1770::STEP_RATES_MS_1772[] = {2, 3, 6, 12};
 static const int uS_PER_BYTE = 64;
 
 // Assuming 300rpm.
-#define INDEX_PULSES_uS(N) ((N)*200000)
+#define INDEX_PULSES_uS(N) ((N) * 200000)
 
 static const uint8_t STEP_IN = 0;
 static const uint8_t STEP_OUT = 1;
