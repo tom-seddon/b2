@@ -65,7 +65,6 @@ static std::string GetPathForStandardROM(StandardROM rom) {
     switch (rom) {
     default:
         TEST_FAIL("%s: unsupported StandardROM: %d (%s)", __func__, rom, GetStandardROMEnumName(rom));
-        return "";
 
     case StandardROM_OS12:
         return "OS12.ROM";
@@ -1187,7 +1186,6 @@ uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic, M6502AddrMode mode) c
     }
 
     TEST_FAIL("opcode not found: mnemonic=%s; mode=%d", mnemonic, mode);
-    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
