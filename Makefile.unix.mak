@@ -54,28 +54,46 @@ _unix2:
 	mkdir -p "$(_FOLDER)"
 	(cd "$(_FOLDER)" && cmake -G "$(CMAKE_TYPE)" $(CMAKE_DEFINES) -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) ../..) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)
 
-.PHONY:buildall
-buildall:
-	$(MAKE) _buildall SANITIZER=
+##########################################################################
+##########################################################################
 
-.PHONY:buildall_no_sanitizers
-buildall_with_sanitizers:
-	$(MAKE) buildall
-	$(MAKE) _buildall SANITIZER=u
-	$(MAKE) _buildall SANITIZER=a
-	$(MAKE) _buildall SANITIZER=t
-	$(MAKE) _buildall SANITIZER=m
+.PHONY: precommit
+precommit:
+	$(MAKE) _precommit FOLDER=d
+	$(MAKE) _precommit FOLDER=r
+	$(MAKE) _precommit FOLDER=f
 
-.PHONY:_buildall
-_buildall:
-	$(MAKE) _buildall2 FOLDER=d$(SANITIZER)
-	$(MAKE) _buildall2 FOLDER=r$(SANITIZER)
-	$(MAKE) _buildall2 FOLDER=f$(SANITIZER)
+.PHONY:_precommit
+_precommit: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
+_precommit:
+	cd "$(_FOLDER)" && ninja && ctest -j $(NPROC)
 
-.PHONY:_buildall2
-_buildall2: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
-_buildall2:
-	test ! -d "$(_FOLDER)" || (cd $(_FOLDER) && ninja)
+##########################################################################
+##########################################################################
+
+# TODO: decide what to do about this.
+
+# .PHONY:buildall_no_sanitizers
+# buildall_with_sanitizers:
+# 	$(MAKE) buildall
+# 	$(MAKE) _buildall SANITIZER=u
+# 	$(MAKE) _buildall SANITIZER=a
+# 	$(MAKE) _buildall SANITIZER=t
+# 	$(MAKE) _buildall SANITIZER=m
+
+# .PHONY:_buildall
+# _buildall:
+# 	$(MAKE) _buildall2 FOLDER=d$(SANITIZER)
+# 	$(MAKE) _buildall2 FOLDER=r$(SANITIZER)
+# 	$(MAKE) _buildall2 FOLDER=f$(SANITIZER)
+
+# .PHONY:_buildall2
+# _buildall2: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
+# _buildall2:
+# 	test ! -d "$(_FOLDER)" || (cd $(_FOLDER) && ninja)
+
+##########################################################################
+##########################################################################
 
 ifdef INSTALLER
 
