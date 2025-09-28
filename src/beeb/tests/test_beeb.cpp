@@ -2592,6 +2592,8 @@ class HardDiskAccessTest : public DiskAccessTest {
     void CopyFile(const std::string &src_stem, const std::string &dest_stem, const std::string &ext) {
         std::vector<uint8_t> data;
         TEST_TRUE(LoadFile(&data, src_stem + ext, nullptr));
+
+        TEST_TRUE(PathCreateFolder(PathGetFolder(dest_stem)));
         TEST_TRUE(SaveFile(data, dest_stem + ext, nullptr));
     }
 };
