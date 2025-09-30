@@ -595,7 +595,7 @@ class TraceSaver {
         m_output->EnsureBOL();
     }
 
-    static inline [[nodiscard]] char *EnsureSpace(char *c) {
+    [[nodiscard]] static inline char *EnsureSpace(char *c) {
         if (c[-1] != ' ') {
             *c++ = ' ';
         }
@@ -799,15 +799,12 @@ class TraceSaver {
         const char *instr_end = c;
         (void)instr_end;
 
-        const char *ea_begin = nullptr, *ea_end = nullptr;
         if (ea >= 0) {
             c = EnsureSpace(c);
 
             *c++ = '[';
 
-            ea_begin = c;
             c = this->AddAddress(e, c, instr, ev->pc, (uint16_t)ea, false); //false=don't align
-            ea_end = c;
 
             *c++ = ']';
         }
