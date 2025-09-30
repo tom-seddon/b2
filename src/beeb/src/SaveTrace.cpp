@@ -190,6 +190,9 @@ class TraceSaver {
     bool m_paging_dirty = true;
     MemoryBigPageTables m_paging_tables = {};
     uint32_t m_paging_flags = 0;
+#if BBCMICRO_DEBUGGER
+    uint32_t m_effective_host_dso = 0;
+#endif
     std::vector<uint8_t> m_tube_fifo1;
     const M6502Config *m_parasite_m6502_config = nullptr;
     BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
@@ -261,6 +264,45 @@ class TraceSaver {
         }
     }
 
+    void EnsurePagingNotDirty() {
+        if (m_paging_dirty) {
+            (*m_type->get_mem_big_page_tables_fn)(&m_paging_tables,
+                                                  &m_paging_flags,
+                                                  m_paging);
+#if BBCMICRO_DEBUGGER
+            m_effective_host_dso = (*m_type->get_dso_fn)(m_paging);
+#endif
+
+            m_paging_dirty = false;
+        }
+    }
+
+    const BigPageMetadata *GetBigPageMetadataForAddress(TraceEventSource source, M6502Word pc, M6502Word addr) {
+        this->EnsurePagingNotDirty();
+
+        switch (source) {
+        default:
+            ASSERT(false);
+            [[fallthrough]];
+        case TraceEventSource_None:
+            return nullptr;
+
+        case TraceEventSource_Host:
+            {
+                BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
+                ASSERT(big_page.i < NUM_BIG_PAGES);
+                return &m_type->big_pages_metadata[big_page.i];
+            }
+
+        case TraceEventSource_Parasite:
+            if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
+                return &m_type->big_pages_metadata[PARASITE_ROM_BIG_PAGE_INDEX.i];
+            } else {
+                return &m_type->big_pages_metadata[PARASITE_BIG_PAGE_INDEX.i + addr.p.p];
+            }
+        }
+    }
+
     [[nodiscard]] static char *AddByte(char *c, const char *prefix, uint8_t value, const char *suffix) {
         while ((*c = *prefix++) != 0) {
             ++c;
@@ -300,51 +342,56 @@ class TraceSaver {
             ++c;
         }
 
-        if (m_paging_dirty) {
-            (*m_type->get_mem_big_page_tables_fn)(&m_paging_tables,
-                                                  &m_paging_flags,
-                                                  m_paging);
-            m_paging_dirty = false;
-        }
-
         //const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
         M6502Word addr = {value};
 
         const char *codes;
-        switch (ev->source) {
-        default:
-            ASSERT(false);
-            // fall through
-        case TraceEventSource_None:
-            codes = "-";
-            break;
-
-        case TraceEventSource_Host:
-            {
-                M6502Word pc = {pc_};
-                BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
-                ASSERT(big_page.i < NUM_BIG_PAGES);
-                const BigPageMetadata *bp = &m_type->big_pages_metadata[big_page.i];
-
-                // TODO: bit of a duplicate of similar logic in debugger.cpp.
-                if (!(bp->host_io_flags & HostIOFlag_NoIO) &&
-                    addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
-                    (!(bp->host_io_flags & HostIOFlag_TST) || instr->instruction_category == M6502InstructionCategory_Write)) {
-                    codes = bp->io_codes[align][addr.io.r];
-                } else {
-                    codes = bp->codes[align];
-                }
-            }
-            break;
-
-        case TraceEventSource_Parasite:
-            if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
-                codes = PARASITE_ROM_MINIMAL_CODES;
+        if (const BigPageMetadata *metadata = this->GetBigPageMetadataForAddress(ev->source, {pc_}, {value})) {
+            if (metadata->host_io_flags & HostIOFlag_NoIO &&
+                addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
+                (!(metadata->host_io_flags & HostIOFlag_TST || instr->instruction_category == M6502InstructionCategory_Write))) {
+                codes = metadata->io_codes[align][addr.io.r];
             } else {
-                codes = PARASITE_MINIMAL_CODES;
+                codes = metadata->codes[align];
             }
-            break;
+        } else {
+            codes = "-";
         }
+
+        //switch (ev->source) {
+        //default:
+        //    ASSERT(false);
+        //    // fall through
+        //case TraceEventSource_None:
+        //    codes = "-";
+        //    break;
+
+        //case TraceEventSource_Host:
+        //    {
+        //        M6502Word pc = {pc_};
+        //        BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
+        //        ASSERT(big_page.i < NUM_BIG_PAGES);
+        //        const BigPageMetadata *bp = &m_type->big_pages_metadata[big_page.i];
+
+        //        // TODO: bit of a duplicate of similar logic in debugger.cpp.
+        //        if (!(bp->host_io_flags & HostIOFlag_NoIO) &&
+        //            addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
+        //            (!(bp->host_io_flags & HostIOFlag_TST) || instr->instruction_category == M6502InstructionCategory_Write)) {
+        //            codes = bp->io_codes[align][addr.io.r];
+        //        } else {
+        //            codes = bp->codes[align];
+        //        }
+        //    }
+        //    break;
+
+        //case TraceEventSource_Parasite:
+        //    if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
+        //        codes = PARASITE_ROM_MINIMAL_CODES;
+        //    } else {
+        //        codes = PARASITE_MINIMAL_CODES;
+        //    }
+        //    break;
+        //}
 
         *c++ = '$';
         *c++ = HEX_CHARS_LC[value >> 12];
