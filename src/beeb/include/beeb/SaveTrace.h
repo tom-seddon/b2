@@ -2,6 +2,7 @@
 #define HEADER_413466CDB46E4A138B70F24354302A47
 
 #include "conf.h"
+#include <memory>
 
 // This stuff exists even when tracing is compiled out, so that the
 // settings can still be serialized.
@@ -11,29 +12,29 @@
 #include <shared/enum_end.h>
 
 static constexpr uint32_t DEFAULT_TRACE_OUTPUT_FLAGS = TraceOutputFlags_Cycles | TraceOutputFlags_RegisterNames;
+struct BBCMicroType;
 
-#if BBCMICRO_DEBUGGER
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-// This class only makes sense when the debugger is enabled, as it needs the
-// debug state override flags.
-//
-// With debugger disabled, it's forward-declared only, and the caller must
-// provide nullptr.
+// This class only makes proper sense when the debugger is enabled, but it's
+// present in all builds as attempting to exclude it entirely was turning into
+// work.
 
 class ISaveTraceSymbolFinder {
-
   public:
-    virtual bool FindNameForAddress(uint32_t addr, uint32_t dso) const = 0;
+    virtual ~ISaveTraceSymbolFinder() = default;
+
+#if BBCMICRO_DEBUGGER
+    virtual const char *FindNameForAddress(uint32_t addr, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const = 0;
+#endif
 
   protected:
   private:
 };
 
-#else
-
-class ISaveTraceSymbolFinder;
-
-#endif
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
 

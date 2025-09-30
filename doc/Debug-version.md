@@ -335,6 +335,19 @@ paragraph commands can navigate between them), and the VIA `Extra`
 flags (adds a huge pile of extra logging that you probably don't
 want).
 
+If you have symbol files loaded (see the Symbols section below), tick
+`Symbols` to have the emulator try to look up symbols for addresses
+and show them in an additional column:
+
+```
+H      105811  $8003`cA: jmp  $8033               09 0c 03 f8 NvdizC (f1); jmp  service_entry
+```
+
+By default, this column is shown for every instruction, even if no
+symbols were found. Tick `Minimal symbols` to have it only shown for
+instructions where symbols were actually found, so there's less
+repeated information on the line.
+
 ## `Pixel metadata` ##
 
 Show a window that displays the RAM address of the pixel the mouse

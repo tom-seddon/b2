@@ -234,6 +234,7 @@ const M6502DisassemblyInfo M6502_invalid_instruction = {
     .always_step_in = 0,
     .branch_condition = M6502Condition_None,
     .stack_operation = M6502StackOperation_None,
+    .instruction_category = M6502InstructionCategory_Other,
     .mnemonic = "???",
 };
 

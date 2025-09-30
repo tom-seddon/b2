@@ -19,7 +19,7 @@
 
 #elif BUILD_TYPE_Final
 
-#define BBCMICRO_TRACE 0
+#define BBCMICRO_TRACE 1
 
 #else
 #error unexpected build type

@@ -113,7 +113,7 @@ class SymbolTable {
 
     SymbolTable(const SymbolTable &src);
 
-    // The symbol table is not otherwise genrerally copyable.
+    // The symbol table is not otherwise generally copyable.
     SymbolTable &operator=(const SymbolTable &src) = delete;
     SymbolTable(SymbolTable &&) = delete;
     SymbolTable &operator=(SymbolTable &&) = delete;
@@ -144,9 +144,12 @@ class SymbolTable {
     // The group name has no impact on anything, so it can be freely changed.
     std::string *GetGroupMutableName(uint8_t group_index);
 
-    // Context-aware symbol lookup (symbols without explicit contexts are universal)
-
-    // returned pointer remains valid only until next SymbolTable function call.
+    // Context-aware symbol lookup (symbols without explicit contexts are
+    // universal)
+    //
+    // Returned pointer remains valid until next call to something other than
+    // GetSymbolNameForAddress, or until a call to GetSymbolNameForAddress with
+    // a different type.
     const std::string *GetSymbolNameForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
 
     // Legacy lookup methods (for backwards compatibility)

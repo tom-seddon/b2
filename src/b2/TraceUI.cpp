@@ -16,6 +16,7 @@
 #include <atomic>
 #include "SettingsUI.h"
 #include <shared/file_io.h>
+#include "SymbolTable.h"
 
 #include <shared/enum_def.h>
 #include "TraceUI.inl"
@@ -91,18 +92,44 @@ class TraceUI : public SettingsUI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+class SymbolFinder : public ISaveTraceSymbolFinder {
+  public:
+    SymbolFinder(const SymbolTable *symbol_table)
+        : m_symbol_table(std::make_unique<SymbolTable>(*symbol_table)) {
+    }
+
+    const char *FindNameForAddress(uint32_t addr, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const override {
+        if (const std::string *str = m_symbol_table->GetSymbolNameForAddress((uint16_t)addr, dso, type)) {
+            return str->c_str();
+        } else {
+            return nullptr;
+        }
+    }
+
+  protected:
+  private:
+    std::unique_ptr<SymbolTable> m_symbol_table;
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TraceUI::SaveTraceJob : public JobQueue::Job {
   public:
     explicit SaveTraceJob(std::shared_ptr<Trace> trace,
                           std::string file_name,
                           std::shared_ptr<MessageList> message_list,
                           uint32_t output_flags,
-                          std::string fopen_mode)
+                          std::string fopen_mode,
+                          std::unique_ptr<ISaveTraceSymbolFinder> symbol_finder)
         : m_trace(std::move(trace))
         , m_file_name(std::move(file_name))
         , m_output_flags(output_flags)
         , m_msgs(message_list)
-        , m_fopen_mode(std::move(fopen_mode)) {
+        , m_fopen_mode(std::move(fopen_mode))
+        , m_symbol_finder(std::move(symbol_finder)) {
         ASSERT(!!m_trace);
     }
 
@@ -128,7 +155,7 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
                       &SaveData, f,
                       &WasCanceledThunk, this,
                       &m_progress,
-                      nullptr)) {
+                      m_symbol_finder.get())) {
             m_msgs.i.f(
                 "trace output file saved: %s\n",
                 m_file_name.c_str());
@@ -161,6 +188,7 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
     Messages m_msgs; // this is quite a big object
     SaveTraceProgress m_progress;
     std::string m_fopen_mode;
+    std::unique_ptr<ISaveTraceSymbolFinder> m_symbol_finder;
 
     static bool SaveData(const void *data, size_t num_bytes, void *context) {
         size_t num_bytes_written = fwrite(data, 1, num_bytes, (FILE *)context);
@@ -389,18 +417,8 @@ void TraceUI::DoImGui() {
 
         ImGui::Spacing();
 
-        ImGuiHeader("Other settings");
+        ImGuiHeader("Recording settings");
         ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
-#if SYSTEM_WINDOWS
-        ImGui::Checkbox("Unix line endings", &g_default_settings.unix_line_endings);
-#endif
-
-        ImGuiCheckboxFlags("Include cycle count", &g_default_settings.output_flags, (uint32_t)TraceOutputFlags_Cycles);
-        if (g_default_settings.output_flags & TraceOutputFlags_Cycles) {
-            ImGuiCheckboxFlags("Absolute cycle count", &g_default_settings.output_flags, (uint32_t)TraceOutputFlags_AbsoluteCycles);
-        }
-        ImGuiCheckboxFlags("Include register names", &g_default_settings.output_flags, (uint32_t)TraceOutputFlags_RegisterNames);
-
         ImGui::Checkbox("Auto-save on stop", &g_default_settings.auto_save);
         if (g_default_settings.auto_save) {
             if (ImGui::Button("...")) {
@@ -413,6 +431,26 @@ void TraceUI::DoImGui() {
             ImGui::SameLine();
             ImGuiInputText(&g_default_settings.auto_save_path, "Path", g_default_settings.auto_save_path);
         }
+
+        ImGuiHeader("Output settings");
+#if BBCMICRO_DEBUGGER
+        ImGuiCheckboxFlags("Symbols", &g_default_settings.output_flags, TraceOutputFlags_SymbolsAnnotations);
+        if (g_default_settings.output_flags & TraceOutputFlags_SymbolsAnnotations) {
+            ImGuiCheckboxFlags("Minimal symbols", &g_default_settings.output_flags, TraceOutputFlags_MinimalSymbolsAnnotations);
+        }
+#endif
+
+#if SYSTEM_WINDOWS
+        ImGui::Checkbox("Unix line endings", &g_default_settings.unix_line_endings);
+#endif
+
+        ImGuiCheckboxFlags("Include cycle count", &g_default_settings.output_flags, TraceOutputFlags_Cycles);
+        if (g_default_settings.output_flags & TraceOutputFlags_Cycles) {
+            ImGuiCheckboxFlags("Absolute cycle count", &g_default_settings.output_flags, TraceOutputFlags_AbsoluteCycles);
+        }
+        ImGuiCheckboxFlags("Include register names", &g_default_settings.output_flags, TraceOutputFlags_RegisterNames);
+
+        ImGui::Separator();
 
         if (ImGui::Button("Start")) {
             this->StartTrace();
@@ -631,11 +669,19 @@ void TraceUI::StartSaveTraceJob(std::shared_ptr<Trace> last_trace, std::string p
     }
 #endif
 
+    std::unique_ptr<ISaveTraceSymbolFinder> symbol_finder;
+#if BBCMICRO_DEBUGGER
+    if (g_default_settings.output_flags & TraceOutputFlags_SymbolsAnnotations) {
+        symbol_finder = std::make_unique<SymbolFinder>(m_beeb_window->GetSymbolTable());
+    }
+#endif
+
     m_save_trace_job = std::make_shared<SaveTraceJob>(last_trace,
                                                       std::move(path),
                                                       m_beeb_window->GetMessageList(),
                                                       g_default_settings.output_flags,
-                                                      std::move(fopen_mode));
+                                                      std::move(fopen_mode),
+                                                      std::move(symbol_finder));
     BeebWindows::AddJob(m_save_trace_job);
 }
 

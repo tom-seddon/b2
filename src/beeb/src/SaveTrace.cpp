@@ -44,8 +44,8 @@ class TraceSaver {
         , m_was_canceled_fn(was_canceled_fn)
         , m_was_canceled_context(was_canceled_context)
         , m_progress(progress)
-        , m_symbol_finder(symbol_finder) {
-#if BBCMICRO_DEBUGGER
+        , m_symbol_finder(m_output_flags & TraceOutputFlags_SymbolsAnnotations ? symbol_finder : nullptr) {
+#if !BBCMICRO_DEBUGGER
         ASSERT(!m_symbol_finder);
 #endif
     }
@@ -277,6 +277,7 @@ class TraceSaver {
         }
     }
 
+    // TODO: despite plans, this only ended up called from one place. Inline?
     const BigPageMetadata *GetBigPageMetadataForAddress(TraceEventSource source, M6502Word pc, M6502Word addr) {
         this->EnsurePagingNotDirty();
 
@@ -303,7 +304,7 @@ class TraceSaver {
         }
     }
 
-    [[nodiscard]] static char *AddByte(char *c, const char *prefix, uint8_t value, const char *suffix) {
+    [[nodiscard]] char *AddByte(char *c, const char *prefix, uint8_t value, const char *suffix) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -318,7 +319,7 @@ class TraceSaver {
         return c;
     }
 
-    [[nodiscard]] static char *AddWord(char *c, const char *prefix, uint16_t value, const char *suffix) {
+    [[nodiscard]] char *AddWord(char *c, const char *prefix, uint16_t value, const char *suffix) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -335,63 +336,31 @@ class TraceSaver {
         return c;
     }
 
-    [[nodiscard]] char *AddAddress(const TraceEvent *ev, char *c, const M6502DisassemblyInfo *instr, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix, bool align = false) {
+    [[nodiscard]] char *AddAddress(const TraceEvent *ev,
+                                   char *c,
+                                   const M6502DisassemblyInfo *instr,
+                                   uint16_t pc_,
+                                   uint16_t value,
+                                   bool align) {
         ASSERT(align == 0 || align == 1);
 
-        while ((*c = *prefix++) != 0) {
-            ++c;
-        }
-
-        //const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
         M6502Word addr = {value};
 
         const char *codes;
         if (const BigPageMetadata *metadata = this->GetBigPageMetadataForAddress(ev->source, {pc_}, {value})) {
-            if (metadata->host_io_flags & HostIOFlag_NoIO &&
+            // The parasite big pages have HostIOFlag_NoIO set.
+            if (!(metadata->host_io_flags & HostIOFlag_NoIO) &&
                 addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
-                (!(metadata->host_io_flags & HostIOFlag_TST || instr->instruction_category == M6502InstructionCategory_Write))) {
+                (!(metadata->host_io_flags & HostIOFlag_TST) || instr->instruction_category == M6502InstructionCategory_Write)) {
                 codes = metadata->io_codes[align][addr.io.r];
             } else {
+                // TODO: this gets the wrong result for the parasite boot ROM
+                // region. Writes go to RAM!
                 codes = metadata->codes[align];
             }
         } else {
             codes = "-";
         }
-
-        //switch (ev->source) {
-        //default:
-        //    ASSERT(false);
-        //    // fall through
-        //case TraceEventSource_None:
-        //    codes = "-";
-        //    break;
-
-        //case TraceEventSource_Host:
-        //    {
-        //        M6502Word pc = {pc_};
-        //        BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
-        //        ASSERT(big_page.i < NUM_BIG_PAGES);
-        //        const BigPageMetadata *bp = &m_type->big_pages_metadata[big_page.i];
-
-        //        // TODO: bit of a duplicate of similar logic in debugger.cpp.
-        //        if (!(bp->host_io_flags & HostIOFlag_NoIO) &&
-        //            addr.p.o >= 0xc00 && addr.p.o < 0xf00 &&
-        //            (!(bp->host_io_flags & HostIOFlag_TST) || instr->instruction_category == M6502InstructionCategory_Write)) {
-        //            codes = bp->io_codes[align][addr.io.r];
-        //        } else {
-        //            codes = bp->codes[align];
-        //        }
-        //    }
-        //    break;
-
-        //case TraceEventSource_Parasite:
-        //    if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
-        //        codes = PARASITE_ROM_MINIMAL_CODES;
-        //    } else {
-        //        codes = PARASITE_MINIMAL_CODES;
-        //    }
-        //    break;
-        //}
 
         *c++ = '$';
         *c++ = HEX_CHARS_LC[value >> 12];
@@ -404,29 +373,21 @@ class TraceSaver {
             *c++ = codes[1];
         }
 
-        while ((*c = *suffix++) != 0) {
-            ++c;
-        }
-
         return c;
     }
 
-    [[nodiscard]] char *AddStackAddress(const TraceEvent *e, char *c, const BBCMicro::InstructionTraceEvent *ev, const M6502DisassemblyInfo *i, const char *prefix) {
+    int32_t GetStackEA(const BBCMicro::InstructionTraceEvent *ev, const M6502DisassemblyInfo *i) {
         switch ((M6502StackOperation)i->stack_operation) {
-        case M6502StackOperation_None:
+        default:
             ASSERT(false);
-            break;
+            return -1;
 
         case M6502StackOperation_Push:
-            c = this->AddAddress(e, c, i, prefix, ev->pc, 0x100 + ((ev->s + 1) & 0xff), "]");
-            break;
+            return 0x100 + ((ev->s + 1) & 0xff);
 
         case M6502StackOperation_Pop:
-            c = this->AddAddress(e, c, i, prefix, ev->pc, 0x100 + ev->s, "]");
-            break;
+            return 0x100 + ev->s;
         }
-
-        return c;
     }
 
     void HandleString(const TraceEvent *e) {
@@ -634,20 +595,20 @@ class TraceSaver {
         m_output->EnsureBOL();
     }
 
-    //void HandleBlankLine(const TraceEvent *e) {
-    //    (void)e;
+    static inline [[nodiscard]] char *EnsureSpace(char *c) {
+        if (c[-1] != ' ') {
+            *c++ = ' ';
+        }
 
-    //    static const char BLANK_LINE_CHAR = '\n';
-
-    //    (*m_save_data_fn)(&BLANK_LINE_CHAR, 1, m_save_data_context);
-    //}
+        return c;
+    }
 
     void HandleInstruction(const TraceEvent *e) {
         auto ev = (const BBCMicro::InstructionTraceEvent *)e->event;
 
         m_last_instruction_time = e->time;
 
-        const M6502DisassemblyInfo *i = &m_m6502_config->disassembly_info[ev->opcode];
+        const M6502DisassemblyInfo *instr = &m_m6502_config->disassembly_info[ev->opcode];
 
         // This buffer size has been carefully selected to be Big
         // Enough(tm).
@@ -658,134 +619,197 @@ class TraceSaver {
             c += m_time_prefix_len;
         }
 
-        c = this->AddAddress(e, c, nullptr, "", 0, ev->pc, ":", true); //true=align
+        c = this->AddAddress(e, c, &M6502_invalid_instruction, 0, ev->pc, true); //true=align
 
-        *c++ = i->undocumented ? '*' : ' ';
+        *c++ = ':';
+        *c++ = instr->undocumented ? '*' : ' ';
 
         char *mnemonic_begin = c;
         memcpy(c, m_m6502_padded_mnemonics[ev->opcode], PADDED_MNEMONIC_SIZE);
         c += PADDED_MNEMONIC_SIZE;
 
+        const char *operand_prefix = "";
+        const char *operand_suffix = "";
+        int32_t imm_operand = -1;
+        int32_t addr8_operand = -1;
+        int32_t addr16_operand = -1;
+        int32_t ea = -1;
+
         // This logic is a bit gnarly, and probably wants hiding away
         // somewhere closer to the 6502 code.
-        switch (i->mode) {
+        switch (instr->mode) {
         default:
             ASSERT(0);
-            // fall through
+            [[fallthrough]];
         case M6502AddrMode_IMP:
-            if (i->stack_operation != M6502StackOperation_None) {
-                c = this->AddStackAddress(e, c, ev, i, "[");
+            if (instr->stack_operation != M6502StackOperation_None) {
+                ea = this->GetStackEA(ev, instr);
             }
             break;
 
         case M6502AddrMode_REL:
-            {
-                uint16_t tmp;
-
-                if (!ev->data) {
-                    tmp = (uint16_t)(ev->pc + 2 + (uint16_t)(int16_t)(int8_t)ev->ad);
-                } else {
-                    tmp = ev->ad;
-                }
-
-                c = AddWord(c, "$", tmp, "");
-                //c+=sprintf(c,"$%04X",tmp);
+            if (!ev->data) {
+                addr16_operand = (uint16_t)(ev->pc + 2 + (uint16_t)(int16_t)(int8_t)ev->ad);
+            } else {
+                addr16_operand = ev->ad;
             }
+
+            ea = addr16_operand;
             break;
 
         case M6502AddrMode_IMM:
-            c = AddByte(c, "#$", ev->data, "");
+            operand_prefix = "#";
+            imm_operand = ev->data;
             break;
 
         case M6502AddrMode_ZPG:
-            c = AddByte(c, "$", (uint8_t)ev->ad, "");
-            c = this->AddAddress(e, c, i, " [", ev->pc, (uint8_t)ev->ad, "]");
+            ea = addr8_operand = (uint8_t)ev->ad;
             break;
 
         case M6502AddrMode_ZPX:
-            c = AddByte(c, "$", (uint8_t)ev->ad, ",X");
-            c = this->AddAddress(e, c, i, " [", ev->pc, (uint8_t)(ev->ad + ev->x), "]");
+            operand_suffix = ",X";
+            addr8_operand = (uint8_t)ev->ad;
+            ea = (uint8_t)(ev->ad + ev->x);
             break;
 
         case M6502AddrMode_ZPY:
-            c = AddByte(c, "$", (uint8_t)ev->ad, ",Y");
-            c = this->AddAddress(e, c, i, " [", ev->pc, (uint8_t)(ev->ad + ev->y), "]");
+            operand_suffix = ",Y";
+            addr8_operand = (uint8_t)ev->ad;
+            ea = (uint8_t)(ev->ad + ev->y);
             break;
 
         case M6502AddrMode_ABS:
-            c = AddWord(c, "$", ev->ad, "");
-            if (i->branch_condition != M6502Condition_None) {
+            addr16_operand = ev->ad;
+            if (instr->branch_condition != M6502Condition_None) {
                 // don't add the target address for JSR/JMP - for consistency
                 // with Bxx and JMP indirect. The addresses aren't useful
                 // anyway, since the next line shows where execution ended up.
 
-                if (i->stack_operation != M6502StackOperation_None) {
-                    c = this->AddStackAddress(e, c, ev, i, " [");
+                if (instr->stack_operation != M6502StackOperation_None) {
+                    ea = GetStackEA(ev, instr);
                 }
             } else {
-                c = this->AddAddress(e, c, i, " [", ev->pc, ev->ad, "]");
+                ea = ev->ad;
             }
             break;
 
         case M6502AddrMode_ABX:
-            c = AddWord(c, "$", ev->ad, ",X");
-            c = this->AddAddress(e, c, i, " [", ev->pc, (uint16_t)(ev->ad + ev->x), "]");
+            operand_suffix = ",X";
+            addr16_operand = ev->ad;
+            ea = (uint16_t)(ev->ad + ev->x);
             break;
 
         case M6502AddrMode_ABY:
-            c = AddWord(c, "$", ev->ad, ",Y");
-            c = this->AddAddress(e, c, i, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
+            operand_suffix = ",Y";
+            addr16_operand = ev->ad;
+            ea = (uint16_t)(ev->ad + ev->y);
             break;
 
         case M6502AddrMode_INX:
-            c = AddByte(c, "($", (uint8_t)ev->ia, ",X)");
-            c = this->AddAddress(e, c, i, " [", ev->pc, ev->ad, "]");
+            operand_prefix = "(";
+            operand_suffix = ",X)";
+            addr8_operand = (uint8_t)ev->ia;
+            ea = ev->ad;
             break;
 
         case M6502AddrMode_INY:
-            c = AddByte(c, "($", (uint8_t)ev->ia, "),Y");
-            c = this->AddAddress(e, c, i, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
+            operand_prefix = "(";
+            operand_suffix = "),Y";
+            addr8_operand = (uint8_t)ev->ia;
+            ea = (uint16_t)(ev->ad + ev->y);
             break;
 
         case M6502AddrMode_IND:
-            c = AddWord(c, "($", ev->ia, ")");
-            // the effective address isn't stored anywhere - it's
-            // loaded straight into the program counter. But it's not
-            // really a problem... a JMP is easy to follow.
+            // the effective address isn't stored anywhere - it's loaded
+            // straight into the program counter. But it's not really a
+            // problem... a JMP is easy to follow.
+            operand_prefix = "(";
+            operand_suffix = ")";
+            addr16_operand = ev->ia;
             break;
 
         case M6502AddrMode_ACC:
-            *c++ = 'A';
+            operand_prefix = "A";
             break;
 
         case M6502AddrMode_INZ:
-            {
-                c = AddByte(c, "($", (uint8_t)ev->ia, ")");
-                c = this->AddAddress(e, c, i, " [", ev->pc, ev->ad, "]");
-            }
+            operand_prefix = "(";
+            operand_suffix = ")";
+            addr8_operand = (uint8_t)ev->ia;
+            ea = ev->ad;
             break;
 
         case M6502AddrMode_INDX:
-            c = AddWord(c, "($", ev->ia, ",X)");
-            c = this->AddAddress(e, c, i, " [", ev->pc, ev->ia + ev->x, "]");
-            // the effective address isn't stored anywhere - it's
-            // loaded straight into the program counter. But it's not
-            // really a problem... a JMP is easy to follow.
+            // the effective address isn't stored anywhere - it's loaded
+            // straight into the program counter. But it's not really a
+            // problem... a JMP is easy to follow.
+            operand_prefix = "(";
+            operand_suffix = ",X)";
+            addr16_operand = (uint16_t)(ev->ia + ev->x);
             break;
 
         case M6502AddrMode_ZPG_REL_ROCKWELL:
-            {
-                uint16_t tmp;
-
-                if (!ev->data) {
-                    tmp = (uint16_t)(ev->pc + 3 + (uint16_t)(int16_t)(int8_t)ev->ad);
-                } else {
-                    tmp = ev->ad;
-                }
-                c = AddByte(c, "$", ev->ia & 0xff, "");
-                c = AddWord(c, ",$", tmp, "");
+            if (!ev->data) {
+                addr16_operand = (uint16_t)(ev->pc + 3 + (uint16_t)(int16_t)(int8_t)ev->ad);
+            } else {
+                addr16_operand = ev->ad;
             }
+
+            ea = addr8_operand = (uint8_t)ev->ia;
             break;
+        }
+
+        // Prefix
+        for (size_t i = 0; operand_prefix[i]; ++i) {
+            *c++ = operand_prefix[i];
+        }
+
+        // Immediate operand, if any.
+        if (imm_operand >= 0) {
+            *c++ = '$';
+            *c++ = HEX_CHARS_LC[imm_operand >> 4 & 0xf];
+            *c++ = HEX_CHARS_LC[imm_operand & 0xf];
+        }
+
+        // 8-bit address operand, if any.
+        if (addr8_operand >= 0) {
+            *c++ = '$';
+            *c++ = HEX_CHARS_LC[addr8_operand >> 4 & 0xf];
+            *c++ = HEX_CHARS_LC[addr8_operand & 0xf];
+
+            // And a 16-bit one too? Stick a comma in then.
+            if (addr16_operand >= 0) {
+                *c++ = ',';
+            }
+        }
+
+        if (addr16_operand >= 0) {
+            *c++ = '$';
+            *c++ = HEX_CHARS_LC[addr16_operand >> 12 & 0xf];
+            *c++ = HEX_CHARS_LC[addr16_operand >> 8 & 0xf];
+            *c++ = HEX_CHARS_LC[addr16_operand >> 4 & 0xf];
+            *c++ = HEX_CHARS_LC[addr16_operand & 0xf];
+        }
+
+        // Suffix
+        for (size_t i = 0; operand_suffix[i]; ++i) {
+            *c++ = operand_suffix[i];
+        }
+
+        const char *instr_end = c;
+        (void)instr_end;
+
+        const char *ea_begin = nullptr, *ea_end = nullptr;
+        if (ea >= 0) {
+            c = EnsureSpace(c);
+
+            *c++ = '[';
+
+            ea_begin = c;
+            c = this->AddAddress(e, c, instr, ev->pc, (uint16_t)ea, false); //false=don't align
+            ea_end = c;
+
+            *c++ = ']';
         }
 
         M6502P p;
@@ -799,22 +823,119 @@ class TraceSaver {
             *c++ = ' ';
         }
 
-        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "A=" : "", ev->a, " ");
-        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "X=" : "", ev->x, " ");
-        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "Y=" : "", ev->y, " ");
-        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "S=" : "", ev->s, m_output_flags & TraceOutputFlags_RegisterNames ? " P=" : " ");
+        c = this->AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "A=" : "", ev->a, " ");
+        c = this->AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "X=" : "", ev->x, " ");
+        c = this->AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "Y=" : "", ev->y, " ");
+        c = this->AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "S=" : "", ev->s, m_output_flags & TraceOutputFlags_RegisterNames ? " P=" : " ");
         *c++ = "nN"[p.bits.n];
         *c++ = "vV"[p.bits.v];
         *c++ = "dD"[p.bits.d];
         *c++ = "iI"[p.bits.i];
         *c++ = "zZ"[p.bits.z];
         *c++ = "cC"[p.bits.c];
-        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? " (D=" : " (", ev->data, "");
+        c = this->AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? " (D=" : " (", ev->data, ")");
+
+#if BBCMICRO_DEBUGGER
+        // Any symbols to be had?
+        if (m_symbol_finder) {
+            const char *addr8_symbol = nullptr;
+            const char *addr16_symbol = nullptr;
+            const char *ea_symbol = nullptr;
+
+            uint32_t dso = 0;
+            if (e->source == TraceEventSource_Host) {
+                dso = m_effective_host_dso;
+            } else if (e->source == TraceEventSource_Parasite) {
+                dso = BBCMicroDebugStateOverride_Parasite; //TODO...
+            }
+
+            if (addr8_operand >= 0) {
+                addr8_symbol = m_symbol_finder->FindNameForAddress((uint32_t)addr8_operand, dso, m_type);
+            }
+
+            if (addr16_operand >= 0) {
+                addr16_symbol = m_symbol_finder->FindNameForAddress((uint32_t)addr16_operand, dso, m_type);
+            }
+
+            // Only show the EA if there's a symbol for it. It's already shown
+            // in the basic disassembly view - no point repeating it.
+            bool show_ea = false;
+            if (ea >= 0 && ea != addr8_operand && ea != addr16_operand) {
+                ea_symbol = m_symbol_finder->FindNameForAddress((uint32_t)ea, dso, m_type);
+                if (ea_symbol) {
+                    show_ea = true;
+                }
+            }
+
+            *c++ = ';';
+            *c++ = ' ';
+
+            if (addr8_symbol || addr16_symbol || show_ea) {
+                memcpy(c, m_m6502_padded_mnemonics[ev->opcode], PADDED_MNEMONIC_SIZE);
+                c += PADDED_MNEMONIC_SIZE;
+
+                for (size_t i = 0; operand_prefix[i]; ++i) {
+                    *c++ = operand_prefix[i];
+                }
+
+                if (addr8_operand >= 0) {
+                    if (addr8_symbol) {
+                        for (size_t i = 0; addr8_symbol[i]; ++i) {
+                            *c++ = addr8_symbol[i];
+                        }
+                    } else {
+                        *c++ = '$';
+                        *c++ = HEX_CHARS_LC[addr8_operand >> 4 & 0xf];
+                        *c++ = HEX_CHARS_LC[addr8_operand & 0xf];
+                    }
+
+                    if (addr16_operand >= 0) {
+                        *c++ = ',';
+                    }
+                }
+
+                if (addr16_operand >= 0) {
+                    if (addr16_symbol) {
+                        for (size_t i = 0; addr16_symbol[i]; ++i) {
+                            *c++ = addr16_symbol[i];
+                        }
+                    } else {
+                        *c++ = '$';
+                        *c++ = HEX_CHARS_LC[addr16_operand >> 12 & 0xf];
+                        *c++ = HEX_CHARS_LC[addr16_operand >> 8 & 0xf];
+                        *c++ = HEX_CHARS_LC[addr16_operand >> 4 & 0xf];
+                        *c++ = HEX_CHARS_LC[addr16_operand & 0xf];
+                    }
+                }
+
+                for (size_t i = 0; operand_suffix[i]; ++i) {
+                    *c++ = operand_suffix[i];
+                }
+
+                if (show_ea) {
+                    c = EnsureSpace(c);
+
+                    for (size_t i = 0; ea_symbol[i]; ++i) {
+                        *c += ea_symbol[i];
+                    }
+                }
+
+            } else {
+                if (!(m_output_flags & TraceOutputFlags_MinimalSymbolsAnnotations)) {
+                    size_t n = (size_t)(instr_end - mnemonic_begin);
+                    memcpy(c, mnemonic_begin, n);
+                    c += n;
+                }
+            }
+        }
+#endif
 
         // Add some BBC-specific annotations
         if (ev->pc == 0xffee ||
             ev->pc == 0xffe3 ||
             (ev->opcode == 0x6c && ev->ia == 0x20e)) {
+            c = EnsureSpace(c);
+
             // If the output does overflow, the return value is no good,
             // because it's the length of the full expansion. But it's no
             // problem, because it won't overflow.
@@ -823,6 +944,7 @@ class TraceSaver {
             // But calling sprintf means a deprecation warning on macOS. And I
             // just choose to avoid the deprecation warning this particular
             // way.)
+
             c += snprintf(c, (size_t)(line + sizeof line - c), "; %d", ev->a);
 
             if (isprint(ev->a)) {
@@ -833,8 +955,6 @@ class TraceSaver {
                 *c++ = '\'';
             }
         }
-
-        *c++ = ')';
 
         *c++ = '\n';
         *c = 0;
