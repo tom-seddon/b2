@@ -65,7 +65,7 @@ bool SaveTrace(std::shared_ptr<Trace> trace,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress,
-               ISaveTraceSymbolFinder *symbol_finder);
+               const ISaveTraceSymbolFinder *symbol_finder);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

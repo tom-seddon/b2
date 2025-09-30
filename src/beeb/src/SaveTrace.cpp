@@ -36,7 +36,7 @@ class TraceSaver {
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress,
-               ISaveTraceSymbolFinder *symbol_finder)
+               const ISaveTraceSymbolFinder *symbol_finder)
         : m_trace(std::move(trace))
         , m_output_flags(output_flags)
         , m_save_data_fn(save_data_fn)
@@ -230,7 +230,7 @@ class TraceSaver {
 
     SaveTraceProgress *m_progress = nullptr;
 
-    ISaveTraceSymbolFinder *m_symbol_finder = nullptr;
+    const ISaveTraceSymbolFinder *m_symbol_finder = nullptr;
 
     class LogPrinterTraceSaver : public LogPrinter {
       public:
@@ -1111,7 +1111,7 @@ bool SaveTrace(std::shared_ptr<Trace> trace,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress,
-               ISaveTraceSymbolFinder *symbol_finder) {
+               const ISaveTraceSymbolFinder *symbol_finder) {
     TraceSaver saver(std::move(trace),
                      output_flags,
                      save_data_fn, save_data_context,
