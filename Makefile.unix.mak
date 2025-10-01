@@ -59,9 +59,9 @@ _unix2:
 
 .PHONY: precommit
 precommit:
-	$(MAKE) _precommit FOLDER=d
-	$(MAKE) _precommit FOLDER=r
-	$(MAKE) _precommit FOLDER=f
+	$(MAKE) _precommit FOLDER=d$(SANITIZER)
+	$(MAKE) _precommit FOLDER=r$(SANITIZER)
+	$(MAKE) _precommit FOLDER=f$(SANITIZER)
 
 .PHONY:_precommit
 _precommit: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
