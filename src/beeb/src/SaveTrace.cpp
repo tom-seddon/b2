@@ -47,6 +47,7 @@ class TraceSaver {
         , m_symbol_finder(m_output_flags & TraceOutputFlags_SymbolsAnnotations ? symbol_finder : nullptr) {
 #if !BBCMICRO_DEBUGGER
         ASSERT(!m_symbol_finder);
+        (void)m_symbol_finder;
 #endif
     }
 
