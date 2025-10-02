@@ -6,6 +6,7 @@
 #include <6502/6502.h>
 #include <string.h>
 #include <map>
+#include <inttypes.h>
 
 #include <shared/enum_def.h>
 #include <beeb/type.inl>
@@ -389,7 +390,7 @@ size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t
     }
 }
 
-static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom_types) {
+static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom_types, uint8_t host_io_flags_mask) {
     std::vector<BigPageMetadata> big_pages;
     big_pages.resize(NUM_BIG_PAGES);
 
@@ -501,8 +502,10 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         uint32_t dso_set = BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_OverrideITU;
 #endif
 
+        uint8_t effective_host_io_flags = host_io_flags & host_io_flags_mask;
+
         std::string description = "MOS ROM+";
-        if (host_io_flags & HostIOFlag_TST) {
+        if (effective_host_io_flags & HostIOFlag_TST) {
             description += "w";
 #if BBCMICRO_DEBUGGER
             dso_set |= BBCMicroDebugStateOverride_OS;
@@ -516,7 +519,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         description += " ";
 
         char ifj_code;
-        if (host_io_flags & HostIOFlag_IFJ) {
+        if (effective_host_io_flags & HostIOFlag_IFJ) {
             description += "IFJ";
 #if BBCMICRO_DEBUGGER
             dso_set |= BBCMicroDebugStateOverride_IFJ;
@@ -532,7 +535,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 
         char itu_code;
         description += "/";
-        if (host_io_flags & HostIOFlag_ITU) {
+        if (effective_host_io_flags & HostIOFlag_ITU) {
             description += "ITU";
 #if BBCMICRO_DEBUGGER
             dso_set |= BBCMicroDebugStateOverride_ITU;
@@ -669,7 +672,7 @@ static uint32_t GetDSOB(const PagingState &paging) {
 #endif
 
 static std::vector<BigPageMetadata> GetBigPagesMetadataB(const ROMType *rom_types) {
-    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types);
+    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types, 0);
 
     return big_pages;
 }
@@ -791,7 +794,7 @@ static uint32_t GetDSOBPlus(const PagingState &paging) {
 #endif
 
 static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus(const ROMType *rom_types) {
-    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types);
+    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types, 0);
 
     InitBigPagesMetadata(&big_pages,
                          ANDY_BIG_PAGE_INDEX,
@@ -988,7 +991,7 @@ static uint32_t GetDSOMaster(const PagingState &paging) {
 #endif
 
 static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom_types) {
-    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types);
+    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types, 7);
 
     InitBigPagesMetadata(&big_pages,
                          ANDY_BIG_PAGE_INDEX,
@@ -1035,6 +1038,39 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+struct Region {
+    uint32_t begin = UINT32_MAX, end = 0;
+};
+
+static void UpdateRegion(Region *region, uint32_t begin, uint32_t size) {
+    region->begin = (std::min)(region->begin, begin);
+    region->end = (std::max)(region->end, begin + size);
+}
+
+static void DumpRegions(const std::shared_ptr<const BBCMicroType> &type) {
+    std::map<std::string, Region> regions_by_name;
+    for (size_t i = 0; i < type->big_pages_metadata.size(); ++i) {
+        const BigPageMetadata *m = &type->big_pages_metadata[i];
+        std::string name = m->codes[0];
+        if (name.empty()) {
+            continue;
+        }
+        UpdateRegion(&regions_by_name[name], m->addr, BIG_PAGE_SIZE_BYTES);
+
+        if (!(m->host_io_flags & HostIOFlag_NoIO)) {
+            for (uint8_t j = 0; j < 24; ++j) {
+                name = m->io_codes[0][j];
+                ASSERT(!name.empty());
+                UpdateRegion(&regions_by_name[name], m->addr + 0xc00 + j * 32, 32);
+            }
+        }
+    }
+
+    for (const auto &name_and_region : regions_by_name) {
+        printf("%s: $%" PRIx32 "-$%" PRIx32 "\n", name_and_region.first.c_str(), name_and_region.second.begin, name_and_region.second.end);
+    }
+}
 
 std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types_, uint32_t flags) {
     auto type = std::make_shared<BBCMicroType>();
@@ -1207,6 +1243,8 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
             type->adc_count = 32;
         }
     }
+
+    //DumpRegions(type);
 
     return type;
 }
@@ -1570,4 +1608,78 @@ const char *GetAddressSuffixForOffset(const BigPageMetadata *metadata, M6502Word
 
     return metadata->codes[aligned];
 }
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+
+// TODO: this could probably be data-driven, but this is probably good enough.
+bool DoesDSOAffectAddress(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso, uint16_t addr) {
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        if (addr >= 0xf000) {
+            if (dso & BBCMicroDebugStateOverride_ParasiteROM) {
+                return true;
+            }
+        }
+    } else {
+        dso &= type->dso_mask;
+
+        if (addr >= 0x3000 && addr < 0x8000) {
+            // Shadow/Main.
+            if (dso & BBCMicroDebugStateOverride_OverrideShadow) {
+                return true;
+            }
+        } else if (addr >= 0x8000 && addr < 0xc000) {
+            if (dso & BBCMicroDebugStateOverride_OverrideROM) {
+                return true;
+            }
+
+            switch (type->type_id) {
+            default:
+                ASSERT(false);
+                [[fallthrough]];
+            case BBCMicroTypeID_B:
+                break;
+
+            case BBCMicroTypeID_BPlus:
+                if (addr < 0xb000) {
+                    if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
+                        return true;
+                    }
+                }
+                break;
+
+            case BBCMicroTypeID_Master:
+            case BBCMicroTypeID_MasterCompact:
+                if (addr < 0x9000) {
+                    if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
+                        return true;
+                    }
+                }
+                break;
+            }
+        } else if (addr >= 0xc000 && addr < 0xe000) {
+            if (dso & BBCMicroDebugStateOverride_OverrideHAZEL) {
+                return true;
+            }
+        } else if (addr >= 0xfc00 && addr < 0xfe00) {
+            if (dso & (BBCMicroDebugStateOverride_OverrideIFJ | BBCMicroDebugStateOverride_OverrideOS)) {
+                return true;
+            }
+        } else if (addr >= 0xfe00 && addr < 0xfee0) {
+            if (dso & BBCMicroDebugStateOverride_OverrideOS) {
+                return true;
+            }
+        } else if (addr >= 0xfee0 && addr < 0xff00) {
+            if (dso & (BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OverrideITU)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 #endif

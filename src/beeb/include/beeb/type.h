@@ -383,6 +383,17 @@ inline const char *GetMinimalAddressSuffixForOffset(const BigPageMetadata *metad
     return GetAddressSuffixForOffset(metadata, offset, is_write, 0);
 }
 
+// Determine whether the given DSO would affect the given address. (If the
+// Parasite bit is set, the address is a parasite address.)
+//
+// For most settings, only the override bits are checked, and not the actual
+// value. If the value is overridden, the address is affected; if it isn't, it
+// isn't.
+//
+// The ROM mapper is an exception. If the ROM bank isn't overridden, the mapper
+// bits are ignored, on the basis it's unknowable.
+bool DoesDSOAffectAddress(const std::shared_ptr<const BBCMicroType> &type, uint32_t dso, uint16_t addr);
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////

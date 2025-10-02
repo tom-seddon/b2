@@ -192,12 +192,67 @@ static void TestMultiSymbolTableStuff() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char TASS_LABELS_INCLUSIVE_0[] =
+    "label1 = $8000\n"
+    "main0=0\n";
+
+static const char TASS_LABELS_INCLUSIVE_1[] =
+    "label2=$8000\n"
+    "main1=1\n";
+
+static void TestInclusiveMode() {
+    const SymbolTable::SymbolParser *tass_labels_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("64tass labels");
+    TEST_NON_NULL(tass_labels_parser);
+
+    SymbolTable st;
+    TEST_TRUE(st.LoadFromString(TASS_LABELS_INCLUSIVE_0, "0", tass_labels_parser, nullptr));
+    size_t index0 = MustFindFileIndex(st, "0");
+    TEST_TRUE(st.LoadFromString(TASS_LABELS_INCLUSIVE_1, "1", tass_labels_parser, nullptr));
+    size_t index1 = MustFindFileIndex(st, "1");
+
+    st.SetFileAddressSuffixMode(index0, SymbolFileAddressSuffixMode_Inclusive);
+    st.SetFileAddressSuffixes(index0, {"0"});
+    st.SetFileAddressSuffixMode(index1, SymbolFileAddressSuffixMode_Inclusive);
+    st.SetFileAddressSuffixes(index1, {"1"});
+
+    std::shared_ptr<const BBCMicroType> type = CreateTestBBCMicroType();
+
+    const std::string *str;
+
+    str = st.GetSymbolNameForAddress(0x8000, BBCMicroDebugStateOverride_OverrideROM | 0, type);
+    TEST_NON_NULL(str);
+    TEST_EQ_SS(*str, "label1");
+
+    str = st.GetSymbolNameForAddress(0x8000, BBCMicroDebugStateOverride_OverrideROM | 1, type);
+    TEST_NON_NULL(str);
+    TEST_EQ_SS(*str, "label2");
+
+    for (uint8_t rom = 0; rom < 16; ++rom) {
+        uint32_t dso = BBCMicroDebugStateOverride_OverrideROM | rom;
+        // (rom==0 || rom==1 were tested above)
+        if (rom > 2) {
+            TestFailFnAdder adder([rom](const TestFailArgs *) {
+                LOGF(TESTING, "rom=%u\n", rom);
+            });
+            str = st.GetSymbolNameForAddress(0x8000, dso, type);
+            TEST_NULL(str);
+        }
+
+        TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(0, dso, type), "main0");
+        TEST_EQ_SYMBOL_S(st.GetSymbolNameForAddress(1, dso, type), "main1");
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int main() {
     SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers();
 
     TestMultiSymbolTableStuff();
     TestBeebAsmStuff();
     TestTassLabelsStuff();
+    TestInclusiveMode();
 }
 
 #else

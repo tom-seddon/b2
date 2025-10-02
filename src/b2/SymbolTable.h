@@ -115,8 +115,10 @@ struct SymbolFile {
 
     // Address suffixes for which symbols in this file apply. Serialised as-is.
     std::vector<std::string> address_suffixes;
+
+    Enum<SymbolFileAddressSuffixMode> address_suffix_mode{SymbolFileAddressSuffixMode_Exclusive};
 };
-JSON_SERIALIZE(SymbolFile, file_path, enabled, address_suffixes, file_format_name, group_index);
+JSON_SERIALIZE(SymbolFile, file_path, enabled, address_suffixes, file_format_name, group_index, address_suffix_mode);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -153,6 +155,7 @@ class SymbolTable {
     // Group metadata editing
     void SetFileGroupIndex(size_t file_index, uint8_t group_index);
     void SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes);
+    void SetFileAddressSuffixMode(size_t file_index, SymbolFileAddressSuffixMode address_suffix_mode);
     const SymbolGroup *GetSymbolGroupByIndex(uint8_t group_index) const;
     void SetGroupEnabled(uint8_t group_index, bool enabled);
 
@@ -187,7 +190,7 @@ class SymbolTable {
 
         explicit SymbolParser(const Guid &guid);
         virtual ~SymbolParser() = default;
-        virtual std::string GetFormatName() const = 0;
+        virtual std::string GetFormatName() const = 0; // This value is serialized.
         virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;
         virtual bool MatchesLine(const std::string &line) const = 0;
         virtual bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const = 0;
@@ -214,16 +217,25 @@ class SymbolTable {
     //void PrintStats() const;
 
   private:
+    // Processed address suffixes, dependent on the current BBCMicroType.
+    struct DSOMask {
+        // Mask for any overrides specified by the suffix: mask for the DSO
+        // OverrideXXX bit and the DSO XXX bit(s) that provide the value - as
+        // per GetDSOMaskForOverrides.
+        uint32_t mask = 0;
+
+        // Value for any overrides specified by the suffix: the DSO OverideXXX
+        // bit, and the actual value for the DSO XXX bit(s).
+        //
+        // Any OverideXXX bits set in mask will also be set in value.
+        uint32_t value = 0;
+    };
+
     struct LoadedSymbolFile {
         SymbolFile file;
 
         std::vector<Symbol> symbols;
 
-        // Processed address suffixes, dependent on the current BBCMicroType.
-        struct DSOMask {
-            uint32_t mask = 0;
-            uint32_t value = 0;
-        };
         std::vector<DSOMask> address_suffix_dso_masks;
     };
 
@@ -233,6 +245,7 @@ class SymbolTable {
     struct SymbolsInFile {
         const LoadedSymbolFile *lsf = nullptr;
         std::vector<const Symbol *> symbols;
+        const std::vector<DSOMask> *dso_masks = nullptr;
     };
 
     struct SymbolsAtAddress {
@@ -247,6 +260,7 @@ class SymbolTable {
 
     mutable std::map<uint16_t, SymbolsAtAddress> m_cache_address_to_symbols;                // Multiple symbols per address
     mutable std::map<std::string, std::vector<AddressForSymbol>> m_cache_name_to_addresses; // Multiple addresses per name
+    mutable std::vector<std::unique_ptr<std::vector<DSOMask>>> m_interned_dso_mask_table;
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
     mutable bool m_group_properties_valid = false;

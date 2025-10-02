@@ -805,7 +805,7 @@ bool SymbolTable::GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, con
     *addr_ptr = addr->address;
 
     if (!addr->lsf->address_suffix_dso_masks.empty()) {
-        const LoadedSymbolFile::DSOMask *mask = &addr->lsf->address_suffix_dso_masks[0];
+        const DSOMask *mask = &addr->lsf->address_suffix_dso_masks[0];
 
         *dso_ptr &= ~mask->mask;
         *dso_ptr |= mask->value;
@@ -897,6 +897,14 @@ void SymbolTable::SetFileAddressSuffixes(size_t file_index, std::vector<std::str
     this->InvalidateEverything();
 }
 
+void SymbolTable::SetFileAddressSuffixMode(size_t file_index, SymbolFileAddressSuffixMode address_suffix_mode) {
+    ASSERT(file_index < m_lsfs.size());
+
+    m_lsfs[file_index]->file.address_suffix_mode = address_suffix_mode;
+
+    this->InvalidateEverything();
+}
+
 const SymbolGroup *SymbolTable::GetSymbolGroupByIndex(uint8_t group_index) const {
     this->EnsureGroupPropertiesValid();
 
@@ -929,10 +937,10 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
     }
 
     for (const SymbolsInFile &in_file : it->second.per_file) {
-        if (in_file.lsf->address_suffix_dso_masks.empty()) {
+        if (!in_file.dso_masks) {
             return &in_file.symbols[0]->name;
         } else {
-            for (const LoadedSymbolFile::DSOMask &mask : in_file.lsf->address_suffix_dso_masks) {
+            for (const DSOMask &mask : *in_file.dso_masks) {
                 if ((dso & mask.mask) == mask.value) {
                     return &in_file.symbols[0]->name;
                 }
@@ -1005,6 +1013,28 @@ void SymbolTable::InvalidateGroupProperties() const {
     m_group_properties_valid = false;
 }
 
+struct VectorBoolLessThan {
+    inline bool operator()(const std::vector<bool> &a, const std::vector<bool> &b) const {
+        if (a.size() < b.size()) {
+            return true; //a<b
+        } else if (b.size() < a.size()) {
+            return false; //b<a
+        }
+
+        for (size_t i = 0; i < a.size(); ++i) {
+            bool ai = a[i], bi = b[i];
+
+            if (!ai && bi) {
+                return true; //a<b
+            } else if (ai && !bi) {
+                return false; //b<a
+            }
+        }
+
+        return false; //a==b
+    }
+};
+
 void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &type) const {
     if (m_cache_type == type) {
         return;
@@ -1017,7 +1047,7 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
             uint32_t dso = 0;
 
             if (ParseAddressSuffix(&dso, type, address_suffix.c_str(), nullptr)) {
-                LoadedSymbolFile::DSOMask mask;
+                DSOMask mask;
 
                 mask.mask = GetDSOMaskForOverrides(dso) & type->dso_mask;
                 mask.value = dso & type->dso_mask;
@@ -1034,15 +1064,22 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
 
     m_cache_address_to_symbols.clear();
     m_cache_name_to_addresses.clear();
+    m_interned_dso_mask_table.clear();
 
     for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         if (!lsf->file.enabled) {
             continue;
         }
 
-        for (size_t i = 0; i < lsf->symbols.size(); ++i) {
+        std::vector<bool> dso_masks_used;
+        dso_masks_used.resize(lsf->address_suffix_dso_masks.size());
+
+        // Outre map used to assemble the minimal set of DSO mask tables.
+        std::map<std::vector<bool>, std::unique_ptr<std::vector<DSOMask>>, VectorBoolLessThan> wtf;
+
+        for (size_t symbol_index = 0; symbol_index < lsf->symbols.size(); ++symbol_index) {
             // go in reverse order, so later symbols have priority.
-            const Symbol *symbol = &lsf->symbols[lsf->symbols.size() - 1 - i];
+            const Symbol *symbol = &lsf->symbols[lsf->symbols.size() - 1 - symbol_index];
 
             // Handle the address->symbol lookup.
             {
@@ -1054,6 +1091,51 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
                 if (at_address->per_file.empty() || at_address->per_file.back().lsf != lsf.get()) {
                     in_file = &at_address->per_file.emplace_back();
                     in_file->lsf = lsf.get();
+
+                    switch (in_file->lsf->file.address_suffix_mode) {
+                    default:
+                        ASSERT(false);
+                        break;
+
+                    case SymbolFileAddressSuffixMode_Exclusive:
+                        in_file->dso_masks = &in_file->lsf->address_suffix_dso_masks;
+                        break;
+
+                    case SymbolFileAddressSuffixMode_Inclusive:
+                        {
+                            bool any = false;
+                            for (size_t dso_mask_index = 0; dso_mask_index < in_file->lsf->address_suffix_dso_masks.size(); ++dso_mask_index) {
+                                bool affects = DoesDSOAffectAddress(type, in_file->lsf->address_suffix_dso_masks[dso_mask_index].value, symbol->address);
+                                dso_masks_used[dso_mask_index] = affects;
+                                any = any || affects;
+                            }
+
+                            if (any) {
+                                std::unique_ptr<std::vector<DSOMask>> *masks = &wtf[dso_masks_used];
+
+                                if (!*masks) {
+                                    *masks = std::make_unique<std::vector<DSOMask>>();
+
+                                    for (size_t i = 0; i < in_file->lsf->address_suffix_dso_masks.size(); ++i) {
+                                        if (dso_masks_used[i]) {
+                                            (*masks)->push_back(in_file->lsf->address_suffix_dso_masks[i]);
+                                        }
+                                    }
+                                }
+
+                                in_file->dso_masks = masks->get();
+                            }
+                        }
+
+                        break;
+                    }
+
+                    if (in_file->dso_masks) {
+                        if (in_file->dso_masks->empty()) {
+                            // no point actually pointing to it.
+                            in_file->dso_masks = nullptr;
+                        }
+                    }
                 } else {
                     in_file = &at_address->per_file.back();
                 }
@@ -1072,6 +1154,11 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
 
                 m_cache_name_to_addresses[symbol->name].push_back(addr);
             }
+        }
+
+        // Copy the minimal set of DSO mask tables.
+        for (auto &flags_and_masks : wtf) {
+            m_interned_dso_mask_table.push_back(std::move(flags_and_masks.second));
         }
     }
 
