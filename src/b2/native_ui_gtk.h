@@ -6,6 +6,11 @@
 
 #include <vector>
 #include <string>
+#include <functional>
+
+// Forward declarations
+class OpenFileDialog;
+class SaveFileDialog;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -15,13 +20,23 @@ void MessageBox(const std::string &title, const std::string &text);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path);
 
-std::string SaveFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path);
+// std::function version for the interface
+void SaveFileDialogGTKAsync(const std::vector<OpenFileDialog::Filter> &filters,
+                           const std::string &default_path,
+                           std::function<void(const std::string&)> callback);
 
-std::string SelectFolderDialogGTK(const std::string &default_path);
+
+void OpenFileDialogGTKAsync(const std::vector<OpenFileDialog::Filter> &filters,
+                           const std::string &default_path,
+                           std::function<void(const std::string&)> callback);
+
+void SelectFolderDialogGTKAsync(const std::string &default_path,
+                               void (*callback)(const std::string& path));
+
+// Function to process GTK events (to be called from main SDL loop)
+void ProcessGTKEvents();
+
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

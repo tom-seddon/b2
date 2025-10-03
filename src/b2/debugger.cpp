@@ -1443,34 +1443,46 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
                 ImGuiStyleColourPusher pusher;
                 pusher.PushDisabledButtonColours(!save_enabled);
                 if (ImGui::Button("Save memory...") && save_enabled) {
-                    SaveFileDialog fd("save_memory");
+                    // Store the save parameters for the callback
+                    m_window->m_pending_save_begin = begin;
+                    m_window->m_pending_save_end_or_size = end_or_size;
+                    m_window->m_pending_save_mos = this->mos;
 
-                    fd.AddAllFilesFilter();
+                    // Store the dialog as member variable to keep it alive for recent paths
+                    m_window->m_pending_memory_dialog = CreateSaveFileDialog("save_memory");
+                    m_window->m_pending_memory_dialog->AddAllFilesFilter();
 
-                    std::string path;
-                    if (fd.Open(&path)) {
-                        uint32_t end;
-                        if (m_window->m_persistent.specify_end) {
-                            end = end_or_size;
-                        } else {
-                            end = begin + end_or_size;
+                    m_window->m_pending_memory_dialog->OpenWithCallback([this](const std::string& path) {
+                        if (!path.empty()) {
+                            uint32_t end;
+                            if (m_window->m_persistent.specify_end) {
+                                end = m_window->m_pending_save_end_or_size;
+                            } else {
+                                end = m_window->m_pending_save_begin + m_window->m_pending_save_end_or_size;
+                            }
+
+                            // (this clamp means that addr has to be the full 32
+                            // bits. But this value is the terminating value, so the
+                            // cast to uint16_t inside the loop is quite safe.)
+                            end = std::min(end, 0x10000u);
+
+                            std::vector<uint8_t> buffer;
+                            for (uint32_t addr = m_window->m_pending_save_begin; addr != end; ++addr) {
+                                uint8_t value;
+                                m_window->ReadByte(&value, nullptr, nullptr, (uint16_t)addr, m_window->m_pending_save_mos);
+                                buffer.push_back(value);
+                            }
+
+                            Messages msgs(m_window->m_beeb_window->GetMessageList());
+                            SaveFile(buffer, path, &msgs);
+
+                            // Update recent paths
+                            m_window->m_pending_memory_dialog->AddLastPathToRecentPaths(path);
                         }
 
-                        // (this clamp means that addr has to be the full 32
-                        // bits. But this value is the terminating value, so the
-                        // cast to uint16_t inside the loop is quite safe.)
-                        end = std::min(end, 0x10000u);
-
-                        std::vector<uint8_t> buffer;
-                        for (uint32_t addr = begin; addr != end; ++addr) {
-                            uint8_t value;
-                            m_window->ReadByte(&value, nullptr, nullptr, (uint16_t)addr, this->mos);
-                            buffer.push_back(value);
-                        }
-
-                        Messages msgs(m_window->m_beeb_window->GetMessageList());
-                        SaveFile(buffer, path, &msgs);
-                    }
+                        // Clean up
+                        m_window->m_pending_memory_dialog.reset();
+                    });
                 }
             }
         }
@@ -1550,6 +1562,12 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
     bool m_show_mos_toggle = false;
     Handler m_handler;
     HexEditor m_hex_editor;
+
+    // For async memory save dialog
+    uint16_t m_pending_save_begin = 0;
+    uint32_t m_pending_save_end_or_size = 0;
+    bool m_pending_save_mos = false;
+    std::unique_ptr<SaveFileDialog> m_pending_memory_dialog;
 };
 
 std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window) {

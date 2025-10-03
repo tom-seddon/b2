@@ -83,74 +83,69 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
 //////////////////////////////////////////////////////////////////////////
 
 void MessageBox(const std::string &title, const std::string &text) {
-    GtkWidget *dialog = gtk_message_dialog_new(nullptr,
-                                               GTK_DIALOG_MODAL,
-                                               GTK_MESSAGE_ERROR,
-                                               GTK_BUTTONS_OK,
-                                               "%s",
-                                               title.c_str());
-    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
-                                             "%s",
-                                             text.c_str());
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static GtkWidget *CreateFileDialog(const char *title,
-                                   GtkFileChooserAction action) {
-    GtkWidget *gdialog = gtk_file_chooser_dialog_new(title,
-                                                     nullptr,
-                                                     action,
-                                                     "_Cancel", GTK_RESPONSE_CANCEL,
-                                                     "_Open", GTK_RESPONSE_ACCEPT,
-                                                     nullptr);
-    return gdialog;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::string RunFileDialog(GtkWidget *gdialog) {
-    gint gresult = gtk_dialog_run(GTK_DIALOG(gdialog));
-
-    std::string result;
-    if (gresult == GTK_RESPONSE_ACCEPT) {
-        if (const char *name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(gdialog))) {
-            result.assign(name);
+    // Get the main application window as parent
+    GtkWindow *parent = nullptr;
+    GList *toplevels = gtk_window_list_toplevels();
+    if (toplevels) {
+        for (GList *iter = toplevels; iter; iter = iter->next) {
+            GtkWidget *window = GTK_WIDGET(iter->data);
+            if (gtk_widget_get_visible(window) && GTK_IS_WINDOW(window)) {
+                parent = GTK_WINDOW(window);
+                break;
+            }
         }
+        g_list_free(toplevels);
     }
 
-    gtk_widget_destroy(gdialog);
-    gdialog = nullptr;
+    GtkAlertDialog *alert = gtk_alert_dialog_new(title.c_str());
+    gtk_alert_dialog_set_detail(alert, text.c_str());
+    gtk_alert_dialog_set_modal(alert, TRUE);
 
-    while (gtk_events_pending()) {
-        gtk_main_iteration();
-    }
+    // Show the alert dialog
+    gtk_alert_dialog_show(alert, parent);
 
-    return result;
+    // Clean up
+    g_object_unref(alert);
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SetDefaultPath(GtkWidget *gdialog,
-                           const std::string &default_path) {
-    if (!default_path.empty()) {
-        gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(gdialog), default_path.c_str());
+static void (*g_trace_save_callback)(const std::string& path) = nullptr;
+
+// For std::function callbacks
+static std::function<void(const std::string&)> g_std_function_callback;
+
+// Dialog operation types
+enum class DialogOperation {
+    Save,
+    Open,
+    SelectFolder
+};
+
+static DialogOperation g_current_dialog_operation = DialogOperation::Save;
+
+// Function to process GTK events (to be called from main SDL loop)
+void ProcessGTKEvents() {
+    // Process any pending GTK events without blocking
+    while (g_main_context_pending(g_main_context_default())) {
+        g_main_context_iteration(g_main_context_default(), FALSE);
     }
 }
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+// Helper function to create GTK4 file filters from our filter format
+static GListModel* CreateGTK4Filters(const std::vector<OpenFileDialog::Filter> &filters) {
+    if (filters.empty()) {
+        return nullptr;
+    }
 
-static void AddFilters(GtkWidget *gdialog,
-                       const std::vector<OpenFileDialog::Filter> &filters) {
+    GListStore *store = g_list_store_new(GTK_TYPE_FILE_FILTER);
+
     for (const OpenFileDialog::Filter &filter : filters) {
         GtkFileFilter *gfilter = gtk_file_filter_new();
 
+        // Set the filter name
         std::string name = filter.title + " (";
         for (size_t i = 0; i < filter.extensions.size(); ++i) {
             if (i > 0) {
@@ -159,57 +154,248 @@ static void AddFilters(GtkWidget *gdialog,
             name += "*" + filter.extensions[i];
         }
         name += ")";
-
         gtk_file_filter_set_name(gfilter, name.c_str());
 
+        // Add patterns for each extension
         for (const std::string &extension : filter.extensions) {
-            gtk_file_filter_add_pattern(gfilter, ("*" + extension).c_str());
+            if (extension == ".*") {
+                // Special case for "all files" filter
+                gtk_file_filter_add_pattern(gfilter, "*");
+            } else {
+                gtk_file_filter_add_pattern(gfilter, ("*" + extension).c_str());
+            }
         }
 
-        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(gdialog), gfilter);
+        g_list_store_append(store, gfilter);
+        g_object_unref(gfilter); // The store takes ownership
     }
+
+    return G_LIST_MODEL(store);
 }
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path) {
-    GtkWidget *gdialog = CreateFileDialog("Open File",
-                                          GTK_FILE_CHOOSER_ACTION_OPEN);
+// Callback for GTK4 async file dialog
+static void async_file_dialog_response_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
+    (void)user_data; // Suppress unused parameter warning
+    GtkFileDialog *dialog = GTK_FILE_DIALOG(source_object);
+    GError *error = nullptr;
 
-    AddFilters(gdialog, filters);
-    SetDefaultPath(gdialog, default_path);
+    // Use the correct finish function based on the operation type
+    GFile *file = nullptr;
+    switch (g_current_dialog_operation) {
+        case DialogOperation::Save:
+            file = gtk_file_dialog_save_finish(dialog, res, &error);
+            break;
+        case DialogOperation::Open:
+            file = gtk_file_dialog_open_finish(dialog, res, &error);
+            break;
+        case DialogOperation::SelectFolder:
+            file = gtk_file_dialog_select_folder_finish(dialog, res, &error);
+            break;
+    }
 
-    return RunFileDialog(gdialog);
+    if (error) {
+        g_error_free(error);
+        if (g_trace_save_callback) {
+            g_trace_save_callback(""); // Empty path indicates error/cancellation
+        }
+        if (g_std_function_callback) {
+            g_std_function_callback(""); // Empty path indicates error/cancellation
+        }
+    } else if (file) {
+        char *path = g_file_get_path(file);
+        if (path) {
+            if (g_trace_save_callback) {
+                g_trace_save_callback(std::string(path));
+            }
+            if (g_std_function_callback) {
+                g_std_function_callback(std::string(path));
+            }
+            g_free(path);
+        }
+        g_object_unref(file);
+    } else {
+        if (g_trace_save_callback) {
+            g_trace_save_callback(""); // Empty path indicates cancellation
+        }
+        if (g_std_function_callback) {
+            g_std_function_callback(""); // Empty path indicates cancellation
+        }
+    }
+
+    // Clean up the dialog now that the async operation is complete
+    g_object_unref(dialog);
 }
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
 
-std::string SaveFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path) {
-    GtkWidget *gdialog = CreateFileDialog("Save File",
-                                          GTK_FILE_CHOOSER_ACTION_SAVE);
+// Async function for Open File Dialog
+void OpenFileDialogGTKAsync(const std::vector<OpenFileDialog::Filter> &filters,
+                           const std::string &default_path,
+                           std::function<void(const std::string&)> callback) {
 
-    AddFilters(gdialog, filters);
-    SetDefaultPath(gdialog, default_path);
-    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(gdialog), TRUE);
+    // Get the main application window as parent
+    GtkWindow *parent = nullptr;
+    GList *toplevels = gtk_window_list_toplevels();
+    if (toplevels) {
+        for (GList *iter = toplevels; iter; iter = iter->next) {
+            GtkWidget *window = GTK_WIDGET(iter->data);
+            if (gtk_widget_get_visible(window) && GTK_IS_WINDOW(window)) {
+                parent = GTK_WINDOW(window);
+                break;
+            }
+        }
+        g_list_free(toplevels);
+    }
 
-    return RunFileDialog(gdialog);
+    // Create GTK4 native file dialog
+    GtkFileDialog *file_dialog = gtk_file_dialog_new();
+
+    // Set dialog properties
+    gtk_file_dialog_set_title(file_dialog, "Open File");
+
+    // Apply file filters if provided
+    GListModel *gtk_filters = CreateGTK4Filters(filters);
+    if (gtk_filters) {
+        gtk_file_dialog_set_filters(file_dialog, gtk_filters);
+        g_object_unref(gtk_filters); // Clean up the list model
+    }
+
+    // Set initial folder if provided (extract directory from file path)
+    if (!default_path.empty()) {
+        std::string initial_folder_path = default_path;
+        size_t last_slash = default_path.find_last_of('/');
+        if (last_slash != std::string::npos && last_slash > 0) {
+            initial_folder_path = default_path.substr(0, last_slash);
+        }
+
+        GFile *initial_folder = g_file_new_for_path(initial_folder_path.c_str());
+        gtk_file_dialog_set_initial_folder(file_dialog, initial_folder);
+        g_object_unref(initial_folder);
+    }
+
+    // Store the callback for this operation
+    g_std_function_callback = callback;
+    g_current_dialog_operation = DialogOperation::Open;
+
+    // Start the async file dialog (non-blocking)
+    gtk_file_dialog_open(file_dialog, parent, nullptr, async_file_dialog_response_callback, nullptr);
+
+    // Don't unref the dialog - it needs to stay alive for the async operation
+    // The dialog will be cleaned up in the callback
 }
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+// Async function for Select Folder Dialog
+void SelectFolderDialogGTKAsync(const std::string &default_path,
+                               void (*callback)(const std::string& path)) {
 
-std::string SelectFolderDialogGTK(const std::string &default_path) {
-    GtkWidget *gdialog = CreateFileDialog("Select Folder",
-                                          GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+    // Get the main application window as parent
+    GtkWindow *parent = nullptr;
+    GList *toplevels = gtk_window_list_toplevels();
+    if (toplevels) {
+        for (GList *iter = toplevels; iter; iter = iter->next) {
+            GtkWidget *window = GTK_WIDGET(iter->data);
+            if (gtk_widget_get_visible(window) && GTK_IS_WINDOW(window)) {
+                parent = GTK_WINDOW(window);
+                break;
+            }
+        }
+        g_list_free(toplevels);
+    }
 
-    SetDefaultPath(gdialog, default_path);
+    // Create GTK4 native file dialog
+    GtkFileDialog *file_dialog = gtk_file_dialog_new();
 
-    return RunFileDialog(gdialog);
+    // Set dialog properties
+    gtk_file_dialog_set_title(file_dialog, "Select Folder");
+
+    // Set initial folder if provided
+    if (!default_path.empty()) {
+        GFile *initial_folder = g_file_new_for_path(default_path.c_str());
+        gtk_file_dialog_set_initial_folder(file_dialog, initial_folder);
+        g_object_unref(initial_folder);
+    }
+
+    // Set the callback and operation type for this operation
+    g_trace_save_callback = callback;
+    g_current_dialog_operation = DialogOperation::SelectFolder;
+
+    // Start the async folder selection dialog (non-blocking)
+    gtk_file_dialog_select_folder(file_dialog, parent, nullptr, async_file_dialog_response_callback, nullptr);
+
+    // Don't unref the dialog - it needs to stay alive for the async operation
+    // The dialog will be cleaned up in the callback
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// GTK-specific async implementation for SaveFileDialog
+void SaveFileDialogGTKAsync(const std::vector<OpenFileDialog::Filter> &filters,
+                           const std::string &default_path,
+                           std::function<void(const std::string&)> callback) {
+
+    // Get the main application window as parent
+    GtkWindow *parent = nullptr;
+    GList *toplevels = gtk_window_list_toplevels();
+    if (toplevels) {
+        for (GList *iter = toplevels; iter; iter = iter->next) {
+            GtkWidget *window = GTK_WIDGET(iter->data);
+            if (gtk_widget_get_visible(window) && GTK_IS_WINDOW(window)) {
+                parent = GTK_WINDOW(window);
+                break;
+            }
+        }
+        g_list_free(toplevels);
+    }
+
+    // Create GTK4 native file dialog
+    GtkFileDialog *file_dialog = gtk_file_dialog_new();
+
+    // Set dialog properties
+    gtk_file_dialog_set_title(file_dialog, "Save File");
+
+    // Apply file filters if provided
+    GListModel *gtk_filters = CreateGTK4Filters(filters);
+    if (gtk_filters) {
+        gtk_file_dialog_set_filters(file_dialog, gtk_filters);
+        g_object_unref(gtk_filters); // Clean up the list model
+    }
+
+    // Set initial folder if provided (extract directory from file path)
+    if (!default_path.empty()) {
+        std::string initial_folder_path = default_path;
+        size_t last_slash = default_path.find_last_of('/');
+        if (last_slash != std::string::npos && last_slash > 0) {
+            initial_folder_path = default_path.substr(0, last_slash);
+        }
+
+        GFile *initial_folder = g_file_new_for_path(initial_folder_path.c_str());
+        gtk_file_dialog_set_initial_folder(file_dialog, initial_folder);
+        g_object_unref(initial_folder);
+    }
+
+    // Store the callback for this operation
+    g_std_function_callback = callback;
+    g_current_dialog_operation = DialogOperation::Save;
+
+    // Start the async file dialog (non-blocking)
+    gtk_file_dialog_save(file_dialog, parent, nullptr, async_file_dialog_response_callback, nullptr);
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

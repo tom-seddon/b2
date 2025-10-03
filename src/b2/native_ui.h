@@ -80,11 +80,18 @@ class SelectorDialog {
     RecentPaths *GetRecentPaths() const;
     //void SetRecentPathsTag(std::string tag);
     void AddLastPathToRecentPaths();
+    void AddLastPathToRecentPaths(const std::string& path);
 
     bool Open(std::string *path);
 
+    // New callback-based interface
+    void OpenWithCallback(std::function<void(const std::string&)> callback);
+
   protected:
     virtual std::string HandleOpen() = 0;
+
+    // New callback-based implementation (optional override)
+    virtual void HandleOpenWithCallback(std::function<void(const std::string&)> callback);
 
     std::string m_last_path;
 
@@ -127,6 +134,7 @@ class OpenFileDialog : public FileDialog {
 
   protected:
     std::string HandleOpen() override;
+    void HandleOpenWithCallback(std::function<void(const std::string&)> callback) override;
 
   private:
 };
@@ -140,9 +148,13 @@ class SaveFileDialog : public FileDialog {
 
   protected:
     std::string HandleOpen() override;
+    void HandleOpenWithCallback(std::function<void(const std::string&)> callback) override;
 
   private:
 };
+
+// Factory function to create platform-specific SaveFileDialog
+std::unique_ptr<SaveFileDialog> CreateSaveFileDialog(std::string tag);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

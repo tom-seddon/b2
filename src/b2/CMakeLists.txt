@@ -196,9 +196,9 @@ elseif(WIN32)
   target_sources(b2 PRIVATE
     native_ui_windows.cpp native_ui_windows.h)
 elseif(LINUX)
-  target_compile_definitions(b2 PRIVATE ${GTK2_DEFINITIONS})
-  target_include_directories(b2 PRIVATE ${GTK2_INCLUDE_DIRS})
-  target_link_libraries(b2 PRIVATE ${GTK2_LIBRARIES})
+  target_compile_definitions(b2 PRIVATE ${GTK4_DEFINITIONS})
+  target_include_directories(b2 PRIVATE ${GTK4_INCLUDE_DIRS})
+  target_link_libraries(b2 PRIVATE ${GTK4_LIBRARIES})
   target_sources(b2 PRIVATE native_ui_gtk.cpp native_ui_gtk.h)
 endif()
 

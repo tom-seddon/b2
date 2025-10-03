@@ -2,3 +2,4 @@
 /build/
 /etc/b2_tests/[Zz]/
 /dependencies/ProcessorTests/
+.vscode/

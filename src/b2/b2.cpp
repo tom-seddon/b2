@@ -47,6 +47,7 @@
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #include <gtk/gtk.h>
 G_GNUC_END_IGNORE_DEPRECATIONS
+#include "native_ui_gtk.h"
 #endif
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"
@@ -1412,7 +1413,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 #if SYSTEM_LINUX
     // Need to do this after SDL_Init. See, e.g.,
     // https://discourse.libsdl.org/t/gtk2-sdl2-partial-fail/19274
-    gtk_init(&argc, &argv);
+    gtk_init();
 #endif
 
 #if SYSTEM_WINDOWS
@@ -1561,6 +1562,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                     goto done;
                 }
             }
+
+            // Process GTK events to handle async operations
+            ProcessGTKEvents();
 
             if (event.type == SDL_QUIT) {
 #if SYSTEM_OSX

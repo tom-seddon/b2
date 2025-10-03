@@ -5,6 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include "conf.h"
+#include "discs.h"
 
 struct BeebWindowInitArguments;
 class VBlankMonitor;
@@ -342,6 +343,11 @@ class BeebWindow {
     BBCMicroHaltReason DebugGetHaltReason() const;
     void DebugStepOver(uint32_t dso);
     void DebugStepIn(uint32_t dso);
+
+    // Helper methods for pausing/resuming emulator during dialogs
+    void PauseEmulatorForDialog();
+    void ResumeEmulatorAfterDialog();
+
 #endif
 
     // Handle double click or drag'n'drop.
@@ -429,6 +435,32 @@ class BeebWindow {
     // Buffer for SDL keyboard events, so they can be handled as part of
     // the usual update.
     std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
+
+    // For async dialog callbacks
+    std::vector<uint8_t> m_pending_printer_data;
+    SDLUniquePtr<SDL_Surface> m_pending_screenshot;
+    std::shared_ptr<const DiscImage> m_pending_disc_image;
+    std::unique_ptr<SaveFileDialog> m_pending_disc_dialog;
+
+    // For async symbol file open dialog
+    void* m_pending_symbol_parser = nullptr; // Will be cast to SymbolTable::SymbolParser*
+    std::unique_ptr<OpenFileDialog> m_pending_symbol_dialog;
+
+    // For async FileMenuItem operations - need to persist until callbacks complete
+    struct FileMenuItemState {
+        std::string path;
+        const Disc *new_disc_type = nullptr;
+        std::shared_ptr<std::vector<uint8_t>> new_disc_data;
+        SelectorDialog *used_dialog = nullptr;
+        bool load = false;
+        int drive = -1;
+        bool boot = false;
+    };
+    FileMenuItemState m_pending_file_menu_item;
+
+    // Friend class to allow FileMenuItem to access private members
+    friend class FileMenuItem;
+
 
     BeebWindowSettings m_settings;
 

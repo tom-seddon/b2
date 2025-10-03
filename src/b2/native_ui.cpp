@@ -194,10 +194,16 @@ void SelectorDialog::AddLastPathToRecentPaths() {
     }
 }
 
+void SelectorDialog::AddLastPathToRecentPaths(const std::string& path) {
+    m_last_path = path;
+    AddLastPathToRecentPaths();
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SelectorDialog::Open(std::string *path) {
+void SelectorDialog::OpenWithCallback(std::function<void(const std::string&)> callback) {
+    // Set up last path if needed
     if (m_last_path.empty()) {
         if (RecentPaths *recent = GetRecentPathsByTag(m_recent_paths_tag)) {
             if (recent->GetNumPaths() > 0) {
@@ -206,15 +212,24 @@ bool SelectorDialog::Open(std::string *path) {
         }
     }
 
+    // Call the platform-specific callback implementation with a wrapper that handles m_last_path
+    this->HandleOpenWithCallback([this, callback](const std::string& result) {
+        // Update m_last_path based on result (same logic as synchronous Open method)
+        if (result.empty()) {
+            m_last_path.clear();        // Clear if cancelled/empty
+        } else {
+            m_last_path = result;       // Update with successful result
+        }
+
+        // Call the original callback
+        callback(result);
+    });
+}
+
+void SelectorDialog::HandleOpenWithCallback(std::function<void(const std::string&)> callback) {
+    // Default implementation: fall back to synchronous
     std::string result = this->HandleOpen();
-    if (result.empty()) {
-        m_last_path.clear();
-        return false;
-    } else {
-        m_last_path = result;
-        *path = m_last_path;
-        return true;
-    }
+    callback(result);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -276,8 +291,22 @@ std::string OpenFileDialog::HandleOpen() {
 
 #else
 
-    return OpenFileDialogGTK(m_filters, m_last_path);
+    // Linux uses async dialogs, so this synchronous method should never be called
+    // Return empty string as fallback
+    return "";
 
+#endif
+}
+
+void OpenFileDialog::HandleOpenWithCallback(std::function<void(const std::string&)> callback) {
+#if SYSTEM_LINUX
+    // Use callback-based GTK4 implementation on Linux
+    OpenFileDialogGTKAsync(m_filters, m_last_path, [callback](const std::string& path) {
+        callback(path);
+    });
+#else
+    // Use synchronous fallback on other platforms
+    SelectorDialog::HandleOpenWithCallback(callback);
 #endif
 }
 
@@ -286,6 +315,11 @@ std::string OpenFileDialog::HandleOpen() {
 
 SaveFileDialog::SaveFileDialog(std::string tag)
     : FileDialog(std::move(tag)) {
+}
+
+// Factory function to create platform-specific SaveFileDialog
+std::unique_ptr<SaveFileDialog> CreateSaveFileDialog(std::string tag) {
+    return std::make_unique<SaveFileDialog>(std::move(tag));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -303,8 +337,20 @@ std::string SaveFileDialog::HandleOpen() {
 
 #else
 
-    return SaveFileDialogGTK(m_filters, m_last_path);
+    // Linux uses async dialogs, so this synchronous method should never be called
+    // Return empty string as fallback
+    return "";
 
+#endif
+}
+
+void SaveFileDialog::HandleOpenWithCallback(std::function<void(const std::string&)> callback) {
+#if SYSTEM_LINUX
+    // Use callback-based GTK4 implementation on Linux
+    SaveFileDialogGTKAsync(m_filters, m_last_path, callback);
+#else
+    // Use synchronous fallback on other platforms
+    SelectorDialog::HandleOpenWithCallback(callback);
 #endif
 }
 
@@ -332,8 +378,9 @@ std::string FolderDialog::HandleOpen() {
 
 #else
 
-    std::string r = SelectFolderDialogGTK(m_last_path);
-    return r;
+    // Linux uses async dialogs, so this synchronous method should never be called
+    // Return empty string as fallback
+    return "";
 
 #endif
 }

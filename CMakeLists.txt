@@ -308,8 +308,9 @@ endif()
 ##########################################################################
 
 if(LINUX)
-  find_package(GTK2 2.0 REQUIRED gtk)
-  message(STATUS "GTK2 include folder: " ${GTK2_INCLUDE_DIRS})
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(GTK4 REQUIRED gtk4)
+  message(STATUS "GTK4 include folder: " ${GTK4_INCLUDE_DIRS})
 endif()
 
 ##########################################################################

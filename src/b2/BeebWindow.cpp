@@ -685,6 +685,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     , m_symbol_table(std::make_unique<SymbolTable>())
 #endif
 {
+
     m_name = m_init_arguments.name;
 
     m_message_list = std::make_shared<MessageList>("BeebWindow");
@@ -1046,23 +1047,29 @@ class FileMenuItem {
 
     // details of the disk type, if the new disk option was chosen.
     const Disc *new_disc_type = nullptr;
-    std::vector<uint8_t> new_disc_data;
+    std::shared_ptr<std::vector<uint8_t>> new_disc_data;
 
     explicit FileMenuItem(SelectorDialog *new_dialog,
                           SelectorDialog *open_dialog,
                           const char *new_title,
                           const char *open_title,
                           const char *recent_title,
-                          Messages *msgs) {
+                          Messages *msgs,
+                          BeebWindow *beeb_window) {
         //bool recent_enabled=true;
 
         ImGuiIDPusher id_pusher(open_title);
 
         if (ImGui::MenuItem(open_title)) {
-            if (open_dialog->Open(&this->path)) {
-                m_used_dialog = open_dialog;
-                this->load = true;
-            }
+            // Use async callback with persistent state
+            open_dialog->OpenWithCallback([beeb_window, open_dialog](const std::string& path) {
+                if (!path.empty()) {
+                    // Store result in persistent state
+                    beeb_window->m_pending_file_menu_item.path = path;
+                    beeb_window->m_pending_file_menu_item.used_dialog = open_dialog;
+                    beeb_window->m_pending_file_menu_item.load = true;
+                }
+            });
         }
 
         if (ImGui::BeginMenu(new_title)) {
@@ -1070,14 +1077,16 @@ class FileMenuItem {
                                    BLANK_DFS_DISCS,
                                    NUM_BLANK_DFS_DISCS,
                                    false,
-                                   msgs);
+                                   msgs,
+                                   beeb_window);
             ImGui::Separator();
 
             this->DoBlankDiscsMenu(new_dialog,
                                    BLANK_ADFS_DISCS,
                                    NUM_BLANK_ADFS_DISCS,
                                    true,
-                                   msgs);
+                                   msgs,
+                                   beeb_window);
 
             ImGui::EndMenu();
         }
@@ -1093,6 +1102,20 @@ class FileMenuItem {
         }
     }
 
+    // Check for pending async results and apply them to this instance
+    void CheckPendingResult(BeebWindow *beeb_window) {
+        if (beeb_window->m_pending_file_menu_item.load) {
+            this->path = beeb_window->m_pending_file_menu_item.path;
+            this->new_disc_type = beeb_window->m_pending_file_menu_item.new_disc_type;
+            this->new_disc_data = beeb_window->m_pending_file_menu_item.new_disc_data; // shared_ptr assignment (no copy)
+            m_used_dialog = beeb_window->m_pending_file_menu_item.used_dialog;
+            this->load = true;
+
+            // Clear the pending state
+            beeb_window->m_pending_file_menu_item = BeebWindow::FileMenuItemState{};
+        }
+    }
+
   protected:
   private:
     SelectorDialog *m_used_dialog = nullptr;
@@ -1101,26 +1124,42 @@ class FileMenuItem {
                           const Disc *discs,
                           size_t num_discs,
                           bool adfs,
-                          Messages *msgs) {
+                          Messages *msgs,
+                          BeebWindow *beeb_window) {
         for (size_t i = 0; i < num_discs; ++i) {
             const Disc *disc = &discs[i];
 
             if (ImGui::MenuItem(disc->name.c_str())) {
                 std::string src_path = disc->GetAssetPath();
 
-                if (!LoadFile(&this->new_disc_data, src_path, msgs)) {
+                // Load data into a temporary vector first
+                std::vector<uint8_t> temp_disc_data;
+                if (!LoadFile(&temp_disc_data, src_path, msgs)) {
                     return;
                 }
 
                 if (adfs) {
-                    RandomizeADFSDiskIdentifier(&this->new_disc_data);
+                    RandomizeADFSDiskIdentifier(&temp_disc_data);
                 }
 
-                if (dialog->Open(&this->path)) {
-                    this->new_disc_type = disc;
-                    m_used_dialog = dialog;
-                    this->load = true;
-                }
+                // Use async callback with persistent state
+                // Use shared_ptr to avoid copying large disc data
+                auto disc_data_shared = std::make_shared<std::vector<uint8_t>>(std::move(temp_disc_data));
+                dialog->OpenWithCallback([beeb_window, dialog, disc, disc_data_shared](const std::string& path) {
+                    if (!path.empty()) {
+                        if (SaveFile(*disc_data_shared, path, &beeb_window->m_msg)) {
+                            // Store result in persistent state for the FileMenuItem to pick up
+                            beeb_window->m_pending_file_menu_item.path = path;
+                            beeb_window->m_pending_file_menu_item.new_disc_type = disc;
+                            beeb_window->m_pending_file_menu_item.new_disc_data = disc_data_shared; // Store shared_ptr directly
+                            beeb_window->m_pending_file_menu_item.used_dialog = dialog;
+                            beeb_window->m_pending_file_menu_item.load = true;
+
+                            // Update recent paths
+                            dialog->AddLastPathToRecentPaths(path);
+                        }
+                    }
+                });
             }
         }
     }
@@ -1529,14 +1568,21 @@ void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_save_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
-        SaveFileDialog fd(RECENT_PATHS_PRINTER);
+        // Store the data for the callback
+        m_pending_printer_data = data;
 
-        fd.AddFilter("Data", {".dat"});
+        // Pause the emulator while the dialog is open
+        this->PauseEmulatorForDialog();
 
-        std::string path;
-        if (fd.Open(&path)) {
-            SaveFile(data, path, &m_msg);
-        }
+        auto fd = CreateSaveFileDialog(RECENT_PATHS_PRINTER);
+        fd->AddFilter("Data", {".dat"});
+        fd->OpenWithCallback([this](const std::string& path) {
+            if (!path.empty()) {
+                SaveFile(m_pending_printer_data, path, &m_msg);
+            }
+            m_pending_printer_data.clear();
+            this->ResumeEmulatorAfterDialog();
+        });
     }
 
     DoCopyModeCommands(&m_settings.printer_copy_settings,
@@ -1588,16 +1634,21 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_save_screenshot_command)) {
-        SaveFileDialog fd(RECENT_PATHS_SCREENSHOT);
+        // Create screenshot data first (before dialog)
+        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24);
+        if (!!screenshot) {
+            // Store screenshot data for callback
+            m_pending_screenshot = std::move(screenshot);
 
-        fd.AddFilter("PNG", {".png"});
-
-        std::string path;
-        if (fd.Open(&path)) {
-            SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24);
-            if (!!screenshot) {
-                SaveSDLSurface(screenshot.get(), path, &m_msg);
-            }
+            // Use the new callback-based interface
+            auto fd = CreateSaveFileDialog(RECENT_PATHS_SCREENSHOT);
+            fd->AddFilter("PNG", {".png"});
+            fd->OpenWithCallback([this](const std::string& path) {
+                if (!path.empty() && m_pending_screenshot) {
+                    SaveSDLSurface(m_pending_screenshot.get(), path, &m_msg);
+                }
+                m_pending_screenshot.reset();
+            });
         }
     }
 
@@ -2122,20 +2173,28 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
         }
 
         if (ImGui::MenuItem("Save copy as...")) {
-            SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
+            // Store the disc image for the callback
+            m_pending_disc_image = disc_image;
+
+            // Store the dialog as member variable to keep it alive for recent paths
+            m_pending_disc_dialog = CreateSaveFileDialog(RECENT_PATHS_DISC_IMAGE);
 
             std::vector<FileDialogFilter> filters = disc_image->GetFileDialogFilters();
             for (const FileDialogFilter &filter : filters) {
-                fd.AddFilter(filter.name, filter.extensions);
+                m_pending_disc_dialog->AddFilter(filter.name, filter.extensions);
             }
-            fd.AddAllFilesFilter();
+            m_pending_disc_dialog->AddAllFilesFilter();
 
-            std::string path;
-            if (fd.Open(&path)) {
-                if (disc_image->SaveToFile(path, &m_msg)) {
-                    fd.AddLastPathToRecentPaths();
+            m_pending_disc_dialog->OpenWithCallback([this](const std::string& path) {
+                if (!path.empty() && m_pending_disc_image) {
+                    if (m_pending_disc_image->SaveToFile(path, &m_msg)) {
+                        // Now we can call this because m_pending_disc_dialog is still alive
+                        m_pending_disc_dialog->AddLastPathToRecentPaths(path);
+                    }
                 }
-            }
+                m_pending_disc_image = nullptr;
+                m_pending_disc_dialog.reset(); // Clean up the dialog
+            });
         }
     }
 }
@@ -2152,10 +2211,12 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
                              "New disc image",
                              "Disc image...",
                              "Recent disc image",
-                             &m_msg);
+                             &m_msg,
+                             this);
+    direct_item.CheckPendingResult(this); // Check for async results
     if (direct_item.load) {
         if (direct_item.new_disc_type) {
-            if (!SaveFile(direct_item.new_disc_data,
+            if (!SaveFile(*direct_item.new_disc_data,
                           direct_item.path,
                           &m_msg)) {
                 return;
@@ -2174,14 +2235,16 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
                            "New in-memory disc image",
                            "In-memory disc image...",
                            "Recent in-memory disc image",
-                           &m_msg);
+                           &m_msg,
+                           this);
+    file_item.CheckPendingResult(this); // Check for async results
     if (file_item.load) {
         std::shared_ptr<MemoryDiscImage> new_disc_image;
         if (file_item.new_disc_type) {
             new_disc_image = MemoryDiscImage::LoadFromBuffer(file_item.path,
                                                              MemoryDiscImage::LOAD_METHOD_FILE,
-                                                             file_item.new_disc_data.data(),
-                                                             file_item.new_disc_data.size(),
+                                                             file_item.new_disc_data->data(),
+                                                             file_item.new_disc_data->size(),
                                                              *file_item.new_disc_type->geometry,
                                                              &m_msg);
         } else {
@@ -2522,10 +2585,14 @@ void BeebWindow::DoDebugMenu() {
             ImGui::EndMenu();
 
             if (load_symbols) {
-                OpenFileDialog fd(RECENT_PATHS_SYMBOLS);
+                // Store the selected parser for the callback
+                m_pending_symbol_parser = const_cast<SymbolTable::SymbolParser*>(selected_parser);
+
+                // Store the dialog as member variable to keep it alive for recent paths
+                m_pending_symbol_dialog = std::make_unique<OpenFileDialog>(RECENT_PATHS_SYMBOLS);
 
                 if (selected_parser) {
-                    fd.AddFilter(selected_parser->GetFormatName(), selected_parser->GetSuggestedFileExtensions());
+                    m_pending_symbol_dialog->AddFilter(selected_parser->GetFormatName(), selected_parser->GetSuggestedFileExtensions());
                 } else {
                     std::set<std::string> auto_detect_exts;
                     for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : parsers) {
@@ -2533,21 +2600,29 @@ void BeebWindow::DoDebugMenu() {
                         auto_detect_exts.insert(exts.begin(), exts.end());
                     }
 
-                    fd.AddFilter("Auto detect", std::vector<std::string>(auto_detect_exts.begin(), auto_detect_exts.end()));
+                    m_pending_symbol_dialog->AddFilter("Auto detect", std::vector<std::string>(auto_detect_exts.begin(), auto_detect_exts.end()));
                 }
 
-                fd.AddAllFilesFilter();
+                m_pending_symbol_dialog->AddAllFilesFilter();
 
-                std::string path;
-                if (fd.Open(&path)) {
-                    // The settings can be modified once the symbol file is loaded.
-                    bool success = m_symbol_table->LoadFromFile(path, selected_parser, &m_msg);
-                    if (success) {
-                        m_msg.i.f("Symbols loaded from file: %s\n", path.c_str());
-                    } else {
-                        m_msg.e.f("Failed to load symbols from: %s\n", path.c_str());
+                m_pending_symbol_dialog->OpenWithCallback([this](const std::string& path) {
+                    if (!path.empty()) {
+                        // The settings can be modified once the symbol file is loaded.
+                        const SymbolTable::SymbolParser* parser = static_cast<const SymbolTable::SymbolParser*>(m_pending_symbol_parser);
+                        bool success = m_symbol_table->LoadFromFile(path, parser, &m_msg);
+                        if (success) {
+                            m_msg.i.f("Symbols loaded from file: %s\n", path.c_str());
+                            // Update recent paths
+                            m_pending_symbol_dialog->AddLastPathToRecentPaths(path);
+                        } else {
+                            m_msg.e.f("Failed to load symbols from: %s\n", path.c_str());
+                        }
                     }
-                }
+
+                    // Clean up
+                    m_pending_symbol_parser = nullptr;
+                    m_pending_symbol_dialog.reset();
+                });
             }
         }
 
@@ -3978,6 +4053,25 @@ bool BeebWindow::DebugIsRunEnabled() const {
 BBCMicroHaltReason BeebWindow::DebugGetHaltReason() const {
     return m_beeb_thread->DebugGetHaltReason();
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::PauseEmulatorForDialog() {
+    m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+        m->DebugHalt(BBCMicroHaltReason_ManualHalt, nullptr, -1);
+    }));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::ResumeEmulatorAfterDialog() {
+    m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+        m->DebugRun();
+    }));
+}
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////

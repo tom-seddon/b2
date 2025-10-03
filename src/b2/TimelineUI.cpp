@@ -229,24 +229,38 @@ class TimelineUI : public SettingsUI {
                             if (ImGui::Button(format->description.c_str())) {
                                 ImGui::CloseCurrentPopup();
 
-                                SaveFileDialog fd(RECENT_PATHS_VIDEO);
-                                fd.AddFilter(format->description, {format->extension});
+                                // Store the context for the callback
+                                m_pending_format_index = format_index;
+                                m_pending_state = state;
 
-                                std::string path;
-                                if (fd.Open(&path)) {
-                                    fd.AddLastPathToRecentPaths();
+                                // Create and configure the dialog
+                                m_pending_video_dialog = std::make_unique<SaveFileDialog>(RECENT_PATHS_VIDEO);
+                                m_pending_video_dialog->AddFilter(format->description, {format->extension});
 
-                                    if (PathGetExtension(path).empty()) {
-                                        path += format->extension;
+                                m_pending_video_dialog->OpenWithCallback([this](const std::string& path) {
+                                    if (!path.empty() && m_pending_video_dialog) {
+                                        std::string final_path = path;
+
+                                        // Add extension if not present
+                                        if (PathGetExtension(final_path).empty()) {
+                                            const VideoWriterFormat *format = GetVideoWriterFormatByIndex(m_pending_format_index);
+                                            final_path += format->extension;
+                                        }
+
+                                        std::unique_ptr<VideoWriter> video_writer = CreateVideoWriter(m_beeb_window->GetMessageList(),
+                                                                                                      std::move(final_path),
+                                                                                                      m_pending_format_index);
+                                        auto message = std::make_shared<BeebThread::CreateTimelineVideoMessage>(m_pending_state,
+                                                                                                                std::move(video_writer));
+                                        m_beeb_window->GetBeebThread()->Send(std::move(message));
+
+                                        // Update recent paths
+                                        m_pending_video_dialog->AddLastPathToRecentPaths(path);
                                     }
 
-                                    std::unique_ptr<VideoWriter> video_writer = CreateVideoWriter(m_beeb_window->GetMessageList(),
-                                                                                                  std::move(path),
-                                                                                                  format_index);
-                                    auto message = std::make_shared<BeebThread::CreateTimelineVideoMessage>(state,
-                                                                                                            std::move(video_writer));
-                                    m_beeb_window->GetBeebThread()->Send(std::move(message));
-                                }
+                                    // Clean up
+                                    m_pending_video_dialog.reset();
+                                });
                             }
                         }
 
@@ -283,6 +297,11 @@ class TimelineUI : public SettingsUI {
     ThumbnailsUI m_thumbnails;
     bool m_follow = true;
     size_t m_old_num_beeb_state_events = 0;
+
+    // For async video export dialog
+    size_t m_pending_format_index = 0;
+    std::shared_ptr<const BeebState> m_pending_state;
+    std::unique_ptr<SaveFileDialog> m_pending_video_dialog;
 };
 
 ////////////////////////////////////////////////////////////////////////////
