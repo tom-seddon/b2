@@ -1572,7 +1572,9 @@ void BeebWindow::DoCommands(bool *close_window) {
         m_pending_printer_data = data;
 
         // Pause the emulator while the dialog is open
+#if BBCMICRO_DEBUGGER
         this->PauseEmulatorForDialog();
+#endif
 
         auto fd = CreateSaveFileDialog(RECENT_PATHS_PRINTER);
         fd->AddFilter("Data", {".dat"});
@@ -1581,7 +1583,9 @@ void BeebWindow::DoCommands(bool *close_window) {
                 SaveFile(m_pending_printer_data, path, &m_msg);
             }
             m_pending_printer_data.clear();
+#if BBCMICRO_DEBUGGER
             this->ResumeEmulatorAfterDialog();
+#endif
         });
     }
 

@@ -498,7 +498,9 @@ void TraceUI::DoImGui() {
                 m_pending_save_trace = last_trace;
 
                 // Pause the emulator while the dialog is open (TraceUI's choice)
+#if BBCMICRO_DEBUGGER
                 m_beeb_window->PauseEmulatorForDialog();
+#endif
 
                 // Use the new async interface (works on all platforms)
                 auto fd = CreateSaveFileDialog(RECENT_PATHS_TRACES);
@@ -513,7 +515,9 @@ void TraceUI::DoImGui() {
                     }
 
                     // Resume the emulator regardless of whether the user saved or cancelled
+#if BBCMICRO_DEBUGGER
                     m_beeb_window->ResumeEmulatorAfterDialog();
+#endif
                 });
             }
 
