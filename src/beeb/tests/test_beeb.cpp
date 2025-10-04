@@ -1474,7 +1474,7 @@ void RunImageTest(const std::string &wanted_png_src_path,
                              TV_TEXTURE_WIDTH * 4));
     TEST_FALSE(any_differences);
 
-    free(wanted_data),wanted_data=nullptr;
+    free(wanted_data), wanted_data = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
