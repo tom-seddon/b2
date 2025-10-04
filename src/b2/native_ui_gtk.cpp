@@ -12,6 +12,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "load_save.h"
+#include "b2.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -82,6 +83,24 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static gboolean HandleModalDialogTick(GtkWidget *widget, GdkFrameClock *frame_clock, gpointer user_data) {
+    (void)widget, (void)frame_clock, (void)user_data;
+
+    TickNoopMessageLoop();
+
+    return G_SOURCE_CONTINUE;
+}
+
+static gint RunDialog(GtkDialog *dialog) {
+    guint tick_id = gtk_widget_add_tick_callback(GTK_WIDGET(dialog), &HandleModalDialogTick, nullptr, nullptr);
+    gint result = gtk_dialog_run(dialog);
+    gtk_widget_remove_tick_callback(GTK_WIDGET(dialog), tick_id);
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void MessageBox(const std::string &title, const std::string &text) {
     GtkWidget *dialog = gtk_message_dialog_new(nullptr,
                                                GTK_DIALOG_MODAL,
@@ -92,7 +111,7 @@ void MessageBox(const std::string &title, const std::string &text) {
     gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
                                              "%s",
                                              text.c_str());
-    gtk_dialog_run(GTK_DIALOG(dialog));
+    RunDialog(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
 }
 
@@ -114,7 +133,7 @@ static GtkWidget *CreateFileDialog(const char *title,
 //////////////////////////////////////////////////////////////////////////
 
 static std::string RunFileDialog(GtkWidget *gdialog) {
-    gint gresult = gtk_dialog_run(GTK_DIALOG(gdialog));
+    gint gresult = RunDialog(GTK_DIALOG(gdialog));
 
     std::string result;
     if (gresult == GTK_RESPONSE_ACCEPT) {

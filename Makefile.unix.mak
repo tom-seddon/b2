@@ -139,7 +139,7 @@ tom_emacs:
 travis_ci_before_install_linux:
 	sudo apt-get update
 	sudo apt-get -y install ninja-build cmake
-	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev
+	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-3-dev libpulse-dev uuid-dev
 
 #	cd ~ && git clone https://github.com/Kitware/CMake
 #	cd ~/CMake && git checkout v3.16.6 && ./bootstrap && make && sudo make install
@@ -163,7 +163,7 @@ github_ci_ubuntu_with_ffmpeg:
 .PHONY:_github_ci_ubuntu_start
 _github_ci_ubuntu_start:
 	sudo apt-get -y update
-	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev ninja-build
+	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-3-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev ninja-build
 
 .PHONY:_github_ci_ubuntu_release
 _github_ci_ubuntu_release:

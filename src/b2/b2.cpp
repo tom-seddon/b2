@@ -1319,6 +1319,59 @@ static void ShowOutputMessagesDialog(const char *description, const Messages &me
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void FreeEventData(SDL_Event *event) {
+    switch (event->type) {
+    case SDL_DROPFILE:
+        SDL_free(event->drop.file), event->drop.file = nullptr;
+        break;
+
+    default:
+        // TODO: should rationalize these with a base type. Then it
+        // could do just "delete (EventDataBaseType
+        // *)event->user.data1" or whatever. data1 is NULL if
+        // unspecified so it'll just work.
+        //
+        // It'd be a bit more boilerplate per event, but assuming
+        // everything uses the C++ destructor mechanism then the
+        // deletion would be managed automatically.
+        if (event->type >= g_first_event_type && event->type < g_first_event_type + SDLEventType_Count) {
+            switch ((SDLEventType)(event->type - g_first_event_type)) {
+            default:
+                break;
+
+            case SDLEventType_NewWindow:
+                delete (BeebWindowInitArguments *)event->user.data1;
+                break;
+
+            case SDLEventType_Function:
+                delete (std::function<void()> *)event->user.data1;
+                break;
+
+            case SDLEventType_Launch:
+                delete (BeebWindowLaunchArguments *)event->user.data1;
+                break;
+            }
+
+            event->user.data1 = nullptr;
+        }
+        break;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TickNoopMessageLoop() {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        // Whatever it was, in the bin it goes.
+        FreeEventData(&event);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
@@ -1655,9 +1708,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                     arguments->file_path = event.drop.file;
 
                     PushLaunchEvent(event.drop.windowID, std::move(arguments));
-
-                    SDL_free(event.drop.file);
-                    event.drop.file = nullptr;
                 }
                 break;
 
@@ -1753,9 +1803,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                                 auto init_arguments = (BeebWindowInitArguments *)event.user.data1;
 
                                 BeebWindows::CreateBeebWindow(*init_arguments);
-
-                                delete init_arguments;
-                                init_arguments = nullptr;
                             }
                             break;
 
@@ -1765,9 +1812,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                                 auto fun = (std::function<void()> *)event.user.data1;
 
                                 (*fun)();
-
-                                delete fun;
-                                fun = nullptr;
                             }
                             break;
 
@@ -1785,9 +1829,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                                 }
 
                                 beeb_window->Launch(*arguments);
-
-                                delete arguments;
-                                arguments = nullptr;
                             }
                             break;
 
@@ -1800,6 +1841,8 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 }
                 break;
             }
+
+            FreeEventData(&event);
         }
 
     done:;

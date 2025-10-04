@@ -46,7 +46,7 @@ should install suitable versions of the packages mentioned.
 
 Required dependencies can be installed with:
 
-    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev cmake ninja-build
+    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-3-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev cmake ninja-build
 	
 (SDL 2.0.16 or later will give slightly better-quality results from
 `File` > `Save screenshot` when the `Correct aspect ratio` option is
