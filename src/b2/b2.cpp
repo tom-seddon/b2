@@ -1563,8 +1563,10 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 }
             }
 
-            // Process GTK events to handle async operations
+            // Process GTK events to handle async operations (Linux only)
+#if SYSTEM_LINUX
             ProcessGTKEvents();
+#endif
 
             if (event.type == SDL_QUIT) {
 #if SYSTEM_OSX

@@ -633,7 +633,7 @@ static bool IsChannelLayoutSupported(const AVCodec *codec,
     }
 
     for (const uint64_t *codec_layout = codec->channel_layouts; *codec_layout != 0; ++codec_layout) {
-        if (codec_layout == requested_layout) {
+        if (*codec_layout == requested_layout) {
             return true;
         }
     }
