@@ -11,6 +11,22 @@
 #include "misc.h"
 #include "Messages.h"
 #include "load_save.h"
+#include <SDL_syswm.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static HWND GetHWNDForSDLWindow(SDL_Window *window) {
+    if (window) {
+        SDL_SysWMinfo wmi;
+        SDL_VERSION(&wmi.version);
+        SDL_GetWindowWMInfo(window, &wmi);
+
+        return wmi.info.win.window;
+    } else {
+        return nullptr;
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -136,7 +152,8 @@ static std::wstring GetFiltersWin32(const std::vector<OpenFileDialog::Filter> &f
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string DoFileDialogWindows(const std::vector<OpenFileDialog::Filter> &filters,
+static std::string DoFileDialogWindows(SDL_Window *parent,
+                                       const std::vector<OpenFileDialog::Filter> &filters,
                                        const std::string &default_path,
                                        DWORD flags,
                                        const std::wstring &default_ext,
@@ -155,6 +172,7 @@ static std::string DoFileDialogWindows(const std::vector<OpenFileDialog::Filter>
     ofn.lpstrInitialDir = wdefault_path.empty() ? nullptr : wdefault_path.c_str();
     ofn.Flags = flags;
     ofn.lpstrDefExt = default_ext.empty() ? nullptr : default_ext.c_str();
+    ofn.hwndOwner=GetHWNDForSDLWindow(parent);
 
     int ret = (*fn)(&ofn);
     if (ret == 0) {
@@ -167,9 +185,11 @@ static std::string DoFileDialogWindows(const std::vector<OpenFileDialog::Filter>
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogWindows(const std::vector<OpenFileDialog::Filter> &filters,
+std::string OpenFileDialogWindows(SDL_Window *parent,
+                                  const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path) {
-    return DoFileDialogWindows(filters,
+    return DoFileDialogWindows(parent,
+                               filters,
                                default_path,
                                OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST,
                                L"",
@@ -179,7 +199,8 @@ std::string OpenFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &filters,
+std::string SaveFileDialogWindows(SDL_Window *parent,
+                                  const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path) {
     std::string default_ext;
     bool got_default_ext = false;
@@ -221,7 +242,8 @@ std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
         }
     }
 
-    return DoFileDialogWindows(filters,
+    return DoFileDialogWindows(parent,
+                               filters,
                                default_path,
                                OFN_NOVALIDATE | OFN_NOCHANGEDIR,
                                got_default_ext ? GetWideString(default_ext) : L"",
@@ -231,7 +253,7 @@ std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string SelectFolderDialogWindows(const std::string &default_path) {
+std::string SelectFolderDialogWindows(SDL_Window *parent, const std::string &default_path) {
     CComPtr<IFileDialog> f;
 
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog,
@@ -260,7 +282,7 @@ std::string SelectFolderDialogWindows(const std::string &default_path) {
         }
     }
 
-    if (FAILED(f->Show(nullptr))) {
+    if (FAILED(f->Show(GetHWNDForSDLWindow(parent)))) {
         return "";
     }
 

@@ -276,6 +276,7 @@ class BeebWindow {
 
     bool GetBeebKeyState(BeebKey key) const;
 
+    SDL_Window *GetSDLWindow() const;
     uint32_t GetSDLWindowID() const;
 
     void HandleSDLFocusGainedEvent();

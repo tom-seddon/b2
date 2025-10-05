@@ -7,16 +7,21 @@
 #include <string>
 #include <vector>
 
+struct SDL_Window;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogWindows(const std::vector<OpenFileDialog::Filter> &filters,
+std::string OpenFileDialogWindows(SDL_Window *parent,
+                                  const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path);
 
-std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &filters,
+std::string SaveFileDialogWindows(SDL_Window *parent,
+                                  const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path);
 
-std::string SelectFolderDialogWindows(const std::string &default_path);
+std::string SelectFolderDialogWindows(SDL_Window *parent,
+                                      const std::string &default_path);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

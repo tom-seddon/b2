@@ -197,7 +197,7 @@ void SelectorDialog::AddLastPathToRecentPaths() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SelectorDialog::Open(std::string *path) {
+bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
     if (m_last_path.empty()) {
         if (RecentPaths *recent = GetRecentPathsByTag(m_recent_paths_tag)) {
             if (recent->GetNumPaths() > 0) {
@@ -206,7 +206,7 @@ bool SelectorDialog::Open(std::string *path) {
         }
     }
 
-    std::string result = this->HandleOpen();
+    std::string result = this->HandleOpen(parent);
     if (result.empty()) {
         m_last_path.clear();
         return false;
@@ -256,7 +256,7 @@ OpenFileDialog::OpenFileDialog(std::string tag)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialog::HandleOpen() {
+std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
     LOGF(OUTPUT, "%s: ", __func__);
     {
         LOG_EXTERN(OUTPUT);
@@ -272,7 +272,7 @@ std::string OpenFileDialog::HandleOpen() {
 
 #elif SYSTEM_WINDOWS
 
-    return OpenFileDialogWindows(m_filters, m_last_path);
+    return OpenFileDialogWindows(parent, m_filters, m_last_path);
 
 #else
 
@@ -291,7 +291,7 @@ SaveFileDialog::SaveFileDialog(std::string tag)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string SaveFileDialog::HandleOpen() {
+std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 
 #if SYSTEM_OSX
 
@@ -299,7 +299,7 @@ std::string SaveFileDialog::HandleOpen() {
 
 #elif SYSTEM_WINDOWS
 
-    return SaveFileDialogWindows(m_filters, m_last_path);
+    return SaveFileDialogWindows(parent, m_filters, m_last_path);
 
 #else
 
@@ -318,7 +318,7 @@ FolderDialog::FolderDialog(std::string tag)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string FolderDialog::HandleOpen() {
+std::string FolderDialog::HandleOpen(SDL_Window *parent) {
 
 #if SYSTEM_OSX
 
@@ -327,7 +327,7 @@ std::string FolderDialog::HandleOpen() {
 
 #elif SYSTEM_WINDOWS
 
-    std::string r = SelectFolderDialogWindows(m_last_path);
+    std::string r = SelectFolderDialogWindows(parent, m_last_path);
     return r;
 
 #else

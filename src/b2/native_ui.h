@@ -12,10 +12,13 @@
 class MessageList;
 class Messages;
 struct SDL_Surface;
+struct SDL_Window;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The failure message box only appears when the main window creation fails. It
+// therefore never has a parent.
 void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageList> &message_list, size_t num_messages = 10);
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,10 +84,10 @@ class SelectorDialog {
     //void SetRecentPathsTag(std::string tag);
     void AddLastPathToRecentPaths();
 
-    bool Open(std::string *path);
+    bool Open(SDL_Window *parent, std::string *path);
 
   protected:
-    virtual std::string HandleOpen() = 0;
+    virtual std::string HandleOpen(SDL_Window *parent) = 0;
 
     std::string m_last_path;
 
@@ -126,7 +129,7 @@ class OpenFileDialog : public FileDialog {
     explicit OpenFileDialog(std::string tag);
 
   protected:
-    std::string HandleOpen() override;
+    std::string HandleOpen(SDL_Window *parent) override;
 
   private:
 };
@@ -139,7 +142,7 @@ class SaveFileDialog : public FileDialog {
     explicit SaveFileDialog(std::string tag);
 
   protected:
-    std::string HandleOpen() override;
+    std::string HandleOpen(SDL_Window *parent) override;
 
   private:
 };
@@ -152,7 +155,7 @@ class FolderDialog : public SelectorDialog {
     explicit FolderDialog(std::string tag);
 
   protected:
-    std::string HandleOpen() override;
+    std::string HandleOpen(SDL_Window *parent) override;
 
   private:
 };

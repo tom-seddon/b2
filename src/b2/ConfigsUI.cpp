@@ -497,7 +497,7 @@ void ConfigsUI::DoEditConfigGui() {
 
                 if (ImGui::BeginPopup(SCSI_POPUP)) {
                     if (ImGui::MenuItem("File...")) {
-                        if (m_hard_disk_ofd.Open(&config->hard_disk_dat_paths[hard_disk_index])) {
+                        if (m_hard_disk_ofd.Open(m_beeb_window->GetSDLWindow(), &config->hard_disk_dat_paths[hard_disk_index])) {
                             edited = true;
                             m_hard_disk_ofd.AddLastPathToRecentPaths();
                         }
@@ -516,7 +516,7 @@ void ConfigsUI::DoEditConfigGui() {
                             const HardDisk *disk = &BLANK_HARD_DISKS[blank_hard_disk_index];
                             if (ImGui::MenuItem(disk->name.c_str())) {
                                 std::string dat_path;
-                                if (m_new_hard_disk_sfd.Open(&dat_path)) {
+                                if (m_new_hard_disk_sfd.Open(m_beeb_window->GetSDLWindow(), &dat_path)) {
                                     if (this->CreateNewHardDiskImage(*disk, dat_path)) {
                                         config->hard_disk_dat_paths[hard_disk_index] = dat_path;
                                         edited = true;
@@ -824,7 +824,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
     if (ImGui::BeginPopup(ROM_POPUP)) {
         if (ImGui::MenuItem("File...")) {
-            if (m_rom_ofd.Open(&rom->file_name)) {
+            if (m_rom_ofd.Open(m_beeb_window->GetSDLWindow(), &rom->file_name)) {
                 rom->standard_rom = nullptr;
                 edited = true;
                 m_rom_ofd.AddLastPathToRecentPaths();

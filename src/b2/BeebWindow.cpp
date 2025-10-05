@@ -996,6 +996,13 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym, bool state) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+SDL_Window *BeebWindow::GetSDLWindow() const {
+    return m_window;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 uint32_t BeebWindow::GetSDLWindowID() const {
     return SDL_GetWindowID(m_window);
 }
@@ -1048,7 +1055,8 @@ class FileMenuItem {
     const Disc *new_disc_type = nullptr;
     std::vector<uint8_t> new_disc_data;
 
-    explicit FileMenuItem(SelectorDialog *new_dialog,
+    explicit FileMenuItem(SDL_Window *file_selector_parent,
+                          SelectorDialog *new_dialog,
                           SelectorDialog *open_dialog,
                           const char *new_title,
                           const char *open_title,
@@ -1059,21 +1067,23 @@ class FileMenuItem {
         ImGuiIDPusher id_pusher(open_title);
 
         if (ImGui::MenuItem(open_title)) {
-            if (open_dialog->Open(&this->path)) {
+            if (open_dialog->Open(file_selector_parent, &this->path)) {
                 m_used_dialog = open_dialog;
                 this->load = true;
             }
         }
 
         if (ImGui::BeginMenu(new_title)) {
-            this->DoBlankDiscsMenu(new_dialog,
+            this->DoBlankDiscsMenu(file_selector_parent,
+                                   new_dialog,
                                    BLANK_DFS_DISCS,
                                    NUM_BLANK_DFS_DISCS,
                                    false,
                                    msgs);
             ImGui::Separator();
 
-            this->DoBlankDiscsMenu(new_dialog,
+            this->DoBlankDiscsMenu(file_selector_parent,
+                                   new_dialog,
                                    BLANK_ADFS_DISCS,
                                    NUM_BLANK_ADFS_DISCS,
                                    true,
@@ -1097,7 +1107,8 @@ class FileMenuItem {
   private:
     SelectorDialog *m_used_dialog = nullptr;
 
-    void DoBlankDiscsMenu(SelectorDialog *dialog,
+    void DoBlankDiscsMenu(SDL_Window *file_selector_parent,
+                          SelectorDialog *dialog,
                           const Disc *discs,
                           size_t num_discs,
                           bool adfs,
@@ -1116,7 +1127,7 @@ class FileMenuItem {
                     RandomizeADFSDiskIdentifier(&this->new_disc_data);
                 }
 
-                if (dialog->Open(&this->path)) {
+                if (dialog->Open(file_selector_parent, &this->path)) {
                     this->new_disc_type = disc;
                     m_used_dialog = dialog;
                     this->load = true;
@@ -1534,7 +1545,7 @@ void BeebWindow::DoCommands(bool *close_window) {
         fd.AddFilter("Data", {".dat"});
 
         std::string path;
-        if (fd.Open(&path)) {
+        if (fd.Open(m_window, &path)) {
             SaveFile(data, path, &m_msg);
         }
     }
@@ -1593,7 +1604,7 @@ void BeebWindow::DoCommands(bool *close_window) {
         fd.AddFilter("PNG", {".png"});
 
         std::string path;
-        if (fd.Open(&path)) {
+        if (fd.Open(m_window, &path)) {
             SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24);
             if (!!screenshot) {
                 SaveSDLSurface(screenshot.get(), path, &m_msg);
@@ -2131,7 +2142,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
             fd.AddAllFilesFilter();
 
             std::string path;
-            if (fd.Open(&path)) {
+            if (fd.Open(m_window, &path)) {
                 if (disc_image->SaveToFile(path, &m_msg)) {
                     fd.AddLastPathToRecentPaths();
                 }
@@ -2147,7 +2158,8 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
     ASSERT(drive >= 0 && drive < NUM_DRIVES);
     DriveState *d = &m_drives[drive];
 
-    FileMenuItem direct_item(&d->new_direct_disc_image_file_dialog,
+    FileMenuItem direct_item(m_window,
+                             &d->new_direct_disc_image_file_dialog,
                              &d->open_direct_disc_image_file_dialog,
                              "New disc image",
                              "Disc image...",
@@ -2169,7 +2181,8 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
                                      &direct_item, boot);
     }
 
-    FileMenuItem file_item(&d->new_disc_image_file_dialog,
+    FileMenuItem file_item(m_window,
+                           &d->new_disc_image_file_dialog,
                            &d->open_disc_image_file_dialog,
                            "New in-memory disc image",
                            "In-memory disc image...",
@@ -2539,7 +2552,7 @@ void BeebWindow::DoDebugMenu() {
                 fd.AddAllFilesFilter();
 
                 std::string path;
-                if (fd.Open(&path)) {
+                if (fd.Open(m_window, &path)) {
                     // The settings can be modified once the symbol file is loaded.
                     bool success = m_symbol_table->LoadFromFile(path, selected_parser, &m_msg);
                     if (success) {

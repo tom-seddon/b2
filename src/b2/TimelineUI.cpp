@@ -233,7 +233,7 @@ class TimelineUI : public SettingsUI {
                                 fd.AddFilter(format->description, {format->extension});
 
                                 std::string path;
-                                if (fd.Open(&path)) {
+                                if (fd.Open(m_beeb_window->GetSDLWindow(), &path)) {
                                     fd.AddLastPathToRecentPaths();
 
                                     if (PathGetExtension(path).empty()) {

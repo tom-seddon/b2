@@ -426,7 +426,7 @@ void TraceUI::DoImGui() {
 
                 fd.AddFilter("Text files", {".txt"});
                 fd.AddAllFilesFilter();
-                fd.Open(&g_default_settings.auto_save_path);
+                fd.Open(m_beeb_window->GetSDLWindow(), &g_default_settings.auto_save_path);
             }
             ImGui::SameLine();
             ImGuiInputText(&g_default_settings.auto_save_path, "Path", g_default_settings.auto_save_path);
@@ -480,7 +480,7 @@ void TraceUI::DoImGui() {
                 fd.AddAllFilesFilter();
 
                 std::string path;
-                if (fd.Open(&path)) {
+                if (fd.Open(m_beeb_window->GetSDLWindow(), &path)) {
                     fd.AddLastPathToRecentPaths();
                     this->StartSaveTraceJob(last_trace, std::move(path));
                 }

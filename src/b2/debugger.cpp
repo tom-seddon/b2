@@ -1448,7 +1448,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
                     fd.AddAllFilesFilter();
 
                     std::string path;
-                    if (fd.Open(&path)) {
+                    if (fd.Open(m_window->m_beeb_window->GetSDLWindow(), &path)) {
                         uint32_t end;
                         if (m_window->m_persistent.specify_end) {
                             end = end_or_size;
