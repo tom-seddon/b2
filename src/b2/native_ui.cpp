@@ -268,6 +268,7 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 
 #if SYSTEM_OSX
 
+    (void)parent;
     return OpenFileDialogOSX(m_filters, m_last_path);
 
 #elif SYSTEM_WINDOWS
@@ -295,6 +296,7 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 
 #if SYSTEM_OSX
 
+    (void)parent;
     return SaveFileDialogOSX(m_filters, m_last_path);
 
 #elif SYSTEM_WINDOWS
@@ -322,6 +324,7 @@ std::string FolderDialog::HandleOpen(SDL_Window *parent) {
 
 #if SYSTEM_OSX
 
+    (void)parent;
     std::string r = SelectFolderDialogOSX(m_last_path);
     return r;
 
