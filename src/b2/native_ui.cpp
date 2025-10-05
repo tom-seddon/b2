@@ -268,6 +268,7 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 
 #if SYSTEM_OSX
 
+    // macOS modal dialogs are app-modal.
     (void)parent;
     return OpenFileDialogOSX(m_filters, m_last_path);
 
