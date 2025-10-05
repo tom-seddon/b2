@@ -278,6 +278,9 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 
 #else
 
+    // The window SDL creates doesn't seem to be one that GTK
+    // understands.
+    (void)parent;
     return OpenFileDialogGTK(m_filters, m_last_path);
 
 #endif
@@ -306,6 +309,7 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 
 #else
 
+    (void)parent;
     return SaveFileDialogGTK(m_filters, m_last_path);
 
 #endif
@@ -336,6 +340,7 @@ std::string FolderDialog::HandleOpen(SDL_Window *parent) {
 
 #else
 
+    (void)parent;
     std::string r = SelectFolderDialogGTK(m_last_path);
     return r;
 
