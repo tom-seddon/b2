@@ -13,6 +13,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #include <sys/wait.h>
 #include "load_save.h"
 #include "b2.h"
+#include <shared/debug.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -83,90 +84,97 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static gboolean HandleModalDialogTick(GtkWidget *widget, GdkFrameClock *frame_clock, gpointer user_data) {
-    (void)widget, (void)frame_clock, (void)user_data;
+struct RunDialogData {
+    // Set to true to stop the Gtk4 loop.
+    bool stop = false;
 
-    TickNoopMessageLoop();
+    GCancellable *gcancellable = nullptr;
+};
+
+static gboolean HandleRunDialogIdle(gpointer user_data) {
+    auto rdd = (RunDialogData *)user_data;
+
+    if (!TickNoopMessageLoop()) {
+        // Cancel the dialog, whichever it was. This will count as a
+        // cancel of some kind, and execution will continue.
+        g_cancellable_cancel(rdd->gcancellable);
+
+        // Post another quit message so the main message loop sees it.
+        SDL_Event event = {};
+        event.type = SDL_QUIT;
+        SDL_PushEvent(&event);
+    }
 
     return G_SOURCE_CONTINUE;
 }
 
-static gint RunDialog(GtkDialog *dialog) {
-    guint tick_id = gtk_widget_add_tick_callback(GTK_WIDGET(dialog), &HandleModalDialogTick, nullptr, nullptr);
-    gint result = gtk_dialog_run(dialog);
-    gtk_widget_remove_tick_callback(GTK_WIDGET(dialog), tick_id);
-    return result;
-}
+static void RunDialog(RunDialogData *rdd) {
+    GMainContext *gmain_context = g_main_context_default();
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    guint id = g_idle_add(&HandleRunDialogIdle, rdd);
 
-void MessageBox(const std::string &title, const std::string &text) {
-    GtkWidget *dialog = gtk_message_dialog_new(nullptr,
-                                               GTK_DIALOG_MODAL,
-                                               GTK_MESSAGE_ERROR,
-                                               GTK_BUTTONS_OK,
-                                               "%s",
-                                               title.c_str());
-    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
-                                             "%s",
-                                             text.c_str());
-    RunDialog(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static GtkWidget *CreateFileDialog(const char *title,
-                                   GtkFileChooserAction action) {
-    GtkWidget *gdialog = gtk_file_chooser_dialog_new(title,
-                                                     nullptr,
-                                                     action,
-                                                     "_Cancel", GTK_RESPONSE_CANCEL,
-                                                     "_Open", GTK_RESPONSE_ACCEPT,
-                                                     nullptr);
-    return gdialog;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::string RunFileDialog(GtkWidget *gdialog) {
-    gint gresult = RunDialog(GTK_DIALOG(gdialog));
-
-    std::string result;
-    if (gresult == GTK_RESPONSE_ACCEPT) {
-        if (const char *name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(gdialog))) {
-            result.assign(name);
+    while (g_main_context_pending(gmain_context)) {
+        g_main_context_iteration(gmain_context, TRUE);
+        if (rdd->stop) {
+            break;
         }
     }
 
-    gtk_widget_destroy(gdialog);
-    gdialog = nullptr;
+    g_source_remove(id);
 
-    while (gtk_events_pending()) {
-        gtk_main_iteration();
-    }
-
-    return result;
+    g_object_unref(rdd->gcancellable), rdd->gcancellable = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SetDefaultPath(GtkWidget *gdialog,
-                           const std::string &default_path) {
-    if (!default_path.empty()) {
-        gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(gdialog), default_path.c_str());
-    }
+static void HandleMessageBoxComplete(GObject *source_object,
+                                     GAsyncResult *res,
+                                     gpointer data) {
+    (void)source_object;
+
+    auto rdd = (RunDialogData *)data;
+
+    gtk_alert_dialog_choose_finish(GTK_ALERT_DIALOG(source_object),
+                                   res,
+                                   nullptr);
+
+    rdd->stop = true;
+}
+
+void MessageBox(const std::string &title, const std::string &text) {
+    GtkAlertDialog *dialog = gtk_alert_dialog_new("%s", title.c_str());
+
+    gtk_alert_dialog_set_detail(dialog, text.c_str());
+
+    gtk_alert_dialog_set_modal(dialog, 1);
+
+    RunDialogData rdd;
+    rdd.gcancellable = g_cancellable_new();
+
+    gtk_alert_dialog_choose(dialog,
+                            nullptr,
+                            rdd.gcancellable,
+                            &HandleMessageBoxComplete,
+                            &rdd);
+
+    RunDialog(&rdd);
+
+    g_object_unref(dialog), dialog = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void AddFilters(GtkWidget *gdialog,
-                       const std::vector<OpenFileDialog::Filter> &filters) {
+static GtkFileDialog *CreateFileDialog(const char *title,
+                                       const std::vector<OpenFileDialog::Filter> &filters,
+                                       const std::string &default_path) {
+    GtkFileDialog *gdialog = gtk_file_dialog_new();
+
+    gtk_file_dialog_set_title(gdialog, title);
+
+    GListStore *gfilters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+
     for (const OpenFileDialog::Filter &filter : filters) {
         GtkFileFilter *gfilter = gtk_file_filter_new();
 
@@ -185,49 +193,118 @@ static void AddFilters(GtkWidget *gdialog,
             gtk_file_filter_add_pattern(gfilter, ("*" + extension).c_str());
         }
 
-        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(gdialog), gfilter);
+        g_list_store_append(gfilters, gfilter);
+
+        g_object_unref(gfilter), gfilter = nullptr;
     }
+
+    gtk_file_dialog_set_filters(gdialog, G_LIST_MODEL(gfilters));
+    g_object_unref(gfilters), gfilters = nullptr;
+
+    if (!default_path.empty()) {
+        GFile *gdefault_path = g_file_new_for_path(default_path.c_str());
+        gtk_file_dialog_set_initial_file(gdialog, gdefault_path);
+        g_object_unref(gdefault_path), gdefault_path = nullptr;
+    }
+
+    return gdialog;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+struct RunFileDialogData : public RunDialogData {
+    GtkFileDialog *gdialog = nullptr;
+    GFile *gfile = nullptr;
+    GError *gerror = nullptr;
+};
+
+static std::string RunFileDialog(RunFileDialogData *rfdd) {
+    RunDialog(rfdd);
+
+    if (rfdd->gerror) {
+        g_error_free(rfdd->gerror), rfdd->gerror = nullptr;
+    }
+
+    std::string path;
+    if (rfdd->gfile) {
+        if (char *path_tmp = g_file_get_path(rfdd->gfile)) {
+            path = path_tmp;
+            g_free(path_tmp), path_tmp = nullptr;
+        }
+        g_object_unref(rfdd->gfile), rfdd->gfile = nullptr;
+    }
+
+    return path;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void HandleOpenFileComplete(GObject *source_object,
+                                   GAsyncResult *res,
+                                   gpointer data) {
+    (void)source_object;
+
+    auto rfdd = (RunFileDialogData *)data;
+
+    rfdd->gfile = gtk_file_dialog_open_finish((GtkFileDialog *)rfdd->gdialog,
+                                              res,
+                                              &rfdd->gerror);
+
+    rfdd->stop = true;
+}
 
 std::string OpenFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path) {
-    GtkWidget *gdialog = CreateFileDialog("Open File",
-                                          GTK_FILE_CHOOSER_ACTION_OPEN);
+    RunFileDialogData rfdd;
+    rfdd.gdialog = CreateFileDialog("Open File",
+                                    filters,
+                                    default_path);
+    rfdd.gcancellable = g_cancellable_new();
 
-    AddFilters(gdialog, filters);
-    SetDefaultPath(gdialog, default_path);
+    gtk_file_dialog_open(rfdd.gdialog,
+                         nullptr,
+                         rfdd.gcancellable,
+                         &HandleOpenFileComplete,
+                         &rfdd);
 
-    return RunFileDialog(gdialog);
+    std::string path = RunFileDialog(&rfdd);
+    return path;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static void HandleSaveFileComplete(GObject *source_object,
+                                   GAsyncResult *res,
+                                   gpointer data) {
+    (void)source_object;
+
+    auto rfdd = (RunFileDialogData *)data;
+
+    rfdd->gfile = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(rfdd->gdialog),
+                                              res,
+                                              &rfdd->gerror);
+    rfdd->stop = true;
+}
 
 std::string SaveFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path) {
-    GtkWidget *gdialog = CreateFileDialog("Save File",
-                                          GTK_FILE_CHOOSER_ACTION_SAVE);
+    RunFileDialogData rfdd;
+    rfdd.gdialog = CreateFileDialog("Save File",
+                                    filters,
+                                    default_path);
+    rfdd.gcancellable = g_cancellable_new();
 
-    AddFilters(gdialog, filters);
-    SetDefaultPath(gdialog, default_path);
-    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(gdialog), TRUE);
+    gtk_file_dialog_save(rfdd.gdialog,
+                         nullptr,
+                         rfdd.gcancellable,
+                         &HandleSaveFileComplete,
+                         &rfdd);
 
-    return RunFileDialog(gdialog);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string SelectFolderDialogGTK(const std::string &default_path) {
-    GtkWidget *gdialog = CreateFileDialog("Select Folder",
-                                          GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-
-    SetDefaultPath(gdialog, default_path);
-
-    return RunFileDialog(gdialog);
+    std::string path = RunFileDialog(&rfdd);
+    return path;
 }
 
 //////////////////////////////////////////////////////////////////////////

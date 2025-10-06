@@ -21,8 +21,6 @@ std::string OpenFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters
 std::string SaveFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path);
 
-std::string SelectFolderDialogGTK(const std::string &default_path);
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

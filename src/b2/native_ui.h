@@ -150,15 +150,23 @@ class SaveFileDialog : public FileDialog {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class FolderDialog : public SelectorDialog {
-  public:
-    explicit FolderDialog(std::string tag);
+// This became redundant at one point. Probably
+// https://github.com/tom-seddon/b2/commit/152a25a9bc4cf0303c4e43efb0962445e48c2dca
+//
+// The Windows and macOS implementations are still present, for now,
+// but they'll probably need a pass if hoping to resurrect this.
+//
+// The Gtk code doesn't currently support it at all.
 
-  protected:
-    std::string HandleOpen(SDL_Window *parent) override;
+// class FolderDialog : public SelectorDialog {
+//   public:
+//     explicit FolderDialog(std::string tag);
 
-  private:
-};
+//   protected:
+//     std::string HandleOpen(SDL_Window *parent) override;
+
+//   private:
+// };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

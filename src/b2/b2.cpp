@@ -126,6 +126,15 @@ static const int HTTP_SERVER_PORT = 0xbbcb;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BUILD_TYPE_Debug
+#define ENABLE_FAIL_STARTUP 1
+#else
+#define ENABLE_FAIL_STARTUP 0
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const int DEFAULT_AUDIO_HZ = 48000;
 
 static const int DEFAULT_AUDIO_BUFFER_SIZE = 1024;
@@ -716,6 +725,11 @@ struct Options {
 #if SYSTEM_LINUX
     float gui_scale = 0.f;
 #endif
+
+#if ENABLE_FAIL_STARTUP
+    bool fail_startup_late = false;
+    bool fail_startup_early = false;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -829,6 +843,11 @@ static bool ParseCommandLineOptions(
 
 #if SYSTEM_OSX
     RemovePSNArguments(&args);
+#endif
+
+#if ENABLE_FAIL_STARTUP
+    p.AddOption("fail-startup-early").SetIfPresent(&options->fail_startup_early).Help("fail the startup process at an early stage, even if it actually succeeded. Use this to test the failure UI");
+    p.AddOption("fail-startup-late").SetIfPresent(&options->fail_startup_late).Help("fail the startup process at a late stage, even if it actually succeeded. Use this to test the failure UI");
 #endif
 
     if (!p.Parse((int)args.size(), args.data())) {
@@ -1361,12 +1380,20 @@ static void FreeEventData(SDL_Event *event) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TickNoopMessageLoop() {
+bool TickNoopMessageLoop() {
+    bool keep_running = true;
+
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            keep_running = false;
+        }
+
         // Whatever it was, in the bin it goes.
         FreeEventData(&event);
     }
+
+    return keep_running;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1411,6 +1438,15 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     if (options.override_config_folder_specified) {
         SetConfigFolder(options.override_config_folder);
     }
+
+#if ENABLE_FAIL_STARTUP
+    if (options.fail_startup_early) {
+        init_messages.i.f("Failing startup early: info message.\n");
+        init_messages.w.f("Failing startup early: warning message.\n");
+        init_messages.e.f("Failing startup early: error message.\n");
+        return false;
+    }
+#endif
 
     // https://curl.haxx.se/libcurl/c/curl_global_init.html
     if (!InitHTTPDependencies(&init_messages)) {
@@ -1465,7 +1501,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 #if SYSTEM_LINUX
     // Need to do this after SDL_Init. See, e.g.,
     // https://discourse.libsdl.org/t/gtk2-sdl2-partial-fail/19274
-    gtk_init(&argc, &argv);
+    gtk_init();
 #endif
 
 #if SYSTEM_WINDOWS
@@ -1552,6 +1588,15 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 return false;
             }
         }
+
+#if ENABLE_FAIL_STARTUP
+        if (options.fail_startup_late) {
+            init_messages.i.f("Failing startup late: info message.\n");
+            init_messages.w.f("Failing startup late: warning message.\n");
+            init_messages.e.f("Failing startup late: error message.\n");
+            return false;
+        }
+#endif
 
         BeebWindowInitArguments ia;
         {
@@ -1902,6 +1947,11 @@ int main(int argc, char *argv[]) {
     bool good = main2(argc, argv, messages);
 
     if (!good) {
+#if SYSTEM_LINUX
+        // Do this here, just in case main2 didn't get to its own
+        // post-SDL2_Init gtk_init call.
+        gtk_init();
+#endif
         FailureMessageBox("Initialisation failed", messages);
     }
 

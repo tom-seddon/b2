@@ -318,34 +318,34 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FolderDialog::FolderDialog(std::string tag)
-    : SelectorDialog(std::move(tag)) {
-}
+// FolderDialog::FolderDialog(std::string tag)
+//     : SelectorDialog(std::move(tag)) {
+// }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string FolderDialog::HandleOpen(SDL_Window *parent) {
+// std::string FolderDialog::HandleOpen(SDL_Window *parent) {
 
-#if SYSTEM_OSX
+// #if SYSTEM_OSX
 
-    (void)parent;
-    std::string r = SelectFolderDialogOSX(m_last_path);
-    return r;
+//     (void)parent;
+//     std::string r = SelectFolderDialogOSX(m_last_path);
+//     return r;
 
-#elif SYSTEM_WINDOWS
+// #elif SYSTEM_WINDOWS
 
-    std::string r = SelectFolderDialogWindows(parent, m_last_path);
-    return r;
+//     std::string r = SelectFolderDialogWindows(parent, m_last_path);
+//     return r;
 
-#else
+// #else
 
-    (void)parent;
-    std::string r = SelectFolderDialogGTK(m_last_path);
-    return r;
+//     (void)parent;
+//     std::string r = SelectFolderDialogGTK(m_last_path);
+//     return r;
 
-#endif
-}
+// #endif
+// }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

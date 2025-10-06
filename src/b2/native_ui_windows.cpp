@@ -172,7 +172,7 @@ static std::string DoFileDialogWindows(SDL_Window *parent,
     ofn.lpstrInitialDir = wdefault_path.empty() ? nullptr : wdefault_path.c_str();
     ofn.Flags = flags;
     ofn.lpstrDefExt = default_ext.empty() ? nullptr : default_ext.c_str();
-    ofn.hwndOwner=GetHWNDForSDLWindow(parent);
+    ofn.hwndOwner = GetHWNDForSDLWindow(parent);
 
     int ret = (*fn)(&ofn);
     if (ret == 0) {
