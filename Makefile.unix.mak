@@ -62,6 +62,7 @@ _unix2:
 
 .PHONY: precommit
 precommit:
+	$(MAKE) clang-format
 	$(MAKE) _precommit FOLDER=d$(SANITIZER)
 	$(MAKE) _precommit FOLDER=r$(SANITIZER)
 	$(MAKE) _precommit FOLDER=f$(SANITIZER)
