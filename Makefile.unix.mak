@@ -135,20 +135,6 @@ tom_emacs:
 ##########################################################################
 ##########################################################################
 
-.PHONY:travis_ci_before_install_linux
-travis_ci_before_install_linux:
-	sudo apt-get update
-	sudo apt-get -y install ninja-build cmake
-	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-3-dev libpulse-dev uuid-dev
-
-#	cd ~ && git clone https://github.com/Kitware/CMake
-#	cd ~/CMake && git checkout v3.16.6 && ./bootstrap && make && sudo make install
-#	cd ~ && git clone https://github.com/ninja-build/ninja
-#	cd ~/ninja && git checkout v1.8.2 && ./configure.py --bootstrap && sudo cp ninja /usr/local/bin/
-
-##########################################################################
-##########################################################################
-
 .PHONY:github_ci_ubuntu_without_ffmpeg
 github_ci_ubuntu_without_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
