@@ -311,6 +311,7 @@ BeebWindow::DriveState::DriveState()
     this->new_direct_disc_image_file_dialog.AddFilter("BBC disc images", DISC_IMAGE_EXTENSIONS);
 
     this->open_direct_disc_image_file_dialog.AddFilter("BBC disc images", DISC_IMAGE_EXTENSIONS);
+    this->open_direct_disc_image_file_dialog.AddAllFilesFilter();
 }
 
 //////////////////////////////////////////////////////////////////////////
