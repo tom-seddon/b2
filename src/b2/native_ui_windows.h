@@ -20,9 +20,6 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
                                   const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path);
 
-std::string SelectFolderDialogWindows(SDL_Window *parent,
-                                      const std::string &default_path);
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

@@ -248,60 +248,7 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
                                OFN_NOVALIDATE | OFN_NOCHANGEDIR,
                                got_default_ext ? GetWideString(default_ext) : L"",
                                &GetSaveFileNameW);
-}
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string SelectFolderDialogWindows(SDL_Window *parent, const std::string &default_path) {
-    CComPtr<IFileDialog> f;
-
-    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog,
-                                nullptr,
-                                CLSCTX_INPROC_SERVER,
-                                IID_IFileDialog,
-                                (void **)&f))) {
-        return "";
-    }
-
-    DWORD options;
-    f->GetOptions(&options);
-    f->SetOptions(options | FOS_PICKFOLDERS);
-
-    if (!default_path.empty()) {
-        CComPtr<IShellItem> default_path_item;
-
-        std::wstring wdefault_path = GetWideString(default_path);
-        if (!wdefault_path.empty()) {
-            if (SUCCEEDED(SHCreateItemFromParsingName(wdefault_path.c_str(),
-                                                      nullptr,
-                                                      IID_IShellItem,
-                                                      (void **)&default_path_item))) {
-                f->SetFolder(default_path_item);
-            }
-        }
-    }
-
-    if (FAILED(f->Show(GetHWNDForSDLWindow(parent)))) {
-        return "";
-    }
-
-    CComPtr<IShellItem> item;
-    if (FAILED(f->GetResult(&item))) {
-        return "";
-    }
-
-    WCHAR *item_wname;
-    if (FAILED(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &item_wname))) {
-        return "";
-    }
-
-    std::string result_utf8 = GetUTF8String(item_wname);
-
-    CoTaskMemFree(item_wname);
-    item_wname = nullptr;
-
-    return result_utf8;
 }
 
 //////////////////////////////////////////////////////////////////////////
