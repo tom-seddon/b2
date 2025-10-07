@@ -13,10 +13,12 @@ struct SDL_Window;
 //////////////////////////////////////////////////////////////////////////
 
 std::string OpenFileDialogWindows(SDL_Window *parent,
+                                  const uint8_t *guid,
                                   const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path);
 
 std::string SaveFileDialogWindows(SDL_Window *parent,
+                                  const uint8_t *guid,
                                   const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path);
 

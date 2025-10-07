@@ -219,7 +219,7 @@ void RecentPaths::RemovePathByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 
 SelectorDialog::SelectorDialog(const SelectorDialogTag *tag)
-    : m_recent_paths_tag(tag) {
+    : m_tag(tag) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -232,7 +232,7 @@ SelectorDialog::~SelectorDialog() {
 //////////////////////////////////////////////////////////////////////////
 
 RecentPaths *SelectorDialog::GetRecentPaths() const {
-    RecentPaths *recent = GetRecentPathsByTag(m_recent_paths_tag);
+    RecentPaths *recent = GetRecentPathsByTag(m_tag);
     return recent;
 }
 
@@ -240,7 +240,7 @@ RecentPaths *SelectorDialog::GetRecentPaths() const {
 //////////////////////////////////////////////////////////////////////////
 
 void SelectorDialog::AddLastPathToRecentPaths() {
-    if (RecentPaths *recent = GetRecentPathsByTag(m_recent_paths_tag)) {
+    if (RecentPaths *recent = GetRecentPathsByTag(m_tag)) {
         if (!m_last_path.empty()) {
             recent->AddPath(m_last_path.c_str());
         }
@@ -252,7 +252,7 @@ void SelectorDialog::AddLastPathToRecentPaths() {
 
 bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
     if (m_last_path.empty()) {
-        if (RecentPaths *recent = GetRecentPathsByTag(m_recent_paths_tag)) {
+        if (RecentPaths *recent = GetRecentPathsByTag(m_tag)) {
             if (recent->GetNumPaths() > 0) {
                 m_last_path = recent->GetPathByIndex(0);
             }
@@ -327,7 +327,7 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 
 #elif SYSTEM_WINDOWS
 
-    return OpenFileDialogWindows(parent, m_filters, m_last_path);
+    return OpenFileDialogWindows(parent, m_tag->guid, m_filters, m_last_path);
 
 #else
 
@@ -358,7 +358,7 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 
 #elif SYSTEM_WINDOWS
 
-    return SaveFileDialogWindows(parent, m_filters, m_last_path);
+    return SaveFileDialogWindows(parent, m_tag->guid, m_filters, m_last_path);
 
 #else
 

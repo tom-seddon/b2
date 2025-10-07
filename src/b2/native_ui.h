@@ -121,8 +121,8 @@ class SelectorDialog {
 
     std::string m_last_path;
 
+    const SelectorDialogTag *const m_tag;
   private:
-    const SelectorDialogTag *m_recent_paths_tag;
 };
 
 //////////////////////////////////////////////////////////////////////////

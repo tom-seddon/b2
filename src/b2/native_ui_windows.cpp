@@ -234,7 +234,19 @@ static HRESULT InitAndShowFileDialog(const std::vector<FileDialog::Filter> &filt
     return hr;
 }
 
-static std::string GetShellItemPath(IShellItem *item) {
+static CComPtr<IShellItem2> GetShellItemForPath(const std::string &path) {
+    std::wstring wpath = GetWideString(path);
+
+    CComPtr<IShellItem2> result;
+    HRESULT hr = SHCreateItemFromParsingName(wpath.c_str(), nullptr, IID_PPV_ARGS(&result));
+    if (FAILED(hr)) {
+        return nullptr;
+    }
+
+    return result;
+}
+
+static std::string GetPathForShellItem(IShellItem *item) {
     std::wstring path;
     PWSTR path_tmp;
     if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path_tmp))) {
@@ -246,13 +258,28 @@ static std::string GetShellItemPath(IShellItem *item) {
     return path_utf8;
 }
 
+static void SetClientGuid(IFileDialog *dialog, const uint8_t *guid_) {
+    GUID guid;
+    static_assert(sizeof(GUID) == 16);
+    memcpy(&guid, guid_, 16);
+
+    dialog->SetClientGuid(guid);
+}
+
 std::string OpenFileDialogWindows(SDL_Window *parent,
+                                  const uint8_t *guid,
                                   const std::vector<FileDialog::Filter> &filters,
                                   const std::string &default_path) {
+    // TODO: can probably remove this. The OS's GUID-based state persistence
+    // should cover it?
+    (void)default_path;
+
     CComPtr<IFileOpenDialog> dialog;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
         return "";
     }
+
+    SetClientGuid(dialog, guid);
 
     if (FAILED(InitAndShowFileDialog(filters, parent, dialog.p))) {
         return "";
@@ -272,7 +299,7 @@ std::string OpenFileDialogWindows(SDL_Window *parent,
     CComPtr<IShellItem> result;
     results->GetItemAt(0, &result);
 
-    std::string path = GetShellItemPath(result.p);
+    std::string path = GetPathForShellItem(result.p);
     return path;
 }
 
@@ -280,6 +307,7 @@ std::string OpenFileDialogWindows(SDL_Window *parent,
 //////////////////////////////////////////////////////////////////////////
 
 std::string SaveFileDialogWindows(SDL_Window *parent,
+                                  const uint8_t *guid,
                                   const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path) {
 
@@ -288,6 +316,31 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
     if (FAILED(CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
         return "";
     }
+
+    SetClientGuid(dialog, guid);
+
+    if (!default_path.empty()) {
+        CComPtr<IShellItem2> default_item = GetShellItemForPath(default_path);
+        dialog->SetSaveAsItem(default_item);
+    }
+
+    // This logic might want tweaking.
+    if (!filters.empty()) {
+        if (filters[0].extensions.size() == 1) {
+            std::wstring ext0 = GetWideString(filters[0].extensions[0]);
+
+            ASSERT(ext0.size() > 1);
+            ASSERT(ext0[0] == L'.');
+
+            dialog->SetDefaultExtension(ext0.c_str() + 1); //+1 to skip the '.'
+        }
+    }
+
+    DWORD flags;
+    dialog->GetOptions(&flags);
+    flags &= ~FOS_PATHMUSTEXIST;
+    flags |= FOS_NOVALIDATE;
+    dialog->SetOptions(flags);
 
     if (FAILED(InitAndShowFileDialog(filters, parent, dialog.p))) {
         return "";
@@ -298,48 +351,9 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
         return "";
     }
 
-    std::string path = GetShellItemPath(result);
+    std::string path = GetPathForShellItem(result);
     return path;
 }
-
-// (old notes regarding GetSaveFileNameW)
-
-//// Not only is lpstrDefExt prety restricted, but it doesn't even
-//// appear to work in any useful fashion :( - GetSaveFileName is
-//// supposed to append the extension if it doesn't exist, but that
-//// doesn't actually appear to happen...
-////
-//// (The extension is appended manually later, so it does work if
-//// you just type in a name and no extension. But this sucks,
-//// because you don't get the "File exists" message box if the
-//// name+extension does actually exist.)
-
-//if (!filters.empty()) {
-//    default_ext = filters[0].extensions[0];
-
-//    got_default_ext = true;
-
-//    for (size_t i = 0; i < filters.size(); ++i) {
-//        if (filters[i].extensions.size() != 1) {
-//            got_default_ext = false;
-//            break;
-//        }
-
-//        // Ignore the all files wildcard.
-//        if (filters[i].extensions[0] == ".*") {
-//            continue;
-//        }
-
-//        if (i > 0 && filters[i].extensions[0] != filters[i - 1].extensions[0]) {
-//            got_default_ext = false;
-//            break;
-//        }
-//    }
-
-//    if (got_default_ext && default_ext.size() >= 1 && default_ext.size() <= 4 && default_ext[0] == '.') {
-//        default_ext = default_ext.substr(1);
-//    }
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
