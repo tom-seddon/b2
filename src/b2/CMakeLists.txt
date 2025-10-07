@@ -45,7 +45,7 @@ add_executable(b2 MACOSX_BUNDLE
   load_save_config_rapidjson.cpp load_save_config_rapidjson.h
   load_save_config_nlohmann_json.cpp load_save_config_nlohmann_json.h
   misc.cpp misc.h misc.inl
-  native_ui.cpp native_ui.h
+  native_ui.cpp native_ui.h native_ui_private.h native_ui_private.cpp native_ui_private.inl
   roms.cpp roms.h
   profiler.cpp profiler.h
   joysticks.cpp joysticks.h

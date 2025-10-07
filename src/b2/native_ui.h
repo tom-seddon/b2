@@ -74,6 +74,17 @@ void SetRecentPathsByTag(std::string tag, RecentPaths recents);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Attempts to close the current modal dialog (if any). Safe to use from a
+// background thread.
+//
+// Returns true if there's no modal dialog any more - inlcuding the case there
+// wasn't one originally; returns false if there was some problem closing the
+// dialog.
+bool CloseModalDialog();
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class SelectorDialog {
   public:
     explicit SelectorDialog(std::string tag);

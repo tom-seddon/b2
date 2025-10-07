@@ -66,6 +66,11 @@ class HTTPMethodsHandler : public HTTPHandler {
     bool ThreadHandleRequest(HTTPResponse *response, HTTPServer *server, HTTPRequest &&request) {
         (void)response;
 
+        if (!CloseModalDialog()) {
+            server->SendResponse(request, HTTPResponse::ServiceUnavailable("A modal dialog is open that can't be automatically closed"));
+            return false;
+        }
+
         auto data = new HandleRequestData{};
 
         data->server = server;

@@ -7,6 +7,8 @@
 #include "Messages.h"
 #include <shared/system_specific.h>
 #include <shared/log.h>
+#include "native_ui_private.h"
+#include "b2.h"
 
 #if SYSTEM_OSX
 #include "native_ui_osx.h"
@@ -103,6 +105,26 @@ RecentPaths *GetRecentPathsByTag(const std::string &tag) {
 
 void SetRecentPathsByTag(std::string tag, RecentPaths recents) {
     g_recent_paths_by_tag[std::move(tag)] = std::move(recents);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CloseModalDialog() {
+    ASSERT(!IsMainThread()); //TODO: fix if there's ever a need for it...
+
+    // If the modal is open, initiate the close.
+    {
+        LockGuard<Mutex> lock(g_native_ui_globals_mutex);
+
+        if (g_native_ui_modal_state == NativeUiModalState_Open) {
+            CloseModalDialogLocked();
+            g_native_ui_modal_state = NativeUiModalState_Closing;
+        }
+    }
+
+    bool closed = WaitForModalNotOpen(1.0);
+    return closed;
 }
 
 //////////////////////////////////////////////////////////////////////////

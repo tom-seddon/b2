@@ -1,6 +1,7 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include <shared/system_specific.h>
+#include <shared/mutex.h>
 #include "native_ui.h"
 #include "native_ui_windows.h"
 #include <commdlg.h>
@@ -12,6 +13,8 @@
 #include "Messages.h"
 #include "load_save.h"
 #include <SDL_syswm.h>
+#include "native_ui_private.h"
+#include "b2.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -126,74 +129,151 @@ done:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::wstring GetFiltersWin32(const std::vector<OpenFileDialog::Filter> &filters) {
-    std::wstring result;
+struct CommonItemDialogFilterSpecs {
+    std::vector<std::wstring> name_strings, spec_strings;
+    std::vector<COMDLG_FILTERSPEC> filter_specs;
+};
+
+static void GetCommonItemDialogFilterSpecsForFilters(CommonItemDialogFilterSpecs *specs, const std::vector<FileDialog::Filter> &filters) {
+    ASSERT(filters.size() <= UINT_MAX);
 
     for (const OpenFileDialog::Filter &filter : filters) {
-        std::string extensions;
-
+        std::wstring spec;
         for (size_t i = 0; i < filter.extensions.size(); ++i) {
             if (i > 0) {
-                extensions += ";";
+                spec += L";";
             }
 
-            extensions += "*" + filter.extensions[i];
+            spec += L"*" + GetWideString(filter.extensions[i]);
         }
 
-        result += GetWideString(filter.title + " (" + extensions + ")");
-        result.push_back(0);
-        result += GetWideString(extensions);
-        result.push_back(0);
+        specs->name_strings.push_back(GetWideString(filter.title) + L" (" + spec + L")");
+        specs->spec_strings.push_back(spec);
     }
 
-    return result;
+    ASSERT(specs->name_strings.size() == filters.size());
+    ASSERT(specs->name_strings.size() == specs->spec_strings.size());
+
+    for (size_t i = 0; i < specs->name_strings.size(); ++i) {
+        COMDLG_FILTERSPEC filter_spec;
+
+        filter_spec.pszName = specs->name_strings[i].c_str();
+        filter_spec.pszSpec = specs->spec_strings[i].c_str();
+
+        specs->filter_specs.push_back(filter_spec);
+    }
+
+    ASSERT(specs->filter_specs.size() == specs->name_strings.size());
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string DoFileDialogWindows(SDL_Window *parent,
-                                       const std::vector<OpenFileDialog::Filter> &filters,
-                                       const std::string &default_path,
-                                       DWORD flags,
-                                       const std::wstring &default_ext,
-                                       BOOL(APIENTRY *fn)(LPOPENFILENAMEW)) {
-    std::wstring filters_win32 = GetFiltersWin32(filters);
-    std::wstring wdefault_path = GetWideString(default_path);
+static CComPtr<IOleWindow> g_current_modal_window;
 
-    OPENFILENAMEW ofn{};
-    wchar_t file_name[MAX_PATH]{};
+bool CloseModalDialogLocked() {
+    ASSERT(!IsMainThread());
+    ASSERT(g_native_ui_modal_state == NativeUiModalState_Open);
 
-    ofn.lStructSize = sizeof ofn;
-    ofn.lpstrFile = file_name;
-    ofn.nMaxFile = sizeof file_name;
-    ofn.lpstrFilter = filters_win32.c_str();
-    ofn.nFilterIndex = 1;
-    ofn.lpstrInitialDir = wdefault_path.empty() ? nullptr : wdefault_path.c_str();
-    ofn.Flags = flags;
-    ofn.lpstrDefExt = default_ext.empty() ? nullptr : default_ext.c_str();
-    ofn.hwndOwner = GetHWNDForSDLWindow(parent);
-
-    int ret = (*fn)(&ofn);
-    if (ret == 0) {
-        return "";
-    } else {
-        return GetUTF8String(file_name);
+    if (!g_current_modal_window) {
+        // no IOleWindow! Stuck!
+        return false;
     }
+
+    // IFileDialog::Close doesn't seem to work from a background thread, hence
+    // all this HWND stuff.
+    //
+    // The docs don't say whether IOleWindow::GetWindow is any safer to use from
+    // a background thread, but it does at least actually seem to work, so what
+    // could possibly go wrong?
+    HWND hwnd;
+    if (FAILED(g_current_modal_window->GetWindow(&hwnd))) {
+        // there's one open, but no HWND for it, so no.
+        return false;
+    }
+
+    PostMessage(hwnd, WM_CLOSE, 0, 0);
+
+    g_current_modal_window = nullptr;
+
+    // Fingers crossed, the window will become closed in due course.
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static HRESULT InitAndShowFileDialog(const std::vector<FileDialog::Filter> &filters, SDL_Window *parent, IFileDialog *dialog) {
+    DWORD flags;
+    dialog->GetOptions(&flags);
+    dialog->SetOptions(flags | FOS_FORCEFILESYSTEM);
+
+    CommonItemDialogFilterSpecs specs;
+    GetCommonItemDialogFilterSpecsForFilters(&specs, filters);
+    dialog->SetFileTypes((UINT)specs.filter_specs.size(), specs.filter_specs.data());
+
+    {
+        LockGuard lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_Open;
+
+        if (FAILED(dialog->QueryInterface(IID_PPV_ARGS(&g_current_modal_window)))) {
+            g_current_modal_window = nullptr; //be extra sure to reset it...
+        }
+    }
+
+    HRESULT hr = dialog->Show(GetHWNDForSDLWindow(parent));
+
+    {
+        LockGuard lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_NotOpen;
+        g_current_modal_window = nullptr;
+    }
+
+    return hr;
+}
+
+static std::string GetShellItemPath(IShellItem *item) {
+    std::wstring path;
+    PWSTR path_tmp;
+    if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path_tmp))) {
+        path = path_tmp;
+        CoTaskMemFree(path_tmp), path_tmp = nullptr;
+    }
+
+    std::string path_utf8 = GetUTF8String(path);
+    return path_utf8;
+}
 
 std::string OpenFileDialogWindows(SDL_Window *parent,
-                                  const std::vector<OpenFileDialog::Filter> &filters,
+                                  const std::vector<FileDialog::Filter> &filters,
                                   const std::string &default_path) {
-    return DoFileDialogWindows(parent,
-                               filters,
-                               default_path,
-                               OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST,
-                               L"",
-                               &GetOpenFileNameW);
+    CComPtr<IFileOpenDialog> dialog;
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
+        return "";
+    }
+
+    if (FAILED(InitAndShowFileDialog(filters, parent, dialog.p))) {
+        return "";
+    }
+
+    CComPtr<IShellItemArray> results;
+    if (FAILED(dialog->GetResults(&results))) {
+        return "";
+    }
+
+    DWORD num_results;
+    results->GetCount(&num_results);
+    if (num_results < 1) {
+        return "";
+    }
+
+    CComPtr<IShellItem> result;
+    results->GetItemAt(0, &result);
+
+    std::string path = GetShellItemPath(result.p);
+    return path;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -202,54 +282,64 @@ std::string OpenFileDialogWindows(SDL_Window *parent,
 std::string SaveFileDialogWindows(SDL_Window *parent,
                                   const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &default_path) {
-    std::string default_ext;
-    bool got_default_ext = false;
 
-    // Not only is lpstrDefExt prety restricted, but it doesn't even
-    // appear to work in any useful fashion :( - GetSaveFileName is
-    // supposed to append the extension if it doesn't exist, but that
-    // doesn't actually appear to happen...
-    //
-    // (The extension is appended manually later, so it does work if
-    // you just type in a name and no extension. But this sucks,
-    // because you don't get the "File exists" message box if the
-    // name+extension does actually exist.)
+    CComPtr<IFileSaveDialog> dialog;
 
-    if (!filters.empty()) {
-        default_ext = filters[0].extensions[0];
-
-        got_default_ext = true;
-
-        for (size_t i = 0; i < filters.size(); ++i) {
-            if (filters[i].extensions.size() != 1) {
-                got_default_ext = false;
-                break;
-            }
-
-            // Ignore the all files wildcard.
-            if (filters[i].extensions[0] == ".*") {
-                continue;
-            }
-
-            if (i > 0 && filters[i].extensions[0] != filters[i - 1].extensions[0]) {
-                got_default_ext = false;
-                break;
-            }
-        }
-
-        if (got_default_ext && default_ext.size() >= 1 && default_ext.size() <= 4 && default_ext[0] == '.') {
-            default_ext = default_ext.substr(1);
-        }
+    if (FAILED(CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
+        return "";
     }
 
-    return DoFileDialogWindows(parent,
-                               filters,
-                               default_path,
-                               OFN_NOVALIDATE | OFN_NOCHANGEDIR,
-                               got_default_ext ? GetWideString(default_ext) : L"",
-                               &GetSaveFileNameW);
+    if (FAILED(InitAndShowFileDialog(filters, parent, dialog.p))) {
+        return "";
+    }
 
+    CComPtr<IShellItem> result;
+    if (FAILED(dialog->GetResult(&result))) {
+        return "";
+    }
+
+    std::string path = GetShellItemPath(result);
+    return path;
 }
+
+// (old notes regarding GetSaveFileNameW)
+
+//// Not only is lpstrDefExt prety restricted, but it doesn't even
+//// appear to work in any useful fashion :( - GetSaveFileName is
+//// supposed to append the extension if it doesn't exist, but that
+//// doesn't actually appear to happen...
+////
+//// (The extension is appended manually later, so it does work if
+//// you just type in a name and no extension. But this sucks,
+//// because you don't get the "File exists" message box if the
+//// name+extension does actually exist.)
+
+//if (!filters.empty()) {
+//    default_ext = filters[0].extensions[0];
+
+//    got_default_ext = true;
+
+//    for (size_t i = 0; i < filters.size(); ++i) {
+//        if (filters[i].extensions.size() != 1) {
+//            got_default_ext = false;
+//            break;
+//        }
+
+//        // Ignore the all files wildcard.
+//        if (filters[i].extensions[0] == ".*") {
+//            continue;
+//        }
+
+//        if (i > 0 && filters[i].extensions[0] != filters[i - 1].extensions[0]) {
+//            got_default_ext = false;
+//            break;
+//        }
+//    }
+
+//    if (got_default_ext && default_ext.size() >= 1 && default_ext.size() <= 4 && default_ext[0] == '.') {
+//        default_ext = default_ext.substr(1);
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -99,6 +99,8 @@ static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " 
 
 static const int HTTP_SERVER_PORT = 0xbbcb;
 
+static SDL_threadID g_main_thread_id = 0;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -925,6 +927,8 @@ static bool InitSystem(
         return false;
     }
 
+    g_main_thread_id = SDL_GetThreadID(nullptr);
+
     SDL_EnableScreenSaver();
 
     // Allocate user events
@@ -1394,6 +1398,19 @@ bool TickNoopMessageLoop() {
     }
 
     return keep_running;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool IsMainThread() {
+    SDL_threadID thread_id = SDL_GetThreadID(nullptr);
+
+    if (thread_id == g_main_thread_id) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
