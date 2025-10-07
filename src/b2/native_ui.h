@@ -67,9 +67,28 @@ class RecentPaths {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ForEachRecentPaths(std::function<void(const std::string &, const RecentPaths &)> fun);
-RecentPaths *GetRecentPathsByTag(const std::string &tag);
-void SetRecentPathsByTag(std::string tag, RecentPaths recents);
+// these are automatically added to a list.
+class SelectorDialogTag {
+  public:
+    const uint8_t guid[16];
+    const std::string name;
+
+    SelectorDialogTag(uint8_t guid0, uint8_t guid1, uint8_t guid2, uint8_t guid3, uint8_t guid4, uint8_t guid5, uint8_t guid6, uint8_t guid7, uint8_t guid8, uint8_t guid9, uint8_t guid10, uint8_t guid11, uint8_t guid12, uint8_t guid13, uint8_t guid14, uint8_t guid15, std::string name);
+    ~SelectorDialogTag();
+
+    SelectorDialogTag(const SelectorDialogTag &) = delete;
+    SelectorDialogTag &operator=(const SelectorDialogTag &) = delete;
+    SelectorDialogTag(SelectorDialogTag &&) = delete;
+    SelectorDialogTag &operator=(SelectorDialogTag &&) = delete;
+};
+
+const std::vector<const SelectorDialogTag *> *GetAllSelectorDialogTags();
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+RecentPaths *GetRecentPathsByTag(const SelectorDialogTag *tag);
+void SetRecentPathsByTag(const SelectorDialogTag *tag, RecentPaths recents);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -87,7 +106,7 @@ bool CloseModalDialog();
 
 class SelectorDialog {
   public:
-    explicit SelectorDialog(std::string tag);
+    explicit SelectorDialog(const SelectorDialogTag *tag);
     virtual ~SelectorDialog() = 0;
 
     // return value is valid only until next LoadRecentPathsSettings.
@@ -103,7 +122,7 @@ class SelectorDialog {
     std::string m_last_path;
 
   private:
-    std::string m_recent_paths_tag;
+    const SelectorDialogTag *m_recent_paths_tag;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -119,7 +138,7 @@ class FileDialog : public SelectorDialog {
         std::vector<std::string> extensions;
     };
 
-    explicit FileDialog(std::string tag);
+    explicit FileDialog(const SelectorDialogTag *tag);
 
     void AddFilter(std::string title, std::vector<std::string> extensions);
     void AddAllFilesFilter();
@@ -137,7 +156,7 @@ class FileDialog : public SelectorDialog {
 
 class OpenFileDialog : public FileDialog {
   public:
-    explicit OpenFileDialog(std::string tag);
+    explicit OpenFileDialog(const SelectorDialogTag *tag);
 
   protected:
     std::string HandleOpen(SDL_Window *parent) override;
@@ -150,7 +169,7 @@ class OpenFileDialog : public FileDialog {
 
 class SaveFileDialog : public FileDialog {
   public:
-    explicit SaveFileDialog(std::string tag);
+    explicit SaveFileDialog(const SelectorDialogTag *tag);
 
   protected:
     std::string HandleOpen(SDL_Window *parent) override;

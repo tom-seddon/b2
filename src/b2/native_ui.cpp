@@ -21,7 +21,51 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::map<std::string, RecentPaths> g_recent_paths_by_tag;
+static std::map<const SelectorDialogTag *, RecentPaths> g_recent_paths_by_tag;
+static bool g_selector_dialog_tags_ever_accessed;
+static std::vector<const SelectorDialogTag *> *g_selector_dialog_tags;
+
+static std::vector<const SelectorDialogTag *> *GetSelectorDialogTagsArray() {
+    static std::vector<const SelectorDialogTag *> s_selector_dialog_tags;
+
+    g_selector_dialog_tags = &s_selector_dialog_tags;
+
+    return &s_selector_dialog_tags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SelectorDialogTag::SelectorDialogTag(uint8_t guid0, uint8_t guid1, uint8_t guid2, uint8_t guid3, uint8_t guid4, uint8_t guid5, uint8_t guid6, uint8_t guid7, uint8_t guid8, uint8_t guid9, uint8_t guid10, uint8_t guid11, uint8_t guid12, uint8_t guid13, uint8_t guid14, uint8_t guid15, std::string name_)
+    : guid{guid0, guid1, guid2, guid3, guid4, guid5, guid6, guid7, guid8, guid9, guid10, guid11, guid12, guid13, guid14, guid15}
+    , name(std::move(name_)) {
+    ASSERT(!g_selector_dialog_tags_ever_accessed);
+
+    std::vector<const SelectorDialogTag *> *tags = GetSelectorDialogTagsArray();
+
+    for (const SelectorDialogTag *tag : *tags) {
+        ASSERT(memcmp(tag->guid, this->guid, 16) != 0);
+        ASSERT(tag->name != this->name);
+    }
+
+    tags->push_back(this);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SelectorDialogTag::~SelectorDialogTag() {
+    std::vector<const SelectorDialogTag *> *tags = GetSelectorDialogTagsArray();
+
+    tags->erase(std::remove(tags->begin(), tags->end(), this), tags->end());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::vector<const SelectorDialogTag *> *GetAllSelectorDialogTags() {
+    return GetSelectorDialogTagsArray();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -83,28 +127,15 @@ void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageLi
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ForEachRecentPaths(std::function<void(const std::string &, const RecentPaths &)> fun) {
-    for (auto &&it : g_recent_paths_by_tag) {
-        fun(it.first, it.second);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-RecentPaths *GetRecentPathsByTag(const std::string &tag) {
-    if (tag.empty()) {
-        return nullptr;
-    }
-
+RecentPaths *GetRecentPathsByTag(const SelectorDialogTag *tag) {
     return &g_recent_paths_by_tag[tag];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SetRecentPathsByTag(std::string tag, RecentPaths recents) {
-    g_recent_paths_by_tag[std::move(tag)] = std::move(recents);
+void SetRecentPathsByTag(const SelectorDialogTag *tag, RecentPaths recents) {
+    g_recent_paths_by_tag[tag] = std::move(recents);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -187,8 +218,8 @@ void RecentPaths::RemovePathByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SelectorDialog::SelectorDialog(std::string tag)
-    : m_recent_paths_tag(std::move(tag)) {
+SelectorDialog::SelectorDialog(const SelectorDialogTag *tag)
+    : m_recent_paths_tag(tag) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -242,8 +273,8 @@ bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FileDialog::FileDialog(std::string tag)
-    : SelectorDialog(std::move(tag)) {
+FileDialog::FileDialog(const SelectorDialogTag *tag)
+    : SelectorDialog(tag) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -271,8 +302,8 @@ void FileDialog::AddAllFilesFilter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-OpenFileDialog::OpenFileDialog(std::string tag)
-    : FileDialog(std::move(tag)) {
+OpenFileDialog::OpenFileDialog(const SelectorDialogTag *tag)
+    : FileDialog(tag) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -311,8 +342,8 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SaveFileDialog::SaveFileDialog(std::string tag)
-    : FileDialog(std::move(tag)) {
+SaveFileDialog::SaveFileDialog(const SelectorDialogTag *tag)
+    : FileDialog(tag) {
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -526,12 +526,26 @@ static void SaveGlobals(JSONWriter<StringStream> *writer) {
 
 static bool LoadRecentPaths(rapidjson::Value *recent_paths,
                             Messages *msg) {
+    const std::vector<const SelectorDialogTag *> *all_tags = GetAllSelectorDialogTags();
+
     for (rapidjson::Value::MemberIterator it = recent_paths->MemberBegin();
          it != recent_paths->MemberEnd();
          ++it) {
-        std::string tag = it->name.GetString();
+        std::string tag_name = it->name.GetString();
 
-        LOGF(LOADSAVE, "Loading recent paths for: %s\n", tag.c_str());
+        LOGF(LOADSAVE, "Loading recent paths for: %s\n", tag_name.c_str());
+
+        const SelectorDialogTag *found_tag = nullptr;
+        for (const SelectorDialogTag *tag : *all_tags) {
+            if (tag->name == tag_name) {
+                found_tag = tag;
+                break;
+            }
+        }
+
+        if (!found_tag) {
+            continue;
+        }
 
         rapidjson::Value paths;
         if (!FindArrayMember(&paths, &it->value, PATHS, nullptr)) {
@@ -546,7 +560,7 @@ static bool LoadRecentPaths(rapidjson::Value *recent_paths,
 
             if (!paths[i].IsString()) {
                 msg->e.f("not a string: %s.%s.paths[%u]\n",
-                         RECENT_PATHS, tag.c_str(), i);
+                         RECENT_PATHS, tag_name.c_str(), i);
                 return false;
             }
 
@@ -554,7 +568,7 @@ static bool LoadRecentPaths(rapidjson::Value *recent_paths,
             recents.AddPath(paths[i].GetString());
         }
 
-        SetRecentPathsByTag(std::move(tag), std::move(recents));
+        SetRecentPathsByTag(found_tag, std::move(recents));
     }
 
     return true;
@@ -563,18 +577,22 @@ static bool LoadRecentPaths(rapidjson::Value *recent_paths,
 static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
     auto recent_paths_json = ObjectWriter(writer, RECENT_PATHS);
 
-    ForEachRecentPaths(
-        [writer](const std::string &tag,
-                 const RecentPaths &recents) {
-            auto tag_json = ObjectWriter(writer, tag.c_str());
+    const std::vector<const SelectorDialogTag *> *all_tags = GetAllSelectorDialogTags();
 
-            auto paths_json = ArrayWriter(writer, PATHS);
+    for (const SelectorDialogTag *tag : *all_tags) {
+        if (const RecentPaths *recents = GetRecentPathsByTag(tag)) {
+            if (recents->GetNumPaths() > 0) {
+                auto tag_json = ObjectWriter(writer, tag->name.c_str());
 
-            for (size_t i = 0; i < recents.GetNumPaths(); ++i) {
-                const std::string &path = recents.GetPathByIndex(i);
-                writer->String(path.c_str());
+                auto paths_json = ArrayWriter(writer, PATHS);
+
+                for (size_t path_index = 0; path_index < recents->GetNumPaths(); ++path_index) {
+                    const std::string &path = recents->GetPathByIndex(path_index);
+                    writer->String(path.c_str());
+                }
             }
-        });
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

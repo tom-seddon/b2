@@ -25,7 +25,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string RECENT_PATHS_TRACES = "traces";
+static const SelectorDialogTag RECENT_PATHS_TRACES(0x84, 0xE1, 0x42, 0x74, 0xDA, 0x9D, 0x4A, 0x58, 0xAC, 0x46, 0xE3, 0x7B, 0x27, 0xC5, 0x6B, 0x82, "traces");
 
 // It's a bit ugly having a single set of default settings, but compared to the
 // old behaviour (per-instance settings, defaults overwritten when dialog
@@ -422,7 +422,7 @@ void TraceUI::DoImGui() {
         ImGui::Checkbox("Auto-save on stop", &g_default_settings.auto_save);
         if (g_default_settings.auto_save) {
             if (ImGui::Button("...")) {
-                SaveFileDialog fd(RECENT_PATHS_TRACES);
+                SaveFileDialog fd(&RECENT_PATHS_TRACES);
 
                 fd.AddFilter("Text files", {".txt"});
                 fd.AddAllFilesFilter();
@@ -474,7 +474,7 @@ void TraceUI::DoImGui() {
             DoTraceStatsImGui(&stats);
 
             if (ImGui::Button("Save...")) {
-                SaveFileDialog fd(RECENT_PATHS_TRACES);
+                SaveFileDialog fd(&RECENT_PATHS_TRACES);
 
                 fd.AddFilter("Text files", {".txt"});
                 fd.AddAllFilesFilter();

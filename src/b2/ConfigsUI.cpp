@@ -29,8 +29,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string RECENT_PATHS_ROMS("roms");
-static const std::string RECENT_PATHS_HARD_DISKS("hard_disks");
+static const SelectorDialogTag RECENT_PATHS_ROMS(0xC4, 0x57, 0x6C, 0xD4, 0xE6, 0x33, 0x4C, 0x63, 0xAD, 0x43, 0xC0, 0x88, 0xF4, 0xC8, 0xFB, 0x2C, "roms");
+static const SelectorDialogTag RECENT_PATHS_HARD_DISKS(0xF1, 0x5F, 0xA1, 0xE2, 0x3C, 0xF2, 0x48, 0x40, 0x95, 0x34, 0x90, 0x81, 0x32, 0x09, 0x4E, 0x10, "hard_disks");
 
 static const char NEW_CONFIG_POPUP[] = "new_config_popup";
 static const char COPY_CONFIG_POPUP[] = "copy_config_popup";
@@ -80,9 +80,9 @@ class ConfigsUI : public SettingsUI {
 
 ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window)
-    , m_rom_ofd(RECENT_PATHS_ROMS)
-    , m_hard_disk_ofd(RECENT_PATHS_HARD_DISKS)
-    , m_new_hard_disk_sfd(RECENT_PATHS_HARD_DISKS) {
+    , m_rom_ofd(&RECENT_PATHS_ROMS)
+    , m_hard_disk_ofd(&RECENT_PATHS_HARD_DISKS)
+    , m_new_hard_disk_sfd(&RECENT_PATHS_HARD_DISKS) {
     this->SetDefaultSize(ImVec2(650, 450));
 
     m_rom_ofd.AddAllFilesFilter();

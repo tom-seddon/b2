@@ -276,12 +276,11 @@ static const double LEDS_POPUP_TIME_SECONDS = 1.;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string RECENT_PATHS_DISC_IMAGE = "disc_image";
-//static const std::string RECENT_PATHS_RAM="ram";
-static const std::string RECENT_PATHS_NVRAM = "nvram";
-static const std::string RECENT_PATHS_SCREENSHOT = "screenshot";
-static const std::string RECENT_PATHS_PRINTER = "printer";
-static const std::string RECENT_PATHS_SYMBOLS = "symbols";
+static const SelectorDialogTag RECENT_PATHS_DISC_IMAGE(0x72, 0x23, 0xE7, 0xC3, 0x78, 0xA0, 0x41, 0x0C, 0xB9, 0x63, 0x90, 0x2F, 0x24, 0x25, 0x01, 0xD7, "disc_image");
+static const SelectorDialogTag RECENT_PATHS_NVRAM(0x2E, 0xD9, 0x48, 0x1A, 0x34, 0xA5, 0x48, 0x95, 0x8B, 0x1B, 0xDE, 0xFE, 0x24, 0x07, 0x4F, 0xA2, "nvram");
+static const SelectorDialogTag RECENT_PATHS_SCREENSHOT(0x86, 0x14, 0x49, 0x92, 0xE5, 0x36, 0x4D, 0x99, 0xBE, 0xF1, 0x4A, 0xCA, 0x8B, 0x26, 0x05, 0x13, "screenshot");
+static const SelectorDialogTag RECENT_PATHS_PRINTER(0xC8, 0x23, 0x72, 0x73, 0x34, 0x60, 0x48, 0x94, 0x8D, 0x84, 0xD4, 0xE0, 0x61, 0xAA, 0xC7, 0x79, "printer");
+static const SelectorDialogTag RECENT_PATHS_SYMBOLS(0x8F, 0x3F, 0x81, 0xDE, 0x5D, 0x1B, 0x49, 0x9F, 0x83, 0xB0, 0xCB, 0xE5, 0x78, 0xA8, 0xB4, 0xD0, "symbols");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -294,10 +293,10 @@ const char BeebWindow::SDL_WINDOW_DATA_NAME[] = "D";
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::DriveState::DriveState()
-    : new_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
-    , open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
-    , new_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
-    , open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE) {
+    : new_disc_image_file_dialog(&RECENT_PATHS_DISC_IMAGE)
+    , open_disc_image_file_dialog(&RECENT_PATHS_DISC_IMAGE)
+    , new_direct_disc_image_file_dialog(&RECENT_PATHS_DISC_IMAGE)
+    , open_direct_disc_image_file_dialog(&RECENT_PATHS_DISC_IMAGE) {
     this->new_disc_image_file_dialog.AddFilter("BBC disc images", DISC_IMAGE_EXTENSIONS);
 
     {
@@ -1138,7 +1137,7 @@ class FileMenuItem {
     }
 };
 
-static size_t CleanUpRecentPaths(const std::string &tag) {
+static size_t CleanUpRecentPaths(const SelectorDialogTag *tag) {
     size_t n = 0;
 
     if (RecentPaths *rp = GetRecentPathsByTag(tag)) {
@@ -1465,8 +1464,8 @@ void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_clean_up_recent_files_lists_command)) {
         size_t n = 0;
 
-        n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE);
-        n += CleanUpRecentPaths(RECENT_PATHS_NVRAM);
+        n += CleanUpRecentPaths(&RECENT_PATHS_DISC_IMAGE);
+        n += CleanUpRecentPaths(&RECENT_PATHS_NVRAM);
 
         if (n > 0) {
             m_msg.i.f("Removed %zu items\n", n);
@@ -1541,7 +1540,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_save_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
-        SaveFileDialog fd(RECENT_PATHS_PRINTER);
+        SaveFileDialog fd(&RECENT_PATHS_PRINTER);
 
         fd.AddFilter("Data", {".dat"});
 
@@ -1600,7 +1599,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_save_screenshot_command)) {
-        SaveFileDialog fd(RECENT_PATHS_SCREENSHOT);
+        SaveFileDialog fd(&RECENT_PATHS_SCREENSHOT);
 
         fd.AddFilter("PNG", {".png"});
 
@@ -2134,7 +2133,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
         }
 
         if (ImGui::MenuItem("Save copy as...")) {
-            SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
+            SaveFileDialog fd(&RECENT_PATHS_DISC_IMAGE);
 
             std::vector<FileDialogFilter> filters = disc_image->GetFileDialogFilters();
             for (const FileDialogFilter &filter : filters) {
@@ -2536,7 +2535,7 @@ void BeebWindow::DoDebugMenu() {
             ImGui::EndMenu();
 
             if (load_symbols) {
-                OpenFileDialog fd(RECENT_PATHS_SYMBOLS);
+                OpenFileDialog fd(&RECENT_PATHS_SYMBOLS);
 
                 if (selected_parser) {
                     fd.AddFilter(selected_parser->GetFormatName(), selected_parser->GetSuggestedFileExtensions());

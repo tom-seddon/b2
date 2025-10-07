@@ -1292,6 +1292,8 @@ struct MemoryDebugWindowPersistentData {
 };
 JSON_SERIALIZE(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, scroll_y);
 
+static const SelectorDialogTag MEMORY_DEBUG_SAVE_MEMORY(0x43, 0xB8, 0xD1, 0x9F, 0x52, 0x13, 0x42, 0x21, 0x92, 0x0A, 0x83, 0xAF, 0x96, 0xD6, 0x69, 0x9D, "save_memory");
+
 class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPersistentData>,
                           public RevealTargetUI {
   public:
@@ -1443,7 +1445,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
                 ImGuiStyleColourPusher pusher;
                 pusher.PushDisabledButtonColours(!save_enabled);
                 if (ImGui::Button("Save memory...") && save_enabled) {
-                    SaveFileDialog fd("save_memory");
+                    SaveFileDialog fd(&MEMORY_DEBUG_SAVE_MEMORY);
 
                     fd.AddAllFilesFilter();
 
