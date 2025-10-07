@@ -129,7 +129,9 @@ class HTTPResponse {
     static HTTPResponse NotFound();
     static HTTPResponse NotFound(const HTTPRequest &request);
     static HTTPResponse UnsupportedMediaType(const HTTPRequest &request);
+    static HTTPResponse InternalServerError(const char *fmt, ...) PRINTF_LIKE(1, 2);
     static HTTPResponse ServiceUnavailable();
+    static HTTPResponse ServiceUnavailable(const char *fmt, ...) PRINTF_LIKE(1, 2);
 
     // A default-constructed HTTPResponse has a status of 500 Internal
     // Server Error.

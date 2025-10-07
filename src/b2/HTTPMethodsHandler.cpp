@@ -606,7 +606,7 @@ class HTTPMethodsHandler : public HTTPHandler {
             if (success) {
                 response = HTTPResponse::OK();
             } else {
-                response = HTTPResponse::ServiceUnavailable();
+                response = HTTPResponse::InternalServerError("The request did not succeed");
             }
 
             if (!message.empty()) {
