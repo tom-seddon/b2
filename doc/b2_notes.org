@@ -6024,4 +6024,24 @@ Starts with =start= if no start point specified.
 Debug = ~60 sec
 RelWithDebInfo = ~35 sec
 
+* Win32 Common Item Dialog
+
+https://learn.microsoft.com/en-us/windows/win32/shell/common-file-dialog
+
+https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/shell/appplatform/commonfiledialog
+
+
+** State persistence
+
+https://learn.microsoft.com/en-us/windows/win32/shell/common-file-dialog#state-persistence
+
+Sounds like this is doing the same thing that the dialog's tag is
+supposed to handle, but possibly more?
+
+Should rework the tag mechanism to have a GUID on all platforms, not
+least because actually creating an IShellItem (as required to set the
+initial folder/file) appears to be a monumental pain.
+
+Every string and every GUID would have to be independently unique.
+
 * eof.
