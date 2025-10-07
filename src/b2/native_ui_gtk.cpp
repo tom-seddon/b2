@@ -14,6 +14,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #include "load_save.h"
 #include "b2.h"
 #include <shared/debug.h>
+#include "native_ui_private.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -84,6 +85,30 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static GCancellable *g_current_gcancellable = nullptr;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CloseModalDialogLocked() {
+    ASSERT(!IsMainThread());
+    ASSERT(g_native_ui_modal_state == NativeUiModalState_Open);
+
+    if (!g_current_gcancellable) {
+        // can't cancel! Stuck!
+        return false;
+    }
+
+    g_cancellable_cancel(g_current_gcancellable);
+    g_current_gcancellable = nullptr;
+
+    // Should close in due course.
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct RunDialogData {
     // Set to true to stop the Gtk4 loop.
     bool stop = false;
@@ -111,6 +136,13 @@ static gboolean HandleRunDialogIdle(gpointer user_data) {
 static void RunDialog(RunDialogData *rdd) {
     GMainContext *gmain_context = g_main_context_default();
 
+    {
+        LockGuard lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_Open;
+        g_current_gcancellable = rdd->gcancellable;
+    }
+
     guint id = g_idle_add(&HandleRunDialogIdle, rdd);
 
     while (g_main_context_pending(gmain_context)) {
@@ -118,6 +150,13 @@ static void RunDialog(RunDialogData *rdd) {
         if (rdd->stop) {
             break;
         }
+    }
+
+    {
+        LockGuard lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_NotOpen;
+        g_current_gcancellable = nullptr;
     }
 
     g_source_remove(id);
