@@ -50,6 +50,7 @@ _run_tests:
 
 .PHONY: precommit_vs2022
 precommit_vs2022:
+	$(MAKE) clang-format
 	$(MAKE) _precommit VSYEAR=2022 VSVER=17
 
 .PHONY: _precommit
