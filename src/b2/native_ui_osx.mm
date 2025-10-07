@@ -7,6 +7,8 @@
 #include "native_ui_osx.h"
 #include <vector>
 #include "load_save.h"
+#include "b2.h"
+#include "native_ui_private.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -25,6 +27,16 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
     [pasteboard clearContents];
     [pasteboard setData:data
                 forType:NSPasteboardTypePNG];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CloseModalDialogLocked() {
+    ASSERT(!IsMainThread());
+    NSApplication *application = [NSApplication sharedApplication];
+
+    [application abortModal];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -87,7 +99,22 @@ static std::string RunModal(NSSavePanel *panel) {
     auto old_key_window = [NSApp keyWindow];
 
     std::string result;
-    if ([panel runModal] == NSModalResponseOK) {
+
+    {
+        LockGuard<Mutex> lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_Open;
+    }
+
+    NSModalResponse response = [panel runModal];
+
+    {
+        LockGuard<Mutex> lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_NotOpen;
+    }
+
+    if (response == NSModalResponseOK) {
         result.assign([[[panel URL] path] UTF8String]);
     }
 
