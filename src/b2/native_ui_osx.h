@@ -21,8 +21,6 @@ std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters
 std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path);
 
-std::string SelectFolderDialogOSX(const std::string &default_path);
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

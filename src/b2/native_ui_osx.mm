@@ -204,21 +204,3 @@ std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-std::string SelectFolderDialogOSX(const std::string &default_path) {
-    auto pool = [[NSAutoreleasePool alloc] init];
-
-    auto panel = [NSOpenPanel openPanel];
-
-    [panel setCanChooseDirectories:YES];
-    [panel setCanChooseFiles:NO];
-
-    SetDefaultPath(panel, default_path);
-
-    std::string result = RunModal(panel);
-
-    [pool release];
-    pool = nil;
-
-    return result;
-}
