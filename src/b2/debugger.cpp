@@ -1292,7 +1292,6 @@ struct MemoryDebugWindowPersistentData {
 };
 JSON_SERIALIZE(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, scroll_y);
 
-
 class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPersistentData>,
                           public RevealTargetUI {
   public:
