@@ -9,6 +9,7 @@
 #include <shared/log.h>
 #include "native_ui_private.h"
 #include "b2.h"
+#include <string.h>
 
 #if SYSTEM_OSX
 #include "native_ui_osx.h"
@@ -22,7 +23,11 @@
 //////////////////////////////////////////////////////////////////////////
 
 static std::map<const SelectorDialogTag *, RecentPaths> g_recent_paths_by_tag;
+
+// SelectorDialogTag objects are intended to be globals, initialised
+// before main begins. This flag is a crude way of checking for this.
 static bool g_selector_dialog_tags_ever_accessed;
+
 static std::vector<const SelectorDialogTag *> *g_selector_dialog_tags;
 
 static std::vector<const SelectorDialogTag *> *GetSelectorDialogTagsArray() {
@@ -44,6 +49,7 @@ SelectorDialogTag::SelectorDialogTag(uint8_t guid0, uint8_t guid1, uint8_t guid2
     std::vector<const SelectorDialogTag *> *tags = GetSelectorDialogTagsArray();
 
     for (const SelectorDialogTag *tag : *tags) {
+        (void)tag;
         ASSERT(memcmp(tag->guid, this->guid, 16) != 0);
         ASSERT(tag->name != this->name);
     }
@@ -64,6 +70,8 @@ SelectorDialogTag::~SelectorDialogTag() {
 //////////////////////////////////////////////////////////////////////////
 
 const std::vector<const SelectorDialogTag *> *GetAllSelectorDialogTags() {
+    g_selector_dialog_tags_ever_accessed = true;
+
     return GetSelectorDialogTagsArray();
 }
 
