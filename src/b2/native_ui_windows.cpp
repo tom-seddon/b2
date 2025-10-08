@@ -258,21 +258,25 @@ static std::string GetPathForShellItem(IShellItem *item) {
     return path_utf8;
 }
 
-static void SetClientGuid(IFileDialog *dialog, const uint8_t *guid_) {
+static void SetClientGuid(IFileDialog *dialog, const Guid &guid_) {
     GUID guid;
-    static_assert(sizeof(GUID) == 16);
-    memcpy(&guid, guid_, 16);
+    static_assert(sizeof(GUID) == sizeof(Guid));
+    memcpy(&guid, &guid_, sizeof(GUID));
 
     dialog->SetClientGuid(guid);
 }
 
 std::string OpenFileDialogWindows(SDL_Window *parent,
-                                  const uint8_t *guid,
+                                  const Guid &guid,
                                   const std::vector<FileDialog::Filter> &filters,
                                   const std::string &default_path) {
     // TODO: can probably remove this. The OS's GUID-based state persistence
     // should cover it?
     (void)default_path;
+
+    //char guid_str[GUID_STR_SIZE];
+    //GetGuidString(guid_str, guid);
+    //printf("File dialog GUID: %s\n", guid_str);
 
     CComPtr<IFileOpenDialog> dialog;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
@@ -307,9 +311,10 @@ std::string OpenFileDialogWindows(SDL_Window *parent,
 //////////////////////////////////////////////////////////////////////////
 
 std::string SaveFileDialogWindows(SDL_Window *parent,
-                                  const uint8_t *guid,
+                                  const Guid &guid,
                                   const std::vector<OpenFileDialog::Filter> &filters,
-                                  const std::string &default_path) {
+                                  const std::string &suggested_name,
+                                  const std::string &save_as_path) {
 
     CComPtr<IFileSaveDialog> dialog;
 
@@ -319,9 +324,11 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
 
     SetClientGuid(dialog, guid);
 
-    if (!default_path.empty()) {
-        CComPtr<IShellItem2> default_item = GetShellItemForPath(default_path);
-        dialog->SetSaveAsItem(default_item);
+    if (!suggested_name.empty()) {
+        dialog->SetFileName(GetWideString(suggested_name).c_str());
+    } else if (!save_as_path.empty()) {
+        CComPtr<IShellItem2> save_as_item = GetShellItemForPath(save_as_path);
+        dialog->SetSaveAsItem(save_as_item);
     }
 
     // This logic might want tweaking.

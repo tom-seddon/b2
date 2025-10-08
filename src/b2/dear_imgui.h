@@ -54,7 +54,7 @@ struct SDL_Texture;
 struct SDL_Renderer;
 struct SDL_Cursor;
 class Messages;
-class SelectorDialog;
+class RecentPaths;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -488,15 +488,14 @@ void ImGuiPlotHistogram(const char *label,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Shows a recent files menu, using the recent paths list for the given
-// file selector dialog.
+// Shows a recent files menu, using the given recent paths list.
 //
 // If one is selected, overwrite *SELECTED_PATH with that path and return true.
 //
 // If none selected, return false.
 bool ImGuiRecentMenu(std::string *selected_path,
                      const char *title,
-                     const SelectorDialog &selector);
+                     RecentPaths *paths);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

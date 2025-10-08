@@ -14,6 +14,7 @@
 #include <sstream>
 #include "misc.h"
 #include <shared/strings.h>
+#include "native_ui.h"
 
 #include <shared/enum_def.h>
 #include "SymbolTable.inl"
@@ -123,6 +124,13 @@ bool SymbolTable::LoadFromString(const std::string &content, const std::string &
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+SymbolTable::SymbolParser::SymbolParser(const Guid &guid_)
+    : guid(guid_) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // SymbolParserRegistry implementation
 std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> SymbolTable::SymbolParserRegistry::s_parsers;
 
@@ -170,6 +178,10 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
     };
 
   public:
+    BeebAsmParser()
+        : SymbolParser({0xf5, 0xa9, 0x9d, 0xca, 0x28, 0x34, 0x40, 0x86, 0x9f, 0x4b, 0xfd, 0xba, 0x78, 0xf1, 0x65, 0x2f}) {
+    }
+
     std::string GetFormatName() const override {
         return "BeebAsm";
     }
@@ -347,6 +359,10 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
 
 class ViceParser : public SymbolTable::SymbolParser {
   public:
+    ViceParser()
+        : SymbolParser({0xbf, 0xb6, 0xd5, 0xe6, 0xe9, 0x79, 0x46, 0x82, 0x98, 0xd2, 0x59, 0x0f, 0x53, 0xc9, 0x2f, 0xc7}) {
+    }
+
     std::string GetFormatName() const override {
         return "VICE";
     }
@@ -430,6 +446,10 @@ class ViceParser : public SymbolTable::SymbolParser {
 
 class AcmeParser : public SymbolTable::SymbolParser {
   public:
+    AcmeParser()
+        : SymbolParser({0x46, 0x9b, 0x95, 0xd1, 0x75, 0x16, 0x44, 0xd5, 0xa2, 0x0a, 0x9a, 0xbe, 0x3e, 0x36, 0xa5, 0x94}) {
+    }
+
     std::string GetFormatName() const override {
         return "ACME";
     }
@@ -511,10 +531,22 @@ class AcmeParser : public SymbolTable::SymbolParser {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TassLabelsParser : public AcmeParser {
+class TassLabelsParser : public SymbolTable::SymbolParser {
   public:
+    TassLabelsParser()
+        : SymbolParser({0x1b, 0xd0, 0x2f, 0xe8, 0x5a, 0x96, 0x47, 0xcd, 0x83, 0x23, 0x9e, 0x70, 0xe1, 0xe6, 0x92, 0x61}) {
+    }
+
     std::string GetFormatName() const override {
         return "64tass labels";
+    }
+
+    std::vector<std::string> GetSuggestedFileExtensions() const override {
+        return {".lbl", ".sym"};
+    }
+
+    bool MatchesLine(const std::string &) const override {
+        return false;
     }
 
     bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {

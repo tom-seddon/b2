@@ -16,6 +16,7 @@
 #include <memory>
 #include <vector>
 #include <shared/json.h>
+#include <shared/guid.h>
 
 // stupid windows.h crap.
 #ifdef MoveFile
@@ -160,9 +161,13 @@ class SymbolTable {
     // GetAddressForSymbol finds ANY symbol with the given name (ignores display precedence)
     bool GetAddressForSymbol(uint16_t *addr_ptr, uint32_t *dso_ptr, const std::shared_ptr<const BBCMicroType> &type, const std::string &name) const;
 
-    // Base class for symbol file parsers
+    // Base class for symbol file parsers.
     class SymbolParser {
       public:
+        // Used for associated open file dialog.
+        const Guid guid;
+
+        explicit SymbolParser(const Guid &guid);
         virtual ~SymbolParser() = default;
         virtual std::string GetFormatName() const = 0;
         virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;

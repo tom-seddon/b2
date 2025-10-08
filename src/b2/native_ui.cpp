@@ -22,57 +22,30 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::map<const SelectorDialogTag *, RecentPaths> g_recent_paths_by_tag;
+// RecentPaths objects are intended to be globals, initialised before main
+// begins. This flag is a crude way of checking for this.
+static bool g_tables_ever_accessed;
 
-// SelectorDialogTag objects are intended to be globals, initialised
-// before main begins. This flag is a crude way of checking for this.
-static bool g_selector_dialog_tags_ever_accessed;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-static std::vector<const SelectorDialogTag *> *g_selector_dialog_tags;
+static std::vector<RecentPaths *> *g_all_recent_paths;
 
-static std::vector<const SelectorDialogTag *> *GetSelectorDialogTagsArray() {
-    static std::vector<const SelectorDialogTag *> s_selector_dialog_tags;
+static std::vector<RecentPaths *> *GetMutableAllRecentPaths() {
+    static std::vector<RecentPaths *> s_all_recent_paths;
 
-    g_selector_dialog_tags = &s_selector_dialog_tags;
+    g_all_recent_paths = &s_all_recent_paths;
 
-    return &s_selector_dialog_tags;
+    return &s_all_recent_paths;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SelectorDialogTag::SelectorDialogTag(uint8_t guid0, uint8_t guid1, uint8_t guid2, uint8_t guid3, uint8_t guid4, uint8_t guid5, uint8_t guid6, uint8_t guid7, uint8_t guid8, uint8_t guid9, uint8_t guid10, uint8_t guid11, uint8_t guid12, uint8_t guid13, uint8_t guid14, uint8_t guid15, std::string name_)
-    : guid{guid0, guid1, guid2, guid3, guid4, guid5, guid6, guid7, guid8, guid9, guid10, guid11, guid12, guid13, guid14, guid15}
-    , name(std::move(name_)) {
-    ASSERT(!g_selector_dialog_tags_ever_accessed);
+const std::vector<RecentPaths *> *GetAllRecentPaths() {
+    g_tables_ever_accessed = true;
 
-    std::vector<const SelectorDialogTag *> *tags = GetSelectorDialogTagsArray();
-
-    for (const SelectorDialogTag *tag : *tags) {
-        (void)tag;
-        ASSERT(memcmp(tag->guid, this->guid, 16) != 0);
-        ASSERT(tag->name != this->name);
-    }
-
-    tags->push_back(this);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-SelectorDialogTag::~SelectorDialogTag() {
-    std::vector<const SelectorDialogTag *> *tags = GetSelectorDialogTagsArray();
-
-    tags->erase(std::remove(tags->begin(), tags->end(), this), tags->end());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const std::vector<const SelectorDialogTag *> *GetAllSelectorDialogTags() {
-    g_selector_dialog_tags_ever_accessed = true;
-
-    return GetSelectorDialogTagsArray();
+    return GetMutableAllRecentPaths();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -127,23 +100,9 @@ void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageLi
 
 #else
 
-    // ????
+#error
 
 #endif
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-RecentPaths *GetRecentPathsByTag(const SelectorDialogTag *tag) {
-    return &g_recent_paths_by_tag[tag];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void SetRecentPathsByTag(const SelectorDialogTag *tag, RecentPaths recents) {
-    g_recent_paths_by_tag[tag] = std::move(recents);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -169,16 +128,43 @@ bool CloseModalDialog() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-RecentPaths::RecentPaths()
-    : m_max_num_paths(20) //does this need to be tweakable?
+RecentPaths::RecentPaths(std::string name_)
+    : name(std::move(name_))
+    , m_max_num_paths(20) //does this need to be tweakable?
 {
     ASSERT(m_max_num_paths > 0);
+    ASSERT(!g_tables_ever_accessed);
+
+    std::vector<RecentPaths *> *all_paths = GetMutableAllRecentPaths();
+    for (RecentPaths *paths : *all_paths) {
+        (void)paths;
+        ASSERT(paths->name != this->name);
+    }
+
+    all_paths->push_back(this);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void RecentPaths::AddPath(const char *path) {
+RecentPaths::~RecentPaths() {
+    std::vector<RecentPaths *> *all_paths = GetMutableAllRecentPaths();
+
+    ASSERT(std::find(all_paths->begin(), all_paths->end(), this) != all_paths->end());
+    all_paths->erase(std::remove(all_paths->begin(), all_paths->end(), this), all_paths->end());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void RecentPaths::Clear() {
+    m_paths.clear();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void RecentPaths::AddPath(const std::string path) {
     {
         auto it = m_paths.begin();
 
@@ -195,7 +181,7 @@ void RecentPaths::AddPath(const char *path) {
         m_paths.resize(m_max_num_paths - 1);
     }
 
-    m_paths.insert(m_paths.begin(), path);
+    m_paths.insert(m_paths.begin(), std::move(path));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -226,8 +212,8 @@ void RecentPaths::RemovePathByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SelectorDialog::SelectorDialog(const SelectorDialogTag *tag)
-    : m_tag(tag) {
+SelectorDialog::SelectorDialog(const Guid &guid)
+    : m_guid(guid) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -239,19 +225,9 @@ SelectorDialog::~SelectorDialog() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-RecentPaths *SelectorDialog::GetRecentPaths() const {
-    RecentPaths *recent = GetRecentPathsByTag(m_tag);
-    return recent;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void SelectorDialog::AddLastPathToRecentPaths() {
-    if (RecentPaths *recent = GetRecentPathsByTag(m_tag)) {
-        if (!m_last_path.empty()) {
-            recent->AddPath(m_last_path.c_str());
-        }
+void SelectorDialog::AddLastPathToRecentPaths(RecentPaths *paths) {
+    if (!m_last_path.empty()) {
+        paths->AddPath(m_last_path);
     }
 }
 
@@ -259,21 +235,15 @@ void SelectorDialog::AddLastPathToRecentPaths() {
 //////////////////////////////////////////////////////////////////////////
 
 bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
-    if (m_last_path.empty()) {
-        if (RecentPaths *recent = GetRecentPathsByTag(m_tag)) {
-            if (recent->GetNumPaths() > 0) {
-                m_last_path = recent->GetPathByIndex(0);
-            }
-        }
-    }
-
     std::string result = this->HandleOpen(parent);
     if (result.empty()) {
         m_last_path.clear();
         return false;
     } else {
         m_last_path = result;
+
         *path = m_last_path;
+
         return true;
     }
 }
@@ -281,8 +251,8 @@ bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FileDialog::FileDialog(const SelectorDialogTag *tag)
-    : SelectorDialog(tag) {
+FileDialog::FileDialog(const Guid &guid)
+    : SelectorDialog(guid) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -310,8 +280,8 @@ void FileDialog::AddAllFilesFilter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-OpenFileDialog::OpenFileDialog(const SelectorDialogTag *tag)
-    : FileDialog(tag) {
+OpenFileDialog::OpenFileDialog(const Guid &guid)
+    : FileDialog(guid) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -335,7 +305,7 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 
 #elif SYSTEM_WINDOWS
 
-    return OpenFileDialogWindows(parent, m_tag->guid, m_filters, m_last_path);
+    return OpenFileDialogWindows(parent, m_guid, m_filters, m_last_path);
 
 #else
 
@@ -350,8 +320,22 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SaveFileDialog::SaveFileDialog(const SelectorDialogTag *tag)
-    : FileDialog(tag) {
+SaveFileDialog::SaveFileDialog(const Guid &guid)
+    : FileDialog(guid) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SaveFileDialog::SetSuggestedName(const std::string &path) {
+    m_suggested_name = PathGetName(path);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SaveFileDialog::SetSaveAsPath(std::string save_as_path) {
+    m_save_as_path = std::move(save_as_path);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -366,7 +350,7 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 
 #elif SYSTEM_WINDOWS
 
-    return SaveFileDialogWindows(parent, m_tag->guid, m_filters, m_last_path);
+    return SaveFileDialogWindows(parent, m_guid, m_filters, m_suggested_name, m_save_as_path);
 
 #else
 
@@ -375,38 +359,6 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 
 #endif
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// FolderDialog::FolderDialog(std::string tag)
-//     : SelectorDialog(std::move(tag)) {
-// }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// std::string FolderDialog::HandleOpen(SDL_Window *parent) {
-
-// #if SYSTEM_OSX
-
-//     (void)parent;
-//     std::string r = SelectFolderDialogOSX(m_last_path);
-//     return r;
-
-// #elif SYSTEM_WINDOWS
-
-//     std::string r = SelectFolderDialogWindows(parent, m_last_path);
-//     return r;
-
-// #else
-
-//     (void)parent;
-//     std::string r = SelectFolderDialogGTK(m_last_path);
-//     return r;
-
-// #endif
-// }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

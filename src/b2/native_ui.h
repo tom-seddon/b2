@@ -8,6 +8,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <shared/guid.h>
 
 class MessageList;
 class Messages;
@@ -45,11 +46,18 @@ double GetDoubleClickIntervalSeconds();
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Create these as globals. They are automatically added to a list for
+// serialization purposes and the name is checked for uniqueness.
 class RecentPaths {
   public:
-    RecentPaths();
+    const std::string name;
 
-    void AddPath(const char *path);
+    explicit RecentPaths(std::string name);
+    ~RecentPaths();
+
+    void Clear();
+
+    void AddPath(std::string path);
 
     size_t GetNumPaths() const;
 
@@ -64,31 +72,7 @@ class RecentPaths {
     std::vector<std::string> m_paths;
 };
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// these are automatically added to a list.
-class SelectorDialogTag {
-  public:
-    const uint8_t guid[16];
-    const std::string name;
-
-    SelectorDialogTag(uint8_t guid0, uint8_t guid1, uint8_t guid2, uint8_t guid3, uint8_t guid4, uint8_t guid5, uint8_t guid6, uint8_t guid7, uint8_t guid8, uint8_t guid9, uint8_t guid10, uint8_t guid11, uint8_t guid12, uint8_t guid13, uint8_t guid14, uint8_t guid15, std::string name);
-    ~SelectorDialogTag();
-
-    SelectorDialogTag(const SelectorDialogTag &) = delete;
-    SelectorDialogTag &operator=(const SelectorDialogTag &) = delete;
-    SelectorDialogTag(SelectorDialogTag &&) = delete;
-    SelectorDialogTag &operator=(SelectorDialogTag &&) = delete;
-};
-
-const std::vector<const SelectorDialogTag *> *GetAllSelectorDialogTags();
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-RecentPaths *GetRecentPathsByTag(const SelectorDialogTag *tag);
-void SetRecentPathsByTag(const SelectorDialogTag *tag, RecentPaths recents);
+const std::vector<RecentPaths *> *GetAllRecentPaths();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -106,13 +90,13 @@ bool CloseModalDialog();
 
 class SelectorDialog {
   public:
-    explicit SelectorDialog(const SelectorDialogTag *tag);
+    explicit SelectorDialog(const Guid &guid);
     virtual ~SelectorDialog() = 0;
 
     // return value is valid only until next LoadRecentPathsSettings.
-    RecentPaths *GetRecentPaths() const;
+    //RecentPaths *GetRecentPaths() const;
     //void SetRecentPathsTag(std::string tag);
-    void AddLastPathToRecentPaths();
+    void AddLastPathToRecentPaths(RecentPaths *paths);
 
     bool Open(SDL_Window *parent, std::string *path);
 
@@ -121,7 +105,7 @@ class SelectorDialog {
 
     std::string m_last_path;
 
-    const SelectorDialogTag *const m_tag;
+    const Guid m_guid;
 
   private:
 };
@@ -139,7 +123,7 @@ class FileDialog : public SelectorDialog {
         std::vector<std::string> extensions;
     };
 
-    explicit FileDialog(const SelectorDialogTag *tag);
+    explicit FileDialog(const Guid &guid);
 
     void AddFilter(std::string title, std::vector<std::string> extensions);
     void AddAllFilesFilter();
@@ -157,7 +141,7 @@ class FileDialog : public SelectorDialog {
 
 class OpenFileDialog : public FileDialog {
   public:
-    explicit OpenFileDialog(const SelectorDialogTag *tag);
+    explicit OpenFileDialog(const Guid &guid);
 
   protected:
     std::string HandleOpen(SDL_Window *parent) override;
@@ -170,34 +154,23 @@ class OpenFileDialog : public FileDialog {
 
 class SaveFileDialog : public FileDialog {
   public:
-    explicit SaveFileDialog(const SelectorDialogTag *tag);
+    explicit SaveFileDialog(const Guid &guid);
+
+    // Set the suggested name. The dialog will open at the last path used, with
+    // the name part of the path suggested.
+    void SetSuggestedName(const std::string &path);
+
+    // Set the Save As... path. The dialog will open at that path with that name
+    // suggested.
+    void SetSaveAsPath(std::string save_as_path);
 
   protected:
     std::string HandleOpen(SDL_Window *parent) override;
 
   private:
+    std::string m_suggested_name;
+    std::string m_save_as_path;
 };
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// This became redundant at one point. Probably
-// https://github.com/tom-seddon/b2/commit/152a25a9bc4cf0303c4e43efb0962445e48c2dca
-//
-// The Windows and macOS implementations are still present, for now,
-// but they'll probably need a pass if hoping to resurrect this.
-//
-// The Gtk code doesn't currently support it at all.
-
-// class FolderDialog : public SelectorDialog {
-//   public:
-//     explicit FolderDialog(std::string tag);
-
-//   protected:
-//     std::string HandleOpen(SDL_Window *parent) override;
-
-//   private:
-// };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

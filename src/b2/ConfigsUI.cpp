@@ -29,13 +29,14 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const SelectorDialogTag RECENT_PATHS_ROMS(0xC4, 0x57, 0x6C, 0xD4, 0xE6, 0x33, 0x4C, 0x63, 0xAD, 0x43, 0xC0, 0x88, 0xF4, 0xC8, 0xFB, 0x2C, "roms");
-static const SelectorDialogTag RECENT_PATHS_HARD_DISKS(0xF1, 0x5F, 0xA1, 0xE2, 0x3C, 0xF2, 0x48, 0x40, 0x95, 0x34, 0x90, 0x81, 0x32, 0x09, 0x4E, 0x10, "hard_disks");
 
 static const char NEW_CONFIG_POPUP[] = "new_config_popup";
 static const char COPY_CONFIG_POPUP[] = "copy_config_popup";
 static const char ROM_POPUP[] = "rom_popup";
 static const char SCSI_POPUP[] = "scsi_popup";
+
+static RecentPaths g_hard_disks_recent_paths("hard_disks");
+static RecentPaths g_roms_recent_paths("roms");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -80,9 +81,9 @@ class ConfigsUI : public SettingsUI {
 
 ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window)
-    , m_rom_ofd(&RECENT_PATHS_ROMS)
-    , m_hard_disk_ofd(&RECENT_PATHS_HARD_DISKS)
-    , m_new_hard_disk_sfd(&RECENT_PATHS_HARD_DISKS) {
+    , m_rom_ofd({0xC4, 0x57, 0x6C, 0xD4, 0xE6, 0x33, 0x4C, 0x63, 0xAD, 0x43, 0xC0, 0x88, 0xF4, 0xC8, 0xFB, 0x2C})
+    , m_hard_disk_ofd({0xF1, 0x5F, 0xA1, 0xE2, 0x3C, 0xF2, 0x48, 0x40, 0x95, 0x34, 0x90, 0x81, 0x32, 0x09, 0x4E, 0x10})
+    , m_new_hard_disk_sfd({0xe7, 0x34, 0xcc, 0xea, 0x15, 0x0f, 0x44, 0x84, 0xa5, 0x42, 0x9d, 0x12, 0x83, 0x1f, 0xf1, 0xc8}) {
     this->SetDefaultSize(ImVec2(650, 450));
 
     m_rom_ofd.AddAllFilesFilter();
@@ -498,14 +499,12 @@ void ConfigsUI::DoEditConfigGui() {
                 if (ImGui::BeginPopup(SCSI_POPUP)) {
                     if (ImGui::MenuItem("File...")) {
                         if (m_hard_disk_ofd.Open(m_beeb_window->GetSDLWindow(), &config->hard_disk_dat_paths[hard_disk_index])) {
+                            m_hard_disk_ofd.AddLastPathToRecentPaths(&g_hard_disks_recent_paths);
                             edited = true;
-                            m_hard_disk_ofd.AddLastPathToRecentPaths();
                         }
                     }
 
-                    if (ImGuiRecentMenu(&config->hard_disk_dat_paths[hard_disk_index],
-                                        "Recent file",
-                                        m_hard_disk_ofd)) {
+                    if (ImGuiRecentMenu(&config->hard_disk_dat_paths[hard_disk_index], "Recent file", &g_hard_disks_recent_paths)) {
                         edited = true;
                     }
 
@@ -519,6 +518,7 @@ void ConfigsUI::DoEditConfigGui() {
                                 if (m_new_hard_disk_sfd.Open(m_beeb_window->GetSDLWindow(), &dat_path)) {
                                     if (this->CreateNewHardDiskImage(*disk, dat_path)) {
                                         config->hard_disk_dat_paths[hard_disk_index] = dat_path;
+                                        g_hard_disks_recent_paths.AddPath(dat_path);
                                         edited = true;
                                     }
                                 }
@@ -825,13 +825,13 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
     if (ImGui::BeginPopup(ROM_POPUP)) {
         if (ImGui::MenuItem("File...")) {
             if (m_rom_ofd.Open(m_beeb_window->GetSDLWindow(), &rom->file_name)) {
+                m_rom_ofd.AddLastPathToRecentPaths(&g_roms_recent_paths);
                 rom->standard_rom = nullptr;
                 edited = true;
-                m_rom_ofd.AddLastPathToRecentPaths();
             }
         }
 
-        if (ImGuiRecentMenu(&rom->file_name, "Recent file", m_rom_ofd)) {
+        if (ImGuiRecentMenu(&rom->file_name, "Recent file", &g_roms_recent_paths)) {
             rom->standard_rom = nullptr;
             edited = true;
         }

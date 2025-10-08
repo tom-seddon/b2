@@ -1759,15 +1759,13 @@ void ImGuiPlotHistogram(const char *label,
 
 bool ImGuiRecentMenu(std::string *selected_path,
                      const char *title,
-                     const SelectorDialog &selector) {
-    RecentPaths *rp = selector.GetRecentPaths();
-
-    size_t num_rp = rp->GetNumPaths();
+                     RecentPaths *paths) {
+    size_t num_paths = paths->GetNumPaths();
     bool selected = false;
 
-    if (ImGui::BeginMenu(title, num_rp > 0)) {
-        for (size_t i = 0; i < num_rp; ++i) {
-            const std::string &path = rp->GetPathByIndex(i);
+    if (ImGui::BeginMenu(title, num_paths > 0)) {
+        for (size_t path_index = 0; path_index < num_paths; ++path_index) {
+            const std::string &path = paths->GetPathByIndex(path_index);
             if (ImGui::MenuItem(path.c_str())) {
                 *selected_path = path;
                 selected = true;
@@ -1777,13 +1775,13 @@ bool ImGuiRecentMenu(std::string *selected_path,
         ImGui::Separator();
 
         if (ImGui::BeginMenu("Remove item")) {
-            size_t i = 0;
+            size_t path_index = 0;
 
-            while (i < rp->GetNumPaths()) {
-                if (ImGui::MenuItem(rp->GetPathByIndex(i).c_str())) {
-                    rp->RemovePathByIndex(i);
+            while (path_index < paths->GetNumPaths()) {
+                if (ImGui::MenuItem(paths->GetPathByIndex(path_index).c_str())) {
+                    paths->RemovePathByIndex(path_index);
                 } else {
-                    ++i;
+                    ++path_index;
                 }
             }
 
