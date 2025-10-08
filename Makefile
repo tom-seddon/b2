@@ -1,4 +1,6 @@
- .PHONY:default
+MAKEFLAGS+=--no-print-directory
+
+.PHONY:default
 default:
 	$(error Must specify target)
 
