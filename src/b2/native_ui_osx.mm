@@ -9,6 +9,7 @@
 #include "load_save.h"
 #include "b2.h"
 #include "native_ui_private.h"
+#include <set>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -136,21 +137,24 @@ static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &fi
     SetDefaultPath(panel, default_path);
 
     if (!filters.empty()) {
-        // Special handling for ".*". The OS X dialog doesn't work quite like
-        // the Windows one.
-        bool all_files = false;
+        std::set<std::string> extensions;
         for (const OpenFileDialog::Filter &filter : filters) {
             for (const std::string &extension : filter.extensions) {
                 if (extension == ".*") {
-                    all_files = true;
-                    break;
+                    // Wildcard extensions don't seem to work.
+                    //
+                    // Skip this one. If it was the only one, the panel will
+                    // end up handling all extensions. If it wasn't, the
+                    // catch-all will just get lost - which isn't ideal, but
+                    // I don't know what else you can do?
+                } else {
+                    extensions.insert(extension);
                 }
             }
         }
 
-        if (all_files) {
-            // This is the default, so do nothing.
-        } else {
+        // if no file types are set, the dialog allows anything.
+        if (!extensions.empty()) {
             NSMutableArray<NSString *> *types = [NSMutableArray array];
 
             for (const OpenFileDialog::Filter &filter : filters) {
