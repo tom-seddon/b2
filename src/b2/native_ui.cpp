@@ -114,10 +114,10 @@ bool LoadSelectorDialogPersistentData(const JSON &j, std::string *error) {
     (void)j, (void)error;
 
     return true;
-    
+
 #elif SYSTEM_OSX
-    
-    return LoadSelectorDialogPersistentDataOSX(j,error);
+
+    return LoadSelectorDialogPersistentDataOSX(j, error);
 
 #elif SYSTEM_LINUX
 
@@ -133,9 +133,9 @@ void SaveSelectorDialogPersistentData(JSON *j) {
 #if SYSTEM_WINDOWS
 
     (void)j;
-    
+
 #elif SYSTEM_OSX
-    
+
     SaveSelectorDialogPersistentDataOSX(j);
 
 #elif SYSTEM_LINUX

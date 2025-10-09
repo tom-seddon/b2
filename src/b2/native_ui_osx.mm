@@ -221,8 +221,8 @@ std::string SaveFileDialogOSX(const Guid &guid,
     //
     // TODO: could/should enforce this on all platforms? Looks like macOS uses
     // the first extension from the first filter?
-    std::string name=PathWithoutExtension(PathGetName(suggested_name));
-    
+    std::string name = PathWithoutExtension(PathGetName(suggested_name));
+
     std::string result = DoFileDialogOSX(guid, filters, name, [NSSavePanel savePanel]);
 
     [pool release], pool = nil;
