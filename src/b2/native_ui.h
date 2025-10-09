@@ -169,14 +169,16 @@ class SaveFileDialog : public FileDialog {
 
     // Set the Save As... path. The dialog will open at that path with that name
     // suggested.
-    void SetSaveAsPath(std::string save_as_path);
+    //
+    // TODO: didn't end up using this.
+    //void SetSaveAsPath(std::string save_as_path);
 
   protected:
     std::string HandleOpen(SDL_Window *parent) override;
 
   private:
     std::string m_suggested_name;
-    std::string m_save_as_path;
+    //std::string m_save_as_path;
 };
 
 //////////////////////////////////////////////////////////////////////////

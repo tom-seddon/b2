@@ -374,9 +374,9 @@ void SaveFileDialog::SetSuggestedName(const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SaveFileDialog::SetSaveAsPath(std::string save_as_path) {
-    m_save_as_path = std::move(save_as_path);
-}
+//void SaveFileDialog::SetSaveAsPath(std::string save_as_path) {
+//    m_save_as_path = std::move(save_as_path);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -390,7 +390,7 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 
 #elif SYSTEM_WINDOWS
 
-    return SaveFileDialogWindows(parent, m_guid, m_filters, m_suggested_name, m_save_as_path);
+    return SaveFileDialogWindows(parent, m_guid, m_filters, m_suggested_name);
 
 #else
 

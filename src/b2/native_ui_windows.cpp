@@ -313,8 +313,7 @@ std::string OpenFileDialogWindows(SDL_Window *parent,
 std::string SaveFileDialogWindows(SDL_Window *parent,
                                   const Guid &guid,
                                   const std::vector<OpenFileDialog::Filter> &filters,
-                                  const std::string &suggested_name,
-                                  const std::string &save_as_path) {
+                                  const std::string &suggested_name) {
 
     CComPtr<IFileSaveDialog> dialog;
 
@@ -326,10 +325,11 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
 
     if (!suggested_name.empty()) {
         dialog->SetFileName(GetWideString(suggested_name).c_str());
-    } else if (!save_as_path.empty()) {
-        CComPtr<IShellItem2> save_as_item = GetShellItemForPath(save_as_path);
-        dialog->SetSaveAsItem(save_as_item);
     }
+    //else if (!save_as_path.empty()) {
+    //    CComPtr<IShellItem2> save_as_item = GetShellItemForPath(save_as_path);
+    //    dialog->SetSaveAsItem(save_as_item);
+    //}
 
     // This logic might want tweaking.
     if (!filters.empty()) {

@@ -21,8 +21,7 @@ std::string OpenFileDialogWindows(SDL_Window *parent,
 std::string SaveFileDialogWindows(SDL_Window *parent,
                                   const Guid &guid,
                                   const std::vector<OpenFileDialog::Filter> &filters,
-                                  const std::string &suggested_name,
-                                  const std::string &save_as_path);
+                                  const std::string &suggested_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
