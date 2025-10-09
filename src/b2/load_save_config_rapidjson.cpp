@@ -101,16 +101,24 @@ static bool FindMember(rapidjson::Value *member, rapidjson::Value *object, const
         return false;
     }
 
-    if (!(it->value.*is_type_mfn)()) {
-        if (msg) {
-            msg->w.f("not %s: %s\n", type_name, key);
-        }
+    if (is_type_mfn) {
+        if (!(it->value.*is_type_mfn)()) {
+            if (msg) {
+                msg->w.f("not %s: %s\n", type_name, key);
+            }
 
-        return false;
+            return false;
+        }
+    } else {
+        ASSERT(!type_name);
     }
 
     *member = it->value;
     return true;
+}
+
+static bool FindMember(rapidjson::Value *arr, rapidjson::Value *src, const char *key, Messages *msg) {
+    return FindMember(arr, src, key, msg, nullptr, nullptr);
 }
 
 static bool FindArrayMember(rapidjson::Value *arr, rapidjson::Value *src, const char *key, Messages *msg) {
@@ -317,6 +325,7 @@ static const char PARASITE_OS_EXTERNAL_3MHZ_65C02[] = "parasite_os_external_3MHz
 static const char JOYSTICKS[] = "joysticks";
 static const char DEVICE_NAMES[] = "device_names";
 static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
+static const char SELECTOR_DIALOG_PERSISTENT_DATA[] = "selector_dialog_persistent_data";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -589,6 +598,30 @@ static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
             }
         }
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool LoadSelectorDialogPersistentData(rapidjson::Value *selector_dialog_persistent_data_json, Messages *msg) {
+    (void)msg;
+
+    JSON j = LoadNLohmannJSON(*selector_dialog_persistent_data_json);
+    LoadSelectorDialogPersistentData(j, nullptr);
+
+    // Don't (currently?) fail. It isn't important enough.
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void SaveSelectorDialogPersistentData(JSONWriter<StringStream> *writer) {
+    JSON j;
+    SaveSelectorDialogPersistentData(&j);
+
+    writer->Key(SELECTOR_DIALOG_PERSISTENT_DATA);
+    SaveNLohmannJSON(writer, j.AsNLohmannJSON());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1322,6 +1355,15 @@ bool LoadGlobalConfigRapidJSON(Messages *msg) {
             }
         }
 
+        rapidjson::Value selector_dialog_persistent_data;
+        if (FindMember(&selector_dialog_persistent_data, doc.get(), SELECTOR_DIALOG_PERSISTENT_DATA, msg)) {
+            LOGF(LOADSAVE, "Loading selector dialog persistent data.\n");
+
+            if (!LoadSelectorDialogPersistentData(&selector_dialog_persistent_data, msg)) {
+                return false;
+            }
+        }
+
         rapidjson::Value keymaps;
         if (FindArrayMember(&keymaps, doc.get(), OLD_KEYMAPS, msg)) {
             LOGF(LOADSAVE, "Loading keymaps.\n");
@@ -1483,6 +1525,8 @@ bool SaveGlobalConfigRapidJSON(Messages *messages) {
         SaveGlobals(&writer);
 
         SaveRecentPaths(&writer);
+
+        SaveSelectorDialogPersistentData(&writer);
 
         SaveKeymaps(&writer);
 

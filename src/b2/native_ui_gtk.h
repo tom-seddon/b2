@@ -6,6 +6,9 @@
 
 #include <vector>
 #include <string>
+#include <shared/json.h>
+
+struct Guid;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -15,11 +18,19 @@ void MessageBox(const std::string &title, const std::string &text);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
+bool LoadSelectorDialogPersistentDataGTK(const JSON &j, std::string *error);
+void SaveSelectorDialogPersistentDataGTK(JSON *j);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string OpenFileDialogGTK(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path);
 
-std::string SaveFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path);
+std::string SaveFileDialogGTK(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters,
+                              const std::string &suggested_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

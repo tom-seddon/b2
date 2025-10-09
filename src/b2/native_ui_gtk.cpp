@@ -1,4 +1,6 @@
 #include <shared/system.h>
+#include <nlohmann/json.hpp>
+#include <shared/json.h>
 #include "native_ui.h"
 #include "native_ui_gtk.h"
 #include <glib-2.0/glib.h>
@@ -15,6 +17,27 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #include "b2.h"
 #include <shared/debug.h>
 #include "native_ui_private.h"
+#include <map>
+#include <shared/path.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct PersistentFileDialogData {
+    std::string last_folder;
+};
+
+JSON_SERIALIZE(PersistentFileDialogData, last_folder);
+
+static std::map<Guid, PersistentFileDialogData> g_persistent_file_dialog_data_by_guid;
+
+bool LoadSelectorDialogPersistentDataGTK(const JSON &j, std::string *error) {
+    return j.Load(&g_persistent_file_dialog_data_by_guid, error);
+}
+
+void SaveSelectorDialogPersistentDataGTK(JSON *j) {
+    j->Save(g_persistent_file_dialog_data_by_guid);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -205,12 +228,59 @@ void MessageBox(const std::string &title, const std::string &text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static GtkFileDialog *CreateFileDialog(const char *title,
-                                       const std::vector<OpenFileDialog::Filter> &filters,
-                                       const std::string &default_path) {
-    GtkFileDialog *gdialog = gtk_file_dialog_new();
+struct RunFileDialogData : public RunDialogData {
+    PersistentFileDialogData *persistent_data = nullptr;
+    GtkFileDialog *gdialog = nullptr;
+    GFile *gfile = nullptr;
+    GError *gerror = nullptr;
+};
 
-    gtk_file_dialog_set_title(gdialog, title);
+static std::string RunFileDialog(RunFileDialogData *rfdd) {
+    RunDialog(rfdd);
+
+    if (rfdd->gerror) {
+        g_error_free(rfdd->gerror), rfdd->gerror = nullptr;
+    }
+
+    std::string path;
+    if (rfdd->gfile) {
+        if (char *path_tmp = g_file_get_path(rfdd->gfile)) {
+            path = path_tmp;
+            g_free(path_tmp), path_tmp = nullptr;
+
+            rfdd->persistent_data->last_folder = PathGetFolder(path);
+        } else {
+            rfdd->persistent_data->last_folder.clear();
+        }
+
+        printf("%s: last folder now: \"%s\"\n", __func__, rfdd->persistent_data->last_folder.c_str());
+
+        g_object_unref(rfdd->gfile), rfdd->gfile = nullptr;
+    }
+
+    return path;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void CreateFileDialog(RunFileDialogData *rfdd,
+                             const Guid &guid,
+                             const char *title,
+                             const std::vector<OpenFileDialog::Filter> &filters,
+                             const std::string &initial_name) {
+    rfdd->persistent_data = &g_persistent_file_dialog_data_by_guid[guid];
+
+    {
+        char guid_str[GUID_STR_SIZE];
+        GetStringFromGuid(guid_str, guid);
+
+        printf("%s: %s: last folder: \"%s\"\n", __func__, guid_str, rfdd->persistent_data->last_folder.c_str());
+    }
+
+    rfdd->gdialog = gtk_file_dialog_new();
+
+    gtk_file_dialog_set_title(rfdd->gdialog, title);
 
     GListStore *gfilters = g_list_store_new(GTK_TYPE_FILE_FILTER);
 
@@ -237,44 +307,20 @@ static GtkFileDialog *CreateFileDialog(const char *title,
         g_object_unref(gfilter), gfilter = nullptr;
     }
 
-    gtk_file_dialog_set_filters(gdialog, G_LIST_MODEL(gfilters));
+    gtk_file_dialog_set_filters(rfdd->gdialog, G_LIST_MODEL(gfilters));
     g_object_unref(gfilters), gfilters = nullptr;
 
-    if (!default_path.empty()) {
-        GFile *gdefault_path = g_file_new_for_path(default_path.c_str());
-        gtk_file_dialog_set_initial_file(gdialog, gdefault_path);
-        g_object_unref(gdefault_path), gdefault_path = nullptr;
+    if (!rfdd->persistent_data->last_folder.empty()) {
+        GFile *gdefault_folder = g_file_new_for_path(rfdd->persistent_data->last_folder.c_str());
+        gtk_file_dialog_set_initial_folder(rfdd->gdialog, gdefault_folder);
+        g_object_unref(gdefault_folder), gdefault_folder = nullptr;
     }
 
-    return gdialog;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-struct RunFileDialogData : public RunDialogData {
-    GtkFileDialog *gdialog = nullptr;
-    GFile *gfile = nullptr;
-    GError *gerror = nullptr;
-};
-
-static std::string RunFileDialog(RunFileDialogData *rfdd) {
-    RunDialog(rfdd);
-
-    if (rfdd->gerror) {
-        g_error_free(rfdd->gerror), rfdd->gerror = nullptr;
+    if (!initial_name.empty()) {
+        gtk_file_dialog_set_initial_name(rfdd->gdialog, initial_name.c_str());
     }
 
-    std::string path;
-    if (rfdd->gfile) {
-        if (char *path_tmp = g_file_get_path(rfdd->gfile)) {
-            path = path_tmp;
-            g_free(path_tmp), path_tmp = nullptr;
-        }
-        g_object_unref(rfdd->gfile), rfdd->gfile = nullptr;
-    }
-
-    return path;
+    rfdd->gcancellable = g_cancellable_new();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -294,13 +340,15 @@ static void HandleOpenFileComplete(GObject *source_object,
     rfdd->stop = true;
 }
 
-std::string OpenFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
+std::string OpenFileDialogGTK(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path) {
     RunFileDialogData rfdd;
-    rfdd.gdialog = CreateFileDialog("Open File",
-                                    filters,
-                                    default_path);
-    rfdd.gcancellable = g_cancellable_new();
+    CreateFileDialog(&rfdd,
+                     guid,
+                     "Open File",
+                     filters,
+                     default_path);
 
     gtk_file_dialog_open(rfdd.gdialog,
                          nullptr,
@@ -328,13 +376,15 @@ static void HandleSaveFileComplete(GObject *source_object,
     rfdd->stop = true;
 }
 
-std::string SaveFileDialogGTK(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path) {
+std::string SaveFileDialogGTK(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters,
+                              const std::string &suggested_name) {
     RunFileDialogData rfdd;
-    rfdd.gdialog = CreateFileDialog("Save File",
-                                    filters,
-                                    default_path);
-    rfdd.gcancellable = g_cancellable_new();
+    CreateFileDialog(&rfdd,
+                     guid,
+                     "Save File",
+                     filters,
+                     suggested_name);
 
     gtk_file_dialog_save(rfdd.gdialog,
                          nullptr,

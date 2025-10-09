@@ -108,6 +108,36 @@ void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageLi
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool LoadSelectorDialogPersistentData(const JSON &j, std::string *error) {
+#if SYSTEM_WINDOWS || SYSTEM_OSX
+
+    return true;
+
+#elif SYSTEM_LINUX
+
+    return LoadSelectorDialogPersistentDataGTK(j, error);
+
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SaveSelectorDialogPersistentData(JSON *j) {
+#if SYSTEM_WINDOWS || SYSTEM_OSX
+
+    (void)j;
+
+#elif SYSTEM_LINUX
+
+    SaveSelectorDialogPersistentDataGTK(j);
+
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool CloseModalDialog() {
     ASSERT(!IsMainThread()); //TODO: fix if there's ever a need for it...
 
@@ -312,7 +342,7 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
     // The window SDL creates doesn't seem to be one that GTK
     // understands.
     (void)parent;
-    return OpenFileDialogGTK(m_filters, m_last_path);
+    return OpenFileDialogGTK(m_guid, m_filters, m_last_path);
 
 #endif
 }
@@ -355,7 +385,7 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 #else
 
     (void)parent;
-    return SaveFileDialogGTK(m_filters, m_last_path);
+    return SaveFileDialogGTK(m_guid, m_filters, m_suggested_name);
 
 #endif
 }

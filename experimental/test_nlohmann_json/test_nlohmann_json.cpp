@@ -18,6 +18,8 @@
 #include <optional>
 #include <type_traits>
 #include <SDL.h>
+#include <shared/guid.h>
+#include <shared/debug.h>
 
 #include <shared/enum_decl.h>
 #include "test_nlohmann_json.inl"
@@ -28,6 +30,23 @@
 #include <shared/enum_end.h>
 
 // https://github.com/nlohmann/json/issues/975 - unique_ptr/shared_ptr
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// void to_json(nlohmann::json &j, const Guid &guid){
+//     char guid_str[GUID_STR_SIZE];
+//     GetStringFromGuid(guid_str,guid);
+
+//     j=guid_str;
+// }
+
+// void from_json(const nlohmann::json&j,Guid&guid){
+//     std::string str=j.template get<std::string>();
+//     if(!GetGuidFromString(&guid,str.c_str())){
+//         throw nlohmann::json::type_error::create(302, std::string("bad GUID"), nullptr);
+//     }
+// }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -316,6 +335,59 @@ static void TestOptionalStuff() {
     printf("%d %d %d %s\n", test3.test.x, test3.test.y, test3.test.z, test3.test.str.c_str());
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void TestGuid() {
+    nlohmann::json j_value = Guid{0x90, 0x08, 0x17, 0x67, 0xcc, 0xdb, 0x4b, 0xa7, 0xb3, 0x26, 0x64, 0x73, 0xf2, 0x19, 0x6b, 0x37};
+    std::string str = j_value.dump(4);
+    printf("GUID:\n---8<---\n%s\n---8<---\n", str.c_str());
+
+    try {
+        nlohmann::json j = nlohmann::json::parse(str);
+        Guid guid = j.template get<Guid>();
+        char guid_str[GUID_STR_SIZE];
+        GetStringFromGuid(guid_str, guid);
+        printf("Got Guid back: %s\n", guid_str);
+    } catch (nlohmann::json::exception &ex) {
+        fprintf(stderr, "FATAL: error: %s\n", ex.what());
+    }
+
+    std::map<Guid, std::string> test_map;
+
+    Guid g0{0xb4, 0xe0, 0x9b, 0xd4, 0x13, 0xf7, 0x4e, 0x06, 0xad, 0x7f, 0x85, 0xc1, 0x2e, 0x95, 0xcf, 0x59};
+    Guid g1{0x23, 0x3a, 0xa5, 0xbd, 0x33, 0xd8, 0x49, 0x44, 0x81, 0x12, 0x9b, 0x81, 0x92, 0xa1, 0xd0, 0x8a};
+    Guid g2{0x2e, 0x6a, 0xf0, 0x0e, 0xb9, 0x04, 0x46, 0x14, 0xa9, 0xc5, 0x68, 0x8f, 0xc2, 0xdb, 0x05, 0x4e};
+
+    test_map[g0] = "g0";
+    test_map[g1] = "g1";
+    test_map[g2] = "g2";
+
+    nlohmann::json j_map = test_map;
+    std::string j_map_str = j_map.dump(4);
+    printf("GUID map:\n--8<--\n%s\n--8<--\n", j_map_str.c_str());
+
+    try {
+        nlohmann::json j = nlohmann::json::parse(j_map_str);
+        std::map<Guid, std::string> test_map_2 = j.template get<std::map<Guid, std::string>>();
+        printf("it worked...\n");
+        TEST_EQ_UU(test_map.size(), test_map_2.size());
+        auto &&ait = test_map.begin();
+        auto &&bit = test_map_2.begin();
+        while (ait != test_map.end()) {
+            TEST_TRUE(ait->first == bit->first);
+            TEST_EQ_SS(ait->second, bit->second);
+            ++ait;
+            ++bit;
+        }
+    } catch (nlohmann::json::exception &ex) {
+        fprintf(stderr, "FATAL: error: %s\n", ex.what());
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char *argv[]) {
     (void)argc, (void)argv;
 
@@ -409,6 +481,8 @@ int main(int argc, char *argv[]) {
     TestOptionalStuff();
 
     fputs(serialize2.c_str(), stdout);
+
+    TestGuid();
 
     return 0;
 }
