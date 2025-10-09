@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <nlohmann/json.hpp>
 #include <shared/debug.h>
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
@@ -10,6 +11,29 @@
 #include "b2.h"
 #include "native_ui_private.h"
 #include <set>
+#include <map>
+#include <shared/guid.h>
+#include <shared/json.h>
+#include <shared/path.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct PersistentFileDialogData {
+    std::string last_folder;
+};
+
+JSON_SERIALIZE(PersistentFileDialogData, last_folder);
+
+static std::map<Guid, PersistentFileDialogData> g_persistent_file_dialog_data_by_guid;
+
+bool LoadSelectorDialogPersistentDataOSX(const JSON &j, std::string *error) {
+    return j.Load(&g_persistent_file_dialog_data_by_guid, error);
+}
+
+void SaveSelectorDialogPersistentDataOSX(JSON *j) {
+    j->Save(g_persistent_file_dialog_data_by_guid);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -85,56 +109,20 @@ double GetDoubleClickIntervalSeconds() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SetDefaultPath(NSSavePanel *panel, const std::string &default_path) {
-    if (!default_path.empty()) {
-        auto default_url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:default_path.c_str()]];
-        [panel setDirectoryURL:[default_url URLByDeletingLastPathComponent]];
-        [panel setNameFieldStringValue:default_url.lastPathComponent];
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::string RunModal(NSSavePanel *panel) {
-    auto old_key_window = [NSApp keyWindow];
-
-    std::string result;
-
-    {
-        LockGuard<Mutex> lock(g_native_ui_globals_mutex);
-
-        g_native_ui_modal_state = NativeUiModalState_Open;
-    }
-
-    NSModalResponse response = [panel runModal];
-
-    {
-        LockGuard<Mutex> lock(g_native_ui_globals_mutex);
-
-        g_native_ui_modal_state = NativeUiModalState_NotOpen;
-    }
-
-    if (response == NSModalResponseOK) {
-        result.assign([[[panel URL] path] UTF8String]);
-    }
-
-    /* For some reason, OS X doesn't seem to do this
-     * automatically, even though b2 has an app bundle with an
-     * Info.plist and whatnot and otherwise seems to behave normally.
-     */
-    [old_key_window makeKeyWindow];
-
-    return result;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
-                                   const std::string &default_path,
+static std::string DoFileDialogOSX(const Guid &guid,
+                                   const std::vector<OpenFileDialog::Filter> &filters,
+                                   const std::string &name_field_value,
                                    NSSavePanel *panel) {
-    SetDefaultPath(panel, default_path);
+    PersistentFileDialogData *persistent_data = &g_persistent_file_dialog_data_by_guid[guid];
+
+    if (!persistent_data->last_folder.empty()) {
+        auto url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:persistent_data->last_folder.c_str()] isDirectory:YES];
+        [panel setDirectoryURL:url];
+    }
+
+    if (!name_field_value.empty()) {
+        [panel setNameFieldStringValue:[NSString stringWithUTF8String:name_field_value.c_str()]];
+    }
 
     if (!filters.empty()) {
         std::set<std::string> extensions;
@@ -173,20 +161,50 @@ static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &fi
         }
     }
 
-    return RunModal(panel);
+    NSWindow *old_key_window = [NSApp keyWindow];
+
+    {
+        LockGuard<Mutex> lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_Open;
+    }
+
+    NSModalResponse response = [panel runModal];
+
+    {
+        LockGuard<Mutex> lock(g_native_ui_globals_mutex);
+
+        g_native_ui_modal_state = NativeUiModalState_NotOpen;
+    }
+
+    if (response == NSModalResponseOK) {
+    }
+
+    /* For some reason, OS X doesn't seem to do this
+     * automatically, even though b2 has an app bundle with an
+     * Info.plist and whatnot and otherwise seems to behave normally.
+     */
+    [old_key_window makeKeyWindow];
+
+    if (response == NSModalResponseOK) {
+        persistent_data->last_folder = [[[panel directoryURL] path] UTF8String];
+        std::string result = [[[panel URL] path] UTF8String];
+        return result;
+    } else {
+        return "";
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path) {
+std::string OpenFileDialogOSX(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters) {
     auto pool = [[NSAutoreleasePool alloc] init];
 
-    std::string result = DoFileDialogOSX(filters, default_path, [NSOpenPanel openPanel]);
+    std::string result = DoFileDialogOSX(guid, filters, "", [NSOpenPanel openPanel]);
 
-    [pool release];
-    pool = nil;
+    [pool release], pool = nil;
 
     return result;
 }
@@ -194,14 +212,20 @@ std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path) {
+std::string SaveFileDialogOSX(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters,
+                              const std::string &suggested_name) {
     auto pool = [[NSAutoreleasePool alloc] init];
 
-    std::string result = DoFileDialogOSX(filters, default_path, [NSSavePanel savePanel]);
+    // macOS assumes the name doesn't have an extension.
+    //
+    // TODO: could/should enforce this on all platforms? Looks like macOS uses
+    // the first extension from the first filter?
+    std::string name=PathWithoutExtension(PathGetName(suggested_name));
+    
+    std::string result = DoFileDialogOSX(guid, filters, name, [NSSavePanel savePanel]);
 
-    [pool release];
-    pool = nil;
+    [pool release], pool = nil;
 
     return result;
 }

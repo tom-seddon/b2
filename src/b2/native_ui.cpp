@@ -109,9 +109,15 @@ void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageLi
 //////////////////////////////////////////////////////////////////////////
 
 bool LoadSelectorDialogPersistentData(const JSON &j, std::string *error) {
-#if SYSTEM_WINDOWS || SYSTEM_OSX
+#if SYSTEM_WINDOWS
+
+    (void)j, (void)error;
 
     return true;
+    
+#elif SYSTEM_OSX
+    
+    return LoadSelectorDialogPersistentDataOSX(j,error);
 
 #elif SYSTEM_LINUX
 
@@ -124,9 +130,13 @@ bool LoadSelectorDialogPersistentData(const JSON &j, std::string *error) {
 //////////////////////////////////////////////////////////////////////////
 
 void SaveSelectorDialogPersistentData(JSON *j) {
-#if SYSTEM_WINDOWS || SYSTEM_OSX
+#if SYSTEM_WINDOWS
 
     (void)j;
+    
+#elif SYSTEM_OSX
+    
+    SaveSelectorDialogPersistentDataOSX(j);
 
 #elif SYSTEM_LINUX
 
@@ -331,7 +341,7 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 
     // macOS modal dialogs are app-modal.
     (void)parent;
-    return OpenFileDialogOSX(m_filters, m_last_path);
+    return OpenFileDialogOSX(m_guid, m_filters);
 
 #elif SYSTEM_WINDOWS
 
@@ -376,7 +386,7 @@ std::string SaveFileDialog::HandleOpen(SDL_Window *parent) {
 #if SYSTEM_OSX
 
     (void)parent;
-    return SaveFileDialogOSX(m_filters, m_last_path);
+    return SaveFileDialogOSX(m_guid, m_filters, m_suggested_name);
 
 #elif SYSTEM_WINDOWS
 

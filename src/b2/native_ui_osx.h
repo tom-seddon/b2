@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+struct Guid;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -15,11 +17,18 @@ void MessageBox(const std::string &title, const std::string &text);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path);
+bool LoadSelectorDialogPersistentDataOSX(const JSON &j, std::string *error);
+void SaveSelectorDialogPersistentDataOSX(JSON *j);
 
-std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string OpenFileDialogOSX(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters);
+
+std::string SaveFileDialogOSX(const Guid &guid,
+                              const std::vector<OpenFileDialog::Filter> &filters,
+                              const std::string &suggested_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
