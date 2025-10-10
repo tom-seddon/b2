@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "nlohmann_json_wrapper.h"
 #include <shared/json.h>
 #include "native_ui.h"
 #include "native_ui_gtk.h"

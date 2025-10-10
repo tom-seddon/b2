@@ -217,10 +217,10 @@ DiscGeometry::DiscGeometry(size_t num_tracks_,
                            bool adfs_)
     : double_sided(double_sided_)
     , double_density(double_density_)
+    , adfs(adfs_)
     , num_tracks(num_tracks_)
     , sectors_per_track(sectors_per_track_)
-    , bytes_per_sector(bytes_per_sector_)
-    , adfs(adfs_) {
+    , bytes_per_sector(bytes_per_sector_) {
 }
 
 //////////////////////////////////////////////////////////////////////////
