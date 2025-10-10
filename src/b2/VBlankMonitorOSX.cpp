@@ -93,12 +93,16 @@ class VBlankMonitorOSX : public VBlankMonitor {
         }
 
         ~Display() {
+#include <shared/pushwarn_deprecated.h>
             CVReturn cvr = CVDisplayLinkStop(this->link);
+#include <shared/popwarn.h>
             (void)cvr;
             ASSERTF(cvr == kCVReturnSuccess, "%s", GetCVReturnEnumName(cvr));
             this->link = nullptr;
 
+#include <shared/pushwarn_deprecated.h>
             CVDisplayLinkRelease(this->link);
+#include <shared/popwarn.h>
             this->link = nullptr;
 
             if (this->data) {
@@ -170,22 +174,28 @@ class VBlankMonitorOSX : public VBlankMonitor {
             return false;
         }
 
+#include <shared/pushwarn_deprecated.h>
         cvr = CVDisplayLinkCreateWithCGDisplay(display->id,
+#include <shared/popwarn.h>
                                                &display->link);
         if (cvr != kCVReturnSuccess) {
             LOGF(VBLANK, "CVDisplayLinkCreateWithCGDisplay failed: %s\n", GetCVReturnEnumName(cvr));
             return false;
         }
 
+#include <shared/pushwarn_deprecated.h>
         cvr = CVDisplayLinkSetOutputCallback(display->link,
                                              &OutputCallback,
                                              display.get());
+#include <shared/popwarn.h>
         if (cvr != kCVReturnSuccess) {
             LOGF(VBLANK, "CVDisplayLinkSetOutputCallback failed: %s\n", GetCVReturnEnumName(cvr));
             return false;
         }
 
+#include <shared/pushwarn_deprecated.h>
         cvr = CVDisplayLinkStart(display->link);
+#include <shared/popwarn.h>
         if (cvr != kCVReturnSuccess) {
             LOGF(VBLANK, "CVDisplayLinkStart failed: %s\n", GetCVReturnEnumName(cvr));
             return false;

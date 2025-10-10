@@ -618,8 +618,10 @@ int main(int argc, char *argv[]) {
                 [NSGraphicsContext saveGraphicsState];
                 [NSGraphicsContext setCurrentContext:graphics_context];
                 //- (void)drawAtPoint:(NSPoint)point fromRect:(NSRect)fromRect operation:(NSCompositingOperation)op fraction:(CGFloat)delta;
+#include <shared/pushwarn_deprecated.h>
                 [image compositeToPoint:NSMakePoint(0, 0)
                               operation:NSCompositingOperationCopy];
+#include <shared/popwarn.h>
                 [NSGraphicsContext restoreGraphicsState];
 
                 cvr = CVPixelBufferUnlockBaseAddress(pixel_buffer, 0);
