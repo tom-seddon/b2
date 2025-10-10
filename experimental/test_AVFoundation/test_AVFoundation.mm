@@ -504,7 +504,7 @@ int main(int argc, char *argv[]) {
             num_frames = std::min(num_frames, (size_t)options.max_num_frames);
         }
 
-        double audio_data_index = 0.;
+        //double audio_data_index = 0.;
         double audio_data_samples_per_frame = 0.;
         if (got_wav_file) {
             const WAVEFORMATEX *fmt = GetWAVEFORMATEX(wav_file);
