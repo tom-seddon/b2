@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "nlohmann_json_wrapper.h"
 #include <shared/debug.h>
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
