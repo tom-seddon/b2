@@ -16,6 +16,7 @@ struct Disc {
     std::string name; //shown in UI
     std::string path;
     const DiscGeometry *geometry;
+    bool blank; // If not blank, the UX is slightly different.
 
     std::string GetAssetPath() const;
 };
@@ -28,6 +29,9 @@ extern const size_t NUM_BLANK_DFS_DISCS;
 
 extern const Disc BLANK_ADFS_DISCS[];
 extern const size_t NUM_BLANK_ADFS_DISCS;
+
+extern const Disc WELCOME_DISKS[];
+extern const size_t NUM_WELCOME_DISKS;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

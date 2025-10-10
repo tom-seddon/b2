@@ -31,8 +31,8 @@ std::string HardDisk::GetDSCAssetPath() const {
 //////////////////////////////////////////////////////////////////////////
 
 extern const Disc BLANK_DFS_DISCS[] = {
-    {"DFS 80T SSD", "80.ssd", &SSD_GEOMETRY},
-    {"DFS 80T DSD", "80.dsd", &DSD_GEOMETRY},
+    {"Blank DFS 80T SSD", "80.ssd", &SSD_GEOMETRY, true},
+    {"Blank DFS 80T DSD", "80.dsd", &DSD_GEOMETRY, true},
 
     // Support for 40T disks just isn't very good... the files won't round
     // trip properly.
@@ -47,12 +47,23 @@ extern const size_t NUM_BLANK_DFS_DISCS = sizeof BLANK_DFS_DISCS / sizeof BLANK_
 //////////////////////////////////////////////////////////////////////////
 
 const Disc BLANK_ADFS_DISCS[] = {
-    {"ADFS L", "adl.adl", &ADL_GEOMETRY},
-    {"ADFS M", "adm.adm", &ADM_GEOMETRY},
-    {"ADFS S", "ads.ads", &ADS_GEOMETRY},
+    {"Blank ADFS L", "adl.adl", &ADL_GEOMETRY, true},
+    {"Blank ADFS M", "adm.adm", &ADM_GEOMETRY, true},
+    {"Blank ADFS S", "ads.ads", &ADS_GEOMETRY, true},
 };
 
 const size_t NUM_BLANK_ADFS_DISCS = sizeof BLANK_ADFS_DISCS / sizeof BLANK_ADFS_DISCS[0];
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+extern const Disc WELCOME_DISKS[] = {
+    {"BBC B Welcome Disc", "Welcome.ssd", &SSD_GEOMETRY, false},
+    {"Master 128 Welcome Disc", "MasterWelcome.adl", &ADL_GEOMETRY, false},
+    {"Master Compact Welcome Disc", "CompactWelcome.adl", &ADL_GEOMETRY, false},
+    {"Olivetti PC 128 S Welcome Disc", "PC128SWelcome.adl", &ADL_GEOMETRY, false},
+};
+extern const size_t NUM_WELCOME_DISKS = sizeof WELCOME_DISKS / sizeof WELCOME_DISKS[0];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

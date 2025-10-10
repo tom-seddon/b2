@@ -31,6 +31,7 @@ struct JoystickResult;
 class BeebKeymap;
 class ImGuiStuff;
 class SymbolTable;
+struct Disc;
 
 #include "keys.h"
 #include <string>
@@ -357,17 +358,6 @@ class BeebWindow {
 
   protected:
   private:
-    //struct SettingsUIMetadata;
-
-    struct DriveState {
-        SaveFileDialog new_disc_image_file_dialog;
-        OpenFileDialog open_disc_image_file_dialog;
-        SaveFileDialog new_direct_disc_image_file_dialog;
-        OpenFileDialog open_direct_disc_image_file_dialog;
-
-        DriveState();
-    };
-
     BeebWindowInitArguments m_init_arguments;
     std::string m_name;
 
@@ -408,9 +398,6 @@ class BeebWindow {
     CycleCount m_last_title_update_cycles = {0};
     uint64_t m_last_title_update_ticks = 0;
     double m_last_title_speed = 0.;
-
-    // copy of BeebThread state
-    DriveState m_drives[NUM_DRIVES];
 
     // This is a shared_ptr since it can get passed to another thread
     // during the cloning process. It's set in the constructor and
@@ -535,8 +522,9 @@ class BeebWindow {
     void DoPopupUI(uint64_t now, int output_width, int output_height);
     void DoFileMenu();
     void DoDiscDriveSubMenu(int drive, const std::shared_ptr<const DiscImage> &disc_image);
+    bool DoNewCopyOfDiskMenu(std::string *path, const Disc *disks, size_t num_disks);
+    bool DoDiscImageSubMenu2(std::string *path, const char *disk_image_caption, const char *new_disk_image_caption, const char *recent_disk_image_caption, bool allow_zipped);
     void DoDiscImageSubMenu(int drive, bool boot);
-    void DoDiscImageSubMenuItem(int drive, std::shared_ptr<DiscImage> disc_image, FileMenuItem *item, bool boot);
     void DoEditMenu();
     void DoHardwareMenu();
     void DoKeyboardMenu();

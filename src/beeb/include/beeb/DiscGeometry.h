@@ -18,6 +18,7 @@ struct LogSet;
 struct DiscGeometry {
     bool double_sided = false;
     bool double_density = false;
+    bool adfs = false; //if set, maybe update the disk ID after copying?
     size_t num_tracks = 0;
     size_t sectors_per_track = 0;
     size_t bytes_per_sector = 0;
@@ -27,7 +28,8 @@ struct DiscGeometry {
                  size_t sectors_per_track,
                  size_t bytes_per_sector,
                  bool double_sided = false,
-                 bool double_density = false);
+                 bool double_density = false,
+                 bool adfs = false);
 
     size_t GetTotalNumBytes() const;
 

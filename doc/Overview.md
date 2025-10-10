@@ -23,8 +23,13 @@ emulator (reload the disc image for that).
 
 To load a disc without auto-booting, go to `Drive 0` or `Drive 1` on
 the `File` menu instead, and use `Disc image...` or `In-memory disc
-image...`. Or, to create a new blank disc, use `New disc image` or
-`New in-memory disc image`.
+image...`.
+
+Or, to create a new disc, use `New disc image` or `New in-memory disc
+image`, and select the file to save it to. (This applies to the
+in-memory case as well, so the file is ready on disk to save the data
+to.) You have the option of creating blank disks of various kinds, and
+copies of the various Welcome disks.
 
 ## Change config
 

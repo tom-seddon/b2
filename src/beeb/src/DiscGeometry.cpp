@@ -13,9 +13,9 @@ const DiscGeometry SSD_GEOMETRY(80, 10, 256);
 const DiscGeometry DSD_GEOMETRY(80, 10, 256, true);
 // static const DiscGeometry SDD_GEOMETRY(1,0,0,256);
 // static const DiscGeometry DDD_GEOMETRY(2,0,0,256);
-const DiscGeometry ADM_GEOMETRY(80, 16, 256, false, true);
-const DiscGeometry ADL_GEOMETRY(80, 16, 256, true, true);
-const DiscGeometry ADS_GEOMETRY(40, 16, 256, false, true);
+const DiscGeometry ADM_GEOMETRY(80, 16, 256, false, true, true);
+const DiscGeometry ADL_GEOMETRY(80, 16, 256, true, true, true);
+const DiscGeometry ADS_GEOMETRY(40, 16, 256, false, true, true);
 
 static const size_t ADS_SIZE = ADS_GEOMETRY.GetTotalNumBytes();
 static const size_t ADM_SIZE = ADM_GEOMETRY.GetTotalNumBytes();
@@ -213,12 +213,14 @@ DiscGeometry::DiscGeometry(size_t num_tracks_,
                            size_t sectors_per_track_,
                            size_t bytes_per_sector_,
                            bool double_sided_,
-                           bool double_density_)
+                           bool double_density_,
+                           bool adfs_)
     : double_sided(double_sided_)
     , double_density(double_density_)
     , num_tracks(num_tracks_)
     , sectors_per_track(sectors_per_track_)
-    , bytes_per_sector(bytes_per_sector_) {
+    , bytes_per_sector(bytes_per_sector_)
+    , adfs(adfs_) {
 }
 
 //////////////////////////////////////////////////////////////////////////
