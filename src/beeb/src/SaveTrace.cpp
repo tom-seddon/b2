@@ -552,7 +552,7 @@ class TraceSaver {
             switch (ev->reg >> 1) {
             case 2:
                 m_sound_channel2_value = ev->reg_value;
-                // fall through
+                [[fallthrough]];
             case 0:
             case 1:
                 m_output->f("%s freq: %u ($%03x) (%.1fHz)",

@@ -565,7 +565,7 @@ static uint32_t GetCodePointForBBCChar(uint8_t bbc_char, BBCUTF8ConvertMode mode
     switch (mode) {
     default:
         ASSERT(false);
-        // fall through
+        [[fallthrough]];
     case BBCUTF8ConvertMode_PassThrough:
         return bbc_char;
         //return std::string(1, (char)bbc_char);

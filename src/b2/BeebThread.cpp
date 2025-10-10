@@ -2787,7 +2787,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
     switch (ts->trace_conditions.start) {
     default:
         ASSERT(false);
-        // fall through
+        [[fallthrough]];
     case BeebThreadStartTraceCondition_Immediate:
         // Start now.
         this->ThreadBeebStartTrace(ts);
@@ -2812,7 +2812,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
     switch (ts->trace_conditions.stop) {
     default:
         ASSERT(false);
-        // fall through
+        [[fallthrough]];
     case BeebThreadStopTraceCondition_ByRequest:
         // By request...
         break;

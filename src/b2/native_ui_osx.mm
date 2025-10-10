@@ -154,10 +154,9 @@ static std::string DoFileDialogOSX(const Guid &guid,
             }
 
             // This was deprecated after 10.9, so just hide the warning.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#include <shared/pushwarn_deprecated.h>
             [panel setAllowedFileTypes:types];
-#pragma GCC diagnostic pop
+#include <shared/popwarn.h>
         }
     }
 

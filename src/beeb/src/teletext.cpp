@@ -132,6 +132,7 @@ static uint8_t GetTeletextFontByte(TeletextCharset charset, uint8_t ch, unsigned
     switch (charset) {
     default:
         ASSERT(false);
+        [[fallthrough]];
     case TeletextCharset_Alpha:
     TeletextCharset_Alpha:
         return GetTeletextAlphaFontByte(ch, y);

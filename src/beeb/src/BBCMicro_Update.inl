@@ -651,7 +651,7 @@ parasite_update_done:
                             case BBCMicroPasteState_Wait:
                                 SetKeyState(PASTE_START_KEY, false);
                                 m_state.paste_state = BBCMicroPasteState_Delete;
-                                // fall through
+                                [[fallthrough]];
                             case BBCMicroPasteState_Delete:
                                 m_state.cpu.a = 127;
                                 m_state.paste_state = BBCMicroPasteState_Paste;

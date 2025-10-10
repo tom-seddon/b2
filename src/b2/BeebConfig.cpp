@@ -99,7 +99,7 @@ void BeebConfig::ResetNVRAM() {
     switch (this->nvram_type) {
     default:
         ASSERT(false);
-        // fall through
+        [[fallthrough]];
     case BeebConfigNVRAMType_None:
     BeebConfigNVRAMType_None:
         this->nvram.clear();
@@ -113,7 +113,7 @@ void BeebConfig::ResetNVRAM() {
         switch (this->type_id) {
         default:
             ASSERT(false);
-            // fall through
+            [[fallthrough]];
         case BBCMicroTypeID_B:
         case BBCMicroTypeID_BPlus:
             goto BeebConfigNVRAMType_None;

@@ -258,7 +258,7 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
         RemoveWindowFromList(window, &g_->windows_mru);
         g_->windows_mru.push_back(window);
         window->HandleSDLFocusGainedEvent();
-        // fall through
+        [[fallthrough]];
     case SDL_WINDOWEVENT_SHOWN:
     case SDL_WINDOWEVENT_HIDDEN:
     case SDL_WINDOWEVENT_MOVED:

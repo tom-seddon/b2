@@ -35,6 +35,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -718,6 +719,7 @@ std::string GetPrintable(const std::string &bbc_output) {
                 snprintf(tmp, sizeof tmp, "`%02x`", c);
                 r += tmp;
             } else {
+                [[fallthrough]];
             case 10:
                 r.push_back(c);
             }

@@ -409,7 +409,7 @@ uint32_t ImGuiStuff::ConsumePressedKeycode() {
     switch (m_consume_pressed_keycode_state) {
     default:
         ASSERT(false);
-        // fall through
+        [[fallthrough]];
     case ConsumePressedKeycodeState_Off:
         m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Waiting;
         return 0;

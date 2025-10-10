@@ -49,7 +49,7 @@ class TimelineUI : public SettingsUI {
         switch (timeline_state.mode) {
         default:
             ASSERT(false);
-            // fall through
+            [[fallthrough]];
         case BeebThreadTimelineMode_None:
             {
                 ASSERT(timeline_state.end_cycles.n >= timeline_state.begin_cycles.n);
@@ -101,9 +101,8 @@ class TimelineUI : public SettingsUI {
         switch (timeline_state.mode) {
         default:
             ASSERT(false);
-            // fall through
+            [[fallthrough]];
         case BeebThreadTimelineMode_None:
-            // fall through
         case BeebThreadTimelineMode_Record:
             {
                 if (timeline_duration.n == 0) {

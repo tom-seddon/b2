@@ -743,7 +743,7 @@ WD1770::Pins WD1770::Update() {
 
     default:
         ASSERT(0);
-        // fall through
+        [[fallthrough]];
     case WD1770State_IdleWithMotorOff:
         {
             // Nothing...

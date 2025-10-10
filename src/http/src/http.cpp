@@ -34,6 +34,7 @@ std::string GetPercentEncoded(const std::string &str) {
             if (c >= 32 && c <= 126) {
                 encoded.push_back(c);
             } else {
+                [[fallthrough]];
             case ' ':
             case '!':
             case '#':

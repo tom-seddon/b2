@@ -993,7 +993,7 @@ class InstrGen {
         switch (c->type) {
         default:
             ASSERT(false);
-            // fall through
+            [[fallthrough]];
         case Cycle::Type::Write:
             P("s->read=0;\n");
             break;
