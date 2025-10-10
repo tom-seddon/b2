@@ -11,6 +11,7 @@
 #ifdef __clang__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 #include <stb_image.h>
 #ifdef __clang__
