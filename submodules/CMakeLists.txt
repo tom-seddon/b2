@@ -76,6 +76,9 @@ add_library(remotery_lib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib/Remotery.h
 	)
 target_include_directories(remotery_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib)
+if(${CMAKE_C_COMPILER_ID} MATCHES "GNU|Clang")
+  target_compile_options(remotery_lib PRIVATE -Wno-shorten-64-to-32)
+endif()
 if(WIN32)
   # got PIX on Windows.
   target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=0)
