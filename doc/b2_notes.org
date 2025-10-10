@@ -6030,7 +6030,6 @@ https://learn.microsoft.com/en-us/windows/win32/shell/common-file-dialog
 
 https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/shell/appplatform/commonfiledialog
 
-
 ** State persistence
 
 https://learn.microsoft.com/en-us/windows/win32/shell/common-file-dialog#state-persistence
@@ -6043,5 +6042,9 @@ least because actually creating an IShellItem (as required to set the
 initial folder/file) appears to be a monumental pain.
 
 Every string and every GUID would have to be independently unique.
+
+** Default file extension 
+
+https://gist.github.com/vadz/5950b4a524648f1e3129f4138ebcd271
 
 * eof.

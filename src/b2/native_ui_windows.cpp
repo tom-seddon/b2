@@ -203,14 +203,24 @@ bool CloseModalDialogLocked() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static HRESULT InitAndShowFileDialog(const std::vector<FileDialog::Filter> &filters, SDL_Window *parent, IFileDialog *dialog) {
+static void InitFileDialog(const std::vector<FileDialog::Filter> &filters, IFileDialog *dialog) {
+    HRESULT hr;
+    (void)hr;
+
     DWORD flags;
-    dialog->GetOptions(&flags);
-    dialog->SetOptions(flags | FOS_FORCEFILESYSTEM);
+    hr = dialog->GetOptions(&flags);
+    hr = dialog->SetOptions(flags | FOS_FORCEFILESYSTEM);
 
     CommonItemDialogFilterSpecs specs;
     GetCommonItemDialogFilterSpecsForFilters(&specs, filters);
-    dialog->SetFileTypes((UINT)specs.filter_specs.size(), specs.filter_specs.data());
+    hr = dialog->SetFileTypes((UINT)specs.filter_specs.size(), specs.filter_specs.data());
+
+    if (!filters.empty()) {
+        hr = dialog->SetFileTypeIndex(1);
+    }
+}
+
+static HRESULT ShowFileDialog(IFileDialog *dialog, SDL_Window *parent) {
 
     {
         LockGuard lock(g_native_ui_globals_mutex);
@@ -259,11 +269,14 @@ static std::string GetPathForShellItem(IShellItem *item) {
 }
 
 static void SetClientGuid(IFileDialog *dialog, const Guid &guid_) {
+    HRESULT hr;
+    (void)hr;
+
     GUID guid;
     static_assert(sizeof(GUID) == sizeof(Guid));
     memcpy(&guid, &guid_, sizeof(GUID));
 
-    dialog->SetClientGuid(guid);
+    hr = dialog->SetClientGuid(guid);
 }
 
 std::string OpenFileDialogWindows(SDL_Window *parent,
@@ -285,7 +298,9 @@ std::string OpenFileDialogWindows(SDL_Window *parent,
 
     SetClientGuid(dialog, guid);
 
-    if (FAILED(InitAndShowFileDialog(filters, parent, dialog.p))) {
+    InitFileDialog(filters, dialog.p);
+
+    if (FAILED(ShowFileDialog(dialog.p, parent))) {
         return "";
     }
 
@@ -314,6 +329,8 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
                                   const Guid &guid,
                                   const std::vector<OpenFileDialog::Filter> &filters,
                                   const std::string &suggested_name) {
+    HRESULT hr;
+    (void)hr;
 
     CComPtr<IFileSaveDialog> dialog;
 
@@ -324,12 +341,24 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
     SetClientGuid(dialog, guid);
 
     if (!suggested_name.empty()) {
-        dialog->SetFileName(GetWideString(suggested_name).c_str());
+        hr = dialog->SetFileName(GetWideString(suggested_name).c_str());
     }
     //else if (!save_as_path.empty()) {
     //    CComPtr<IShellItem2> save_as_item = GetShellItemForPath(save_as_path);
     //    dialog->SetSaveAsItem(save_as_item);
     //}
+
+    DWORD flags;
+    hr = dialog->GetOptions(&flags);
+
+    // Exact set of flags is up for debate.
+    flags &= ~FOS_PATHMUSTEXIST;
+    flags |= FOS_NOVALIDATE;
+    flags |= FOS_STRICTFILETYPES;
+
+    hr = dialog->SetOptions(flags);
+
+    InitFileDialog(filters, dialog.p);
 
     // This logic might want tweaking.
     if (!filters.empty()) {
@@ -339,17 +368,11 @@ std::string SaveFileDialogWindows(SDL_Window *parent,
             ASSERT(ext0.size() > 1);
             ASSERT(ext0[0] == L'.');
 
-            dialog->SetDefaultExtension(ext0.c_str() + 1); //+1 to skip the '.'
+            hr = dialog->SetDefaultExtension(ext0.c_str() + 1); //+1 to skip the '.'
         }
     }
 
-    DWORD flags;
-    dialog->GetOptions(&flags);
-    flags &= ~FOS_PATHMUSTEXIST;
-    flags |= FOS_NOVALIDATE;
-    dialog->SetOptions(flags);
-
-    if (FAILED(InitAndShowFileDialog(filters, parent, dialog.p))) {
+    if (FAILED(ShowFileDialog(dialog.p, parent))) {
         return "";
     }
 

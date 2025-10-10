@@ -19,6 +19,13 @@ struct SDL_Window;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// To simplify use with Dear ImGui, the dialog objects are deliberately cheap to
+// create, ignore, and then destroy. Nothing interesting happens unless any of
+// the other functions are called.
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // The failure message box only appears when the main window creation fails. It
 // therefore never has a parent.
 void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageList> &message_list, size_t num_messages = 10);
