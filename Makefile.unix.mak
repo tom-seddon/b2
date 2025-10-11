@@ -15,6 +15,10 @@ endif
 	@echo "make init has succeeded. (It's normal for CMake to print some warnings and error messages as it goes. If you can see this message, it finished successfully and nothing unexpected happened.)"
 	@echo
 
+.PHONY:init_parallel
+init_parallel:
+	$(MAKE) _unix _sanitizers -j $(NPROC)
+
 .PHONY:_usan
 _usan:
 	$(MAKE) _unix SANITIZER=UNDEFINED SUFFIX=u
