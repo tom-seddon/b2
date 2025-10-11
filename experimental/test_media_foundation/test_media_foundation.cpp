@@ -205,7 +205,7 @@ HRESULT InitializeSinkWriter(
 //////////////////////////////////////////////////////////////////////////
 
 static std::vector<CComPtr<IMFActivate>> GetMFTEnum(GUID category, UINT32 flags, const MFT_REGISTER_TYPE_INFO *input_type, const MFT_REGISTER_TYPE_INFO *output_type, CComPtr<IMFAttributes> attributes) {
-    (void)category, (void)flags, (void)input_type, (void)output_type;
+    (void)category, (void)flags, (void)input_type, (void)output_type, (void)attributes;
 
     IMFActivate **activaters;
     UINT32 num_activaters;

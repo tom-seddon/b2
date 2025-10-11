@@ -250,7 +250,9 @@ if(MSVC)
     ${RELACY_TEST}/stdafx.cpp)
   # target_link_libraries(relacy_test relacy_lib)
   if(MSVC)
-    target_compile_options(relacy_test PRIVATE -bigobj)
+    # C4311: '': pointer truncation from '' to ''
+    # C4312: '': conversion from '' to '' of greater size
+    target_compile_options(relacy_test PRIVATE -bigobj /wd4311 /wd4312)
   endif()
 
   # failed to get any of these to build.
@@ -352,6 +354,13 @@ add_library(perfect6502_lib
   ${PERFECT6502_SRC_FOLDER}/perfect6502.c
   ${PERFECT6502_SRC_FOLDER}/perfect6502.h)
 target_include_directories(perfect6502_lib INTERFACE ${PERFECT6502_SRC_FOLDER})
+
+if(MSVC)
+  # Benign, hopefully...
+  #
+  # C4715: '': not all control paths return a value
+  target_compile_options(perfect6502_lib PRIVATE /wd4715)
+endif()
 
 ##########################################################################
 ##########################################################################

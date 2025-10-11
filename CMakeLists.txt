@@ -323,10 +323,21 @@ if(USE_SYSTEM_LIBUV)
 else()
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
 
+  # I'm trusting (possibly wrongly...) that these are benign.
   if(OSX)
-    # I'm trusting (possibly wrongly...) that these are benign.
     target_compile_options(uv PRIVATE "-Wno-shorten-64-to-32")
     target_compile_options(uv_a PRIVATE "-Wno-shorten-64-to-32")
+  elseif(MSVC)
+    # C4133: '': incompatible types - from '' to ''
+    # C4146: unary minus operator applied to unsigned type, result still unsigned
+    # C4244: '': conversion from '' to '', possible loss of data
+    # C4245: '': conversion from '' to '', signed/unsigned mismatch
+    # C4267: '': conversion from '' to '', possible loss of data
+    # C4701: potentially uninitialized local variable '' used
+    # C4702: unreachable code
+    set(MSVC_OPTIONS /wd4133 /wd4146 /wd4244 /wd4245 /wd4267 /wd4701 /wd4702)
+    target_compile_options(uv PRIVATE ${MSVC_OPTIONS})
+    target_compile_options(uv_a PRIVATE ${MSVC_OPTIONS})
   endif()
 
   # Don't add libuv's tests as a ctest test. The shutdown_eof test fails, for some reason.
