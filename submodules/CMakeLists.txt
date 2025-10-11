@@ -362,6 +362,17 @@ if(MSVC)
   target_compile_options(perfect6502_lib PRIVATE /wd4715)
 endif()
 
+if(OSX)
+  # See, e.g., https://lists.ffmpeg.org/archives/list/ffmpeg-devel@ffmpeg.org/thread/TYUUK6WGZTAPEQF273H5GPDVBGIFJP7P/?sort=date
+  #
+  # (The global 64 KB memory array will be the problem, probably.)
+  # 
+  # TODO: might this also need specifying if building with clang on
+  # Linux?
+  target_compile_options(perfect6502_lib PRIVATE -fno-common)
+endif()
+
+
 ##########################################################################
 ##########################################################################
 
