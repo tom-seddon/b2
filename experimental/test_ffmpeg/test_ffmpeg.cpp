@@ -87,9 +87,10 @@ static void PrintLastAVResult(const TestFailArgs *tfa) {
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
+#include <shared/pushwarn_case_fallthrough.h>
 #include "stb_image.h"
+#include <shared/popwarn.h>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
