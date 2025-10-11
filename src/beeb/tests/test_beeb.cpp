@@ -35,19 +35,22 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
+
+#include <shared/pushwarn_case_fallthrough.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
 #define STB_IMAGE_IMPLEMENTATION
+
 #ifdef _MSC_VER
 #pragma warning(disable : 4244) //OPERATOR: conversion from TYPE to TYPE, possible loss of data
 #endif
 
 #include <stb_image.h>
 
+#include <shared/popwarn.h>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -2805,7 +2808,7 @@ int main(int argc, char *argv[]) {
 
                     for (int clock = 0; clock < 2; ++clock) {
                         for (int flash = 0; flash < 2; ++flash) {
-                            for (int mode = 0; mode < 4; ++mode) {
+                            for (uint8_t mode = 0; mode < 4; ++mode) {
                                 all_tests.push_back(std::make_unique<VideoULAModeTest>(clock != 0,
                                                                                        flash != 0,
                                                                                        mode,

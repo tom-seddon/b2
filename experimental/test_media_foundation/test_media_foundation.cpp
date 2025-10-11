@@ -36,7 +36,9 @@
 #pragma warning(push)
 #pragma warning(disable : 4244) //OPERATOR: conversion from TYPE to TYPE, possible loss of data
 #pragma warning(disable : 4456) //declaration of IDENTIFIER hides previous local declaration
+#include <shared/pushwarn_case_fallthrough.h>
 #include "stb_image.h"
+#include <shared/popwarn.h>
 #pragma warning(pop)
 
 //////////////////////////////////////////////////////////////////////////
