@@ -85,12 +85,13 @@ rel_tests:
 ##########################################################################
 
 .PHONY: clang-format
+clang-format: _PREFIX:=$(if $(QUIET),@,)
 clang-format:
-	$(SHELLCMD) cat experimental/clang-format.header.txt src/.clang-format experimental/clang-format.header.txt > experimental/.clang-format
+	$(_PREFIX)$(SHELLCMD) cat experimental/clang-format.header.txt src/.clang-format experimental/clang-format.header.txt > experimental/.clang-format
 
-	$(SHELLCMD) mkdir $(BUILD_FOLDER)
-	$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" --ignore "src/beeb/generated/*" src experimental submodules/shared_lib
-	$(MAKE) -f "$(BUILD_FOLDER)/clang-format.mak" -j $(NPROC)
+	$(_PREFIX)$(SHELLCMD) mkdir $(BUILD_FOLDER)
+	$(_PREFIX)$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" --ignore "src/beeb/generated/*" src experimental submodules/shared_lib
+	$(_PREFIX)$(MAKE) -f "$(BUILD_FOLDER)/clang-format.mak" -j $(NPROC) QUIET=$(QUIET)
 
 ##########################################################################
 ##########################################################################

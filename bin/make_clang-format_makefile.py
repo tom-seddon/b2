@@ -19,8 +19,8 @@ def main3(f,options):
         if len(os.path.split(ignore_pattern)[0])>0:
             options.ignore_patterns[i]=os.path.abspath(ignore_pattern)
 
-    for i in range(len(options.ignore_patterns)):
-        print('ignore %d: %s'%(i,options.ignore_patterns[i]))
+    # for i in range(len(options.ignore_patterns)):
+    #     print('ignore %d: %s'%(i,options.ignore_patterns[i]))
 
     file_paths=set()
     for path in options.paths:
@@ -65,10 +65,11 @@ def main3(f,options):
     
     f.write('.PHONY:all %s\n'%all_file_targets)
     f.write('all: %s\n'%all_file_targets)
+    f.write('all: _PREFIX:=$(if $(QUIET),@,)\n')
 
     for i,argv in enumerate(argvs):
         f.write('%s%d:\n'%(prefix,i))
-        f.write('\t\"%s\" -style=file -i%s\n'%(options.exe,argv))
+        f.write('\t$(_PREFIX)\"%s\" -style=file -i%s\n'%(options.exe,argv))
 
     f.write('.PHONY:revert\n')
     f.write('revert:\n')
