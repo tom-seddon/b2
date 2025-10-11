@@ -16,7 +16,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
