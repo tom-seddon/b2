@@ -1746,7 +1746,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
                                   //ImGuiWindowFlags_ShowBorders|
                                   ImGuiWindowFlags_AlwaysAutoResize |
                                   ImGuiWindowFlags_NoFocusOnAppearing);
-        ImGui::SetNextWindowPos(ImVec2(10.f, output_height - m_leds_popup_height - 10));
+        ImGui::SetNextWindowPos(ImVec2(10.f, output_height - m_leds_popup_height - 2));
 
         ImGui::SetNextWindowBgAlpha(m_settings.leds_popup_alpha);
 
