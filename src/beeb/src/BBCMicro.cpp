@@ -2855,14 +2855,32 @@ void BBCMicro::InitStuff() {
 
     // I/O: Video ULA
     m_state.video_ula.nula = !!(m_state.init_flags & BBCMicroInitFlag_VideoNuLA);
-    for (int i = 0; i < 2; ++i) {
-        this->SetSIO((uint16_t)(0xfe20 + i * 2), nullptr, nullptr, &VideoULA::WriteControlRegister, &m_state.video_ula);
-        this->SetSIO((uint16_t)(0xfe21 + i * 2), nullptr, nullptr, &VideoULA::WritePalette, &m_state.video_ula);
-    }
+    {
+        uint8_t video_ula_region_size;
+        switch (m_state.type->type_id) {
+        default:
+            ASSERT(false);
+            [[fallthrough]];
+        case BBCMicroTypeID_B:
+        case BBCMicroTypeID_BPlus:
+            video_ula_region_size = 16;
+            break;
 
-    if (m_state.init_flags & BBCMicroInitFlag_VideoNuLA) {
-        this->SetSIO(0xfe22, nullptr, nullptr, &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
-        this->SetSIO(0xfe23, nullptr, nullptr, &VideoULA::WriteNuLAPalette, &m_state.video_ula);
+        case BBCMicroTypeID_Master:
+        case BBCMicroTypeID_MasterCompact:
+            video_ula_region_size = 4;
+            break;
+        }
+
+        for (uint8_t i = 0; i < video_ula_region_size; ++i) {
+            uint16_t addr = 0xfe20 + i;
+
+            if ((i & 2) != 0 && (m_state.init_flags & BBCMicroInitFlag_VideoNuLA)) {
+                this->SetSIO(addr, nullptr, nullptr, i & 1 ? &VideoULA::WriteNuLAPalette : &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
+            } else {
+                this->SetSIO(addr, nullptr, nullptr, i & 1 ? &VideoULA::WritePalette : &VideoULA::WriteControlRegister, &m_state.video_ula);
+            }
+        }
     }
 
     // I/O: disc interface
