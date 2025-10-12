@@ -648,41 +648,6 @@ static VideoDataUnit g_video_data_units[NUM_VIDEO_DATA_UNITS];
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SaveFileInternal(const void *contents, size_t contents_size, const std::string &path, const char *mode) {
-    if (!PathCreateFolder(PathGetFolder(path))) {
-        return false;
-    }
-
-    FILE *f = fopen(path.c_str(), mode);
-    if (!f) {
-        return false;
-    }
-
-    size_t n = fwrite(contents, 1, contents_size, f);
-
-    fclose(f);
-    f = nullptr;
-
-    if (n != contents_size) {
-        return false;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool SaveTextFile(const std::string &contents, const std::string &path) {
-    return SaveFileInternal(contents.data(),
-                            contents.size(),
-                            path,
-                            "wt");
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::string GetOutputFileName(const std::string &path) {
     return PathJoined(BBC_TESTS_OUTPUT_FOLDER, path);
 }
@@ -694,8 +659,8 @@ static void SaveTextOutput2(const std::string &contents,
                             const std::string &test_name,
                             const std::string &type,
                             const std::string &suffix) {
-    SaveTextFile(contents, GetOutputFileName(test_name + "." + type + "_" + suffix));
-    SaveTextFile(contents, GetOutputFileName(type + "/" + test_name + "." + suffix));
+    SaveTextFile(contents, GetOutputFileName(test_name + "." + type + "_" + suffix), nullptr, SaveFlag_CreateFolder);
+    SaveTextFile(contents, GetOutputFileName(type + "/" + test_name + "." + suffix), nullptr, SaveFlag_CreateFolder);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1431,13 +1396,12 @@ void RunImageTest(const std::string &wanted_png_src_path,
     if (!got_wanted_png_data) {
         if (g_infer_wanted_images) {
             TEST_TRUE(LoadFile(&wanted_png_data, got_png_path, nullptr));
-            TEST_TRUE(PathCreateFolder(PathGetFolder(wanted_png_src_path)));
-            TEST_TRUE(SaveFile(wanted_png_data, wanted_png_src_path, nullptr));
+            TEST_TRUE(SaveFile(wanted_png_data, wanted_png_src_path, nullptr, SaveFlag_CreateFolder));
         } else {
             TEST_TRUE(got_wanted_png_data);
         }
     }
-    TEST_TRUE(SaveFile(wanted_png_data, wanted_png_path, nullptr));
+    TEST_TRUE(SaveFile(wanted_png_data, wanted_png_path, nullptr, SaveFlag_CreateFolder));
 
     int wanted_width, wanted_height;
     unsigned char *wanted_data = stbi_load(wanted_png_path.c_str(),
@@ -1578,7 +1542,9 @@ class StandardTest : public Test {
                                      GetStandardROMEnumName(m_type.os_rom));
 
         TEST_TRUE(SaveTextFile(bbc.oswrch_output,
-                               GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str()))));
+                               GetOutputFileName(strprintf("%s.all_output.txt", stem.c_str())),
+                               nullptr,
+                               SaveFlag_CreateFolder));
 
         bbc.SaveTestTrace(stem);
 
@@ -2600,8 +2566,7 @@ class HardDiskAccessTest : public DiskAccessTest {
         std::vector<uint8_t> data;
         TEST_TRUE(LoadFile(&data, src_stem + ext, nullptr));
 
-        TEST_TRUE(PathCreateFolder(PathGetFolder(dest_stem)));
-        TEST_TRUE(SaveFile(data, dest_stem + ext, nullptr));
+        TEST_TRUE(SaveFile(data, dest_stem + ext, nullptr, SaveFlag_CreateFolder));
     }
 };
 
