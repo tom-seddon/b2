@@ -1746,7 +1746,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
                                   //ImGuiWindowFlags_ShowBorders|
                                   ImGuiWindowFlags_AlwaysAutoResize |
                                   ImGuiWindowFlags_NoFocusOnAppearing);
-        ImGui::SetNextWindowPos(ImVec2(10.f, output_height - 50.f));
+        ImGui::SetNextWindowPos(ImVec2(10.f, output_height - m_leds_popup_height - 10));
 
         ImGui::SetNextWindowBgAlpha(m_settings.leds_popup_alpha);
 
@@ -1825,6 +1825,19 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
                 ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_HardDisk0Shift + i)), "HD %d", i);
             }
         }
+
+        // Annoyingly, it takes a couple of frames for the window height to
+        // settle down. Try to figure out when it's at its final value, so the
+        // popup doesn't briefly appear in the wrong place.
+        {
+            float y = ImGui::GetCursorPosY();
+            float h = ImGui::GetWindowHeight();
+
+            if (h > y) {
+                m_leds_popup_height = h;
+            }
+        }
+
         ImGui::End();
 
         if (GetSecondsFromTicks(now - m_leds_popup_ticks) > LEDS_POPUP_TIME_SECONDS) {

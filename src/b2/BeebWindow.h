@@ -444,6 +444,7 @@ class BeebWindow {
     uint32_t m_leds = 0;
 
     bool m_leds_popup_ui_active = false;
+    float m_leds_popup_height = 0.f;
     uint64_t m_leds_popup_ticks = 0;
 
 #if BBCMICRO_DEBUGGER
