@@ -145,7 +145,10 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
                 strerror(err));
             return;
         }
-
+        
+        // 256 KB is well into diminishing returns, but for modern systems it
+        // doesn't really matter. (And on Windows, it is very slightly faster
+        // than 128 KB...)
         setvbuf(f, NULL, _IOFBF, 262144);
 
         uint64_t start_ticks = GetCurrentTickCount();

@@ -107,7 +107,9 @@ class TraceSaver {
 
         LogPrinterTraceSaver printer(this);
 
-        m_output = std::make_unique<Log>("", &printer);
+        Log output_log("", &printer);
+
+        m_output = &output_log;
 
         //uint64_t start_ticks=GetCurrentTickCount();
 
@@ -162,6 +164,19 @@ class TraceSaver {
 
   protected:
   private:
+    // Max # symbol chars printed. There's currently no indication that this
+    // value has been exceeded, but it's hopefully generous enough that nobody
+    // will notice.
+    static constexpr size_t MAX_NUM_PRINTED_SYMBOL_CHARS = 100;
+
+    // Max possible chars per instruction line. Another hopefully over-generous
+    // value.
+    //
+    // (This limit applies only to instruction lines, which are special-cased as
+    // there are typically so many of them. Other types of line aren't subject
+    // to any particular limit.)
+    static constexpr size_t MAX_NUM_INSTRUCTION_LINE_CHARS = 1000;
+
     typedef void (TraceSaver::*MFn)(const TraceEvent *);
 
     struct R6522IRQEvent {
@@ -179,7 +194,7 @@ class TraceSaver {
     std::string m_file_name;
     uint32_t m_output_flags = DEFAULT_TRACE_OUTPUT_FLAGS;
     Handler m_handlers[256] = {};
-    std::unique_ptr<Log> m_output;
+    Log *m_output = nullptr;
     std::shared_ptr<const BBCMicroType> m_type;
     int m_sound_channel2_value = -1;
     R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
@@ -477,7 +492,7 @@ class TraceSaver {
 
         //m_output->s(m_time_prefix);
         m_output->f("%s - IRQ state: ", GetBBCMicroVIAIDEnumName(ev->id));
-        LogIndenter indent(m_output.get());
+        LogIndenter indent(m_output);
 
         PrintVIAIRQ("IFR", ev->ifr);
         m_output->EnsureBOL();
@@ -510,7 +525,7 @@ class TraceSaver {
 
         m_output->f("SN76489 - Update - ");
 
-        LogIndenter indent(m_output.get());
+        LogIndenter indent(m_output);
 
         m_output->f("output: [$%02x $%02x $%02x $%02x]\n",
                     ev->output.ch[0],
@@ -613,7 +628,7 @@ class TraceSaver {
 
         // This buffer size has been carefully selected to be Big
         // Enough(tm).
-        char line[1000], *c = line;
+        char line[MAX_NUM_INSTRUCTION_LINE_CHARS], *c = line;
 
         if (m_time_prefix_len > 0) {
             memcpy(c, m_time_prefix, m_time_prefix_len);
@@ -872,7 +887,7 @@ class TraceSaver {
             *c++ = ' ';
 
             if (pc_symbol) {
-                for (size_t i = 0; pc_symbol[i]; ++i) {
+                for (size_t i = 0; pc_symbol[i] && i < MAX_NUM_PRINTED_SYMBOL_CHARS; ++i) {
                     *c++ = pc_symbol[i];
                 }
                 *c++ = ':';
@@ -890,7 +905,7 @@ class TraceSaver {
 
                 if (addr8_operand >= 0) {
                     if (addr8_symbol) {
-                        for (size_t i = 0; addr8_symbol[i]; ++i) {
+                        for (size_t i = 0; addr8_symbol[i] && i < MAX_NUM_PRINTED_SYMBOL_CHARS; ++i) {
                             *c++ = addr8_symbol[i];
                         }
                     } else {
@@ -906,7 +921,7 @@ class TraceSaver {
 
                 if (addr16_operand >= 0) {
                     if (addr16_symbol) {
-                        for (size_t i = 0; addr16_symbol[i]; ++i) {
+                        for (size_t i = 0; addr16_symbol[i] && i < MAX_NUM_PRINTED_SYMBOL_CHARS; ++i) {
                             *c++ = addr16_symbol[i];
                         }
                     } else {
@@ -918,14 +933,14 @@ class TraceSaver {
                     }
                 }
 
-                for (size_t i = 0; operand_suffix[i]; ++i) {
+                for (size_t i = 0; operand_suffix[i] && i < MAX_NUM_PRINTED_SYMBOL_CHARS; ++i) {
                     *c++ = operand_suffix[i];
                 }
 
                 if (show_ea) {
                     c = EnsureSpace(c);
 
-                    for (size_t i = 0; ea_symbol[i]; ++i) {
+                    for (size_t i = 0; ea_symbol[i] && i < MAX_NUM_PRINTED_SYMBOL_CHARS; ++i) {
                         *c += ea_symbol[i];
                     }
                 }
