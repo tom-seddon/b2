@@ -839,6 +839,7 @@ class TraceSaver {
             const char *addr8_symbol = nullptr;
             const char *addr16_symbol = nullptr;
             const char *ea_symbol = nullptr;
+            const char *pc_symbol = nullptr;
 
             uint32_t dso = 0;
             if (e->source == TraceEventSource_Host) {
@@ -846,6 +847,8 @@ class TraceSaver {
             } else if (e->source == TraceEventSource_Parasite) {
                 dso = BBCMicroDebugStateOverride_Parasite; //TODO...
             }
+
+            pc_symbol = m_symbol_finder->FindNameForAddress(ev->pc, dso, m_type);
 
             if (addr8_operand >= 0) {
                 addr8_symbol = m_symbol_finder->FindNameForAddress((uint32_t)addr8_operand, dso, m_type);
@@ -868,7 +871,16 @@ class TraceSaver {
             *c++ = ';';
             *c++ = ' ';
 
+            if (pc_symbol) {
+                for (size_t i = 0; pc_symbol[i]; ++i) {
+                    *c++ = pc_symbol[i];
+                }
+                *c++ = ':';
+            }
+
             if (addr8_symbol || addr16_symbol || show_ea) {
+                c = EnsureSpace(c);
+
                 memcpy(c, m_m6502_padded_mnemonics[ev->opcode], PADDED_MNEMONIC_SIZE);
                 c += PADDED_MNEMONIC_SIZE;
 
@@ -920,6 +932,8 @@ class TraceSaver {
 
             } else {
                 if (!(m_output_flags & TraceOutputFlags_MinimalSymbolsAnnotations)) {
+                    c = EnsureSpace(c);
+
                     size_t n = (size_t)(instr_end - mnemonic_begin);
                     memcpy(c, mnemonic_begin, n);
                     c += n;
