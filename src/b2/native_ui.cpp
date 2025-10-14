@@ -10,6 +10,7 @@
 #include "native_ui_private.h"
 #include "b2.h"
 #include <string.h>
+#include <algorithm>
 
 #if SYSTEM_OSX
 #include "native_ui_osx.h"
