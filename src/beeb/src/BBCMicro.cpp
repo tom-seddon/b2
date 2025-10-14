@@ -2642,29 +2642,6 @@ void BBCMicro::DebugHandleStep() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class T>
-static void CallbacksDidChange(std::vector<T> *callbacks, T **begin_ptr, T **end_ptr) {
-    std::vector<T>::iterator it = callbacks->begin();
-    while (it != callbacks->end()) {
-        if (it->fn) {
-            ++it;
-        } else {
-            it = callbacks->erase(it);
-        }
-    }
-
-    if (callbacks->empty()) {
-        *begin_ptr = nullptr;
-        *end_ptr = nullptr;
-    } else {
-        *begin_ptr = callbacks->data();
-        *end_ptr = *begin_ptr + callbacks->size();
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const BBCMicro::WriteMMIOFn g_R6522_write_fns[16] = {
     &R6522::Write0,
     &R6522::Write1,

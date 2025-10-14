@@ -120,7 +120,7 @@ class Callbacks {
     // Remove any entries with null fn pointer, and update begin/end as
     // appropriate.
     void DidChange() {
-        std::vector<Callback>::iterator callback_it = m_callbacks.begin();
+        typename std::vector<Callback>::iterator callback_it = m_callbacks.begin();
 
         while (callback_it != m_callbacks.end()) {
             if (callback_it->fn) {
