@@ -68,14 +68,27 @@ _unix2:
 precommit:
 	@echo clang-format...
 	@$(MAKE) clang-format QUIET=1
-	$(MAKE) _precommit FOLDER=d$(SANITIZER)
-	$(MAKE) _precommit FOLDER=r$(SANITIZER)
-	$(MAKE) _precommit FOLDER=f$(SANITIZER)
+	$(MAKE) _precommit ACTION=build
+	$(MAKE) _precommit ACTION=test
 
 .PHONY:_precommit
-_precommit: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
 _precommit:
+_precommit:
+	$(MAKE) _precommit2 FOLDER=d
+	$(MAKE) _precommit2 FOLDER=r
+	$(MAKE) _precommit2 FOLDER=f
+
+.PHONY:_precommit2
+_precommit2: export _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER)$(SANITIZER).$(OS)
+_precommit2:
+	$(MAKE) _precommit_$(ACTION) 
+
+.PHONY:_precommit_build
+_precommit_build:
 	cd "$(_FOLDER)" && time ninja
+
+.PHONY:_precommit_test
+_precommit_test:
 	cd "$(_FOLDER)" && ctest --progress -j $(NPROC)
 	cd "$(_FOLDER)" && $(PYTHON3) "../../bin/check_ctest_log.py" "Testing/Temporary/LastTest.log"
 
@@ -198,3 +211,24 @@ _ffmpeg_release:
 	rm -Rf "$(_DEST)"
 	git clone "$(FFMPEG_MIRROR)" "$(_DEST)"
 	cd "$(_DEST)" && git checkout "release/$(VERSION)"
+
+##########################################################################
+##########################################################################
+
+# for me, on my desktop PC...
+
+.PHONY:_precommit_tom_init_gcc
+_precommit_tom_init_gcc:
+	$(MAKE) init_parallel FOLDER_PREFIX=precommit-gcc. CC=gcc CXX=g++
+
+.PHONY:_precommit_tom_init_clang
+_precommit_tom_init_clang:
+	$(MAKE) init_parallel FOLDER_PREFIX=precommit-clang. CC=clang-19 CXX=clang++-19
+
+.PHONY:precommit_tom
+precommit_tom:
+	$(if $(REINIT),$(MAKE) -j $(NPROC) _precommit_tom_init_gcc _precommit_tom_init_clang,)
+	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-gcc.
+	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-clang.
+	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-gcc.
+	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-clang.
