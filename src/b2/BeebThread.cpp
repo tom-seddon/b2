@@ -1362,12 +1362,12 @@ bool BeebThread::StartCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         //
         //        beeb_thread->ThreadStartPaste(ts,std::move(text));
 
-        ts->beeb->AddHostInstructionFn(&ThreadStopCopyOnOSWORD0, ts);
+        ts->beeb->AddHostInstructionCallback(&ThreadStopCopyOnOSWORD0, ts);
     }
 
     ts->copy_data.clear();
     if (!ts->beeb_thread->m_is_copying) {
-        ts->beeb->AddHostInstructionFn(&ThreadAddCopyData, ts);
+        ts->beeb->AddHostInstructionCallback(&ThreadAddCopyData, ts);
     }
 
     ts->copy_basic = m_basic;
@@ -2829,11 +2829,15 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
     }
 
     if (any_instruction_condition) {
-        ts->beeb->AddHostInstructionFn(&ThreadHandleTraceInstructionConditions, ts);
+        ts->beeb->AddHostInstructionCallback(&ThreadHandleTraceInstructionConditions, ts);
+    } else {
+        ts->beeb->RemoveHostInstructionCallback(&ThreadHandleTraceInstructionConditions, ts);
     }
 
     if (any_write_condition) {
-        ts->beeb->AddHostWriteFn(&ThreadHandleTraceWriteConditions, ts);
+        ts->beeb->AddHostWriteCallback(&ThreadHandleTraceWriteConditions, ts);
+    } else {
+        ts->beeb->RemoveHostWriteCallback(&ThreadHandleTraceWriteConditions, ts);
     }
 
     m_trace_stats = {};

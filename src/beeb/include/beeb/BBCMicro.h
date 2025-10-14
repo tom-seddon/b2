@@ -73,6 +73,94 @@ class PrinterBuffer {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// These callbacks lists can get checked every emulated cycle, so (with better
+// -O0 performance in mind) there are no accessors.
+template <class FnType>
+class Callbacks {
+  public:
+    struct Callback {
+        FnType fn = nullptr;
+        void *fn_context = nullptr;
+    };
+
+    Callback *begin = nullptr;
+    Callback *end = nullptr;
+
+    Callbacks() = default;
+
+    Callbacks(const Callbacks &) = delete;
+    Callbacks &operator=(const Callbacks &) = delete;
+    Callbacks(Callbacks &&) = delete;
+    Callbacks &operator=(Callbacks &&) = delete;
+
+    bool AddCallback(FnType fn, void *fn_context) {
+        if (this->FindCallback(fn, fn_context)) {
+            return false;
+        } else {
+            m_callbacks.push_back({fn, fn_context});
+
+            this->DidChange();
+
+            return true;
+        }
+    }
+
+    bool RemoveCallback(FnType fn, void *fn_context) {
+        if (Callback *callback = this->FindCallback(fn, fn_context)) {
+            callback->fn = nullptr;
+
+            this->DidChange();
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // Remove any entries with null fn pointer, and update begin/end as
+    // appropriate.
+    void DidChange() {
+        std::vector<Callback>::iterator callback_it = m_callbacks.begin();
+
+        while (callback_it != m_callbacks.end()) {
+            if (callback_it->fn) {
+                ++callback_it;
+            } else {
+                callback_it = m_callbacks.erase(callback_it);
+            }
+        }
+
+        if (m_callbacks.empty()) {
+            this->begin = nullptr;
+            this->end = nullptr;
+        } else {
+            this->begin = m_callbacks.data();
+            this->end = this->begin + m_callbacks.size();
+        }
+    }
+
+    size_t GetNumCallbacks() const {
+        return m_callbacks.size();
+    }
+
+  protected:
+  private:
+    std::vector<Callback> m_callbacks;
+
+    Callback *FindCallback(FnType fn, void *fn_context) {
+        for (Callback &callback : m_callbacks) {
+            if (callback.fn == fn && callback.fn_context == fn_context) {
+                return &callback;
+            }
+        }
+
+        return nullptr;
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BBCMicro : private WD1770Handler {
   public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
@@ -171,6 +259,10 @@ class BBCMicro : private WD1770Handler {
         // breakpoints set on them. When num_breakpoint_bytes==0, no breakpoints
         // are set.
         uint64_t num_breakpoint_bytes = 0;
+
+        //
+        size_t num_host_instruction_callbacks = 0;
+        size_t num_host_write_callbacks = 0;
 
         // List of temp execute breakpoints to be reset on a halt. Each entry is
         // a pointer to one of the bytes in big_pages_debug_flags or
@@ -421,17 +513,19 @@ class BBCMicro : private WD1770Handler {
     int GetTraceStats(struct TraceStats *stats);
 #endif
 
-    // Add host CPU instruction/host CPU write callback. It's an error to add
-    // the same one twice.
+    // Add host CPU instruction/host CPU write callback.
+    //
+    // It's a no-op to add the same fn/context twice.
     //
     // To remove, have the callback return false, or use RemoveInstructionFn
     // (providing both fn and context).
     //
     // The callback mustn't affect reproducability.
-    void AddHostInstructionFn(InstructionFn fn, void *context);
-    void RemoveHostInstructionFn(InstructionFn fn, void *context);
+    void AddHostInstructionCallback(InstructionFn fn, void *context);
+    void RemoveHostInstructionCallback(InstructionFn fn, void *context);
 
-    void AddHostWriteFn(WriteFn fn, void *context);
+    void AddHostWriteCallback(WriteFn fn, void *context);
+    void RemoveHostWriteCallback(WriteFn fn, void *context);
 
     // Set SHEILA IO functions. (XFJ vs IFJ does not apply to SHEILA.)
     //
@@ -710,8 +804,9 @@ class BBCMicro : private WD1770Handler {
     Trace *m_disk_drive_trace = nullptr;
 #endif
 
-    std::vector<std::pair<InstructionFn, void *>> m_host_instruction_fns;
-    std::vector<std::pair<WriteFn, void *>> m_host_write_fns;
+    Callbacks<InstructionFn> m_host_instruction_callbacks;
+
+    Callbacks<WriteFn> m_host_write_callbacks;
 
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<DebugState> m_debug_ptr;
@@ -739,6 +834,7 @@ class BBCMicro : private WD1770Handler {
     NVRAMChangedCallbackFn m_nvram_changed_callback_fn = nullptr;
     void *m_nvram_changed_callback_context = nullptr;
 
+    void CallbacksDidChange();
     void InitStuff();
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags);

@@ -1351,36 +1351,37 @@ int BBCMicro::GetTraceStats(struct TraceStats *stats) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::AddHostInstructionFn(InstructionFn fn, void *context) {
-    ASSERT(std::find(m_host_instruction_fns.begin(), m_host_instruction_fns.end(), std::make_pair(fn, context)) == m_host_instruction_fns.end());
-
-    m_host_instruction_fns.emplace_back(fn, context);
-
-    this->UpdateCPUDataBusFn();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BBCMicro::RemoveHostInstructionFn(InstructionFn fn, void *context) {
-    auto &&it = std::find(m_host_instruction_fns.begin(), m_host_instruction_fns.end(), std::make_pair(fn, context));
-
-    if (it != m_host_instruction_fns.end()) {
-        m_host_instruction_fns.erase(it);
-
-        this->UpdateCPUDataBusFn();
+void BBCMicro::AddHostInstructionCallback(InstructionFn fn, void *context) {
+    if (m_host_instruction_callbacks.AddCallback(fn, context)) {
+        this->CallbacksDidChange();
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::AddHostWriteFn(WriteFn fn, void *context) {
-    ASSERT(std::find(m_host_write_fns.begin(), m_host_write_fns.end(), std::make_pair(fn, context)) == m_host_write_fns.end());
+void BBCMicro::RemoveHostInstructionCallback(InstructionFn fn, void *context) {
+    if (m_host_instruction_callbacks.RemoveCallback(fn, context)) {
+        this->CallbacksDidChange();
+    }
+}
 
-    m_host_write_fns.emplace_back(fn, context);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-    this->UpdateCPUDataBusFn();
+void BBCMicro::AddHostWriteCallback(WriteFn fn, void *context) {
+    if (m_host_write_callbacks.AddCallback(fn, context)) {
+        this->CallbacksDidChange();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::RemoveHostWriteCallback(WriteFn fn, void *context) {
+    if (m_host_write_callbacks.RemoveCallback(fn, context)) {
+        this->CallbacksDidChange();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2512,6 +2513,9 @@ void BBCMicro::UpdateDebugState() {
 
     if (m_debug) {
         m_debug_halt_reason = m_debug->halt_reason;
+
+        m_debug->num_host_instruction_callbacks = m_host_instruction_callbacks.GetNumCallbacks();
+        m_debug->num_host_write_callbacks = m_host_write_callbacks.GetNumCallbacks();
     } else {
         m_debug_halt_reason = BBCMicroHaltReason_None;
     }
@@ -2638,6 +2642,29 @@ void BBCMicro::DebugHandleStep() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+template <class T>
+static void CallbacksDidChange(std::vector<T> *callbacks, T **begin_ptr, T **end_ptr) {
+    std::vector<T>::iterator it = callbacks->begin();
+    while (it != callbacks->end()) {
+        if (it->fn) {
+            ++it;
+        } else {
+            it = callbacks->erase(it);
+        }
+    }
+
+    if (callbacks->empty()) {
+        *begin_ptr = nullptr;
+        *end_ptr = nullptr;
+    } else {
+        *begin_ptr = callbacks->data();
+        *end_ptr = *begin_ptr + callbacks->size();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const BBCMicro::WriteMMIOFn g_R6522_write_fns[16] = {
     &R6522::Write0,
     &R6522::Write1,
@@ -2760,6 +2787,17 @@ static const BBCMicro::DebugReadMMIOFn g_tube_host_debug_read_fns[8] = {
     &DebugReadHostTube7,
 };
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::CallbacksDidChange() {
+#if BBCMICRO_DEBUGGER
+    this->UpdateDebugState();
+#else
+    this->UpdateCPUDataBusFn();
+#endif
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3469,11 +3507,11 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 #endif
 
-    if (!m_host_instruction_fns.empty()) {
+    if (m_host_instruction_callbacks.GetNumCallbacks() > 0) {
         update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
-    if (!m_host_write_fns.empty()) {
+    if (m_host_write_callbacks.GetNumCallbacks() > 0) {
         update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 

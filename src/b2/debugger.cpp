@@ -1166,9 +1166,11 @@ class SystemDebugWindow : public DebugUI {
             ImGui::BulletText("ROM Type: %s", GetBBCMicroUpdateROMTypeEnumName(update_rom_type));
         }
 
-        ImGuiHeader("Debugger State");
+        ImGuiHeader("Other Internal State");
         ImGui::Text("Breakpoint change counter = %" PRIu64, m_beeb_debug_state->breakpoints_changed_counter);
         ImGui::Text("Num bytes+addresses with breakpoints = %" PRIu64, m_beeb_debug_state->num_breakpoint_bytes);
+        ImGui::Text("Num host instruction callbacks = %zu", m_beeb_debug_state->num_host_instruction_callbacks);
+        ImGui::Text("Num host write callbacks = %zu", m_beeb_debug_state->num_host_write_callbacks);
     }
 
   private:

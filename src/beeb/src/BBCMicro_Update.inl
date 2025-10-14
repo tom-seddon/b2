@@ -307,25 +307,21 @@ parasite_update_done:
             // Update CPU data bus.
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_NonFastPath) != 0) {
                 if (m_state.cpu.read == 0) {
-                    if (!m_host_write_fns.empty()) {
-                        // Same deal as instruction fns.
-                        auto *fn = m_host_write_fns.data();
-                        auto *fns_end = fn + m_host_write_fns.size();
+                    if (Callbacks<WriteFn>::Callback *callback = m_host_write_callbacks.begin) {
                         bool any_removed = false;
 
-                        while (fn != fns_end) {
-                            if ((*fn->first)(this, &m_state.cpu, fn->second)) {
-                                ++fn;
-                            } else {
+                        while (callback != m_host_write_callbacks.end) {
+                            if (!(*callback->fn)(this, &m_state.cpu, callback->fn_context)) {
                                 any_removed = true;
-                                *fn = *--fns_end;
+                                callback->fn = nullptr;
                             }
+
+                            ++callback;
                         }
 
                         if (any_removed) {
-                            m_host_write_fns.resize((size_t)(fns_end - m_host_write_fns.data()));
-
-                            UpdateCPUDataBusFn();
+                            m_host_write_callbacks.DidChange();
+                            this->CallbacksDidChange();
                         }
                     }
                 }
@@ -609,30 +605,21 @@ parasite_update_done:
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_NonFastPath) != 0) {
                 if (M6502_IsAboutToExecute(&m_state.cpu)) {
-                    if (!m_host_instruction_fns.empty()) {
+                    if (Callbacks<InstructionFn>::Callback *callback = m_host_instruction_callbacks.begin) {
+                        bool any_removed = false;
 
-                        // This is a bit bizarre, but I just can't stomach the
-                        // idea of literally like 1,000,000 std::vector calls per
-                        // second. But this way, it's hopefully more like only
-                        // 300,000.
-
-                        auto *fn = m_host_instruction_fns.data();
-                        auto *fns_end = fn + m_host_instruction_fns.size();
-                        bool removed = false;
-
-                        while (fn != fns_end) {
-                            if ((*fn->first)(this, &m_state.cpu, fn->second)) {
-                                ++fn;
-                            } else {
-                                removed = true;
-                                *fn = *--fns_end;
+                        while (callback != m_host_instruction_callbacks.end) {
+                            if (!(*callback->fn)(this, &m_state.cpu, callback->fn_context)) {
+                                callback->fn = nullptr;
+                                any_removed = true;
                             }
+
+                            ++callback;
                         }
 
-                        if (removed) {
-                            m_host_instruction_fns.resize((size_t)(fns_end - m_host_instruction_fns.data()));
-
-                            UpdateCPUDataBusFn();
+                        if (any_removed) {
+                            m_host_instruction_callbacks.DidChange();
+                            this->CallbacksDidChange();
                         }
                     }
 
