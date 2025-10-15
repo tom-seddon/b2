@@ -5393,7 +5393,8 @@ But only "like". The above didn't work.
 #+end_src
 
 
-* TODO WIP build notes
+* DONE WIP build notes
+CLOSED: [2025-10-15 Wed 16:27]
 
 #+begin_src markdown
   # Debugger stuff
