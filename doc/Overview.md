@@ -534,6 +534,19 @@ resulting emulated hard disk won't be readable, but you can format it
 as above, if the named file (and its `.dsc` counterpart) can be
 created.
 
+### Got an IDE hard disk image?
+
+It's not intended for regular use, but you can point b2 at an IDE hard
+disk image, and it'll assume it's a SCSI disk image with a disk
+geometry that should hopefully work. (You'll get a warning about the
+lack of .dsc file to alert you to this.) This should let you copy
+files off the disk.
+
+Note that you may find hard disk images that do work with IDE ADFS but
+give a `Bad FS map` error - some of the IDE ADFS ROMs don't do the
+same checks as the standard ADFS. There's no specific fix for this;
+you may have better luck with a different emulator.
+
 ## Non-volatile CMOS RAM/EEPROM
 
 If you're using an emulated Master 128, Master Compact or PC 128 S,
