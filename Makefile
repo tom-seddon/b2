@@ -43,8 +43,21 @@ OS:=osx
 NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
 ifdef OSX_DEPLOYMENT_TARGET
+
+# Use the requested target.
 CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(OSX_DEPLOYMENT_TARGET)
+
+else
+
+# Target the installed macOS version. (If left to itself and/or Xcode,
+# CMake can end up picking something newer than the installed version,
+# if Xcode has an SDK for it. Result: Xcode will refuse to debug it.)
+CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(shell sw_vers -productVersion)
+
 endif
+
+# new requirement for CMake 4.x.
+CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_SYSROOT=macosx
 
 # version number roulette.
 CLANG_FORMAT:=clang-format-mp-19
