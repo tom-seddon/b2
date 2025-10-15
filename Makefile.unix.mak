@@ -154,6 +154,16 @@ tom_emacs:
 ##########################################################################
 ##########################################################################
 
+# Don't bother doing clang+no ffmpeg. Any serious issues will be
+# caught by the gcc version. Hopefully.
+.PHONY:github_ci_ubuntu_clang_without_ffmpeg
+github_ci_ubuntu_clang_with_ffmpeg: export CC=clang-18
+github_ci_ubuntu_clang_with_ffmpeg: export CXX=clang++-18
+github_ci_ubuntu_clang_with_ffmpeg:
+	$(MAKE) _github_ci_ubuntu_start
+	$(MAKE) _github_ci_ubuntu_install_ffmpeg
+	$(MAKE) _github_ci_ubuntu_release SUFFIX1=ffmpeg-clang-
+
 .PHONY:github_ci_ubuntu_without_ffmpeg
 github_ci_ubuntu_without_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
@@ -162,13 +172,17 @@ github_ci_ubuntu_without_ffmpeg:
 .PHONY:github_ci_ubuntu_with_ffmpeg
 github_ci_ubuntu_with_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
-	sudo apt-get -y install ffmpeg libavcodec-dev libavutil-dev libswresample-dev libavformat-dev libswscale-dev
+	$(MAKE) _github_ci_ubuntu_install_ffmpeg
 	$(MAKE) _github_ci_ubuntu_release SUFFIX1=ffmpeg-
 
 .PHONY:_github_ci_ubuntu_start
 _github_ci_ubuntu_start:
 	sudo apt-get -y update
 	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-4-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev ninja-build
+
+.PHONY:_github_ci_ubuntu_install_ffmpeg
+_github_ci_ubuntu_install_ffmpeg:
+	sudo apt-get -y install ffmpeg libavcodec-dev libavutil-dev libswresample-dev libavformat-dev libswscale-dev
 
 .PHONY:_github_ci_ubuntu_release
 _github_ci_ubuntu_release:

@@ -15,6 +15,14 @@ jobs:
           submodules: recursive
       - run: make github_ci_ubuntu_with_ffmpeg
         
+  build-linux-clang-with-ffmpeg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_ubuntu_clang_with_ffmpeg
+        
   build-linux-without-ffmpeg:
     runs-on: ubuntu-latest
     steps:
