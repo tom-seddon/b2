@@ -5396,14 +5396,28 @@ But only "like". The above didn't work.
 * TODO WIP build notes
 
 #+begin_src markdown
-  ,* The GUI Font Size setting has been replaced by a general GUI Scale, now a scale value rather than a pixel size. As a one-off, you'll need to set it up again. Sorry!
+  # Debugger stuff
+
   ,* Add initial support for symbols in debugger, thanks to [Mark Fisher](https://github.com/markjfisher)
-  ,* Improve debugging support for memory-mapped I/O: breakpoints work, and there's partial support for viewing it in the memory and disassembly views
-  ,* Fix some 1770 FDC bugs: fix Watford DDB2/DDB3 double density; fix Watford DDB2 generally
+  ,* Add support for breakpoints in I/O regions
+  ,* Add view of memory-mapped I/O in memory and disassembly dialogs
   ,* Fix debugger's view of ROMs when using BBC B without ROM board
-  ,* macOS: improve support for retina displays. Should look a little nicer
-  ,* Windows: improve support for high-DPI displays. Should look quite a bit better if using display scaling
-  ,* Linux: improve "support" for high-DPI displays: you can use the GUI scale to fix it
+
+  Symbols support is an ongoing work in progress.
+
+  # UI stuff
+
+  ,* The GUI Font Size setting has been replaced by a general GUI Scale, now a scale value rather than a pixel size. As a one-off, you'll need to set it up again. Sorry!
+  ,* (macOS/Windows) Improve retina/high-DPI display support: should look at least a bit nicer
+  ,* Improve native file dialogs generally: do a better job with suggested paths, remembering previous folder, and adding file extensions
+
+  (If using a high-DPI display with Linux, use the GUI scale to scale everything to taste. It seems to be difficult to auto-detect a sensible value, so b2 doesn't even try. )
+
+  # Emulation stuff
+
+  ,* Fix 1770 FDC issues: fix Watford DDB2/DDB3 double density; fix Watford DDB2 generally)
+  ,* Fix video ULA address range
+   
 #+end_src
 
 * Address suffix spring clean
