@@ -46,10 +46,6 @@ ifdef OSX_DEPLOYMENT_TARGET
 CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(OSX_DEPLOYMENT_TARGET)
 endif
 
-# Temporary bodge. Homebrew supplies CMake 4.1.1., and therefore the
-# GitHub CI runners use that.
-CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-
 # version number roulette.
 CLANG_FORMAT:=clang-format-mp-19
 
