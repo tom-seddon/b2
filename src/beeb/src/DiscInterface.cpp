@@ -640,6 +640,7 @@ const DiscInterface &DISC_INTERFACE_MASTER128 = DISC_INTERFACE_MASTER128_VALUE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+
 const DiscInterface *const MODEL_B_DISC_INTERFACES[] = {
     &DISC_INTERFACE_ACORN_1770,
     &DISC_INTERFACE_WATFORD_DDB2,

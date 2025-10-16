@@ -33,9 +33,11 @@ static const char NEW_CONFIG_POPUP[] = "new_config_popup";
 static const char COPY_CONFIG_POPUP[] = "copy_config_popup";
 static const char ROM_POPUP[] = "rom_popup";
 static const char SCSI_POPUP[] = "scsi_popup";
+static const char MMFS_POPUP[] = "mmfs_popup";
 
 static RecentPaths g_hard_disks_recent_paths("hard_disks");
 static RecentPaths g_roms_recent_paths("roms");
+static RecentPaths g_mmfs_images_recent_paths("mmfs_images");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -54,6 +56,7 @@ class ConfigsUI : public SettingsUI {
     bool m_edited = false;
     OpenFileDialog m_rom_ofd;
     OpenFileDialog m_hard_disk_ofd;
+    OpenFileDialog m_mmfs_image_ofd;
     SaveFileDialog m_new_hard_disk_sfd;
     int m_config_index = -1;
 
@@ -82,6 +85,7 @@ ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window)
     , m_rom_ofd({0xC4, 0x57, 0x6C, 0xD4, 0xE6, 0x33, 0x4C, 0x63, 0xAD, 0x43, 0xC0, 0x88, 0xF4, 0xC8, 0xFB, 0x2C})
     , m_hard_disk_ofd({0xF1, 0x5F, 0xA1, 0xE2, 0x3C, 0xF2, 0x48, 0x40, 0x95, 0x34, 0x90, 0x81, 0x32, 0x09, 0x4E, 0x10})
+    , m_mmfs_image_ofd({0xA3, 0xB2, 0x91, 0xC8, 0xF4, 0x29, 0x49, 0x7D, 0x8E, 0x11, 0x6C, 0x45, 0xAB, 0x38, 0x2F, 0xE9})
     , m_new_hard_disk_sfd({0xe7, 0x34, 0xcc, 0xea, 0x15, 0x0f, 0x44, 0x84, 0xa5, 0x42, 0x9d, 0x12, 0x83, 0x1f, 0xf1, 0xc8}) {
     this->SetDefaultSize(ImVec2(650, 450));
 
@@ -532,6 +536,52 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 #endif
+
+    // MMFS - Memory-Mapped Filing System (additional hardware)
+    if (Has1MHzBus(config->type_id)) {
+        ImGui::Separator();
+
+        ImGuiHeader("MMFS##header");
+
+        if (ImGui::Checkbox("MMFS", &config->mmfs_enabled)) {
+            edited = true;
+        }
+
+        if (config->mmfs_enabled) {
+            if (ImGuiInputText(&config->mmfs_config.image_path,
+                               "Image Path",
+                               config->mmfs_config.image_path)) {
+                edited = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("...##mmfs")) {
+                ImGui::OpenPopup(MMFS_POPUP);
+            }
+            
+            if (ImGui::BeginPopup(MMFS_POPUP)) {
+                if (ImGui::MenuItem("File...")) {
+                    if (m_mmfs_image_ofd.Open(m_beeb_window->GetSDLWindow(), &config->mmfs_config.image_path)) {
+                        m_mmfs_image_ofd.AddLastPathToRecentPaths(&g_mmfs_images_recent_paths);
+                        edited = true;
+                    }
+                }
+                
+                if (ImGuiRecentMenu(&config->mmfs_config.image_path, "Recent file", &g_mmfs_images_recent_paths)) {
+                    edited = true;
+                }
+                
+                ImGui::EndPopup();
+            }
+            
+            if (ImGui::Checkbox("Enable debug logging", &config->mmfs_config.debug)) {
+                edited = true;
+            }
+            
+            ImGuiStyleColourPusher pusher;
+            pusher.PushDefault(ImGuiCol_Text);
+            ImGui::TextWrapped("MMB files (MMFS v1) or FAT32 disk images (MMFS v2)");
+        }
+    }
 
     if (edited) {
         BeebWindows::ConfigDidChange((size_t)m_config_index);

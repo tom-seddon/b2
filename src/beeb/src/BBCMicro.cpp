@@ -3047,6 +3047,11 @@ void BBCMicro::InitStuff() {
     }
 #endif
 
+    if (m_state.init_flags & BBCMicroInitFlag_MMFS) {
+        ASSERT(!!m_state.mmfs);
+        this->SetSIO(0xfe1c, &MMFS::ReadMMFS, m_state.mmfs.get(), &MMFS::WriteMMFS, m_state.mmfs.get());
+    }
+
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_itu = 0;
 

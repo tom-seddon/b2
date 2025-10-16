@@ -80,6 +80,10 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
 #else
     (void)hard_disk_images;
 #endif
+
+    if (this->init_flags & BBCMicroInitFlag_MMFS) {
+        this->mmfs = std::make_shared<MMFS>();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -359,6 +363,20 @@ BBCMicroUniqueState::BBCMicroUniqueState(const BBCMicroUniqueState &src)
     if (this->disc_interface) {
         this->disc_interface_extra_hardware = this->disc_interface->CloneExtraHardwareState(this->disc_interface_extra_hardware);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::shared_ptr<DiscInterfaceExtraHardwareState> &BBCMicroState::GetDiscInterfaceExtraHardwareState() const {
+    return this->disc_interface_extra_hardware;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::shared_ptr<MMFS> &BBCMicroState::GetMMFS() const {
+    return this->mmfs;
 }
 
 //////////////////////////////////////////////////////////////////////////
