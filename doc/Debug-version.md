@@ -807,6 +807,93 @@ the `File` menu and picking the given file using the file selector.
 (There is also a `load-disk` endpoint, which behaves exactly the
 same.)
 
+### `set-breakpoint/WIN/ADDR?s=SUFFIX&flags=FLAGS&mos=MOS`
+
+Set a breakpoint at address `ADDR` with the specified flags.
+
+The `ADDR` parameter can be:
+
+* A hex address with prefix: e.g., `$8000`, `0xc000`, `&ffff`
+* A decimal address: e.g., `16384` (which is $4000)
+* A symbol name: e.g., `main_loop`, `_start` (if symbols are loaded)
+
+The `SUFFIX` argument is any debugger address suffixes (default: none),
+as discussed above. This allows you to set breakpoints in specific
+memory contexts (e.g., specific ROM banks, shadow RAM, parasite, etc.).
+
+The `MOS` argument is a boolean value for the `MOS's view` flag (default: false),
+as discussed above.
+
+The `FLAGS` parameter specifies what type of breakpoint to set. It can be:
+
+* Single letter codes: `x` (execute), `r` (read), `w` (write)
+* Full words: `execute`, `read`, `write`
+* Comma-separated combinations: `x,r,w` or `execute,read,write`
+* Hex value: e.g., `0x05` for combined flags
+
+If `FLAGS` is not specified, defaults to `x` (execute breakpoint).
+
+When a suffix is specified that indicates a specific memory context (ROM,
+shadow RAM, etc.), a "byte breakpoint" is created that is specific to that
+memory location. Without a suffix (or with only the parasite flag), an
+"address breakpoint" is created that triggers whenever that address is
+accessed regardless of paging state.
+
+Examples:
+
+    # Set execute breakpoint at address $8000 (hex)
+    curl -X POST 'http://localhost:48075/set-breakpoint/b2/$8000?flags=x'
+    
+    # Set read+write breakpoint at $3000 (hex)
+    curl -X POST 'http://localhost:48075/set-breakpoint/b2/0x3000?flags=r,w'
+    
+    # Set execute breakpoint at 16384 (decimal, which is $4000)
+    curl -X POST 'http://localhost:48075/set-breakpoint/b2/16384?flags=x'
+    
+    # Set execute breakpoint using a symbol name
+    curl -X POST 'http://localhost:48075/set-breakpoint/b2/main_loop?flags=x'
+    
+    # Set execute breakpoint in ROM 12 at $8000 (hex)
+    curl -X POST 'http://localhost:48075/set-breakpoint/b2/&8000?s=c&flags=x'
+    
+    # Set breakpoint in shadow RAM
+    curl -X POST 'http://localhost:48075/set-breakpoint/b2/$3000?s=s&flags=x'
+
+### `clear-breakpoint/WIN/ADDR?s=SUFFIX&mos=MOS`
+
+Clear all breakpoints at address `ADDR`.
+
+The `ADDR` parameter can be:
+
+* A hex address with prefix: e.g., `$8000`, `0xc000`, `&ffff`
+* A decimal address: e.g., `16384` (which is $4000)
+* A symbol name: e.g., `main_loop`, `_start` (if symbols are loaded)
+
+The `SUFFIX` and `MOS` arguments work the same as in `set-breakpoint` to
+specify which memory context to clear the breakpoint from.
+
+To clear **all breakpoints** at once (address breakpoints, byte breakpoints,
+and I/O breakpoints), use `all` instead of an address:
+
+    curl -X POST 'http://localhost:48075/clear-breakpoint/b2/all'
+
+Examples:
+
+    # Clear breakpoint at address $8000 (hex)
+    curl -X POST 'http://localhost:48075/clear-breakpoint/b2/$8000'
+    
+    # Clear breakpoint at 16384 (decimal, which is $4000)
+    curl -X POST 'http://localhost:48075/clear-breakpoint/b2/16384'
+    
+    # Clear breakpoint using a symbol name
+    curl -X POST 'http://localhost:48075/clear-breakpoint/b2/main_loop'
+    
+    # Clear breakpoint in ROM 12 at $8000 (hex)
+    curl -X POST 'http://localhost:48075/clear-breakpoint/b2/0x8000?s=c'
+    
+    # Clear ALL breakpoints
+    curl -X POST 'http://localhost:48075/clear-breakpoint/b2/all'
+
 ## Using the HTTP API for developing BBC software
 
 The process involves having the Makefile (or batch
