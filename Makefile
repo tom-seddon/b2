@@ -146,8 +146,8 @@ backup_b2_config:
 	-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.ini" "$(_DEST)/"
 	-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.1.92+.ini" "$(_DEST)/"
 # copy/paste fodder
-	$(SHELLCMD) realpath "$(B2_JSON_FOLDER)"
-	$(SHELLCMD) realpath "$(_DEST)"
+	@$(SHELLCMD) realpath "$(B2_JSON_FOLDER)"
+	@$(SHELLCMD) realpath "$(_DEST)"
 
 ##########################################################################
 ##########################################################################

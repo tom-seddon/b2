@@ -64,3 +64,8 @@ github_ci_older_macos_x64:
 .PHONY:github_ci_macos_arm
 github_ci_macos_arm:
 	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=13.0
+
+##########################################################################
+##########################################################################
+
+B2_JSON_FOLDER:=$(HOME)/Library/Application Support/com.tom-seddon.b2
