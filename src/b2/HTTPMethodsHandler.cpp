@@ -16,12 +16,16 @@
 #include "BeebThread.h"
 #include <inttypes.h>
 #include <beeb/MemoryDiscImage.h>
+#include <beeb/BBCMicro.h>
 #include "Messages.h"
 #include <shared/path.h>
 #include <beeb/DiscGeometry.h>
 #include <http/http.h>
 #include "LoadMemoryDiscImage.h"
 #include <beeb/DirectDiscImage.h>
+#if BBCMICRO_DEBUGGER
+#include "SymbolTable.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -100,6 +104,8 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"run", &HTTPMethodsHandler::HandleRunRequest},
         {"load-disc", &HTTPMethodsHandler::HandleLoadDiskRequest},
         {"load-disk", &HTTPMethodsHandler::HandleLoadDiskRequest},
+        {"set-breakpoint", &HTTPMethodsHandler::HandleSetBreakpointRequest},
+        {"clear-breakpoint", &HTTPMethodsHandler::HandleClearBreakpointRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
@@ -478,6 +484,54 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
+    // Parse breakpoint flags from a string. Accepts:
+    // - Single letters: x (execute), r (read), w (write)
+    // - Full words: execute, read, write
+    // - Comma-separated combinations: x,r,w or execute,read,write
+    // - Hex value: 0x05
+    // Returns true on success, false on error
+    bool ParseBreakpointFlags(uint8_t *flags, const std::string &flags_str, HTTPServer *server, const HTTPRequest &request) {
+        *flags = 0;
+        
+        if (flags_str.empty()) {
+            return true;
+        }
+
+        // Check if it's a hex value
+        if (flags_str.size() >= 2 && flags_str[0] == '0' && (flags_str[1] == 'x' || flags_str[1] == 'X')) {
+            if (!GetUInt8FromString(flags, flags_str, 16, nullptr)) {
+                server->SendResponse(request, HTTPResponse::BadRequest(request, "invalid hex flags value: %s", flags_str.c_str()));
+                return false;
+            }
+            return true;
+        }
+
+        // Parse as comma-separated flags
+        std::vector<std::string> flag_parts = GetSplitString(flags_str, ",");
+        for (const std::string &flag : flag_parts) {
+            std::string trimmed = flag;
+            // Trim whitespace
+            size_t start = trimmed.find_first_not_of(" \t");
+            if (start != std::string::npos) {
+                size_t end = trimmed.find_last_not_of(" \t");
+                trimmed = trimmed.substr(start, end - start + 1);
+            }
+
+            if (trimmed == "x" || trimmed == "execute") {
+                *flags |= BBCMicroByteDebugFlag_BreakExecute;
+            } else if (trimmed == "r" || trimmed == "read") {
+                *flags |= BBCMicroByteDebugFlag_BreakRead;
+            } else if (trimmed == "w" || trimmed == "write") {
+                *flags |= BBCMicroByteDebugFlag_BreakWrite;
+            } else if (!trimmed.empty()) {
+                server->SendResponse(request, HTTPResponse::BadRequest(request, "unknown breakpoint flag: %s", trimmed.c_str()));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     void HandleLoadDiskRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string path;
@@ -510,6 +564,227 @@ class HTTPMethodsHandler : public HTTPHandler {
         beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive, std::move(image), true));
 
         server->SendResponse(request, HTTPResponse::OK());
+    }
+
+    void HandleSetBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        std::string addr_str;
+        uint32_t dso = 0;
+        std::string flags_str;
+        bool mos = false;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           "std::string", nullptr, &addr_str,
+                                           "dso", "s", &dso,
+                                           "std::string", "flags", &flags_str,
+                                           "bool", "mos", &mos,
+                                           nullptr)) {
+            return;
+        }
+
+        // Default to execute breakpoint if no flags specified
+        if (flags_str.empty()) {
+            flags_str = "x";
+        }
+
+        uint8_t flags;
+        if (!this->ParseBreakpointFlags(&flags, flags_str, server, request)) {
+            return;
+        }
+
+        // Parse address (can be hex number or symbol name)
+        // Try to parse as hex first
+        uint16_t addr;
+        const char *ep = nullptr;
+        bool parsed_as_hex = GetUInt16FromString(&addr, addr_str, 0, &ep);
+        uint32_t resolved_dso = dso;
+        
+        if (!parsed_as_hex || *ep != '\0') {
+            // Try symbol lookup - need to do this in a callback to get the BBCMicroType
+            const SymbolTable *symbol_table = beeb_window->GetSymbolTable();
+            if (symbol_table && (isalpha(addr_str[0]) || addr_str[0] == '_')) {
+                // Get the current state to access the type
+                std::shared_ptr<const BBCMicroReadOnlyState> state;
+                beeb_window->GetBeebThread()->DebugGetState(&state, nullptr);
+                if (!state) {
+                    server->SendResponse(request, HTTPResponse::BadRequest("emulator not ready"));
+                    return;
+                }
+                
+                if (!symbol_table->GetAddressForSymbol(&addr, &resolved_dso, state->type, addr_str)) {
+                    server->SendResponse(request, HTTPResponse::BadRequest("unknown symbol: %s", addr_str.c_str()));
+                    return;
+                }
+            } else {
+                server->SendResponse(request, HTTPResponse::BadRequest("invalid address: %s", addr_str.c_str()));
+                return;
+            }
+        }
+        
+        M6502Word addr_word = {addr};
+
+        // Determine if this should be an address breakpoint or byte breakpoint
+        // Address breakpoints are only used for pure host or parasite addresses
+        // Byte breakpoints are used when paging overrides are specified (ROM, shadow, etc.)
+        constexpr uint32_t paging_override_mask = 
+            BBCMicroDebugStateOverride_OverrideROM |
+            BBCMicroDebugStateOverride_OverrideMapperRegion |
+            BBCMicroDebugStateOverride_OverrideShadow |
+            BBCMicroDebugStateOverride_OverrideANDY |
+            BBCMicroDebugStateOverride_OverrideHAZEL |
+            BBCMicroDebugStateOverride_OverrideOS |
+            BBCMicroDebugStateOverride_OverrideIFJ |
+            BBCMicroDebugStateOverride_OverrideITU |
+            BBCMicroDebugStateOverride_OverrideParasiteROM;
+
+        if (resolved_dso & paging_override_mask) {
+            // Byte breakpoint - need to find the big page index
+            beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::CallbackMessage>(
+                [addr_word, resolved_dso, mos, flags, beeb_thread = beeb_window->GetBeebThread(), server, response_data = request.response_data](BBCMicro *m) -> void {
+                    const BBCMicro::BigPage *bp = m->DebugGetBigPageForAddress(addr_word, mos, resolved_dso);
+                    if (bp && bp->byte_debug_flags) {
+                        // Set byte breakpoint using the metadata's debug_flags_index
+                        BigPageIndex big_page_index = bp->metadata->debug_flags_index;
+                        uint16_t offset = addr_word.p.o;
+                        beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(big_page_index, offset, flags));
+                        server->SendResponse(response_data, HTTPResponse::OK());
+                    } else {
+                        server->SendResponse(response_data, HTTPResponse::BadRequest("cannot set breakpoint at this address"));
+                    }
+                }));
+        } else {
+            // Address breakpoint - simpler case
+            this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr_word, resolved_dso, flags));
+        }
+    }
+
+    void HandleClearBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        
+        // Check if we should parse an address or if this is "clear all"
+        // Path structure: /clear-breakpoint/WIN/ADDR or /clear-breakpoint/WIN/all
+        // path_parts[command_index] = "clear-breakpoint"
+        // path_parts[command_index + 1] = window name
+        // path_parts[command_index + 2] = address or "all"
+        if (command_index + 2 < path_parts.size() && path_parts[command_index + 2] == "all") {
+            // Clear all breakpoints
+            std::string dummy_all;
+            if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                               "window", nullptr, &beeb_window,
+                                               "std::string", nullptr, &dummy_all,  // Consume the "all" argument
+                                               nullptr)) {
+                return;
+            }
+
+            // Use a callback to clear all breakpoint flags directly
+            beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::CallbackMessage>(
+                [server, response_data = request.response_data](BBCMicro *m) -> void {
+                    auto debug_const = m->GetDebugState();
+                    if (debug_const) {
+                        // Safe to const_cast here - we're on the BeebThread with exclusive access
+                        BBCMicro::DebugState *debug = const_cast<BBCMicro::DebugState *>(debug_const.get());
+                        
+                        // Clear all address breakpoints
+                        memset(debug->host_address_debug_flags, 0, sizeof debug->host_address_debug_flags);
+                        memset(debug->parasite_address_debug_flags, 0, sizeof debug->parasite_address_debug_flags);
+                        
+                        // Clear all byte breakpoints
+                        memset(debug->big_pages_byte_debug_flags, 0, sizeof debug->big_pages_byte_debug_flags);
+                        
+                        // Clear I/O breakpoints
+                        memset(debug->io_byte_debug_flags, 0, sizeof debug->io_byte_debug_flags);
+                        
+                        // Reset counters
+                        debug->num_breakpoint_bytes = 0;
+                        debug->temp_execute_breakpoints.clear();
+                        ++debug->breakpoints_changed_counter;
+                        
+                        // Note: We can't call UpdateCPUDataBusFn from here as it's private,
+                        // but clearing breakpoints and updating the counter should be sufficient
+                        // for the system to notice the change.
+                        
+                        server->SendResponse(response_data, HTTPResponse::OK());
+                    } else {
+                        server->SendResponse(response_data, HTTPResponse::BadRequest("debugger not enabled"));
+                    }
+                }));
+            return;
+        }
+        
+        // Normal single-address clear
+        std::string addr_str;
+        uint32_t dso = 0;
+        bool mos = false;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           "std::string", nullptr, &addr_str,
+                                           "dso", "s", &dso,
+                                           "bool", "mos", &mos,
+                                           nullptr)) {
+            return;
+        }
+
+        // Parse address (can be hex number or symbol name)
+        // Try to parse as hex first
+        uint16_t addr;
+        const char *ep = nullptr;
+        bool parsed_as_hex = GetUInt16FromString(&addr, addr_str, 0, &ep);
+        uint32_t resolved_dso = dso;
+        
+        if (!parsed_as_hex || *ep != '\0') {
+            // Try symbol lookup
+            const SymbolTable *symbol_table = beeb_window->GetSymbolTable();
+            if (symbol_table && (isalpha(addr_str[0]) || addr_str[0] == '_')) {
+                // Get the current state to access the type
+                std::shared_ptr<const BBCMicroReadOnlyState> state;
+                beeb_window->GetBeebThread()->DebugGetState(&state, nullptr);
+                if (!state) {
+                    server->SendResponse(request, HTTPResponse::BadRequest("emulator not ready"));
+                    return;
+                }
+                
+                if (!symbol_table->GetAddressForSymbol(&addr, &resolved_dso, state->type, addr_str)) {
+                    server->SendResponse(request, HTTPResponse::BadRequest("unknown symbol: %s", addr_str.c_str()));
+                    return;
+                }
+            } else {
+                server->SendResponse(request, HTTPResponse::BadRequest("invalid address: %s", addr_str.c_str()));
+                return;
+            }
+        }
+
+        M6502Word addr_word = {addr};
+
+        // Same logic as set: determine if address or byte breakpoint
+        constexpr uint32_t paging_override_mask = 
+            BBCMicroDebugStateOverride_OverrideROM |
+            BBCMicroDebugStateOverride_OverrideMapperRegion |
+            BBCMicroDebugStateOverride_OverrideShadow |
+            BBCMicroDebugStateOverride_OverrideANDY |
+            BBCMicroDebugStateOverride_OverrideHAZEL |
+            BBCMicroDebugStateOverride_OverrideOS |
+            BBCMicroDebugStateOverride_OverrideIFJ |
+            BBCMicroDebugStateOverride_OverrideITU |
+            BBCMicroDebugStateOverride_OverrideParasiteROM;
+
+        if (resolved_dso & paging_override_mask) {
+            // Clear byte breakpoint
+            beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::CallbackMessage>(
+                [addr_word, resolved_dso, mos, beeb_thread = beeb_window->GetBeebThread(), server, response_data = request.response_data](BBCMicro *m) -> void {
+                    const BBCMicro::BigPage *bp = m->DebugGetBigPageForAddress(addr_word, mos, resolved_dso);
+                    if (bp && bp->byte_debug_flags) {
+                        BigPageIndex big_page_index = bp->metadata->debug_flags_index;
+                        uint16_t offset = addr_word.p.o;
+                        beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(big_page_index, offset, 0));
+                        server->SendResponse(response_data, HTTPResponse::OK());
+                    } else {
+                        server->SendResponse(response_data, HTTPResponse::BadRequest("cannot clear breakpoint at this address"));
+                    }
+                }));
+        } else {
+            // Clear address breakpoint
+            this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr_word, resolved_dso, 0));
+        }
     }
 #endif
 
