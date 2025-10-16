@@ -596,8 +596,6 @@ class TestBBCMicro : public BBCMicro {
   private:
     bool m_spooling = false;
     size_t m_oswrch_capture_count = 0;
-    size_t m_video_data_unit_idx = 0;
-    SoundDataUnit m_temp_sound_data_unit;
     uint64_t m_num_ticks = 0;
     CycleCount m_num_cycles = {0};
 #if BBCMICRO_TRACE
@@ -625,25 +623,6 @@ LOG_DEFINE(BBC_OUTPUT, "", &log_printer_stdout_and_debugger, true);
 static constexpr uint16_t WRCHV = 0x20e;
 static constexpr uint16_t WORDV = 0x20c;
 static constexpr uint16_t CLIV = 0x208;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// 1 unit = 2 bytes
-//
-// 21 bits = 4 MBytes, approx 1 second
-// 22 bits = 8 MBytes, approx 2 seconds
-// 23 bits = 16 MBytes, approx 4 seconds
-// 24 bits = 32 MBytes, approx 8 seconds
-static constexpr size_t NUM_VIDEO_DATA_UNITS_LOG2 = 24;
-
-static constexpr size_t NUM_VIDEO_DATA_UNITS = 1 << NUM_VIDEO_DATA_UNITS_LOG2;
-static constexpr size_t VIDEO_DATA_UNIT_INDEX_MASK = (1 << NUM_VIDEO_DATA_UNITS_LOG2) - 1;
-
-// This is a measurable amount of RAM (~384 MB) and the allocation overhead is
-// noticeable if doing it for every BBCMicro created. So there's just one global
-// buffer...
-static VideoDataUnit g_video_data_units[NUM_VIDEO_DATA_UNITS];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -962,26 +941,29 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
     VideoDataUnitCount version;
     const uint32_t *pixels = tv.GetTexturePixels(&version);
 
+    SoundDataUnit temp_sound_data_unit;
+    constexpr size_t MAX_NUM_VIDEO_DATA_UNITS = 1000;
+    VideoDataUnit video_data_units[MAX_NUM_VIDEO_DATA_UNITS];
+
     size_t num_frames_got = 0;
+    size_t video_data_unit_index = 0;
 
     while (num_frames_got < num_frames) {
-        size_t a = m_video_data_unit_idx;
-
         for (size_t i = 0; i < 1024; ++i) {
-            uint32_t update_result = this->Update(&g_video_data_units[m_video_data_unit_idx],
-                                                  &m_temp_sound_data_unit);
+            uint32_t update_result = this->Update(&video_data_units[video_data_unit_index],
+                                                  &temp_sound_data_unit);
 
             if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
-                ++m_video_data_unit_idx;
-                if (m_video_data_unit_idx > VIDEO_DATA_UNIT_INDEX_MASK) {
-                    tv.Update(&g_video_data_units[a], m_video_data_unit_idx - a);
-                    m_video_data_unit_idx = 0;
-                    a = m_video_data_unit_idx;
+                ++video_data_unit_index;
+                if (video_data_unit_index >= MAX_NUM_VIDEO_DATA_UNITS) {
+                    tv.Update(video_data_units, video_data_unit_index);
+                    video_data_unit_index = 0;
                 }
             }
         }
 
-        tv.Update(&g_video_data_units[a], m_video_data_unit_idx - a);
+        tv.Update(video_data_units, video_data_unit_index);
+        video_data_unit_index = 0;
 
         VideoDataUnitCount new_version;
         pixels = tv.GetTexturePixels(&new_version);
@@ -1014,15 +996,12 @@ void TestBBCMicro::Paste(std::string text) {
 //////////////////////////////////////////////////////////////////////////
 
 uint32_t TestBBCMicro::Update1() {
-    uint32_t update_result = this->Update(&g_video_data_units[m_video_data_unit_idx],
-                                          &m_temp_sound_data_unit);
+    VideoDataUnit temp_video_data_unit;
+    SoundDataUnit temp_sound_data_unit;
+    uint32_t update_result = this->Update(&temp_video_data_unit,
+                                          &temp_sound_data_unit);
 
     ++m_num_cycles.n;
-
-    if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
-        ++m_video_data_unit_idx;
-        m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
-    }
 
     if (update_result & BBCMicroUpdateResultFlag_Host) {
         const M6502 *cpu = this->GetM6502();
@@ -1363,7 +1342,7 @@ static bool g_infer_wanted_images = false;
 void RunImageTest(const std::string &wanted_png_src_path,
                   const std::string &png_name,
                   TestBBCMicro *beeb) {
-    std::vector<uint32_t> got_image = beeb->RunForNFrames(10);
+    std::vector<uint32_t> got_image = beeb->RunForNFrames(3);
 
     // The emulator doesn't bother to fill in the alpha channel. Also, all the
     // pixels are the wrong way round for stb_image, which wants
