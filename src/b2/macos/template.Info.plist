@@ -54,5 +54,7 @@
 	</array>
 	<key>LSApplicationCategoryType</key>
 	<string></string>
+	<key>CFBundleDisplayName</key>
+	<string>b2</string>
 </dict>
 </plist>
