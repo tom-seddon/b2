@@ -261,8 +261,8 @@ else()
     # macOS versions.
     target_compile_options(SDL2-static PRIVATE "-Wno-deprecated-declarations")
 
-    # I'm gambling these are benign.
-    target_compile_options(SDL2-static PRIVATE "-Wno-shorten-64-to-32")
+    # Shows up with the Xcode 26 compiler.
+    target_compile_options(SDL2-static PRIVATE "-Wno-gnu-folding-constant")
   endif()
 
   set(HAVE_SDL_SOFTSTRETCHLINEAR TRUE)
@@ -325,8 +325,9 @@ else()
 
   # I'm trusting (possibly wrongly...) that these are benign.
   if(OSX)
-    target_compile_options(uv PRIVATE "-Wno-shorten-64-to-32")
-    target_compile_options(uv_a PRIVATE "-Wno-shorten-64-to-32")
+    # Shows up with the Xcode 26 compiler.
+    target_compile_options(uv PRIVATE "-Wno-gnu-folding-constant")
+    target_compile_options(uv_a PRIVATE "-Wno-gnu-folding-constant")
   elseif(MSVC)
     # C4133: '': incompatible types - from '' to ''
     # C4146: unary minus operator applied to unsigned type, result still unsigned
