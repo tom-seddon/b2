@@ -3047,6 +3047,14 @@ void BBCMicro::InitStuff() {
     }
 #endif
 
+    if (m_state.init_flags & BBCMicroInitFlag_MMFS) {
+        ASSERT(!!m_state.mmfs);
+        // MMFS uses different addresses depending on the machine type
+        // (hardcoded in the ROM at compile time)
+        uint16_t mmfs_addr = (m_state.type->type_id == BBCMicroTypeID_Master) ? 0xfedc : 0xfe1c;
+        this->SetSIO(mmfs_addr, &MMFS::ReadMMFS, m_state.mmfs.get(), &MMFS::WriteMMFS, m_state.mmfs.get());
+    }
+
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_itu = 0;
 

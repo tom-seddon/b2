@@ -219,7 +219,13 @@ static BeebConfig GetBConfig(const DiscInterface *di) {
 
     config.os.standard_rom = &BEEB_ROM_OS12;
     config.roms[15].standard_rom = &BEEB_ROM_BASIC2;
-    config.roms[14].standard_rom = FindBeebROM(config.disc_interface->fs_rom);
+    
+    // Only set filesystem ROM if the disc interface has one
+    // (Master128 uses StandardROM_None as its filesystem ROMs are in the OS ROM)
+    if (config.disc_interface->fs_rom != StandardROM_None) {
+        config.roms[14].standard_rom = FindBeebROM(config.disc_interface->fs_rom);
+    }
+    
     config.roms[13].writeable = true;
 
     return config;

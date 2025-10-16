@@ -21,6 +21,7 @@ class Log;
 #include "VideoULA.h"
 #include "teletext.h"
 #include "DiscInterface.h"
+#include "MMFS.h"
 #include "tube.h"
 #include "video.h"
 #include "type.h"
@@ -189,6 +190,12 @@ class BBCMicroState {
     BBCMicroState &operator=(BBCMicroState &&) = delete;
 
     bool HasSerial() const;
+
+    // Get disc interface extra hardware state (for Challenger, etc.)
+    const std::shared_ptr<DiscInterfaceExtraHardwareState> &GetDiscInterfaceExtraHardwareState() const;
+
+    // Get MMFS device (if MMFS is enabled)
+    const std::shared_ptr<MMFS> &GetMMFS() const;
 
 #if BBCMICRO_DEBUGGER
     const M6502 *DebugGetM6502(uint32_t dso) const;
@@ -388,6 +395,8 @@ class BBCMicroState {
 #if ENABLE_SCSI
     std::shared_ptr<SCSI> scsi;
 #endif
+
+    std::shared_ptr<MMFS> mmfs;
 
     SERPROC serproc;
     MC6850 acia;
