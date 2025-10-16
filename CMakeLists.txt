@@ -329,14 +329,15 @@ else()
     target_compile_options(uv PRIVATE "-Wno-gnu-folding-constant")
     target_compile_options(uv_a PRIVATE "-Wno-gnu-folding-constant")
   elseif(MSVC)
-    # C4133: '': incompatible types - from '' to ''
-    # C4146: unary minus operator applied to unsigned type, result still unsigned
+    # C4152: nonstandard extension: function/data pointer conversion in expression
+    # C4189: local variable is initialized but not referenced
     # C4244: '': conversion from '' to '', possible loss of data
     # C4245: '': conversion from '' to '', signed/unsigned mismatch
     # C4267: '': conversion from '' to '', possible loss of data
+    # C4334: '': result of 32-bit shift implicitly converted to 64 bits
     # C4701: potentially uninitialized local variable '' used
     # C4702: unreachable code
-    set(MSVC_OPTIONS /wd4133 /wd4146 /wd4244 /wd4245 /wd4267 /wd4701 /wd4702)
+    set(MSVC_OPTIONS /wd4152 /wd4189 /wd4244 /wd4245 /wd4267 /wd4334 /wd4701 /wd4702)
     target_compile_options(uv PRIVATE ${MSVC_OPTIONS})
     target_compile_options(uv_a PRIVATE ${MSVC_OPTIONS})
   endif()
