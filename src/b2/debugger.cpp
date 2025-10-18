@@ -1638,8 +1638,9 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
 struct DisassemblyDebugWindowPersistentData {
     bool track_pc = false;
     bool show_symbols = false;
+    bool show_column_lines = false;
 };
-JSON_SERIALIZE(DisassemblyDebugWindowPersistentData, track_pc, show_symbols);
+JSON_SERIALIZE(DisassemblyDebugWindowPersistentData, track_pc, show_symbols, show_column_lines);
 
 class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebugWindowPersistentData>,
                                public RevealTargetUI {
@@ -1829,6 +1830,8 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         this->cst->DoButton(g_step_in_command);
         ImGui::SameLine();
         this->cst->DoToggleCheckbox(g_toggle_show_labels_command);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show column lines", &m_persistent.show_column_lines);
 
         if (m_persistent.track_pc) {
             if (m_beeb_debug_state && m_beeb_debug_state->halt_reason != BBCMicroHaltReason_None) {
@@ -1846,269 +1849,309 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         m_num_lines = 0;
         uint16_t addr = m_addr;
         std::string ascii;
-        while (ImGui::GetCursorPosY() <= maxY) {
-            ++m_num_lines;
-            M6502Word line_addr = {addr};
-            bool mos = !!pc_is_mos[line_addr.p.p];
-            //m_line_addrs.push_back(line_addr.w);
 
-            ImGuiIDPusher id_pusher(addr);
+        // Set up table for disassembly
+        int num_columns = m_persistent.show_symbols ? 5 : 4;
+        ImGuiTableFlags table_flags = ImGuiTableFlags_Resizable;
+        
+        // Hide column lines by default, show only when hovering to resize
+        // Unless user explicitly wants to see them all the time
+        if (!m_persistent.show_column_lines) {
+            table_flags |= ImGuiTableFlags_NoBordersInBodyUntilResize;
+        }
 
-            uint8_t opcode_addr_flags;
-            uint8_t opcode_byte_flags;
-            uint8_t opcode;
-            ReadByteResult opcode_read_result = this->ReadByte(&opcode, &opcode_addr_flags,
-                                                               &opcode_byte_flags,
-                                                               addr++,
-                                                               false);
-
-            ascii.clear();
-
-            const M6502DisassemblyInfo *di;
-            if (opcode_read_result.bits.got_value) {
-                di = &cpu->config->disassembly_info[opcode];
-            } else {
-                di = &M6502_invalid_instruction;
-            }
-
-            M6502Word operand = {};
-            M6502Word operand_addr_flags = {};
-            M6502Word operand_byte_flags = {};
-            ReadByteResult operand_l_read_result, operand_h_read_result;
-            if (di->num_bytes >= 2) {
-                operand_l_read_result = this->ReadByte(&operand.b.l,
-                                                       &operand_addr_flags.b.l,
-                                                       &operand_byte_flags.b.l,
-                                                       addr++,
-                                                       false);
-            }
-            if (di->num_bytes >= 3) {
-                operand_h_read_result = this->ReadByte(&operand.b.h,
-                                                       &operand_addr_flags.b.h,
-                                                       &operand_byte_flags.b.h,
-                                                       addr++,
-                                                       false);
-            }
-
-            ImGuiStyleColourPusher pusher;
-
-            if (line_addr.w == cpu->opcode_pc.w) {
-                pusher.Push(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));
-            }
-
-            const DebugBigPage *line_dbp = this->GetDebugBigPageForAddress(line_addr, false);
-            const char *address_suffix = GetAlignedAddressSuffixForOffset(line_dbp->bp.metadata, line_addr);
-            ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
-            this->DoBytePopupGui(line_dbp, line_addr);
-
+        if (ImGui::BeginTable("disassembly_table", num_columns, table_flags)) {
+            // Set up columns
+            ImGui::TableSetupColumn("Address", ImGuiTableColumnFlags_WidthFixed, 80.0f);
             if (m_persistent.show_symbols) {
-                // Check for symbol at this address when labels are enabled
-                const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
+                ImGui::TableSetupColumn("Symbol", ImGuiTableColumnFlags_WidthStretch, 120.0f);
+            }
+            ImGui::TableSetupColumn("Bytes", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+            ImGui::TableSetupColumn("ASCII", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+            ImGui::TableSetupColumn("Instruction", ImGuiTableColumnFlags_WidthStretch, 150.0f);
 
-                // Use context-aware symbol lookup
-                const std::string *symbol_name = symbol_table->GetSymbolNameForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
+            while (ImGui::GetCursorPosY() <= maxY) {
+                ++m_num_lines;
+                M6502Word line_addr = {addr};
+                bool mos = !!pc_is_mos[line_addr.p.p];
 
-                ImGui::SameLine();
-                ImGui::Text("  "); // Add some spacing
-                ImGui::SameLine();
+                ImGuiIDPusher id_pusher(addr);
 
-                const size_t max_label_length = 16; // Maximum chars for label
-                if (symbol_name) {
-                    // Truncate symbol name if it's too long to maintain alignment
-                    std::string display_name = *symbol_name;
-                    if (display_name.length() > max_label_length) {
-                        display_name = display_name.substr(0, max_label_length - 3) + "...";
-                    }
+                uint8_t opcode_addr_flags;
+                uint8_t opcode_byte_flags;
+                uint8_t opcode;
+                ReadByteResult opcode_read_result = this->ReadByte(&opcode, &opcode_addr_flags,
+                                                                   &opcode_byte_flags,
+                                                                   addr++,
+                                                                   false);
 
-                    // Use a fixed width for consistent alignment
-                    ImGui::Text("%-*s", (int)max_label_length, display_name.c_str());
+                ascii.clear();
+
+                const M6502DisassemblyInfo *di;
+                if (opcode_read_result.bits.got_value) {
+                    di = &cpu->config->disassembly_info[opcode];
                 } else {
-                    // Empty space for alignment when no symbol
-                    ImGui::Text("%-*s", (int)max_label_length, "");
+                    di = &M6502_invalid_instruction;
                 }
-            }
 
-            ImGui::SameLine();
-
-            ImGui::TextUnformatted("  ");
-
-            ImGui::SameLine();
-
-            this->ByteWithBreakpointBackground(opcode_addr_flags, opcode_byte_flags, opcode, opcode_read_result);
-            this->DoBytePopupGui(line_dbp, line_addr);
-            ascii += *GetByteStringBBC(opcode, &STRING_1_SPACE);
-
-            ImGui::SameLine();
-
-            if (di->num_bytes >= 2) {
-                this->ByteWithBreakpointBackground(operand_addr_flags.b.l, operand_byte_flags.b.l, operand.b.l, operand_l_read_result);
-
-                M6502Word operand_l_addr = {(uint16_t)(line_addr.w + 1u)};
-                const DebugBigPage *operand_l_dbp = this->GetDebugBigPageForAddress(operand_l_addr, false);
-                this->DoBytePopupGui(operand_l_dbp, operand_l_addr);
-
-                ascii += *GetByteStringBBC(operand.b.l, &STRING_1_SPACE);
-            } else {
-                ImGui::TextUnformatted("  ");
-                ascii += STRING_1_SPACE;
-            }
-
-            ImGui::SameLine();
-
-            if (di->num_bytes >= 3) {
-                this->ByteWithBreakpointBackground(operand_addr_flags.b.h, operand_byte_flags.b.h, operand.b.h, operand_h_read_result);
-
-                M6502Word operand_h_addr = {(uint16_t)(line_addr.w + 2u)};
-                const DebugBigPage *operand_h_dbp = this->GetDebugBigPageForAddress(operand_h_addr, false);
-                this->DoBytePopupGui(operand_h_dbp, operand_h_addr);
-
-                ascii += *GetByteStringBBC(operand.b.h, &STRING_1_SPACE);
-            } else {
-                ImGui::TextUnformatted("  ");
-                ascii += STRING_1_SPACE;
-            }
-
-            ImGui::SameLine();
-
-            ImGui::TextUnformatted("  ");
-
-            ImGui::SameLine();
-
-            ImGui::TextUnformatted(ascii.c_str());
-
-            ImGui::SameLine();
-
-            ImGui::TextUnformatted("  ");
-
-            ImGui::SameLine();
-
-            ImGui::Text("%s ", di->mnemonic);
-
-            //            ImGui::Text("%04x  %c%c %c%c %c%c  %c%c%c  %s ",
-            //                        line_addr.w,
-            //                        HEX_CHARS_LC[opcode>>4&15],
-            //                        HEX_CHARS_LC[opcode&15],
-            //                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l>>4&15]:' ',
-            //                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l&15]:' ',
-            //                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h>>4&15]:' ',
-            //                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h&15]:' ',
-            //                        opcode>=32&&opcode<127?opcode:' ',
-            //                        operand.b.l>=32&&operand.b.l<127?operand.b.l:' ',
-            //                        operand.b.h>=32&&operand.b.h<127?operand.b.h:' ',
-            //                        di->mnemonic);
-
-            switch (di->mode) {
-            default:
-                ASSERT(0);
-                [[fallthrough]];
-            case M6502AddrMode_IMP:
-                break;
-
-            case M6502AddrMode_REL:
-                {
-                    M6502Word dest;
-                    dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.l;
-                    this->AddWord("", dest.w, false, "");
-                    this->AddBranchTakenIndicator(IsBranchTaken((M6502Condition)di->branch_condition, p));
+                M6502Word operand = {};
+                M6502Word operand_addr_flags = {};
+                M6502Word operand_byte_flags = {};
+                ReadByteResult operand_l_read_result, operand_h_read_result;
+                if (di->num_bytes >= 2) {
+                    operand_l_read_result = this->ReadByte(&operand.b.l,
+                                                           &operand_addr_flags.b.l,
+                                                           &operand_byte_flags.b.l,
+                                                           addr++,
+                                                           false);
                 }
-                break;
-
-            case M6502AddrMode_IMM:
-                {
-                    char label[100];
-                    snprintf(label, sizeof label, "%s%02x", g_hex, operand.b.l);
-
-                    M6502Word imm_addr = {operand.b.l};
-                    const DebugBigPage *imm_dbp = this->GetDebugBigPageForAddress(imm_addr, false);
-                    this->DoClickableAddress("#", label, "", imm_dbp, imm_addr);
+                if (di->num_bytes >= 3) {
+                    operand_h_read_result = this->ReadByte(&operand.b.h,
+                                                           &operand_addr_flags.b.h,
+                                                           &operand_byte_flags.b.h,
+                                                           addr++,
+                                                           false);
                 }
-                break;
 
-            case M6502AddrMode_ZPG:
-                this->AddByte("", operand.b.l, false, "");
-                break;
+                ImGuiStyleColourPusher pusher;
+                if (line_addr.w == cpu->opcode_pc.w) {
+                    pusher.Push(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));
+                }
 
-            case M6502AddrMode_ZPX:
-                this->AddByte("", operand.b.l, false, ",X");
-                this->AddByte(IND_PREFIX, operand.b.l + cpu->x, mos, "");
-                break;
+                const DebugBigPage *line_dbp = this->GetDebugBigPageForAddress(line_addr, false);
 
-            case M6502AddrMode_ZPY:
-                this->AddByte("", operand.b.l, false, ",Y");
-                this->AddByte(IND_PREFIX, operand.b.l + cpu->y, mos, "");
-                break;
+                ImGui::TableNextRow();
 
-            case M6502AddrMode_ABS:
-                // TODO the MOS flag shouldn't apply to JSR or JMP.
-                this->AddWord("", operand.w, mos, "");
-                break;
+                // Column 0: Address
+                ImGui::TableSetColumnIndex(0);
+                const char *address_suffix = GetAlignedAddressSuffixForOffset(line_dbp->bp.metadata, line_addr);
+                ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
+                this->DoBytePopupGui(line_dbp, line_addr);
 
-            case M6502AddrMode_ABX:
-                this->AddWord("", operand.w, mos, ",X");
-                this->AddWord(IND_PREFIX, operand.w + cpu->x, mos, "");
-                break;
+                // Column 1: Symbol (if enabled)
+                int col_offset = 0;
+                if (m_persistent.show_symbols) {
+                    ImGui::TableSetColumnIndex(1);
+                    const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
+                    const std::string *symbol_name = symbol_table->GetSymbolNameForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
 
-            case M6502AddrMode_ABY:
-                this->AddWord("", operand.w, mos, ",Y");
-                this->AddWord(IND_PREFIX, operand.w + cpu->y, mos, "");
-                break;
+                    if (symbol_name) {
+                        ImGui::TextUnformatted(symbol_name->c_str());
 
-            case M6502AddrMode_INX:
-                this->AddByte("(", operand.b.l, false, ",X)");
-                this->DoIndirect((operand.b.l + cpu->x) & 0xff, mos, 0xff, 0);
-                break;
+                        // Add tooltip with detailed symbol information
+                        // Only calculate details when actually hovering to avoid performance impact
+                        if (ImGui::IsItemHovered()) {
+                            SymbolDetails details = symbol_table->GetSymbolDetailsForAddress(line_addr.w, m_effective_dso, m_beeb_state->type);
 
-            case M6502AddrMode_INY:
-                this->AddByte("(", operand.b.l, false, "),Y");
-                this->DoIndirect(operand.b.l, mos, 0xff, cpu->y);
-                break;
+                            ImGui::BeginTooltip();
 
-            case M6502AddrMode_IND:
-                this->AddWord("(", operand.w, false, ")");
-                // doesn't handle the 6502 page crossing bug...
-                this->DoIndirect(operand.w, mos, 0xffff, 0);
-                break;
+                            // Show address prominently at the top
+                            ImGui::Text("%s%04x%c%s", g_hex, line_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
+                            ImGui::Separator();
 
-            case M6502AddrMode_ACC:
-                ImGui::SameLine(0.f, 0.f);
-                ImGui::TextUnformatted("A");
-                break;
+                            if (details.symbols.empty()) {
+                                ImGui::Text("%s", symbol_name->c_str());
+                                ImGui::Text("(No additional details available)");
+                            } else {
+                                // Show each symbol on one line: name (contexts) [file]
+                                for (size_t i = 0; i < details.symbols.size(); ++i) {
+                                    const SymbolDetails::SymbolInFile &sif = details.symbols[i];
 
-            case M6502AddrMode_INZ:
-                this->AddByte("(", operand.b.l, false, ")");
-                this->DoIndirect(operand.b.l, mos, 0xff, 0);
-                break;
+                                    // Build contexts string
+                                    std::string contexts;
+                                    if (sif.address_suffixes.empty()) {
+                                        contexts = "All active";
+                                    } else {
+                                        for (size_t j = 0; j < sif.address_suffixes.size(); ++j) {
+                                            if (j > 0) {
+                                                contexts += ", ";
+                                            }
+                                            contexts += sif.address_suffixes[j];
+                                        }
+                                    }
 
-            case M6502AddrMode_INDX:
-                this->AddWord("(", operand.w, false, ",X)");
-                this->DoIndirect(operand.w + cpu->x, mos, 0xffff, 0);
-                break;
+                                    // Get just the filename
+                                    std::string filename;
+                                    if (!sif.file_path.empty()) {
+                                        filename = sif.file_path;
+                                        size_t slash_pos = filename.find_last_of("/\\");
+                                        if (slash_pos != std::string::npos) {
+                                            filename = filename.substr(slash_pos + 1);
+                                        }
+                                    }
 
-            case M6502AddrMode_ZPG_REL_ROCKWELL:
-                {
-                    M6502Word dest;
-                    dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.h;
-                    this->AddByte("", operand.b.l, false, "");
-                    this->AddWord(",", dest.w, false, "");
+                                    // Display: symbol (contexts) [file]
+                                    if (!filename.empty()) {
+                                        ImGui::Text("%s (%s) [%s]", sif.symbol_name.c_str(), contexts.c_str(), filename.c_str());
+                                    } else {
+                                        ImGui::Text("%s (%s)", sif.symbol_name.c_str(), contexts.c_str());
+                                    }
 
-                    uint8_t value;
-                    if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false).bits.got_value) {
-                        uint8_t bit;
-                        bool set;
-                        if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
-                            bit = (uint8_t)(di->branch_condition - M6502Condition_BR0);
-                            set = false;
-                        } else {
-                            ASSERT(di->branch_condition >= M6502Condition_BS0 && di->branch_condition <= M6502Condition_BS7);
-                            bit = (uint8_t)(di->branch_condition - M6502Condition_BS0);
-                            set = true;
+                                    // Show full path on hover over this line
+                                    if (!sif.file_path.empty() && ImGui::IsItemHovered()) {
+                                        ImGui::SetTooltip("%s", sif.file_path.c_str());
+                                    }
+                                }
+                            }
+
+                            ImGui::EndTooltip();
                         }
-
-                        this->AddBranchTakenIndicator(!!(value & 1 << bit) == set);
                     }
+                    col_offset = 1;
                 }
-                break;
+
+                // Column: Bytes
+                ImGui::TableSetColumnIndex(1 + col_offset);
+
+                // Build hex bytes string
+                std::string hex_bytes;
+                this->ByteWithBreakpointBackground(opcode_addr_flags, opcode_byte_flags, opcode, opcode_read_result);
+                this->DoBytePopupGui(line_dbp, line_addr);
+                ascii += *GetByteStringBBC(opcode, &STRING_1_SPACE);
+
+                if (di->num_bytes >= 2) {
+                    ImGui::SameLine(0, 2);
+                    this->ByteWithBreakpointBackground(operand_addr_flags.b.l, operand_byte_flags.b.l, operand.b.l, operand_l_read_result);
+
+                    M6502Word operand_l_addr = {(uint16_t)(line_addr.w + 1u)};
+                    const DebugBigPage *operand_l_dbp = this->GetDebugBigPageForAddress(operand_l_addr, false);
+                    this->DoBytePopupGui(operand_l_dbp, operand_l_addr);
+                    ascii += *GetByteStringBBC(operand.b.l, &STRING_1_SPACE);
+                }
+
+                if (di->num_bytes >= 3) {
+                    ImGui::SameLine(0, 2);
+                    this->ByteWithBreakpointBackground(operand_addr_flags.b.h, operand_byte_flags.b.h, operand.b.h, operand_h_read_result);
+
+                    M6502Word operand_h_addr = {(uint16_t)(line_addr.w + 2u)};
+                    const DebugBigPage *operand_h_dbp = this->GetDebugBigPageForAddress(operand_h_addr, false);
+                    this->DoBytePopupGui(operand_h_dbp, operand_h_addr);
+                    ascii += *GetByteStringBBC(operand.b.h, &STRING_1_SPACE);
+                }
+
+                // Column: ASCII
+                ImGui::TableSetColumnIndex(2 + col_offset);
+                ImGui::TextUnformatted(ascii.c_str());
+
+                // Column: Instruction
+                ImGui::TableSetColumnIndex(3 + col_offset);
+                ImGui::Text("%s ", di->mnemonic);
+
+                switch (di->mode) {
+                default:
+                    ASSERT(0);
+                    [[fallthrough]];
+                case M6502AddrMode_IMP:
+                    break;
+
+                case M6502AddrMode_REL:
+                    {
+                        M6502Word dest;
+                        dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.l;
+                        this->AddWord("", dest.w, false, "");
+                        this->AddBranchTakenIndicator(IsBranchTaken((M6502Condition)di->branch_condition, p));
+                    }
+                    break;
+
+                case M6502AddrMode_IMM:
+                    {
+                        char label[100];
+                        snprintf(label, sizeof label, "%s%02x", g_hex, operand.b.l);
+
+                        M6502Word imm_addr = {operand.b.l};
+                        const DebugBigPage *imm_dbp = this->GetDebugBigPageForAddress(imm_addr, false);
+                        this->DoClickableAddress("#", label, "", imm_dbp, imm_addr);
+                    }
+                    break;
+
+                case M6502AddrMode_ZPG:
+                    this->AddByte("", operand.b.l, false, "");
+                    break;
+
+                case M6502AddrMode_ZPX:
+                    this->AddByte("", operand.b.l, false, ",X");
+                    this->AddByte(IND_PREFIX, operand.b.l + cpu->x, mos, "");
+                    break;
+
+                case M6502AddrMode_ZPY:
+                    this->AddByte("", operand.b.l, false, ",Y");
+                    this->AddByte(IND_PREFIX, operand.b.l + cpu->y, mos, "");
+                    break;
+
+                case M6502AddrMode_ABS:
+                    // TODO the MOS flag shouldn't apply to JSR or JMP.
+                    this->AddWord("", operand.w, mos, "");
+                    break;
+
+                case M6502AddrMode_ABX:
+                    this->AddWord("", operand.w, mos, ",X");
+                    this->AddWord(IND_PREFIX, operand.w + cpu->x, mos, "");
+                    break;
+
+                case M6502AddrMode_ABY:
+                    this->AddWord("", operand.w, mos, ",Y");
+                    this->AddWord(IND_PREFIX, operand.w + cpu->y, mos, "");
+                    break;
+
+                case M6502AddrMode_INX:
+                    this->AddByte("(", operand.b.l, false, ",X)");
+                    this->DoIndirect((operand.b.l + cpu->x) & 0xff, mos, 0xff, 0);
+                    break;
+
+                case M6502AddrMode_INY:
+                    this->AddByte("(", operand.b.l, false, "),Y");
+                    this->DoIndirect(operand.b.l, mos, 0xff, cpu->y);
+                    break;
+
+                case M6502AddrMode_IND:
+                    this->AddWord("(", operand.w, false, ")");
+                    // doesn't handle the 6502 page crossing bug...
+                    this->DoIndirect(operand.w, mos, 0xffff, 0);
+                    break;
+
+                case M6502AddrMode_ACC:
+                    ImGui::SameLine(0.f, 0.f);
+                    ImGui::TextUnformatted("A");
+                    break;
+
+                case M6502AddrMode_INZ:
+                    this->AddByte("(", operand.b.l, false, ")");
+                    this->DoIndirect(operand.b.l, mos, 0xff, 0);
+                    break;
+
+                case M6502AddrMode_INDX:
+                    this->AddWord("(", operand.w, false, ",X)");
+                    this->DoIndirect(operand.w + cpu->x, mos, 0xffff, 0);
+                    break;
+
+                case M6502AddrMode_ZPG_REL_ROCKWELL:
+                    {
+                        M6502Word dest;
+                        dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.h;
+                        this->AddByte("", operand.b.l, false, "");
+                        this->AddWord(",", dest.w, false, "");
+
+                        uint8_t value;
+                        if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false).bits.got_value) {
+                            uint8_t bit;
+                            bool set;
+                            if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
+                                bit = (uint8_t)(di->branch_condition - M6502Condition_BR0);
+                                set = false;
+                            } else {
+                                ASSERT(di->branch_condition >= M6502Condition_BS0 && di->branch_condition <= M6502Condition_BS7);
+                                bit = (uint8_t)(di->branch_condition - M6502Condition_BS0);
+                                set = true;
+                            }
+
+                            this->AddBranchTakenIndicator(!!(value & 1 << bit) == set);
+                        }
+                    }
+                    break;
+                }
             }
+
+            ImGui::EndTable();
         }
 
         if (ImGui::IsWindowHovered()) {

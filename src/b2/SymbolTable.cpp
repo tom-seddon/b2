@@ -946,6 +946,53 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+SymbolDetails SymbolTable::GetSymbolDetailsForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const {
+    SymbolDetails details;
+    
+    this->EnsureCacheReady(type);
+
+    auto it = m_cache_address_to_symbols.find(address);
+    if (it == m_cache_address_to_symbols.end()) {
+        return details;
+    }
+
+    // Iterate through all files that have symbols at this address
+    for (const SymbolsInFile &in_file : it->second.per_file) {
+        // Check if this file's symbols apply to the current context (dso)
+        bool applies_to_context = false;
+        
+        if (in_file.lsf->address_suffix_dso_masks.empty()) {
+            // No context restrictions - applies everywhere
+            applies_to_context = true;
+        } else {
+            // Check if any of the address suffixes match the current dso
+            for (const LoadedSymbolFile::DSOMask &mask : in_file.lsf->address_suffix_dso_masks) {
+                if ((dso & mask.mask) == mask.value) {
+                    applies_to_context = true;
+                    break;
+                }
+            }
+        }
+        
+        // Only include symbols that apply to the current context
+        if (applies_to_context) {
+            // Add all symbols from this file at this address
+            for (const Symbol *symbol : in_file.symbols) {
+                SymbolDetails::SymbolInFile sif;
+                sif.symbol_name = symbol->name;
+                sif.file_path = in_file.lsf->file.file_path;
+                sif.address_suffixes = in_file.lsf->file.address_suffixes;
+                details.symbols.push_back(std::move(sif));
+            }
+        }
+    }
+
+    return details;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Cache Management Methods
 
 void SymbolTable::InvalidateEverything() const {

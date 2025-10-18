@@ -49,6 +49,20 @@ struct Symbol {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Detailed information about symbols at a particular address
+struct SymbolDetails {
+    struct SymbolInFile {
+        std::string symbol_name;
+        std::string file_path;
+        std::vector<std::string> address_suffixes;
+    };
+    
+    std::vector<SymbolInFile> symbols;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // For 6502 interop purposes, the group index basically has to be a 1-byte
 // value, so the limit is inherently 256.
 //
@@ -152,6 +166,10 @@ class SymbolTable {
     // GetSymbolNameForAddress, or until a call to GetSymbolNameForAddress with
     // a different type.
     const std::string *GetSymbolNameForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
+
+    // Get detailed information about all symbols at an address (for tooltip display)
+    // Returns empty SymbolDetails if no symbols found
+    SymbolDetails GetSymbolDetailsForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const;
 
     // Legacy lookup methods (for backwards compatibility)
     // GetSymbolForAddress uses symbol precedence policy for DISPLAY:
