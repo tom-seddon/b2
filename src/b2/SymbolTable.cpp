@@ -948,7 +948,7 @@ const std::string *SymbolTable::GetSymbolNameForAddress(uint16_t address, uint32
 
 SymbolDetails SymbolTable::GetSymbolDetailsForAddress(uint16_t address, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const {
     SymbolDetails details;
-    
+
     this->EnsureCacheReady(type);
 
     auto it = m_cache_address_to_symbols.find(address);
@@ -960,7 +960,7 @@ SymbolDetails SymbolTable::GetSymbolDetailsForAddress(uint16_t address, uint32_t
     for (const SymbolsInFile &in_file : it->second.per_file) {
         // Check if this file's symbols apply to the current context (dso)
         bool applies_to_context = false;
-        
+
         if (in_file.lsf->address_suffix_dso_masks.empty()) {
             // No context restrictions - applies everywhere
             applies_to_context = true;
@@ -973,7 +973,7 @@ SymbolDetails SymbolTable::GetSymbolDetailsForAddress(uint16_t address, uint32_t
                 }
             }
         }
-        
+
         // Only include symbols that apply to the current context
         if (applies_to_context) {
             // Add all symbols from this file at this address

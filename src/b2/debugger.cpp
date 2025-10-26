@@ -1853,7 +1853,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
         // Set up table for disassembly
         int num_columns = m_persistent.show_symbols ? 5 : 4;
         ImGuiTableFlags table_flags = ImGuiTableFlags_Resizable;
-        
+
         // Hide column lines by default, show only when hovering to resize
         // Unless user explicitly wants to see them all the time
         if (!m_persistent.show_column_lines) {

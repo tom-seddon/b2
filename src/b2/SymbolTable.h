@@ -56,7 +56,7 @@ struct SymbolDetails {
         std::string file_path;
         std::vector<std::string> address_suffixes;
     };
-    
+
     std::vector<SymbolInFile> symbols;
 };
 
