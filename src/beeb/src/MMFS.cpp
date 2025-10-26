@@ -56,7 +56,7 @@ void MMFS::SetImagePath(const std::string &path) {
         m_address_limit = (uint64_t)ftell(f);
         fclose(f);
         if (m_debug) {
-            LOGF(MMFS, "  Image loaded: %llu bytes (%.1f MB)\n", 
+            LOGF(MMFS, "  Image loaded: %llu bytes (%.1f MB)\n",
                  (unsigned long long)m_address_limit,
                  m_address_limit / (1024.0 * 1024.0));
         }
@@ -166,7 +166,7 @@ void MMFS::WriteMMC(uint8_t value) {
         if (m_counter > 9) {
             if (m_counter < (m_block_length + 10)) {
                 m_shiftreg = m_buffer[m_counter - 10];
-                        } else if (m_counter == (m_block_length + 12)) {
+            } else if (m_counter == (m_block_length + 12)) {
                 if (m_debug) {
                     LOGF(MMFS, "Read complete: address=0x%08llX, %u bytes\n",
                          (unsigned long long)m_address, m_block_length);

@@ -561,7 +561,7 @@ void ConfigsUI::DoEditConfigGui() {
             if (ImGui::Button("...##mmfs")) {
                 ImGui::OpenPopup(MMFS_POPUP);
             }
-            
+
             if (ImGui::BeginPopup(MMFS_POPUP)) {
                 if (ImGui::MenuItem("File...")) {
                     if (m_mmfs_image_ofd.Open(m_beeb_window->GetSDLWindow(), &config->mmfs_config.image_path)) {
@@ -569,18 +569,18 @@ void ConfigsUI::DoEditConfigGui() {
                         edited = true;
                     }
                 }
-                
+
                 if (ImGuiRecentMenu(&config->mmfs_config.image_path, "Recent file", &g_mmfs_images_recent_paths)) {
                     edited = true;
                 }
-                
+
                 ImGui::EndPopup();
             }
-            
+
             if (ImGui::Checkbox("Enable debug logging", &config->mmfs_config.debug)) {
                 edited = true;
             }
-            
+
             ImGuiStyleColourPusher pusher;
             pusher.PushDefault(ImGuiCol_Text);
             ImGui::TextWrapped("MMB files (MMFS v1) or FAT32 disk images (MMFS v2)");

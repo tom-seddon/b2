@@ -14,7 +14,7 @@
 struct B2MMFSConfig {
     // Path to MMB file (MMFS v1) or FAT32 disk image (MMFS v2)
     std::string image_path;
-    
+
     // Enable debug logging
     bool debug = false;
 };
@@ -27,4 +27,3 @@ JSON_SERIALIZE(B2MMFSConfig, image_path, debug);
 //////////////////////////////////////////////////////////////////////////
 
 #endif
-
