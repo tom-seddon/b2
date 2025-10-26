@@ -419,6 +419,7 @@ class BBCMicroState {
                            uint32_t init_flags,
                            const tm *rtc_time,
                            const HardDiskImageSet &hard_disk_images,
+                           std::string mmfs_image_path,
                            CycleCount initial_cycle_count);
 
     friend class BBCMicro;

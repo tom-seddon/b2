@@ -30,6 +30,7 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
                              uint32_t init_flags_,
                              const tm *rtc_time,
                              const HardDiskImageSet &hard_disk_images,
+                             std::string mmfs_image_path,
                              CycleCount initial_cycle_count)
     : type(std::move(type_))
     , init_flags(init_flags_)
@@ -83,6 +84,9 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
 
     if (this->init_flags & BBCMicroInitFlag_MMFS) {
         this->mmfs = std::make_shared<MMFS>();
+
+        this->mmfs->SetImagePath(std::move(mmfs_image_path));
+        this->mmfs->SetDebug(!!(this->init_flags & BBCMicroInitFlag_MMFSDebug));
     }
 }
 

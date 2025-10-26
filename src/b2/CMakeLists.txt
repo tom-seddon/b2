@@ -3,7 +3,6 @@
 
 add_executable(b2 MACOSX_BUNDLE
   BeebConfig.cpp BeebConfig.h BeebConfig.inl
-  MMFSConfig.cpp MMFSConfig.h
   BeebKeymap.cpp BeebKeymap.h
   BeebLinkHTTPHandler.cpp BeebLinkHTTPHandler.h
   BeebLinkUI.cpp BeebLinkUI.h

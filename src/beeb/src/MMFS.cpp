@@ -4,6 +4,7 @@
 #include <shared/log.h>
 #include <stdio.h>
 #include <string>
+#include <shared/file_io.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -50,7 +51,7 @@ void MMFS::SetImagePath(const std::string &path) {
     }
 
     // Try to open file and get size
-    FILE *f = fopen(path.c_str(), "rb");
+    FILE *f = fopenUTF8(path.c_str(), "rb");
     if (f) {
         fseek(f, 0, SEEK_END);
         m_address_limit = (uint64_t)ftell(f);
@@ -75,7 +76,7 @@ void MMFS::ReadSector() {
     if (m_buffer_empty || m_address != m_buffer_address) {
         m_buffer_empty = true;
 
-        FILE *f = fopen(m_image_path.c_str(), "rb");
+        FILE *f = fopenUTF8(m_image_path.c_str(), "rb");
         if (f) {
             // Use fseek in chunks for files > 2GB
             if (fseek(f, 0, SEEK_SET) == 0) {
@@ -99,7 +100,7 @@ void MMFS::ReadSector() {
 uint8_t MMFS::WriteSector() {
     m_buffer_empty = true;
 
-    FILE *f = fopen(m_image_path.c_str(), "r+b");
+    FILE *f = fopenUTF8(m_image_path.c_str(), "r+b");
     if (f) {
         // Use fseek in chunks for files > 2GB
         if (fseek(f, 0, SEEK_SET) == 0) {

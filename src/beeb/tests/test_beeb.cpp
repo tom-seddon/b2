@@ -807,6 +807,7 @@ TestBBCMicro::TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard
                GetBBCMicroInitFlags(type),
                nullptr,
                hard_disk_images,
+               "",
                {0}) {
 #if BBCMICRO_TRACE
     m_trace_flags = (BBCMicroTraceFlag_RTC |

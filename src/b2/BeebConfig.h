@@ -13,7 +13,6 @@
 #include <beeb/type.h>
 #include <shared/json.h>
 #include <beeb/scsi.h>
-#include "MMFSConfig.h"
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -44,6 +43,11 @@ class BeebConfig {
         ROMType type = ROMType_16KB;
 
         ROMType GetROMType() const;
+    };
+
+    struct MMFSConfig {
+        std::string image_path;
+        bool debug = false;
     };
 
     std::string name;
@@ -86,7 +90,7 @@ class BeebConfig {
 
     // MMFS - memory-mapped filing system (additional hardware)
     bool mmfs_enabled = false;
-    B2MMFSConfig mmfs_config;
+    MMFSConfig mmfs_config;
 
     void ResetNVRAM();
 
@@ -96,6 +100,7 @@ class BeebConfig {
 // This only handles some of the BeebConfig properties. The remainder are dealt
 // with manually, for one reason or another (usually name mismatches or
 // inconvenient schema).
+JSON_SERIALIZE(BeebConfig::MMFSConfig, image_path, debug);
 JSON_SERIALIZE(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type, rom_board, serial, scsi, hard_disk_dat_paths, mmfs_enabled, mmfs_config);
 
 void InitDefaultBeebConfigs();

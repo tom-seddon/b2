@@ -77,6 +77,7 @@ EPNV(SCSI, 1 << 8)
 
 // If set, has MMFS (Memory-Mapped Filing System) interface available via XFJ.
 EPNV(MMFS, 1 << 9)
+EPNV(MMFSDebug, 1 << 10)
 
 EEND()
 #undef ENAME

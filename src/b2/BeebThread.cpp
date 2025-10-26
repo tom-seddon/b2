@@ -646,6 +646,9 @@ void BeebThread::HardResetMessage::HardReset(
 
     if (ts->current_config.config.mmfs_enabled) {
         init_flags |= BBCMicroInitFlag_MMFS;
+        if (ts->current_config.config.mmfs_config.debug) {
+            init_flags |= BBCMicroInitFlag_MMFSDebug;
+        }
     }
 
     ROMType rom_types[16];
@@ -660,6 +663,7 @@ void BeebThread::HardResetMessage::HardReset(
                                            init_flags,
                                            ts->beeblink_handler.get(),
                                            ts->current_config.hard_disk_images,
+                                           ts->current_config.config.mmfs_config.image_path,
                                            num_cycles);
 
     beeb->SetOSROM(ts->current_config.os);
@@ -682,19 +686,6 @@ void BeebThread::HardResetMessage::HardReset(
 
     if (ts->current_config.config.parasite_type != BBCMicroParasiteType_None) {
         beeb->SetParasiteOS(ts->current_config.parasite_os);
-    }
-
-    // Apply MMFS configuration if MMFS is enabled
-    if (ts->current_config.config.mmfs_enabled) {
-        auto state = beeb->GetUniqueState();
-        const auto &mmfs = state->GetMMFS();
-        if (mmfs) {
-            mmfs->SetDebug(ts->current_config.config.mmfs_config.debug);
-            if (!ts->current_config.config.mmfs_config.image_path.empty()) {
-                mmfs->SetImagePath(ts->current_config.config.mmfs_config.image_path);
-                ts->msgs.i.f("MMFS: loaded %s\n", ts->current_config.config.mmfs_config.image_path.c_str());
-            }
-        }
     }
 
     ts->beeb_thread->ThreadReplaceBeeb(ts, std::move(beeb), replace_flags);

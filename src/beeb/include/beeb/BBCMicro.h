@@ -348,6 +348,7 @@ class BBCMicro : private WD1770Handler {
              uint32_t init_flags,
              BeebLinkHandler *beeblink_handler,
              const HardDiskImageSet &hard_disk_images,
+             std::string mmfs_image_path,
              CycleCount initial_cycle_count);
 
     explicit BBCMicro(const BBCMicroUniqueState &state);

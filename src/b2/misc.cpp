@@ -109,6 +109,11 @@ std::string GetCloneImpedimentsDescription(uint32_t impediments) {
             r += "Serial";
         }
 
+        if (impediments & BBCMicroCloneImpediment_MMFS) {
+            AddCommaSeparator(&r);
+            r += "MMFS";
+        }
+
         return r;
     }
 }

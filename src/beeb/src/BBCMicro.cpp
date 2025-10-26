@@ -282,6 +282,7 @@ BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
                    uint32_t init_flags,
                    BeebLinkHandler *beeblink_handler,
                    const HardDiskImageSet &hard_disk_images,
+                   std::string mmfs_image_path,
                    CycleCount initial_cycle_count)
     : m_state(std::move(type),
               disc_interface,
@@ -290,6 +291,7 @@ BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
               init_flags,
               rtc_time,
               hard_disk_images,
+              std::move(mmfs_image_path),
               initial_cycle_count)
     , m_beeblink_handler(beeblink_handler) {
     this->InitStuff();
@@ -341,6 +343,10 @@ uint32_t BBCMicro::GetCloneImpediments() const {
 
     if (m_state.serproc.HasSource() || !!m_state.serproc.HasSink()) {
         result |= BBCMicroCloneImpediment_Serial;
+    }
+
+    if (!!m_state.mmfs) {
+        result |= BBCMicroCloneImpediment_MMFS;
     }
 
     return result;
