@@ -936,30 +936,6 @@ void BeebThread::SetDriveWriteProtectedMessage::ThreadHandle(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::SetMMFSImagePathMessage::SetMMFSImagePathMessage(std::string path)
-    : m_path(std::move(path)) {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::SetMMFSImagePathMessage::ThreadHandle(
-    ThreadState *ts) const {
-    auto state = ts->beeb->GetUniqueState();
-    const auto &mmfs = state->GetMMFS();
-    if (mmfs) {
-        mmfs->SetImagePath(m_path);
-        if (m_path.empty()) {
-            ts->msgs.i.s("MMFS: image unloaded\n");
-        } else {
-            ts->msgs.i.f("MMFS: loaded %s\n", m_path.c_str());
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 BeebThread::BeebStateMessage::BeebStateMessage(std::shared_ptr<const BeebState> state,
                                                bool user_initiated)
     : m_state(std::move(state))
