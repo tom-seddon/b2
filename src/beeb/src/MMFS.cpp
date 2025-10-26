@@ -53,8 +53,8 @@ void MMFS::SetImagePath(const std::string &path) {
     // Try to open file and get size
     FILE *f = fopenUTF8(path.c_str(), "rb");
     if (f) {
-        fseek(f, 0, SEEK_END);
-        m_address_limit = (uint64_t)ftell(f);
+        fseek64(f, 0, SEEK_END);
+        m_address_limit = (uint64_t)ftell64(f);
         fclose(f);
         if (m_debug) {
             LOGF(MMFS, "  Image loaded: %llu bytes (%.1f MB)\n",
@@ -78,20 +78,13 @@ void MMFS::ReadSector() {
 
         FILE *f = fopenUTF8(m_image_path.c_str(), "rb");
         if (f) {
-            // Use fseek in chunks for files > 2GB
-            if (fseek(f, 0, SEEK_SET) == 0) {
-                uint64_t offset = m_address;
-                const uint64_t skip = 0x7FFFFFFE;
+            fseek64(f, (int64_t)m_address, SEEK_SET);
 
-                while (offset > 0 && fseek(f, (long)(offset > skip ? skip : offset), SEEK_CUR) == 0) {
-                    offset -= offset > skip ? skip : offset;
-                }
-
-                if (fread(m_buffer, sizeof(m_buffer), 1, f) == 1) {
-                    m_buffer_address = m_address;
-                    m_buffer_empty = false;
-                }
+            if (fread(m_buffer, sizeof m_buffer, 1, f) == 1) {
+                m_buffer_address = m_address;
+                m_buffer_empty = false;
             }
+
             fclose(f);
         }
     }
@@ -102,22 +95,15 @@ uint8_t MMFS::WriteSector() {
 
     FILE *f = fopenUTF8(m_image_path.c_str(), "r+b");
     if (f) {
-        // Use fseek in chunks for files > 2GB
-        if (fseek(f, 0, SEEK_SET) == 0) {
-            uint64_t offset = m_address;
-            const uint64_t skip = 0x7FFFFFFE;
+        fseek64(f, (int64_t)m_address, SEEK_SET);
 
-            while (offset > 0 && fseek(f, (long)(offset > skip ? skip : offset), SEEK_CUR) == 0) {
-                offset -= offset > skip ? skip : offset;
-            }
-
-            if (fwrite(m_buffer, 0x200, 1, f) == 1) {
-                m_buffer_address = m_address;
-                m_buffer_empty = false;
-                fclose(f);
-                return 0x05;
-            }
+        if (fwrite(m_buffer, sizeof m_buffer, 1, f) == 1) {
+            m_buffer_address = m_address;
+            m_buffer_empty = false;
+            fclose(f);
+            return 0x05;
         }
+
         fclose(f);
     }
 
