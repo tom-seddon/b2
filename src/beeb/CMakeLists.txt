@@ -8,6 +8,7 @@ set(SRCS
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   ${S}/DiscImage.cpp ${I}/DiscImage.h
   ${S}/DiscInterface.cpp ${I}/DiscInterface.h ${I}/DiscInterface.inl
+  ${S}/MMFS.cpp ${I}/MMFS.h
   ${S}/ExtMem.cpp ${I}/ExtMem.h
   ${S}/MC146818.cpp ${I}/MC146818.h ${I}/MC146818.inl
   ${S}/OutputData.cpp ${I}/OutputData.h

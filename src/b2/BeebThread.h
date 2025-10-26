@@ -411,6 +411,17 @@ class BeebThread {
         const bool m_is_write_protected = false;
     };
 
+    class SetMMFSImagePathMessage : public Message {
+      public:
+        explicit SetMMFSImagePathMessage(std::string path);
+
+        void ThreadHandle(ThreadState *ts) const override;
+
+      protected:
+      private:
+        const std::string m_path;
+    };
+
     // Any kind of message that has a BeebState.
     class BeebStateMessage : public Message {
       public:

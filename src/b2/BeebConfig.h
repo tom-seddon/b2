@@ -13,6 +13,7 @@
 #include <beeb/type.h>
 #include <shared/json.h>
 #include <beeb/scsi.h>
+#include "MMFSConfig.h"
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -83,6 +84,10 @@ class BeebConfig {
     bool scsi = false;
     std::array<std::string, NUM_HARD_DISKS> hard_disk_dat_paths;
 
+    // MMFS - memory-mapped filing system (additional hardware)
+    bool mmfs_enabled = false;
+    B2MMFSConfig mmfs_config;
+
     void ResetNVRAM();
 
   protected:
@@ -91,7 +96,7 @@ class BeebConfig {
 // This only handles some of the BeebConfig properties. The remainder are dealt
 // with manually, for one reason or another (usually name mismatches or
 // inconvenient schema).
-JSON_SERIALIZE(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type, rom_board, serial, scsi, hard_disk_dat_paths);
+JSON_SERIALIZE(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type, rom_board, serial, scsi, hard_disk_dat_paths, mmfs_enabled, mmfs_config);
 
 void InitDefaultBeebConfigs();
 

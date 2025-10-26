@@ -9,6 +9,7 @@
 #include <beeb/sound.h>
 #include <stdlib.h>
 #include <beeb/DiscImage.h>
+#include <beeb/MMFS.h>
 #include <vector>
 #include "BeebState.h"
 #include "BeebWindows.h"
@@ -643,6 +644,10 @@ void BeebThread::HardResetMessage::HardReset(
 #endif
     }
 
+    if (ts->current_config.config.mmfs_enabled) {
+        init_flags |= BBCMicroInitFlag_MMFS;
+    }
+
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
         rom_types[i] = ts->current_config.config.roms[i].type;
@@ -677,6 +682,19 @@ void BeebThread::HardResetMessage::HardReset(
 
     if (ts->current_config.config.parasite_type != BBCMicroParasiteType_None) {
         beeb->SetParasiteOS(ts->current_config.parasite_os);
+    }
+
+    // Apply MMFS configuration if MMFS is enabled
+    if (ts->current_config.config.mmfs_enabled) {
+        auto state = beeb->GetUniqueState();
+        const auto &mmfs = state->GetMMFS();
+        if (mmfs) {
+            mmfs->SetDebug(ts->current_config.config.mmfs_config.debug);
+            if (!ts->current_config.config.mmfs_config.image_path.empty()) {
+                mmfs->SetImagePath(ts->current_config.config.mmfs_config.image_path);
+                ts->msgs.i.f("MMFS: loaded %s\n", ts->current_config.config.mmfs_config.image_path.c_str());
+            }
+        }
     }
 
     ts->beeb_thread->ThreadReplaceBeeb(ts, std::move(beeb), replace_flags);
@@ -913,6 +931,30 @@ void BeebThread::SetDriveWriteProtectedMessage::ThreadHandle(
     ts->beeb->SetDriveWriteProtected(m_drive, m_is_write_protected);
     ts->beeb_thread->m_is_drive_write_protected[m_drive].store(m_is_write_protected,
                                                                std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::SetMMFSImagePathMessage::SetMMFSImagePathMessage(std::string path)
+    : m_path(std::move(path)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetMMFSImagePathMessage::ThreadHandle(
+    ThreadState *ts) const {
+    auto state = ts->beeb->GetUniqueState();
+    const auto &mmfs = state->GetMMFS();
+    if (mmfs) {
+        mmfs->SetImagePath(m_path);
+        if (m_path.empty()) {
+            ts->msgs.i.s("MMFS: image unloaded\n");
+        } else {
+            ts->msgs.i.f("MMFS: loaded %s\n", m_path.c_str());
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
