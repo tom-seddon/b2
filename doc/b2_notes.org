@@ -6926,4 +6926,60 @@ https://gist.github.com/vadz/5950b4a524648f1e3129f4138ebcd271
 |   605 | b2/test_UTF8                                       |  0.03 |  0.04 |  0.03 |  0.04 |  0.05 |  0.08 |
 |   606 | b2/test_SymbolTable                                |  0.04 |  0.06 |  0.05 |  0.04 |  0.06 |  0.20 |
 
+* MMFS stuff
+
+#+begin_src markdown
+  ## Brief architecture
+
+  MMFS is implemented as additional hardware in b2, similar to SCSI:
+
+  - **MMFS Class** (`src/beeb/src/MMFS.cpp`) - Emulates MMC/SD card via
+    SPI protocol
+  - **Memory-mapped I/O** - Registers at different addresses depending
+    on machine type:
+    - BBC B: `0xFE1C`
+    - Master: `0xFEDC`
+    - (The ROM has these addresses compiled in; the emulator
+      auto-detects the machine type)
+  - **Configuration** (`src/b2/MMFSConfig.h`) - Stores image path and
+    debug settings
+  - **UI Integration** (`src/b2/ConfigsUI.cpp`) - Checkbox and file
+    browser
+
+  ### SPI Protocol
+
+  The implementation handles standard MMC commands:
+
+  - **CMD0**: Reset card (returns `0x01`)
+  - **CMD1**: Initialize card (must be called twice: first returns
+    `0x01`, second returns `0x00`)
+  - **CMD10**: Read card ID (returns 20-byte identification)
+  - **CMD16**: Set block length (typically 512 bytes)
+  - **CMD17**: Read data block (512-byte sector)
+  - **CMD24**: Write data block (512-byte sector)
+
+  ### Initialization flow
+
+  ```
+  User enables MMFS in UI
+      ↓
+  Config saved with mmfs_enabled=true and image_path
+      ↓
+  BeebThread creates BBCMicro with BBCMicroInitFlag_MMFS
+      ↓
+  BBCMicroState creates MMFS instance
+      ↓
+  BBCMicro detects machine type and registers MMIO handlers
+    (0xFE1C for BBC B, 0xFEDC for Master)
+      ↓
+  MMFS ROM communicates with emulated card
+  ```
+
+  The emulation is ROM-agnostic and works with both MMFS v1 and v2 ROMs
+  by providing block-level access to the image file. The correct
+  memory-mapped I/O address is automatically selected based on the
+  emulated machine type to match the address compiled into the
+  corresponding ROM.
+#+end_src
+
 * eof.
