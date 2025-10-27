@@ -51,6 +51,9 @@ Additional credits:
 
 * Debugger symbol support by Mark Fisher (https://github.com/markjfisher)
 
+* MMFS support by Mark Fisher (https://github.com/markjfisher), based
+  on code by Martin Mathers (see https://github.com/mmbeeb/MMBeebXL)
+
 b2 makes use of a number of open source libraries, licences for which
 are also included in this file.
 
