@@ -487,9 +487,12 @@ just leave it at the default.)
 processor. With a B/B+, be sure to install a ROM installed with the
 Tube host code in it, such as the Acorn 1770 DFS.)
 
-Also for B/B+/Master 128 only, tick `SCSI` to add an emulated SCSI
-hard disk adapter, useable with Acorn ADFS. Select up to 4 hard disk
-images to use with it - see the SCSI hard disks section below.
+For B/B+/Master 128 only, tick `SCSI` to add an emulated SCSI hard
+disk adapter, useable with Acorn ADFS. Select up to 4 hard disk images
+to use with it - see the SCSI hard disks section below.
+
+Tick `MMFS` to add an emulated MMFS interface, emulating the
+memory-mapped SPI interface. See the MMFS section below.
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Power-on Reset` (if you're editing the current config) or
@@ -546,6 +549,22 @@ Note that you may find hard disk images that do work with IDE ADFS but
 give a `Bad FS map` error - some of the IDE ADFS ROMs don't do the
 same checks as the standard ADFS. There's no specific fix for this;
 you may have better luck with a different emulator.
+
+## MMFS
+
+For more about MMFS, see: https://github.com/hoglet67/MMFS/
+
+To use MMFS with b2, you'll need an MMFS ROM. Download the latest MMFS
+release from [the MMFS release
+page](https://github.com/hoglet67/MMFS/releases) and use one of the
+`M` ROMs, either MMFS or MMFS2.
+
+See [the MMFS release structure
+documentation](https://github.com/hoglet67/MMFS/wiki/Release-structure)
+for more details about the various types of ROM available.
+
+If using MMFS, use the file selector to select an MMB file; if using
+MMFS2, select a SD card image.
 
 ## Non-volatile CMOS RAM/EEPROM
 
