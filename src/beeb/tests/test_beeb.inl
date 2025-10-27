@@ -2,5 +2,6 @@
 EBEGIN()
 EPN(DFS)
 EPN(ADFS)
+EPN(MMFS)
 EEND()
 #undef ENAME

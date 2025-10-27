@@ -124,14 +124,19 @@ endforeach()
 
 add_test_beeb_literal_category(disk.floppy.bplus)
 
+add_test_beeb_literal_category(disk.mmfs.b)
+add_test_beeb_literal_category(disk.mmfs.bplus)
+
 foreach(ACCCON RANGE 3)
   foreach(MOS mos320 mos350)
+    add_test_beeb_literal_category(disk.mmfs.master.${ACCCON}.${MOS})
     foreach(TYPE dfs adfs)
       add_test_beeb_literal_category(disk.floppy.master.${ACCCON}.${MOS}.${TYPE})
     endforeach()
   endforeach()
 
   foreach(MOS mos500 mos510 mosI510C mos511i)
+    add_test_beeb_literal_category(disk.mmfs.compact.${ACCCON}.${MOS})
     add_test_beeb_literal_category(disk.floppy.compact.${ACCCON}.${MOS}.adfs)
   endforeach()
 endforeach()

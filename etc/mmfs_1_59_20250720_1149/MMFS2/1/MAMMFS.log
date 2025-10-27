@@ -1,0 +1,6851 @@
+Including file DEVICE.asm
+Processed file 'DEVICE.asm' ok
+Including file mmfs100.asm
+Including file VERSION.asm
+Processed file 'VERSION.asm' ok
+Including file SYSVARS.asm
+Processed file 'SYSVARS.asm' ok
+.langentry
+     8000   00         BRK
+     8001   00         BRK
+     8002   00         BRK
+.serventry
+     8003   4C 9F 8D   JMP &8D9F
+.romtype
+     8006   82
+.copywoffset
+     8007   21
+.binversion
+     8008   7B
+.title
+Macro BUILD_NAME:
+Macro BASE_NAME:
+     8009   4D 61 73 ...
+Macro SYSTEM_NAME:
+     8010   4D 4D 46 ...
+End macro SYSTEM_NAME
+End macro BASE_NAME
+Macro DEVICE_NAME:
+     8015   20 50 69 ...
+End macro DEVICE_NAME
+Macro DFS_EMUL_NAME:
+End macro DFS_EMUL_NAME
+     801C   00
+End macro BUILD_NAME
+.version
+Macro BUILD_VERSION:
+     801D   31 2E 35 ...
+     8021   00
+End macro BUILD_VERSION
+.copyright
+Macro BUILD_COPYRIGHT:
+     8022   28 43 29 ...
+     8030   00
+End macro BUILD_COPYRIGHT
+.header_end
+.Go_FSCV
+     8031   6C 1E 02   JMP (&021E)
+.SetLEDS
+     8034   A2 06      LDX #&06
+     8036   8E 40 FE   STX &FE40
+     8039   E8         INX
+     803A   8E 40 FE   STX &FE40
+     803D   60         RTS
+.ResetLEDS
+     803E   20 F0 83   JSR &83F0
+     8041   A9 76      LDA #&76
+     8043   4C F4 FF   JMP &FFF4
+.errDISK
+     8046   20 5B 80   JSR &805B
+     8049   00         BRK
+     804A   44 69 73 ...
+     804F   90 21      BCC &8072
+.errBAD
+     8051   20 5B 80   JSR &805B
+     8054   00         BRK
+     8055   42 61 64 ...
+     8059   90 17      BCC &8072
+.ReportErrorCB
+     805B   AD DD C2   LDA &C2DD
+     805E   D0 03      BNE &8063
+     8060   20 AE 97   JSR &97AE
+.brk100_notbuf
+     8063   A9 FF      LDA #&FF
+     8065   8D 82 C2   STA &C282
+     8068   8D DD C2   STA &C2DD
+.ReportError
+     806B   A2 02      LDX #&02
+     806D   A9 00      LDA #&00
+     806F   8D 00 01   STA &0100
+.ErrCONTINUE
+     8072   20 3E 80   JSR &803E
+.ReportError2
+     8075   68         PLA
+     8076   85 AE      STA &AE
+     8078   68         PLA
+     8079   85 AF      STA &AF
+     807B   A0 00      LDY #&00
+     807D   20 E7 83   JSR &83E7
+     8080   8D 01 01   STA &0101
+     8083   CA         DEX
+.errstr_loop
+     8084   E8         INX
+     8085   20 E7 83   JSR &83E7
+     8088   9D 00 01   STA &0100,X
+     808B   30 27      BMI &80B4
+     808D   D0 F5      BNE &8084
+     808F   20 48 8C   JSR &8C48
+     8092   4C 00 01   JMP &0100
+.PrintNibble_PrintString
+     8095   20 FF 80   JSR &80FF
+.PrintString
+     8098   85 B3      STA &B3
+     809A   68         PLA
+     809B   85 AE      STA &AE
+     809D   68         PLA
+     809E   85 AF      STA &AF
+     80A0   A5 B3      LDA &B3
+     80A2   48         PHA
+     80A3   98         TYA
+     80A4   48         PHA
+     80A5   A0 00      LDY #&00
+.prtstr_loop
+     80A7   20 E7 83   JSR &83E7
+     80AA   30 05      BMI &80B1
+     80AC   20 DB 80   JSR &80DB
+     80AF   10 F6      BPL &80A7
+.prtstr_return1
+     80B1   68         PLA
+     80B2   A8         TAY
+     80B3   68         PLA
+.prtstr_return2
+     80B4   18         CLC
+     80B5   6C AE 00   JMP (&00AE)
+.PrintStringSPL
+     80B8   85 B3      STA &B3
+     80BA   68         PLA
+     80BB   85 AE      STA &AE
+     80BD   68         PLA
+     80BE   85 AF      STA &AF
+     80C0   A5 B3      LDA &B3
+     80C2   48         PHA
+     80C3   98         TYA
+     80C4   48         PHA
+     80C5   A0 00      LDY #&00
+.pstr_loop
+     80C7   20 E7 83   JSR &83E7
+     80CA   30 E5      BMI &80B1
+     80CC   20 E3 FF   JSR &FFE3
+     80CF   4C C7 80   JMP &80C7
+.PrintSpace
+     80D2   A9 20      LDA #&20
+     80D4   D0 05      BNE &80DB
+.PrintNibFullStop
+     80D6   20 FF 80   JSR &80FF
+.PrintFullStop
+     80D9   A9 2E      LDA #&2E
+.PrintChrA
+     80DB   20 F0 83   JSR &83F0
+     80DE   48         PHA
+     80DF   A9 EC      LDA #&EC
+     80E1   20 14 94   JSR &9414
+     80E4   8A         TXA
+     80E5   48         PHA
+     80E6   09 10      ORA #&10
+     80E8   AA         TAX
+     80E9   20 F2 80   JSR &80F2
+     80EC   68         PLA
+     80ED   AA         TAX
+     80EE   68         PLA
+     80EF   20 E3 FF   JSR &FFE3
+.osbyte03_Xoutstream
+     80F2   A9 03      LDA #&03
+     80F4   4C F4 FF   JMP &FFF4
+.PrintHex
+     80F7   48         PHA
+     80F8   20 1C 82   JSR &821C
+     80FB   20 FF 80   JSR &80FF
+     80FE   68         PLA
+.PrintNibble
+     80FF   20 21 81   JSR &8121
+     8102   D0 D7      BNE &80DB
+.PrintBCDSPL
+     8104   20 28 84   JSR &8428
+.PrintHexSPL
+     8107   48         PHA
+     8108   20 1C 82   JSR &821C
+     810B   20 0F 81   JSR &810F
+     810E   68         PLA
+.PrintNibbleSPL
+     810F   20 21 81   JSR &8121
+     8112   4C EE FF   JMP &FFEE
+.Print2SpacesSPL
+     8115   20 18 81   JSR &8118
+.PrintSpaceSPL
+     8118   48         PHA
+     8119   A9 20      LDA #&20
+     811B   20 EE FF   JSR &FFEE
+     811E   68         PLA
+     811F   18         CLC
+     8120   60         RTS
+.NibToASC
+     8121   29 0F      AND #&0F
+     8123   C9 0A      CMP #&0A
+     8125   90 02      BCC &8129
+     8127   69 06      ADC #&06
+.nibasc
+     8129   69 30      ADC #&30
+     812B   60         RTS
+.CopyVarsB0BA
+     812C   20 3C 81   JSR &813C
+     812F   CA         DEX
+     8130   CA         DEX
+     8131   20 34 81   JSR &8134
+.cpybyte1
+     8134   B1 B0      LDA (&B0),Y
+     8136   9D 72 C2   STA &C272,X
+     8139   E8         INX
+     813A   C8         INY
+     813B   60         RTS
+.CopyWordB0BA
+     813C   20 3F 81   JSR &813F
+.cpybyte2
+     813F   B1 B0      LDA (&B0),Y
+     8141   95 BA      STA &BA,X
+     8143   E8         INX
+     8144   C8         INY
+     8145   60         RTS
+.read_fspTextPointer
+     8146   20 B2 8B   JSR &8BB2
+     8149   4C 5C 81   JMP &815C
+.read_fspBA_reset
+     814C   20 B2 8B   JSR &8BB2
+.read_fspBA
+     814F   A5 BA      LDA &BA
+     8151   85 F2      STA &F2
+     8153   A5 BB      LDA &BB
+     8155   85 F3      STA &F3
+     8157   A0 00      LDY #&00
+     8159   20 BD 81   JSR &81BD
+.rdafsp_entry
+     815C   A2 20      LDX #&20
+     815E   20 A2 81   JSR &81A2
+     8161   B0 1B      BCS &817E
+     8163   8D 00 C2   STA &C200
+     8166   C9 2E      CMP #&2E
+     8168   D0 04      BNE &816E
+.rdafsp_setdrv
+     816A   86 CC      STX &CC
+     816C   F0 EE      BEQ &815C
+.rdafsp_notdot
+     816E   C9 3A      CMP #&3A
+     8170   D0 15      BNE &8187
+     8172   20 C7 8B   JSR &8BC7
+     8175   20 A2 81   JSR &81A2
+     8178   B0 04      BCS &817E
+     817A   C9 2E      CMP #&2E
+     817C   F0 DE      BEQ &815C
+.errBadName
+     817E   20 51 80   JSR &8051
+     8181   CC
+     8182   6E 61 6D ...
+     8186   00
+.rdafsp_notcolon
+     8187   AA         TAX
+     8188   20 A2 81   JSR &81A2
+     818B   B0 34      BCS &81C1
+     818D   C9 2E      CMP #&2E
+     818F   F0 D9      BEQ &816A
+     8191   A2 01      LDX #&01
+.rdafsp_rdfnloop
+     8193   9D 00 C2   STA &C200,X
+     8196   E8         INX
+     8197   20 A2 81   JSR &81A2
+     819A   B0 27      BCS &81C3
+     819C   E0 07      CPX #&07
+     819E   D0 F3      BNE &8193
+     81A0   F0 DC      BEQ &817E
+.GSREAD_A
+     81A2   20 C5 FF   JSR &FFC5
+     81A5   08         PHP
+     81A6   29 7F      AND #&7F
+     81A8   C9 0D      CMP #&0D
+     81AA   F0 08      BEQ &81B4
+     81AC   C9 20      CMP #&20
+     81AE   90 CE      BCC &817E
+     81B0   C9 7F      CMP #&7F
+     81B2   F0 CA      BEQ &817E
+.dogsrd_exit
+     81B4   28         PLP
+     81B5   60         RTS
+.SetTextPointerYX
+     81B6   86 F2      STX &F2
+     81B8   84 F3      STY &F3
+     81BA   A0 00      LDY #&00
+     81BC   60         RTS
+.GSINIT_A
+     81BD   18         CLC
+     81BE   4C C2 FF   JMP &FFC2
+.Rdafsp_padall
+     81C1   A2 01      LDX #&01
+.rdafsp_padX
+     81C3   A9 20      LDA #&20
+.rdafsp_padloop
+     81C5   9D 00 C2   STA &C200,X
+     81C8   E8         INX
+     81C9   E0 40      CPX #&40
+     81CB   D0 F8      BNE &81C5
+     81CD   A2 06      LDX #&06
+.rdafsp_cpyfnloop
+     81CF   BD 00 C2   LDA &C200,X
+     81D2   95 C5      STA &C5,X
+     81D4   CA         DEX
+     81D5   10 F8      BPL &81CF
+     81D7   60         RTS
+.prt_filename_Yoffset
+     81D8   20 F0 83   JSR &83F0
+     81DB   B9 0F C0   LDA &C00F,Y
+     81DE   08         PHP
+     81DF   29 7F      AND #&7F
+     81E1   D0 05      BNE &81E8
+     81E3   20 15 81   JSR &8115
+     81E6   F0 06      BEQ &81EE
+.prt_filename_prtchr
+     81E8   20 DB 80   JSR &80DB
+     81EB   20 D9 80   JSR &80D9
+.prt_filename_nodir
+     81EE   A2 06      LDX #&06
+.prt_filename_loop
+     81F0   B9 08 C0   LDA &C008,Y
+     81F3   29 7F      AND #&7F
+     81F5   20 DB 80   JSR &80DB
+     81F8   C8         INY
+     81F9   CA         DEX
+     81FA   10 F4      BPL &81F0
+     81FC   20 15 81   JSR &8115
+     81FF   A9 20      LDA #&20
+     8201   28         PLP
+     8202   10 02      BPL &8206
+     8204   A9 4C      LDA #&4C
+.prt_filename_notlocked
+     8206   20 DB 80   JSR &80DB
+     8209   A0 01      LDY #&01
+.prt_Yspaces
+     820B   20 18 81   JSR &8118
+     820E   88         DEY
+     820F   D0 FA      BNE &820B
+     8211   60         RTS
+.A_rorx6and3
+     8212   4A         LSR A
+     8213   4A         LSR A
+.A_rorx4and3
+     8214   4A         LSR A
+     8215   4A         LSR A
+.A_rorx2and3
+     8216   4A         LSR A
+     8217   4A         LSR A
+     8218   29 03      AND #&03
+     821A   60         RTS
+.A_rorx5
+     821B   4A         LSR A
+.A_rorx4
+     821C   4A         LSR A
+     821D   4A         LSR A
+     821E   4A         LSR A
+     821F   4A         LSR A
+     8220   60         RTS
+.A_rolx5
+     8221   0A         ASL A
+.A_rolx4
+     8222   0A         ASL A
+     8223   0A         ASL A
+     8224   0A         ASL A
+     8225   0A         ASL A
+.getcat_exit
+     8226   60         RTS
+.parameter_afsp_Param_SyntaxErrorIfNull_getcatentry_fspTxtP
+     8227   20 F9 92   JSR &92F9
+.Param_SyntaxErrorIfNull_getcatentry_fspTxtP
+     822A   20 98 9A   JSR &9A98
+.getcatentry_fspTxtP
+     822D   20 46 81   JSR &8146
+     8230   30 03      BMI &8235
+.getcatentry_fspBA
+     8232   20 4C 81   JSR &814C
+.getcatentry
+     8235   20 7A 82   JSR &827A
+     8238   B0 EC      BCS &8226
+.err_FILENOTFOUND
+     823A   20 6B 80   JSR &806B
+     823D   D6
+     823E   4E 6F 74 ...
+     8247   00
+.fscv9_starEX
+     8248   20 B6 81   JSR &81B6
+.CMD_EX
+     824B   20 B2 8B   JSR &8BB2
+     824E   20 BD 81   JSR &81BD
+     8251   F0 03      BEQ &8256
+     8253   20 7E 89   JSR &897E
+.cmd_ex_nullstr
+     8256   A9 2A      LDA #&2A
+     8258   8D 00 C2   STA &C200
+     825B   20 C1 81   JSR &81C1
+     825E   20 F9 92   JSR &92F9
+     8261   20 35 82   JSR &8235
+     8264   4C 71 82   JMP &8271
+.fscv10_starINFO
+     8267   20 B6 81   JSR &81B6
+     826A   A9 4E      LDA #&4E
+     826C   85 BF      STA &BF
+.CMD_INFO
+     826E   20 27 82   JSR &8227
+.cmd_info_loop
+     8271   20 46 83   JSR &8346
+     8274   20 81 82   JSR &8281
+     8277   B0 F8      BCS &8271
+     8279   60         RTS
+.get_cat_firstentry80
+.get_cat_firstentry81
+     827A   20 A3 A1   JSR &A1A3
+     827D   A2 00      LDX #&00
+     827F   F0 18      BEQ &8299
+.get_cat_nextentry
+     8281   A2 00      LDX #&00
+     8283   F0 18      BEQ &829D
+.get_cat_firstentry80fname
+     8285   A2 06      LDX #&06
+.getcatloop1
+     8287   B5 C5      LDA &C5,X
+     8289   9D 58 C2   STA &C258,X
+     828C   CA         DEX
+     828D   10 F8      BPL &8287
+     828F   A9 20      LDA #&20
+     8291   8D 5F C2   STA &C25F
+     8294   20 A3 A1   JSR &A1A3
+     8297   A2 58      LDX #&58
+.getcatentry2
+     8299   A9 00      LDA #&00
+     829B   85 B6      STA &B6
+.getcatsetupB7
+     829D   A9 C0      LDA #&C0
+     829F   85 B7      STA &B7
+.getcatloop2
+     82A1   A0 00      LDY #&00
+     82A3   A5 B6      LDA &B6
+     82A5   CD 05 C1   CMP &C105
+     82A8   B0 49      BCS &82F3
+     82AA   69 08      ADC #&08
+     82AC   85 B6      STA &B6
+     82AE   20 C8 82   JSR &82C8
+     82B1   90 EE      BCC &82A1
+     82B3   A5 CC      LDA &CC
+     82B5   A0 07      LDY #&07
+     82B7   20 F5 82   JSR &82F5
+     82BA   D0 E5      BNE &82A1
+     82BC   A4 B6      LDY &B6
+     82BE   38         SEC
+.Y_sub8
+     82BF   88         DEY
+     82C0   88         DEY
+     82C1   88         DEY
+     82C2   88         DEY
+     82C3   88         DEY
+     82C4   88         DEY
+     82C5   88         DEY
+     82C6   88         DEY
+.NotCmdTable2
+     82C7   60         RTS
+.MatchFilename
+     82C8   20 F0 83   JSR &83F0
+.matfn_loop1
+     82CB   BD 00 C2   LDA &C200,X
+     82CE   CD CE C2   CMP &C2CE
+     82D1   D0 13      BNE &82E6
+     82D3   E8         INX
+.matfn_loop2
+     82D4   20 C8 82   JSR &82C8
+     82D7   B0 1B      BCS &82F4
+     82D9   C8         INY
+     82DA   C0 07      CPY #&07
+     82DC   90 F6      BCC &82D4
+.matfn_loop3
+     82DE   BD 00 C2   LDA &C200,X
+     82E1   C9 20      CMP #&20
+     82E3   D0 0E      BNE &82F3
+     82E5   60         RTS
+.matfn_nomatch
+     82E6   C0 07      CPY #&07
+     82E8   B0 F4      BCS &82DE
+     82EA   20 F5 82   JSR &82F5
+     82ED   D0 04      BNE &82F3
+     82EF   E8         INX
+     82F0   C8         INY
+     82F1   D0 D8      BNE &82CB
+.matfn_exitC0
+     82F3   18         CLC
+.matfn_exit
+     82F4   60         RTS
+.MatchChr
+     82F5   CD CE C2   CMP &C2CE
+     82F8   F0 10      BEQ &830A
+     82FA   CD CD C2   CMP &C2CD
+     82FD   F0 0B      BEQ &830A
+     82FF   20 33 83   JSR &8333
+     8302   51 B6      EOR (&B6),Y
+     8304   B0 02      BCS &8308
+     8306   29 5F      AND #&5F
+.matchr_notalpha
+     8308   29 7F      AND #&7F
+.matchr_exit
+     830A   60         RTS
+.UcaseA2
+     830B   08         PHP
+     830C   20 33 83   JSR &8333
+     830F   B0 02      BCS &8313
+     8311   29 5F      AND #&5F
+.ucasea
+     8313   29 7F      AND #&7F
+     8315   28         PLP
+     8316   60         RTS
+.DeleteCatEntry_YFileOffset
+     8317   20 AE 93   JSR &93AE
+.delcatloop
+     831A   B9 10 C0   LDA &C010,Y
+     831D   99 08 C0   STA &C008,Y
+     8320   B9 10 C1   LDA &C110,Y
+     8323   99 08 C1   STA &C108,Y
+     8326   C8         INY
+     8327   CC 05 C1   CPY &C105
+     832A   90 EE      BCC &831A
+     832C   98         TYA
+     832D   E9 08      SBC #&08
+     832F   8D 05 C1   STA &C105
+.print_infoline_exit
+     8332   60         RTS
+.IsAlphaChar
+     8333   48         PHA
+     8334   29 5F      AND #&5F
+     8336   C9 41      CMP #&41
+     8338   90 04      BCC &833E
+     833A   C9 5B      CMP #&5B
+     833C   90 01      BCC &833F
+.isalpha1
+     833E   38         SEC
+.isalpha2
+     833F   68         PLA
+     8340   60         RTS
+.prt_InfoMsg_Yoffset
+     8341   2C C6 C2   BIT &C2C6
+     8344   30 EC      BMI &8332
+.prt_InfoLine_Yoffset
+     8346   20 F0 83   JSR &83F0
+     8349   20 D8 81   JSR &81D8
+     834C   98         TYA
+     834D   48         PHA
+     834E   A9 60      LDA #&60
+     8350   85 B0      STA &B0
+     8352   A9 C2      LDA #&C2
+     8354   85 B1      STA &B1
+     8356   20 91 83   JSR &8391
+     8359   A0 02      LDY #&02
+     835B   20 18 81   JSR &8118
+     835E   20 7F 83   JSR &837F
+     8361   20 7F 83   JSR &837F
+     8364   20 7F 83   JSR &837F
+     8367   68         PLA
+     8368   A8         TAY
+     8369   B9 0E C1   LDA &C10E,Y
+     836C   29 03      AND #&03
+     836E   20 FF 80   JSR &80FF
+     8371   B9 0F C1   LDA &C10F,Y
+     8374   20 F7 80   JSR &80F7
+.PrintNewLine
+     8377   48         PHA
+     8378   A9 0D      LDA #&0D
+     837A   20 DB 80   JSR &80DB
+     837D   68         PLA
+     837E   60         RTS
+.PrintHex3Byte
+     837F   A2 03      LDX #&03
+.printhex3byte_loop
+     8381   B9 62 C2   LDA &C262,Y
+     8384   20 F7 80   JSR &80F7
+     8387   88         DEY
+     8388   CA         DEX
+     8389   D0 F6      BNE &8381
+     838B   20 C2 87   JSR &87C2
+     838E   4C 18 81   JMP &8118
+.ReadFileAttribsToB0_Yoffset
+     8391   20 F0 83   JSR &83F0
+     8394   98         TYA
+     8395   48         PHA
+     8396   AA         TAX
+     8397   A0 12      LDY #&12
+     8399   A9 00      LDA #&00
+.readfileattribs_clearloop
+     839B   88         DEY
+     839C   91 B0      STA (&B0),Y
+     839E   C0 02      CPY #&02
+     83A0   D0 F9      BNE &839B
+.readfileattribs_copyloop
+     83A2   20 DC 83   JSR &83DC
+     83A5   C8         INY
+     83A6   C8         INY
+     83A7   C0 0E      CPY #&0E
+     83A9   D0 F7      BNE &83A2
+     83AB   68         PLA
+     83AC   AA         TAX
+     83AD   BD 0F C0   LDA &C00F,X
+     83B0   10 04      BPL &83B6
+     83B2   A9 08      LDA #&08
+     83B4   91 B0      STA (&B0),Y
+.readfileattribs_notlocked
+     83B6   BD 0E C1   LDA &C10E,X
+     83B9   A0 04      LDY #&04
+     83BB   20 CA 83   JSR &83CA
+     83BE   A0 0C      LDY #&0C
+     83C0   4A         LSR A
+     83C1   4A         LSR A
+     83C2   48         PHA
+     83C3   29 03      AND #&03
+     83C5   91 B0      STA (&B0),Y
+     83C7   68         PLA
+     83C8   A0 08      LDY #&08
+.readfileattribs_addrHiBytes
+     83CA   4A         LSR A
+     83CB   4A         LSR A
+     83CC   48         PHA
+     83CD   29 03      AND #&03
+     83CF   C9 03      CMP #&03
+     83D1   D0 05      BNE &83D8
+     83D3   A9 FF      LDA #&FF
+     83D5   91 B0      STA (&B0),Y
+     83D7   C8         INY
+.readfileattribs_nothost
+     83D8   91 B0      STA (&B0),Y
+.readfileattribs_exits
+     83DA   68         PLA
+     83DB   60         RTS
+.readfileattribs_copy2bytes
+     83DC   20 DF 83   JSR &83DF
+.readfileattribs_copy1byte
+     83DF   BD 08 C1   LDA &C108,X
+     83E2   91 B0      STA (&B0),Y
+     83E4   E8         INX
+     83E5   C8         INY
+     83E6   60         RTS
+.inc_word_AE_and_load
+     83E7   E6 AE      INC &AE
+     83E9   D0 02      BNE &83ED
+     83EB   E6 AF      INC &AF
+.inc_word_AE_exit
+     83ED   B1 AE      LDA (&AE),Y
+     83EF   60         RTS
+.RememberAXY
+     83F0   48         PHA
+     83F1   8A         TXA
+     83F2   48         PHA
+     83F3   98         TYA
+     83F4   48         PHA
+     83F5   A9 84      LDA #&84
+     83F7   48         PHA
+     83F8   A9 12      LDA #&12
+     83FA   48         PHA
+.rAXY_loop_init
+     83FB   A0 05      LDY #&05
+.rAXY_loop
+     83FD   BA         TSX
+     83FE   BD 07 01   LDA &0107,X
+     8401   48         PHA
+     8402   88         DEY
+     8403   D0 F8      BNE &83FD
+     8405   A0 0A      LDY #&0A
+.rAXY_loop2
+     8407   BD 09 01   LDA &0109,X
+     840A   9D 0B 01   STA &010B,X
+     840D   CA         DEX
+     840E   88         DEY
+     840F   D0 F6      BNE &8407
+     8411   68         PLA
+     8412   68         PLA
+.rAXY_restore
+     8413   68         PLA
+     8414   A8         TAY
+     8415   68         PLA
+     8416   AA         TAX
+     8417   68         PLA
+     8418   60         RTS
+.RememberXYonly
+     8419   48         PHA
+     841A   8A         TXA
+     841B   48         PHA
+     841C   98         TYA
+     841D   48         PHA
+     841E   20 FB 83   JSR &83FB
+.axyret1
+     8421   BA         TSX
+     8422   9D 03 01   STA &0103,X
+     8425   4C 13 84   JMP &8413
+.BinaryToBCD
+     8428   20 19 84   JSR &8419
+     842B   A8         TAY
+     842C   F0 0A      BEQ &8438
+     842E   18         CLC
+     842F   F8         SED
+     8430   A9 00      LDA #&00
+.bbcd_loop
+     8432   69 01      ADC #&01
+     8434   88         DEY
+     8435   D0 FB      BNE &8432
+     8437   D8         CLD
+.bbcd_exit
+     8438   60         RTS
+.Param_ReadNum
+     8439   20 BD 81   JSR &81BD
+     843C   38         SEC
+     843D   F0 2A      BEQ &8469
+     843F   08         PHP
+     8440   A9 00      LDA #&00
+     8442   85 B9      STA &B9
+     8444   F0 18      BEQ &845E
+.L1
+     8446   38         SEC
+     8447   E9 30      SBC #&30
+     8449   90 1D      BCC &8468
+     844B   C9 0A      CMP #&0A
+     844D   B0 19      BCS &8468
+     844F   85 B8      STA &B8
+     8451   A5 B9      LDA &B9
+     8453   0A         ASL A
+     8454   85 B9      STA &B9
+     8456   0A         ASL A
+     8457   0A         ASL A
+     8458   65 B9      ADC &B9
+     845A   65 B8      ADC &B8
+     845C   85 B9      STA &B9
+.L2
+     845E   20 C5 FF   JSR &FFC5
+     8461   90 E3      BCC &8446
+     8463   A6 B9      LDX &B9
+     8465   28         PLP
+     8466   18         CLC
+     8467   60         RTS
+.L3
+     8468   28         PLP
+.L4
+     8469   60         RTS
+.fscv5_starCAT
+     846A   20 B6 81   JSR &81B6
+     846D   20 BF 8B   JSR &8BBF
+     8470   20 B1 A1   JSR &A1B1
+     8473   A0 FF      LDY #&FF
+     8475   84 A8      STY &A8
+     8477   C8         INY
+     8478   84 AA      STY &AA
+.cat_titleloop
+     847A   B9 00 C0   LDA &C000,Y
+     847D   C0 08      CPY #&08
+     847F   90 03      BCC &8484
+     8481   B9 F8 C0   LDA &C0F8,Y
+.cat_titlelo
+     8484   20 DB 80   JSR &80DB
+     8487   C8         INY
+     8488   C0 0C      CPY #&0C
+     848A   D0 EE      BNE &847A
+     848C   20 98 80   JSR &8098
+     848F   20 28 
+     8491   AD 04 C1   LDA &C104
+     8494   20 F7 80   JSR &80F7
+     8497   20 98 80   JSR &8098
+     849A   29 
+     849B   0D
+     849C   44 72 69 ...
+     84A2   A5 CD      LDA &CD
+     84A4   20 FF 80   JSR &80FF
+     84A7   A0 0D      LDY #&0D
+     84A9   20 0B 82   JSR &820B
+     84AC   20 98 80   JSR &8098
+     84AF   4F 70 74 ...
+     84B6   AD 06 C1   LDA &C106
+     84B9   20 1C 82   JSR &821C
+     84BC   48         PHA
+     84BD   20 95 80   JSR &8095
+     84C0   20 28 
+     84C2   A0 03      LDY #&03
+     84C4   68         PLA
+     84C5   0A         ASL A
+     84C6   0A         ASL A
+     84C7   AA         TAX
+.cat_printoptionnameloop
+     84C8   BD B4 85   LDA &85B4,X
+     84CB   20 DB 80   JSR &80DB
+     84CE   E8         INX
+     84CF   88         DEY
+     84D0   10 F6      BPL &84C8
+     84D2   20 98 80   JSR &8098
+     84D5   29 
+     84D6   0D
+     84D7   44 69 72 ...
+     84DD   AD CA C2   LDA &C2CA
+     84E0   20 D6 80   JSR &80D6
+     84E3   AD C9 C2   LDA &C2C9
+     84E6   20 DB 80   JSR &80DB
+     84E9   A0 0B      LDY #&0B
+     84EB   20 0B 82   JSR &820B
+     84EE   20 98 80   JSR &8098
+     84F1   4C 69 62 ...
+     84F7   AD CC C2   LDA &C2CC
+     84FA   20 D6 80   JSR &80D6
+     84FD   AD CB C2   LDA &C2CB
+     8500   20 DB 80   JSR &80DB
+     8503   20 77 83   JSR &8377
+     8506   A0 00      LDY #&00
+.cat_curdirloop
+     8508   CC 05 C1   CPY &C105
+     850B   B0 17      BCS &8524
+     850D   B9 0F C0   LDA &C00F,Y
+     8510   4D C9 C2   EOR &C2C9
+     8513   29 5F      AND #&5F
+     8515   D0 08      BNE &851F
+     8517   B9 0F C0   LDA &C00F,Y
+     851A   29 80      AND #&80
+     851C   99 0F C0   STA &C00F,Y
+.cat_curdirnext
+     851F   20 C1 87   JSR &87C1
+     8522   90 E4      BCC &8508
+.cat_sortloop1
+     8524   A0 00      LDY #&00
+     8526   20 36 85   JSR &8536
+     8529   90 16      BCC &8541
+     852B   A9 FF      LDA #&FF
+     852D   8D 82 C2   STA &C282
+     8530   4C 77 83   JMP &8377
+.cat_getnextunmarkedfile_loop
+     8533   20 C1 87   JSR &87C1
+.cat_getnextunmarkedfileY
+     8536   CC 05 C1   CPY &C105
+     8539   B0 05      BCS &8540
+     853B   B9 08 C0   LDA &C008,Y
+     853E   30 F3      BMI &8533
+.cat_exit
+     8540   60         RTS
+.cat_printfilename
+     8541   84 AB      STY &AB
+     8543   A2 00      LDX #&00
+.cat_copyfnloop
+     8545   B9 08 C0   LDA &C008,Y
+     8548   20 0B 83   JSR &830B
+     854B   9D 60 C2   STA &C260,X
+     854E   C8         INY
+     854F   E8         INX
+     8550   E0 08      CPX #&08
+     8552   D0 F1      BNE &8545
+.cat_comparefnloop1
+     8554   20 36 85   JSR &8536
+     8557   B0 23      BCS &857C
+     8559   38         SEC
+     855A   A2 06      LDX #&06
+.cat_comparefnloop2
+     855C   B9 0E C0   LDA &C00E,Y
+     855F   20 0B 83   JSR &830B
+     8562   FD 60 C2   SBC &C260,X
+     8565   88         DEY
+     8566   CA         DEX
+     8567   10 F3      BPL &855C
+     8569   20 C2 87   JSR &87C2
+     856C   B9 0F C0   LDA &C00F,Y
+     856F   20 0B 83   JSR &830B
+     8572   ED 67 C2   SBC &C267
+     8575   90 CA      BCC &8541
+     8577   20 C1 87   JSR &87C1
+     857A   B0 D8      BCS &8554
+.cat_printfn
+     857C   A4 AB      LDY &AB
+     857E   B9 08 C0   LDA &C008,Y
+     8581   09 80      ORA #&80
+     8583   99 08 C0   STA &C008,Y
+     8586   AD 67 C2   LDA &C267
+     8589   C5 AA      CMP &AA
+     858B   F0 10      BEQ &859D
+     858D   A6 AA      LDX &AA
+     858F   85 AA      STA &AA
+     8591   D0 0A      BNE &859D
+     8593   20 77 83   JSR &8377
+.cat_newline
+     8596   20 77 83   JSR &8377
+     8599   A0 FF      LDY #&FF
+     859B   D0 09      BNE &85A6
+.cat_samedir
+     859D   A4 A8      LDY &A8
+     859F   D0 F5      BNE &8596
+     85A1   A0 05      LDY #&05
+     85A3   20 0B 82   JSR &820B
+.cat_skipspaces
+     85A6   C8         INY
+     85A7   84 A8      STY &A8
+     85A9   A4 AB      LDY &AB
+     85AB   20 15 81   JSR &8115
+     85AE   20 D8 81   JSR &81D8
+     85B1   4C 24 85   JMP &8524
+.diskoptions_table
+     85B4   6F 66 66 
+     85B7   00
+     85B8   4C 4F 41 ...
+     85BC   52 55 4E 
+     85BF   00
+     85C0   45 58 45 ...
+.cmdtable1
+     85C4   FF
+     85C5   41 43 43 ...
+     85CB   B2
+     85CC   42 41 43 ...
+     85D2   8C
+     85D3   43 4C 4F ...
+     85D8   80
+     85D9   43 4F 4D ...
+     85E0   85
+     85E1   43 4F 50 ...
+     85E5   AC
+     85E6   44 45 4C ...
+     85EC   88
+     85ED   44 45 53 ...
+     85F4   82
+     85F5   44 49 52 
+     85F8   86
+     85F9   44 52 49 ...
+     85FE   81
+     85FF   45 4E 41 ...
+     8605   80
+     8606   45 58 
+     8608   86
+     8609   46 4F 52 ...
+     860D   DF
+     860E   46 52 45 ...
+     8612   84
+.info_cmd_index
+     8613   49 4E 46 ...
+     8617   82
+     8618   4C 49 42 
+     861B   86
+     861C   4D 41 50 
+     861F   84
+     8620   52 45 4E ...
+     8626   8D
+     8627   54 49 54 ...
+     862C   8A
+     862D   56 45 52 ...
+     8633   85
+     8634   57 49 50 ...
+     8638   82
+     8639   00         BRK
+.cmdtable2
+.cmdtable22
+     863A   14
+     863B   44 49 53 ...
+     863F   80
+     8640   44 49 53 ...
+     8644   80
+     8645   4D 4D 46 ...
+     8649   80
+     864A   43 41 52 ...
+     864E   80
+     864F   00         BRK
+.cmdtable3
+     8650   19
+     8651   44 55 54 ...
+     8657   80
+     8658   4D 4D 46 ...
+     865C   80
+     865D   00         BRK
+.cmdtable4
+     865E   1C
+     865F   41 43 43 ...
+     8665   BE
+     8666   42 4F 4F ...
+     866A   89
+     866B   42 55 47 
+     866E   80
+     866F   43 41 54 
+     8672   8E
+     8673   44 49 52 
+     8676   89
+     8677   44 52 49 ...
+     867C   80
+     867D   49 4E 
+     867F   F4
+     8680   4F 55 54 
+     8683   84
+     8684   52 45 4E ...
+     868A   F7
+     868B   41 42 4F ...
+     8690   80
+     8691   00         BRK
+.cmdaddr1
+     8692   D3 89
+     8694   0D 9D
+     8696   94 94
+     8698   AE 9B
+     869A   66 9D
+     869C   75 87
+     869E   84 87
+     86A0   34 89
+     86A2   D4 87
+     86A4   7A 8B
+     86A6   4A 82
+     86A8   6A 1E
+     86AA   C6 9F
+     86AC   6D 82
+     86AE   38 89
+     86B0   C9 9F
+     86B2   E0 8B
+     86B4   A7 89
+     86B6   66 1E
+     86B8   4C 87
+     86BA   E1 86
+.cmdaddr2
+.cmdaddr22
+     86BC   A4 8C
+     86BE   A4 8C
+     86C0   A4 8C
+     86C2   A4 8C
+     86C4   6A 8E
+.cmdaddr3
+     86C6   84 9A
+     86C8   44 9A
+     86CA   8B 9A
+.cmdaddr4
+     86CC   83 2D
+     86CE   9A 2B
+     86D0   69 26
+     86D2   7F 2B
+     86D4   30 2C
+     86D6   33 2D
+     86D8   C9 2B
+     86DA   03 2D
+     86DC   C0 2D
+     86DE   57 A6
+     86E0   71 88
+.cmdaddrX
+.NotCmdTable1
+     86E2   A2 9A      LDX #&9A
+     86E4   20 BD 81   JSR &81BD
+     86E7   B1 F2      LDA (&F2),Y
+     86E9   C8         INY
+     86EA   09 20      ORA #&20
+     86EC   C9 64      CMP #&64
+     86EE   F0 09      BEQ &86F9
+     86F0   88         DEY
+     86F1   4C 72 88   JMP &8872
+.fscv3_unreccommand
+     86F4   20 B6 81   JSR &81B6
+     86F7   A2 00      LDX #&00
+.UnrecCommandTextPointer
+     86F9   BD C4 85   LDA &85C4,X
+     86FC   85 BE      STA &BE
+     86FE   98         TYA
+     86FF   48         PHA
+.unrecloop1
+     8700   E6 BE      INC &BE
+     8702   68         PLA
+     8703   48         PHA
+     8704   A8         TAY
+     8705   20 BD 81   JSR &81BD
+     8708   E8         INX
+     8709   BD C4 85   LDA &85C4,X
+     870C   F0 28      BEQ &8736
+     870E   CA         DEX
+     870F   88         DEY
+     8710   86 BF      STX &BF
+.unrecloop2
+     8712   E8         INX
+     8713   C8         INY
+     8714   BD C4 85   LDA &85C4,X
+     8717   30 16      BMI &872F
+.unrecloop2in
+     8719   51 F2      EOR (&F2),Y
+     871B   29 5F      AND #&5F
+     871D   F0 F3      BEQ &8712
+     871F   CA         DEX
+.unrecloop3
+     8720   E8         INX
+     8721   BD C4 85   LDA &85C4,X
+     8724   10 FA      BPL &8720
+     8726   B1 F2      LDA (&F2),Y
+     8728   C9 2E      CMP #&2E
+     872A   D0 D4      BNE &8700
+     872C   C8         INY
+     872D   B0 07      BCS &8736
+.endofcmd_oncmdline
+     872F   B1 F2      LDA (&F2),Y
+     8731   20 33 83   JSR &8333
+     8734   90 CA      BCC &8700
+.gocmdcode
+     8736   68         PLA
+     8737   A5 BE      LDA &BE
+     8739   0A         ASL A
+     873A   AA         TAX
+     873B   BD 93 86   LDA &8693,X
+     873E   10 06      BPL &8746
+.gocmdcode2
+     8740   48         PHA
+     8741   BD 92 86   LDA &8692,X
+     8744   48         PHA
+     8745   60         RTS
+.dommcinit
+     8746   20 F1 A5   JSR &A5F1
+     8749   09 80      ORA #&80
+     874B   D0 F3      BNE &8740
+.CMD_WIPE
+     874D   20 27 82   JSR &8227
+.wipeloop
+     8750   B9 0F C0   LDA &C00F,Y
+     8753   30 1B      BMI &8770
+     8755   20 D8 81   JSR &81D8
+     8758   20 CC 9C   JSR &9CCC
+     875B   D0 13      BNE &8770
+     875D   A6 B6      LDX &B6
+     875F   20 CD 94   JSR &94CD
+     8762   86 B6      STX &B6
+     8764   20 CA 87   JSR &87CA
+     8767   84 AB      STY &AB
+     8769   20 B5 A1   JSR &A1B5
+     876C   A5 AB      LDA &AB
+     876E   85 B6      STA &B6
+.wipenext
+     8770   20 81 82   JSR &8281
+     8773   B0 DB      BCS &8750
+     8775   60         RTS
+.CMD_DELETE
+     8776   20 F0 92   JSR &92F0
+     8779   20 2A 82   JSR &822A
+     877C   20 41 83   JSR &8341
+     877F   20 17 83   JSR &8317
+     8782   4C B5 A1   JMP &A1B5
+.CMD_DESTROY
+     8785   20 7D 9C   JSR &9C7D
+     8788   20 27 82   JSR &8227
+.destroyloop1
+     878B   B9 0F C0   LDA &C00F,Y
+     878E   30 06      BMI &8796
+     8790   20 D8 81   JSR &81D8
+     8793   20 77 83   JSR &8377
+.destroylocked1
+     8796   20 81 82   JSR &8281
+     8799   B0 F0      BCS &878B
+     879B   20 D4 9C   JSR &9CD4
+     879E   D0 29      BNE &87C9
+     87A0   20 CD 94   JSR &94CD
+     87A3   20 7A 82   JSR &827A
+.destroyloop2
+     87A6   B9 0F C0   LDA &C00F,Y
+     87A9   30 03      BMI &87AE
+     87AB   20 CA 87   JSR &87CA
+.destroylocked2
+     87AE   20 81 82   JSR &8281
+     87B1   B0 F3      BCS &87A6
+     87B3   20 B5 A1   JSR &A1B5
+.msgDELETED
+     87B6   20 98 80   JSR &8098
+     87B9   44 65 6C ...
+     87C0   0D
+.Y_add8
+     87C1   C8         INY
+.Y_add7
+     87C2   C8         INY
+     87C3   C8         INY
+     87C4   C8         INY
+     87C5   C8         INY
+     87C6   C8         INY
+     87C7   C8         INY
+     87C8   C8         INY
+.Y_rts
+     87C9   60         RTS
+.DeleteCatEntry_AdjustPtr
+     87CA   20 17 83   JSR &8317
+     87CD   A4 B6      LDY &B6
+     87CF   20 BF 82   JSR &82BF
+     87D2   84 B6      STY &B6
+     87D4   60         RTS
+.CMD_DRIVE
+     87D5   20 C4 8B   JSR &8BC4
+     87D8   8D CA C2   STA &C2CA
+     87DB   60         RTS
+.osfileFF_loadfiletoaddr
+     87DC   20 32 82   JSR &8232
+     87DF   20 D0 93   JSR &93D0
+     87E2   20 91 83   JSR &8391
+.LoadFile_Ycatoffset
+     87E5   84 BA      STY &BA
+     87E7   A2 00      LDX #&00
+     87E9   A5 BE      LDA &BE
+     87EB   D0 06      BNE &87F3
+     87ED   C8         INY
+     87EE   C8         INY
+     87EF   A2 02      LDX #&02
+     87F1   D0 08      BNE &87FB
+.loadAtLoadAddr
+     87F3   B9 0E C1   LDA &C10E,Y
+     87F6   85 C2      STA &C2
+     87F8   20 81 8B   JSR &8B81
+.load_copyfileinfo_loop
+     87FB   B9 08 C1   LDA &C108,Y
+     87FE   95 BC      STA &BC,X
+     8800   C8         INY
+     8801   E8         INX
+     8802   E0 08      CPX #&08
+     8804   D0 F5      BNE &87FB
+     8806   20 9B 8B   JSR &8B9B
+     8809   A4 BA      LDY &BA
+     880B   20 41 83   JSR &8341
+.LoadMemBlockEX
+.LoadMemBlock
+     880E   A9 85      LDA #&85
+     8810   D0 0B      BNE &881D
+.osfile0_savememblock
+     8812   20 66 8A   JSR &8A66
+     8815   20 D0 93   JSR &93D0
+     8818   20 91 83   JSR &8391
+.SaveMemBlock
+     881B   A9 A5      LDA #&A5
+.exec_block_rw
+     881D   8D B6 C2   STA &C2B6
+     8820   A9 05      LDA #&05
+     8822   8D B5 C2   STA &C2B5
+     8825   A5 CD      LDA &CD
+     8827   8D B0 C2   STA &C2B0
+     882A   A2 02      LDX #&02
+.loop0
+     882C   B5 BB      LDA &BB,X
+     882E   9D B0 C2   STA &C2B0,X
+     8831   BD 73 C2   LDA &C273,X
+     8834   9D B2 C2   STA &C2B2,X
+     8837   CA         DEX
+     8838   D0 F2      BNE &882C
+     883A   A5 C2      LDA &C2
+     883C   29 03      AND #&03
+     883E   AA         TAX
+     883F   A5 C3      LDA &C3
+     8841   A0 FF      LDY #&FF
+.loop1
+     8843   38         SEC
+.loop2
+     8844   C8         INY
+     8845   E9 0A      SBC #&0A
+     8847   B0 FB      BCS &8844
+     8849   CA         DEX
+     884A   10 F7      BPL &8843
+     884C   69 0A      ADC #&0A
+     884E   8C B7 C2   STY &C2B7
+     8851   8D B8 C2   STA &C2B8
+     8854   A5 C1      LDA &C1
+     8856   8D B9 C2   STA &C2B9
+     8859   A5 C2      LDA &C2
+     885B   4A         LSR A
+     885C   4A         LSR A
+     885D   4A         LSR A
+     885E   4A         LSR A
+     885F   29 03      AND #&03
+     8861   8D BA C2   STA &C2BA
+     8864   A5 C0      LDA &C0
+     8866   8D BB C2   STA &C2BB
+     8869   20 06 A2   JSR &A206
+     886C   A9 01      LDA #&01
+     886E   60         RTS
+.fscv2_4_11_starRUN
+     886F   20 B6 81   JSR &81B6
+.NotCmdTable4
+.SetWordBA_txtptr
+     8872   A9 FF      LDA #&FF
+     8874   85 BE      STA &BE
+     8876   A5 F2      LDA &F2
+     8878   85 BA      STA &BA
+     887A   A5 F3      LDA &F3
+     887C   85 BB      STA &BB
+     887E   8C DA C2   STY &C2DA
+     8881   20 4C 81   JSR &814C
+     8884   8C D9 C2   STY &C2D9
+     8887   20 7A 82   JSR &827A
+     888A   B0 21      BCS &88AD
+     888C   AC DA C2   LDY &C2DA
+     888F   AD CB C2   LDA &C2CB
+     8892   85 CC      STA &CC
+     8894   AD CC C2   LDA &C2CC
+     8897   85 CD      STA &CD
+     8899   20 4F 81   JSR &814F
+     889C   20 7A 82   JSR &827A
+     889F   B0 0C      BCS &88AD
+.errBADCOMMAND
+     88A1   20 51 80   JSR &8051
+     88A4   FE
+     88A5   63 6F 6D ...
+     88AC   00
+.runfile_found
+     88AD   B9 0E C1   LDA &C10E,Y
+     88B0   20 12 82   JSR &8212
+     88B3   C9 03      CMP #&03
+     88B5   D0 42      BNE &88F9
+     88B7   B9 0A C1   LDA &C10A,Y
+     88BA   39 0B C1   AND &C10B,Y
+     88BD   C9 FF      CMP #&FF
+     88BF   D0 38      BNE &88F9
+     88C1   A2 06      LDX #&06
+.runfile_exec_loop
+     88C3   BD 00 C2   LDA &C200,X
+     88C6   9D 07 C2   STA &C207,X
+     88C9   CA         DEX
+     88CA   10 F7      BPL &88C3
+     88CC   A9 0D      LDA #&0D
+     88CE   8D 0E C2   STA &C20E
+     88D1   A9 45      LDA #&45
+     88D3   8D 00 C2   STA &C200
+     88D6   A9 3A      LDA #&3A
+     88D8   8D 02 C2   STA &C202
+     88DB   A5 CD      LDA &CD
+     88DD   09 30      ORA #&30
+     88DF   8D 03 C2   STA &C203
+     88E2   A9 2E      LDA #&2E
+     88E4   8D 01 C2   STA &C201
+     88E7   8D 04 C2   STA &C204
+     88EA   8D 06 C2   STA &C206
+     88ED   A5 CC      LDA &CC
+     88EF   8D 05 C2   STA &C205
+     88F2   A2 00      LDX #&00
+     88F4   A0 C2      LDY #&C2
+     88F6   4C F7 FF   JMP &FFF7
+.runfile_run
+     88F9   20 E5 87   JSR &87E5
+     88FC   18         CLC
+     88FD   AD D9 C2   LDA &C2D9
+     8900   A8         TAY
+     8901   65 F2      ADC &F2
+     8903   8D D9 C2   STA &C2D9
+     8906   A5 F3      LDA &F3
+     8908   69 00      ADC #&00
+     890A   8D DA C2   STA &C2DA
+     890D   AD 76 C2   LDA &C276
+     8910   2D 77 C2   AND &C277
+     8913   0D D6 C2   ORA &C2D6
+     8916   C9 FF      CMP #&FF
+     8918   F0 16      BEQ &8930
+     891A   A5 BE      LDA &BE
+     891C   8D 74 C2   STA &C274
+     891F   A5 BF      LDA &BF
+     8921   8D 75 C2   STA &C275
+     8924   20 3E 8C   JSR &8C3E
+     8927   A2 74      LDX #&74
+     8929   A0 C2      LDY #&C2
+     892B   A9 04      LDA #&04
+     892D   4C 06 04   JMP &0406
+.runfile_inhost
+     8930   A9 01      LDA #&01
+     8932   6C BE 00   JMP (&00BE)
+.CMD_DIR
+     8935   A2 00      LDX #&00
+     8937   F0 02      BEQ &893B
+.CMD_LIB
+     8939   A2 02      LDX #&02
+.setdirlib
+     893B   20 6F 89   JSR &896F
+     893E   9D CA C2   STA &C2CA,X
+     8941   A5 CC      LDA &CC
+     8943   9D C9 C2   STA &C2C9,X
+     8946   60         RTS
+.SaveStaticToPrivateWorkspace
+     8947   20 F0 83   JSR &83F0
+     894A   A5 B0      LDA &B0
+     894C   48         PHA
+     894D   A5 B1      LDA &B1
+     894F   48         PHA
+     8950   20 08 94   JSR &9408
+     8953   A0 00      LDY #&00
+.stat_loop1
+     8955   C0 C0      CPY #&C0
+     8957   90 05      BCC &895E
+     8959   B9 00 C2   LDA &C200,Y
+     895C   B0 03      BCS &8961
+.stat_Y_lessC0
+     895E   B9 00 C3   LDA &C300,Y
+.stat_Y_gtreqC0
+     8961   91 B0      STA (&B0),Y
+     8963   C8         INY
+     8964   C0 F1      CPY #&F1
+     8966   D0 ED      BNE &8955
+     8968   68         PLA
+     8969   85 B1      STA &B1
+     896B   68         PLA
+     896C   85 B0      STA &B0
+     896E   60         RTS
+.ReadDirDrvParameters
+     896F   AD C9 C2   LDA &C2C9
+     8972   85 CC      STA &CC
+     8974   20 BD 81   JSR &81BD
+     8977   D0 05      BNE &897E
+     8979   A9 00      LDA #&00
+     897B   85 CD      STA &CD
+     897D   60         RTS
+.ReadDirDrvParameters2
+     897E   20 B7 8B   JSR &8BB7
+.rdd_loop
+     8981   20 A2 81   JSR &81A2
+     8984   B0 10      BCS &8996
+     8986   C9 3A      CMP #&3A
+     8988   D0 14      BNE &899E
+     898A   20 C7 8B   JSR &8BC7
+     898D   20 A2 81   JSR &81A2
+     8990   B0 13      BCS &89A5
+     8992   C9 2E      CMP #&2E
+     8994   F0 EB      BEQ &8981
+.errBADDIRECTORY
+     8996   20 51 80   JSR &8051
+     8999   CE
+     899A   64 69 72 
+     899D   00
+.rdd_exit2
+     899E   85 CC      STA &CC
+     89A0   20 A2 81   JSR &81A2
+     89A3   90 F1      BCC &8996
+.rdd_exit1
+     89A5   A5 CD      LDA &CD
+     89A7   60         RTS
+.CMD_TITLE
+     89A8   20 98 9A   JSR &9A98
+     89AB   20 AB A1   JSR &A1AB
+     89AE   A2 0B      LDX #&0B
+     89B0   A9 00      LDA #&00
+.cmdtit_loop1
+     89B2   20 C8 89   JSR &89C8
+     89B5   CA         DEX
+     89B6   10 FA      BPL &89B2
+.cmdtit_loop2
+     89B8   E8         INX
+     89B9   20 A2 81   JSR &81A2
+     89BC   B0 07      BCS &89C5
+     89BE   20 C8 89   JSR &89C8
+     89C1   E0 0B      CPX #&0B
+     89C3   90 F3      BCC &89B8
+.cmdtit_savecat
+     89C5   4C B5 A1   JMP &A1B5
+.SetDiskTitleChr_Xpos
+     89C8   E0 08      CPX #&08
+     89CA   90 04      BCC &89D0
+     89CC   9D F8 C0   STA &C0F8,X
+     89CF   60         RTS
+.setdisttit_page
+     89D0   9D 00 C0   STA &C000,X
+     89D3   60         RTS
+.CMD_ACCESS
+     89D4   20 F9 92   JSR &92F9
+     89D7   20 98 9A   JSR &9A98
+     89DA   20 46 81   JSR &8146
+     89DD   A2 00      LDX #&00
+     89DF   20 BD 81   JSR &81BD
+     89E2   D0 1F      BNE &8A03
+.cmdac_flag
+     89E4   86 AA      STX &AA
+     89E6   20 35 82   JSR &8235
+.cmdac_filefound
+     89E9   20 B1 93   JSR &93B1
+     89EC   B9 0F C0   LDA &C00F,Y
+     89EF   29 7F      AND #&7F
+     89F1   05 AA      ORA &AA
+     89F3   99 0F C0   STA &C00F,Y
+     89F6   20 41 83   JSR &8341
+     89F9   20 81 82   JSR &8281
+     89FC   B0 EB      BCS &89E9
+.jmp_savecattodisk
+     89FE   4C B5 A1   JMP &A1B5
+.cmdac_paramloop
+     8A01   A2 80      LDX #&80
+.cmdac_getparam
+     8A03   20 A2 81   JSR &81A2
+     8A06   B0 DC      BCS &89E4
+     8A08   29 5F      AND #&5F
+     8A0A   C9 4C      CMP #&4C
+     8A0C   F0 F3      BEQ &8A01
+.errBADATTRIBUTE
+     8A0E   20 51 80   JSR &8051
+     8A11   CF
+     8A12   61 74 74 ...
+     8A1B   00
+.fscv0_starOPT
+     8A1C   20 F0 83   JSR &83F0
+     8A1F   8A         TXA
+     8A20   C9 04      CMP #&04
+     8A22   F0 1E      BEQ &8A42
+     8A24   C9 05      CMP #&05
+     8A26   F0 34      BEQ &8A5C
+     8A28   C9 02      CMP #&02
+     8A2A   90 0B      BCC &8A37
+.errBADOPTION
+     8A2C   20 51 80   JSR &8051
+     8A2F   CB
+     8A30   6F 70 74 ...
+     8A36   00
+.opts0_1
+     8A37   A2 FF      LDX #&FF
+     8A39   98         TYA
+     8A3A   F0 02      BEQ &8A3E
+     8A3C   A2 00      LDX #&00
+.opts0_1_Y0
+     8A3E   8E C6 C2   STX &C2C6
+     8A41   60         RTS
+.SetBootOption_Yoption
+     8A42   98         TYA
+     8A43   48         PHA
+     8A44   20 B2 8B   JSR &8BB2
+     8A47   20 B1 A1   JSR &A1B1
+     8A4A   68         PLA
+     8A4B   20 22 82   JSR &8222
+     8A4E   4D 06 C1   EOR &C106
+     8A51   29 30      AND #&30
+     8A53   4D 06 C1   EOR &C106
+     8A56   8D 06 C1   STA &C106
+     8A59   4C B5 A1   JMP &A1B5
+.DiskTrapOption
+     8A5C   60         RTS
+.errDISKFULL
+     8A5D   20 46 80   JSR &8046
+     8A60   C6
+     8A61   66 75 6C ...
+     8A65   00
+.CreateFile_FSP
+     8A66   20 4C 81   JSR &814C
+     8A69   20 7A 82   JSR &827A
+     8A6C   90 03      BCC &8A71
+     8A6E   20 17 83   JSR &8317
+.createfile_nodel
+     8A71   A5 C0      LDA &C0
+     8A73   48         PHA
+     8A74   A5 C1      LDA &C1
+     8A76   48         PHA
+     8A77   38         SEC
+     8A78   A5 C2      LDA &C2
+     8A7A   E5 C0      SBC &C0
+     8A7C   85 C0      STA &C0
+     8A7E   A5 C3      LDA &C3
+     8A80   E5 C1      SBC &C1
+     8A82   85 C1      STA &C1
+     8A84   AD 7A C2   LDA &C27A
+     8A87   ED 78 C2   SBC &C278
+     8A8A   20 BB 8A   JSR &8ABB
+     8A8D   AD 79 C2   LDA &C279
+     8A90   8D 75 C2   STA &C275
+     8A93   AD 78 C2   LDA &C278
+     8A96   8D 74 C2   STA &C274
+     8A99   68         PLA
+     8A9A   85 BD      STA &BD
+     8A9C   68         PLA
+     8A9D   85 BC      STA &BC
+     8A9F   60         RTS
+.CreateFile_3
+     8AA0   85 CD      STA &CD
+     8AA2   A5 CC      LDA &CC
+     8AA4   48         PHA
+     8AA5   20 AE A1   JSR &A1AE
+     8AA8   20 85 82   JSR &8285
+     8AAB   90 03      BCC &8AB0
+     8AAD   20 17 83   JSR &8317
+.cd_writedest_cat_nodel
+     8AB0   68         PLA
+     8AB1   85 CC      STA &CC
+     8AB3   20 98 8B   JSR &8B98
+     8AB6   A5 C2      LDA &C2
+     8AB8   20 14 82   JSR &8214
+.CreateFile_2
+     8ABB   85 C4      STA &C4
+     8ABD   A9 00      LDA #&00
+     8ABF   85 C2      STA &C2
+     8AC1   A9 02      LDA #&02
+     8AC3   85 C3      STA &C3
+     8AC5   AC 05 C1   LDY &C105
+     8AC8   C0 F8      CPY #&F8
+     8ACA   90 31      BCC &8AFD
+.errCATALOGUEFULL
+     8ACC   20 5B 80   JSR &805B
+     8ACF   BE
+     8AD0   43 61 74 ...
+     8AD8   00
+.cfile_loop
+     8AD9   F0 82      BEQ &8A5D
+     8ADB   20 BF 82   JSR &82BF
+     8ADE   B9 0E C1   LDA &C10E,Y
+     8AE1   20 14 82   JSR &8214
+     8AE4   85 C2      STA &C2
+     8AE6   18         CLC
+     8AE7   A9 FF      LDA #&FF
+     8AE9   79 0C C1   ADC &C10C,Y
+     8AEC   B9 0F C1   LDA &C10F,Y
+     8AEF   79 0D C1   ADC &C10D,Y
+     8AF2   85 C3      STA &C3
+     8AF4   B9 0E C1   LDA &C10E,Y
+     8AF7   29 03      AND #&03
+     8AF9   65 C2      ADC &C2
+     8AFB   85 C2      STA &C2
+.Getfirstblock_Yoffset
+     8AFD   38         SEC
+     8AFE   B9 07 C1   LDA &C107,Y
+     8B01   E5 C3      SBC &C3
+     8B03   48         PHA
+     8B04   B9 06 C1   LDA &C106,Y
+     8B07   29 03      AND #&03
+     8B09   E5 C2      SBC &C2
+     8B0B   AA         TAX
+     8B0C   A9 00      LDA #&00
+     8B0E   C5 C0      CMP &C0
+     8B10   68         PLA
+     8B11   E5 C1      SBC &C1
+     8B13   8A         TXA
+     8B14   E5 C4      SBC &C4
+     8B16   98         TYA
+     8B17   90 C0      BCC &8AD9
+     8B19   84 B0      STY &B0
+     8B1B   AC 05 C1   LDY &C105
+.cfile_insertfileloop
+     8B1E   C4 B0      CPY &B0
+     8B20   F0 0F      BEQ &8B31
+     8B22   B9 07 C0   LDA &C007,Y
+     8B25   99 0F C0   STA &C00F,Y
+     8B28   B9 07 C1   LDA &C107,Y
+     8B2B   99 0F C1   STA &C10F,Y
+     8B2E   88         DEY
+     8B2F   B0 ED      BCS &8B1E
+.cfile_atcatentry
+     8B31   AD 76 C2   LDA &C276
+     8B34   29 03      AND #&03
+     8B36   0A         ASL A
+     8B37   0A         ASL A
+     8B38   45 C4      EOR &C4
+     8B3A   29 FC      AND #&FC
+     8B3C   45 C4      EOR &C4
+     8B3E   0A         ASL A
+     8B3F   0A         ASL A
+     8B40   4D 74 C2   EOR &C274
+     8B43   29 FC      AND #&FC
+     8B45   4D 74 C2   EOR &C274
+     8B48   0A         ASL A
+     8B49   0A         ASL A
+     8B4A   45 C2      EOR &C2
+     8B4C   29 FC      AND #&FC
+     8B4E   45 C2      EOR &C2
+     8B50   85 C2      STA &C2
+     8B52   A2 00      LDX #&00
+     8B54   98         TYA
+     8B55   48         PHA
+.cfile_copyfnloop
+     8B56   B5 C5      LDA &C5,X
+     8B58   99 08 C0   STA &C008,Y
+     8B5B   B5 BC      LDA &BC,X
+     8B5D   99 08 C1   STA &C108,Y
+     8B60   C8         INY
+     8B61   E8         INX
+     8B62   E0 08      CPX #&08
+     8B64   D0 F0      BNE &8B56
+     8B66   68         PLA
+     8B67   A8         TAY
+     8B68   48         PHA
+     8B69   20 41 83   JSR &8341
+     8B6C   AC 05 C1   LDY &C105
+     8B6F   20 C1 87   JSR &87C1
+     8B72   8C 05 C1   STY &C105
+     8B75   20 B5 A1   JSR &A1B5
+     8B78   68         PLA
+     8B79   A8         TAY
+     8B7A   60         RTS
+.CMD_ENABLE
+     8B7B   A9 01      LDA #&01
+     8B7D   8D C7 C2   STA &C2C7
+     8B80   60         RTS
+.LoadAddrHi2
+     8B81   A9 00      LDA #&00
+     8B83   8D 75 C2   STA &C275
+     8B86   A5 C2      LDA &C2
+     8B88   29 08      AND #&08
+     8B8A   8D 74 C2   STA &C274
+     8B8D   F0 08      BEQ &8B97
+.SetLoadAddrToHost
+     8B8F   A9 FF      LDA #&FF
+     8B91   8D 75 C2   STA &C275
+     8B94   8D 74 C2   STA &C274
+.ldadd_nothost
+     8B97   60         RTS
+.LoadandEexeAddrHi2
+     8B98   20 81 8B   JSR &8B81
+.ExecAddrHi2
+     8B9B   A9 00      LDA #&00
+     8B9D   8D 77 C2   STA &C277
+     8BA0   A5 C2      LDA &C2
+     8BA2   20 12 82   JSR &8212
+     8BA5   C9 03      CMP #&03
+     8BA7   D0 05      BNE &8BAE
+     8BA9   A9 FF      LDA #&FF
+     8BAB   8D 77 C2   STA &C277
+.exadd_nothost
+     8BAE   8D 76 C2   STA &C276
+     8BB1   60         RTS
+.Set_CurDirDrv_ToDefaults
+     8BB2   AD C9 C2   LDA &C2C9
+     8BB5   85 CC      STA &CC
+.Set_CurDrv_ToDefault
+     8BB7   AD CA C2   LDA &C2CA
+.SetCurrentDrive_Adrive
+     8BBA   29 03      AND #&03
+.SetCurrentDrive_Adrive_noand
+     8BBC   85 CD      STA &CD
+     8BBE   60         RTS
+.Param_OptionalDriveNo
+     8BBF   20 BD 81   JSR &81BD
+     8BC2   F0 F3      BEQ &8BB7
+.Param_DriveNo_Syntax
+     8BC4   20 98 9A   JSR &9A98
+.Param_DriveNo_BadDrive
+     8BC7   20 A2 81   JSR &81A2
+     8BCA   B0 0B      BCS &8BD7
+     8BCC   C9 3A      CMP #&3A
+     8BCE   F0 F7      BEQ &8BC7
+     8BD0   38         SEC
+     8BD1   E9 30      SBC #&30
+     8BD3   C9 04      CMP #&04
+     8BD5   90 E5      BCC &8BBC
+.errBADDRIVE
+     8BD7   20 51 80   JSR &8051
+     8BDA   CD
+     8BDB   64 72 69 ...
+     8BE0   00
+.CMD_RENAME
+     8BE1   20 F0 92   JSR &92F0
+     8BE4   20 98 9A   JSR &9A98
+     8BE7   20 46 81   JSR &8146
+     8BEA   98         TYA
+     8BEB   48         PHA
+     8BEC   20 35 82   JSR &8235
+     8BEF   20 AE 93   JSR &93AE
+     8BF2   84 C4      STY &C4
+     8BF4   68         PLA
+     8BF5   A8         TAY
+     8BF6   20 98 9A   JSR &9A98
+     8BF9   A5 CD      LDA &CD
+     8BFB   48         PHA
+     8BFC   20 46 81   JSR &8146
+     8BFF   68         PLA
+     8C00   C5 CD      CMP &CD
+     8C02   D0 14      BNE &8C18
+     8C04   20 7A 82   JSR &827A
+     8C07   90 12      BCC &8C1B
+     8C09   C4 C4      CPY &C4
+     8C0B   F0 0E      BEQ &8C1B
+.errFILEEXISTS
+     8C0D   20 5B 80   JSR &805B
+     8C10   C4
+     8C11   45 78 69 ...
+     8C17   00
+.jmpBADDRIVE
+     8C18   4C D7 8B   JMP &8BD7
+.rname_ok
+     8C1B   A4 C4      LDY &C4
+     8C1D   20 C1 87   JSR &87C1
+     8C20   A2 07      LDX #&07
+.rname_loop
+     8C22   B5 C5      LDA &C5,X
+     8C24   99 07 C0   STA &C007,Y
+     8C27   88         DEY
+     8C28   CA         DEX
+     8C29   10 F7      BPL &8C22
+     8C2B   4C B5 A1   JMP &A1B5
+.TUBE_CheckIfPresent
+     8C2E   A9 EA      LDA #&EA
+     8C30   A2 00      LDX #&00
+     8C32   A0 FF      LDY #&FF
+     8C34   20 F4 FF   JSR &FFF4
+     8C37   8A         TXA
+     8C38   49 FF      EOR #&FF
+     8C3A   8D D6 C2   STA &C2D6
+     8C3D   60         RTS
+.TUBE_CLAIM
+     8C3E   48         PHA
+.tclaim_loop
+     8C3F   A9 CA      LDA #&CA
+     8C41   20 06 04   JSR &0406
+     8C44   90 F9      BCC &8C3F
+     8C46   68         PLA
+     8C47   60         RTS
+.TUBE_RELEASE
+     8C48   20 2E 8C   JSR &8C2E
+     8C4B   30 07      BMI &8C54
+.TUBE_RELEASE_NoCheck
+     8C4D   48         PHA
+     8C4E   A9 8A      LDA #&8A
+     8C50   20 06 04   JSR &0406
+     8C53   68         PLA
+.trelease_exit
+     8C54   60         RTS
+.CheckESCAPE
+     8C55   24 FF      BIT &FF
+     8C57   10 1F      BPL &8C78
+.ReportESCAPE
+     8C59   A9 7E      LDA #&7E
+     8C5B   20 F4 FF   JSR &FFF4
+     8C5E   20 6B 80   JSR &806B
+     8C61   11
+     8C62   45 73 63 ...
+     8C68   00
+.PrintHex100
+     8C69   48         PHA
+     8C6A   20 1C 82   JSR &821C
+     8C6D   20 71 8C   JSR &8C71
+     8C70   68         PLA
+.PrintNib100
+     8C71   20 21 81   JSR &8121
+     8C74   9D 00 01   STA &0100,X
+     8C77   E8         INX
+.noesc
+     8C78   60         RTS
+.BootOptions
+     8C79   4C 2E 21 ...
+     8C80   0D
+     8C81   45 2E 21 ...
+     8C88   0D
+.AUTOBOOT
+     8C89   A5 B3      LDA &B3
+     8C8B   20 98 80   JSR &8098
+Macro BOOT_NAME:
+Macro BASE_NAME:
+     8C8E   4D 61 73 ...
+Macro SYSTEM_NAME:
+     8C95   4D 4D 46 ...
+End macro SYSTEM_NAME
+End macro BASE_NAME
+Macro DEVICE_NAME:
+     8C9A   20 50 69 ...
+End macro DEVICE_NAME
+Macro DFS_EMUL_NAME:
+End macro DFS_EMUL_NAME
+     8CA1   0D
+     8CA2   0D
+End macro BOOT_NAME
+     8CA3   90 02      BCC &8CA7
+.CMD_DISC
+.CMD_CARD
+     8CA5   A9 FF      LDA #&FF
+.initMMFS
+     8CA7   20 B5 96   JSR &96B5
+     8CAA   48         PHA
+     8CAB   A9 06      LDA #&06
+     8CAD   20 31 80   JSR &8031
+     8CB0   A2 0D      LDX #&0D
+.vectloop
+     8CB2   BD 1B 94   LDA &941B,X
+     8CB5   9D 12 02   STA &0212,X
+     8CB8   CA         DEX
+     8CB9   10 F7      BPL &8CB2
+     8CBB   A9 A8      LDA #&A8
+     8CBD   20 14 94   JSR &9414
+     8CC0   84 B1      STY &B1
+     8CC2   86 B0      STX &B0
+     8CC4   A2 07      LDX #&07
+     8CC6   A0 1B      LDY #&1B
+.extendedvec_loop
+     8CC8   B9 0E 94   LDA &940E,Y
+     8CCB   91 B0      STA (&B0),Y
+     8CCD   C8         INY
+     8CCE   B9 0E 94   LDA &940E,Y
+     8CD1   91 B0      STA (&B0),Y
+     8CD3   C8         INY
+     8CD4   A5 F4      LDA &F4
+     8CD6   91 B0      STA (&B0),Y
+     8CD8   C8         INY
+     8CD9   CA         DEX
+     8CDA   D0 EC      BNE &8CC8
+     8CDC   8C 82 C2   STY &C282
+     8CDF   8C 83 C2   STY &C283
+     8CE2   86 CD      STX &CD
+     8CE4   8E AF C2   STX &C2AF
+     8CE7   A2 0F      LDX #&0F
+     8CE9   A9 8F      LDA #&8F
+     8CEB   20 F4 FF   JSR &FFF4
+     8CEE   20 08 94   JSR &9408
+     8CF1   A0 D3      LDY #&D3
+     8CF3   B1 B0      LDA (&B0),Y
+     8CF5   10 37      BPL &8D2E
+     8CF7   A0 D4      LDY #&D4
+     8CF9   B1 B0      LDA (&B0),Y
+     8CFB   30 5E      BMI &8D5B
+     8CFD   20 F1 93   JSR &93F1
+     8D00   A0 00      LDY #&00
+.copyfromPWStoSWS_loop
+     8D02   B1 B0      LDA (&B0),Y
+     8D04   C0 C0      CPY #&C0
+     8D06   90 05      BCC &8D0D
+     8D08   99 00 C2   STA &C200,Y
+     8D0B   B0 03      BCS &8D10
+.copyfromPWS1
+     8D0D   99 00 C3   STA &C300,Y
+.copyfromPWS2
+     8D10   88         DEY
+     8D11   D0 EF      BNE &8D02
+     8D13   20 65 A1   JSR &A165
+     8D16   CD F0 C2   CMP &C2F0
+     8D19   D0 16      BNE &8D31
+     8D1B   A9 A0      LDA #&A0
+.setchansloop
+     8D1D   A8         TAY
+     8D1E   48         PHA
+     8D1F   A9 3F      LDA #&3F
+     8D21   20 61 98   JSR &9861
+     8D24   68         PLA
+     8D25   99 1D C3   STA &C31D,Y
+     8D28   E9 1F      SBC #&1F
+     8D2A   D0 F1      BNE &8D1D
+     8D2C   F0 2D      BEQ &8D5B
+.initdfs_reset
+     8D2E   20 F1 93   JSR &93F1
+.setdefaults
+     8D31   A9 20      LDA #&20
+     8D33   8D C0 C3   STA &C3C0
+     8D36   8D D0 C3   STA &C3D0
+     8D39   A9 24      LDA #&24
+     8D3B   8D C9 C2   STA &C2C9
+     8D3E   8D CB C2   STA &C2CB
+     8D41   A9 00      LDA #&00
+     8D43   8D CC C2   STA &C2CC
+     8D46   A0 00      LDY #&00
+     8D48   8C CA C2   STY &C2CA
+     8D4B   8C C0 C2   STY &C2C0
+     8D4E   88         DEY
+     8D4F   8C C7 C2   STY &C2C7
+     8D52   8C C6 C2   STY &C2C6
+     8D55   8C DD C2   STY &C2DD
+     8D58   20 8F 8D   JSR &8D8F
+.initdfs_noreset
+     8D5B   20 2E 8C   JSR &8C2E
+     8D5E   A9 FD      LDA #&FD
+     8D60   20 14 94   JSR &9414
+     8D63   E0 00      CPX #&00
+     8D65   F0 06      BEQ &8D6D
+     8D67   20 F1 A5   JSR &A5F1
+     8D6A   20 D7 AB   JSR &ABD7
+.skipautoload
+     8D6D   68         PLA
+     8D6E   D0 0B      BNE &8D7B
+     8D70   20 B1 A1   JSR &A1B1
+     8D73   AD 06 C1   LDA &C106
+     8D76   20 1C 82   JSR &821C
+     8D79   D0 01      BNE &8D7C
+.initdfs_exit
+     8D7B   60         RTS
+.notOPT0
+     8D7C   A0 8C      LDY #&8C
+     8D7E   A2 79      LDX #&79
+     8D80   C9 02      CMP #&02
+     8D82   90 08      BCC &8D8C
+     8D84   F0 04      BEQ &8D8A
+     8D86   A2 81      LDX #&81
+     8D88   D0 02      BNE &8D8C
+.oscliOPT2
+     8D8A   A2 83      LDX #&83
+.jmpOSCLI
+     8D8C   4C F7 FF   JMP &FFF7
+.VIDRESET
+     8D8F   A0 0F      LDY #&0F
+     8D91   A9 00      LDA #&00
+.loop
+     8D93   99 E0 C2   STA &C2E0,Y
+     8D96   88         DEY
+     8D97   10 FA      BPL &8D93
+     8D99   A9 01      LDA #&01
+     8D9B   8D F0 C2   STA &C2F0
+     8D9E   60         RTS
+.MMFS_SERVICECALLS
+     8D9F   3C F0 0D   BIT &0DF0,X
+     8DA2   10 03      BPL &8DA7
+     8DA4   70 03      BVS &8DA9
+.lbl1
+     8DA6   60         RTS
+.lbl2
+     8DA7   70 FD      BVS &8DA6
+.lbl3
+     8DA9   C9 12      CMP #&12
+     8DAB   F0 49      BEQ &8DF6
+     8DAD   C9 0B      CMP #&0B
+     8DAF   90 0A      BCC &8DBB
+     8DB1   C9 28      CMP #&28
+     8DB3   B0 1A      BCS &8DCF
+     8DB5   C9 21      CMP #&21
+     8DB7   90 16      BCC &8DCF
+     8DB9   E9 16      SBC #&16
+.label4
+     8DBB   0A         ASL A
+     8DBC   AA         TAX
+     8DBD   BD D3 8D   LDA &8DD3,X
+     8DC0   48         PHA
+     8DC1   BD D2 8D   LDA &8DD2,X
+     8DC4   48         PHA
+     8DC5   8A         TXA
+     8DC6   A6 F4      LDX &F4
+     8DC8   4A         LSR A
+     8DC9   C9 0B      CMP #&0B
+     8DCB   90 02      BCC &8DCF
+     8DCD   69 15      ADC #&15
+.label3
+.SERVICE_NULL
+     8DCF   60         RTS
+.romdisabled
+     8DD0   68         PLA
+     8DD1   60         RTS
+.data
+     8DD2   CE 8D
+     8DD4   CE 8D
+     8DD6   FF 8D
+     8DD8   49 8E
+     8DDA   62 8E
+     8DDC   CE 8D
+     8DDE   CE 8D
+     8DE0   CE 8D
+     8DE2   6B 8E
+     8DE4   C9 8E
+     8DE6   DA 8E
+     8DE8   FC 8E
+     8DEA   03 8F
+     8DEC   CE 8D
+     8DEE   0B 8F
+     8DF0   0D 8F
+     8DF2   CE 8D
+     8DF4   28 8F
+.SERVICE12_init_filesystem
+Macro BP12K_NEST:
+End macro BP12K_NEST
+     8DF6   C0 04      CPY #&04
+     8DF8   D0 D5      BNE &8DCF
+     8DFA   20 F0 83   JSR &83F0
+     8DFD   4C A5 8C   JMP &8CA5
+.SERVICE02_claim_privworkspace
+     8E00   BD F0 0D   LDA &0DF0,X
+     8E03   C9 DC      CMP #&DC
+     8E05   90 04      BCC &8E0B
+     8E07   98         TYA
+     8E08   9D F0 0D   STA &0DF0,X
+.cont
+     8E0B   5A         PHY
+     8E0C   85 B1      STA &B1
+     8E0E   BC F0 0D   LDY &0DF0,X
+     8E11   9D F0 0D   STA &0DF0,X
+     8E14   A9 00      LDA #&00
+     8E16   85 B0      STA &B0
+     8E18   C4 B1      CPY &B1
+     8E1A   F0 04      BEQ &8E20
+     8E1C   A0 D3      LDY #&D3
+     8E1E   91 B0      STA (&B0),Y
+.samepage
+     8E20   A9 FD      LDA #&FD
+     8E22   20 14 94   JSR &9414
+     8E25   CA         DEX
+     8E26   8A         TXA
+     8E27   A0 D3      LDY #&D3
+     8E29   31 B0      AND (&B0),Y
+     8E2B   91 B0      STA (&B0),Y
+     8E2D   08         PHP
+     8E2E   C8         INY
+     8E2F   28         PLP
+     8E30   10 07      BPL &8E39
+     8E32   B1 B0      LDA (&B0),Y
+     8E34   10 03      BPL &8E39
+     8E36   20 47 89   JSR &8947
+.notsoft
+     8E39   A9 00      LDA #&00
+     8E3B   91 B0      STA (&B0),Y
+     8E3D   A6 F4      LDX &F4
+     8E3F   68         PLA
+     8E40   A8         TAY
+     8E41   A9 02      LDA #&02
+     8E43   3C F0 0D   BIT &0DF0,X
+     8E46   30 01      BMI &8E49
+     8E48   C8         INY
+.srv3_exit
+     8E49   60         RTS
+.SERVICE03_autoboot
+Macro BP12K_NEST:
+End macro BP12K_NEST
+     8E4A   20 F0 83   JSR &83F0
+     8E4D   84 B3      STY &B3
+     8E4F   A9 7A      LDA #&7A
+     8E51   20 F4 FF   JSR &FFF4
+     8E54   8A         TXA
+     8E55   30 09      BMI &8E60
+     8E57   C9 65      CMP #&65
+     8E59   D0 EE      BNE &8E49
+     8E5B   A9 78      LDA #&78
+     8E5D   20 F4 FF   JSR &FFF4
+.jmpAUTOBOOT
+     8E60   4C 89 8C   JMP &8C89
+.SERVICE04_unrec_command
+Macro BP12K_NEST:
+End macro BP12K_NEST
+     8E63   20 F0 83   JSR &83F0
+     8E66   A2 76      LDX #&76
+.jmpunreccmd
+     8E68   4C F9 86   JMP &86F9
+.NotCmdTable22
+     8E6B   60         RTS
+.SERVICE08_unrec_OSWORD
+Macro BP12K_NEST:
+End macro BP12K_NEST
+     8E6C   20 F0 83   JSR &83F0
+     8E6F   A4 EF      LDY &EF
+     8E71   30 2F      BMI &8EA2
+     8E73   C0 7D      CPY #&7D
+     8E75   90 2B      BCC &8EA2
+     8E77   AD 13 02   LDA &0213
+     8E7A   C9 FF      CMP #&FF
+     8E7C   D0 24      BNE &8EA2
+     8E7E   AD 12 02   LDA &0212
+     8E81   C9 1B      CMP #&1B
+     8E83   D0 1D      BNE &8EA2
+     8E85   AD BC 0D   LDA &0DBC
+     8E88   C5 F4      CMP &F4
+     8E8A   D0 16      BNE &8EA2
+     8E8C   20 B5 96   JSR &96B5
+     8E8F   A6 F0      LDX &F0
+     8E91   86 B0      STX &B0
+     8E93   A6 F1      LDX &F1
+     8E95   86 B1      STX &B1
+     8E97   A4 EF      LDY &EF
+     8E99   C8         INY
+     8E9A   10 07      BPL &8EA3
+     8E9C   08         PHP
+     8E9D   58         CLI
+     8E9E   20 43 AF   JSR &AF43
+     8EA1   28         PLP
+.notMMFS
+.exit
+     8EA2   60         RTS
+.notOSWORD7F
+     8EA3   20 AB A1   JSR &A1AB
+     8EA6   C8         INY
+     8EA7   30 08      BMI &8EB1
+     8EA9   A0 00      LDY #&00
+     8EAB   AD 04 C1   LDA &C104
+     8EAE   91 B0      STA (&B0),Y
+     8EB0   60         RTS
+.OSWORD7E
+     8EB1   A9 00      LDA #&00
+     8EB3   A8         TAY
+     8EB4   91 B0      STA (&B0),Y
+     8EB6   C8         INY
+     8EB7   AD 07 C1   LDA &C107
+     8EBA   91 B0      STA (&B0),Y
+     8EBC   C8         INY
+     8EBD   AD 06 C1   LDA &C106
+     8EC0   29 03      AND #&03
+     8EC2   91 B0      STA (&B0),Y
+     8EC4   C8         INY
+     8EC5   A9 00      LDA #&00
+     8EC7   91 B0      STA (&B0),Y
+     8EC9   60         RTS
+.SERVICE09_help
+     8ECA   20 F0 83   JSR &83F0
+     8ECD   B1 F2      LDA (&F2),Y
+     8ECF   A2 8C      LDX #&8C
+     8ED1   C9 0D      CMP #&0D
+     8ED3   D0 93      BNE &8E68
+     8ED5   98         TYA
+     8ED6   A0 02      LDY #&02
+     8ED8   4C 4A 9A   JMP &9A4A
+.SERVICE0A_claim_statworkspace
+     8EDB   20 F0 83   JSR &83F0
+     8EDE   20 08 94   JSR &9408
+     8EE1   A0 D4      LDY #&D4
+     8EE3   B1 B0      LDA (&B0),Y
+     8EE5   10 15      BPL &8EFC
+     8EE7   A0 00      LDY #&00
+     8EE9   20 A1 96   JSR &96A1
+     8EEC   20 47 89   JSR &8947
+     8EEF   20 08 94   JSR &9408
+     8EF2   A0 D4      LDY #&D4
+     8EF4   A9 00      LDA #&00
+     8EF6   91 B0      STA (&B0),Y
+     8EF8   BA         TSX
+     8EF9   9D 05 01   STA &0105,X
+.exit
+     8EFC   60         RTS
+.SERVICE21_ClaimHiddenSWS
+     8EFD   C0 CA      CPY #&CA
+     8EFF   B0 02      BCS &8F03
+     8F01   A0 CA      LDY #&CA
+.ok
+     8F03   60         RTS
+.SERVICE22_ClaimHiddenPWS
+     8F04   98         TYA
+     8F05   9D F0 0D   STA &0DF0,X
+     8F08   A9 22      LDA #&22
+     8F0A   C8         INY
+     8F0B   60         RTS
+.SERVICE24_RequiredPWS
+     8F0C   88         DEY
+     8F0D   60         RTS
+.SERVICE25_fs_info
+     8F0E   A2 0A      LDX #&0A
+.srv25_loop
+     8F10   BD 1E 8F   LDA &8F1E,X
+     8F13   91 F2      STA (&F2),Y
+     8F15   C8         INY
+     8F16   CA         DEX
+     8F17   10 F7      BPL &8F10
+     8F19   A9 25      LDA #&25
+     8F1B   A6 F4      LDX &F4
+     8F1D   60         RTS
+.fsinfo
+     8F1E   04
+     8F1F   15
+     8F20   11
+     8F21   20 20 20 ...
+.SERVICE27_Reset
+     8F29   48         PHA
+     8F2A   8A         TXA
+     8F2B   48         PHA
+     8F2C   98         TYA
+     8F2D   48         PHA
+     8F2E   A9 FD      LDA #&FD
+     8F30   A2 00      LDX #&00
+     8F32   A0 FF      LDY #&FF
+     8F34   20 F4 FF   JSR &FFF4
+     8F37   E0 00      CPX #&00
+     8F39   F0 03      BEQ &8F3E
+     8F3B   20 8F 8D   JSR &8D8F
+.srv27_softbreak
+     8F3E   68         PLA
+     8F3F   A8         TAY
+     8F40   68         PLA
+     8F41   AA         TAX
+     8F42   68         PLA
+     8F43   60         RTS
+.FILEV_ENTRY
+     8F44   20 19 84   JSR &8419
+     8F47   48         PHA
+     8F48   20 F0 92   JSR &92F0
+     8F4B   86 B0      STX &B0
+     8F4D   8E DB C2   STX &C2DB
+     8F50   84 B1      STY &B1
+     8F52   8C DC C2   STY &C2DC
+     8F55   A2 00      LDX #&00
+     8F57   A0 00      LDY #&00
+     8F59   20 3C 81   JSR &813C
+.filev_copyparams_loop
+     8F5C   20 2C 81   JSR &812C
+     8F5F   C0 12      CPY #&12
+     8F61   D0 F9      BNE &8F5C
+     8F63   68         PLA
+     8F64   AA         TAX
+     8F65   E8         INX
+     8F66   E0 08      CPX #&08
+     8F68   B0 08      BCS &8F72
+     8F6A   BD 5E 94   LDA &945E,X
+     8F6D   48         PHA
+     8F6E   BD 56 94   LDA &9456,X
+     8F71   48         PHA
+.filev_unknownop
+     8F72   A9 00      LDA #&00
+     8F74   60         RTS
+.FSCV_ENTRY
+     8F75   C9 0C      CMP #&0C
+     8F77   B0 F9      BCS &8F72
+     8F79   86 B5      STX &B5
+     8F7B   AA         TAX
+     8F7C   BD 4A 94   LDA &944A,X
+     8F7F   48         PHA
+     8F80   BD 3E 94   LDA &943E,X
+     8F83   48         PHA
+     8F84   8A         TXA
+     8F85   A6 B5      LDX &B5
+     8F87   60         RTS
+.GBPBV_ENTRY
+     8F88   C9 09      CMP #&09
+     8F8A   B0 1D      BCS &8FA9
+     8F8C   20 F0 83   JSR &83F0
+     8F8F   20 B5 96   JSR &96B5
+     8F92   8E 7D C2   STX &C27D
+     8F95   8C 7E C2   STY &C27E
+     8F98   A8         TAY
+     8F99   4C 4A 91   JMP &914A
+.upgbpb
+     8F9C   20 AA 8F   JSR &8FAA
+     8F9F   08         PHP
+     8FA0   2C 81 C2   BIT &C281
+     8FA3   10 03      BPL &8FA8
+     8FA5   20 4D 8C   JSR &8C4D
+.gbpb_nottube
+     8FA8   28         PLP
+.gbpbv_unrecop
+     8FA9   60         RTS
+.gbpb_gosub
+     8FAA   B9 66 94   LDA &9466,Y
+     8FAD   8D D7 C2   STA &C2D7
+     8FB0   B9 6F 94   LDA &946F,Y
+     8FB3   8D D8 C2   STA &C2D8
+     8FB6   B9 78 94   LDA &9478,Y
+     8FB9   4A         LSR A
+     8FBA   08         PHP
+     8FBB   4A         LSR A
+     8FBC   08         PHP
+     8FBD   8D 7F C2   STA &C27F
+     8FC0   A0 0C      LDY #&0C
+.gbpb_ctlblk_loop
+     8FC2   B1 B4      LDA (&B4),Y
+     8FC4   99 60 C2   STA &C260,Y
+     8FC7   88         DEY
+     8FC8   10 F8      BPL &8FC2
+     8FCA   AD 63 C2   LDA &C263
+     8FCD   2D 64 C2   AND &C264
+     8FD0   0D D6 C2   ORA &C2D6
+     8FD3   18         CLC
+     8FD4   69 01      ADC #&01
+     8FD6   F0 06      BEQ &8FDE
+     8FD8   20 3E 8C   JSR &8C3E
+     8FDB   18         CLC
+     8FDC   A9 FF      LDA #&FF
+.gbpb_nottube1
+     8FDE   8D 81 C2   STA &C281
+     8FE1   AD 7F C2   LDA &C27F
+     8FE4   B0 07      BCS &8FED
+     8FE6   A2 61      LDX #&61
+     8FE8   A0 C2      LDY #&C2
+     8FEA   20 06 04   JSR &0406
+.gbpb_nottube2
+     8FED   28         PLP
+     8FEE   B0 04      BCS &8FF4
+     8FF0   28         PLP
+.gbpb_jmpsub
+     8FF1   6C D7 C2   JMP (&C2D7)
+.gbpb_rw_seqptr
+     8FF4   A2 03      LDX #&03
+.gbpb_seqptr_loop1
+     8FF6   BD 69 C2   LDA &C269,X
+     8FF9   95 B6      STA &B6,X
+     8FFB   CA         DEX
+     8FFC   10 F8      BPL &8FF6
+     8FFE   A2 B6      LDX #&B6
+     9000   AC 60 C2   LDY &C260
+     9003   A9 00      LDA #&00
+     9005   28         PLP
+     9006   B0 03      BCS &900B
+     9008   20 9B 99   JSR &999B
+.gpbp_dontwriteseqptr
+     900B   20 00 97   JSR &9700
+     900E   A2 03      LDX #&03
+.gbpb_seqptr_loop2
+     9010   B5 B6      LDA &B6,X
+     9012   9D 69 C2   STA &C269,X
+     9015   CA         DEX
+     9016   10 F8      BPL &9010
+.gbpb_rwdata
+     9018   20 E8 90   JSR &90E8
+     901B   30 0D      BMI &902A
+.gbpb_data_loop
+     901D   AC 60 C2   LDY &C260
+     9020   20 F1 8F   JSR &8FF1
+     9023   B0 0D      BCS &9032
+     9025   A2 09      LDX #&09
+     9027   20 23 91   JSR &9123
+.gbpb_data_loopin
+     902A   A2 05      LDX #&05
+     902C   20 23 91   JSR &9123
+     902F   D0 EC      BNE &901D
+     9031   18         CLC
+.gbpb_data_loopout
+     9032   08         PHP
+     9033   20 E8 90   JSR &90E8
+     9036   A2 05      LDX #&05
+     9038   20 23 91   JSR &9123
+     903B   20 F6 90   JSR &90F6
+     903E   A0 0C      LDY #&0C
+.gbpb_restorectlblk_loop
+     9040   B9 60 C2   LDA &C260,Y
+     9043   91 B4      STA (&B4),Y
+     9045   88         DEY
+     9046   10 F8      BPL &9040
+     9048   28         PLP
+     9049   60         RTS
+.gbpb8_rdfilescurdir
+     904A   20 A0 A1   JSR &A1A0
+     904D   A9 59      LDA #&59
+     904F   8D D7 C2   STA &C2D7
+     9052   A9 90      LDA #&90
+     9054   8D D8 C2   STA &C2D8
+     9057   D0 BF      BNE &9018
+.gbpb8_getbyte
+     9059   AC 69 C2   LDY &C269
+.gbpb8_loop
+     905C   CC 05 C1   CPY &C105
+     905F   B0 28      BCS &9089
+     9061   B9 0F C0   LDA &C00F,Y
+     9064   20 33 83   JSR &8333
+     9067   45 CC      EOR &CC
+     9069   B0 02      BCS &906D
+     906B   29 DF      AND #&DF
+.gbpb8_notalpha
+     906D   29 7F      AND #&7F
+     906F   F0 05      BEQ &9076
+     9071   20 C1 87   JSR &87C1
+     9074   D0 E6      BNE &905C
+.gbpb8_filefound
+     9076   A9 07      LDA #&07
+     9078   20 0F 91   JSR &910F
+     907B   85 B0      STA &B0
+.gbpb8_copyfn_loop
+     907D   B9 08 C0   LDA &C008,Y
+     9080   20 0F 91   JSR &910F
+     9083   C8         INY
+     9084   C6 B0      DEC &B0
+     9086   D0 F5      BNE &907D
+     9088   18         CLC
+.gbpb8_endofcat
+     9089   8C 69 C2   STY &C269
+     908C   AD 04 C1   LDA &C104
+     908F   8D 60 C2   STA &C260
+     9092   60         RTS
+.gbpb5_getmediatitle
+     9093   20 A0 A1   JSR &A1A0
+     9096   A9 0C      LDA #&0C
+     9098   20 0F 91   JSR &910F
+     909B   A0 00      LDY #&00
+.gbpb5_titleloop
+     909D   C0 08      CPY #&08
+     909F   B0 05      BCS &90A6
+     90A1   B9 00 C0   LDA &C000,Y
+     90A4   90 03      BCC &90A9
+.gbpb5_titlehi
+     90A6   B9 F8 C0   LDA &C0F8,Y
+.gbpb5_titlelo
+     90A9   20 0F 91   JSR &910F
+     90AC   C8         INY
+     90AD   C0 0C      CPY #&0C
+     90AF   D0 EC      BNE &909D
+     90B1   AD 06 C1   LDA &C106
+     90B4   20 1C 82   JSR &821C
+     90B7   20 0F 91   JSR &910F
+     90BA   A5 CD      LDA &CD
+     90BC   4C 0F 91   JMP &910F
+.gbpb6_rdcurdirdevice
+     90BF   20 06 91   JSR &9106
+     90C2   AD CA C2   LDA &C2CA
+     90C5   20 01 91   JSR &9101
+     90C8   AD C9 C2   LDA &C2C9
+     90CB   D0 42      BNE &910F
+.gbpb7_rdcurlibdevice
+     90CD   20 06 91   JSR &9106
+     90D0   AD CC C2   LDA &C2CC
+     90D3   20 01 91   JSR &9101
+     90D6   AD CB C2   LDA &C2CB
+     90D9   D0 34      BNE &910F
+.gpbp_B8memptr
+     90DB   AE 61 C2   LDX &C261
+     90DE   86 B8      STX &B8
+     90E0   AE 62 C2   LDX &C262
+     90E3   86 B9      STX &B9
+     90E5   A2 00      LDX #&00
+     90E7   60         RTS
+.gbpb_bytesxferinvert
+     90E8   A2 03      LDX #&03
+.gbpb_bytesxferinvert_loop
+     90EA   A9 FF      LDA #&FF
+     90EC   5D 65 C2   EOR &C265,X
+     90EF   9D 65 C2   STA &C265,X
+     90F2   CA         DEX
+     90F3   10 F5      BPL &90EA
+     90F5   60         RTS
+.gbpb_wordB4_word107D
+     90F6   AD 7D C2   LDA &C27D
+     90F9   85 B4      STA &B4
+     90FB   AD 7E C2   LDA &C27E
+     90FE   85 B5      STA &B5
+     9100   60         RTS
+.gbpb_gb_SAVEBYTE_and_gbpb_SAVE_01
+     9101   09 30      ORA #&30
+     9103   20 0F 91   JSR &910F
+.gbpb_SAVE_01
+     9106   A9 01      LDA #&01
+     9108   D0 05      BNE &910F
+.gbpb_getbyteSAVEBYTE
+     910A   20 0E 98   JSR &980E
+     910D   B0 1F      BCS &912E
+.gbpb_gb_SAVEBYTE
+     910F   2C 81 C2   BIT &C281
+     9112   10 05      BPL &9119
+     9114   8D E5 FE   STA &FEE5
+     9117   30 05      BMI &911E
+.gBpb_gb_fromhost
+     9119   20 DB 90   JSR &90DB
+     911C   81 B8      STA (&B8,X)
+.gbpb_incDataPtr
+     911E   20 F0 83   JSR &83F0
+     9121   A2 01      LDX #&01
+.gbpb_incdblword1060X
+     9123   A0 04      LDY #&04
+.gbpb_incdblword_loop
+     9125   FE 60 C2   INC &C260,X
+     9128   D0 04      BNE &912E
+     912A   E8         INX
+     912B   88         DEY
+     912C   D0 F7      BNE &9125
+.gbpb_incdblworkd_exit
+     912E   60         RTS
+.gbpb_putbytes
+     912F   20 37 91   JSR &9137
+     9132   20 CB 98   JSR &98CB
+     9135   18         CLC
+     9136   60         RTS
+.gpbp_pb_LOADBYTE
+     9137   2C 81 C2   BIT &C281
+     913A   10 06      BPL &9142
+     913C   AD E5 FE   LDA &FEE5
+     913F   4C 1E 91   JMP &911E
+.gbpb_pb_fromhost
+     9142   20 DB 90   JSR &90DB
+     9145   A1 B8      LDA (&B8,X)
+     9147   4C 1E 91   JMP &911E
+.fastgb
+     914A   20 F6 90   JSR &90F6
+     914D   B9 78 94   LDA &9478,Y
+     9150   29 03      AND #&03
+     9152   4A         LSR A
+     9153   F0 4A      BEQ &919F
+     9155   8C 6D C2   STY &C26D
+     9158   A0 0C      LDY #&0C
+.copyl0
+     915A   B1 B4      LDA (&B4),Y
+     915C   99 60 C2   STA &C260,Y
+     915F   88         DEY
+     9160   10 F8      BPL &915A
+     9162   A8         TAY
+     9163   A2 03      LDX #&03
+.initl
+     9165   BD 65 C2   LDA &C265,X
+     9168   9D 6E C2   STA &C26E,X
+     916B   CA         DEX
+     916C   10 F7      BPL &9165
+     916E   AD 69 C2   LDA &C269
+     9171   90 09      BCC &917C
+     9173   98         TYA
+     9174   20 21 82   JSR &8221
+     9177   A8         TAY
+     9178   B9 10 C3   LDA &C310,Y
+     917B   18         CLC
+.dcptr
+     917C   49 FF      EOR #&FF
+     917E   69 01      ADC #&01
+     9180   A0 FC      LDY #&FC
+.hdrext
+     9182   99 69 C1   STA &C169,Y
+     9185   A9 00      LDA #&00
+     9187   C8         INY
+     9188   D0 F8      BNE &9182
+     918A   20 B8 92   JSR &92B8
+     918D   90 02      BCC &9191
+     918F   D0 46      BNE &91D7
+.trailr
+     9191   20 CE 92   JSR &92CE
+.drain
+     9194   A9 60      LDA #&60
+     9196   85 B4      STA &B4
+     9198   A9 C2      LDA #&C2
+     919A   85 B5      STA &B5
+     919C   AC 6D C2   LDY &C26D
+.chain
+     919F   4C 9C 8F   JMP &8F9C
+.morfst
+     91A2   AD 71 C2   LDA &C271
+     91A5   20 C7 92   JSR &92C7
+     91A8   D0 32      BNE &91DC
+     91AA   8D 66 C2   STA &C266
+     91AD   8D 67 C2   STA &C267
+     91B0   AD 6E C2   LDA &C26E
+     91B3   D0 DC      BNE &9191
+     91B5   18         CLC
+.fgbfin
+     91B6   08         PHP
+     91B7   20 CE 92   JSR &92CE
+     91BA   28         PLP
+     91BB   20 F6 90   JSR &90F6
+     91BE   A0 0C      LDY #&0C
+.retnl
+     91C0   B9 60 C2   LDA &C260,Y
+     91C3   91 B4      STA (&B4),Y
+     91C5   88         DEY
+     91C6   10 F8      BPL &91C0
+     91C8   60         RTS
+.setmax
+     91C9   8D 67 C2   STA &C267
+     91CC   0D 66 C2   ORA &C266
+     91CF   D0 4B      BNE &921C
+.throw
+     91D1   A0 FD      LDY #&FD
+     91D3   A9 01      LDA #&01
+     91D5   D0 AB      BNE &9182
+.align
+     91D7   20 94 91   JSR &9194
+     91DA   B0 DA      BCS &91B6
+.dofast
+     91DC   AE 71 C2   LDX &C271
+     91DF   F0 02      BEQ &91E3
+     91E1   A2 FF      LDX #&FF
+.sclamp
+     91E3   8A         TXA
+     91E4   0D 70 C2   ORA &C270
+     91E7   8D 67 C2   STA &C267
+     91EA   8A         TXA
+     91EB   0D 6F C2   ORA &C26F
+     91EE   AA         TAX
+     91EF   AD C2 C2   LDA &C2C2
+     91F2   38         SEC
+     91F3   6D 6D C2   ADC &C26D
+     91F6   49 04      EOR #&04
+     91F8   29 E4      AND #&E4
+     91FA   A8         TAY
+     91FB   B9 15 C3   LDA &C315,Y
+     91FE   38         SEC
+     91FF   ED 6A C2   SBC &C26A
+     9202   8D 66 C2   STA &C266
+     9205   B9 16 C3   LDA &C316,Y
+     9208   ED 6B C2   SBC &C26B
+     920B   90 C4      BCC &91D1
+     920D   CD 67 C2   CMP &C267
+     9210   90 B7      BCC &91C9
+     9212   D0 05      BNE &9219
+     9214   EC 66 C2   CPX &C266
+     9217   B0 B0      BCS &91C9
+.sectr0
+     9219   8E 66 C2   STX &C266
+.sectr1
+     921C   AC C2 C2   LDY &C2C2
+     921F   20 A5 94   JSR &94A5
+     9222   20 69 98   JSR &9869
+     9225   A9 3F      LDA #&3F
+     9227   99 1D C3   STA &C31D,Y
+     922A   20 61 98   JSR &9861
+     922D   AD 61 C2   LDA &C261
+     9230   85 BC      STA &BC
+     9232   AD 62 C2   LDA &C262
+     9235   85 BD      STA &BD
+     9237   AD 63 C2   LDA &C263
+     923A   8D 74 C2   STA &C274
+     923D   AD 64 C2   LDA &C264
+     9240   8D 75 C2   STA &C275
+     9243   B9 0F C3   LDA &C30F,Y
+     9246   18         CLC
+     9247   6D 6A C2   ADC &C26A
+     924A   85 C3      STA &C3
+     924C   B9 0D C3   LDA &C30D,Y
+     924F   6D 6B C2   ADC &C26B
+     9252   29 03      AND #&03
+     9254   85 C2      STA &C2
+     9256   A9 00      LDA #&00
+     9258   85 C0      STA &C0
+     925A   AD 66 C2   LDA &C266
+     925D   85 C1      STA &C1
+     925F   AD 67 C2   LDA &C267
+     9262   20 22 82   JSR &8222
+     9265   05 C2      ORA &C2
+     9267   85 C2      STA &C2
+     9269   AD 6D C2   LDA &C26D
+     926C   EE DD C2   INC &C2DD
+     926F   20 DE 92   JSR &92DE
+     9272   CE DD C2   DEC &C2DD
+     9275   20 B8 92   JSR &92B8
+     9278   AC 66 C2   LDY &C266
+     927B   98         TYA
+     927C   18         CLC
+     927D   6D 62 C2   ADC &C262
+     9280   8D 62 C2   STA &C262
+     9283   AE 67 C2   LDX &C267
+     9286   8A         TXA
+     9287   6D 63 C2   ADC &C263
+     928A   8D 63 C2   STA &C263
+     928D   90 03      BCC &9292
+     928F   EE 64 C2   INC &C264
+.updp
+     9292   98         TYA
+     9293   AC C2 C2   LDY &C2C2
+     9296   18         CLC
+     9297   79 11 C3   ADC &C311,Y
+     929A   99 11 C3   STA &C311,Y
+     929D   8D 6A C2   STA &C26A
+     92A0   8A         TXA
+     92A1   79 12 C3   ADC &C312,Y
+     92A4   99 12 C3   STA &C312,Y
+     92A7   8D 6B C2   STA &C26B
+     92AA   98         TYA
+     92AB   20 0E 9A   JSR &9A0E
+     92AE   90 05      BCC &92B5
+     92B0   F0 03      BEQ &92B5
+     92B2   20 79 99   JSR &9979
+.doneit
+     92B5   4C A2 91   JMP &91A2
+.subwk
+     92B8   38         SEC
+     92B9   A2 FC      LDX #&FC
+.subwkl
+     92BB   BD 72 C1   LDA &C172,X
+     92BE   FD 69 C1   SBC &C169,X
+     92C1   9D 72 C1   STA &C172,X
+     92C4   E8         INX
+     92C5   D0 F4      BNE &92BB
+.testl
+     92C7   0D 70 C2   ORA &C270
+     92CA   0D 6F C2   ORA &C26F
+     92CD   60         RTS
+.addtol
+     92CE   18         CLC
+     92CF   A2 FC      LDX #&FC
+.addl
+     92D1   BD 72 C1   LDA &C172,X
+     92D4   7D 69 C1   ADC &C169,X
+     92D7   9D 69 C1   STA &C169,X
+     92DA   E8         INX
+     92DB   D0 F4      BNE &92D1
+     92DD   60         RTS
+.docmd
+     92DE   C9 03      CMP #&03
+     92E0   90 00      BCC &92E2
+.dowrcmd
+     92E2   4C 0E 88   JMP &880E
+.dordcmd
+     92E5   4C 1B 88   JMP &881B
+.fscv_osabouttoproccmd
+     92E8   2C C7 C2   BIT &C2C7
+     92EB   30 03      BMI &92F0
+     92ED   CE C7 C2   DEC &C2C7
+.parameter_fsp
+     92F0   A9 FF      LDA #&FF
+     92F2   8D CE C2   STA &C2CE
+.param_out
+     92F5   8D CD C2   STA &C2CD
+     92F8   60         RTS
+.parameter_afsp
+     92F9   A9 2A      LDA #&2A
+     92FB   8D CE C2   STA &C2CE
+     92FE   A9 23      LDA #&23
+     9300   D0 F3      BNE &92F5
+.osfile5_rdcatinfo
+     9302   20 BC 93   JSR &93BC
+     9305   20 91 83   JSR &8391
+     9308   A9 01      LDA #&01
+     930A   60         RTS
+.osfile6_delfile
+     930B   20 99 93   JSR &9399
+     930E   20 91 83   JSR &8391
+     9311   20 17 83   JSR &8317
+     9314   4C 3B 93   JMP &933B
+.osfile1_updatecat
+     9317   20 BC 93   JSR &93BC
+     931A   20 41 93   JSR &9341
+     931D   20 5D 93   JSR &935D
+     9320   50 16      BVC &9338
+.osfile3_wrexecaddr
+     9322   20 BC 93   JSR &93BC
+     9325   20 5D 93   JSR &935D
+     9328   50 11      BVC &933B
+.osfile2_wrloadaddr
+     932A   20 BC 93   JSR &93BC
+     932D   20 41 93   JSR &9341
+     9330   50 09      BVC &933B
+.osfile4_wrattribs
+     9332   20 BC 93   JSR &93BC
+     9335   20 B1 93   JSR &93B1
+.osfile_updatelocksavecat
+     9338   20 80 93   JSR &9380
+.osfile_savecat_retA_1
+     933B   20 B5 A1   JSR &A1B5
+     933E   A9 01      LDA #&01
+     9340   60         RTS
+.osfile_update_loadaddr_Xoffset
+     9341   20 F0 83   JSR &83F0
+     9344   A0 02      LDY #&02
+     9346   B1 B0      LDA (&B0),Y
+     9348   9D 08 C1   STA &C108,X
+     934B   C8         INY
+     934C   B1 B0      LDA (&B0),Y
+     934E   9D 09 C1   STA &C109,X
+     9351   C8         INY
+     9352   B1 B0      LDA (&B0),Y
+     9354   0A         ASL A
+     9355   0A         ASL A
+     9356   5D 0E C1   EOR &C10E,X
+     9359   29 0C      AND #&0C
+     935B   10 1B      BPL &9378
+.osfile_update_execaddr_Xoffset
+     935D   20 F0 83   JSR &83F0
+     9360   A0 06      LDY #&06
+     9362   B1 B0      LDA (&B0),Y
+     9364   9D 0A C1   STA &C10A,X
+     9367   C8         INY
+     9368   B1 B0      LDA (&B0),Y
+     936A   9D 0B C1   STA &C10B,X
+     936D   C8         INY
+     936E   B1 B0      LDA (&B0),Y
+     9370   6A         ROR A
+     9371   6A         ROR A
+     9372   6A         ROR A
+     9373   5D 0E C1   EOR &C10E,X
+     9376   29 C0      AND #&C0
+.osfile_savemixedbyte
+     9378   5D 0E C1   EOR &C10E,X
+     937B   9D 0E C1   STA &C10E,X
+     937E   B8         CLV
+     937F   60         RTS
+.osfile_updatelock
+     9380   20 F0 83   JSR &83F0
+     9383   A0 0E      LDY #&0E
+     9385   B1 B0      LDA (&B0),Y
+     9387   29 0A      AND #&0A
+     9389   F0 02      BEQ &938D
+     938B   A9 80      LDA #&80
+.osfile_notlocked
+     938D   5D 0F C0   EOR &C00F,X
+     9390   29 80      AND #&80
+     9392   5D 0F C0   EOR &C00F,X
+     9395   9D 0F C0   STA &C00F,X
+     9398   60         RTS
+.CheckFileNotLocked
+     9399   20 C6 93   JSR &93C6
+     939C   90 23      BCC &93C1
+.CheckFileNotLockedY
+     939E   B9 0F C0   LDA &C00F,Y
+     93A1   10 22      BPL &93C5
+.errFILELOCKED
+     93A3   20 5B 80   JSR &805B
+     93A6   C3
+     93A7   4C 6F 63 ...
+     93AD   00
+.CheckFileNotLockedOrOpenY
+     93AE   20 9E 93   JSR &939E
+.CheckFileNotOpenY
+     93B1   20 F0 83   JSR &83F0
+     93B4   20 4A 96   JSR &964A
+     93B7   90 21      BCC &93DA
+     93B9   4C AE 95   JMP &95AE
+.CheckFileExists
+     93BC   20 C6 93   JSR &93C6
+     93BF   B0 19      BCS &93DA
+.ExitCallingSubroutine
+     93C1   68         PLA
+     93C2   68         PLA
+     93C3   A9 00      LDA #&00
+.chklock_exit
+     93C5   60         RTS
+.read_fspBA_findcatentry
+     93C6   20 4C 81   JSR &814C
+     93C9   20 7A 82   JSR &827A
+     93CC   90 0C      BCC &93DA
+     93CE   98         TYA
+     93CF   AA         TAX
+.SetParamBlockPointerB0
+     93D0   AD DB C2   LDA &C2DB
+     93D3   85 B0      STA &B0
+     93D5   AD DC C2   LDA &C2DC
+     93D8   85 B1      STA &B1
+.checkexit
+     93DA   60         RTS
+.CalcRAM
+     93DB   A9 83      LDA #&83
+     93DD   20 F4 FF   JSR &FFF4
+     93E0   8C CF C2   STY &C2CF
+     93E3   A9 84      LDA #&84
+     93E5   20 F4 FF   JSR &FFF4
+     93E8   98         TYA
+     93E9   38         SEC
+     93EA   ED CF C2   SBC &C2CF
+     93ED   8D D0 C2   STA &C2D0
+     93F0   60         RTS
+.ClaimStaticWorkspace
+     93F1   A2 0A      LDX #&0A
+     93F3   A9 8F      LDA #&8F
+     93F5   20 F4 FF   JSR &FFF4
+     93F8   20 08 94   JSR &9408
+     93FB   A0 D3      LDY #&D3
+     93FD   A9 FF      LDA #&FF
+     93FF   91 B0      STA (&B0),Y
+     9401   8D D3 C2   STA &C2D3
+     9404   C8         INY
+     9405   91 B0      STA (&B0),Y
+     9407   60         RTS
+.SetPrivateWorkspacePointerB0
+     9408   A9 00      LDA #&00
+     940A   85 B0      STA &B0
+     940C   A6 F4      LDX &F4
+     940E   BD F0 0D   LDA &0DF0,X
+     9411   85 B1      STA &B1
+     9413   60         RTS
+.osbyte_X0YFF
+     9414   A2 00      LDX #&00
+.osbyte_YFF
+     9416   A0 FF      LDY #&FF
+     9418   4C F4 FF   JMP &FFF4
+.vectors_table
+     941B   1B FF
+     941D   1E FF
+     941F   21 FF
+     9421   24 FF
+     9423   27 FF
+     9425   2A FF
+     9427   2D FF
+.extendedvectors_table
+     9429   44 8F
+     942B   00         BRK
+     942C   C2 96
+     942E   00         BRK
+     942F   0E 98
+     9431   00         BRK
+     9432   CB 98
+     9434   00         BRK
+     9435   88 8F
+     9437   00         BRK
+     9438   E7 94
+     943A   00         BRK
+     943B   75 8F
+     943D   00         BRK
+.fscv_table1
+     943E   1B
+     943F   DA
+     9440   6E
+     9441   F3
+     9442   6E
+     9443   69
+     9444   85
+     9445   80
+     9446   E7
+     9447   47
+     9448   66
+     9449   6E
+.fscv_table2
+     944A   8A
+     944B   97
+     944C   88
+     944D   86
+     944E   88
+     944F   84
+     9450   94
+     9451   94
+     9452   92
+     9453   82
+     9454   82
+     9455   88
+.finv_tablelo
+     9456   DB
+     9457   11
+     9458   16
+     9459   29
+     945A   21
+     945B   31
+     945C   01
+     945D   0A
+.finv_tablehi
+     945E   87
+     945F   88
+     9460   93
+     9461   93
+     9462   93
+     9463   93
+     9464   93
+     9465   93
+.gbpbv_table1
+     9466   C7
+     9467   2F
+     9468   2F
+     9469   0A
+     946A   0A
+     946B   93
+     946C   BF
+     946D   CD
+     946E   4A
+.gbpbv_table2
+     946F   82
+     9470   91
+     9471   91
+     9472   91
+     9473   91
+     9474   90
+     9475   90
+     9476   90
+     9477   90
+.gbpbv_table3
+     9478   04
+     9479   02
+     947A   03
+     947B   06
+     947C   07
+     947D   04
+     947E   04
+     947F   04
+     9480   04
+.fscv7_hndlrange
+     9481   A2 11      LDX #&11
+     9483   A0 15      LDY #&15
+.closeallfiles_exit
+     9485   60         RTS
+.fscv6_shutdownfilesys
+     9486   20 F0 83   JSR &83F0
+     9489   EA         NOP
+     948A   20 90 94   JSR &9490
+     948D   4C DB 8E   JMP &8EDB
+.CloseSPOOLEXECfiles
+     9490   A9 77      LDA #&77
+     9492   4C F4 FF   JMP &FFF4
+.CMD_CLOSE
+.CloseAllFiles_Osbyte77
+     9495   20 90 94   JSR &9490
+.CloseAllFiles
+     9498   A9 00      LDA #&00
+.closeallfiles_loop
+     949A   18         CLC
+     949B   69 20      ADC #&20
+     949D   F0 E6      BEQ &9485
+     949F   A8         TAY
+     94A0   20 F4 94   JSR &94F4
+     94A3   D0 F5      BNE &949A
+.Channel_SetDirDrv_GetCatEntry_Yintch
+     94A5   20 C0 94   JSR &94C0
+.Channel_GetCatEntry_Yintch
+     94A8   A2 06      LDX #&06
+.chnl_getcatloop
+     94AA   B9 0C C3   LDA &C30C,Y
+     94AD   95 C5      STA &C5,X
+     94AF   88         DEY
+     94B0   88         DEY
+     94B1   CA         DEX
+     94B2   10 F6      BPL &94AA
+     94B4   20 85 82   JSR &8285
+     94B7   90 22      BCC &94DB
+     94B9   8C C3 C2   STY &C2C3
+     94BC   AC C2 C2   LDY &C2C2
+.chkdskchangexit
+     94BF   60         RTS
+.Channel_SetDirDrive_Yintch
+     94C0   B9 0E C3   LDA &C30E,Y
+     94C3   29 7F      AND #&7F
+     94C5   85 CC      STA &CC
+     94C7   B9 17 C3   LDA &C317,Y
+     94CA   4C BA 8B   JMP &8BBA
+.CheckForDiskChange
+     94CD   20 F0 83   JSR &83F0
+     94D0   AD 04 C1   LDA &C104
+     94D3   20 AE A1   JSR &A1AE
+     94D6   CD 04 C1   CMP &C104
+     94D9   F0 E4      BEQ &94BF
+.errDISKCHANGED
+     94DB   20 46 80   JSR &8046
+     94DE   C8
+     94DF   63 68 61 ...
+     94E6   00
+.FINDV_ENTRY
+     94E7   29 C0      AND #&C0
+     94E9   D0 59      BNE &9544
+     94EB   20 F0 83   JSR &83F0
+.CloseFiles_Yhandle
+     94EE   98         TYA
+     94EF   F0 A4      BEQ &9495
+     94F1   20 EF 97   JSR &97EF
+.CloseFile_Yintch
+     94F4   48         PHA
+     94F5   20 7A 97   JSR &977A
+     94F8   B0 45      BCS &953F
+     94FA   B9 1B C3   LDA &C31B,Y
+     94FD   49 FF      EOR #&FF
+     94FF   2D C0 C2   AND &C2C0
+     9502   8D C0 C2   STA &C2C0
+     9505   B9 17 C3   LDA &C317,Y
+     9508   29 60      AND #&60
+     950A   F0 33      BEQ &953F
+     950C   20 A5 94   JSR &94A5
+     950F   B9 17 C3   LDA &C317,Y
+     9512   29 20      AND #&20
+     9514   F0 26      BEQ &953C
+     9516   AE C3 C2   LDX &C2C3
+     9519   B9 14 C3   LDA &C314,Y
+     951C   9D 0C C1   STA &C10C,X
+     951F   B9 15 C3   LDA &C315,Y
+     9522   9D 0D C1   STA &C10D,X
+     9525   B9 16 C3   LDA &C316,Y
+     9528   20 22 82   JSR &8222
+     952B   5D 0E C1   EOR &C10E,X
+     952E   29 30      AND #&30
+     9530   5D 0E C1   EOR &C10E,X
+     9533   9D 0E C1   STA &C10E,X
+     9536   20 B5 A1   JSR &A1B5
+     9539   AC C2 C2   LDY &C2C2
+.closefile_buftodisk
+     953C   20 69 98   JSR &9869
+.closefile_exit
+     953F   AE C5 C2   LDX &C2C5
+     9542   68         PLA
+     9543   60         RTS
+.findvnot0_openfile
+     9544   20 19 84   JSR &8419
+     9547   86 BA      STX &BA
+     9549   84 BB      STY &BB
+     954B   85 B4      STA &B4
+     954D   24 B4      BIT &B4
+     954F   08         PHP
+     9550   20 4C 81   JSR &814C
+     9553   20 F0 92   JSR &92F0
+     9556   20 7A 82   JSR &827A
+     9559   B0 22      BCS &957D
+     955B   A9 00      LDA #&00
+     955D   28         PLP
+     955E   50 01      BVC &9561
+     9560   60         RTS
+.findv_createfile
+     9561   08         PHP
+     9562   A2 07      LDX #&07
+.findv_loop1
+     9564   95 BC      STA &BC,X
+     9566   9D 74 C2   STA &C274,X
+     9569   CA         DEX
+     956A   10 F8      BPL &9564
+     956C   C6 BE      DEC &BE
+     956E   C6 BF      DEC &BF
+     9570   CE 76 C2   DEC &C276
+     9573   CE 77 C2   DEC &C277
+     9576   A9 40      LDA #&40
+     9578   85 C3      STA &C3
+     957A   20 66 8A   JSR &8A66
+.findv_filefound
+     957D   28         PLP
+     957E   08         PHP
+     957F   70 03      BVS &9584
+     9581   20 9E 93   JSR &939E
+.findv_readorupdate
+     9584   20 4A 96   JSR &964A
+     9587   90 0E      BCC &9597
+.findv_loop2
+     9589   B9 0C C3   LDA &C30C,Y
+     958C   10 20      BPL &95AE
+     958E   28         PLP
+     958F   08         PHP
+     9590   30 1C      BMI &95AE
+     9592   20 45 96   JSR &9645
+     9595   B0 F2      BCS &9589
+.findv_openchannel
+     9597   AC C2 C2   LDY &C2C2
+     959A   D0 1B      BNE &95B7
+.errTOOMANYFILESOPEN
+     959C   20 5B 80   JSR &805B
+     959F   C0
+     95A0   54 6F 6F ...
+     95AD   00
+.errFILEOPEN
+     95AE   20 5B 80   JSR &805B
+     95B1   C2
+     95B2   4F 70 65 ...
+     95B6   00
+.SetupChannelInfoBlock_Yintch
+     95B7   A9 08      LDA #&08
+     95B9   8D C4 C2   STA &C2C4
+.chnlblock_loop1
+     95BC   BD 08 C0   LDA &C008,X
+     95BF   99 00 C3   STA &C300,Y
+     95C2   C8         INY
+     95C3   BD 08 C1   LDA &C108,X
+     95C6   99 00 C3   STA &C300,Y
+     95C9   C8         INY
+     95CA   E8         INX
+     95CB   CE C4 C2   DEC &C2C4
+     95CE   D0 EC      BNE &95BC
+     95D0   A2 10      LDX #&10
+     95D2   A9 00      LDA #&00
+.chnlblock_loop2
+     95D4   99 00 C3   STA &C300,Y
+     95D7   C8         INY
+     95D8   CA         DEX
+     95D9   D0 F9      BNE &95D4
+     95DB   AD C2 C2   LDA &C2C2
+     95DE   A8         TAY
+     95DF   20 1B 82   JSR &821B
+     95E2   69 C3      ADC #&C3
+     95E4   99 13 C3   STA &C313,Y
+     95E7   AD C1 C2   LDA &C2C1
+     95EA   99 1B C3   STA &C31B,Y
+     95ED   0D C0 C2   ORA &C2C0
+     95F0   8D C0 C2   STA &C2C0
+     95F3   B9 09 C3   LDA &C309,Y
+     95F6   69 FF      ADC #&FF
+     95F8   B9 0B C3   LDA &C30B,Y
+     95FB   69 00      ADC #&00
+     95FD   99 19 C3   STA &C319,Y
+     9600   B9 0D C3   LDA &C30D,Y
+     9603   09 0F      ORA #&0F
+     9605   69 00      ADC #&00
+     9607   20 14 82   JSR &8214
+     960A   99 1A C3   STA &C31A,Y
+     960D   28         PLP
+     960E   50 2E      BVC &963E
+     9610   30 08      BMI &961A
+     9612   A9 80      LDA #&80
+     9614   19 0C C3   ORA &C30C,Y
+     9617   99 0C C3   STA &C30C,Y
+.chnlblock_setEXT
+     961A   B9 09 C3   LDA &C309,Y
+     961D   99 14 C3   STA &C314,Y
+     9620   B9 0B C3   LDA &C30B,Y
+     9623   99 15 C3   STA &C315,Y
+     9626   B9 0D C3   LDA &C30D,Y
+     9629   20 14 82   JSR &8214
+     962C   99 16 C3   STA &C316,Y
+.chnlblock_cont
+     962F   A5 CD      LDA &CD
+     9631   19 17 C3   ORA &C317,Y
+     9634   99 17 C3   STA &C317,Y
+     9637   98         TYA
+     9638   20 1B 82   JSR &821B
+     963B   09 10      ORA #&10
+     963D   60         RTS
+.chnlblock_setBit5
+     963E   A9 20      LDA #&20
+     9640   99 17 C3   STA &C317,Y
+     9643   D0 EA      BNE &962F
+.IsFileOpenContinue
+     9645   8A         TXA
+     9646   48         PHA
+     9647   4C 89 96   JMP &9689
+.IsFileOpen_Yoffset
+     964A   A9 00      LDA #&00
+     964C   8D C2 C2   STA &C2C2
+     964F   A9 08      LDA #&08
+     9651   85 B5      STA &B5
+     9653   98         TYA
+     9654   AA         TAX
+     9655   A0 A0      LDY #&A0
+.fop_main_loop
+     9657   84 B3      STY &B3
+     9659   8A         TXA
+     965A   48         PHA
+     965B   A9 08      LDA #&08
+     965D   85 B2      STA &B2
+     965F   A5 B5      LDA &B5
+     9661   2C C0 C2   BIT &C2C0
+     9664   F0 1D      BEQ &9683
+     9666   B9 17 C3   LDA &C317,Y
+     9669   45 CD      EOR &CD
+     966B   29 03      AND #&03
+     966D   D0 1A      BNE &9689
+.fop_cmpfn_loop
+     966F   BD 08 C0   LDA &C008,X
+     9672   59 00 C3   EOR &C300,Y
+     9675   29 7F      AND #&7F
+     9677   D0 10      BNE &9689
+     9679   E8         INX
+     967A   C8         INY
+     967B   C8         INY
+     967C   C6 B2      DEC &B2
+     967E   D0 EF      BNE &966F
+     9680   38         SEC
+     9681   B0 10      BCS &9693
+.fop_channelnotopen
+     9683   8C C2 C2   STY &C2C2
+     9686   8D C1 C2   STA &C2C1
+.fop_nothisfile
+     9689   38         SEC
+     968A   A5 B3      LDA &B3
+     968C   E9 20      SBC #&20
+     968E   85 B3      STA &B3
+     9690   06 B5      ASL &B5
+     9692   18         CLC
+.fop_matchifCset
+     9693   68         PLA
+     9694   AA         TAX
+     9695   A4 B3      LDY &B3
+     9697   A5 B5      LDA &B5
+     9699   B0 02      BCS &969D
+     969B   D0 BA      BNE &9657
+.fop_exit
+     969D   60         RTS
+.ChannelBufferToDisk_Yhandle_A0
+     969E   20 B5 96   JSR &96B5
+.ChannelBufferToDisk_Yhandle
+     96A1   AD C0 C2   LDA &C2C0
+     96A4   48         PHA
+     96A5   98         TYA
+     96A6   D0 05      BNE &96AD
+     96A8   20 98 94   JSR &9498
+     96AB   F0 03      BEQ &96B0
+.chbuf1
+     96AD   20 EE 94   JSR &94EE
+.chbuf2
+     96B0   68         PLA
+     96B1   8D C0 C2   STA &C2C0
+     96B4   60         RTS
+.ReturnWithA0
+     96B5   48         PHA
+     96B6   8A         TXA
+     96B7   48         PHA
+     96B8   A9 00      LDA #&00
+     96BA   BA         TSX
+     96BB   9D 09 01   STA &0109,X
+     96BE   68         PLA
+     96BF   AA         TAX
+     96C0   68         PLA
+     96C1   60         RTS
+.ARGSV_ENTRY
+     96C2   20 F0 83   JSR &83F0
+     96C5   C9 FF      CMP #&FF
+     96C7   F0 D5      BEQ &969E
+     96C9   C0 00      CPY #&00
+     96CB   F0 12      BEQ &96DF
+     96CD   C9 04      CMP #&04
+     96CF   B0 27      BCS &96F8
+     96D1   20 B5 96   JSR &96B5
+     96D4   C9 03      CMP #&03
+     96D6   F0 47      BEQ &971F
+     96D8   C9 01      CMP #&01
+     96DA   D0 24      BNE &9700
+     96DC   4C 9B 99   JMP &999B
+.argsv_Y0
+     96DF   C9 02      CMP #&02
+     96E1   B0 15      BCS &96F8
+     96E3   20 B5 96   JSR &96B5
+     96E6   F0 11      BEQ &96F9
+     96E8   A9 FF      LDA #&FF
+     96EA   95 02      STA &02,X
+     96EC   95 03      STA &03,X
+     96EE   AD D9 C2   LDA &C2D9
+     96F1   95 00      STA &00,X
+     96F3   AD DA C2   LDA &C2DA
+     96F6   95 01      STA &01,X
+.argsv_exit
+     96F8   60         RTS
+.argsv_filesysnumber
+     96F9   A9 04      LDA #&04
+     96FB   BA         TSX
+     96FC   9D 05 01   STA &0105,X
+     96FF   60         RTS
+.argsv_rdseqptr_or_filelen
+     9700   20 EF 97   JSR &97EF
+     9703   8C C2 C2   STY &C2C2
+     9706   0A         ASL A
+     9707   6D C2 C2   ADC &C2C2
+     970A   A8         TAY
+     970B   B9 10 C3   LDA &C310,Y
+     970E   95 00      STA &00,X
+     9710   B9 11 C3   LDA &C311,Y
+     9713   95 01      STA &01,X
+     9715   B9 12 C3   LDA &C312,Y
+     9718   95 02      STA &02,X
+     971A   A9 00      LDA #&00
+     971C   95 03      STA &03,X
+     971E   60         RTS
+.argsv3
+     971F   20 EF 97   JSR &97EF
+     9722   20 8B 99   JSR &998B
+     9725   B0 1E      BCS &9745
+     9727   B9 10 C3   LDA &C310,Y
+     972A   48         PHA
+     972B   B9 11 C3   LDA &C311,Y
+     972E   48         PHA
+     972F   B9 12 C3   LDA &C312,Y
+     9732   48         PHA
+     9733   20 A6 99   JSR &99A6
+     9736   68         PLA
+     9737   99 12 C3   STA &C312,Y
+     973A   68         PLA
+     973B   99 11 C3   STA &C311,Y
+     973E   68         PLA
+     973F   99 10 C3   STA &C310,Y
+     9742   20 E4 99   JSR &99E4
+.truncate
+     9745   B9 0C C3   LDA &C30C,Y
+     9748   30 2A      BMI &9774
+     974A   19 0E C3   ORA &C30E,Y
+     974D   30 28      BMI &9777
+     974F   A9 20      LDA #&20
+     9751   20 5A 98   JSR &985A
+     9754   B5 00      LDA &00,X
+     9756   99 14 C3   STA &C314,Y
+     9759   B5 01      LDA &01,X
+     975B   99 15 C3   STA &C315,Y
+     975E   B5 02      LDA &02,X
+     9760   99 16 C3   STA &C316,Y
+     9763   8A         TXA
+     9764   48         PHA
+     9765   20 0D 9A   JSR &9A0D
+     9768   68         PLA
+     9769   AA         TAX
+     976A   90 03      BCC &976F
+     976C   20 D5 99   JSR &99D5
+.dontchangeptr
+     976F   A9 EF      LDA #&EF
+     9771   4C 61 98   JMP &9861
+.filereadonly
+     9774   4C B7 98   JMP &98B7
+.filelocked
+     9777   4C A3 93   JMP &93A3
+.IsHndlinUse_Yintch
+     977A   48         PHA
+     977B   8E C5 C2   STX &C2C5
+     977E   98         TYA
+     977F   29 E0      AND #&E0
+     9781   8D C2 C2   STA &C2C2
+     9784   F0 13      BEQ &9799
+     9786   20 1B 82   JSR &821B
+     9789   A8         TAY
+     978A   A9 00      LDA #&00
+     978C   38         SEC
+.hndlinsue_loop
+     978D   6A         ROR A
+     978E   88         DEY
+     978F   D0 FC      BNE &978D
+     9791   AC C2 C2   LDY &C2C2
+     9794   2C C0 C2   BIT &C2C0
+     9797   D0 01      BNE &979A
+.hndlinuse_notused_C1
+     9799   38         SEC
+.hndlinuse_used_C0
+     979A   68         PLA
+     979B   60         RTS
+.conv_Yhndl_intch_exYintch
+     979C   48         PHA
+     979D   98         TYA
+.conv_hndl_X_entry
+     979E   C9 10      CMP #&10
+     97A0   90 04      BCC &97A6
+     97A2   C9 18      CMP #&18
+     97A4   90 02      BCC &97A8
+.conv_hndl10
+     97A6   A9 08      LDA #&08
+.conv_hndl18
+     97A8   20 21 82   JSR &8221
+     97AB   A8         TAY
+     97AC   68         PLA
+     97AD   60         RTS
+.ClearEXECSPOOLFileHandle
+     97AE   A9 C6      LDA #&C6
+     97B0   20 14 94   JSR &9414
+     97B3   8A         TXA
+     97B4   F0 09      BEQ &97BF
+     97B6   20 D2 97   JSR &97D2
+     97B9   D0 04      BNE &97BF
+     97BB   A9 C6      LDA #&C6
+     97BD   D0 0C      BNE &97CB
+.ClearSpoolhandle
+     97BF   A9 C7      LDA #&C7
+     97C1   20 14 94   JSR &9414
+     97C4   20 D2 97   JSR &97D2
+     97C7   D0 11      BNE &97DA
+     97C9   A9 C7      LDA #&C7
+.osbyte_X0Y0
+     97CB   A2 00      LDX #&00
+     97CD   A0 00      LDY #&00
+     97CF   4C F4 FF   JMP &FFF4
+.ConvertXhndl_exYintch
+     97D2   8A         TXA
+     97D3   A8         TAY
+     97D4   20 9C 97   JSR &979C
+     97D7   CC C2 C2   CPY &C2C2
+.clrsplhndl_exit
+     97DA   60         RTS
+.fscv1_EOF_Yhndl
+     97DB   48         PHA
+     97DC   98         TYA
+     97DD   48         PHA
+     97DE   8A         TXA
+     97DF   A8         TAY
+     97E0   20 0A 9A   JSR &9A0A
+     97E3   D0 04      BNE &97E9
+     97E5   A2 FF      LDX #&FF
+     97E7   D0 02      BNE &97EB
+.eof_NOTEND
+     97E9   A2 00      LDX #&00
+.eof_exit
+     97EB   68         PLA
+     97EC   A8         TAY
+     97ED   68         PLA
+.checkchannel_okexit
+     97EE   60         RTS
+.CheckChannel_Yhndl_exYintch
+     97EF   20 9C 97   JSR &979C
+     97F2   20 7A 97   JSR &977A
+     97F5   90 F7      BCC &97EE
+     97F7   20 AE 97   JSR &97AE
+.errCHANNEL
+     97FA   20 5B 80   JSR &805B
+     97FD   DE
+     97FE   43 68 61 ...
+     9805   00
+.errEOF
+     9806   20 5B 80   JSR &805B
+     9809   DF
+     980A   45 4F 46 
+     980D   00
+.BGETV_ENTRY
+     980E   20 19 84   JSR &8419
+     9811   20 0A 9A   JSR &9A0A
+     9814   D0 13      BNE &9829
+     9816   B9 17 C3   LDA &C317,Y
+     9819   29 10      AND #&10
+     981B   D0 E9      BNE &9806
+     981D   A9 10      LDA #&10
+     981F   20 5A 98   JSR &985A
+     9822   AE C5 C2   LDX &C2C5
+     9825   A9 FE      LDA #&FE
+     9827   38         SEC
+     9828   60         RTS
+.bg_notEOF
+     9829   B9 17 C3   LDA &C317,Y
+     982C   30 0A      BMI &9838
+     982E   20 C0 94   JSR &94C0
+     9831   20 69 98   JSR &9869
+     9834   38         SEC
+     9835   20 71 98   JSR &9871
+.bg_samesector1
+     9838   20 26 9A   JSR &9A26
+     983B   A1 BA      LDA (&BA,X)
+     983D   18         CLC
+     983E   60         RTS
+.CalcBufferSectorForPTR
+     983F   18         CLC
+     9840   B9 0F C3   LDA &C30F,Y
+     9843   79 11 C3   ADC &C311,Y
+     9846   85 C3      STA &C3
+     9848   99 1C C3   STA &C31C,Y
+     984B   B9 0D C3   LDA &C30D,Y
+     984E   29 03      AND #&03
+     9850   79 12 C3   ADC &C312,Y
+     9853   85 C2      STA &C2
+     9855   99 1D C3   STA &C31D,Y
+.ChannelFlags_SetBit7
+     9858   A9 80      LDA #&80
+.ChannelFlags_SetBits
+     985A   19 17 C3   ORA &C317,Y
+     985D   D0 05      BNE &9864
+.ChannelFlags_ClearBit7
+     985F   A9 7F      LDA #&7F
+.ChannelFlags_ClearBits
+     9861   39 17 C3   AND &C317,Y
+.chnflg_save
+     9864   99 17 C3   STA &C317,Y
+     9867   18         CLC
+     9868   60         RTS
+.ChannelBufferToDisk_Yintch
+     9869   B9 17 C3   LDA &C317,Y
+     986C   29 40      AND #&40
+     986E   F0 43      BEQ &98B3
+     9870   18         CLC
+.ChannelBufferRW_Yintch_C1read
+     9871   EE DD C2   INC &C2DD
+     9874   AC C2 C2   LDY &C2C2
+     9877   B9 13 C3   LDA &C313,Y
+     987A   85 BD      STA &BD
+     987C   A9 FF      LDA #&FF
+     987E   8D 74 C2   STA &C274
+     9881   8D 75 C2   STA &C275
+     9884   A9 00      LDA #&00
+     9886   85 BC      STA &BC
+     9888   85 C0      STA &C0
+     988A   A9 01      LDA #&01
+     988C   85 C1      STA &C1
+     988E   B0 17      BCS &98A7
+     9890   B9 1C C3   LDA &C31C,Y
+     9893   85 C3      STA &C3
+     9895   B9 1D C3   LDA &C31D,Y
+     9898   85 C2      STA &C2
+     989A   20 1B 88   JSR &881B
+     989D   AC C2 C2   LDY &C2C2
+     98A0   A9 BF      LDA #&BF
+     98A2   20 61 98   JSR &9861
+     98A5   90 06      BCC &98AD
+.chnbuf_read
+     98A7   20 3F 98   JSR &983F
+     98AA   20 0E 88   JSR &880E
+.chnbuf_exit
+     98AD   CE DD C2   DEC &C2DD
+     98B0   AC C2 C2   LDY &C2C2
+.chnbuf_exit2
+     98B3   60         RTS
+.errFILELOCKED2
+     98B4   4C A3 93   JMP &93A3
+.errFILEREADONLY
+     98B7   20 5B 80   JSR &805B
+     98BA   C1
+     98BB   52 65 61 ...
+     98C4   00
+.bput_Yintchan
+     98C5   20 F0 83   JSR &83F0
+     98C8   4C D1 98   JMP &98D1
+.BPUTV_ENTRY
+     98CB   20 F0 83   JSR &83F0
+     98CE   20 EF 97   JSR &97EF
+.bp_entry
+     98D1   48         PHA
+     98D2   B9 0C C3   LDA &C30C,Y
+     98D5   30 E0      BMI &98B7
+     98D7   B9 0E C3   LDA &C30E,Y
+     98DA   30 D8      BMI &98B4
+     98DC   20 C0 94   JSR &94C0
+     98DF   98         TYA
+     98E0   18         CLC
+     98E1   69 04      ADC #&04
+     98E3   20 0E 9A   JSR &9A0E
+     98E6   D0 66      BNE &994E
+     98E8   20 A8 94   JSR &94A8
+     98EB   AE C3 C2   LDX &C2C3
+     98EE   38         SEC
+     98EF   BD 07 C1   LDA &C107,X
+     98F2   FD 0F C1   SBC &C10F,X
+     98F5   48         PHA
+     98F6   BD 06 C1   LDA &C106,X
+     98F9   FD 0E C1   SBC &C10E,X
+     98FC   29 03      AND #&03
+     98FE   D9 1A C3   CMP &C31A,Y
+     9901   D0 1F      BNE &9922
+     9903   68         PLA
+     9904   D9 19 C3   CMP &C319,Y
+     9907   D0 34      BNE &993D
+     9909   84 B4      STY &B4
+     990B   8C C2 C2   STY &C2C2
+     990E   20 AE 97   JSR &97AE
+.errCANTEXTEND
+     9911   20 5B 80   JSR &805B
+     9914   BF
+     9915   43 61 6E ...
+     9921   00
+.bp_extendby100
+     9922   B9 1A C3   LDA &C31A,Y
+     9925   18         CLC
+     9926   69 01      ADC #&01
+     9928   99 1A C3   STA &C31A,Y
+     992B   0A         ASL A
+     992C   0A         ASL A
+     992D   0A         ASL A
+     992E   0A         ASL A
+     992F   5D 0E C1   EOR &C10E,X
+     9932   29 30      AND #&30
+     9934   5D 0E C1   EOR &C10E,X
+     9937   9D 0E C1   STA &C10E,X
+     993A   68         PLA
+     993B   A9 00      LDA #&00
+.bp_extendtogap
+     993D   9D 0D C1   STA &C10D,X
+     9940   99 19 C3   STA &C319,Y
+     9943   A9 00      LDA #&00
+     9945   9D 0C C1   STA &C10C,X
+     9948   20 B5 A1   JSR &A1B5
+     994B   AC C2 C2   LDY &C2C2
+.bp_noextend
+     994E   B9 17 C3   LDA &C317,Y
+     9951   30 16      BMI &9969
+     9953   20 69 98   JSR &9869
+     9956   B9 14 C3   LDA &C314,Y
+     9959   D0 0A      BNE &9965
+     995B   20 0D 9A   JSR &9A0D
+     995E   D0 05      BNE &9965
+     9960   20 3F 98   JSR &983F
+     9963   D0 04      BNE &9969
+.bp_loadbuf
+     9965   38         SEC
+     9966   20 71 98   JSR &9871
+.bp_savebyte
+     9969   A9 40      LDA #&40
+     996B   20 5A 98   JSR &985A
+     996E   20 26 9A   JSR &9A26
+     9971   68         PLA
+     9972   81 BA      STA (&BA,X)
+     9974   20 0D 9A   JSR &9A0D
+     9977   90 11      BCC &998A
+.updext
+     9979   A9 20      LDA #&20
+     997B   20 5A 98   JSR &985A
+     997E   A2 02      LDX #&02
+.bp_setextloop
+     9980   B9 10 C3   LDA &C310,Y
+     9983   99 14 C3   STA &C314,Y
+     9986   C8         INY
+     9987   CA         DEX
+     9988   10 F6      BPL &9980
+.bp_exit
+     998A   60         RTS
+.cmptoEXT
+     998B   B9 14 C3   LDA &C314,Y
+     998E   D5 00      CMP &00,X
+     9990   B9 15 C3   LDA &C315,Y
+     9993   F5 01      SBC &01,X
+     9995   B9 16 C3   LDA &C316,Y
+     9998   F5 02      SBC &02,X
+     999A   60         RTS
+.argsv_WriteSeqPointer
+     999B   20 F0 83   JSR &83F0
+     999E   20 EF 97   JSR &97EF
+.wsploop
+     99A1   20 8B 99   JSR &998B
+     99A4   B0 2F      BCS &99D5
+.argsextendloop
+     99A6   B9 14 C3   LDA &C314,Y
+     99A9   99 10 C3   STA &C310,Y
+     99AC   B9 15 C3   LDA &C315,Y
+     99AF   99 11 C3   STA &C311,Y
+     99B2   B9 16 C3   LDA &C316,Y
+     99B5   99 12 C3   STA &C312,Y
+     99B8   20 E4 99   JSR &99E4
+     99BB   A5 B6      LDA &B6
+     99BD   48         PHA
+     99BE   A5 B7      LDA &B7
+     99C0   48         PHA
+     99C1   A5 B8      LDA &B8
+     99C3   48         PHA
+     99C4   A9 00      LDA #&00
+     99C6   20 C5 98   JSR &98C5
+     99C9   68         PLA
+     99CA   85 B8      STA &B8
+     99CC   68         PLA
+     99CD   85 B7      STA &B7
+     99CF   68         PLA
+     99D0   85 B6      STA &B6
+     99D2   4C A1 99   JMP &99A1
+.SetSeqPointer_Yintch
+     99D5   B5 00      LDA &00,X
+     99D7   99 10 C3   STA &C310,Y
+     99DA   B5 01      LDA &01,X
+     99DC   99 11 C3   STA &C311,Y
+     99DF   B5 02      LDA &02,X
+     99E1   99 12 C3   STA &C312,Y
+.IsSeqPointerInBuffer_Yintch
+     99E4   A9 6F      LDA #&6F
+     99E6   20 61 98   JSR &9861
+     99E9   B9 0F C3   LDA &C30F,Y
+     99EC   79 11 C3   ADC &C311,Y
+     99EF   8D C4 C2   STA &C2C4
+     99F2   B9 0D C3   LDA &C30D,Y
+     99F5   29 03      AND #&03
+     99F7   79 12 C3   ADC &C312,Y
+     99FA   D9 1D C3   CMP &C31D,Y
+     99FD   D0 8B      BNE &998A
+     99FF   AD C4 C2   LDA &C2C4
+     9A02   D9 1C C3   CMP &C31C,Y
+     9A05   D0 83      BNE &998A
+     9A07   4C 58 98   JMP &9858
+.CheckChannel_Yhndl_exYintch_TYA_CmpPTR
+     9A0A   20 EF 97   JSR &97EF
+.TYA_CmpPTR
+     9A0D   98         TYA
+.CmpPTR
+     9A0E   AA         TAX
+     9A0F   B9 12 C3   LDA &C312,Y
+     9A12   DD 16 C3   CMP &C316,X
+     9A15   D0 0E      BNE &9A25
+     9A17   B9 11 C3   LDA &C311,Y
+     9A1A   DD 15 C3   CMP &C315,X
+     9A1D   D0 06      BNE &9A25
+     9A1F   B9 10 C3   LDA &C310,Y
+     9A22   DD 14 C3   CMP &C314,X
+.cmpPE_exit
+     9A25   60         RTS
+.load_then_incSeqPtr_Yintch
+     9A26   B9 10 C3   LDA &C310,Y
+     9A29   85 BA      STA &BA
+     9A2B   B9 13 C3   LDA &C313,Y
+     9A2E   85 BB      STA &BB
+     9A30   98         TYA
+     9A31   AA         TAX
+     9A32   FE 10 C3   INC &C310,X
+     9A35   D0 0B      BNE &9A42
+     9A37   20 5F 98   JSR &985F
+     9A3A   FE 11 C3   INC &C311,X
+     9A3D   D0 03      BNE &9A42
+     9A3F   FE 12 C3   INC &C312,X
+.samesector
+     9A42   A2 00      LDX #&00
+     9A44   60         RTS
+.CMD_MMFS
+     9A45   98         TYA
+     9A46   A2 00      LDX #&00
+     9A48   A0 14      LDY #&14
+.Prthelp_Xtable
+     9A4A   48         PHA
+     9A4B   20 98 80   JSR &8098
+     9A4E   0D
+Macro SYSTEM_NAME:
+     9A4F   4D 4D 46 ...
+End macro SYSTEM_NAME
+     9A54   20
+     9A55   86 BF      STX &BF
+     9A57   84 B7      STY &B7
+     9A59   A2 00      LDX #&00
+.verloop
+     9A5B   BD 1D 80   LDA &801D,X
+     9A5E   F0 06      BEQ &9A66
+     9A60   20 DB 80   JSR &80DB
+     9A63   E8         INX
+     9A64   D0 F5      BNE &9A5B
+.verex
+     9A66   A9 0D      LDA #&0D
+     9A68   20 DB 80   JSR &80DB
+.help_dfs_loop
+     9A6B   A9 00      LDA #&00
+     9A6D   85 B9      STA &B9
+     9A6F   A0 01      LDY #&01
+     9A71   20 1C 9B   JSR &9B1C
+     9A74   20 B7 9A   JSR &9AB7
+     9A77   20 77 83   JSR &8377
+     9A7A   C6 B7      DEC &B7
+     9A7C   D0 ED      BNE &9A6B
+     9A7E   68         PLA
+     9A7F   A8         TAY
+.morehelp
+     9A80   A2 8C      LDX #&8C
+     9A82   4C F9 86   JMP &86F9
+.CMD_DUTILS
+     9A85   98         TYA
+     9A86   A2 9A      LDX #&9A
+     9A88   A0 09      LDY #&09
+     9A8A   D0 BE      BNE &9A4A
+.CMD_NOTHELPTBL
+     9A8C   20 BD 81   JSR &81BD
+     9A8F   F0 78      BEQ &9B09
+.cmd_nothelptlb_loop
+     9A91   20 A2 81   JSR &81A2
+     9A94   90 FB      BCC &9A91
+     9A96   B0 E8      BCS &9A80
+.Param_SyntaxErrorIfNull
+     9A98   20 BD 81   JSR &81BD
+     9A9B   F0 01      BEQ &9A9E
+     9A9D   60         RTS
+.errSYNTAX
+     9A9E   20 6B 80   JSR &806B
+     9AA1   DC
+     9AA2   53 79 6E ...
+     9AAA   86 B9      STX &B9
+     9AAC   20 B7 9A   JSR &9AB7
+     9AAF   A9 00      LDA #&00
+     9AB1   20 0A 9B   JSR &9B0A
+     9AB4   4C 00 01   JMP &0100
+.prtcmdAtBCadd1
+     9AB7   A9 07      LDA #&07
+     9AB9   85 B8      STA &B8
+     9ABB   A6 BF      LDX &BF
+     9ABD   E0 9A      CPX #&9A
+     9ABF   90 05      BCC &9AC6
+     9AC1   A9 44      LDA #&44
+     9AC3   20 0A 9B   JSR &9B0A
+.prtcmdloop
+     9AC6   E8         INX
+     9AC7   BD C4 85   LDA &85C4,X
+     9ACA   30 06      BMI &9AD2
+     9ACC   20 0A 9B   JSR &9B0A
+     9ACF   4C C6 9A   JMP &9AC6
+.prtcmdloop_exit
+     9AD2   A4 B8      LDY &B8
+     9AD4   30 03      BMI &9AD9
+     9AD6   20 1C 9B   JSR &9B1C
+.prtcmdnospcs
+     9AD9   86 BF      STX &BF
+     9ADB   BD C4 85   LDA &85C4,X
+     9ADE   29 7F      AND #&7F
+     9AE0   20 E6 9A   JSR &9AE6
+     9AE3   20 1C 82   JSR &821C
+.prtcmdparam
+     9AE6   20 F0 83   JSR &83F0
+     9AE9   29 0F      AND #&0F
+     9AEB   F0 1C      BEQ &9B09
+     9AED   A8         TAY
+     9AEE   A9 20      LDA #&20
+     9AF0   20 0A 9B   JSR &9B0A
+     9AF3   A2 FF      LDX #&FF
+.prtcmdparam_findloop
+     9AF5   E8         INX
+     9AF6   BD 29 9B   LDA &9B29,X
+     9AF9   10 FA      BPL &9AF5
+     9AFB   88         DEY
+     9AFC   D0 F7      BNE &9AF5
+     9AFE   29 7F      AND #&7F
+.prtcmdparam_loop
+     9B00   20 0A 9B   JSR &9B0A
+     9B03   E8         INX
+     9B04   BD 29 9B   LDA &9B29,X
+     9B07   10 F7      BPL &9B00
+.prtcmdparamexit
+     9B09   60         RTS
+.prtcmd_prtchr
+     9B0A   20 F0 83   JSR &83F0
+     9B0D   A6 B9      LDX &B9
+     9B0F   F0 06      BEQ &9B17
+     9B11   E6 B9      INC &B9
+     9B13   9D 00 01   STA &0100,X
+     9B16   60         RTS
+.prtcmdparam_prtchr
+     9B17   C6 B8      DEC &B8
+     9B19   4C DB 80   JMP &80DB
+.prtcmd_Print_Y_Spaces_IfNotErr
+     9B1C   A5 B9      LDA &B9
+     9B1E   D0 08      BNE &9B28
+     9B20   A9 20      LDA #&20
+.prtcmd_yspc_loop
+     9B22   20 0A 9B   JSR &9B0A
+     9B25   88         DEY
+     9B26   10 FA      BPL &9B22
+.prtcmd_yspc_exit
+     9B28   60         RTS
+.parametertable
+     9B29   BC
+     9B2A   64 72 69 ...
+     9B30   BC
+     9B31   61 66 73 ...
+     9B36   A8
+     9B37   4C 29 
+     9B39   A8
+     9B3A   3C 64 72 ...
+     9B42   A8
+     9B43   3C 64 72 ...
+     9B4E   A8
+     9B4F   3C 64 69 ...
+     9B55   BC
+     9B56   64 6F 73 ...
+     9B5F   BC
+     9B60   66 73 70 ...
+     9B64   A8
+     9B65   3C 64 6F ...
+     9B70   BC
+     9B71   74 69 74 ...
+     9B77   A8
+     9B78   3C 6E 75 ...
+     9B7E   BC
+     9B7F   73 6F 75 ...
+     9B8E   BC
+     9B8F   6F 6C 64 ...
+     9BA1   BC
+     9BA2   66 69 6C ...
+     9BA9   B4
+     9BAA   30 2F 38 ...
+     9BAE   FF
+.CMD_COMPACT
+     9BAF   20 BF 8B   JSR &8BBF
+     9BB2   20 98 80   JSR &8098
+     9BB5   43 6F 6D ...
+     9BC1   8D D1 C2   STA &C2D1
+     9BC4   8D D2 C2   STA &C2D2
+     9BC7   20 FF 80   JSR &80FF
+     9BCA   20 77 83   JSR &8377
+     9BCD   A0 00      LDY #&00
+     9BCF   20 EE 94   JSR &94EE
+     9BD2   20 DB 93   JSR &93DB
+     9BD5   20 AE A1   JSR &A1AE
+     9BD8   AC 05 C1   LDY &C105
+     9BDB   84 CA      STY &CA
+     9BDD   A9 02      LDA #&02
+     9BDF   85 C8      STA &C8
+     9BE1   A9 00      LDA #&00
+     9BE3   85 C9      STA &C9
+.compact_loop
+     9BE5   A4 CA      LDY &CA
+     9BE7   20 BF 82   JSR &82BF
+     9BEA   C0 F8      CPY #&F8
+     9BEC   D0 28      BNE &9C16
+     9BEE   AD 07 C1   LDA &C107
+     9BF1   38         SEC
+     9BF2   E5 C8      SBC &C8
+     9BF4   48         PHA
+     9BF5   AD 06 C1   LDA &C106
+     9BF8   29 03      AND #&03
+     9BFA   E5 C9      SBC &C9
+     9BFC   20 FF 80   JSR &80FF
+     9BFF   68         PLA
+     9C00   20 F7 80   JSR &80F7
+     9C03   20 98 80   JSR &8098
+     9C06   20 66 72 ...
+     9C13   0D
+     9C14   EA         NOP
+     9C15   60         RTS
+.compact_checkfile
+     9C16   84 CA      STY &CA
+     9C18   20 41 83   JSR &8341
+     9C1B   A4 CA      LDY &CA
+     9C1D   B9 0C C1   LDA &C10C,Y
+     9C20   C9 01      CMP #&01
+     9C22   A9 00      LDA #&00
+     9C24   85 BC      STA &BC
+     9C26   85 C0      STA &C0
+     9C28   79 0D C1   ADC &C10D,Y
+     9C2B   85 C4      STA &C4
+     9C2D   B9 0E C1   LDA &C10E,Y
+     9C30   08         PHP
+     9C31   20 14 82   JSR &8214
+     9C34   28         PLP
+     9C35   69 00      ADC #&00
+     9C37   85 C5      STA &C5
+     9C39   B9 0F C1   LDA &C10F,Y
+     9C3C   85 C6      STA &C6
+     9C3E   B9 0E C1   LDA &C10E,Y
+     9C41   29 03      AND #&03
+     9C43   85 C7      STA &C7
+     9C45   C5 C9      CMP &C9
+     9C47   D0 14      BNE &9C5D
+     9C49   A5 C6      LDA &C6
+     9C4B   C5 C8      CMP &C8
+     9C4D   D0 0E      BNE &9C5D
+     9C4F   18         CLC
+     9C50   65 C4      ADC &C4
+     9C52   85 C8      STA &C8
+     9C54   A5 C9      LDA &C9
+     9C56   65 C5      ADC &C5
+     9C58   85 C9      STA &C9
+     9C5A   4C 75 9C   JMP &9C75
+.compact_movefile
+     9C5D   A5 C8      LDA &C8
+     9C5F   99 0F C1   STA &C10F,Y
+     9C62   B9 0E C1   LDA &C10E,Y
+     9C65   29 FC      AND #&FC
+     9C67   05 C9      ORA &C9
+     9C69   99 0E C1   STA &C10E,Y
+     9C6C   20 B5 A1   JSR &A1B5
+     9C6F   20 FC 9D   JSR &9DFC
+     9C72   20 A3 A1   JSR &A1A3
+.compact_fileinfo
+     9C75   A4 CA      LDY &CA
+     9C77   20 46 83   JSR &8346
+     9C7A   4C E5 9B   JMP &9BE5
+.IsEnabledOrGo
+     9C7D   2C C7 C2   BIT &C2C7
+     9C80   10 07      BPL &9C89
+     9C82   20 D4 9C   JSR &9CD4
+     9C85   F0 02      BEQ &9C89
+     9C87   68         PLA
+     9C88   68         PLA
+.isgo
+.isgoalready
+     9C89   60         RTS
+.Get_CopyDATA_Drives
+     9C8A   20 C4 8B   JSR &8BC4
+     9C8D   8D D1 C2   STA &C2D1
+     9C90   20 C4 8B   JSR &8BC4
+     9C93   8D D2 C2   STA &C2D2
+     9C96   CD D1 C2   CMP &C2D1
+     9C99   F0 2E      BEQ &9CC9
+     9C9B   98         TYA
+     9C9C   48         PHA
+     9C9D   20 DB 93   JSR &93DB
+     9CA0   20 98 80   JSR &8098
+     9CA3   43 6F 70 ...
+     9CB1   AD D1 C2   LDA &C2D1
+     9CB4   20 95 80   JSR &8095
+     9CB7   20 74 6F ...
+     9CBC   AD D2 C2   LDA &C2D2
+     9CBF   20 FF 80   JSR &80FF
+     9CC2   20 77 83   JSR &8377
+     9CC5   68         PLA
+     9CC6   A8         TAY
+     9CC7   18         CLC
+     9CC8   60         RTS
+.baddrv
+     9CC9   4C D7 8B   JMP &8BD7
+.ConfirmYNcolon
+     9CCC   20 98 80   JSR &8098
+     9CCF   20 3A 20 
+     9CD2   90 0F      BCC &9CE3
+.GoYN
+     9CD4   20 98 80   JSR &8098
+     9CD7   47 6F 20 ...
+     9CE2   EA         NOP
+.ConfirmYN
+     9CE3   20 FC 9C   JSR &9CFC
+     9CE6   20 E0 FF   JSR &FFE0
+     9CE9   B0 1D      BCS &9D08
+     9CEB   29 5F      AND #&5F
+     9CED   C9 59      CMP #&59
+     9CEF   08         PHP
+     9CF0   F0 02      BEQ &9CF4
+     9CF2   A9 4E      LDA #&4E
+.confYN
+     9CF4   20 DB 80   JSR &80DB
+     9CF7   20 77 83   JSR &8377
+     9CFA   28         PLP
+     9CFB   60         RTS
+.osbyte0F_flushinbuf2
+     9CFC   20 F0 83   JSR &83F0
+     9CFF   A9 0F      LDA #&0F
+     9D01   A2 01      LDX #&01
+     9D03   A0 00      LDY #&00
+     9D05   4C F4 FF   JMP &FFF4
+.err_ESCAPE
+     9D08   4C 59 8C   JMP &8C59
+.err_DISKFULL2
+     9D0B   4C 5D 8A   JMP &8A5D
+.CMD_BACKUP
+     9D0E   20 8A 9C   JSR &9C8A
+     9D11   20 7D 9C   JSR &9C7D
+     9D14   A9 00      LDA #&00
+     9D16   85 C7      STA &C7
+     9D18   85 C9      STA &C9
+     9D1A   85 C8      STA &C8
+     9D1C   85 C6      STA &C6
+     9D1E   AD D1 C2   LDA &C2D1
+     9D21   85 CD      STA &CD
+     9D23   20 B1 A1   JSR &A1B1
+     9D26   AD 07 C1   LDA &C107
+     9D29   85 C4      STA &C4
+     9D2B   AD 06 C1   LDA &C106
+     9D2E   29 03      AND #&03
+     9D30   85 C5      STA &C5
+     9D32   AD D2 C2   LDA &C2D2
+     9D35   85 CD      STA &CD
+     9D37   20 B1 A1   JSR &A1B1
+     9D3A   AD 06 C1   LDA &C106
+     9D3D   29 03      AND #&03
+     9D3F   C5 C5      CMP &C5
+     9D41   90 C8      BCC &9D0B
+     9D43   D0 07      BNE &9D4C
+     9D45   AD 07 C1   LDA &C107
+     9D48   C5 C4      CMP &C4
+     9D4A   90 BF      BCC &9D0B
+.backup_copy
+     9D4C   20 FC 9D   JSR &9DFC
+     9D4F   20 B1 A1   JSR &A1B1
+     9D52   A2 0A      LDX #&0A
+.tloop
+     9D54   E0 08      CPX #&08
+     9D56   90 05      BCC &9D5D
+     9D58   BD F8 C0   LDA &C0F8,X
+     9D5B   B0 03      BCS &9D60
+.tskip1
+     9D5D   BD 00 C0   LDA &C000,X
+.tskip2
+     9D60   9D 00 C2   STA &C200,X
+     9D63   CA         DEX
+     9D64   10 EE      BPL &9D54
+     9D66   60         RTS
+.CMD_COPY
+     9D67   20 F9 92   JSR &92F9
+     9D6A   20 8A 9C   JSR &9C8A
+     9D6D   20 98 9A   JSR &9A98
+     9D70   20 46 81   JSR &8146
+     9D73   AD D1 C2   LDA &C2D1
+     9D76   85 CD      STA &CD
+     9D78   20 35 82   JSR &8235
+.copy_loop1
+     9D7B   A5 CC      LDA &CC
+     9D7D   48         PHA
+     9D7E   A5 B6      LDA &B6
+     9D80   48         PHA
+     9D81   20 46 83   JSR &8346
+     9D84   A2 00      LDX #&00
+.copy_loop2
+     9D86   B9 08 C0   LDA &C008,Y
+     9D89   95 C5      STA &C5,X
+     9D8B   9D 50 C2   STA &C250,X
+     9D8E   B9 08 C1   LDA &C108,Y
+     9D91   95 BB      STA &BB,X
+     9D93   9D 47 C2   STA &C247,X
+     9D96   E8         INX
+     9D97   C8         INY
+     9D98   E0 08      CPX #&08
+     9D9A   D0 EA      BNE &9D86
+     9D9C   20 EC 9D   JSR &9DEC
+     9D9F   AD D2 C2   LDA &C2D2
+     9DA2   20 A0 8A   JSR &8AA0
+     9DA5   A5 C2      LDA &C2
+     9DA7   29 03      AND #&03
+     9DA9   48         PHA
+     9DAA   A5 C3      LDA &C3
+     9DAC   48         PHA
+     9DAD   20 EC 9D   JSR &9DEC
+     9DB0   68         PLA
+     9DB1   85 C8      STA &C8
+     9DB3   68         PLA
+     9DB4   85 C9      STA &C9
+     9DB6   A5 C1      LDA &C1
+     9DB8   20 14 82   JSR &8214
+     9DBB   AA         TAX
+     9DBC   A5 BF      LDA &BF
+     9DBE   C9 01      CMP #&01
+     9DC0   A5 C0      LDA &C0
+     9DC2   69 00      ADC #&00
+     9DC4   85 C4      STA &C4
+     9DC6   8A         TXA
+     9DC7   69 00      ADC #&00
+     9DC9   85 C5      STA &C5
+     9DCB   A5 C2      LDA &C2
+     9DCD   85 C6      STA &C6
+     9DCF   A5 C1      LDA &C1
+     9DD1   29 03      AND #&03
+     9DD3   85 C7      STA &C7
+     9DD5   20 FC 9D   JSR &9DFC
+     9DD8   AD D1 C2   LDA &C2D1
+     9DDB   85 CD      STA &CD
+     9DDD   20 AE A1   JSR &A1AE
+     9DE0   68         PLA
+     9DE1   85 B6      STA &B6
+     9DE3   68         PLA
+     9DE4   85 CC      STA &CC
+     9DE6   20 81 82   JSR &8281
+     9DE9   B0 90      BCS &9D7B
+     9DEB   60         RTS
+.cd_swapvars
+     9DEC   A2 11      LDX #&11
+.cd_swapvars_loop
+     9DEE   BC 45 C2   LDY &C245,X
+     9DF1   B5 BA      LDA &BA,X
+     9DF3   94 BA      STY &BA,X
+     9DF5   9D 45 C2   STA &C245,X
+     9DF8   CA         DEX
+     9DF9   10 F3      BPL &9DEE
+     9DFB   60         RTS
+.CopyDATABLOCK
+     9DFC   A9 00      LDA #&00
+     9DFE   85 BC      STA &BC
+     9E00   85 C0      STA &C0
+     9E02   AD CF C2   LDA &C2CF
+     9E05   85 BD      STA &BD
+     9E07   F0 57      BEQ &9E60
+.cd_loop
+     9E09   A4 C4      LDY &C4
+     9E0B   CC D0 C2   CPY &C2D0
+     9E0E   A5 C5      LDA &C5
+     9E10   E9 00      SBC #&00
+     9E12   90 03      BCC &9E17
+     9E14   AC D0 C2   LDY &C2D0
+.cd_part
+     9E17   84 C1      STY &C1
+     9E19   A5 C6      LDA &C6
+     9E1B   85 C3      STA &C3
+     9E1D   A5 C7      LDA &C7
+     9E1F   85 C2      STA &C2
+     9E21   AD D1 C2   LDA &C2D1
+     9E24   85 CD      STA &CD
+     9E26   20 8F 8B   JSR &8B8F
+     9E29   20 0E 88   JSR &880E
+     9E2C   AD D2 C2   LDA &C2D2
+     9E2F   85 CD      STA &CD
+     9E31   A5 C8      LDA &C8
+     9E33   85 C3      STA &C3
+     9E35   A5 C9      LDA &C9
+     9E37   85 C2      STA &C2
+     9E39   20 8F 8B   JSR &8B8F
+     9E3C   20 1B 88   JSR &881B
+     9E3F   A5 C1      LDA &C1
+     9E41   18         CLC
+     9E42   65 C8      ADC &C8
+     9E44   85 C8      STA &C8
+     9E46   90 02      BCC &9E4A
+     9E48   E6 C9      INC &C9
+.cd_inc1
+     9E4A   A5 C1      LDA &C1
+     9E4C   18         CLC
+     9E4D   65 C6      ADC &C6
+     9E4F   85 C6      STA &C6
+     9E51   90 02      BCC &9E55
+     9E53   E6 C7      INC &C7
+.cd_inc2
+     9E55   38         SEC
+     9E56   A5 C4      LDA &C4
+     9E58   E5 C1      SBC &C1
+     9E5A   85 C4      STA &C4
+     9E5C   B0 02      BCS &9E60
+     9E5E   C6 C5      DEC &C5
+.cd_loopentry
+     9E60   A5 C4      LDA &C4
+     9E62   05 C5      ORA &C5
+     9E64   D0 A3      BNE &9E09
+     9E66   60         RTS
+.CMD_VERIFY
+     9E67   A9 00      LDA #&00
+     9E69   F0 02      BEQ &9E6D
+.CMD_FORM
+     9E6B   A9 FF      LDA #&FF
+.vform1
+     9E6D   85 C9      STA &C9
+     9E6F   85 B2      STA &B2
+     9E71   10 15      BPL &9E88
+     9E73   20 98 9A   JSR &9A98
+     9E76   20 39 84   JSR &8439
+     9E79   B0 0A      BCS &9E85
+     9E7B   86 B5      STX &B5
+     9E7D   E0 28      CPX #&28
+     9E7F   F0 07      BEQ &9E88
+     9E81   E0 50      CPX #&50
+     9E83   F0 03      BEQ &9E88
+.vform2_syntax
+     9E85   4C 9E 9A   JMP &9A9E
+.vform3_ok
+     9E88   20 BD 81   JSR &81BD
+     9E8B   84 CA      STY &CA
+     9E8D   D0 49      BNE &9ED8
+     9E8F   24 C9      BIT &C9
+     9E91   30 0B      BMI &9E9E
+     9E93   20 98 80   JSR &8098
+     9E96   56 65 72 ...
+     9E9C   90 0A      BCC &9EA8
+.vform4_form
+     9E9E   20 98 80   JSR &8098
+     9EA1   46 6F 72 ...
+     9EA7   EA         NOP
+.vform4_askdrive
+     9EA8   20 98 80   JSR &8098
+     9EAB   20 77 68 ...
+     9EBA   EA         NOP
+     9EBB   20 E0 FF   JSR &FFE0
+     9EBE   B0 31      BCS &9EF1
+     9EC0   C9 20      CMP #&20
+     9EC2   90 30      BCC &9EF4
+     9EC4   20 DB 80   JSR &80DB
+     9EC7   38         SEC
+     9EC8   E9 30      SBC #&30
+     9ECA   C9 04      CMP #&04
+     9ECC   B0 26      BCS &9EF4
+     9ECE   85 CD      STA &CD
+     9ED0   20 77 83   JSR &8377
+     9ED3   A4 CA      LDY &CA
+     9ED5   4C DB 9E   JMP &9EDB
+.vform5_driveloop
+     9ED8   20 C7 8B   JSR &8BC7
+.vform6_drivein
+     9EDB   84 CA      STY &CA
+     9EDD   24 B2      BIT &B2
+     9EDF   10 05      BPL &9EE6
+     9EE1   46 B2      LSR &B2
+     9EE3   20 7D 9C   JSR &9C7D
+.vform7_go
+     9EE6   20 F7 9E   JSR &9EF7
+     9EE9   A4 CA      LDY &CA
+     9EEB   20 BD 81   JSR &81BD
+     9EEE   D0 E8      BNE &9ED8
+     9EF0   60         RTS
+.jmp_reportEscape
+     9EF1   4C 59 8C   JMP &8C59
+.jmp_errBadDrive
+     9EF4   4C D7 8B   JMP &8BD7
+.VFCurDrv
+     9EF7   24 C9      BIT &C9
+     9EF9   30 0E      BMI &9F09
+     9EFB   20 98 80   JSR &8098
+     9EFE   56 65 72 ...
+     9F07   90 12      BCC &9F1B
+.vf1
+     9F09   20 98 80   JSR &8098
+     9F0C   46 6F 72 ...
+     9F16   A6 CD      LDX &CD
+     9F18   8E B0 C2   STX &C2B0
+.vf2
+     9F1B   20 98 80   JSR &8098
+     9F1E   20 64 72 ...
+     9F25   A5 CD      LDA &CD
+     9F27   20 95 80   JSR &8095
+     9F2A   20 74 72 ...
+     9F33   EA         NOP
+     9F34   A9 63      LDA #&63
+     9F36   A2 05      LDX #&05
+     9F38   24 C9      BIT &C9
+     9F3A   30 2D      BMI &9F69
+     9F3C   20 B1 A1   JSR &A1B1
+     9F3F   AD 06 C1   LDA &C106
+     9F42   29 03      AND #&03
+     9F44   AA         TAX
+     9F45   AD 07 C1   LDA &C107
+     9F48   A0 0A      LDY #&0A
+     9F4A   84 B0      STY &B0
+     9F4C   A0 FF      LDY #&FF
+.trkloop1
+     9F4E   38         SEC
+.trkloop2
+     9F4F   C8         INY
+     9F50   E5 B0      SBC &B0
+     9F52   B0 FB      BCS &9F4F
+     9F54   CA         DEX
+     9F55   10 F7      BPL &9F4E
+     9F57   65 B0      ADC &B0
+     9F59   48         PHA
+     9F5A   98         TYA
+     9F5B   AA         TAX
+     9F5C   68         PLA
+     9F5D   F0 01      BEQ &9F60
+     9F5F   E8         INX
+.trkex
+     9F60   8A         TXA
+     9F61   F0 41      BEQ &9FA4
+     9F63   85 B5      STA &B5
+     9F65   A9 5F      LDA #&5F
+     9F67   A2 03      LDX #&03
+.vf4
+     9F69   8D B6 C2   STA &C2B6
+     9F6C   8E B5 C2   STX &C2B5
+     9F6F   A9 00      LDA #&00
+     9F71   85 B4      STA &B4
+.vf5_trackloop
+     9F73   A9 08      LDA #&08
+     9F75   20 DB 80   JSR &80DB
+     9F78   20 DB 80   JSR &80DB
+     9F7B   A5 B4      LDA &B4
+     9F7D   8D B7 C2   STA &C2B7
+     9F80   20 F7 80   JSR &80F7
+     9F83   20 E8 A1   JSR &A1E8
+     9F86   F0 0A      BEQ &9F92
+     9F88   48         PHA
+     9F89   A9 3F      LDA #&3F
+     9F8B   20 DB 80   JSR &80DB
+     9F8E   68         PLA
+     9F8F   4C 09 A2   JMP &A209
+.vfx1
+     9F92   E6 B4      INC &B4
+     9F94   A5 B4      LDA &B4
+     9F96   C5 B5      CMP &B5
+     9F98   D0 D9      BNE &9F73
+     9F9A   24 C9      BIT &C9
+     9F9C   10 06      BPL &9FA4
+     9F9E   20 A7 9F   JSR &9FA7
+     9FA1   20 B5 A1   JSR &A1B5
+.vf6_exit
+     9FA4   4C 77 83   JMP &8377
+.ClearCatalogue
+     9FA7   A0 00      LDY #&00
+     9FA9   98         TYA
+.ccatloop
+     9FAA   99 00 C0   STA &C000,Y
+     9FAD   99 00 C1   STA &C100,Y
+     9FB0   C8         INY
+     9FB1   D0 F7      BNE &9FAA
+     9FB3   A4 B5      LDY &B5
+.loop2
+     9FB5   A9 0A      LDA #&0A
+     9FB7   18         CLC
+     9FB8   6D 07 C1   ADC &C107
+     9FBB   8D 07 C1   STA &C107
+     9FBE   90 03      BCC &9FC3
+     9FC0   EE 06 C1   INC &C106
+.label3
+     9FC3   88         DEY
+     9FC4   D0 EF      BNE &9FB5
+     9FC6   60         RTS
+.CMD_FREE
+     9FC7   38         SEC
+     9FC8   B0 01      BCS &9FCB
+.CMD_MAP
+     9FCA   18         CLC
+.Label_A7F7
+     9FCB   66 C6      ROR &C6
+     9FCD   20 BF 8B   JSR &8BBF
+     9FD0   20 AE A1   JSR &A1AE
+     9FD3   24 C6      BIT &C6
+     9FD5   30 15      BMI &9FEC
+     9FD7   20 B8 80   JSR &80B8
+     9FDA   41 64 64 ...
+     9FEB   0D
+.Label_A818_free
+     9FEC   AD 06 C1   LDA &C106
+     9FEF   29 03      AND #&03
+     9FF1   85 C5      STA &C5
+     9FF3   85 C2      STA &C2
+     9FF5   AD 07 C1   LDA &C107
+     9FF8   85 C4      STA &C4
+     9FFA   38         SEC
+     9FFB   E9 02      SBC #&02
+     9FFD   85 C1      STA &C1
+     9FFF   B0 02      BCS &A003
+     A001   C6 C2      DEC &C2
+.Label_A82F
+     A003   A9 02      LDA #&02
+     A005   85 BB      STA &BB
+     A007   A9 00      LDA #&00
+     A009   85 BC      STA &BC
+     A00B   85 BF      STA &BF
+     A00D   85 C0      STA &C0
+     A00F   AD 05 C1   LDA &C105
+     A012   29 F8      AND #&F8
+     A014   A8         TAY
+     A015   F0 26      BEQ &A03D
+     A017   D0 11      BNE &A02A
+.Label_A845_fileloop
+     A019   20 AC A0   JSR &A0AC
+     A01C   20 BF 82   JSR &82BF
+     A01F   A5 C4      LDA &C4
+     A021   38         SEC
+     A022   E5 BB      SBC &BB
+     A024   A5 C5      LDA &C5
+     A026   E5 BC      SBC &BC
+     A028   90 13      BCC &A03D
+.Label_A856_fileloop_entry
+     A02A   B9 07 C1   LDA &C107,Y
+     A02D   38         SEC
+     A02E   E5 BB      SBC &BB
+     A030   85 C1      STA &C1
+     A032   B9 06 C1   LDA &C106,Y
+     A035   29 03      AND #&03
+     A037   E5 BC      SBC &BC
+     A039   85 C2      STA &C2
+     A03B   90 DC      BCC &A019
+.Label_A86B_nofiles
+     A03D   84 BD      STY &BD
+     A03F   24 C6      BIT &C6
+     A041   30 2B      BMI &A06E
+     A043   A5 C1      LDA &C1
+     A045   05 C2      ORA &C2
+     A047   F0 25      BEQ &A06E
+     A049   A5 BC      LDA &BC
+     A04B   20 0F 81   JSR &810F
+     A04E   A5 BB      LDA &BB
+     A050   20 07 81   JSR &8107
+     A053   20 B8 80   JSR &80B8
+     A056   20 20 20 ...
+     A05E   A5 C2      LDA &C2
+     A060   20 0F 81   JSR &810F
+     A063   A5 C1      LDA &C1
+     A065   20 07 81   JSR &8107
+     A068   20 E7 FF   JSR &FFE7
+     A06B   20 AC A0   JSR &A0AC
+.Label_A87A_free
+     A06E   A5 C1      LDA &C1
+     A070   18         CLC
+     A071   65 BF      ADC &BF
+     A073   85 BF      STA &BF
+     A075   A5 C2      LDA &C2
+     A077   65 C0      ADC &C0
+     A079   85 C0      STA &C0
+     A07B   A4 BD      LDY &BD
+     A07D   D0 9A      BNE &A019
+     A07F   24 C6      BIT &C6
+     A081   10 28      BPL &A0AB
+     A083   A8         TAY
+     A084   A6 BF      LDX &BF
+     A086   A9 F8      LDA #&F8
+     A088   38         SEC
+     A089   ED 05 C1   SBC &C105
+     A08C   20 D6 A0   JSR &A0D6
+     A08F   46 72 65 ...
+     A093   0D
+     A094   A5 C4      LDA &C4
+     A096   38         SEC
+     A097   E5 BF      SBC &BF
+     A099   AA         TAX
+     A09A   A5 C5      LDA &C5
+     A09C   E5 C0      SBC &C0
+     A09E   A8         TAY
+     A09F   AD 05 C1   LDA &C105
+     A0A2   20 D6 A0   JSR &A0D6
+     A0A5   55 73 65 ...
+     A0A9   0D
+     A0AA   EA         NOP
+.Label_A8BD_rst
+     A0AB   60         RTS
+.Sub_A8E2_nextblock
+     A0AC   B9 06 C1   LDA &C106,Y
+     A0AF   48         PHA
+     A0B0   20 14 82   JSR &8214
+     A0B3   85 BC      STA &BC
+     A0B5   68         PLA
+     A0B6   29 03      AND #&03
+     A0B8   18         CLC
+     A0B9   65 BC      ADC &BC
+     A0BB   85 BC      STA &BC
+     A0BD   B9 04 C1   LDA &C104,Y
+     A0C0   C9 01      CMP #&01
+     A0C2   A9 00      LDA #&00
+     A0C4   79 05 C1   ADC &C105,Y
+     A0C7   90 02      BCC &A0CB
+     A0C9   E6 BC      INC &BC
+.Label_A902
+     A0CB   18         CLC
+     A0CC   79 07 C1   ADC &C107,Y
+     A0CF   85 BB      STA &BB
+     A0D1   90 02      BCC &A0D5
+     A0D3   E6 BC      INC &BC
+.Label_A90C
+     A0D5   60         RTS
+.Sub_A90D_freeinfo
+     A0D6   4A         LSR A
+     A0D7   4A         LSR A
+     A0D8   4A         LSR A
+     A0D9   20 04 81   JSR &8104
+     A0DC   20 B8 80   JSR &80B8
+     A0DF   20 46 69 ...
+     A0E6   86 BC      STX &BC
+     A0E8   84 BD      STY &BD
+     A0EA   98         TYA
+     A0EB   20 0F 81   JSR &810F
+     A0EE   8A         TXA
+     A0EF   20 07 81   JSR &8107
+     A0F2   20 B8 80   JSR &80B8
+     A0F5   20 53 65 ...
+     A0FE   A9 00      LDA #&00
+     A100   85 BB      STA &BB
+     A102   85 BE      STA &BE
+     A104   A2 1F      LDX #&1F
+     A106   86 C1      STX &C1
+     A108   A2 09      LDX #&09
+.Label_A941_loop1
+     A10A   9D 00 C2   STA &C200,X
+     A10D   CA         DEX
+     A10E   10 FA      BPL &A10A
+.Label_A947_loop2
+     A110   06 BB      ASL &BB
+     A112   26 BC      ROL &BC
+     A114   26 BD      ROL &BD
+     A116   26 BE      ROL &BE
+     A118   A2 00      LDX #&00
+     A11A   A0 09      LDY #&09
+.Label_A953_loop3
+     A11C   BD 00 C2   LDA &C200,X
+     A11F   2A         ROL A
+     A120   C9 0A      CMP #&0A
+     A122   90 02      BCC &A126
+     A124   E9 0A      SBC #&0A
+.Label_A95D
+     A126   9D 00 C2   STA &C200,X
+     A129   E8         INX
+     A12A   88         DEY
+     A12B   10 EF      BPL &A11C
+     A12D   C6 C1      DEC &C1
+     A12F   10 DF      BPL &A110
+     A131   A0 20      LDY #&20
+     A133   A2 05      LDX #&05
+.Label_A96C_loop4
+     A135   D0 02      BNE &A139
+     A137   A0 2C      LDY #&2C
+.Label_A970
+     A139   BD 00 C2   LDA &C200,X
+     A13C   D0 07      BNE &A145
+     A13E   C0 2C      CPY #&2C
+     A140   F0 03      BEQ &A145
+     A142   98         TYA
+     A143   D0 04      BNE &A149
+.Label_A97D
+     A145   A0 2C      LDY #&2C
+     A147   09 30      ORA #&30
+.Label_A982
+     A149   20 EE FF   JSR &FFEE
+     A14C   E0 03      CPX #&03
+     A14E   D0 04      BNE &A154
+     A150   98         TYA
+     A151   20 EE FF   JSR &FFEE
+.Label_A98D
+     A154   CA         DEX
+     A155   10 DE      BPL &A135
+     A157   20 B8 80   JSR &80B8
+     A15A   20 42 79 ...
+     A161   EA         NOP
+     A162   4C B8 80   JMP &80B8
+.CalculateCRC7
+     A165   A0 0F      LDY #&0F
+     A167   A9 00      LDA #&00
+.c7loop1
+     A169   59 E0 C2   EOR &C2E0,Y
+     A16C   0A         ASL A
+     A16D   A2 07      LDX #&07
+.c7loop2
+     A16F   90 02      BCC &A173
+     A171   49 12      EOR #&12
+.c7b7z1
+     A173   0A         ASL A
+     A174   CA         DEX
+     A175   D0 F8      BNE &A16F
+     A177   90 02      BCC &A17B
+     A179   49 12      EOR #&12
+.c7b7z2
+     A17B   88         DEY
+     A17C   10 EB      BPL &A169
+     A17E   09 01      ORA #&01
+     A180   60         RTS
+.CheckCRC7
+     A181   20 F0 83   JSR &83F0
+     A184   20 65 A1   JSR &A165
+     A187   CD F0 C2   CMP &C2F0
+     A18A   D0 01      BNE &A18D
+     A18C   60         RTS
+.errBadSum
+     A18D   20 51 80   JSR &8051
+     A190   FF
+     A191   53 75 6D 
+     A194   00
+.ResetCRC7
+     A195   20 F0 83   JSR &83F0
+     A198   20 65 A1   JSR &A165
+     A19B   8D F0 C2   STA &C2F0
+     A19E   18         CLC
+     A19F   60         RTS
+.Set_CurDirDrv_ToDefaults_CheckCurDrvCat
+     A1A0   20 B2 8B   JSR &8BB2
+.CheckCurDrvCat
+     A1A3   AD 82 C2   LDA &C282
+     A1A6   C5 CD      CMP &CD
+     A1A8   D0 07      BNE &A1B1
+     A1AA   60         RTS
+.Set_CurDirDrv_ToDefaults_and_load
+     A1AB   20 B2 8B   JSR &8BB2
+.LoadCurDrvCat2
+     A1AE   20 F0 83   JSR &83F0
+.LoadCurDrvCat
+     A1B1   A9 53      LDA #&53
+     A1B3   D0 0D      BNE &A1C2
+.SaveCatToDisk
+     A1B5   AD 04 C1   LDA &C104
+     A1B8   18         CLC
+     A1B9   F8         SED
+     A1BA   69 01      ADC #&01
+     A1BC   8D 04 C1   STA &C104
+     A1BF   D8         CLD
+     A1C0   A9 4B      LDA #&4B
+.exec_cat_rw
+     A1C2   48         PHA
+     A1C3   A5 CD      LDA &CD
+     A1C5   A2 00      LDX #&00
+.loop
+     A1C7   9D B0 C2   STA &C2B0,X
+     A1CA   BD DF A1   LDA &A1DF,X
+     A1CD   E8         INX
+     A1CE   E0 0A      CPX #&0A
+     A1D0   D0 F5      BNE &A1C7
+     A1D2   68         PLA
+     A1D3   8D B6 C2   STA &C2B6
+     A1D6   20 06 A2   JSR &A206
+     A1D9   A5 CD      LDA &CD
+     A1DB   8D 82 C2   STA &C282
+     A1DE   60         RTS
+.datax
+     A1DF   00
+     A1E0   C0
+     A1E1   FF
+     A1E2   FF
+     A1E3   03
+     A1E4   53
+     A1E5   00
+     A1E6   00
+     A1E7   22
+.OW7F_Execute
+     A1E8   A5 B0      LDA &B0
+     A1EA   48         PHA
+     A1EB   A5 B1      LDA &B1
+     A1ED   48         PHA
+     A1EE   A9 B0      LDA #&B0
+     A1F0   85 B0      STA &B0
+     A1F2   A9 C2      LDA #&C2
+     A1F4   85 B1      STA &B1
+     A1F6   20 43 AF   JSR &AF43
+     A1F9   68         PLA
+     A1FA   85 B1      STA &B1
+     A1FC   68         PLA
+     A1FD   85 B0      STA &B0
+     A1FF   AE B5 C2   LDX &C2B5
+     A202   BD B7 C2   LDA &C2B7,X
+     A205   60         RTS
+.OW7F_Execute_and_ReportIfDiskFault
+     A206   20 E8 A1   JSR &A1E8
+.ReportIfDiskFault
+     A209   D0 01      BNE &A20C
+     A20B   60         RTS
+.l0
+     A20C   C9 10      CMP #&10
+     A20E   D0 10      BNE &A220
+     A210   20 5B 80   JSR &805B
+     A213   C7
+     A214   44 72 69 ...
+     A21F   00
+.l1
+     A220   C9 12      CMP #&12
+     A222   D0 0E      BNE &A232
+     A224   20 46 80   JSR &8046
+     A227   C9
+     A228   72 65 61 ...
+     A231   00
+.l2
+     A232   A5 CD      LDA &CD
+     A234   8D B0 C2   STA &C2B0
+     A237   A2 06      LDX #&06
+.loop1
+     A239   BD 95 A2   LDA &A295,X
+     A23C   9D B1 C2   STA &C2B1,X
+     A23F   CA         DEX
+     A240   10 F7      BPL &A239
+     A242   20 E8 A1   JSR &A1E8
+     A245   48         PHA
+     A246   A5 CD      LDA &CD
+     A248   29 02      AND #&02
+     A24A   0A         ASL A
+     A24B   0A         ASL A
+     A24C   69 12      ADC #&12
+     A24E   8D B7 C2   STA &C2B7
+     A251   20 E8 A1   JSR &A1E8
+     A254   48         PHA
+     A255   20 46 80   JSR &8046
+     A258   00         BRK
+     A259   EA         NOP
+     A25A   20 72 80   JSR &8072
+     A25D   C7
+     A25E   73 65 63 ...
+     A272   EA         NOP
+     A273   A9 3A      LDA #&3A
+     A275   20 3E AF   JSR &AF3E
+     A278   A5 CD      LDA &CD
+     A27A   20 71 8C   JSR &8C71
+     A27D   A9 20      LDA #&20
+     A27F   20 3E AF   JSR &AF3E
+     A282   68         PLA
+     A283   20 69 8C   JSR &8C69
+     A286   A9 2F      LDA #&2F
+     A288   20 3E AF   JSR &AF3E
+     A28B   68         PLA
+     A28C   20 69 8C   JSR &8C69
+     A28F   20 72 80   JSR &8072
+     A292   C7
+     A293   00
+     A294   EA         NOP
+.spec
+     A295   00
+     A296   00
+     A297   00
+     A298   00
+     A299   01
+     A29A   7D
+     A29B   06
+Including file MMC_Pi1MHz.asm
+.MMC_DEVICE_RESET
+     A29C   A9 00      LDA #&00
+     A29E   8D A6 FC   STA &FCA6
+     A2A1   A0 F0      LDY #&F0
+     A2A3   8C A7 FC   STY &FCA7
+     A2A6   A2 FF      LDX #&FF
+     A2A8   8E A8 FC   STX &FCA8
+     A2AB   8D A9 FC   STA &FCA9
+     A2AE   8D A9 FC   STA &FCA9
+     A2B1   8D A9 FC   STA &FCA9
+     A2B4   8D A9 FC   STA &FCA9
+     A2B7   8D A9 FC   STA &FCA9
+     A2BA   A0 E0      LDY #&E0
+     A2BC   8C A9 FC   STY &FCA9
+     A2BF   8E A9 FC   STX &FCA9
+     A2C2   8D A9 FC   STA &FCA9
+     A2C5   A0 0C      LDY #&0C
+     A2C7   8C A6 FC   STY &FCA6
+     A2CA   A0 01      LDY #&01
+     A2CC   8C A9 FC   STY &FCA9
+     A2CF   8D A9 FC   STA &FCA9
+     A2D2   8D A9 FC   STA &FCA9
+     A2D5   8D A9 FC   STA &FCA9
+     A2D8   60         RTS
+.MMC_16Clocks
+     A2D9   60         RTS
+.MMC_Clocks
+     A2DA   F0 07      BEQ &A2E3
+.count
+     A2DC   AD A9 FC   LDA &FCA9
+     A2DF   88         DEY
+     A2E0   D0 FA      BNE &A2DC
+     A2E2   60         RTS
+.skip_sector
+.MMC_ReadBuffer
+.MMC_WriteBuffer
+     A2E3   A9 E1      LDA #&E1
+     A2E5   8D A7 FC   STA &FCA7
+     A2E8   60         RTS
+.MMC_DoCommand
+     A2E9   AD 88 C2   LDA &C288
+     A2EC   C9 51      CMP #&51
+     A2EE   D0 43      BNE &A333
+.setup_read_buffer
+     A2F0   A9 00      LDA #&00
+.setup_buffer
+     A2F2   A2 00      LDX #&00
+     A2F4   8E A6 FC   STX &FCA6
+     A2F7   A0 F0      LDY #&F0
+     A2F9   8C A7 FC   STY &FCA7
+     A2FC   A2 FF      LDX #&FF
+     A2FE   8E A8 FC   STX &FCA8
+     A301   8D A9 FC   STA &FCA9
+     A304   A2 08      LDX #&08
+     A306   8E A6 FC   STX &FCA6
+     A309   AE 8C C2   LDX &C28C
+     A30C   8E A9 FC   STX &FCA9
+     A30F   AE 8B C2   LDX &C28B
+     A312   8E A9 FC   STX &FCA9
+     A315   AE 8A C2   LDX &C28A
+     A318   8E A9 FC   STX &FCA9
+     A31B   AE 89 C2   LDX &C289
+     A31E   8E A9 FC   STX &FCA9
+     A321   90 03      BCC &A326
+     A323   8C AA FC   STY &FCAA
+.skip
+     A326   A2 E0      LDX #&E0
+     A328   8E A7 FC   STX &FCA7
+     A32B   A9 00      LDA #&00
+     A32D   8D A6 FC   STA &FCA6
+.MMC_send_cid
+.MMC_send_op
+.MMC_set_blk_size
+.MMC_return
+     A330   A9 00      LDA #&00
+.dbgMmc
+     A332   60         RTS
+.notareadcommand
+     A333   A9 01      LDA #&01
+     A335   18         CLC
+     A336   90 BA      BCC &A2F2
+.MMC_EndWrite
+     A338   A9 F0      LDA #&F0
+     A33A   8D AA FC   STA &FCAA
+     A33D   EA         NOP
+.MMC_WaitForData
+.loop
+     A33E   AD AA FC   LDA &FCAA
+     A341   30 FB      BMI &A33E
+     A343   A9 E0      LDA #&E0
+     A345   8D A7 FC   STA &FCA7
+     A348   A9 00      LDA #&00
+     A34A   8D A6 FC   STA &FCA6
+     A34D   60         RTS
+.MMC_Read256
+     A34E   AC AE C2   LDY &C2AE
+     A351   D0 09      BNE &A35C
+.rdl1
+     A353   AD A9 FC   LDA &FCA9
+     A356   91 BC      STA (&BC),Y
+     A358   C8         INY
+     A359   D0 F8      BNE &A353
+     A35B   60         RTS
+.rdlT20
+     A35C   A2 00      LDX #&00
+     A35E   F0 11      BEQ &A371
+.MMC_ReadBLS
+     A360   A6 C6      LDX &C6
+     A362   AC AE C2   LDY &C2AE
+     A365   D0 0A      BNE &A371
+.rdl2
+     A367   AD A9 FC   LDA &FCA9
+     A36A   91 BC      STA (&BC),Y
+     A36C   C8         INY
+     A36D   CA         DEX
+     A36E   D0 F7      BNE &A367
+     A370   60         RTS
+.rdlT1
+.rdlT2
+.rdlT3
+     A371   AD A9 FC   LDA &FCA9
+     A374   8D E5 FE   STA &FEE5
+     A377   20 82 A3   JSR &A382
+     A37A   20 82 A3   JSR &A382
+     A37D   EA         NOP
+     A37E   CA         DEX
+     A37F   D0 F0      BNE &A371
+     A381   60         RTS
+.donothing16cycles
+     A382   EA         NOP
+.donothing14cycles
+     A383   EA         NOP
+.MMC_SendingData
+.donothing
+     A384   60         RTS
+.MMC_Write256
+     A385   AC AE C2   LDY &C2AE
+     A388   D0 09      BNE &A393
+.wr1
+     A38A   B1 BC      LDA (&BC),Y
+     A38C   8D A9 FC   STA &FCA9
+     A38F   C8         INY
+     A390   D0 F8      BNE &A38A
+     A392   60         RTS
+.wrT1
+     A393   A0 00      LDY #&00
+.wrT2
+     A395   AD E5 FE   LDA &FEE5
+     A398   8D A9 FC   STA &FCA9
+     A39B   20 82 A3   JSR &A382
+     A39E   20 82 A3   JSR &A382
+     A3A1   EA         NOP
+     A3A2   C8         INY
+     A3A3   D0 F0      BNE &A395
+     A3A5   60         RTS
+Processed file 'MMC_Pi1MHz.asm' ok
+.errWrite2
+     A3A6   98         TYA
+     A3A7   20 00 AF   JSR &AF00
+     A3AA   57 72 69 ...
+     A3BF   00
+Including file MMC.asm
+.MMC_INIT
+     A3C0   A9 01      LDA #&01
+     A3C2   8D DE C2   STA &C2DE
+     A3C5   A9 40      LDA #&40
+     A3C7   8D AF C2   STA &C2AF
+     A3CA   20 3E 80   JSR &803E
+     A3CD   18         CLC
+     A3CE   60         RTS
+.MMC_GetCIDCRC
+     A3CF   A9 AA      LDA #&AA
+     A3D1   A8         TAY
+     A3D2   60         RTS
+.MMC_SetupWrite
+     A3D3   A9 58      LDA #&58
+     A3D5   D0 02      BNE &A3D9
+.MMC_SetupRead
+     A3D7   A9 51      LDA #&51
+.setuprw
+     A3D9   8D 88 C2   STA &C288
+.setCommandAddress
+.setCommandAddressSDHC
+     A3DC   A9 00      LDA #&00
+     A3DE   8D 89 C2   STA &C289
+     A3E1   A5 C0      LDA &C0
+     A3E3   4A         LSR A
+     A3E4   8D 8A C2   STA &C28A
+     A3E7   A5 BF      LDA &BF
+     A3E9   6A         ROR A
+     A3EA   8D 8B C2   STA &C28B
+     A3ED   A5 BE      LDA &BE
+     A3EF   6A         ROR A
+     A3F0   8D 8C C2   STA &C28C
+     A3F3   60         RTS
+.MMC_StartRead
+     A3F4   20 E9 A2   JSR &A2E9
+     A3F7   D0 03      BNE &A3FC
+     A3F9   4C 3E A3   JMP &A33E
+.errRead
+     A3FC   20 00 AF   JSR &AF00
+     A3FF   52 65 61 ...
+     A40A   00
+.MMC_StartWrite
+     A40B   20 E9 A2   JSR &A2E9
+     A40E   D0 03      BNE &A413
+     A410   4C 84 A3   JMP &A384
+.errWrite
+     A413   20 00 AF   JSR &AF00
+     A416   57 72 69 ...
+     A422   00
+.SetupCatRW
+     A423   20 34 80   JSR &8034
+     A426   A9 00      LDA #&00
+     A428   8D AE C2   STA &C2AE
+     A42B   85 BC      STA &BC
+     A42D   A9 C0      LDA #&C0
+     A42F   85 BD      STA &BD
+     A431   60         RTS
+.MMC_ReadCatalogue
+     A432   20 23 A4   JSR &A423
+     A435   20 D7 A3   JSR &A3D7
+     A438   20 F4 A3   JSR &A3F4
+     A43B   20 4E A3   JSR &A34E
+     A43E   E6 BD      INC &BD
+     A440   20 4E A3   JSR &A34E
+     A443   20 D9 A2   JSR &A2D9
+     A446   4C 3E 80   JMP &803E
+.MMC_WriteCatalogue
+     A449   20 23 A4   JSR &A423
+     A44C   20 D3 A3   JSR &A3D3
+     A44F   20 0B A4   JSR &A40B
+     A452   20 85 A3   JSR &A385
+     A455   E6 BD      INC &BD
+     A457   20 85 A3   JSR &A385
+     A45A   20 38 A3   JSR &A338
+     A45D   4C 3E 80   JMP &803E
+.MMC_RWBlock_CheckIfToTube
+     A460   48         PHA
+     A461   AD AC C2   LDA &C2AC
+     A464   2D AD C2   AND &C2AD
+     A467   0D D6 C2   ORA &C2D6
+     A46A   49 FF      EOR #&FF
+     A46C   8D AE C2   STA &C2AE
+     A46F   38         SEC
+     A470   F0 0D      BEQ &A47F
+     A472   20 3E 8C   JSR &8C3E
+     A475   A2 AA      LDX #&AA
+     A477   A0 C2      LDY #&C2
+     A479   68         PLA
+     A47A   48         PHA
+     A47B   20 06 04   JSR &0406
+     A47E   18         CLC
+.notTube
+     A47F   68         PLA
+     A480   60         RTS
+.MMC_ReadBlock
+     A481   4E A6 C2   LSR &C2A6
+     A484   20 34 80   JSR &8034
+     A487   20 91 A4   JSR &A491
+     A48A   4C 3E 80   JMP &803E
+.rb_err
+     A48D   6E A6 C2   ROR &C2A6
+.rb1_exit
+     A490   60         RTS
+.rdblk
+     A491   A6 C4      LDX &C4
+     A493   D0 04      BNE &A499
+     A495   A5 C5      LDA &C5
+     A497   F0 F7      BEQ &A490
+.rb1
+     A499   A9 01      LDA #&01
+     A49B   20 60 A4   JSR &A460
+     A49E   A6 C4      LDX &C4
+     A4A0   66 BE      ROR &BE
+     A4A2   66 C1      ROR &C1
+     A4A4   10 07      BPL &A4AD
+     A4A6   E8         INX
+     A4A7   86 C4      STX &C4
+     A4A9   D0 02      BNE &A4AD
+     A4AB   E6 C5      INC &C5
+.rb2
+     A4AD   06 BE      ASL &BE
+     A4AF   20 D7 A3   JSR &A3D7
+     A4B2   A5 C5      LDA &C5
+     A4B4   D0 0E      BNE &A4C4
+     A4B6   A6 C4      LDX &C4
+     A4B8   E0 03      CPX #&03
+     A4BA   B0 08      BCS &A4C4
+.rb4_loop
+     A4BC   A5 C6      LDA &C6
+     A4BE   D0 47      BNE &A507
+     A4C0   E0 01      CPX #&01
+     A4C2   F0 3A      BEQ &A4FE
+.rb3
+     A4C4   24 C1      BIT &C1
+     A4C6   10 0D      BPL &A4D5
+     A4C8   20 F4 A3   JSR &A3F4
+     A4CB   A0 00      LDY #&00
+     A4CD   84 C1      STY &C1
+     A4CF   20 DA A2   JSR &A2DA
+     A4D2   4C DD A4   JMP &A4DD
+.rb6_loop
+     A4D5   20 F4 A3   JSR &A3F4
+     A4D8   20 4E A3   JSR &A34E
+     A4DB   E6 BD      INC &BD
+.rb7
+     A4DD   20 4E A3   JSR &A34E
+     A4E0   E6 BD      INC &BD
+     A4E2   20 D9 A2   JSR &A2D9
+     A4E5   20 E0 A5   JSR &A5E0
+     A4E8   F0 A6      BEQ &A490
+     A4EA   20 94 AE   JSR &AE94
+     A4ED   B0 9E      BCS &A48D
+     A4EF   20 D7 A3   JSR &A3D7
+     A4F2   A6 C4      LDX &C4
+     A4F4   A5 C5      LDA &C5
+     A4F6   D0 DD      BNE &A4D5
+     A4F8   E0 03      CPX #&03
+     A4FA   B0 D9      BCS &A4D5
+     A4FC   90 BE      BCC &A4BC
+.rb9
+     A4FE   20 F4 A3   JSR &A3F4
+     A501   20 4E A3   JSR &A34E
+     A504   4C 2E A5   JMP &A52E
+.rb5
+     A507   20 F4 A3   JSR &A3F4
+     A50A   24 C1      BIT &C1
+     A50C   10 08      BPL &A516
+     A50E   A0 00      LDY #&00
+     A510   20 DA A2   JSR &A2DA
+     A513   4C 1F A5   JMP &A51F
+.rbx1
+     A516   C6 C4      DEC &C4
+     A518   F0 05      BEQ &A51F
+     A51A   20 4E A3   JSR &A34E
+     A51D   E6 BD      INC &BD
+.rbx2
+     A51F   20 60 A3   JSR &A360
+     A522   98         TYA
+     A523   49 FF      EOR #&FF
+     A525   A8         TAY
+     A526   C8         INY
+     A527   20 DA A2   JSR &A2DA
+     A52A   A5 C4      LDA &C4
+     A52C   D0 05      BNE &A533
+.rbx4
+     A52E   A0 00      LDY #&00
+     A530   20 DA A2   JSR &A2DA
+.rbx3
+     A533   4C D9 A2   JMP &A2D9
+.wb1_exit
+     A536   60         RTS
+.MMC_WriteBlock
+     A537   4E A6 C2   LSR &C2A6
+     A53A   20 34 80   JSR &8034
+     A53D   20 43 A5   JSR &A543
+     A540   4C 3E 80   JMP &803E
+.wrblk
+     A543   A6 C4      LDX &C4
+     A545   D0 04      BNE &A54B
+     A547   A5 C5      LDA &C5
+     A549   F0 EB      BEQ &A536
+.wb1
+     A54B   A9 00      LDA #&00
+     A54D   20 60 A4   JSR &A460
+     A550   A6 C4      LDX &C4
+     A552   66 BE      ROR &BE
+     A554   6A         ROR A
+     A555   06 BE      ASL &BE
+     A557   48         PHA
+     A558   20 D3 A3   JSR &A3D3
+     A55B   68         PLA
+     A55C   10 37      BPL &A595
+     A55E   A9 51      LDA #&51
+     A560   8D 88 C2   STA &C288
+     A563   20 F4 A3   JSR &A3F4
+     A566   20 E3 A2   JSR &A2E3
+     A569   A0 00      LDY #&00
+     A56B   20 DA A2   JSR &A2DA
+     A56E   A0 02      LDY #&02
+     A570   20 DA A2   JSR &A2DA
+     A573   A9 58      LDA #&58
+     A575   8D 88 C2   STA &C288
+     A578   20 0B A4   JSR &A40B
+     A57B   20 E3 A2   JSR &A2E3
+     A57E   20 85 A3   JSR &A385
+     A581   20 38 A3   JSR &A338
+     A584   A9 FF      LDA #&FF
+     A586   20 E2 A5   JSR &A5E2
+     A589   F0 AB      BEQ &A536
+     A58B   E6 BD      INC &BD
+.wb4
+     A58D   20 94 AE   JSR &AE94
+     A590   B0 4A      BCS &A5DC
+     A592   20 D3 A3   JSR &A3D3
+.wb2
+     A595   A5 C5      LDA &C5
+     A597   D0 2D      BNE &A5C6
+     A599   A6 C4      LDX &C4
+     A59B   F0 3E      BEQ &A5DB
+     A59D   CA         DEX
+     A59E   D0 26      BNE &A5C6
+     A5A0   A9 51      LDA #&51
+     A5A2   8D 88 C2   STA &C288
+     A5A5   20 F4 A3   JSR &A3F4
+     A5A8   A0 00      LDY #&00
+     A5AA   20 DA A2   JSR &A2DA
+     A5AD   20 E3 A2   JSR &A2E3
+     A5B0   A0 02      LDY #&02
+     A5B2   20 DA A2   JSR &A2DA
+     A5B5   A9 58      LDA #&58
+     A5B7   8D 88 C2   STA &C288
+     A5BA   20 0B A4   JSR &A40B
+     A5BD   20 85 A3   JSR &A385
+     A5C0   20 E3 A2   JSR &A2E3
+     A5C3   4C 38 A3   JMP &A338
+.wb3
+     A5C6   20 0B A4   JSR &A40B
+     A5C9   20 85 A3   JSR &A385
+     A5CC   E6 BD      INC &BD
+     A5CE   20 85 A3   JSR &A385
+     A5D1   E6 BD      INC &BD
+     A5D3   20 38 A3   JSR &A338
+     A5D6   20 E0 A5   JSR &A5E0
+     A5D9   D0 B2      BNE &A58D
+.wb5
+     A5DB   60         RTS
+.wb_err
+     A5DC   6E A6 C2   ROR &C2A6
+     A5DF   60         RTS
+.dec_seccountby2
+     A5E0   A9 FE      LDA #&FE
+.dec_seccount
+     A5E2   18         CLC
+     A5E3   65 C4      ADC &C4
+     A5E5   85 C4      STA &C4
+     A5E7   AA         TAX
+     A5E8   A9 FF      LDA #&FF
+     A5EA   65 C5      ADC &C5
+     A5EC   85 C5      STA &C5
+     A5EE   05 C4      ORA &C4
+     A5F0   60         RTS
+.MMC_BEGIN2
+     A5F1   20 F0 83   JSR &83F0
+     A5F4   20 FA A5   JSR &A5FA
+     A5F7   4C 4D A6   JMP &A64D
+.MMC_BEGIN1
+     A5FA   A2 0F      LDX #&0F
+.begloop1
+     A5FC   B5 BC      LDA &BC,X
+     A5FE   9D 90 C2   STA &C290,X
+     A601   CA         DEX
+     A602   10 F8      BPL &A5FC
+     A604   20 9C A2   JSR &A29C
+     A607   2C AF C2   BIT &C2AF
+     A60A   50 01      BVC &A60D
+     A60C   60         RTS
+.begX
+     A60D   20 C0 A3   JSR &A3C0
+     A610   B0 06      BCS &A618
+     A612   20 22 A6   JSR &A622
+     A615   4C DE A6   JMP &A6DE
+.carderr
+     A618   20 6B 80   JSR &806B
+     A61B   FF
+     A61C   43 61 72 ...
+     A621   00
+.MMC_CheckCardID
+     A622   20 81 A1   JSR &A181
+     A625   AD E4 C2   LDA &C2E4
+     A628   F0 0D      BEQ &A637
+     A62A   20 CF A3   JSR &A3CF
+     A62D   CD EF C2   CMP &C2EF
+     A630   D0 06      BNE &A638
+     A632   CC EE C2   CPY &C2EE
+     A635   D0 01      BNE &A638
+.cid_x
+     A637   60         RTS
+.errCardChanged
+     A638   A9 00      LDA #&00
+     A63A   8D AF C2   STA &C2AF
+     A63D   20 6B 80   JSR &806B
+     A640   FF
+     A641   57 72 6F ...
+     A64C   00
+.MMC_END
+     A64D   A2 0F      LDX #&0F
+.eloop0
+     A64F   BD 90 C2   LDA &C290,X
+     A652   95 BC      STA &BC,X
+     A654   CA         DEX
+     A655   10 F8      BPL &A64F
+     A657   60         RTS
+Processed file 'MMC.asm' ok
+.CMD_DABOUT
+     A658   A2 00      LDX #&00
+.loop
+     A65A   BD 09 80   LDA &8009,X
+     A65D   D0 02      BNE &A661
+     A65F   A9 0D      LDA #&0D
+.print
+     A661   20 E3 FF   JSR &FFE3
+     A664   E8         INX
+     A665   E0 28      CPX #&28
+     A667   D0 F1      BNE &A65A
+     A669   60         RTS
+Including file MM32.asm
+.mm32_cmd_dbug
+.l1
+     A66A   20 98 80   JSR &8098
+     A66D   46 41 54 ...
+     A676   A0 00      LDY #&00
+     A678   20 B4 A6   JSR &A6B4
+     A67B   20 98 80   JSR &8098
+     A67E   44 41 54 ...
+     A687   A0 02      LDY #&02
+     A689   20 B4 A6   JSR &A6B4
+     A68C   20 98 80   JSR &8098
+     A68F   43 4C 55 ...
+     A698   A0 04      LDY #&04
+     A69A   20 BA A6   JSR &A6BA
+     A69D   A2 00      LDX #&00
+.loop
+     A69F   8A         TXA
+     A6A0   20 F7 80   JSR &80F7
+     A6A3   A9 3A      LDA #&3A
+     A6A5   20 EE FF   JSR &FFEE
+     A6A8   20 C3 A6   JSR &A6C3
+     A6AB   20 E7 FF   JSR &FFE7
+     A6AE   E8         INX
+     A6AF   E0 03      CPX #&03
+     A6B1   D0 EC      BNE &A69F
+     A6B3   60         RTS
+.phex2
+     A6B4   B9 E1 C2   LDA &C2E1,Y
+     A6B7   20 F7 80   JSR &80F7
+.phex1
+     A6BA   B9 E0 C2   LDA &C2E0,Y
+     A6BD   20 F7 80   JSR &80F7
+     A6C0   4C E7 FF   JMP &FFE7
+.mm32_pclust
+     A6C3   BD EB C2   LDA &C2EB,X
+     A6C6   20 F7 80   JSR &80F7
+     A6C9   BD E8 C2   LDA &C2E8,X
+     A6CC   20 F7 80   JSR &80F7
+     A6CF   BD E5 C2   LDA &C2E5,X
+     A6D2   20 F7 80   JSR &80F7
+     A6D5   60         RTS
+.mm32_readblock
+     A6D6   A9 FF      LDA #&FF
+     A6D8   8D 82 C2   STA &C282
+     A6DB   4C 32 A4   JMP &A432
+.mm32_init_dos
+     A6DE   20 81 A1   JSR &A181
+     A6E1   AD E4 C2   LDA &C2E4
+     A6E4   F0 01      BEQ &A6E7
+     A6E6   60         RTS
+.init
+     A6E7   20 6E A7   JSR &A76E
+     A6EA   90 71      BCC &A75D
+     A6EC   AD 0C C0   LDA &C00C
+     A6EF   C9 02      CMP #&02
+     A6F1   D0 6A      BNE &A75D
+     A6F3   4D 2C C0   EOR &C02C
+     A6F6   0D 26 C0   ORA &C026
+     A6F9   D0 62      BNE &A75D
+     A6FB   AD 25 C0   LDA &C025
+     A6FE   4A         LSR A
+     A6FF   F0 5C      BEQ &A75D
+     A701   AD 0D C0   LDA &C00D
+     A704   85 CB      STA &CB
+     A706   A5 C7      LDA &C7
+     A708   A4 C8      LDY &C8
+     A70A   18         CLC
+     A70B   6D 0E C0   ADC &C00E
+     A70E   AA         TAX
+     A70F   98         TYA
+     A710   6D 0F C0   ADC &C00F
+     A713   B0 48      BCS &A75D
+     A715   86 C7      STX &C7
+     A717   85 C8      STA &C8
+.loop1
+     A719   A8         TAY
+     A71A   8A         TXA
+     A71B   6D 24 C0   ADC &C024
+     A71E   AA         TAX
+     A71F   98         TYA
+     A720   6D 25 C0   ADC &C025
+     A723   B0 38      BCS &A75D
+     A725   CE 10 C0   DEC &C010
+     A728   D0 EF      BNE &A719
+     A72A   A8         TAY
+     A72B   0E 0D C0   ASL &C00D
+     A72E   8A         TXA
+     A72F   38         SEC
+     A730   ED 0D C0   SBC &C00D
+     A733   85 C9      STA &C9
+     A735   98         TYA
+     A736   E9 00      SBC #&00
+     A738   85 CA      STA &CA
+     A73A   20 81 A1   JSR &A181
+     A73D   20 CF A3   JSR &A3CF
+     A740   8D EF C2   STA &C2EF
+     A743   8C EE C2   STY &C2EE
+     A746   A0 05      LDY #&05
+.loop2
+     A748   B9 C6 00   LDA &00C6,Y
+     A74B   99 DF C2   STA &C2DF,Y
+     A74E   88         DEY
+     A74F   D0 F7      BNE &A748
+     A751   98         TYA
+     A752   A0 08      LDY #&08
+.loop3
+     A754   99 E5 C2   STA &C2E5,Y
+     A757   88         DEY
+     A758   10 FA      BPL &A754
+     A75A   4C 95 A1   JMP &A195
+.faterr
+     A75D   20 6B 80   JSR &806B
+     A760   FF
+     A761   43 61 72 ...
+     A76D   00
+.read_VBR
+     A76E   A9 00      LDA #&00
+     A770   85 C7      STA &C7
+     A772   85 C8      STA &C8
+     A774   85 BE      STA &BE
+     A776   85 BF      STA &BF
+     A778   85 C0      STA &C0
+     A77A   20 AF A7   JSR &A7AF
+     A77D   90 41      BCC &A7C0
+     A77F   AD 00 C0   LDA &C000
+     A782   C9 EB      CMP #&EB
+     A784   D0 0E      BNE &A794
+     A786   AD 02 C0   LDA &C002
+     A789   C9 90      CMP #&90
+     A78B   D0 07      BNE &A794
+     A78D   AD 0C C0   LDA &C00C
+     A790   C9 02      CMP #&02
+     A792   F0 2C      BEQ &A7C0
+.mbr
+     A794   AD C6 C1   LDA &C1C6
+     A797   85 C7      STA &C7
+     A799   85 BE      STA &BE
+     A79B   AD C7 C1   LDA &C1C7
+     A79E   85 C8      STA &C8
+     A7A0   85 BF      STA &BF
+     A7A2   AD C8 C1   LDA &C1C8
+     A7A5   0D C9 C1   ORA &C1C9
+     A7A8   D0 17      BNE &A7C1
+     A7AA   85 C0      STA &C0
+     A7AC   20 F9 AE   JSR &AEF9
+.isfat
+     A7AF   20 D6 A6   JSR &A6D6
+     A7B2   AD FE C1   LDA &C1FE
+     A7B5   C9 55      CMP #&55
+     A7B7   D0 08      BNE &A7C1
+     A7B9   AD FF C1   LDA &C1FF
+     A7BC   C9 AA      CMP #&AA
+     A7BE   D0 01      BNE &A7C1
+.ifx
+     A7C0   60         RTS
+.bad
+     A7C1   18         CLC
+     A7C2   60         RTS
+.mm32_SECT_X_First
+     A7C3   B9 E5 C2   LDA &C2E5,Y
+     A7C6   85 C8      STA &C8
+     A7C8   B9 E8 C2   LDA &C2E8,Y
+     A7CB   85 C9      STA &C9
+     A7CD   B9 EB C2   LDA &C2EB,Y
+     A7D0   85 C2      STA &C2
+     A7D2   29 3F      AND #&3F
+     A7D4   85 CA      STA &CA
+     A7D6   05 C8      ORA &C8
+     A7D8   05 C9      ORA &C9
+     A7DA   D0 0C      BNE &A7E8
+     A7DC   C0 02      CPY #&02
+     A7DE   F0 04      BEQ &A7E4
+     A7E0   24 C2      BIT &C2
+     A7E2   10 0F      BPL &A7F3
+.l1
+     A7E4   A9 02      LDA #&02
+     A7E6   85 C8      STA &C8
+.l2
+     A7E8   AD E4 C2   LDA &C2E4
+     A7EB   85 CB      STA &CB
+     A7ED   A9 00      LDA #&00
+     A7EF   85 CE      STA &CE
+     A7F1   B8         CLV
+     A7F2   60         RTS
+.l3
+     A7F3   2C F6 A7   BIT &A7F6
+.l4
+     A7F6   60         RTS
+.mm32_SECT_X_Next
+     A7F7   C6 CB      DEC &CB
+     A7F9   F0 02      BEQ &A7FD
+     A7FB   18         CLC
+     A7FC   60         RTS
+.l1
+     A7FD   20 06 A8   JSR &A806
+     A800   AD E4 C2   LDA &C2E4
+     A803   85 CB      STA &CB
+     A805   60         RTS
+.next_cluster
+     A806   20 19 84   JSR &8419
+     A809   C6 CE      DEC &CE
+     A80B   10 1D      BPL &A82A
+     A80D   AD AE C2   LDA &C2AE
+     A810   48         PHA
+     A811   A5 BC      LDA &BC
+     A813   48         PHA
+     A814   A5 BD      LDA &BD
+     A816   48         PHA
+     A817   A5 C6      LDA &C6
+     A819   48         PHA
+     A81A   20 4D A8   JSR &A84D
+     A81D   68         PLA
+     A81E   85 C6      STA &C6
+     A820   68         PLA
+     A821   85 BD      STA &BD
+     A823   68         PLA
+     A824   85 BC      STA &BC
+     A826   68         PLA
+     A827   8D AE C2   STA &C2AE
+.l1
+     A82A   18         CLC
+     A82B   A5 CE      LDA &CE
+     A82D   F0 12      BEQ &A841
+     A82F   E6 C8      INC &C8
+     A831   D0 0D      BNE &A840
+     A833   E6 C9      INC &C9
+     A835   D0 09      BNE &A840
+     A837   E6 CA      INC &CA
+.l2
+     A839   A5 CA      LDA &CA
+     A83B   29 C0      AND #&C0
+     A83D   F0 01      BEQ &A840
+     A83F   38         SEC
+.l3
+     A840   60         RTS
+.l4
+     A841   A2 02      LDX #&02
+.loop1
+     A843   BD A0 C2   LDA &C2A0,X
+     A846   95 C8      STA &C8,X
+     A848   CA         DEX
+     A849   10 F8      BPL &A843
+     A84B   30 EC      BMI &A839
+.read_fat
+     A84D   A5 C8      LDA &C8
+     A84F   0A         ASL A
+     A850   85 CB      STA &CB
+     A852   A5 C9      LDA &C9
+     A854   2A         ROL A
+     A855   A8         TAY
+     A856   A5 CA      LDA &CA
+     A858   2A         ROL A
+     A859   AA         TAX
+     A85A   98         TYA
+     A85B   6D E0 C2   ADC &C2E0
+     A85E   85 BE      STA &BE
+     A860   8A         TXA
+     A861   6D E1 C2   ADC &C2E1
+     A864   85 BF      STA &BF
+     A866   A9 00      LDA #&00
+     A868   8D AE C2   STA &C2AE
+     A86B   85 C0      STA &C0
+     A86D   20 F9 AE   JSR &AEF9
+     A870   20 34 80   JSR &8034
+     A873   20 D7 A3   JSR &A3D7
+     A876   20 F4 A3   JSR &A3F4
+     A879   A9 A0      LDA #&A0
+     A87B   85 BC      STA &BC
+     A87D   A9 C2      LDA #&C2
+     A87F   85 BD      STA &BD
+     A881   A5 CB      LDA &CB
+     A883   20 CC A8   JSR &A8CC
+.loop1
+     A886   E6 CE      INC &CE
+     A888   A9 04      LDA #&04
+     A88A   85 C6      STA &C6
+     A88C   20 60 A3   JSR &A360
+     A88F   E6 CB      INC &CB
+     A891   E6 CB      INC &CB
+     A893   F0 31      BEQ &A8C6
+     A895   38         SEC
+     A896   AD A2 C2   LDA &C2A2
+     A899   29 C0      AND #&C0
+     A89B   0D A3 C2   ORA &C2A3
+     A89E   D0 1B      BNE &A8BB
+     A8A0   AD A0 C2   LDA &C2A0
+     A8A3   E5 C8      SBC &C8
+     A8A5   A8         TAY
+     A8A6   AD A1 C2   LDA &C2A1
+     A8A9   E5 C9      SBC &C9
+     A8AB   D0 11      BNE &A8BE
+     A8AD   AD A2 C2   LDA &C2A2
+     A8B0   E5 CA      SBC &CA
+     A8B2   D0 0A      BNE &A8BE
+     A8B4   88         DEY
+     A8B5   C4 CE      CPY &CE
+     A8B7   F0 CD      BEQ &A886
+     A8B9   D0 03      BNE &A8BE
+.l2
+     A8BB   6E A2 C2   ROR &C2A2
+.l3
+     A8BE   38         SEC
+     A8BF   A9 00      LDA #&00
+     A8C1   E5 CB      SBC &CB
+     A8C3   20 CC A8   JSR &A8CC
+.l4
+     A8C6   20 D9 A2   JSR &A2D9
+     A8C9   4C 3E 80   JMP &803E
+.clocks
+     A8CC   0A         ASL A
+     A8CD   48         PHA
+     A8CE   90 05      BCC &A8D5
+     A8D0   A0 00      LDY #&00
+     A8D2   20 DA A2   JSR &A2DA
+.l1
+     A8D5   68         PLA
+     A8D6   F0 04      BEQ &A8DC
+     A8D8   A8         TAY
+     A8D9   4C DA A2   JMP &A2DA
+.l2
+     A8DC   60         RTS
+.mm32_Scan_Dir
+     A8DD   A0 02      LDY #&02
+     A8DF   20 C3 A7   JSR &A7C3
+.loop1
+     A8E2   20 BB AE   JSR &AEBB
+     A8E5   B0 0F      BCS &A8F6
+     A8E7   20 D6 A6   JSR &A6D6
+     A8EA   20 F7 A8   JSR &A8F7
+     A8ED   90 07      BCC &A8F6
+     A8EF   F0 05      BEQ &A8F6
+     A8F1   20 F7 A7   JSR &A7F7
+     A8F4   90 EC      BCC &A8E2
+.exit
+     A8F6   60         RTS
+.scan_block
+     A8F7   A9 00      LDA #&00
+     A8F9   85 AB      STA &AB
+     A8FB   85 B0      STA &B0
+     A8FD   A9 C0      LDA #&C0
+.loop1
+     A8FF   85 B1      STA &B1
+.loop2
+     A901   A0 00      LDY #&00
+     A903   B1 B0      LDA (&B0),Y
+     A905   F0 75      BEQ &A97C
+     A907   30 5F      BMI &A968
+     A909   C9 21      CMP #&21
+     A90B   90 5B      BCC &A968
+     A90D   A0 15      LDY #&15
+     A90F   B1 B0      LDA (&B0),Y
+     A911   29 0F      AND #&0F
+     A913   D0 53      BNE &A968
+     A915   88         DEY
+     A916   B1 B0      LDA (&B0),Y
+     A918   29 F0      AND #&F0
+     A91A   D0 4C      BNE &A968
+     A91C   A0 0B      LDY #&0B
+     A91E   B1 B0      LDA (&B0),Y
+     A920   29 0E      AND #&0E
+     A922   D0 44      BNE &A968
+     A924   B1 B0      LDA (&B0),Y
+     A926   4A         LSR A
+     A927   29 08      AND #&08
+     A929   85 B8      STA &B8
+     A92B   F0 04      BEQ &A931
+     A92D   A9 80      LDA #&80
+     A92F   D0 0C      BNE &A93D
+.l1
+     A931   24 B2      BIT &B2
+     A933   30 33      BMI &A968
+     A935   6A         ROR A
+     A936   85 B9      STA &B9
+     A938   20 55 AA   JSR &AA55
+     A93B   05 B9      ORA &B9
+.l2
+     A93D   85 B9      STA &B9
+     A93F   20 E5 A9   JSR &A9E5
+     A942   20 82 AA   JSR &AA82
+     A945   B0 21      BCS &A968
+     A947   A5 AA      LDA &AA
+     A949   F0 14      BEQ &A95F
+     A94B   C9 03      CMP #&03
+     A94D   D0 03      BNE &A952
+     A94F   4C B1 A9   JMP &A9B1
+.lock_or_unlock
+     A952   C9 02      CMP #&02
+     A954   F0 06      BEQ &A95C
+     A956   20 A0 A9   JSR &A9A0
+     A959   4C 5F A9   JMP &A95F
+.lock
+     A95C   20 8F A9   JSR &A98F
+.s1
+     A95F   24 B7      BIT &B7
+     A961   30 02      BMI &A965
+     A963   18         CLC
+     A964   60         RTS
+.logging
+     A965   20 10 AA   JSR &AA10
+.skip
+     A968   20 55 8C   JSR &8C55
+     A96B   18         CLC
+     A96C   A5 B0      LDA &B0
+     A96E   69 20      ADC #&20
+     A970   85 B0      STA &B0
+     A972   90 8D      BCC &A901
+     A974   A5 B1      LDA &B1
+     A976   69 00      ADC #&00
+     A978   C9 C1      CMP #&C1
+     A97A   F0 83      BEQ &A8FF
+.exit
+     A97C   08         PHP
+     A97D   48         PHA
+     A97E   A5 AB      LDA &AB
+     A980   C9 FF      CMP #&FF
+     A982   D0 03      BNE &A987
+     A984   20 49 A4   JSR &A449
+.nowrite
+     A987   A0 00      LDY #&00
+     A989   84 AB      STY &AB
+     A98B   68         PLA
+     A98C   28         PLP
+     A98D   38         SEC
+     A98E   60         RTS
+.lock_fat_file
+     A98F   A9 80      LDA #&80
+     A991   85 B9      STA &B9
+     A993   A0 0B      LDY #&0B
+     A995   B1 B0      LDA (&B0),Y
+     A997   09 01      ORA #&01
+     A999   91 B0      STA (&B0),Y
+     A99B   A9 FF      LDA #&FF
+     A99D   85 AB      STA &AB
+     A99F   60         RTS
+.unlock_fat_file
+     A9A0   A9 00      LDA #&00
+     A9A2   85 B9      STA &B9
+     A9A4   A0 0B      LDY #&0B
+     A9A6   B1 B0      LDA (&B0),Y
+     A9A8   29 FE      AND #&FE
+     A9AA   91 B0      STA (&B0),Y
+     A9AC   A9 FF      LDA #&FF
+     A9AE   85 AB      STA &AB
+     A9B0   60         RTS
+.rename_fat_file
+     A9B1   A2 21      LDX #&21
+     A9B3   A0 00      LDY #&00
+     A9B5   A9 2E      LDA #&2E
+     A9B7   85 BA      STA &BA
+     A9B9   A9 08      LDA #&08
+     A9BB   20 C4 A9   JSR &A9C4
+     A9BE   A9 02      LDA #&02
+     A9C0   85 BA      STA &BA
+     A9C2   A9 0B      LDA #&0B
+.copy_and_pad_with_spaces
+     A9C4   85 BB      STA &BB
+.loop
+     A9C6   BD 00 C2   LDA &C200,X
+     A9C9   E8         INX
+     A9CA   C5 BA      CMP &BA
+     A9CC   F0 0E      BEQ &A9DC
+     A9CE   C4 BB      CPY &BB
+     A9D0   F0 F4      BEQ &A9C6
+     A9D2   91 B0      STA (&B0),Y
+     A9D4   C8         INY
+     A9D5   D0 EF      BNE &A9C6
+.padloop
+     A9D7   A9 20      LDA #&20
+     A9D9   91 B0      STA (&B0),Y
+     A9DB   C8         INY
+.pad
+     A9DC   C4 BB      CPY &BB
+     A9DE   D0 F7      BNE &A9D7
+     A9E0   20 49 A4   JSR &A449
+     A9E3   18         CLC
+     A9E4   60         RTS
+.copy_name
+     A9E5   A2 01      LDX #&01
+     A9E7   A0 00      LDY #&00
+.loop1
+     A9E9   B1 B0      LDA (&B0),Y
+     A9EB   C9 21      CMP #&21
+     A9ED   90 04      BCC &A9F3
+     A9EF   9D 00 C2   STA &C200,X
+     A9F2   E8         INX
+.l1
+     A9F3   C8         INY
+     A9F4   C0 08      CPY #&08
+     A9F6   D0 06      BNE &A9FE
+.l11
+     A9F8   A9 2E      LDA #&2E
+     A9FA   9D 00 C2   STA &C200,X
+     A9FD   E8         INX
+.l2
+     A9FE   C0 0B      CPY #&0B
+     AA00   D0 E7      BNE &A9E9
+.l3
+     AA02   A9 02      LDA #&02
+     AA04   8D 00 C2   STA &C200
+     AA07   9D 00 C2   STA &C200,X
+     AA0A   A9 00      LDA #&00
+     AA0C   9D 01 C2   STA &C201,X
+     AA0F   60         RTS
+.print_dir_entry
+     AA10   A2 03      LDX #&03
+     AA12   20 4E AA   JSR &AA4E
+     AA15   A2 20      LDX #&20
+     AA17   A5 B8      LDA &B8
+     AA19   F0 02      BEQ &AA1D
+     AA1B   A2 2F      LDX #&2F
+.l99
+     AA1D   8A         TXA
+     AA1E   A0 01      LDY #&01
+     AA20   A2 0E      LDX #&0E
+.loop1
+     AA22   20 DB 80   JSR &80DB
+     AA25   B9 00 C2   LDA &C200,Y
+     AA28   C9 20      CMP #&20
+     AA2A   90 11      BCC &AA3D
+     AA2C   C9 2E      CMP #&2E
+     AA2E   F0 04      BEQ &AA34
+.l0
+     AA30   CA         DEX
+     AA31   C8         INY
+     AA32   D0 EE      BNE &AA22
+.l1
+     AA34   B9 01 C2   LDA &C201,Y
+     AA37   C9 20      CMP #&20
+     AA39   A9 2E      LDA #&2E
+     AA3B   B0 F3      BCS &AA30
+.lx
+     AA3D   20 4E AA   JSR &AA4E
+     AA40   A9 4C      LDA #&4C
+     AA42   24 B9      BIT &B9
+     AA44   30 02      BMI &AA48
+     AA46   A9 20      LDA #&20
+.l00
+     AA48   20 DB 80   JSR &80DB
+     AA4B   4C D2 80   JMP &80D2
+.lspc
+     AA4E   20 D2 80   JSR &80D2
+     AA51   CA         DEX
+     AA52   D0 FA      BNE &AA4E
+     AA54   60         RTS
+.is_XSD
+     AA55   A0 0B      LDY #&0B
+     AA57   B1 B0      LDA (&B0),Y
+     AA59   29 10      AND #&10
+     AA5B   D0 19      BNE &AA76
+     AA5D   A2 FF      LDX #&FF
+.loop1
+     AA5F   A0 08      LDY #&08
+     AA61   18         CLC
+.loop2
+     AA62   E8         INX
+     AA63   BD 79 AA   LDA &AA79,X
+     AA66   30 0A      BMI &AA72
+     AA68   F0 0C      BEQ &AA76
+     AA6A   51 B0      EOR (&B0),Y
+     AA6C   F0 01      BEQ &AA6F
+     AA6E   38         SEC
+.x1
+     AA6F   C8         INY
+     AA70   D0 F0      BNE &AA62
+.x2
+     AA72   B0 EB      BCS &AA5F
+     AA74   0A         ASL A
+     AA75   60         RTS
+.l2
+     AA76   A9 80      LDA #&80
+     AA78   60         RTS
+.ext_table
+     AA79   53 53 44 
+     AA7C   80
+     AA7D   44 53 44 
+     AA80   A0
+     AA81   00         BRK
+.dir_match
+     AA82   A2 0F      LDX #&0F
+     AA84   A0 00      LDY #&00
+.l00
+     AA86   E8         INX
+     AA87   86 BA      STX &BA
+.l0
+     AA89   84 BB      STY &BB
+.l1
+     AA8B   BD 00 C2   LDA &C200,X
+     AA8E   F0 19      BEQ &AAA9
+     AA90   C9 01      CMP #&01
+     AA92   F0 F2      BEQ &AA86
+     AA94   B9 00 C2   LDA &C200,Y
+     AA97   F0 11      BEQ &AAAA
+     AA99   DD 00 C2   CMP &C200,X
+     AA9C   D0 04      BNE &AAA2
+     AA9E   C8         INY
+     AA9F   E8         INX
+     AAA0   D0 E9      BNE &AA8B
+.l2
+     AAA2   A6 BA      LDX &BA
+     AAA4   A4 BB      LDY &BB
+     AAA6   C8         INY
+     AAA7   D0 E0      BNE &AA89
+.ex1
+     AAA9   18         CLC
+.ex2
+     AAAA   60         RTS
+.mm32_param_count
+     AAAB   A9 00      LDA #&00
+.mm32_param_count_a
+     AAAD   48         PHA
+     AAAE   98         TYA
+     AAAF   48         PHA
+     AAB0   A2 00      LDX #&00
+.loop1
+     AAB2   20 BD 81   JSR &81BD
+     AAB5   F0 08      BEQ &AABF
+     AAB7   E8         INX
+.loop2
+     AAB8   20 A2 81   JSR &81A2
+     AABB   90 FB      BCC &AAB8
+     AABD   B0 F3      BCS &AAB2
+.l1
+     AABF   68         PLA
+     AAC0   A8         TAY
+     AAC1   68         PLA
+     AAC2   10 03      BPL &AAC7
+     AAC4   CA         DEX
+     AAC5   30 0A      BMI &AAD1
+.l2
+     AAC7   E0 01      CPX #&01
+     AAC9   F0 05      BEQ &AAD0
+     AACB   B0 04      BCS &AAD1
+     AACD   6A         ROR A
+     AACE   B0 01      BCS &AAD1
+.l3
+     AAD0   60         RTS
+.err
+     AAD1   4C 9E 9A   JMP &9A9E
+.mm32_param_drive
+     AAD4   90 10      BCC &AAE6
+     AAD6   20 BD 81   JSR &81BD
+     AAD9   20 C7 8B   JSR &8BC7
+     AADC   20 A2 81   JSR &81A2
+     AADF   A5 CD      LDA &CD
+     AAE1   B0 06      BCS &AAE9
+     AAE3   4C D7 8B   JMP &8BD7
+.l1
+     AAE6   AD CA C2   LDA &C2CA
+.l2
+     AAE9   29 01      AND #&01
+     AAEB   85 CD      STA &CD
+     AAED   60         RTS
+.mm32_param_filename
+     AAEE   66 B7      ROR &B7
+     AAF0   A2 01      LDX #&01
+     AAF2   86 B2      STX &B2
+     AAF4   86 B3      STX &B3
+     AAF6   86 B4      STX &B4
+     AAF8   86 B5      STX &B5
+     AAFA   20 BD 81   JSR &81BD
+     AAFD   F0 48      BEQ &AB47
+.loop1
+     AAFF   20 A2 81   JSR &81A2
+     AB02   B0 43      BCS &AB47
+     AB04   C9 2F      CMP #&2F
+     AB06   D0 09      BNE &AB11
+     AB08   66 B2      ROR &B2
+     AB0A   D0 F3      BNE &AAFF
+.loop2
+     AB0C   20 A2 81   JSR &81A2
+     AB0F   B0 36      BCS &AB47
+.l0
+     AB11   24 B7      BIT &B7
+     AB13   10 0E      BPL &AB23
+     AB15   C9 2A      CMP #&2A
+     AB17   D0 0A      BNE &AB23
+     AB19   24 B3      BIT &B3
+     AB1B   30 EF      BMI &AB0C
+     AB1D   66 B3      ROR &B3
+     AB1F   A9 01      LDA #&01
+     AB21   D0 1B      BNE &AB3E
+.l1
+     AB23   46 B3      LSR &B3
+     AB25   C9 2E      CMP #&2E
+     AB27   D0 08      BNE &AB31
+     AB29   24 B5      BIT &B5
+     AB2B   10 11      BPL &AB3E
+     AB2D   66 B4      ROR &B4
+     AB2F   30 0D      BMI &AB3E
+.l2
+     AB31   38         SEC
+     AB32   66 B5      ROR &B5
+     AB34   C9 61      CMP #&61
+     AB36   90 06      BCC &AB3E
+     AB38   C9 7B      CMP #&7B
+     AB3A   B0 02      BCS &AB3E
+     AB3C   49 20      EOR #&20
+.l3
+     AB3E   9D 10 C2   STA &C210,X
+     AB41   E8         INX
+     AB42   E0 10      CPX #&10
+     AB44   D0 C6      BNE &AB0C
+     AB46   60         RTS
+.exloop
+     AB47   CA         DEX
+     AB48   F0 18      BEQ &AB62
+     AB4A   24 B7      BIT &B7
+     AB4C   30 0A      BMI &AB58
+     AB4E   24 B4      BIT &B4
+     AB50   30 06      BMI &AB58
+     AB52   A9 2E      LDA #&2E
+     AB54   9D 11 C2   STA &C211,X
+     AB57   E8         INX
+.lx1
+     AB58   A9 02      LDA #&02
+     AB5A   8D 10 C2   STA &C210
+     AB5D   E8         INX
+     AB5E   9D 10 C2   STA &C210,X
+     AB61   E8         INX
+.lx2
+     AB62   A9 00      LDA #&00
+     AB64   9D 10 C2   STA &C210,X
+     AB67   AD 10 C2   LDA &C210
+     AB6A   18         CLC
+     AB6B   60         RTS
+.mm32_swap_str_16_32
+     AB6C   A2 10      LDX #&10
+.loop
+     AB6E   BD 0F C2   LDA &C20F,X
+     AB71   48         PHA
+     AB72   BD 1F C2   LDA &C21F,X
+     AB75   9D 0F C2   STA &C20F,X
+     AB78   68         PLA
+     AB79   9D 1F C2   STA &C21F,X
+     AB7C   CA         DEX
+     AB7D   D0 EF      BNE &AB6E
+     AB7F   60         RTS
+.mm32_cmd_dcat
+     AB80   20 AB AA   JSR &AAAB
+     AB83   38         SEC
+     AB84   20 EE AA   JSR &AAEE
+     AB87   A9 00      LDA #&00
+     AB89   85 AA      STA &AA
+     AB8B   20 DD A8   JSR &A8DD
+     AB8E   A9 86      LDA #&86
+     AB90   20 F4 FF   JSR &FFF4
+     AB93   E0 00      CPX #&00
+     AB95   F0 03      BEQ &AB9A
+     AB97   20 77 83   JSR &8377
+.dcEven
+     AB9A   60         RTS
+.mm32_cmd_dboot
+     AB9B   A9 00      LDA #&00
+     AB9D   85 CD      STA &CD
+     AB9F   20 AB AA   JSR &AAAB
+     ABA2   B0 11      BCS &ABB5
+     ABA4   A2 00      LDX #&00
+.loop
+     ABA6   BD C2 AB   LDA &ABC2,X
+     ABA9   9D 10 C2   STA &C210,X
+     ABAC   F0 03      BEQ &ABB1
+     ABAE   E8         INX
+     ABAF   D0 F5      BNE &ABA6
+.l1
+     ABB1   85 B7      STA &B7
+     ABB3   85 B2      STA &B2
+.l2
+     ABB5   A9 00      LDA #&00
+     ABB7   20 3B AC   JSR &AC3B
+     ABBA   90 01      BCC &ABBD
+     ABBC   60         RTS
+.l3
+     ABBD   A9 00      LDA #&00
+     ABBF   4C A7 8C   JMP &8CA7
+.bootdisk
+     ABC2   02
+     ABC3   42 4F 4F ...
+     ABC8   02
+     ABC9   00
+.mm32_cmd_din
+     ABCA   A9 80      LDA #&80
+     ABCC   20 AD AA   JSR &AAAD
+     ABCF   20 D4 AA   JSR &AAD4
+     ABD2   A9 00      LDA #&00
+     ABD4   4C 3A AC   JMP &AC3A
+.mm32_cmd_autoload
+     ABD7   A2 00      LDX #&00
+     ABD9   86 CD      STX &CD
+.loop
+     ABDB   BD F1 AB   LDA &ABF1,X
+     ABDE   9D 10 C2   STA &C210,X
+     ABE1   F0 03      BEQ &ABE6
+     ABE3   E8         INX
+     ABE4   D0 F5      BNE &ABDB
+.l1
+     ABE6   85 B7      STA &B7
+     ABE8   85 B2      STA &B2
+     ABEA   18         CLC
+     ABEB   A9 02      LDA #&02
+     ABED   4C 3B AC   JMP &AC3B
+     ABF0   60         RTS
+.bootdisk
+     ABF1   02
+     ABF2   42 4F 4F ...
+     ABF7   02
+     ABF8   00
+.mm32_add_ssd_ext
+     ABF9   A0 01      LDY #&01
+.l0
+     ABFB   B9 10 C2   LDA &C210,Y
+     ABFE   C8         INY
+     ABFF   C9 2E      CMP #&2E
+     AC01   D0 F8      BNE &ABFB
+.s1
+     AC03   A9 53      LDA #&53
+     AC05   99 10 C2   STA &C210,Y
+     AC08   99 11 C2   STA &C211,Y
+     AC0B   A9 44      LDA #&44
+     AC0D   99 12 C2   STA &C212,Y
+     AC10   A9 02      LDA #&02
+     AC12   99 13 C2   STA &C213,Y
+     AC15   A9 00      LDA #&00
+     AC17   99 14 C2   STA &C214,Y
+     AC1A   60         RTS
+.mm32_upd_dsktbl
+     AC1B   A2 00      LDX #&00
+     AC1D   A5 CD      LDA &CD
+     AC1F   0A         ASL A
+     AC20   0A         ASL A
+     AC21   0A         ASL A
+     AC22   0A         ASL A
+     AC23   A8         TAY
+.l0
+     AC24   BD 10 C2   LDA &C210,X
+     AC27   99 C0 C3   STA &C3C0,Y
+     AC2A   E8         INX
+     AC2B   C8         INY
+     AC2C   E0 10      CPX #&10
+     AC2E   D0 F4      BNE &AC24
+     AC30   60         RTS
+.mm32_cmd_ddir
+     AC31   20 AB AA   JSR &AAAB
+     AC34   A9 02      LDA #&02
+     AC36   85 CD      STA &CD
+     AC38   A9 01      LDA #&01
+.mm32_chain_open
+     AC3A   38         SEC
+.mm32_chain_open2
+     AC3B   48         PHA
+     AC3C   90 08      BCC &AC46
+     AC3E   18         CLC
+     AC3F   20 EE AA   JSR &AAEE
+     AC42   B0 33      BCS &AC77
+     AC44   F0 65      BEQ &ACAB
+.l0
+     AC46   A5 CD      LDA &CD
+     AC48   C9 02      CMP #&02
+     AC4A   66 B2      ROR &B2
+     AC4C   A9 00      LDA #&00
+     AC4E   85 AA      STA &AA
+     AC50   20 DD A8   JSR &A8DD
+     AC53   90 2C      BCC &AC81
+     AC55   68         PLA
+     AC56   48         PHA
+     AC57   29 01      AND #&01
+     AC59   D0 1C      BNE &AC77
+     AC5B   20 F9 AB   JSR &ABF9
+     AC5E   20 DD A8   JSR &A8DD
+     AC61   90 1E      BCC &AC81
+.mm32_change_ext_dsd
+     AC63   A0 01      LDY #&01
+.l0
+     AC65   B9 10 C2   LDA &C210,Y
+     AC68   C8         INY
+     AC69   C9 2E      CMP #&2E
+     AC6B   D0 F8      BNE &AC65
+.s1
+     AC6D   A9 44      LDA #&44
+     AC6F   99 10 C2   STA &C210,Y
+     AC72   20 DD A8   JSR &A8DD
+     AC75   90 0A      BCC &AC81
+.notfound
+     AC77   68         PLA
+     AC78   29 02      AND #&02
+     AC7A   F0 02      BEQ &AC7E
+     AC7C   38         SEC
+     AC7D   60         RTS
+.notautoload
+     AC7E   4C 3A 82   JMP &823A
+.found
+     AC81   68         PLA
+     AC82   48         PHA
+     AC83   29 01      AND #&01
+     AC85   F0 06      BEQ &AC8D
+     AC87   68         PLA
+     AC88   A5 B8      LDA &B8
+     AC8A   D0 28      BNE &ACB4
+     AC8C   60         RTS
+.file
+     AC8D   68         PLA
+     AC8E   A6 B8      LDX &B8
+     AC90   F0 22      BEQ &ACB4
+     AC92   29 02      AND #&02
+     AC94   F0 02      BEQ &AC98
+     AC96   38         SEC
+     AC97   60         RTS
+.notautoload2
+     AC98   20 6B 80   JSR &806B
+     AC9B   D6
+     AC9C   49 73 20 ...
+     ACA8   00
+     ACA9   EA         NOP
+     ACAA   60         RTS
+.zerolen
+     ACAB   68         PLA
+     ACAC   A5 B2      LDA &B2
+     ACAE   29 80      AND #&80
+     ACB0   A8         TAY
+     ACB1   4C 20 AD   JMP &AD20
+.okay
+     ACB4   20 1B AC   JSR &AC1B
+     ACB7   A0 1A      LDY #&1A
+     ACB9   B1 B0      LDA (&B0),Y
+     ACBB   85 B7      STA &B7
+     ACBD   C8         INY
+     ACBE   B1 B0      LDA (&B0),Y
+     ACC0   85 B8      STA &B8
+     ACC2   A0 14      LDY #&14
+     ACC4   B1 B0      LDA (&B0),Y
+     ACC6   05 B9      ORA &B9
+     ACC8   85 B9      STA &B9
+     ACCA   A5 CD      LDA &CD
+     ACCC   C9 02      CMP #&02
+     ACCE   F0 1D      BEQ &ACED
+     ACD0   49 01      EOR #&01
+     ACD2   AA         TAX
+     ACD3   A5 B7      LDA &B7
+     ACD5   DD E5 C2   CMP &C2E5,X
+     ACD8   D0 13      BNE &ACED
+     ACDA   A5 B8      LDA &B8
+     ACDC   DD E8 C2   CMP &C2E8,X
+     ACDF   D0 0C      BNE &ACED
+     ACE1   A5 B9      LDA &B9
+     ACE3   DD EB C2   CMP &C2EB,X
+     ACE6   D0 05      BNE &ACED
+     ACE8   A0 00      LDY #&00
+     ACEA   20 22 AD   JSR &AD22
+.l1
+     ACED   20 81 A1   JSR &A181
+     ACF0   A6 CD      LDX &CD
+     ACF2   A5 B7      LDA &B7
+     ACF4   9D E5 C2   STA &C2E5,X
+     ACF7   A5 B8      LDA &B8
+     ACF9   9D E8 C2   STA &C2E8,X
+     ACFC   A5 B9      LDA &B9
+     ACFE   9D EB C2   STA &C2EB,X
+     AD01   4C 95 A1   JMP &A195
+.mm32_cmd_dout
+     AD04   20 AB AA   JSR &AAAB
+     AD07   20 D4 AA   JSR &AAD4
+     AD0A   A2 00      LDX #&00
+     AD0C   A5 CD      LDA &CD
+     AD0E   0A         ASL A
+     AD0F   0A         ASL A
+     AD10   0A         ASL A
+     AD11   0A         ASL A
+     AD12   A8         TAY
+     AD13   A9 20      LDA #&20
+.s0
+     AD15   99 C0 C3   STA &C3C0,Y
+     AD18   E8         INX
+     AD19   C8         INY
+     AD1A   E0 10      CPX #&10
+     AD1C   D0 F7      BNE &AD15
+     AD1E   A0 00      LDY #&00
+.mm32_clear_cluster_index
+     AD20   A6 CD      LDX &CD
+.mm32_clear_cluster_index_x
+     AD22   20 81 A1   JSR &A181
+     AD25   A9 00      LDA #&00
+     AD27   9D E5 C2   STA &C2E5,X
+     AD2A   9D E8 C2   STA &C2E8,X
+     AD2D   98         TYA
+     AD2E   9D EB C2   STA &C2EB,X
+     AD31   4C 95 A1   JMP &A195
+.mm32_cmd_ddrive
+     AD34   A0 00      LDY #&00
+.l1
+     AD36   98         TYA
+     AD37   48         PHA
+     AD38   A9 3A      LDA #&3A
+     AD3A   20 EE FF   JSR &FFEE
+     AD3D   68         PLA
+     AD3E   48         PHA
+     AD3F   18         CLC
+     AD40   69 30      ADC #&30
+     AD42   20 EE FF   JSR &FFEE
+     AD45   A9 20      LDA #&20
+     AD47   20 EE FF   JSR &FFEE
+     AD4A   68         PLA
+     AD4B   48         PHA
+     AD4C   0A         ASL A
+     AD4D   0A         ASL A
+     AD4E   0A         ASL A
+     AD4F   0A         ASL A
+     AD50   AA         TAX
+     AD51   A0 00      LDY #&00
+     AD53   BD C0 C3   LDA &C3C0,X
+     AD56   C9 02      CMP #&02
+     AD58   D0 1C      BNE &AD76
+     AD5A   E8         INX
+.l2
+     AD5B   BD C0 C3   LDA &C3C0,X
+     AD5E   C9 02      CMP #&02
+     AD60   F0 09      BEQ &AD6B
+     AD62   20 EE FF   JSR &FFEE
+     AD65   E8         INX
+     AD66   C8         INY
+     AD67   C0 10      CPY #&10
+     AD69   D0 F0      BNE &AD5B
+.s1
+     AD6B   20 77 83   JSR &8377
+     AD6E   68         PLA
+     AD6F   A8         TAY
+     AD70   C8         INY
+     AD71   C0 02      CPY #&02
+     AD73   D0 C1      BNE &AD36
+     AD75   60         RTS
+.empty
+     AD76   20 98 80   JSR &8098
+     AD79   3C 45 6D ...
+     AD80   EA         NOP
+     AD81   4C 6B AD   JMP &AD6B
+.mm32_cmd_daccess
+     AD84   A9 80      LDA #&80
+     AD86   20 AD AA   JSR &AAAD
+     AD89   38         SEC
+     AD8A   20 EE AA   JSR &AAEE
+     AD8D   A2 01      LDX #&01
+     AD8F   20 BD 81   JSR &81BD
+     AD92   D0 14      BNE &ADA8
+.gotflag
+     AD94   86 AA      STX &AA
+     AD96   20 DD A8   JSR &A8DD
+     AD99   A9 86      LDA #&86
+     AD9B   20 F4 FF   JSR &FFF4
+     AD9E   E0 00      CPX #&00
+     ADA0   F0 03      BEQ &ADA5
+     ADA2   20 77 83   JSR &8377
+.dcEven
+     ADA5   60         RTS
+.parmloop
+     ADA6   A2 02      LDX #&02
+.getparm
+     ADA8   20 A2 81   JSR &81A2
+     ADAB   B0 E7      BCS &AD94
+     ADAD   29 5F      AND #&5F
+     ADAF   C9 4C      CMP #&4C
+     ADB1   F0 F3      BEQ &ADA6
+.errbadparm
+     ADB3   20 51 80   JSR &8051
+     ADB6   CF
+     ADB7   61 74 74 ...
+     ADC0   00
+.mm32_cmd_drename
+     ADC1   A9 81      LDA #&81
+     ADC3   20 AD AA   JSR &AAAD
+     ADC6   18         CLC
+     ADC7   20 EE AA   JSR &AAEE
+     ADCA   20 6C AB   JSR &AB6C
+     ADCD   18         CLC
+     ADCE   20 EE AA   JSR &AAEE
+     ADD1   20 FD AD   JSR &ADFD
+     ADD4   90 16      BCC &ADEC
+     ADD6   A9 00      LDA #&00
+     ADD8   85 AA      STA &AA
+     ADDA   20 DD A8   JSR &A8DD
+     ADDD   90 10      BCC &ADEF
+     ADDF   20 6C AB   JSR &AB6C
+     ADE2   A9 03      LDA #&03
+     ADE4   85 AA      STA &AA
+     ADE6   20 DD A8   JSR &A8DD
+     ADE9   B0 0F      BCS &ADFA
+     ADEB   60         RTS
+.badname
+     ADEC   4C 7E 81   JMP &817E
+.destexists
+     ADEF   20 5B 80   JSR &805B
+     ADF2   C4
+     ADF3   45 78 69 ...
+     ADF9   00
+.notfound
+     ADFA   4C 3A 82   JMP &823A
+.mm32_check_filename
+     ADFD   AD 10 C2   LDA &C210
+     AE00   C9 02      CMP #&02
+     AE02   D0 2B      BNE &AE2F
+     AE04   AD 11 C2   LDA &C211
+     AE07   C9 2E      CMP #&2E
+     AE09   F0 24      BEQ &AE2F
+     AE0B   A2 01      LDX #&01
+     AE0D   86 BA      STX &BA
+.checknameloop
+     AE0F   BD 10 C2   LDA &C210,X
+     AE12   E8         INX
+     AE13   E0 11      CPX #&11
+     AE15   F0 18      BEQ &AE2F
+     AE17   C9 02      CMP #&02
+     AE19   F0 15      BEQ &AE30
+     AE1B   C9 2E      CMP #&2E
+     AE1D   D0 04      BNE &AE23
+     AE1F   C6 BA      DEC &BA
+     AE21   30 0C      BMI &AE2F
+.notdot
+     AE23   A0 0E      LDY #&0E
+.checkcharloop
+     AE25   D9 30 AE   CMP &AE30,Y
+     AE28   F0 05      BEQ &AE2F
+     AE2A   88         DEY
+     AE2B   D0 F8      BNE &AE25
+     AE2D   F0 E0      BEQ &AE0F
+.badname
+     AE2F   18         CLC
+.checknameend
+     AE30   60         RTS
+.invalid_chars
+     AE31   22
+     AE32   2A
+     AE33   2B
+     AE34   2C
+     AE35   2F
+     AE36   3A
+     AE37   3B
+     AE38   3C
+     AE39   3D
+     AE3A   3E
+     AE3B   3F
+     AE3C   5B
+     AE3D   5C
+     AE3E   5D
+.invalid_chars_end
+.mm32_disk_seek_sector
+     AE3F   8C A5 C2   STY &C2A5
+     AE42   8D A4 C2   STA &C2A4
+     AE45   A5 CD      LDA &CD
+     AE47   29 01      AND #&01
+     AE49   A8         TAY
+     AE4A   20 C3 A7   JSR &A7C3
+     AE4D   70 0B      BVS &AE5A
+     AE4F   24 C2      BIT &C2
+     AE51   A5 CD      LDA &CD
+     AE53   6A         ROR A
+     AE54   6A         ROR A
+     AE55   90 04      BCC &AE5B
+     AE57   70 02      BVS &AE5B
+.l1
+     AE59   B8         CLV
+.l2
+     AE5A   60         RTS
+.l3
+     AE5B   50 05      BVC &AE62
+     AE5D   2E A5 C2   ROL &C2A5
+     AE60   B0 F7      BCS &AE59
+.l4
+     AE62   AC A5 C2   LDY &C2A5
+     AE65   F0 04      BEQ &AE6B
+.loop1
+     AE67   A2 04      LDX #&04
+     AE69   D0 08      BNE &AE73
+.l5
+     AE6B   AD A4 C2   LDA &C2A4
+     AE6E   4A         LSR A
+     AE6F   F0 11      BEQ &AE82
+     AE71   AA         TAX
+     AE72   CA         DEX
+.loop2
+     AE73   20 F7 A7   JSR &A7F7
+     AE76   B0 E1      BCS &AE59
+     AE78   CA         DEX
+     AE79   10 F8      BPL &AE73
+     AE7B   88         DEY
+     AE7C   F0 ED      BEQ &AE6B
+     AE7E   C0 FF      CPY #&FF
+     AE80   D0 E5      BNE &AE67
+.l6
+     AE82   20 BB AE   JSR &AEBB
+     AE85   B0 D2      BCS &AE59
+     AE87   6E A4 C2   ROR &C2A4
+     AE8A   90 02      BCC &AE8E
+     AE8C   E6 BE      INC &BE
+.l7
+     AE8E   0E A4 C2   ASL &C2A4
+     AE91   B8         CLV
+     AE92   18         CLC
+     AE93   60         RTS
+.mm32_disk_next_sector
+     AE94   20 19 84   JSR &8419
+     AE97   A0 01      LDY #&01
+     AE99   AE A4 C2   LDX &C2A4
+     AE9C   E8         INX
+     AE9D   E8         INX
+     AE9E   E0 0A      CPX #&0A
+     AEA0   D0 0E      BNE &AEB0
+     AEA2   A2 00      LDX #&00
+     AEA4   EE A5 C2   INC &C2A5
+     AEA7   24 C2      BIT &C2
+     AEA9   50 05      BVC &AEB0
+     AEAB   A0 06      LDY #&06
+     AEAD   EE A5 C2   INC &C2A5
+.l1
+     AEB0   8E A4 C2   STX &C2A4
+.loop1
+     AEB3   20 F7 A7   JSR &A7F7
+     AEB6   B0 47      BCS &AEFF
+     AEB8   88         DEY
+     AEB9   D0 F8      BNE &AEB3
+.mm32_SECT_X_Address
+     AEBB   A2 02      LDX #&02
+.loop1
+     AEBD   B5 C8      LDA &C8,X
+     AEBF   95 BE      STA &BE,X
+     AEC1   CA         DEX
+     AEC2   10 F9      BPL &AEBD
+     AEC4   AD E4 C2   LDA &C2E4
+.loop2
+     AEC7   4A         LSR A
+     AEC8   B0 09      BCS &AED3
+     AECA   06 BE      ASL &BE
+     AECC   26 BF      ROL &BF
+     AECE   26 C0      ROL &C0
+     AED0   90 F5      BCC &AEC7
+     AED2   60         RTS
+.l3
+     AED3   18         CLC
+     AED4   A5 BE      LDA &BE
+     AED6   6D E2 C2   ADC &C2E2
+     AED9   85 BE      STA &BE
+     AEDB   A5 BF      LDA &BF
+     AEDD   6D E3 C2   ADC &C2E3
+     AEE0   85 BF      STA &BF
+     AEE2   90 02      BCC &AEE6
+     AEE4   E6 C0      INC &C0
+.l4
+     AEE6   38         SEC
+     AEE7   AD E4 C2   LDA &C2E4
+     AEEA   E5 CB      SBC &CB
+     AEEC   18         CLC
+     AEED   65 BE      ADC &BE
+     AEEF   85 BE      STA &BE
+     AEF1   90 06      BCC &AEF9
+     AEF3   E6 BF      INC &BF
+     AEF5   D0 02      BNE &AEF9
+     AEF7   E6 C0      INC &C0
+.l5
+.mm32_lba_to_256
+     AEF9   06 BE      ASL &BE
+     AEFB   26 BF      ROL &BF
+     AEFD   26 C0      ROL &C0
+.l2rts
+     AEFF   60         RTS
+.mm32_MMC_error
+     AF00   85 B0      STA &B0
+     AF02   20 5B 80   JSR &805B
+     AF05   C5
+     AF06   4D 4D 43 ...
+     AF0A   EA         NOP
+     AF0B   68         PLA
+     AF0C   85 B8      STA &B8
+     AF0E   68         PLA
+     AF0F   85 B9      STA &B9
+     AF11   A0 00      LDY #&00
+     AF13   8C AF C2   STY &C2AF
+.loop1
+     AF16   C8         INY
+     AF17   B1 B8      LDA (&B8),Y
+     AF19   F0 05      BEQ &AF20
+     AF1B   20 3E AF   JSR &AF3E
+     AF1E   D0 F6      BNE &AF16
+.l1
+     AF20   A8         TAY
+     AF21   A5 B0      LDA &B0
+     AF23   20 69 8C   JSR &8C69
+     AF26   A9 2F      LDA #&2F
+     AF28   20 3E AF   JSR &AF3E
+.loop2
+     AF2B   B9 89 C2   LDA &C289,Y
+     AF2E   20 69 8C   JSR &8C69
+     AF31   C8         INY
+     AF32   C0 04      CPY #&04
+     AF34   D0 F5      BNE &AF2B
+     AF36   A9 00      LDA #&00
+     AF38   9D 00 01   STA &0100,X
+     AF3B   4C 00 01   JMP &0100
+.mm32_PrintChr100
+     AF3E   9D 00 01   STA &0100,X
+     AF41   E8         INX
+     AF42   60         RTS
+.Osword7F_8271_Emulation
+     AF43   A0 06      LDY #&06
+     AF45   B1 B0      LDA (&B0),Y
+     AF47   A2 10      LDX #&10
+.loop1
+     AF49   DD A8 B0   CMP &B0A8,X
+     AF4C   F0 05      BEQ &AF53
+     AF4E   CA         DEX
+     AF4F   10 F8      BPL &AF49
+     AF51   30 0F      BMI &AF62
+.l2
+     AF53   20 85 AF   JSR &AF85
+     AF56   48         PHA
+     AF57   A0 05      LDY #&05
+     AF59   B1 B0      LDA (&B0),Y
+     AF5B   18         CLC
+     AF5C   69 07      ADC #&07
+     AF5E   A8         TAY
+     AF5F   68         PLA
+     AF60   91 B0      STA (&B0),Y
+.l3
+     AF62   A9 00      LDA #&00
+     AF64   60         RTS
+.spec_reg
+     AF65   A0 07      LDY #&07
+     AF67   B1 B0      LDA (&B0),Y
+     AF69   C9 06      CMP #&06
+     AF6B   D0 04      BNE &AF71
+     AF6D   AD A4 C2   LDA &C2A4
+     AF70   60         RTS
+.l1
+     AF71   C9 12      CMP #&12
+     AF73   D0 09      BNE &AF7E
+.l2
+     AF75   AD A5 C2   LDA &C2A5
+     AF78   24 C2      BIT &C2
+     AF7A   50 01      BVC &AF7D
+     AF7C   4A         LSR A
+.l3
+     AF7D   60         RTS
+.l4
+     AF7E   C9 1A      CMP #&1A
+     AF80   F0 F3      BEQ &AF75
+     AF82   A9 00      LDA #&00
+     AF84   60         RTS
+.ow7f_1
+     AF85   BD B8 B0   LDA &B0B8,X
+     AF88   F0 DB      BEQ &AF65
+     AF8A   48         PHA
+     AF8B   88         DEY
+     AF8C   29 0F      AND #&0F
+     AF8E   D1 B0      CMP (&B0),Y
+     AF90   D0 27      BNE &AFB9
+     AF92   20 FA A5   JSR &A5FA
+     AF95   68         PLA
+     AF96   85 C7      STA &C7
+     AF98   A0 0B      LDY #&0B
+.loop1
+     AF9A   B1 B0      LDA (&B0),Y
+     AF9C   99 BB 00   STA &00BB,Y
+     AF9F   C0 05      CPY #&05
+     AFA1   B0 03      BCS &AFA6
+     AFA3   99 A9 C2   STA &C2A9,Y
+.l0
+     AFA6   88         DEY
+     AFA7   D0 F1      BNE &AF9A
+     AFA9   B1 B0      LDA (&B0),Y
+     AFAB   30 03      BMI &AFB0
+     AFAD   20 BA 8B   JSR &8BBA
+.l1
+     AFB0   20 C3 AF   JSR &AFC3
+     AFB3   48         PHA
+     AFB4   20 4D A6   JSR &A64D
+     AFB7   68         PLA
+     AFB8   60         RTS
+.owfault
+     AFB9   68         PLA
+     AFBA   A9 FF      LDA #&FF
+     AFBC   60         RTS
+.owdrvnotrdy
+     AFBD   A9 10      LDA #&10
+     AFBF   60         RTS
+.ownosector
+     AFC0   A9 1E      LDA #&1E
+     AFC2   60         RTS
+.ow7f_2
+     AFC3   A9 10      LDA #&10
+     AFC5   24 C7      BIT &C7
+     AFC7   D0 04      BNE &AFCD
+     AFC9   10 33      BPL &AFFE
+     AFCB   30 23      BMI &AFF0
+.l10
+     AFCD   A5 C2      LDA &C2
+     AFCF   0A         ASL A
+     AFD0   85 BE      STA &BE
+     AFD2   A5 C3      LDA &C3
+     AFD4   2A         ROL A
+     AFD5   85 BF      STA &BF
+     AFD7   A5 C4      LDA &C4
+     AFD9   30 E5      BMI &AFC0
+     AFDB   2A         ROL A
+     AFDC   85 C0      STA &C0
+     AFDE   A5 C5      LDA &C5
+     AFE0   0A         ASL A
+     AFE1   85 C4      STA &C4
+     AFE3   B0 DB      BCS &AFC0
+     AFE5   A9 00      LDA #&00
+     AFE7   85 C5      STA &C5
+     AFE9   85 C6      STA &C6
+     AFEB   26 C7      ROL &C7
+     AFED   4C 5E B0   JMP &B05E
+.l11
+     AFF0   A5 C6      LDA &C6
+     AFF2   F0 27      BEQ &B01B
+     AFF4   E6 C4      INC &C4
+     AFF6   D0 23      BNE &B01B
+     AFF8   E6 C5      INC &C5
+     AFFA   D0 1F      BNE &B01B
+     AFFC   F0 C2      BEQ &AFC0
+.l0
+     AFFE   A5 C4      LDA &C4
+     B000   50 02      BVC &B004
+     B002   A9 0A      LDA #&0A
+.l1
+     B004   29 1F      AND #&1F
+     B006   85 C4      STA &C4
+     B008   70 07      BVS &B011
+     B00A   18         CLC
+     B00B   65 C3      ADC &C3
+     B00D   C9 0B      CMP #&0B
+     B00F   B0 AF      BCS &AFC0
+.l2
+     B011   A9 00      LDA #&00
+     B013   85 C5      STA &C5
+     B015   85 C6      STA &C6
+     B017   50 02      BVC &B01B
+     B019   85 C3      STA &C3
+.l3
+     B01B   A5 C3      LDA &C3
+     B01D   C9 0A      CMP #&0A
+     B01F   B0 9F      BCS &AFC0
+.l4
+     B021   A4 C2      LDY &C2
+     B023   20 3F AE   JSR &AE3F
+     B026   70 95      BVS &AFBD
+     B028   B0 96      BCS &AFC0
+     B02A   26 C7      ROL &C7
+     B02C   24 C7      BIT &C7
+     B02E   50 07      BVC &B037
+     B030   24 C2      BIT &C2
+     B032   10 03      BPL &B037
+     B034   A9 12      LDA #&12
+     B036   60         RTS
+.l5
+     B037   24 C7      BIT &C7
+     B039   30 40      BMI &B07B
+     B03B   66 C3      ROR &C3
+     B03D   B0 1F      BCS &B05E
+     B03F   A5 C4      LDA &C4
+     B041   C9 02      CMP #&02
+     B043   D0 19      BNE &B05E
+     B045   A5 BD      LDA &BD
+     B047   C9 C0      CMP #&C0
+     B049   D0 13      BNE &B05E
+     B04B   AD AC C2   LDA &C2AC
+     B04E   2D AD C2   AND &C2AD
+     B051   0D D6 C2   ORA &C2D6
+     B054   49 FF      EOR #&FF
+     B056   05 BC      ORA &BC
+     B058   05 C5      ORA &C5
+     B05A   05 C6      ORA &C6
+     B05C   F0 2F      BEQ &B08D
+.l6
+     B05E   24 C7      BIT &C7
+     B060   70 13      BVS &B075
+     B062   20 81 A4   JSR &A481
+.l7
+     B065   AD AE C2   LDA &C2AE
+     B068   F0 03      BEQ &B06D
+     B06A   20 4D 8C   JSR &8C4D
+.l8
+     B06D   2C A6 C2   BIT &C2A6
+     B070   30 33      BMI &B0A5
+.OK
+     B072   A9 00      LDA #&00
+     B074   60         RTS
+.l9
+     B075   20 37 A5   JSR &A537
+     B078   4C 65 B0   JMP &B065
+.vform
+     B07B   A0 FF      LDY #&FF
+     B07D   8C 82 C2   STY &C282
+     B080   50 0B      BVC &B08D
+     B082   C8         INY
+     B083   98         TYA
+.floop
+     B084   99 00 C0   STA &C000,Y
+     B087   99 00 C1   STA &C100,Y
+     B08A   C8         INY
+     B08B   D0 F7      BNE &B084
+.cat
+.loop
+     B08D   24 C7      BIT &C7
+     B08F   70 06      BVS &B097
+     B091   20 32 A4   JSR &A432
+     B094   4C 9A B0   JMP &B09A
+.k1
+     B097   20 49 A4   JSR &A449
+.k2
+     B09A   C6 C4      DEC &C4
+     B09C   C6 C4      DEC &C4
+     B09E   F0 D2      BEQ &B072
+     B0A0   20 94 AE   JSR &AE94
+     B0A3   90 E8      BCC &B08D
+.ownosector2
+     B0A5   A9 1E      LDA #&1E
+     B0A7   60         RTS
+.owtable1
+     B0A8   7D
+     B0A9   4A
+     B0AA   4B
+     B0AB   4C
+     B0AC   4E
+     B0AD   4F
+     B0AE   52
+     B0AF   53
+     B0B0   54
+     B0B1   56
+     B0B2   57
+     B0B3   5E
+     B0B4   5F
+     B0B5   63
+     B0B6   A5
+     B0B7   85
+.owtable2
+     B0B8   00
+     B0B9   23
+     B0BA   23
+     B0BB   34
+     B0BC   23
+     B0BD   23
+     B0BE   03
+     B0BF   03
+     B0C0   14
+     B0C1   03
+     B0C2   03
+     B0C3   45
+     B0C4   43
+     B0C5   65
+     B0C6   A5
+     B0C7   85
+Processed file 'MM32.asm' ok
+    code ends at&B0C8  (3896 bytes free )
+Saving file 'build/1/MAMMFS'
+Processed file 'mmfs100.asm' ok
+Processed file 'top_MAMMFS.asm' ok

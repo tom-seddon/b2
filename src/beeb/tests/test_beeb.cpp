@@ -182,12 +182,13 @@ struct TestBBCType {
     bool configure_hard = false;   //Default for test Master is FLOPPY.
     bool video_nula = false;
     bool scsi = false;
+    bool mmfs = false;
 
     static_assert(ROMType_16KB == 0);
     ROMType rom_types[16] = {};
     std::string rom_paths[16];
     bool is_ram[16] = {};
-    StandardROM os_rom = StandardROM_None;
+    StandardROM os_rom = StandardROM_None; //used to infer the BBCMicroTypeID
     std::string os_path;
     std::string parasite_os_path;
 
@@ -424,6 +425,10 @@ static uint32_t GetBBCMicroInitFlags(const TestBBCType &type) {
         init_flags |= BBCMicroInitFlag_SCSI;
     }
 
+    if (type.mmfs) {
+        init_flags |= BBCMicroInitFlag_MMFS;
+    }
+
     return init_flags;
 }
 
@@ -555,7 +560,7 @@ class TestBBCMicro : public BBCMicro {
     };
 #endif
 
-    explicit TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard_disk_images = {});
+    explicit TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard_disk_images = {}, std::string mmfs_image_path = "");
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();
@@ -627,8 +632,18 @@ static constexpr uint16_t CLIV = 0x208;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string GetOutputFileName(const std::string &path) {
+static std::string GetOutputFileName(const std::string &path) {
     return PathJoined(BBC_TESTS_OUTPUT_FOLDER, path);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void CopyFile(const std::string &src_path, const std::string &dest_path) {
+    std::vector<uint8_t> data;
+    TEST_TRUE(LoadFile(&data, src_path, nullptr));
+
+    TEST_TRUE(SaveFile(data, dest_path, nullptr, SaveFlag_CreateFolder));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -798,7 +813,7 @@ void TestBBCMicro::Writer::Addbb(uint8_t a, uint8_t b) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TestBBCMicro::TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard_disk_images)
+TestBBCMicro::TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard_disk_images, std::string mmfs_image_path)
     : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type), type.rom_types, BBCMicroTypeFlag_ROMBoard),
                type.disc_interface,
                type.parasite_type,
@@ -807,7 +822,7 @@ TestBBCMicro::TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard
                GetBBCMicroInitFlags(type),
                nullptr,
                hard_disk_images,
-               "",
+               std::move(mmfs_image_path),
                {0}) {
 #if BBCMICRO_TRACE
     m_trace_flags = (BBCMicroTraceFlag_RTC |
@@ -2316,7 +2331,7 @@ class DiskAccessTest : public Test {
         }
 
         {
-            TestBBCMicro bbc(m_type, this->GetHardDiskImageSet());
+            TestBBCMicro bbc(m_type, this->GetHardDiskImageSet(), this->GetMMFSImagePath());
 
             TestFailFnAdder fn_adder;
             if (m_verbose) {
@@ -2379,6 +2394,10 @@ class DiskAccessTest : public Test {
         return {};
     }
 
+    virtual std::string GetMMFSImagePath() const {
+        return "";
+    }
+
   private:
     HardDiskImageSet GetHardDiskImageSet() const {
         HardDiskImageSet set;
@@ -2422,6 +2441,10 @@ class DiskAccessTest : public Test {
             // MOS 5.00+.
             stuff += "*MOUNT 0\r";
             break;
+
+        case FSType_MMFS:
+            stuff += "*MMFS\r";
+            break;
         }
 
         //stuff += "*FX6\r";
@@ -2431,7 +2454,7 @@ class DiskAccessTest : public Test {
     }
 
     void TestLoad(const std::string &file_name, const std::vector<uint8_t> &random_data) {
-        TestBBCMicro bbc(m_type, this->GetHardDiskImageSet());
+        TestBBCMicro bbc(m_type, this->GetHardDiskImageSet(), this->GetMMFSImagePath());
 
         TestFailFnAdder fn_adder;
         if (m_verbose) {
@@ -2515,6 +2538,45 @@ class FloppyDiskAccessTest : public DiskAccessTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class MMFSDiskAccessTest : public DiskAccessTest {
+  public:
+    MMFSDiskAccessTest(std::string name, TestBBCType type, int master_acccon_io_flags = -1)
+        : DiskAccessTest(std::move(name), std::move(type), FSType_MMFS, master_acccon_io_flags) {
+
+        TEST_FALSE(m_type.mmfs);
+        m_type.mmfs = true;
+
+        TEST_EQ_II(m_type.rom_types[0], ROMType_16KB);
+        TEST_TRUE(m_type.rom_paths[0].empty());
+
+        std::string rom_name;
+        if (IsMasterSeries(GetBBCMicroTypeID(m_type))) {
+            rom_name = "MAMMFS.rom";
+        } else {
+            rom_name = "MMFS.rom";
+        }
+
+        // ROM path is relative to etc/roms... bit of a bodge needed here.
+        m_type.rom_paths[0] = PathJoined("../mmfs_1_59_20250720_1149/MMFS/M/", rom_name);
+    }
+
+  protected:
+    void InitDiskImage() override {
+        std::string src_path = PathJoined(b2_SOURCE_DIR, "etc/discs", "mmfs_test.mmb");
+        std::string dest_path = this->GetMMFSImagePath();
+        CopyFile(src_path, dest_path);
+    }
+
+    std::string GetMMFSImagePath() const override {
+        return GetOutputFileName(this->GetFullName() + ".mmfs_test.mmb");
+    }
+
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class HardDiskAccessTest : public DiskAccessTest {
   public:
     HardDiskAccessTest(std::string name, TestBBCType type, int master_acccon_io_flags)
@@ -2531,8 +2593,8 @@ class HardDiskAccessTest : public DiskAccessTest {
         std::string src_stem = PathJoined(b2_SOURCE_DIR, "etc/discs", "10MB");
         std::string dest_stem = this->GetNameStem();
 
-        this->CopyFile(src_stem, dest_stem, ".dat");
-        this->CopyFile(src_stem, dest_stem, ".dsc");
+        this->CopyHardDiskFile(src_stem, dest_stem, ".dat");
+        this->CopyHardDiskFile(src_stem, dest_stem, ".dsc");
     }
 
     std::shared_ptr<HardDiskImage> GetHardDiskImage() const override {
@@ -2542,11 +2604,8 @@ class HardDiskAccessTest : public DiskAccessTest {
     }
 
   private:
-    void CopyFile(const std::string &src_stem, const std::string &dest_stem, const std::string &ext) {
-        std::vector<uint8_t> data;
-        TEST_TRUE(LoadFile(&data, src_stem + ext, nullptr));
-
-        TEST_TRUE(SaveFile(data, dest_stem + ext, nullptr, SaveFlag_CreateFolder));
+    void CopyHardDiskFile(const std::string &src_stem, const std::string &dest_stem, const std::string &ext) {
+        CopyFile(src_stem + ext, dest_stem + ext);
     }
 };
 
@@ -2853,6 +2912,17 @@ int main(int argc, char *argv[]) {
     for (uint8_t io_flags : std::vector<uint8_t>{0, HostIOFlag_ITU}) {
         all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.master.%d.mos320.adfs", io_flags), GetMasterMOS320Type(), io_flags));
         all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.master.%d.mos350.adfs", io_flags), GetMasterMOS350Type(), io_flags));
+    }
+
+    all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.b"), GetBTapeType()));
+    all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.bplus"), GetBPlusType()));
+    for (int io_flags = 0; io_flags < 4; ++io_flags) {
+        all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.master.%d.mos320", io_flags), GetMasterMOS320Type(), io_flags));
+        all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.master.%d.mos350", io_flags), GetMasterMOS350Type(), io_flags));
+        all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos500", io_flags), GetMasterCompactMOS500Type(), io_flags));
+        all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos510", io_flags), GetMasterCompactMOS510Type(), io_flags));
+        all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mosI510C", io_flags), GetMasterCompactMOSI510CType(), io_flags));
+        all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos511i", io_flags), GetMasterCompactMOS511iType(), io_flags));
     }
 
     std::set<std::string> names;
