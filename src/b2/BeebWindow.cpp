@@ -209,6 +209,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_NVRAMDebugger, "toggle_nvram_debugger", "NVRAM Debug", &CreateNVRAMDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SN76489Debugger, "toggle_sn76489_debugger", "SN76489 Debug", &CreateSN76489DebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_PagingDebugger, "toggle_paging_debugger", "Paging Debug", &CreatePagingDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_PagingBrowserDebugger, "toggle_paging_browser_debugger", "Paging 2 Debug", &CreatePagingBrowserDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_BreakpointsDebugger, "toggle_breakpoints_debugger", "Breakpoints", &CreateBreakpointsDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_StackDebugger, "toggle_stack_debugger", "Stack", &CreateHostStackDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteStackDebugger, "toggle_parasite_stack_debugger", "Parasite Stack", &CreateParasiteStackDebugWindow);
@@ -2441,6 +2442,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SN76489Debugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ADCDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingBrowserDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_BreakpointsDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_StackDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteStackDebugger].command);

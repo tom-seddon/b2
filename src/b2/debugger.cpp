@@ -3214,6 +3214,141 @@ std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct PagingBrowserDebugWindowPersistentData {
+    bool show_unused = false;
+    bool show_debug_duplicates = false;
+};
+JSON_SERIALIZE(PagingBrowserDebugWindowPersistentData, show_unused, show_debug_duplicates);
+
+class PagingBrowserDebugWindow : public DebugUIWithPersistentData<PagingBrowserDebugWindowPersistentData> {
+  public:
+  protected:
+    void DoImGui2() override {
+        ImGui::Checkbox("Show unused", &m_persistent.show_unused);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show debug duplicates", &m_persistent.show_debug_duplicates);
+
+        uint16_t seen_by_debug_index[NUM_BIG_PAGES] = {};
+
+        if (ImGui::BeginTable("big_pages_table", 12, ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY)) {
+            ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("#x", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("D#", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("D#x", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Codes", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("I/O Codes", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Addr", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Parasite", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("Host I/O", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("DSO Clear", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            ImGui::TableSetupColumn("DSO Set", ImGuiTableColumnFlags_WidthFixed, 0.f);
+
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableHeadersRow();
+
+            for (BigPageIndex::Type big_page_index = 0; big_page_index < NUM_BIG_PAGES; ++big_page_index) {
+                ImGuiIDPusher id_pusher(big_page_index);
+
+                const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[big_page_index];
+
+                if (!m_persistent.show_debug_duplicates) {
+                    if (metadata->debug_flags_index.i < NUM_BIG_PAGES) {
+                        uint16_t *seen = &seen_by_debug_index[metadata->debug_flags_index.i];
+
+                        ASSERT(metadata->host_io_flags < 16);
+                        uint16_t mask = 1 << (metadata->host_io_flags & m_beeb_state->type->host_io_flags_mask);
+
+                        if (*seen & mask) {
+                            continue;
+                        }
+
+                        *seen |= mask;
+                    }
+                }
+
+                if (!m_persistent.show_unused) {
+                    if (metadata->addr == BigPageMetadata::INVALID_ADDR) {
+                        continue;
+                    }
+                }
+
+                ImGui::TableNextRow();
+
+                // Index
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", big_page_index);
+                ImGui::TableNextColumn();
+                ImGui::Text("0x%x", big_page_index);
+
+                // Debug Index
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", metadata->debug_flags_index.i);
+                ImGui::TableNextColumn();
+                ImGui::Text("0x%x", metadata->debug_flags_index.i);
+
+                // Codes
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(metadata->codes[false]);
+
+                // I/O Codes
+                ImGui::TableNextColumn();
+                if(metadata->host_io_flags&HostIOFlag_NoIO){
+                    ImGui::TextUnformatted("-");
+                }else{
+                    ImGui::TextUnformatted(metadata->io_codes_summary.c_str());
+                }
+
+                // Description
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(metadata->description.c_str());
+
+                // Addr
+                ImGui::TableNextColumn();
+                if (metadata->addr == BigPageMetadata::INVALID_ADDR) {
+                    ImGui::TextUnformatted("-");
+                } else {
+                    ImGui::Text("%s%04x", g_hex, metadata->addr);
+                }
+
+                // Parasite
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(metadata->is_parasite ? "yes" : "no");
+
+                // Host I/O
+                ImGui::TableNextColumn();
+                if (metadata->host_io_flags & HostIOFlag_NoIO) {
+                    ImGui::TextUnformatted("-");
+                } else {
+                    char description[100];
+                    snprintf(description, sizeof description, "%s+%s%s",
+                             metadata->host_io_flags & HostIOFlag_IFJ ? "IFJ" : "XFJ",
+                             metadata->host_io_flags & HostIOFlag_ITU ? "ITU" : "XTU",
+                             metadata->host_io_flags & HostIOFlag_TST ? "+TST" : "");
+                    ImGui::TextUnformatted(description);
+                }
+
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(GetDSODescription(~metadata->dso_mask).c_str());
+
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(GetDSODescription(metadata->dso_value).c_str());
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+  private:
+};
+
+std::unique_ptr<SettingsUI> CreatePagingBrowserDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<PagingBrowserDebugWindow>(beeb_window, ImVec2(475, 400));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BreakpointsDebugWindow : public DebugUI {
   public:
   protected:
@@ -4929,6 +5064,10 @@ std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreatePagingBrowserDebugWindow(BeebWindow *beeb_window) {
     return nullptr;
 }
 

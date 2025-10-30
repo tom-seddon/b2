@@ -579,6 +579,12 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                 metadata->io_codes[1][io_region][1] = ' ';
             }
         }
+        
+#if BBCMICRO_DEBUGGER
+        metadata->io_codes_summary.push_back(ifj_code);
+        metadata->io_codes_summary.push_back(IO_CODE);
+        metadata->io_codes_summary.push_back(itu_code);
+#endif
     }
 
     // Parasite RAM
@@ -1068,17 +1074,20 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         } else {
             type->get_mem_big_page_tables_fn = &GetMemBigPageTablesB<0b1100>; //force banks 12-15
         }
+        type->host_io_flags_mask = 0;
         break;
 
     case BBCMicroTypeID_BPlus:
         type->big_pages_metadata = GetBigPagesMetadataBPlus(type->rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPageTablesBPlus;
+        type->host_io_flags_mask = 0;
         break;
 
     case BBCMicroTypeID_Master:
     case BBCMicroTypeID_MasterCompact:
         type->big_pages_metadata = GetBigPagesMetadataMaster(type->rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPagesTablesMaster;
+        type->host_io_flags_mask = HostIOFlag_IFJ | HostIOFlag_ITU | HostIOFlag_TST;
         break;
     }
 
@@ -1482,6 +1491,67 @@ uint32_t GetDSOMaskForOverrides(uint32_t dso) {
     }
 
     return mask;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void AddDSOFlag(std::string *description, uint32_t dso, uint32_t override_mask, uint32_t flag_mask, const char *name) {
+    if (dso & override_mask) {
+        *description += "Override";
+        *description += name;
+        description->push_back('|');
+    }
+
+    if (dso & flag_mask) {
+        *description += name;
+        description->push_back('|');
+    }
+}
+
+std::string GetDSODescription(uint32_t dso) {
+    std::string description;
+
+    if (dso & BBCMicroDebugStateOverride_OverrideROM) {
+        description += "OverrideROM|";
+    }
+
+    uint32_t rom = dso & BBCMicroDebugStateOverride_ROM;
+    if (rom != 0) {
+        description += "0x";
+        description.push_back(HEX_CHARS_LC[dso & BBCMicroDebugStateOverride_ROM]);
+        description.push_back('|');
+    }
+
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideANDY, BBCMicroDebugStateOverride_ANDY, "ANDY");
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideHAZEL, BBCMicroDebugStateOverride_HAZEL, "HAZEL");
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideShadow, BBCMicroDebugStateOverride_Shadow, "Shadow");
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideOS, BBCMicroDebugStateOverride_OS, "OS");
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideParasiteROM, BBCMicroDebugStateOverride_ParasiteROM, "ParasiteROM");
+    AddDSOFlag(&description, dso, 0, BBCMicroDebugStateOverride_Parasite, "Parasite");
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideMapperRegion, 0, "MapperRegion");
+
+    uint32_t mapper_region = dso >> BBCMicroDebugStateOverride_MapperRegionShift & BBCMicroDebugStateOverride_MapperRegionMask;
+    if (mapper_region != 0) {
+        description += "0x";
+        static_assert(NUM_MAPPER_REGIONS <= 16);
+        description.push_back(HEX_CHARS_LC[mapper_region]);
+        description += "<<" STRINGIZE(BBCMicroDebugStateOverride_MapperRegionShift);
+        description.push_back('|');
+    }
+
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideIFJ, BBCMicroDebugStateOverride_IFJ, "IFJ");
+    AddDSOFlag(&description, dso, BBCMicroDebugStateOverride_OverrideITU, BBCMicroDebugStateOverride_ITU, "ITU");
+
+    if (description.empty()) {
+        return "0";
+    } else {
+        ASSERT(description.back() == '|');
+        description.pop_back();
+        return description;
+    }
 }
 #endif
 

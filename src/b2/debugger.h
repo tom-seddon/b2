@@ -35,6 +35,7 @@ std::unique_ptr<SettingsUI> CreateUserVIADebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreatePagingBrowserDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateBreakpointsDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateHostStackDebugWindow(BeebWindow *beeb_window);

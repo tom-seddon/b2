@@ -195,6 +195,12 @@ struct BigPageMetadata {
     // And as above, if host_io_type!=HostIOType_None, and the access is to the
     // I/O part. codes[!!aligned][io region] is the 2-char string of interest.
     char io_codes[2][24][3] = {};
+    
+#if BBCMICRO_DEBUGGER
+    // Brief human-readable summary of the I/O codes, for use by the debugger
+    // big pages view.
+    std::string io_codes_summary;
+#endif
 
     // More elaborate description, printed in UI.
     std::string description;
@@ -284,6 +290,8 @@ struct BBCMicroType {
     uint16_t adc_count = 0;
 
     ROMType rom_types[16] = {};
+
+    uint8_t host_io_flags_mask;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -344,6 +352,8 @@ bool IsValidAddressSuffixChar(char c);
 // If the DSO parasite bit is set, that's set in the mask too, and perhaps the
 // parasite ROM bit too (which is otherwise ignored).
 uint32_t GetDSOMaskForOverrides(uint32_t dso);
+
+std::string GetDSODescription(uint32_t dso);
 
 //inline bool IsIOAccess(HostIOType host_io_type, uint16_t offset, bool read) {
 //    if (host_io_type != HostIOType_None) {
