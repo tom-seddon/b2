@@ -505,12 +505,12 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         if (host_io_flags & HostIOFlag_TST) {
             description += "w";
 #if BBCMICRO_DEBUGGER
-            dso_set = BBCMicroDebugStateOverride_OS;
+            dso_set |= BBCMicroDebugStateOverride_OS;
 #endif
         } else {
             description += "rw";
 #if BBCMICRO_DEBUGGER
-            dso_clear = BBCMicroDebugStateOverride_OS;
+            dso_clear |= BBCMicroDebugStateOverride_OS;
 #endif
         }
         description += " ";
@@ -519,13 +519,13 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         if (host_io_flags & HostIOFlag_IFJ) {
             description += "IFJ";
 #if BBCMICRO_DEBUGGER
-            dso_set = BBCMicroDebugStateOverride_IFJ;
+            dso_set |= BBCMicroDebugStateOverride_IFJ;
 #endif
             ifj_code = IFJ_IO_CODE;
         } else {
             description += "XFJ";
 #if BBCMICRO_DEBUGGER
-            dso_clear = BBCMicroDebugStateOverride_IFJ;
+            dso_clear |= BBCMicroDebugStateOverride_IFJ;
 #endif
             ifj_code = IO_CODE;
         }
@@ -535,13 +535,13 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
         if (host_io_flags & HostIOFlag_ITU) {
             description += "ITU";
 #if BBCMICRO_DEBUGGER
-            dso_set = BBCMicroDebugStateOverride_ITU;
+            dso_set |= BBCMicroDebugStateOverride_ITU;
 #endif
             itu_code = ITU_CODE;
         } else {
             description += "XTU";
 #if BBCMICRO_DEBUGGER
-            dso_clear = BBCMicroDebugStateOverride_ITU;
+            dso_clear |= BBCMicroDebugStateOverride_ITU;
 #endif
             itu_code = XTU_CODE;
         }
@@ -588,7 +588,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                          PARASITE_CODE, 0, "Parasite",
 #if BBCMICRO_DEBUGGER
                          0,
-                         0,
+                         BBCMicroDebugStateOverride_Parasite,
 #endif
                          0x0000);
 
@@ -598,7 +598,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                          PARASITE_ROM_CODE, 0, "Parasite ROM",
 #if BBCMICRO_DEBUGGER
                          0,
-                         BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM,
+                         BBCMicroDebugStateOverride_Parasite | BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM,
 #endif
                          0xf000);
 
