@@ -974,7 +974,7 @@ SymbolDetails SymbolTable::GetSymbolDetailsForAddress(uint16_t address, uint32_t
             applies_to_context = true;
         } else {
             // Check if any of the address suffixes match the current dso
-            for (const LoadedSymbolFile::DSOMask &mask : in_file.lsf->address_suffix_dso_masks) {
+            for (const DSOMask &mask : in_file.lsf->address_suffix_dso_masks) {
                 if ((dso & mask.mask) == mask.value) {
                     applies_to_context = true;
                     break;
