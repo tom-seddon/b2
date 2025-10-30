@@ -72,7 +72,7 @@ const TraceEventType BBCMicro::INSTRUCTION_EVENT("Instruction", sizeof(Instructi
 #if BBCMICRO_DEBUGGER
 static uint8_t *GetByteDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicro::DebugState *debug) {
     if (debug) {
-        if (metadata->addr != 0xffff) {
+        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
             return debug->big_pages_byte_debug_flags[metadata->debug_flags_index.i];
         }
     }
@@ -84,7 +84,7 @@ static uint8_t *GetByteDebugFlagsForBigPage(const BigPageMetadata *metadata, BBC
 #if BBCMICRO_DEBUGGER
 static uint8_t *GetAddressDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicro::DebugState *debug) {
     if (debug) {
-        if (metadata->addr != 0xffff) {
+        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
             if (metadata->is_parasite) {
                 return &debug->parasite_address_debug_flags[metadata->addr];
             } else {
@@ -100,7 +100,7 @@ static uint8_t *GetAddressDebugFlagsForBigPage(const BigPageMetadata *metadata, 
 #if BBCMICRO_DEBUGGER
 static void GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint8_t **write_io_debug_flags, const BigPageMetadata *metadata, BBCMicro::DebugState *debug) {
     if (debug) {
-        if (metadata->addr != 0xffff) {
+        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
             if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
                 if (metadata->host_io_flags & HostIOFlag_IFJ) {
                     for (uint8_t region = 0; region < 16; ++region) {
@@ -2497,7 +2497,7 @@ void BBCMicro::UpdateDebugState() {
 
         //if (m_debug) {
         //    const BigPageMetadata *metadata = &m_state.type->big_pages_metadata[i];
-        //    if (metadata->addr != 0xffff) {
+        //    if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
         //        bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index.i];
 
         //        if (metadata->is_parasite) {

@@ -206,7 +206,8 @@ struct BigPageMetadata {
 #endif
 
     // where this big page will appear in the address space when mapped in.
-    uint16_t addr = 0xffff;
+    static constexpr uint16_t INVALID_ADDR = 0xffff;
+    uint16_t addr = INVALID_ADDR;
 
     // Set if this big page is in the parasite address space.
     //
@@ -245,7 +246,7 @@ struct BBCMicroType {
     //
     // Info about where a given big page will appear in the 6502 memory map.
     //
-    // If addr==0xffff, this big page isn't relevant for this model.
+    // If addr==BigPageMetadata::INVALID_ADDR, this big page isn't relevant for this model.
     std::vector<BigPageMetadata> big_pages_metadata;
 
     // usr, mos and mos_pc_mem_big_pages should point to 16-byte tables.
