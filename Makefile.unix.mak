@@ -68,6 +68,7 @@ _unix2:
 precommit:
 	@echo clang-format...
 	@$(MAKE) clang-format QUIET=1
+	$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel)
 	$(MAKE) _precommit ACTION=build
 	$(MAKE) _precommit ACTION=test
 
@@ -241,6 +242,8 @@ _precommit_tom_init_clang:
 
 .PHONY:precommit_tom
 precommit_tom:
+	@echo clang-format...
+	@$(MAKE) clang-format QUIET=1
 	$(if $(REINIT),$(MAKE) -j $(NPROC) _precommit_tom_init_gcc _precommit_tom_init_clang,)
 	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-gcc.
 	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-clang.
