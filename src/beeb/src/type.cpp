@@ -582,7 +582,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                 metadata->io_codes[1][io_region][1] = ' ';
             }
         }
-        
+
 #if BBCMICRO_DEBUGGER
         metadata->io_codes_summary.push_back(ifj_code);
         metadata->io_codes_summary.push_back(IO_CODE);

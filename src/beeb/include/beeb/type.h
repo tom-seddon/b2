@@ -195,7 +195,7 @@ struct BigPageMetadata {
     // And as above, if host_io_type!=HostIOType_None, and the access is to the
     // I/O part. codes[!!aligned][io region] is the 2-char string of interest.
     char io_codes[2][24][3] = {};
-    
+
 #if BBCMICRO_DEBUGGER
     // Brief human-readable summary of the I/O codes, for use by the debugger
     // big pages view.

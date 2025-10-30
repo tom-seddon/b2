@@ -3293,9 +3293,9 @@ class PagingBrowserDebugWindow : public DebugUIWithPersistentData<PagingBrowserD
 
                 // I/O Codes
                 ImGui::TableNextColumn();
-                if(metadata->host_io_flags&HostIOFlag_NoIO){
+                if (metadata->host_io_flags & HostIOFlag_NoIO) {
                     ImGui::TextUnformatted("-");
-                }else{
+                } else {
                     ImGui::TextUnformatted(metadata->io_codes_summary.c_str());
                 }
 
