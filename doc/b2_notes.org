@@ -6982,4 +6982,61 @@ https://gist.github.com/vadz/5950b4a524648f1e3129f4138ebcd271
   corresponding ROM.
 #+end_src
 
+* Symbols/DSO stuff
+
+The current mechanism may need a bit of tweaking.
+
+** Inclusive/exclusive
+
+(TODO: naming)
+
+Each symbol in a file only has an address attached, and the BBC uses
+paging a lot. How should the debugger decide when a symbol actually
+applies?
+
+There's 2 ways of interpreting the label file's suffixes.
+
+- Exclusive :: if the region corresponding to one of the suffixes is
+  visible, symbols in the file apply; otherwise, symbols in the file
+  are hidden. For example, suppose =labels.sym= is loaded and its
+  suffixes are =f;e= - then if ROM bank f or e is paged in, all
+  symbols from =labels.sym= are shown. Otherwise - i.e., ROM banks
+  0-9, a-d - all of its symbols are hidden.
+  
+  This makes sense for paged ROMs. Symbols inside the ROM area are
+  only relevant if the ROM is paged in - and that probably applies to
+  symbols outside the ROM area too. They'll be ROM workspace and so
+  on, not relevant when some other ROM is paged in.
+
+- Inclusive :: if the region corresponding to one of the suffixes is
+  visible effect, symbols in the file apply if their address is
+  covered by that region. Symbols with addresses covered by other
+  regions are always visible.
+
+  This is probably what you want for general code that might cross
+  regions. 
+
+** Actual bytes are ambiguous
+
+e.g., if a file's suffixes are =f;e=, and symbol =x= is $8000, then
+the address of =x= is easy enough, but which byte is it?
+
+** Exclusive symbols are debugger only
+
+For example, suppose =labels.sym= has suffix =f= and =x\=0= and
+exclusive. Now =x= will only be shown in the debugger when bank f is
+paged in. But if you put a byte breakpoint on =x=, it'll have to end
+up at =$0000`m=! The ROM bank will never play a part.
+
+This is probably manageable from the debugger. You need to right click
+on the byte and it shows you the byte address there.
+
+Feels like the UX for this might not be ideal if using the HTTP API
+though.
+
+** More TODOs
+
+- with the ROM mappers, the same byte can be visible at multiple
+  addresses. Are the debug flags set up to handle this?
+
 * eof.
