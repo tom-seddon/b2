@@ -4565,7 +4565,7 @@ void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGrou
     }
 }
 
-static std::string GetDisplayTextForFileAddressSuffixes(const std::vector<std::string>&address_suffixes){
+static std::string GetDisplayTextForFileAddressSuffixes(const std::vector<std::string> &address_suffixes) {
     std::string display_text;
     for (const std::string &address_suffix : address_suffixes) {
         if (!display_text.empty()) {
@@ -4573,16 +4573,16 @@ static std::string GetDisplayTextForFileAddressSuffixes(const std::vector<std::s
         }
         display_text += address_suffix;
     }
-    
+
     return display_text;
 }
 
-template<class T>
-static bool ImGuiEnumStateSelectable(T *ptr,T value){
-    if(ImGui::Selectable(GetEnumName(value),*ptr==value)){
-        *ptr=value;
+template <class T>
+static bool ImGuiEnumStateSelectable(T *ptr, T value) {
+    if (ImGui::Selectable(GetEnumName(value), *ptr == value)) {
+        *ptr = value;
         return true;
-    }else{
+    } else {
         return false;
     }
 }
@@ -4822,9 +4822,9 @@ class SymbolGroupManagementUI : public SettingsUI {
                     contexts_col_end = contexts_col_start + ImGui::GetColumnWidth();
 
                     // Display contexts (clickable) - show all contexts, no truncation
-                    std::string display_text=GetDisplayTextForFileAddressSuffixes(file->address_suffixes);
-                    if(!file->address_suffixes.empty()){
-                        display_text+=std::string(" (")+GetSymbolFileAddressSuffixModeEnumName(file->address_suffix_mode)+")";
+                    std::string display_text = GetDisplayTextForFileAddressSuffixes(file->address_suffixes);
+                    if (!file->address_suffixes.empty()) {
+                        display_text += std::string(" (") + GetSymbolFileAddressSuffixModeEnumName(file->address_suffix_mode) + ")";
                     }
 
                     ImGui::TextUnformatted(display_text.c_str());
@@ -4834,7 +4834,7 @@ class SymbolGroupManagementUI : public SettingsUI {
                         ImGui::Text("Double-click to edit");
                         ImGui::EndTooltip();
                     }
-                    
+
                     // Column 7: Source file
                     ImGui::TableSetColumnIndex(7);
                     if (file->file_path.empty()) {
@@ -4856,20 +4856,20 @@ class SymbolGroupManagementUI : public SettingsUI {
                     }
 
                     if (ImGui::BeginPopup(ADDRESS_SUFFIXES_POPUP)) {
-                        if(ImGui::BeginCombo("Suffix Mode",GetSymbolFileAddressSuffixModeEnumName(file->address_suffix_mode))){
-                            SymbolFileAddressSuffixMode address_suffix_mode=file->address_suffix_mode;
-                            
-                            ImGuiEnumStateSelectable(&address_suffix_mode,SymbolFileAddressSuffixMode_Exclusive);
-                            ImGuiEnumStateSelectable(&address_suffix_mode,SymbolFileAddressSuffixMode_Inclusive);
-                            
+                        if (ImGui::BeginCombo("Suffix Mode", GetSymbolFileAddressSuffixModeEnumName(file->address_suffix_mode))) {
+                            SymbolFileAddressSuffixMode address_suffix_mode = file->address_suffix_mode;
+
+                            ImGuiEnumStateSelectable(&address_suffix_mode, SymbolFileAddressSuffixMode_Exclusive);
+                            ImGuiEnumStateSelectable(&address_suffix_mode, SymbolFileAddressSuffixMode_Inclusive);
+
                             ImGui::EndCombo();
-                            
-                            if(address_suffix_mode!=file->address_suffix_mode){
-                                symbol_table.SetFileAddressSuffixMode(file_index,address_suffix_mode);
+
+                            if (address_suffix_mode != file->address_suffix_mode) {
+                                symbol_table.SetFileAddressSuffixMode(file_index, address_suffix_mode);
                             }
                         }
                         ImGui::Separator();
-                        
+
                         if (ImGui::InputText("Suffix", m_address_suffix_buffer, sizeof m_address_suffix_buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
                             m_address_suffix_error.clear();
 
@@ -5071,174 +5071,175 @@ std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *beeb_w
 //    ImGuiTableColumnSortSpecs() { memset(this, 0, sizeof(*this)); }
 //};
 
-
-class SymbolBrowserUI:public DebugUI{
-public:
-protected:
-    enum class Column:ImGuiID {
+class SymbolBrowserUI : public DebugUI {
+  public:
+  protected:
+    enum class Column : ImGuiID {
         Name,
         Addr,
         FilePath,
         FileSuffixes,
     };
-    void DoImGui2()override{
-        const SymbolTable*symbol_table=m_beeb_window->GetSymbolTable();
-        
-        uint64_t symbols_changed_counter=symbol_table->GetSymbolsChangedCounter();
-        if(m_old_symbols_changed_counter!=symbols_changed_counter){
-            size_t num_files=symbol_table->GetNumFiles();
-            size_t total_num_symbols=0;
-            for(size_t file_index=0;file_index<num_files;++file_index){
-                total_num_symbols+=symbol_table->GetNumSymbolsInFile(file_index);
+    void DoImGui2() override {
+        const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
+
+        uint64_t symbols_changed_counter = symbol_table->GetSymbolsChangedCounter();
+        if (m_old_symbols_changed_counter != symbols_changed_counter) {
+            size_t num_files = symbol_table->GetNumFiles();
+            size_t total_num_symbols = 0;
+            for (size_t file_index = 0; file_index < num_files; ++file_index) {
+                total_num_symbols += symbol_table->GetNumSymbolsInFile(file_index);
             }
-            
+
             m_order_table.resize(total_num_symbols);
             m_file_cached_data.resize(num_files);
             {
-                size_t ref_index=0;
-                for(size_t file_index=0;file_index<num_files;++file_index){
-                    size_t num_file_symbols=symbol_table->GetSymbolCountForFile(file_index);
-                    for(size_t symbol_index=0;symbol_index<num_file_symbols;++symbol_index){
-                        m_order_table[ref_index++]={file_index,symbol_index};
+                size_t ref_index = 0;
+                for (size_t file_index = 0; file_index < num_files; ++file_index) {
+                    size_t num_file_symbols = symbol_table->GetSymbolCountForFile(file_index);
+                    for (size_t symbol_index = 0; symbol_index < num_file_symbols; ++symbol_index) {
+                        m_order_table[ref_index++] = {file_index, symbol_index};
                     }
-                    
-                    const SymbolFile*file=symbol_table->GetFileByIndex(file_index);
-                    
+
+                    const SymbolFile *file = symbol_table->GetFileByIndex(file_index);
+
                     FileCachedData cached_data;
-                    
-                    cached_data.name=PathGetName(file->file_path);
-                    cached_data.suffixes=GetDisplayTextForFileAddressSuffixes(file->address_suffixes);
-                    
-                    m_file_cached_data[file_index]=std::move(cached_data);
+
+                    cached_data.name = PathGetName(file->file_path);
+                    cached_data.suffixes = GetDisplayTextForFileAddressSuffixes(file->address_suffixes);
+
+                    m_file_cached_data[file_index] = std::move(cached_data);
                 }
             }
-            
-            m_old_symbols_changed_counter=symbols_changed_counter;
+
+            m_old_symbols_changed_counter = symbols_changed_counter;
         }
-        
-        const uint32_t table_flags=ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY|ImGuiTableFlags_Sortable|ImGuiTableFlags_SortMulti;
-        if(ImGui::BeginTable("symbols_list",4,table_flags)){
+
+        const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
+        if (ImGui::BeginTable("symbols_list", 4, table_flags)) {
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::Name);
             ImGui::TableSetupColumn("Addr", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::Addr);
             ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::FilePath);
-            ImGui::TableSetupColumn("Suffixes",ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::FileSuffixes);
-//            ImGui::TableSetupColumn("Suffixes", ImGuiTableColumnFlags_WidthFixed, 0.f);
-//            ImGui::TableSetupColumn("Mode", ImGuiTableColumnFlags_WidthFixed, 0.f);
-            
+            ImGui::TableSetupColumn("Suffixes", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::FileSuffixes);
+            //            ImGui::TableSetupColumn("Suffixes", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            //            ImGui::TableSetupColumn("Mode", ImGuiTableColumnFlags_WidthFixed, 0.f);
+
             ImGui::TableSetupScrollFreeze(0, 1);
             ImGui::TableHeadersRow();
-            
-            if(ImGuiTableSortSpecs*specs=ImGui::TableGetSortSpecs()){
-                if(specs->SpecsDirty){
-                    this->Sort(specs->Specs,specs->SpecsCount);
-                    specs->SpecsDirty=false;
+
+            if (ImGuiTableSortSpecs *specs = ImGui::TableGetSortSpecs()) {
+                if (specs->SpecsDirty) {
+                    this->Sort(specs->Specs, specs->SpecsCount);
+                    specs->SpecsDirty = false;
                 }
             }
-            
-            for(size_t i=0;i<m_order_table.size();++i){
-                const SymbolRef *ref=&m_order_table[i];
-                const FileCachedData *fcd=&m_file_cached_data[ref->file_index];
-                const SymbolFile *file=symbol_table->GetFileByIndex(ref->file_index);
-                const Symbol *symbol=symbol_table->GetSymbolInFileByIndex(ref->file_index,ref->symbol_index);
-                
+
+            for (size_t i = 0; i < m_order_table.size(); ++i) {
+                const SymbolRef *ref = &m_order_table[i];
+                const FileCachedData *fcd = &m_file_cached_data[ref->file_index];
+                const SymbolFile *file = symbol_table->GetFileByIndex(ref->file_index);
+                const Symbol *symbol = symbol_table->GetSymbolInFileByIndex(ref->file_index, ref->symbol_index);
+                (void)file;
+
                 ImGui::TableNextRow();
-                
+
                 ImGui::TableNextColumn();
                 ImGui::TextUnformatted(symbol->name.c_str());
-                
+
                 ImGui::TableNextColumn();
-                ImGui::Text("%s%04x",g_hex,symbol->address);
-                
+                ImGui::Text("%s%04x", g_hex, symbol->address);
+
                 ImGui::TableNextColumn();
                 ImGui::TextUnformatted(fcd->name.c_str());
-                
+
                 ImGui::TableNextColumn();
                 ImGui::TextUnformatted(fcd->suffixes.c_str());
             }
-            
+
             ImGui::EndTable();
         }
     }
-private:
+
+  private:
     struct SymbolRef {
-        size_t file_index=0;
-        size_t symbol_index=0;
+        size_t file_index = 0;
+        size_t symbol_index = 0;
     };
-    
+
     // avoid constantly recalculating this stuff.
     struct FileCachedData {
         std::string name;
         std::string suffixes;
     };
-    
-    uint64_t m_old_symbols_changed_counter=0;
+
+    uint64_t m_old_symbols_changed_counter = 0;
     std::vector<SymbolRef> m_order_table;
     std::vector<FileCachedData> m_file_cached_data;
-    
-    bool LessThanByName(size_t ,const SymbolFile *,const Symbol *sa,size_t ,const SymbolFile *,const Symbol *sb)const{
-        return sa->name<sb->name;
-    }
-    
-    bool LessThanByAddr(size_t ,const SymbolFile *,const Symbol *sa,size_t ,const SymbolFile *,const Symbol *sb)const{
-        return sa->address<sb->address;
-    }
-    
-    bool LessThanByFilePath(size_t ia,const SymbolFile *,const Symbol *,size_t ib,const SymbolFile *,const Symbol *)const {
-        return m_file_cached_data[ia].name<m_file_cached_data[ib].name;
+
+    bool LessThanByName(size_t, const SymbolFile *, const Symbol *sa, size_t, const SymbolFile *, const Symbol *sb) const {
+        return sa->name < sb->name;
     }
 
-    bool LessThanByFileSuffixes(size_t ia,const SymbolFile *,const Symbol *,size_t ib,const SymbolFile *,const Symbol *)const {
-        return m_file_cached_data[ia].suffixes<m_file_cached_data[ib].suffixes;
+    bool LessThanByAddr(size_t, const SymbolFile *, const Symbol *sa, size_t, const SymbolFile *, const Symbol *sb) const {
+        return sa->address < sb->address;
     }
 
-    void Sort(const ImGuiTableColumnSortSpecs *specs,int num_specs){
-        const SymbolTable*symbol_table=m_beeb_window->GetSymbolTable();
+    bool LessThanByFilePath(size_t ia, const SymbolFile *, const Symbol *, size_t ib, const SymbolFile *, const Symbol *) const {
+        return m_file_cached_data[ia].name < m_file_cached_data[ib].name;
+    }
 
-        for(int i=0;i<num_specs;++i){
-            const ImGuiTableColumnSortSpecs *spec=&specs[i];
-            bool (SymbolBrowserUI::*lt_fn)(size_t,const SymbolFile *,const Symbol *,size_t,const SymbolFile*,const Symbol*)const=nullptr;
-            switch((Column)spec->ColumnUserID){
+    bool LessThanByFileSuffixes(size_t ia, const SymbolFile *, const Symbol *, size_t ib, const SymbolFile *, const Symbol *) const {
+        return m_file_cached_data[ia].suffixes < m_file_cached_data[ib].suffixes;
+    }
+
+    void Sort(const ImGuiTableColumnSortSpecs *specs, int num_specs) {
+        const SymbolTable *symbol_table = m_beeb_window->GetSymbolTable();
+
+        for (int i = 0; i < num_specs; ++i) {
+            const ImGuiTableColumnSortSpecs *spec = &specs[i];
+            bool (SymbolBrowserUI::*lt_fn)(size_t, const SymbolFile *, const Symbol *, size_t, const SymbolFile *, const Symbol *) const = nullptr;
+            switch ((Column)spec->ColumnUserID) {
             default:
                 ASSERT(false);
                 break;
-                
+
             case Column::Name:
-                lt_fn=&SymbolBrowserUI::LessThanByName;
+                lt_fn = &SymbolBrowserUI::LessThanByName;
                 break;
-                
+
             case Column::Addr:
-                lt_fn=&SymbolBrowserUI::LessThanByAddr;
+                lt_fn = &SymbolBrowserUI::LessThanByAddr;
                 break;
-                
+
             case Column::FilePath:
-                lt_fn=&SymbolBrowserUI::LessThanByFilePath;
+                lt_fn = &SymbolBrowserUI::LessThanByFilePath;
                 break;
-                
+
             case Column::FileSuffixes:
-                lt_fn=&SymbolBrowserUI::LessThanByFileSuffixes;
+                lt_fn = &SymbolBrowserUI::LessThanByFileSuffixes;
             }
 
-            if(lt_fn){
-                std::stable_sort(m_order_table.begin(),m_order_table.end(),
-                                 [this,symbol_table,lt_fn,ascending=spec->SortDirection==ImGuiSortDirection_Ascending](const SymbolRef &a,const SymbolRef &b){
-                    const SymbolFile *fa=symbol_table->GetFileByIndex(a.file_index);
-                    const Symbol *sa=symbol_table->GetSymbolInFileByIndex(a.file_index,a.symbol_index);
-                    
-                    const SymbolFile *fb=symbol_table->GetFileByIndex(b.file_index);
-                    const Symbol *sb=symbol_table->GetSymbolInFileByIndex(b.file_index,b.symbol_index);
-                    
-                    if(ascending){
-                        return (this->*lt_fn)(a.file_index,fa,sa,b.file_index,fb,sb);
-                    }else{
-                        return (this->*lt_fn)(b.file_index,fb,sb,a.file_index,fa,sa);
-                    }
-                });
+            if (lt_fn) {
+                std::stable_sort(m_order_table.begin(), m_order_table.end(),
+                                 [this, symbol_table, lt_fn, ascending = spec->SortDirection == ImGuiSortDirection_Ascending](const SymbolRef &a, const SymbolRef &b) {
+                                     const SymbolFile *fa = symbol_table->GetFileByIndex(a.file_index);
+                                     const Symbol *sa = symbol_table->GetSymbolInFileByIndex(a.file_index, a.symbol_index);
+
+                                     const SymbolFile *fb = symbol_table->GetFileByIndex(b.file_index);
+                                     const Symbol *sb = symbol_table->GetSymbolInFileByIndex(b.file_index, b.symbol_index);
+
+                                     if (ascending) {
+                                         return (this->*lt_fn)(a.file_index, fa, sa, b.file_index, fb, sb);
+                                     } else {
+                                         return (this->*lt_fn)(b.file_index, fb, sb, a.file_index, fa, sa);
+                                     }
+                                 });
             }
         }
     }
 };
 
-std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window){
+std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<SymbolBrowserUI>(beeb_window);
 }
 
@@ -5307,7 +5308,7 @@ std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *) {
     return nullptr;
 }
 
-std::unique_ptr<SettingsUI> CreatePagingBrowserDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreatePagingBrowserDebugWindow(BeebWindow *) {
     return nullptr;
 }
 
@@ -5371,7 +5372,7 @@ std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *) {
     return nullptr;
 }
 
-std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *){
+std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *) {
     return nullptr;
 }
 

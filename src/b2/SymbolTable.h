@@ -144,7 +144,7 @@ class SymbolTable {
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
     size_t GetSymbolCountForFile(size_t file_index) const;
-    uint64_t GetSymbolsChangedCounter()const;//will never return 0
+    uint64_t GetSymbolsChangedCounter() const; //will never return 0
 
     // File management
     bool RemoveFile(size_t file_index);
@@ -152,9 +152,9 @@ class SymbolTable {
     size_t GetNumFiles() const;
     const SymbolFile *GetFileByIndex(size_t file_index) const;
     bool MoveFile(size_t from_index, size_t to_index);
-    
-    size_t GetNumSymbolsInFile(size_t file_index)const;
-    const Symbol *GetSymbolInFileByIndex(size_t file_index,size_t symbol_index)const;
+
+    size_t GetNumSymbolsInFile(size_t file_index) const;
+    const Symbol *GetSymbolInFileByIndex(size_t file_index, size_t symbol_index) const;
 
     // Group metadata editing
     void SetFileGroupIndex(size_t file_index, uint8_t group_index);
@@ -268,7 +268,7 @@ class SymbolTable {
 
     mutable std::shared_ptr<const BBCMicroType> m_cache_type;
     mutable bool m_group_properties_valid = false;
-    mutable uint64_t m_symbols_changed_counter=1;
+    mutable uint64_t m_symbols_changed_counter = 1;
 
     // Format detection and loading
     const SymbolParser *DetectBestParser(const std::string &content);

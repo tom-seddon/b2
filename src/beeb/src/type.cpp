@@ -1039,38 +1039,38 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct Region {
-    uint32_t begin = UINT32_MAX, end = 0;
-};
+//struct Region {
+//    uint32_t begin = UINT32_MAX, end = 0;
+//};
 
-static void UpdateRegion(Region *region, uint32_t begin, uint32_t size) {
-    region->begin = (std::min)(region->begin, begin);
-    region->end = (std::max)(region->end, begin + size);
-}
+//static void UpdateRegion(Region *region, uint32_t begin, uint32_t size) {
+//    region->begin = (std::min)(region->begin, begin);
+//    region->end = (std::max)(region->end, begin + size);
+//}
 
-static void DumpRegions(const std::shared_ptr<const BBCMicroType> &type) {
-    std::map<std::string, Region> regions_by_name;
-    for (size_t i = 0; i < type->big_pages_metadata.size(); ++i) {
-        const BigPageMetadata *m = &type->big_pages_metadata[i];
-        std::string name = m->codes[0];
-        if (name.empty()) {
-            continue;
-        }
-        UpdateRegion(&regions_by_name[name], m->addr, BIG_PAGE_SIZE_BYTES);
-
-        if (!(m->host_io_flags & HostIOFlag_NoIO)) {
-            for (uint8_t j = 0; j < 24; ++j) {
-                name = m->io_codes[0][j];
-                ASSERT(!name.empty());
-                UpdateRegion(&regions_by_name[name], m->addr + 0xc00 + j * 32, 32);
-            }
-        }
-    }
-
-    for (const auto &name_and_region : regions_by_name) {
-        printf("%s: $%" PRIx32 "-$%" PRIx32 "\n", name_and_region.first.c_str(), name_and_region.second.begin, name_and_region.second.end);
-    }
-}
+//static void DumpRegions(const std::shared_ptr<const BBCMicroType> &type) {
+//    std::map<std::string, Region> regions_by_name;
+//    for (size_t i = 0; i < type->big_pages_metadata.size(); ++i) {
+//        const BigPageMetadata *m = &type->big_pages_metadata[i];
+//        std::string name = m->codes[0];
+//        if (name.empty()) {
+//            continue;
+//        }
+//        UpdateRegion(&regions_by_name[name], m->addr, BIG_PAGE_SIZE_BYTES);
+//
+//        if (!(m->host_io_flags & HostIOFlag_NoIO)) {
+//            for (uint8_t j = 0; j < 24; ++j) {
+//                name = m->io_codes[0][j];
+//                ASSERT(!name.empty());
+//                UpdateRegion(&regions_by_name[name], m->addr + 0xc00 + j * 32, 32);
+//            }
+//        }
+//    }
+//
+//    for (const auto &name_and_region : regions_by_name) {
+//        printf("%s: $%" PRIx32 "-$%" PRIx32 "\n", name_and_region.first.c_str(), name_and_region.second.begin, name_and_region.second.end);
+//    }
+//}
 
 std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types_, uint32_t flags) {
     auto type = std::make_shared<BBCMicroType>();

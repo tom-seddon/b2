@@ -786,7 +786,7 @@ size_t SymbolTable::GetSymbolCountForFile(size_t file_index) const {
     return m_lsfs[file_index]->symbols.size();
 }
 
-uint64_t SymbolTable::GetSymbolsChangedCounter()const{
+uint64_t SymbolTable::GetSymbolsChangedCounter() const {
     return m_symbols_changed_counter;
 }
 
@@ -877,14 +877,14 @@ bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
     return true;
 }
 
-size_t SymbolTable::GetNumSymbolsInFile(size_t file_index)const{
-    ASSERT(file_index<m_lsfs.size());
+size_t SymbolTable::GetNumSymbolsInFile(size_t file_index) const {
+    ASSERT(file_index < m_lsfs.size());
     return m_lsfs[file_index]->symbols.size();
 }
 
-const Symbol *SymbolTable::GetSymbolInFileByIndex(size_t file_index,size_t symbol_index)const{
-    ASSERT(file_index<m_lsfs.size());
-    ASSERT(symbol_index<m_lsfs[file_index]->symbols.size());
+const Symbol *SymbolTable::GetSymbolInFileByIndex(size_t file_index, size_t symbol_index) const {
+    ASSERT(file_index < m_lsfs.size());
+    ASSERT(symbol_index < m_lsfs[file_index]->symbols.size());
     return &m_lsfs[file_index]->symbols[symbol_index];
 }
 
@@ -1054,7 +1054,7 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
     if (m_cache_type == type) {
         return;
     }
-    
+
     ++m_symbols_changed_counter;
 
     for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
@@ -1289,7 +1289,7 @@ void SymbolTable::EnsureGroupPropertiesValid() const {
     if (m_group_properties_valid) {
         return;
     }
-    
+
     ++m_symbols_changed_counter;
 
     SymbolGroupState *states[MAX_NUM_SYMBOL_FILE_GROUPS] = {};
