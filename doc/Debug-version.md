@@ -512,6 +512,8 @@ To load a symbol file, use `Debug` > `Load symbols`, selecting the
 symbol format (see below) from the dropdown list. Pick the file of
 interest from the file selector.
 
+**Symbols support is a work in progress!**
+
 ## `Symbols`
 
 Use `Debug` > `Symbols` to show the symbols window, listing all the
@@ -548,29 +550,24 @@ The bulk enable/disable option is also available from the `Debug` >
 Tick `Show used` to show only the used groups. (Unused groups retain
 whatever settings they had when they were used.)
 
-## Symbol file suffixes
+## Symbol file suffixes and modes
 
 Click on the entry in the `Suffixes` column to specify applicable
 address suffixes for this symbol file. Enter a suffix in the popup and
 press Return to add it; click the `x` button next to an existing
 suffix in the popup to remove it.
 
-If the symbol file is enabled, and any of the paging settings implied
-by the address suffixes in the list are currently force, then the
-symbol file will be used.
+The mode dropdown controls how the address suffixes are interpreted
+when the symbol file is enabled.
 
-If entering the name of a symbol from that file in an address field,
-the first suffix in the list will be used to specify paging overrides
-for the corresponding view, as if you'd set them up yourself from the
-paging overrides UI.
+`Exclusive` mode means that if any of the mentioned regions are paged
+in, the symbol file's symbols will be shown; otherwise, they will be
+hidden.
 
-For example, if working on a sideways ROM loaded into (say) ROM bank
-D, specify `d` as the suffixes for its symbol file. If ROM bank D is
-paged in, or the paging overrides are set to show ROM bank D, its
-symbols will be used; otherwise, they won't.
-
-(This behaviour may not always be what you want. **Symbols support is
-a work in progress!**)
+`Inclusive` mode takes the symbols' addresses into account. Symbols
+outside any mentioned region will always be visible, and symbols
+inside any mentioned region will be shown or hidden according to the
+paging settings.
 
 ## Symbol formats
 

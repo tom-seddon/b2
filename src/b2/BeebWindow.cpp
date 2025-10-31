@@ -209,7 +209,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_NVRAMDebugger, "toggle_nvram_debugger", "NVRAM Debug", &CreateNVRAMDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SN76489Debugger, "toggle_sn76489_debugger", "SN76489 Debug", &CreateSN76489DebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_PagingDebugger, "toggle_paging_debugger", "Paging Debug", &CreatePagingDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_PagingBrowserDebugger, "toggle_paging_browser_debugger", "Paging 2 Debug", &CreatePagingBrowserDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_PagingBrowserDebugger, "toggle_paging_browser_debugger", "Big Pages Debug", &CreatePagingBrowserDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_BreakpointsDebugger, "toggle_breakpoints_debugger", "Breakpoints", &CreateBreakpointsDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_StackDebugger, "toggle_stack_debugger", "Stack", &CreateHostStackDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteStackDebugger, "toggle_parasite_stack_debugger", "Parasite Stack", &CreateParasiteStackDebugWindow);
@@ -247,6 +247,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_SCSIDebug, "toggle_scsi_debug", "SCSI Debug", &CreateSCSIDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SerialDebug, "toggle_serial_debug", "Serial Debug", &CreateSerialDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupManagement, "toggle_symbol_group_management", "Symbols", &CreateSymbolGroupManagementWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupBrowser, "toggle_symbol_browser_debug", "Browse Symbols", &CreateSymbolBrowserWindow);
     return true;
 }
 
@@ -2456,6 +2457,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupManagement].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupBrowser].command);
 
         ImGui::Separator();
 

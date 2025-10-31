@@ -82,6 +82,7 @@ EPN(SCSIDebug)
 EPN(SerialDebug) //55
 EPN(SymbolGroupManagement)
 EPN(PagingBrowserDebugger)
+EPN(SymbolGroupBrowser)
 
 // must be last
 EQPN(MaxValue)

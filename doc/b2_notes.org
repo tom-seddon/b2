@@ -7039,4 +7039,13 @@ though.
 - with the ROM mappers, the same byte can be visible at multiple
   addresses. Are the debug flags set up to handle this?
 
+** Test case
+
+1. =make _pres_stuff= in BASIC Editor repo
+2. use BET.32KB.ROM, type =PRES ABE+=
+3. Load symbols, =64tass labels=:
+
+   - =bedit_bet.sym= :: suffixes cA
+   - =butils_bet.sym= :: suffixes cB
+
 * eof.

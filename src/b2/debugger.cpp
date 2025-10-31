@@ -12,6 +12,7 @@
 #include <beeb/scsi.h>
 #include <beeb/HardDiskImage.h>
 #include "SymbolTable.h"
+#include <shared/path.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -4564,6 +4565,28 @@ void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGrou
     }
 }
 
+static std::string GetDisplayTextForFileAddressSuffixes(const std::vector<std::string>&address_suffixes){
+    std::string display_text;
+    for (const std::string &address_suffix : address_suffixes) {
+        if (!display_text.empty()) {
+            display_text += ";";
+        }
+        display_text += address_suffix;
+    }
+    
+    return display_text;
+}
+
+template<class T>
+static bool ImGuiEnumStateSelectable(T *ptr,T value){
+    if(ImGui::Selectable(GetEnumName(value),*ptr==value)){
+        *ptr=value;
+        return true;
+    }else{
+        return false;
+    }
+}
+
 static const char ADDRESS_SUFFIXES_POPUP[] = "address_suffixes_popup";
 
 class SymbolGroupManagementUI : public SettingsUI {
@@ -4799,12 +4822,9 @@ class SymbolGroupManagementUI : public SettingsUI {
                     contexts_col_end = contexts_col_start + ImGui::GetColumnWidth();
 
                     // Display contexts (clickable) - show all contexts, no truncation
-                    std::string display_text;
-                    for (const std::string &address_suffix : file->address_suffixes) {
-                        if (!display_text.empty()) {
-                            display_text += ";";
-                        }
-                        display_text += address_suffix;
+                    std::string display_text=GetDisplayTextForFileAddressSuffixes(file->address_suffixes);
+                    if(!file->address_suffixes.empty()){
+                        display_text+=std::string(" (")+GetSymbolFileAddressSuffixModeEnumName(file->address_suffix_mode)+")";
                     }
 
                     ImGui::TextUnformatted(display_text.c_str());
@@ -4814,7 +4834,7 @@ class SymbolGroupManagementUI : public SettingsUI {
                         ImGui::Text("Double-click to edit");
                         ImGui::EndTooltip();
                     }
-
+                    
                     // Column 7: Source file
                     ImGui::TableSetColumnIndex(7);
                     if (file->file_path.empty()) {
@@ -4836,6 +4856,20 @@ class SymbolGroupManagementUI : public SettingsUI {
                     }
 
                     if (ImGui::BeginPopup(ADDRESS_SUFFIXES_POPUP)) {
+                        if(ImGui::BeginCombo("Suffix Mode",GetSymbolFileAddressSuffixModeEnumName(file->address_suffix_mode))){
+                            SymbolFileAddressSuffixMode address_suffix_mode=file->address_suffix_mode;
+                            
+                            ImGuiEnumStateSelectable(&address_suffix_mode,SymbolFileAddressSuffixMode_Exclusive);
+                            ImGuiEnumStateSelectable(&address_suffix_mode,SymbolFileAddressSuffixMode_Inclusive);
+                            
+                            ImGui::EndCombo();
+                            
+                            if(address_suffix_mode!=file->address_suffix_mode){
+                                symbol_table.SetFileAddressSuffixMode(file_index,address_suffix_mode);
+                            }
+                        }
+                        ImGui::Separator();
+                        
                         if (ImGui::InputText("Suffix", m_address_suffix_buffer, sizeof m_address_suffix_buffer, ImGuiInputTextFlags_EnterReturnsTrue)) {
                             m_address_suffix_error.clear();
 
@@ -5005,6 +5039,212 @@ std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *beeb_w
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//// Tables: Sorting & Miscellaneous functions
+//// - Sorting: call TableGetSortSpecs() to retrieve latest sort specs for the table. NULL when not sorting.
+////   When 'sort_specs->SpecsDirty == true' you should sort your data. It will be true when sorting specs have
+////   changed since last call, or the first time. Make sure to set 'SpecsDirty = false' after sorting,
+////   else you may wastefully sort your data every frame!
+//// - Functions args 'int column_n' treat the default value of -1 as the same as passing the current column index.
+//IMGUI_API ImGuiTableSortSpecs*  TableGetSortSpecs();                        // get latest sort specs for the table (NULL if not sorting).  Lifetime: don't hold on this pointer over multiple frames or past any subsequent call to BeginTable().
+
+//// Sorting specifications for a table (often handling sort specs for a single column, occasionally more)
+//// Obtained by calling TableGetSortSpecs().
+//// When 'SpecsDirty == true' you can sort your data. It will be true with sorting specs have changed since last call, or the first time.
+//// Make sure to set 'SpecsDirty = false' after sorting, else you may wastefully sort your data every frame!
+//struct ImGuiTableSortSpecs
+//{
+//    const ImGuiTableColumnSortSpecs* Specs;     // Pointer to sort spec array.
+//    int                         SpecsCount;     // Sort spec count. Most often 1. May be > 1 when ImGuiTableFlags_SortMulti is enabled. May be == 0 when ImGuiTableFlags_SortTristate is enabled.
+//    bool                        SpecsDirty;     // Set to true when specs have changed since last time! Use this to sort again, then clear the flag.
+//
+//    ImGuiTableSortSpecs()       { memset(this, 0, sizeof(*this)); }
+//};
+//
+//// Sorting specification for one column of a table (sizeof == 12 bytes)
+//struct ImGuiTableColumnSortSpecs
+//{
+//    ImGuiID                     ColumnUserID;       // User id of the column (if specified by a TableSetupColumn() call)
+//    ImS16                       ColumnIndex;        // Index of the column
+//    ImS16                       SortOrder;          // Index within parent ImGuiTableSortSpecs (always stored in order starting from 0, tables sorted on a single criteria will always have a 0 here)
+//    ImGuiSortDirection          SortDirection;      // ImGuiSortDirection_Ascending or ImGuiSortDirection_Descending
+//
+//    ImGuiTableColumnSortSpecs() { memset(this, 0, sizeof(*this)); }
+//};
+
+
+class SymbolBrowserUI:public DebugUI{
+public:
+protected:
+    enum class Column:ImGuiID {
+        Name,
+        Addr,
+        FilePath,
+        FileSuffixes,
+    };
+    void DoImGui2()override{
+        const SymbolTable*symbol_table=m_beeb_window->GetSymbolTable();
+        
+        uint64_t symbols_changed_counter=symbol_table->GetSymbolsChangedCounter();
+        if(m_old_symbols_changed_counter!=symbols_changed_counter){
+            size_t num_files=symbol_table->GetNumFiles();
+            size_t total_num_symbols=0;
+            for(size_t file_index=0;file_index<num_files;++file_index){
+                total_num_symbols+=symbol_table->GetNumSymbolsInFile(file_index);
+            }
+            
+            m_order_table.resize(total_num_symbols);
+            m_file_cached_data.resize(num_files);
+            {
+                size_t ref_index=0;
+                for(size_t file_index=0;file_index<num_files;++file_index){
+                    size_t num_file_symbols=symbol_table->GetSymbolCountForFile(file_index);
+                    for(size_t symbol_index=0;symbol_index<num_file_symbols;++symbol_index){
+                        m_order_table[ref_index++]={file_index,symbol_index};
+                    }
+                    
+                    const SymbolFile*file=symbol_table->GetFileByIndex(file_index);
+                    
+                    FileCachedData cached_data;
+                    
+                    cached_data.name=PathGetName(file->file_path);
+                    cached_data.suffixes=GetDisplayTextForFileAddressSuffixes(file->address_suffixes);
+                    
+                    m_file_cached_data[file_index]=std::move(cached_data);
+                }
+            }
+            
+            m_old_symbols_changed_counter=symbols_changed_counter;
+        }
+        
+        const uint32_t table_flags=ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY|ImGuiTableFlags_Sortable|ImGuiTableFlags_SortMulti;
+        if(ImGui::BeginTable("symbols_list",4,table_flags)){
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::Name);
+            ImGui::TableSetupColumn("Addr", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::Addr);
+            ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::FilePath);
+            ImGui::TableSetupColumn("Suffixes",ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)Column::FileSuffixes);
+//            ImGui::TableSetupColumn("Suffixes", ImGuiTableColumnFlags_WidthFixed, 0.f);
+//            ImGui::TableSetupColumn("Mode", ImGuiTableColumnFlags_WidthFixed, 0.f);
+            
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableHeadersRow();
+            
+            if(ImGuiTableSortSpecs*specs=ImGui::TableGetSortSpecs()){
+                if(specs->SpecsDirty){
+                    this->Sort(specs->Specs,specs->SpecsCount);
+                    specs->SpecsDirty=false;
+                }
+            }
+            
+            for(size_t i=0;i<m_order_table.size();++i){
+                const SymbolRef *ref=&m_order_table[i];
+                const FileCachedData *fcd=&m_file_cached_data[ref->file_index];
+                const SymbolFile *file=symbol_table->GetFileByIndex(ref->file_index);
+                const Symbol *symbol=symbol_table->GetSymbolInFileByIndex(ref->file_index,ref->symbol_index);
+                
+                ImGui::TableNextRow();
+                
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(symbol->name.c_str());
+                
+                ImGui::TableNextColumn();
+                ImGui::Text("%s%04x",g_hex,symbol->address);
+                
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(fcd->name.c_str());
+                
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(fcd->suffixes.c_str());
+            }
+            
+            ImGui::EndTable();
+        }
+    }
+private:
+    struct SymbolRef {
+        size_t file_index=0;
+        size_t symbol_index=0;
+    };
+    
+    // avoid constantly recalculating this stuff.
+    struct FileCachedData {
+        std::string name;
+        std::string suffixes;
+    };
+    
+    uint64_t m_old_symbols_changed_counter=0;
+    std::vector<SymbolRef> m_order_table;
+    std::vector<FileCachedData> m_file_cached_data;
+    
+    bool LessThanByName(size_t ,const SymbolFile *,const Symbol *sa,size_t ,const SymbolFile *,const Symbol *sb)const{
+        return sa->name<sb->name;
+    }
+    
+    bool LessThanByAddr(size_t ,const SymbolFile *,const Symbol *sa,size_t ,const SymbolFile *,const Symbol *sb)const{
+        return sa->address<sb->address;
+    }
+    
+    bool LessThanByFilePath(size_t ia,const SymbolFile *,const Symbol *,size_t ib,const SymbolFile *,const Symbol *)const {
+        return m_file_cached_data[ia].name<m_file_cached_data[ib].name;
+    }
+
+    bool LessThanByFileSuffixes(size_t ia,const SymbolFile *,const Symbol *,size_t ib,const SymbolFile *,const Symbol *)const {
+        return m_file_cached_data[ia].suffixes<m_file_cached_data[ib].suffixes;
+    }
+
+    void Sort(const ImGuiTableColumnSortSpecs *specs,int num_specs){
+        const SymbolTable*symbol_table=m_beeb_window->GetSymbolTable();
+
+        for(int i=0;i<num_specs;++i){
+            const ImGuiTableColumnSortSpecs *spec=&specs[i];
+            bool (SymbolBrowserUI::*lt_fn)(size_t,const SymbolFile *,const Symbol *,size_t,const SymbolFile*,const Symbol*)const=nullptr;
+            switch((Column)spec->ColumnUserID){
+            default:
+                ASSERT(false);
+                break;
+                
+            case Column::Name:
+                lt_fn=&SymbolBrowserUI::LessThanByName;
+                break;
+                
+            case Column::Addr:
+                lt_fn=&SymbolBrowserUI::LessThanByAddr;
+                break;
+                
+            case Column::FilePath:
+                lt_fn=&SymbolBrowserUI::LessThanByFilePath;
+                break;
+                
+            case Column::FileSuffixes:
+                lt_fn=&SymbolBrowserUI::LessThanByFileSuffixes;
+            }
+
+            if(lt_fn){
+                std::stable_sort(m_order_table.begin(),m_order_table.end(),
+                                 [this,symbol_table,lt_fn,ascending=spec->SortDirection==ImGuiSortDirection_Ascending](const SymbolRef &a,const SymbolRef &b){
+                    const SymbolFile *fa=symbol_table->GetFileByIndex(a.file_index);
+                    const Symbol *sa=symbol_table->GetSymbolInFileByIndex(a.file_index,a.symbol_index);
+                    
+                    const SymbolFile *fb=symbol_table->GetFileByIndex(b.file_index);
+                    const Symbol *sb=symbol_table->GetSymbolInFileByIndex(b.file_index,b.symbol_index);
+                    
+                    if(ascending){
+                        return (this->*lt_fn)(a.file_index,fa,sa,b.file_index,fb,sb);
+                    }else{
+                        return (this->*lt_fn)(b.file_index,fb,sb,a.file_index,fa,sa);
+                    }
+                });
+            }
+        }
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window){
+    return CreateDebugUI<SymbolBrowserUI>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -5128,6 +5368,10 @@ std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *){
     return nullptr;
 }
 

@@ -786,6 +786,10 @@ size_t SymbolTable::GetSymbolCountForFile(size_t file_index) const {
     return m_lsfs[file_index]->symbols.size();
 }
 
+uint64_t SymbolTable::GetSymbolsChangedCounter()const{
+    return m_symbols_changed_counter;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -871,6 +875,17 @@ bool SymbolTable::MoveFile(size_t from_index, size_t to_index) {
 
     this->InvalidateEverything();
     return true;
+}
+
+size_t SymbolTable::GetNumSymbolsInFile(size_t file_index)const{
+    ASSERT(file_index<m_lsfs.size());
+    return m_lsfs[file_index]->symbols.size();
+}
+
+const Symbol *SymbolTable::GetSymbolInFileByIndex(size_t file_index,size_t symbol_index)const{
+    ASSERT(file_index<m_lsfs.size());
+    ASSERT(symbol_index<m_lsfs[file_index]->symbols.size());
+    return &m_lsfs[file_index]->symbols[symbol_index];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1039,6 +1054,8 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
     if (m_cache_type == type) {
         return;
     }
+    
+    ++m_symbols_changed_counter;
 
     for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
         lsf->address_suffix_dso_masks.clear();
@@ -1075,7 +1092,9 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
         dso_masks_used.resize(lsf->address_suffix_dso_masks.size());
 
         // Outre map used to assemble the minimal set of DSO mask tables.
-        std::map<std::vector<bool>, std::unique_ptr<std::vector<DSOMask>>, VectorBoolLessThan> wtf;
+        //
+        // The key is 1 bit per LSF's DSO mask - 1 if that DSO is in the value, 0 if it isn't.
+        std::map<std::vector<bool>, std::unique_ptr<std::vector<DSOMask>>, VectorBoolLessThan> dsos_by_dso_used_flags;
 
         for (size_t symbol_index = 0; symbol_index < lsf->symbols.size(); ++symbol_index) {
             // go in reverse order, so later symbols have priority.
@@ -1111,7 +1130,7 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
                             }
 
                             if (any) {
-                                std::unique_ptr<std::vector<DSOMask>> *masks = &wtf[dso_masks_used];
+                                std::unique_ptr<std::vector<DSOMask>> *masks = &dsos_by_dso_used_flags[dso_masks_used];
 
                                 if (!*masks) {
                                     *masks = std::make_unique<std::vector<DSOMask>>();
@@ -1157,7 +1176,9 @@ void SymbolTable::EnsureCacheReady(const std::shared_ptr<const BBCMicroType> &ty
         }
 
         // Copy the minimal set of DSO mask tables.
-        for (auto &flags_and_masks : wtf) {
+        //
+        // TODO: there's potentially some duplication here, but not much point trying too hard. There'll be only so many combinations.
+        for (auto &flags_and_masks : dsos_by_dso_used_flags) {
             m_interned_dso_mask_table.push_back(std::move(flags_and_masks.second));
         }
     }
@@ -1268,6 +1289,8 @@ void SymbolTable::EnsureGroupPropertiesValid() const {
     if (m_group_properties_valid) {
         return;
     }
+    
+    ++m_symbols_changed_counter;
 
     SymbolGroupState *states[MAX_NUM_SYMBOL_FILE_GROUPS] = {};
 
