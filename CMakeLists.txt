@@ -261,8 +261,8 @@ else()
     # macOS versions.
     target_compile_options(SDL2-static PRIVATE "-Wno-deprecated-declarations")
 
-    # Shows up with the Xcode 26 compiler.
-    target_compile_options(SDL2-static PRIVATE "-Wno-gnu-folding-constant")
+    target_compile_options(SDL2-static PRIVATE "-Wno-gnu-folding-constant") #new with Xcode 26
+    target_compile_options(SDL2-static PRIVATE "-Wno-shorten-64-to-32") #new with Xcode 26.0.1
   endif()
 
   set(HAVE_SDL_SOFTSTRETCHLINEAR TRUE)
@@ -325,9 +325,17 @@ else()
 
   # I'm trusting (possibly wrongly...) that these are benign.
   if(OSX)
+    set(OSX_OPTIONS
+      # new in Xcode 26
+      -Wno-gnu-folding-constant
+
+      # shows up in Xcode, but not if building Unix-style?
+      -Wno-shorten-64-to-32
+    )
+    
     # Shows up with the Xcode 26 compiler.
-    target_compile_options(uv PRIVATE "-Wno-gnu-folding-constant")
-    target_compile_options(uv_a PRIVATE "-Wno-gnu-folding-constant")
+    target_compile_options(uv PRIVATE ${OSX_OPTIONS})
+    target_compile_options(uv_a PRIVATE ${OSX_OPTIONS})
   elseif(MSVC)
     # C4152: nonstandard extension: function/data pointer conversion in expression
     # C4189: local variable is initialized but not referenced
