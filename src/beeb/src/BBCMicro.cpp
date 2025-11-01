@@ -355,7 +355,7 @@ uint32_t BBCMicro::GetCloneImpediments() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroUniqueState *BBCMicro::GetUniqueState() const {
+const BBCMicroUniqueState *BBCMicro::GetCloneableUniqueState() const {
     if (this->GetCloneImpediments() != 0) {
         return nullptr;
     }

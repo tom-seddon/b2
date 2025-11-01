@@ -1057,7 +1057,7 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    auto &&state = std::make_shared<BeebState>(*ts->beeb->GetUniqueState());
+    auto &&state = std::make_shared<BeebState>(*ts->beeb->GetCloneableUniqueState());
     state->name = GetTimeString(GetUTCTimeNow());
 
     if (m_verbose) {
@@ -1101,7 +1101,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 
     if (ts->timeline_mode == BeebThreadTimelineMode_None) {
         if (ts->beeb) {
-            ts->timeline_replay_old_state = std::make_shared<BeebState>(*ts->beeb->GetUniqueState());
+            ts->timeline_replay_old_state = std::make_shared<BeebState>(*ts->beeb->GetCloneableUniqueState());
         }
     }
 
@@ -2650,7 +2650,7 @@ bool BeebThread::ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void 
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
-    if (const BBCMicroUniqueState *state = ts->beeb->GetUniqueState()) {
+    if (const BBCMicroUniqueState *state = ts->beeb->GetCloneableUniqueState()) {
         return std::make_shared<BeebState>(*state);
     } else {
         return nullptr;
@@ -3430,7 +3430,7 @@ void BeebThread::SetVolume(float *scale_var, float db, bool mute) {
 bool BeebThread::ThreadRecordSaveState(ThreadState *ts, bool user_initiated) {
     this->ThreadCheckTimeline(ts);
 
-    const BBCMicroUniqueState *beeb_state = ts->beeb->GetUniqueState();
+    const BBCMicroUniqueState *beeb_state = ts->beeb->GetCloneableUniqueState();
     if (!beeb_state) {
         return false;
     }

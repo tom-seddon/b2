@@ -360,7 +360,8 @@ class BBCMicro : private WD1770Handler {
     // result is a combination of BBCMicroCloneImpediment.
     uint32_t GetCloneImpediments() const;
 
-    const BBCMicroUniqueState *GetUniqueState() const;
+    // if GetCloneImpediments()!=0, returns nullptr.
+    const BBCMicroUniqueState *GetCloneableUniqueState() const;
 
     //typedef std::array<uint8_t, 16384> ROMData;
 
