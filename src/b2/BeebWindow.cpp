@@ -508,6 +508,10 @@ void BeebWindow::OptionsUI::DoImGui() {
                 m_beeb_window->m_imgui_stuff->SetScale(scale);
             }
         }
+
+        if (ImGui::Checkbox("Pixel font", &settings->gui_pixel_font)) {
+            m_beeb_window->m_imgui_stuff->SetPixelFont(settings->gui_pixel_font);
+        }
     }
 
     ImGui::NewLine();
@@ -3373,6 +3377,8 @@ bool BeebWindow::InitInternal() {
         m_imgui_stuff->SetScale(m_init_arguments.gui_scale);
     }
 #endif
+
+    m_imgui_stuff->SetPixelFont(m_settings.gui_pixel_font);
 
     if (!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n"); //: %s",BeebThread_GetError(m_beeb_thread));

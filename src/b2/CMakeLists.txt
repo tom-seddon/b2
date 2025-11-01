@@ -336,9 +336,17 @@ add_custom_command(
 
 add_custom_command(
   TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${FONTS}
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${FONTS})
+
+add_custom_command(
+  TARGET b2 POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different fa-solid-900.ttf $<TARGET_FILE_DIR:b2>/${FONTS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../submodules/Font-Awesome/web-fonts-with-css/webfonts
+  VERBATIM)
+
+add_custom_command(
+  TARGET b2 POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../etc/liberation-fonts-ttf-2.1.5/LiberationMono-Regular.ttf $<TARGET_FILE_DIR:b2>/${FONTS}
   VERBATIM)
 
 # Floppy disc sounds
@@ -351,12 +359,16 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FLOPPY_SAMPLES} $<TARGET_FILE_DIR:b2>/${SAMPLES}
   VERBATIM)
 
+# Add the licence to the macOS app bundle
+
 if(OSX)
   add_custom_command(
     TARGET b2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../etc/release/LICENCE.txt ../Resources
     VERBATIM)
 endif()
+
+# Other stuff
 
 add_custom_command(
   TARGET b2 POST_BUILD

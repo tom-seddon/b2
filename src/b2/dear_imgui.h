@@ -112,6 +112,9 @@ class ImGuiStuff {
     // The non-modifier key returned will be marked as no longer pressed.
     uint32_t ConsumePressedKeycode();
 
+    bool GetPixelFont() const;
+    void SetPixelFont(bool pixel_font);
+
   protected:
   private:
     enum ConsumePressedKeycodeState {
@@ -161,9 +164,13 @@ class ImGuiStuff {
     ConsumePressedKeycodeState m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Off;
     uint32_t m_consumed_keycode = 0;
 
+    bool m_pixel_font = true;
+    bool m_fonts_dirty = true;
+
     ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
 
     void UpdateImTextureData(ImTextureData *texture);
+    void EnsureFontsReady();
 
     friend class ImGuiContextSetter;
 };

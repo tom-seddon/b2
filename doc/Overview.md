@@ -286,7 +286,7 @@ get the beep.)
 
 ### UI
 
-Use the GUI Scale setting to scale the overall b2 UI up (making it
+Use the `GUI Scale` setting to scale the overall b2 UI up (making it
 appear larger) or down (making it appear smaller).
 
 The b2 UI should appear at the intended size on Windows and mocOS, and
@@ -301,6 +301,10 @@ Linux-only `--gui-scale` command line option to set it - run b2 with
 `--help` for syntax details. The command line option will be used for
 the setting, and it will be saved to the config file and persist for
 future runs.)
+
+Untick the `Pixel font` checkbox to have the UI use an outline font
+rather than the default pixelly font. The two fonts are about the same
+size, so just pick whichever option looks better to you.
 
 ### HTTP Server
 

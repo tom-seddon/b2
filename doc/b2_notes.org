@@ -7048,4 +7048,22 @@ though.
    - =bedit_bet.sym= :: suffixes cA
    - =butils_bet.sym= :: suffixes cB
 
+* TODO WIP build notes
+
+#+begin_src markdown
+  # Debugger stuff
+
+  ,* Add symbol file address suffix modes
+  ,* Add disassembly window column resizing, thanks to [Mark Fisher](https://github.com/markjfisher)
+
+  # UI stuff
+
+  ,* (macOS) Hopefully fix b2 coming up without a name in Activity Monitor
+
+  # Emulation stuff
+
+  ,* Add MMFS emulation support, thanks to [Mark Fisher](https://github.com/markjfisher) (based on code from Martin Mathers; see https://github.com/mmbeeb/MMBeebXL)
+  		  
+#+end_src
+
 * eof.

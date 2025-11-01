@@ -46,6 +46,7 @@ const ImGuiStyle IMGUI_DEFAULT_STYLE;
 //////////////////////////////////////////////////////////////////////////
 
 static const std::string FAS_FILE_NAME = "fonts/" FONT_ICON_FILE_NAME_FAS;
+static const std::string DEFAULT_OUTLINE_FONT_FILE_NAME = "fonts/LiberationMono-Regular.ttf";
 static const ImWchar FA_ICONS_RANGES[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
 
 //////////////////////////////////////////////////////////////////////////
@@ -371,17 +372,6 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_LGUI)] = ImGuiKey_LeftSuper;
     m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_RGUI)] = ImGuiKey_RightSuper;
 
-    // https://github.com/ocornut/imgui/commit/aa11934efafe4db75993e23aacacf9ed8b1dd40c#diff-bbaa16f299ca6d388a3a779b16572882L446
-
-    ImFontConfig font_config;
-    font_config.SizePixels = 13.f;
-    io.Fonts->AddFontDefault(&font_config);
-
-    ImFontConfig fa_config;
-    fa_config.MergeMode = true;
-    fa_config.PixelSnapH = true;
-    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), font_config.SizePixels, &fa_config, FA_ICONS_RANGES);
-
     m_default_style = ImGui::GetStyle();
 
     return true;
@@ -426,6 +416,23 @@ uint32_t ImGuiStuff::ConsumePressedKeycode() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool ImGuiStuff::GetPixelFont() const {
+    return m_pixel_font;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::SetPixelFont(bool pixel_font) {
+    if (pixel_font != m_pixel_font) {
+        m_pixel_font = pixel_font;
+        m_fonts_dirty = true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void ImGuiStuff::NewFrame() {
     ASSERT(!g_in_frame);
 
@@ -463,6 +470,8 @@ void ImGuiStuff::NewFrame() {
         // TODO: there's probably somewhere better to get this value from... right?!
         m_mouse_scale = (float)output_width / window_width;
     }
+
+    this->EnsureFontsReady();
 
     ImGui::NewFrame();
 
@@ -976,6 +985,32 @@ void ImGuiStuff::UpdateImTextureData(ImTextureData *im_texture) {
         }
         break;
     }
+}
+
+void ImGuiStuff::EnsureFontsReady() {
+    if (!m_fonts_dirty) {
+        return;
+    }
+
+    ImGuiIO &io = ImGui::GetIO();
+
+    io.Fonts->Clear();
+
+    ImFontConfig font_config;
+    font_config.SizePixels = 13.f;
+    if (m_pixel_font) {
+        io.Fonts->AddFontDefault(&font_config);
+    } else {
+        io.Fonts->AddFontFromFileTTF(GetAssetPath(DEFAULT_OUTLINE_FONT_FILE_NAME).c_str(), font_config.SizePixels, &font_config);
+    }
+
+    ImFontConfig fa_config;
+    fa_config.MergeMode = true;
+    fa_config.PixelSnapH = true;
+    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), font_config.SizePixels, &fa_config, FA_ICONS_RANGES);
+
+    m_fonts_dirty = false;
+    return;
 }
 
 //////////////////////////////////////////////////////////////////////////
