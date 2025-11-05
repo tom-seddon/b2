@@ -152,20 +152,16 @@ static bool FindBoolMember(bool *value, rapidjson::Value *object, const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class EnumType, class EnumBaseType>
-static void SaveEnum(JSONWriter<StringStream> *writer, EnumType value, const char *(*get_name_fn)(EnumBaseType)) {
-    const char *name = (*get_name_fn)(value);
+template <class T>
+static void SaveEnum(JSONWriter<StringStream> *writer, Enum<T> value) {
+    static_assert(EnumTraits<T>::IS_SERIALIZABLE);
+    const char *name = (*EnumTraits<T>::GET_NAME_FN)(value);
     if (name[0] != '?') {
         writer->String(name);
     } else {
         // Have to save something...
         writer->String("?");
     }
-}
-
-template <class T>
-static void SaveEnum(JSONWriter<StringStream> *writer, Enum<T> value) {
-    SaveEnum(writer, value.value, EnumTraits<T>::GET_NAME_FN);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -175,6 +171,7 @@ static void SaveEnum(JSONWriter<StringStream> *writer, Enum<T> value) {
 // start from 0 and be contiguous.
 template <class EnumType, class EnumBaseType>
 static bool LoadEnum(EnumType *value, const std::string &str, const char *what, const char *(*get_name_fn)(EnumBaseType), Messages *msg) {
+    static_assert(EnumTraits<EnumType>::IS_SERIALIZABLE);
     EnumBaseType i = 0;
     for (;;) {
         const char *name = (*get_name_fn)(i);
@@ -975,14 +972,14 @@ static void SaveROM(JSONWriter<StringStream> *writer,
 
         if (rom.standard_rom) {
             writer->Key(STANDARD_ROM);
-            SaveEnum(writer, rom.standard_rom->rom, &GetStandardROMEnumName);
+            SaveEnum(writer, Enum<StandardROM>{rom.standard_rom->rom});
         } else {
             if (!rom.file_name.empty()) {
                 writer->Key(FILE_NAME);
                 writer->String(rom.file_name.c_str());
 
                 writer->Key(TYPE);
-                SaveEnum(writer, type, &GetROMTypeEnumName);
+                SaveEnum(writer, Enum<ROMType>{type});
             }
         }
     }
@@ -1145,7 +1142,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             SaveROM(writer, config->os);
 
             writer->Key(TYPE);
-            SaveEnum(writer, config->type_id, &GetBBCMicroTypeIDEnumName);
+            SaveEnum(writer, config->type_id);
 
             writer->Key(DISC_INTERFACE);
             if (!config->disc_interface) {

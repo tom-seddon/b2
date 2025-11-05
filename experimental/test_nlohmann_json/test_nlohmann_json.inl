@@ -3,7 +3,7 @@ EBEGIN()
 EPN(None)
 EPN(Type1)
 EPN(Type2)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 #define ENAME StandardROM
@@ -47,7 +47,7 @@ EPN(MOSI510C_ADFS)
 EPN(MOSI510C_BASIC4)
 EPN(MOSI510C_UTILS)
 EPN(MOSI510C_MOS)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 #define ENAME TraceOutputFlags
@@ -64,7 +64,7 @@ EPNV(AbsoluteCycles, 4)
 // Extra ROM mapper verbosity
 EPNV(ROMMapper, 8)
 
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 #define ENAME PCKeyModifier

@@ -25,5 +25,5 @@ EPN(Exclusive)
 // are always visible.
 EPN(Inclusive)
 
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME

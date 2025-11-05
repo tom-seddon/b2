@@ -48,7 +48,7 @@ EPN(MOS511i_UTILS)
 EPN(MOS511i_MOS)
 EPN(MOS511i_ARABIC)
 EPN(MOS511i_INTERNATIONAL)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,7 @@ EPN(MO2)
 
 //must be last
 EPN(Count)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ EPN(MultiOSBank3)
 
 //must be last
 EPN(Count)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 // MultiOSBank values must be contiguous.

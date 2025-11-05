@@ -3,5 +3,5 @@ EBEGIN()
 EPN(None)
 EPN(MasterTurbo)
 EPN(External3MHz6502)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME

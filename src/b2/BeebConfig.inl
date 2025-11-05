@@ -16,7 +16,7 @@ EPNV(6502SecondProcessor, 1 << 1)
 EPNV(MasterCompact, 1 << 2)
 EPNV(OlivettiPC128S, 1 << 3)
 EPNV(MasterCompactArabic, 1 << 4)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -30,7 +30,7 @@ EPN(None)
 EPN(Master128)
 EPN(MasterCompact)
 EPN(MasterCompactInternational) //covers both PC 128 S and MOS 5.11i Arabic Compact
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

@@ -5,7 +5,7 @@ EPN(Return)
 EPN(Instruction)
 EPN(WriteAddress)
 EPN(Reset)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 #define ENAME TraceUIStopCondition
@@ -15,5 +15,5 @@ EPN(OSWORD0)
 EPN(NumCycles)
 EPN(WriteAddress)
 EPN(BRK)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME

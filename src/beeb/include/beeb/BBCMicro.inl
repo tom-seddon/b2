@@ -44,7 +44,7 @@ EPNV(SCSI, 1 << 16)
 #endif
 EPNV(Serial, 1 << 17)
 EPNV(SerialExtra, 1 << 18)
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

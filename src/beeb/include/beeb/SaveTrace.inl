@@ -18,5 +18,5 @@ EPNV(SymbolsAnnotations, 1 << 4)
 // additional info.
 EPNV(MinimalSymbolsAnnotations, 1 << 5)
 
-EEND()
+EEND_SERIALIZABLE()
 #undef ENAME
