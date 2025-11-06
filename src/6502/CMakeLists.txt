@@ -13,18 +13,17 @@ target_link_libraries(6502_gen shared_lib)
 
 add_library(6502_lib STATIC
   c/6502.c h/6502/6502.h
-  ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/include/6502_internal.inl
+  ${CMAKE_CURRENT_BINARY_DIR}/6502_internal.inl
   )
 
 add_dependencies(6502_lib 6502_gen)
 
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/include/6502_internal.inl
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<CONFIG>/include
-  COMMAND $<TARGET_FILE:6502_gen> -o $<CONFIG>/include/6502_internal.inl -c ${CMAKE_CURRENT_SOURCE_DIR}/c/6502.c
+  OUTPUT 6502_internal.inl
+  COMMAND $<TARGET_FILE:6502_gen> -o 6502_internal.inl -c ${CMAKE_CURRENT_SOURCE_DIR}/c/6502.c
   DEPENDS $<TARGET_FILE:6502_gen> ${CMAKE_CURRENT_SOURCE_DIR}/c/6502.c)
 
-target_include_directories(6502_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/include)
+target_include_directories(6502_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(6502_lib PUBLIC h)
 b2_target_boilerplate(6502_lib SANITIZERS)
 
