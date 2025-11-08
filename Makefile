@@ -15,26 +15,27 @@ endif
 BUILD_FOLDER:=build
 
 ifeq ($(OS),Windows_NT)
-
+# Windows
 PYTHON3:=py -3
+CAT:=cmd /c type
+else
+# Assume POSIX
+PYTHON3:=python3
+CAT:=cat
+endif
+
+SHELLCMD:=$(PYTHON3) ./submodules/shellcmd.py/shellcmd.py
+
+NPROC:=$(shell $(SHELLCMD) nproc)
+
+ifeq ($(OS),Windows_NT)
 
 # https://github.com/muttleyxd/clang-tools-static-binaries/releases
 CLANG_FORMAT:=bin/clang-format-19_windows-amd64.exe
 
-CAT:=cmd /c type
-
-NPROC:=$(NUMBER_OF_PROCESSORS)
-
 include Makefile.windows.mak
 
 else
-
-# Is this how you're supposed to do it? Works for me on macOS, at
-# least...
-PYTHON3:=python3
-
-
-CAT:=cat
 
 UNAME:=$(shell uname -s)
 
@@ -42,24 +43,16 @@ ifeq ($(UNAME),Darwin)
 OS:=osx
 NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
-ifdef OSX_DEPLOYMENT_TARGET
 
-# Use the requested target.
-CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(OSX_DEPLOYMENT_TARGET)
-
-else
-
-# Target the installed macOS version. (If left to itself and/or Xcode,
-# CMake can end up picking something newer than the installed version,
-# if Xcode has an SDK for it. Result: Xcode will refuse to debug it.)
-CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(shell sw_vers -productVersion)
-
-endif
+# Target the installed macOS version if no explicit versions
+# specified. (If left to itself and/or Xcode, CMake can end up picking
+# something newer than the installed version, if Xcode has an SDK for
+# it. Result: Xcode will refuse to debug it.)
+CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(if $(OSX_DEPLOYMENT_TARGET),$(OSX_DEPLOYMENT_TARGET),$(shell sw_vers -productVersion))
 
 # new requirement for CMake 4.x.
 CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_SYSROOT=macosx
 
-# version number roulette.
 CLANG_FORMAT:=clang-format-mp-19
 
 include Makefile.unix.mak
@@ -78,8 +71,6 @@ include Makefile.unix.mak
 endif
 
 endif
-
-SHELLCMD:=$(PYTHON3) ./submodules/shellcmd.py/shellcmd.py
 
 ##########################################################################
 ##########################################################################
