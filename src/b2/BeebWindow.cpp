@@ -2084,7 +2084,7 @@ bool BeebWindow::DoNewCopyOfDiskMenu(std::string *path,
                 if (!SaveFile(data, *path, &m_msg)) {
                     return false;
                 }
-                
+
                 fd.AddLastPathToRecentPaths(&g_disk_image_recent_paths);
 
                 return true;
