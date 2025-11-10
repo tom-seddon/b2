@@ -12,6 +12,7 @@
 #include "Messages.h"
 #include <shared/debug.h>
 #include <unordered_map>
+#include <limits>
 
 #include <shared/enum_def.h>
 #include "misc.inl"
