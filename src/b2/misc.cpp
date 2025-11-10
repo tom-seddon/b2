@@ -12,6 +12,7 @@
 #include <shared/debug.h>
 #include <unordered_map>
 #include <shared/strings.h>
+#include <limits>
 
 #include <shared/enum_def.h>
 #include "misc.inl"
