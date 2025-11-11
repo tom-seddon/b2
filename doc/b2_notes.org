@@ -7066,4 +7066,22 @@ though.
   		  
 #+end_src
 
+* snapcraft build stuff
+
+Get snap/lxc/etc. set up on Linux PC, by whatever means necessary.
+
+One-time setup:
+
+: git clone git@github.com:popey/b2-snap
+
+Iteration, from inside the =b2-snap= working copy:
+
+: snapcraft clean
+: snapcraft pack --use-lxd --verbose --debug
+
+- =--use-lxd= :: as per popey's suggestion
+- =--verbose= :: reproduce container stdout/stderr during the build
+- =--debug= :: pop you into a shell in the container when the build
+  fails
+
 * eof.
