@@ -8,16 +8,14 @@ CMAKE_TYPE?=Ninja
 .PHONY:init
 init:
 	$(MAKE) _unix SANITIZER= SUFFIX=
-ifndef RELEASE_MODE
-	$(MAKE) -j$(NPROC) _sanitizers
-endif
+	$(if $(RELEASE_MODE)$(NO_SANITIZERS),,$(MAKE) -j$(NPROC) _sanitizers)
 	@echo
 	@echo "make init has succeeded. (It's normal for CMake to print some warnings and error messages as it goes. If you can see this message, it finished successfully and nothing unexpected happened.)"
 	@echo
 
 .PHONY:init_parallel
 init_parallel:
-	$(MAKE) _unix _sanitizers -j $(NPROC)
+	$(MAKE) _unix $(if $(RELEASE_MODE)$(NO_SANITIZERS),,_sanitizers) -j $(NPROC)
 
 .PHONY:_usan
 _usan:
@@ -68,7 +66,7 @@ _unix2:
 precommit:
 	@echo clang-format...
 	@$(MAKE) clang-format QUIET=1
-	$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel)
+	$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel NO_SANITIZERS=$(NO_SANITIZERS)) 
 	$(MAKE) _precommit ACTION=build
 	$(MAKE) _precommit ACTION=test
 
