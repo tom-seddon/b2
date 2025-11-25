@@ -793,6 +793,13 @@ void ConfigsUI::DoROMs(BeebConfig::ROM *rom,
     }
 }
 
+static void DoOSROMTypeMenuItem(OSROMType *os_type, OSROMType type) {
+    const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata(type);
+    if (ImGui::MenuItem(metadata->description, nullptr, *os_type == type)) {
+        *os_type = type;
+    }
+}
+
 ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                                       BeebConfig::ROM *rom,
                                       bool *writeable,
@@ -910,13 +917,23 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             }
         } else if (os_type) {
             if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
-                for (int i = 0; i < OSROMType_Count; ++i) {
-                    const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata((OSROMType)i);
-                    bool selected = *os_type == i;
-                    if (ImGui::MenuItem(metadata->description, nullptr, &selected)) {
-                        *os_type = (OSROMType)i;
+                DoOSROMTypeMenuItem(os_type, OSROMType_16KB);
+                DoOSROMTypeMenuItem(os_type, OSROMType_Compact);
+                DoOSROMTypeMenuItem(os_type, OSROMType_MegaROM);
+
+                // Special case. I messed this bit up, and (once I realised) didn't fancy redoing the config saving to fix it.
+                bool selected = (*os_type == OSROMType_MultiOSBank0 ||
+                                 *os_type == OSROMType_MultiOSBank1 ||
+                                 *os_type == OSROMType_MultiOSBank2 ||
+                                 *os_type == OSROMType_MultiOSBank3);
+                if (ImGui::MenuItem("Multi-OS (512 KB)", nullptr, selected)) {
+                    if (selected) {
+                        // leave the selected bank as-was.
+                    } else {
+                        *os_type = OSROMType_MultiOSBank0;
                     }
                 }
+
                 ImGui::EndMenu();
             }
         }
