@@ -66,6 +66,17 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct WindowLayoutPersistentData {
+    uint64_t popups = 0;
+
+    // lines are joined with '\n' separator before being handed off to Dear ImGui. Gives the option of having a json file that's easier to read for debugging purposes.
+    std::vector<std::string> dear_imgui_settings;
+};
+JSON_SERIALIZE(WindowLayoutPersistentData, popups, dear_imgui_settings);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // The config name isn't part of this, because then there'd be two copies
 // of the initial config name in BeebWindowInitArguments. Something needs
 // fixing...
@@ -569,6 +580,8 @@ class BeebWindow {
 
     void ShowPrioritizeCommandShortcutsStatus();
     void ResetImGuiWindows();
+
+    void LoadWindowLayout(const std::string &path);
 
     // Keep this at the end. It's massive.
     mutable Messages m_msg;

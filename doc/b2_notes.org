@@ -7084,4 +7084,14 @@ Iteration, from inside the =b2-snap= working copy:
 - =--debug= :: pop you into a shell in the container when the build
   fails
 
+* Persistent UI layout
+
+Stuff to save:
+
+- BeebWindowSettings::popups
+- ImGui config - see SaveIniSettingsToMemory
+
+There'll be a lot more for the project file, but this should do for
+starters.
+
 * eof.

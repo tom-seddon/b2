@@ -499,6 +499,23 @@ mouse motion.
 
 Shows current loaded symbols file. See the Symbols section below.
 
+# Load/save window layout
+
+(This option is available in non-debug builds too, but it's probably
+more useful for the debug build because there's so many more windows
+that you can open.)
+
+If you've activated a useful set of windows, and docked them to a
+useful set of positions, you can use `Window` > `Save window
+layout...` to save the layout to a JSON file.
+
+(The saved layout data doesn't include absolutely everything: just the
+set of set of open windows, and their (possibly docked) positions.)
+
+To load a previously-saved layout, use `Window` > `Load window
+layout...` to select a file, or `Window` > `Recent window layout` to
+reload a recently loaded or saved file.
+
 # Symbols
 
 **Symbols support is a work in progress!** 

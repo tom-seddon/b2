@@ -50,6 +50,7 @@
 #endif
 #include <shared/file_io.h>
 #include "SymbolTable.h"
+#include <shared/strings.h>
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -128,10 +129,15 @@ static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_t
 static Command2 g_new_window_command = Command2(&g_beeb_window_command_table, "new_window", "New window");
 static Command2 g_clone_window_command = Command2(&g_beeb_window_command_table, "clone_window", "Clone window");
 static Command2 g_close_window_command = Command2(&g_beeb_window_command_table, "close_window", "Close window");
+static Command2 g_load_window_layout_command = Command2(&g_beeb_window_command_table, "load_window_layout", "Load window layout...");
+static Command2 g_save_window_layout_command = Command2(&g_beeb_window_command_table, "save_window_layout", "Save window layout...");
 static Command2 g_toggle_capture_mouse_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse", "Capture mouse").WithTick().AlwaysPrioritized();
 static Command2 g_toggle_capture_mouse_on_click_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse_on_click", "Capture on click").WithTick();
 static Command2 g_clear_symbols_command = Command2(&g_beeb_window_command_table, "clear_symbols", "Clear symbols").MustConfirm().VisibleIf(BBCMICRO_DEBUGGER);
 static Command2 g_reload_all_symbols_command = Command2(&g_beeb_window_command_table, "reload_all_symbols", "Reload all symbols").VisibleIf(BBCMICRO_DEBUGGER);
+static Command2 g_load_project_command = Command2(&g_beeb_window_command_table, "load_project", "Load project...").VisibleIf(BBCMICRO_DEBUGGER);
+static Command2 g_save_project_command = Command2(&g_beeb_window_command_table, "save_project", "Save project").VisibleIf(BBCMICRO_DEBUGGER);
+static Command2 g_save_project_as_command = Command2(&g_beeb_window_command_table, "save_project_as", "Save project as...").VisibleIf(BBCMICRO_DEBUGGER);
 
 struct PopupMetadata {
     Command2 command;
@@ -281,6 +287,13 @@ static const double LEDS_POPUP_TIME_SECONDS = 1.;
 static const Guid NEW_DISK_IMAGE_SELECTOR_GUID{0x72, 0x23, 0xE7, 0xC3, 0x78, 0xA0, 0x41, 0x0C, 0xB9, 0x63, 0x90, 0x2F, 0x24, 0x25, 0x01, 0xD7};
 static RecentPaths g_disk_image_recent_paths("disc_image");
 static const Guid OPEN_DISK_IMAGE_SELECTOR_GUID{0x4c, 0xed, 0x04, 0x1d, 0x00, 0xf1, 0x46, 0x2f, 0x88, 0x0e, 0xc2, 0x39, 0x95, 0xd0, 0x38, 0xde};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const Guid OPEN_WINDOW_LAYOUT_SELECTOR_GUID{0xFF, 0x3E, 0x9F, 0xBB, 0xBE, 0x25, 0x48, 0xB0, 0xAA, 0x74, 0x03, 0x21, 0xB5, 0x4F, 0xCF, 0x83};
+static const Guid SAVE_WINDOW_LAYOUT_SELECTOR_GUID{0x9D, 0x61, 0x95, 0x0E, 0xF8, 0x19, 0x4A, 0x33, 0xB5, 0x2F, 0x9E, 0xB2, 0x15, 0xED, 0xD6, 0xF9};
+static RecentPaths g_window_layout_recent_paths("window_layout");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1564,6 +1577,43 @@ void BeebWindow::DoCommands(bool *close_window) {
         m_msg.i.f("All symbol files have been reloaded from disk.\n");
     }
 #endif
+
+    if (m_cst.WasActioned(g_load_window_layout_command)) {
+        OpenFileDialog fd(OPEN_WINDOW_LAYOUT_SELECTOR_GUID);
+        fd.AddFilter("JSON", {".json"});
+
+        std::string path;
+        if (fd.Open(m_window, &path)) {
+            fd.AddLastPathToRecentPaths(&g_window_layout_recent_paths);
+
+            this->LoadWindowLayout(path);
+        }
+    }
+
+    if (m_cst.WasActioned(g_save_window_layout_command)) {
+        SaveFileDialog fd(SAVE_WINDOW_LAYOUT_SELECTOR_GUID);
+        fd.AddFilter("JSON", {".json"});
+
+        std::string path;
+        if (fd.Open(m_window, &path)) {
+            fd.AddLastPathToRecentPaths(&g_window_layout_recent_paths);
+
+            WindowLayoutPersistentData wlpd;
+
+            wlpd.popups = m_settings.popups;
+
+            size_t ini_data_size;
+            if (const char *ini_data = ImGui::SaveIniSettingsToMemory(&ini_data_size)) {
+                ForEachLine(std::string(ini_data, ini_data + ini_data_size),
+                            [&wlpd](const std::string_view &line) -> bool {
+                                wlpd.dear_imgui_settings.push_back(std::string(line.begin(), line.end()));
+                                return true;
+                            });
+            }
+
+            SaveJSONFile(wlpd, path, &m_msg);
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2622,6 +2672,13 @@ void BeebWindow::DoWindowMenu() {
         m_cst.DoMenuItem(g_clone_window_command);
         ImGui::Separator();
         m_cst.DoMenuItem(g_close_window_command);
+        ImGui::Separator();
+        m_cst.DoMenuItem(g_load_window_layout_command);
+        m_cst.DoMenuItem(g_save_window_layout_command);
+        std::string recent_path;
+        if (ImGuiRecentMenu(&recent_path, "Recent window layout", &g_window_layout_recent_paths)) {
+            this->LoadWindowLayout(recent_path);
+        }
 
         ImGui::EndMenu();
     }
@@ -4121,3 +4178,18 @@ void BeebWindow::ResetImGuiWindows() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::LoadWindowLayout(const std::string &path) {
+    WindowLayoutPersistentData wlpd;
+    if (LoadJSONFile(&wlpd, path, &m_msg)) {
+        std::string ini_data;
+        for (const std::string &line : wlpd.dear_imgui_settings) {
+            ini_data += line;
+            ini_data.push_back('\n');
+        }
+
+        ImGui::LoadIniSettingsFromMemory(ini_data.c_str());
+
+        m_settings.popups = wlpd.popups;
+    }
+}
