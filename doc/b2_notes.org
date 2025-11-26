@@ -7094,4 +7094,32 @@ Stuff to save:
 There'll be a lot more for the project file, but this should do for
 starters.
 
+* Project stuff
+
+- Debug window persistent states
+- Additional hardware configs
+- Symbol setup
+
+Window layout? Yes/no? It might become annoying if attempting to share
+the project between systems. Save it as an optional file somehow? Name
+generated from the project name or something? 
+
+There should be some way to make ROM paths (etc.) project-relative, so
+that if committed to a git repo with references to files in that repo
+(as is an intended use case) the project is working copy path
+agnostic.
+
+* nlohmann/json.hpp build time stuff
+
+- Without :: bdc7b41373d0ae4217a068a3657018eb07ec25bf
+- With :: wip/json.hpp_tweak
+
+Best of 3...
+
+| System | Build | Without | With |
+|--------+-------+---------+------|
+| macOS  | Debug |    12.2 | 11.8 |
+| macOS  | RWDI  |    29.3 | 28.6 |
+| macOS  | Final |    16.9 | 17.0 |
+
 * eof.
