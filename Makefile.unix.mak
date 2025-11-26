@@ -66,7 +66,10 @@ _unix2:
 precommit:
 	@echo clang-format...
 	@$(MAKE) clang-format QUIET=1
-	$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel NO_SANITIZERS=$(NO_SANITIZERS)) 
+	$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel NO_SANITIZERS=$(NO_SANITIZERS))
+# worth having a separate clean option - the init step could be faster
+# on macOS.
+	$(if $(CLEAN),$(MAKE) _precommit ACTION=clean)
 	$(MAKE) _precommit ACTION=build
 	$(MAKE) _precommit ACTION=test
 
@@ -81,6 +84,10 @@ _precommit:
 _precommit2: export _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER)$(SANITIZER).$(OS)
 _precommit2:
 	$(MAKE) _precommit_$(ACTION) 
+
+.PHONY:_precommit_clean
+_precommit_clean:
+	cd "$(_FOLDER)" && ninja clean
 
 .PHONY:_precommit_build
 _precommit_build:
