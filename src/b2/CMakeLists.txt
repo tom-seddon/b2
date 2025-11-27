@@ -17,9 +17,9 @@ add_executable(b2 MACOSX_BUNDLE
   GenerateThumbnailJob.cpp GenerateThumbnailJob.h
   HTTPMethodsHandler.cpp HTTPMethodsHandler.h
   JobQueue.cpp JobQueue.h
-  KeymapsUI.cpp KeymapsUI.h
+  KeymapsUI.cpp KeymapsUI.h KeymapsUI_private.inl
   MessageQueue.cpp MessageQueue.h
-  Messages.cpp Messages.h
+  Messages.cpp Messages.h Messages.inl
   MessagesUI.cpp MessagesUI.h
   Remapper.cpp Remapper.h
   SavedStatesUI.cpp SavedStatesUI.h
@@ -47,9 +47,10 @@ add_executable(b2 MACOSX_BUNDLE
   misc.cpp misc.h misc.inl
   native_ui.cpp native_ui.h native_ui_private.h native_ui_private.cpp native_ui_private.inl
   roms.cpp roms.h
-  profiler.cpp profiler.h
+  profiler.cpp profiler.h profiler.inl
   joysticks.cpp joysticks.h
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
+  nlohmann_json_wrapper.h
   )
 
 if(OSX)
