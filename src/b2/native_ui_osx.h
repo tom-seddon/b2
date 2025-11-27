@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 struct Guid;
 
@@ -17,8 +18,8 @@ void MessageBox(const std::string &title, const std::string &text);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadSelectorDialogPersistentDataOSX(const JSON &j, std::string *error);
-void SaveSelectorDialogPersistentDataOSX(JSON *j);
+bool LoadSelectorDialogPersistentDataOSX(const nlohmann::json &j, std::string *error);
+void SaveSelectorDialogPersistentDataOSX(nlohmann::json *j);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

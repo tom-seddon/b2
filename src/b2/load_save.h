@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 #include <stdio.h>
-#include <shared/json.h>
 
 struct LogSet;
 class Messages;
@@ -86,43 +85,6 @@ bool SaveGlobalConfig(Messages *messages);
 // [NSWindow setFrameUsingName].
 void SaveCocoaFrameUsingName(void *nswindow, const std::string &name);
 bool SetCocoaFrameUsingName(void *nswindow, const std::string &name);
-
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Uses the file_io stuff to do its thing.
-//
-// TODO: maybe there's some better place for this.
-
-#ifdef NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
-
-bool LoadJSONFile2(JSON *j, const std::string &path, const LogSet *logs, uint32_t flags);
-void HandleLoadJSONFileError(const std::string &path, const LogSet *logs, const std::string &ex_what);
-bool SaveJSONFile2(const JSON &j, const std::string &path, const LogSet *logs, uint32_t flags);
-
-template <class T>
-inline bool LoadJSONFile(T *object, const std::string &path, const LogSet *logs, uint32_t flags = 0) {
-    JSON j;
-    if (!LoadJSONFile2(&j, path, logs, flags)) {
-        return false;
-    }
-    std::string ex_what;
-    if (!j.Load(object, &ex_what)) {
-        HandleLoadJSONFileError(path, logs, ex_what);
-        return false;
-    }
-    return true;
-}
-
-template <class T>
-inline bool SaveJSONFile(const T &object, const std::string &path, const LogSet *logs, uint32_t flags = 0) {
-    JSON j;
-    j.Save(object);
-    bool good = SaveJSONFile2(j, path, logs, flags);
-    return good;
-}
 
 #endif
 

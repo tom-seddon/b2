@@ -3,7 +3,6 @@
 
 #if BBCMICRO_DEBUGGER
 
-#include "nlohmann_json_wrapper.h"
 #include "SymbolTable.h"
 #include <shared/debug.h>
 #include <shared/log.h>
@@ -1198,9 +1197,9 @@ struct PersistentSymbolTableData {
     // there are always 256 entries in it.
     std::vector<SymbolGroup> groups2;
 };
-JSON_SERIALIZE(PersistentSymbolTableData, groups, groups2);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PersistentSymbolTableData, groups, groups2);
 
-std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
+std::shared_ptr<nlohmann::json> SymbolTable::SaveToJSON() const {
     PersistentSymbolTableData p_std;
 
     for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
@@ -1211,17 +1210,17 @@ std::shared_ptr<JSON> SymbolTable::SaveToJSON() const {
         p_std.groups2.push_back(group);
     }
 
-    return std::make_shared<JSON>(p_std);
+    return std::make_shared<nlohmann::json>(p_std);
 }
 
-bool SymbolTable::LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *logs) {
+bool SymbolTable::LoadFromJSON(const std::shared_ptr<nlohmann::json> &j, const LogSet *logs) {
     if (!j) {
         return false;
     }
 
     PersistentSymbolTableData p_std;
     std::string error;
-    if (!j->Load(&p_std, &error)) {
+    if (!LoadJSON(&p_std, *j, &error)) {
         logs->e.f("Failed to load symbol file data from JSON: %s\n", error.c_str());
         return false;
     }

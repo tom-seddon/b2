@@ -15,7 +15,7 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include <shared/json.h>
+#include "json.h"
 #include <shared/guid.h>
 
 // stupid windows.h crap.
@@ -87,7 +87,7 @@ struct SymbolGroup {
     // Updated automatically as files are enabled or disabled.
     SymbolGroupState state = SymbolGroupState_Indeterminate;
 };
-JSON_SERIALIZE(SymbolGroup, name);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SymbolGroup, name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -118,7 +118,7 @@ struct SymbolFile {
 
     Enum<SymbolFileAddressSuffixMode> address_suffix_mode{SymbolFileAddressSuffixMode_Exclusive};
 };
-JSON_SERIALIZE(SymbolFile, file_path, enabled, address_suffixes, file_format_name, group_index, address_suffix_mode);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SymbolFile, file_path, enabled, address_suffixes, file_format_name, group_index, address_suffix_mode);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -213,8 +213,8 @@ class SymbolTable {
     };
 
     // Persistence support
-    std::shared_ptr<JSON> SaveToJSON() const;
-    bool LoadFromJSON(const std::shared_ptr<JSON> &j, const LogSet *logs);
+    std::shared_ptr<nlohmann::json> SaveToJSON() const;
+    bool LoadFromJSON(const std::shared_ptr<nlohmann::json> &j, const LogSet *logs);
     void ReloadAllFiles(const LogSet *logs); // Reload all files from their source files
 
     // Debugging/utility

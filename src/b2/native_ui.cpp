@@ -109,7 +109,7 @@ void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageLi
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadSelectorDialogPersistentData(const JSON &j, std::string *error) {
+bool LoadSelectorDialogPersistentData(const nlohmann::json &j, std::string *error) {
 #if SYSTEM_WINDOWS
 
     (void)j, (void)error;
@@ -130,7 +130,7 @@ bool LoadSelectorDialogPersistentData(const JSON &j, std::string *error) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SaveSelectorDialogPersistentData(JSON *j) {
+void SaveSelectorDialogPersistentData(nlohmann::json *j) {
 #if SYSTEM_WINDOWS
 
     (void)j;

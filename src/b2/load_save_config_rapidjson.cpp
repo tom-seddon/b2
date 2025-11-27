@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include "nlohmann_json_wrapper.h"
+#include "json.h"
 #include "load_save_config_rapidjson.h"
 #include "load_save.h"
 #include <rapidjson/rapidjson.h>
@@ -513,9 +513,9 @@ static bool LoadGlobals(rapidjson::Value *globals,
                         Messages *msg) {
     (void)msg;
 
-    JSON j = LoadNLohmannJSON(*globals);
+    nlohmann::json j = LoadNLohmannJSON(*globals);
 
-    j.Load(&g_global_settings);
+    LoadJSON(&g_global_settings, j, nullptr);
 
     return true;
 }
@@ -603,7 +603,7 @@ static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
 static bool LoadSelectorDialogPersistentData(rapidjson::Value *selector_dialog_persistent_data_json, Messages *msg) {
     (void)msg;
 
-    JSON j = LoadNLohmannJSON(*selector_dialog_persistent_data_json);
+    nlohmann::json j = LoadNLohmannJSON(*selector_dialog_persistent_data_json);
     LoadSelectorDialogPersistentData(j, nullptr);
 
     // Don't (currently?) fail. It isn't important enough.
@@ -614,11 +614,11 @@ static bool LoadSelectorDialogPersistentData(rapidjson::Value *selector_dialog_p
 //////////////////////////////////////////////////////////////////////////
 
 static void SaveSelectorDialogPersistentData(JSONWriter<StringStream> *writer) {
-    JSON j;
+    nlohmann::json j;
     SaveSelectorDialogPersistentData(&j);
 
     writer->Key(SELECTOR_DIALOG_PERSISTENT_DATA);
-    SaveNLohmannJSON(writer, j.AsNLohmannJSON());
+    SaveNLohmannJSON(writer, j);
 }
 
 //////////////////////////////////////////////////////////////////////////

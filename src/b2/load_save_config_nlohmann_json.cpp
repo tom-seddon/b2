@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include "nlohmann_json_wrapper.h"
+#include "json.h"
 #include <shared/enums.h>
 #include "load_save_config_nlohmann_json.h"
 #include <map>
@@ -138,10 +138,10 @@ bool LoadWindows(const nlohmann::json &j, Messages *msg) {
         if (j_ppds.is_object()) {
             for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
                 const char *popup_type_name = GetBeebWindowPopupTypeEnumName(i);
-                std::shared_ptr<JSON> j_ppd;
+                std::shared_ptr<nlohmann::json> j_ppd;
 
                 if (j_ppds.count(popup_type_name) > 0) {
-                    j_ppd = std::make_shared<JSON>(j_ppds.at(popup_type_name));
+                    j_ppd = std::make_shared<nlohmann::json>(j_ppds.at(popup_type_name));
                 }
 
                 BeebWindows::defaults.popup_persistent_data[i] = j_ppd;
@@ -151,7 +151,7 @@ bool LoadWindows(const nlohmann::json &j, Messages *msg) {
 
     if (j.count(key_symbol_table_data) > 0) {
         const nlohmann::json &j_std = j.at(key_symbol_table_data);
-        BeebWindows::defaults.symbol_table_data = std::make_shared<JSON>(j_std);
+        BeebWindows::defaults.symbol_table_data = std::make_shared<nlohmann::json>(j_std);
     }
 
     return true;
@@ -191,16 +191,16 @@ nlohmann::json SaveWindows() {
     {
         nlohmann::json j_ppds = nlohmann::json::object_t{};
         for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
-            const std::shared_ptr<JSON> &j_ppd_ptr = BeebWindows::defaults.popup_persistent_data[i];
+            const std::shared_ptr<nlohmann::json> &j_ppd_ptr = BeebWindows::defaults.popup_persistent_data[i];
             if (!!j_ppd_ptr) {
-                j_ppds[GetBeebWindowPopupTypeEnumName(i)] = j_ppd_ptr->AsNLohmannJSON();
+                j_ppds[GetBeebWindowPopupTypeEnumName(i)] = *j_ppd_ptr;
             }
         }
         j[key_popup_persistent_data] = j_ppds;
     }
 
     if (!!BeebWindows::defaults.symbol_table_data) {
-        j[key_symbol_table_data] = BeebWindows::defaults.symbol_table_data->AsNLohmannJSON();
+        j[key_symbol_table_data] = *BeebWindows::defaults.symbol_table_data;
     }
 
     return j;

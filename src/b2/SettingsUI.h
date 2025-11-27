@@ -6,8 +6,8 @@
 
 class CommandStateTable;
 class CommandTable2;
-struct JSON;
 
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include "dear_imgui.h"
 
@@ -48,8 +48,8 @@ class SettingsUI {
     ImVec2 GetDefaultSize() const;
     void SetDefaultSize(ImVec2 default_size);
 
-    virtual void LoadPersistentData(const JSON &j);
-    virtual void SavePersistentData(JSON *j);
+    virtual void LoadPersistentData(const nlohmann::json &j);
+    virtual void SavePersistentData(nlohmann::json *j);
 
   protected:
   private:

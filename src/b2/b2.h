@@ -9,6 +9,7 @@ class Messages;
 
 #include <functional>
 #include <vector>
+#include "json.h"
 #include "BeebConfig.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -27,7 +28,7 @@ struct GlobalSettings {
     bool vsync = true;
     EnumFlags<BeebConfigFeatureFlag> feature_flags;
 };
-JSON_SERIALIZE(GlobalSettings, vsync, feature_flags);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(GlobalSettings, vsync, feature_flags);
 
 extern GlobalSettings g_global_settings;
 

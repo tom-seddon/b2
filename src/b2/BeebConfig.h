@@ -11,7 +11,7 @@
 #include "roms.h"
 #include <beeb/BBCMicroParasiteType.h>
 #include <beeb/type.h>
-#include <shared/json.h>
+#include "json.h"
 #include <beeb/scsi.h>
 
 #include <shared/enum_decl.h>
@@ -100,8 +100,8 @@ class BeebConfig {
 // This only handles some of the BeebConfig properties. The remainder are dealt
 // with manually, for one reason or another (usually name mismatches or
 // inconvenient schema).
-JSON_SERIALIZE(BeebConfig::MMFSConfig, image_path, debug);
-JSON_SERIALIZE(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type, rom_board, serial, scsi, hard_disk_dat_paths, mmfs_enabled, mmfs_config);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebConfig::MMFSConfig, image_path, debug);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type, rom_board, serial, scsi, hard_disk_dat_paths, mmfs_enabled, mmfs_config);
 
 void InitDefaultBeebConfigs();
 

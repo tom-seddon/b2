@@ -1,6 +1,5 @@
 #include <shared/system.h>
-#include "nlohmann_json_wrapper.h"
-#include <shared/json.h>
+#include "json.h"
 #include "debugger.h"
 #include "commands.h"
 #include <SDL.h>
@@ -361,12 +360,12 @@ class DebugUIWithPersistentData : public DebugUI {
   public:
     using DebugUI::DebugUI;
 
-    void LoadPersistentData(const JSON &j) override {
-        j.Load(&m_persistent);
+    void LoadPersistentData(const nlohmann::json &j) override {
+        LoadJSON(&m_persistent, j, nullptr);
     }
 
-    void SavePersistentData(JSON *j) override {
-        j->Save(m_persistent);
+    void SavePersistentData(nlohmann::json *j) override {
+        *j = m_persistent;
     }
 
   protected:
@@ -1283,7 +1282,7 @@ std::unique_ptr<SettingsUI> CreateParasite6502DebugWindow(BeebWindow *beeb_windo
 
 LOG_DEFINE(HEXEDIT, "HEXEDIT", &log_printer_stdout_and_debugger, true);
 
-JSON_SERIALIZE(HexEditor::Options, headers, hex, ascii, grey_00s, upper_case, grey_nonprintables);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(HexEditor::Options, headers, hex, ascii, grey_00s, upper_case, grey_nonprintables);
 
 struct MemoryDebugWindowPersistentData {
     HexEditor::Options hex_editor_options;
@@ -1293,7 +1292,7 @@ struct MemoryDebugWindowPersistentData {
     size_t num_columns = HexEditor::DEFAULT_NUM_COLUMNS;
     float scroll_y = -1.f;
 };
-JSON_SERIALIZE(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, scroll_y);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, scroll_y);
 
 class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPersistentData>,
                           public RevealTargetUI {
@@ -1317,7 +1316,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
         this->RevealAddress(addr);
     }
 
-    void LoadPersistentData(const JSON &j) override {
+    void LoadPersistentData(const nlohmann::json &j) override {
         this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::LoadPersistentData(j);
         m_hex_editor.options = m_persistent.hex_editor_options;
         m_hex_editor.SetNumColumns(m_persistent.num_columns);
@@ -1328,7 +1327,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
         strlcpy(m_handler.m_save_end_buffer, m_persistent.save_end.c_str(), sizeof m_handler.m_save_end_buffer);
     }
 
-    void SavePersistentData(JSON *j) override {
+    void SavePersistentData(nlohmann::json *j) override {
         m_persistent.hex_editor_options = m_hex_editor.options;
         m_persistent.num_columns = m_hex_editor.GetNumColumns();
         m_persistent.scroll_y = m_hex_editor.GetLastFrameScrollY();
@@ -1641,7 +1640,7 @@ struct DisassemblyDebugWindowPersistentData {
     bool show_symbols = false;
     bool show_column_lines = false;
 };
-JSON_SERIALIZE(DisassemblyDebugWindowPersistentData, track_pc, show_symbols, show_column_lines);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(DisassemblyDebugWindowPersistentData, track_pc, show_symbols, show_column_lines);
 
 class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebugWindowPersistentData>,
                                public RevealTargetUI {
@@ -3219,7 +3218,7 @@ struct PagingBrowserDebugWindowPersistentData {
     bool show_unused = false;
     bool show_debug_duplicates = false;
 };
-JSON_SERIALIZE(PagingBrowserDebugWindowPersistentData, show_unused, show_debug_duplicates);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PagingBrowserDebugWindowPersistentData, show_unused, show_debug_duplicates);
 
 class PagingBrowserDebugWindow : public DebugUIWithPersistentData<PagingBrowserDebugWindowPersistentData> {
   public:

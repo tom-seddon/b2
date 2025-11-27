@@ -11,7 +11,7 @@
 #include <beeb/BBCMicro.h>
 #include <beeb/SaveTrace.h>
 
-#include <shared/json.h>
+#include "json.h"
 
 #include <shared/enum_decl.h>
 #include "TraceUI.inl"
@@ -50,14 +50,14 @@ struct TraceUISettings {
     // UI stuff.
     bool is_other_traces_ui_visible = true;
 };
-JSON_SERIALIZE(TraceUISettings,
-               start, start_instruction_address, start_write_address,
-               stop, stop_num_2MHz_cycles, stop_write_address,
-               flags, unlimited,
-               unix_line_endings,
-               output_flags,
-               auto_save, auto_save_path,
-               is_other_traces_ui_visible);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(TraceUISettings,
+                                                start, start_instruction_address, start_write_address,
+                                                stop, stop_num_2MHz_cycles, stop_write_address,
+                                                flags, unlimited,
+                                                unix_line_endings,
+                                                output_flags,
+                                                auto_save, auto_save_path,
+                                                is_other_traces_ui_visible);
 
 TraceUISettings GetDefaultTraceUISettings();
 void SetDefaultTraceUISettings(const TraceUISettings &settings);

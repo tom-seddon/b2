@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include "nlohmann_json_wrapper.h"
+#include "json.h"
 #include <shared/debug.h>
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
@@ -13,7 +13,7 @@
 #include <set>
 #include <map>
 #include <shared/guid.h>
-#include <shared/json.h>
+#include "json.h"
 #include <shared/path.h>
 
 //////////////////////////////////////////////////////////////////////////
@@ -22,17 +22,16 @@
 struct PersistentFileDialogData {
     std::string last_folder;
 };
-
-JSON_SERIALIZE(PersistentFileDialogData, last_folder);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PersistentFileDialogData, last_folder);
 
 static std::map<Guid, PersistentFileDialogData> g_persistent_file_dialog_data_by_guid;
 
-bool LoadSelectorDialogPersistentDataOSX(const JSON &j, std::string *error) {
-    return j.Load(&g_persistent_file_dialog_data_by_guid, error);
+bool LoadSelectorDialogPersistentDataOSX(const nlohmann::json &j, std::string *error) {
+    return LoadJSON(&g_persistent_file_dialog_data_by_guid, j, error);
 }
 
-void SaveSelectorDialogPersistentDataOSX(JSON *j) {
-    j->Save(g_persistent_file_dialog_data_by_guid);
+void SaveSelectorDialogPersistentDataOSX(nlohmann::json *j) {
+    *j = g_persistent_file_dialog_data_by_guid;
 }
 
 //////////////////////////////////////////////////////////////////////////
