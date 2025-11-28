@@ -44,9 +44,7 @@
 #include <IOKit/hid/IOHIDLib.h>
 #elif SYSTEM_LINUX
 #include <glib-2.0/glib.h>
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #include <gtk/gtk.h>
-G_GNUC_END_IGNORE_DEPRECATIONS
 #endif
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"

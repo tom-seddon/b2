@@ -3,9 +3,7 @@
 #include "native_ui.h"
 #include "native_ui_gtk.h"
 #include <glib-2.0/glib.h>
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #include <gtk/gtk.h>
-G_GNUC_END_IGNORE_DEPRECATIONS
 #include "misc.h"
 #include "Messages.h"
 #include <SDL.h>
