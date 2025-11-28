@@ -9,7 +9,7 @@
 #include <functional>
 #include <memory>
 #include <shared/guid.h>
-#include "json.h"
+#include <nlohmann/json_fwd.hpp>
 
 class MessageList;
 class Messages;
@@ -86,7 +86,7 @@ const std::vector<RecentPaths *> *GetAllRecentPaths();
 //////////////////////////////////////////////////////////////////////////
 
 bool LoadSelectorDialogPersistentData(const nlohmann::json &j, std::string *error);
-void SaveSelectorDialogPersistentData(nlohmann::json *j);
+nlohmann::json SaveSelectorDialogPersistentData();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

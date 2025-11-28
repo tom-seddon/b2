@@ -130,14 +130,14 @@ bool LoadSelectorDialogPersistentData(const nlohmann::json &j, std::string *erro
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SaveSelectorDialogPersistentData(nlohmann::json *j) {
+nlohmann::json SaveSelectorDialogPersistentData() {
 #if SYSTEM_WINDOWS
 
-    (void)j;
+    return {};
 
 #elif SYSTEM_OSX
 
-    SaveSelectorDialogPersistentDataOSX(j);
+    return SaveSelectorDialogPersistentDataOSX();
 
 #elif SYSTEM_LINUX
 

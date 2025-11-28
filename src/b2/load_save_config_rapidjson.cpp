@@ -614,8 +614,7 @@ static bool LoadSelectorDialogPersistentData(rapidjson::Value *selector_dialog_p
 //////////////////////////////////////////////////////////////////////////
 
 static void SaveSelectorDialogPersistentData(JSONWriter<StringStream> *writer) {
-    nlohmann::json j;
-    SaveSelectorDialogPersistentData(&j);
+    nlohmann::json j = SaveSelectorDialogPersistentData();
 
     writer->Key(SELECTOR_DIALOG_PERSISTENT_DATA);
     SaveNLohmannJSON(writer, j);
