@@ -34,8 +34,8 @@ bool LoadSelectorDialogPersistentDataGTK(const nlohmann::json &j, std::string *e
     return LoadJSON(&g_persistent_file_dialog_data_by_guid, j, error);
 }
 
-void SaveSelectorDialogPersistentDataGTK(nlohmann::json *j) {
-    *j = g_persistent_file_dialog_data_by_guid;
+nlohmann::json SaveSelectorDialogPersistentDataGTK() {
+    return g_persistent_file_dialog_data_by_guid;
 }
 
 //////////////////////////////////////////////////////////////////////////

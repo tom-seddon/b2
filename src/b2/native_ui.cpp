@@ -141,7 +141,7 @@ nlohmann::json SaveSelectorDialogPersistentData() {
 
 #elif SYSTEM_LINUX
 
-    SaveSelectorDialogPersistentDataGTK(j);
+    return SaveSelectorDialogPersistentDataGTK();
 
 #endif
 }
