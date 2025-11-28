@@ -254,3 +254,8 @@ precommit_tom:
 	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-clang.
 	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-gcc.
 	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-clang.
+
+##########################################################################
+##########################################################################
+
+B2_JSON_FOLDER?=$(HOME)/$(if $(XDG_CONFIG_HOME),$(XDG_CONFIG_HOME),.config)/b2

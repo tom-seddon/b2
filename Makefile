@@ -55,8 +55,8 @@ CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_SYSROOT=macosx
 
 CLANG_FORMAT:=clang-format-mp-19
 
-include Makefile.unix.mak
 include Makefile.osx.mak
+include Makefile.unix.mak
 
 endif
 
