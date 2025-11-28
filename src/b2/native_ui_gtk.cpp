@@ -1,6 +1,5 @@
 #include <shared/system.h>
-#include "nlohmann_json_wrapper.h"
-#include <shared/json.h>
+#include "json.h"
 #include "native_ui.h"
 #include "native_ui_gtk.h"
 #include <glib-2.0/glib.h>
@@ -27,16 +26,16 @@ struct PersistentFileDialogData {
     std::string last_folder;
 };
 
-JSON_SERIALIZE(PersistentFileDialogData, last_folder);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PersistentFileDialogData, last_folder);
 
 static std::map<Guid, PersistentFileDialogData> g_persistent_file_dialog_data_by_guid;
 
-bool LoadSelectorDialogPersistentDataGTK(const JSON &j, std::string *error) {
-    return j.Load(&g_persistent_file_dialog_data_by_guid, error);
+bool LoadSelectorDialogPersistentDataGTK(const nlohmann::json &j, std::string *error) {
+    return LoadJSON(&g_persistent_file_dialog_data_by_guid, j, error);
 }
 
-void SaveSelectorDialogPersistentDataGTK(JSON *j) {
-    j->Save(g_persistent_file_dialog_data_by_guid);
+void SaveSelectorDialogPersistentDataGTK(nlohmann::json *j) {
+    *j = g_persistent_file_dialog_data_by_guid;
 }
 
 //////////////////////////////////////////////////////////////////////////

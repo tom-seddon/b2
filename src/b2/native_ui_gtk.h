@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <string>
-#include <shared/json.h>
+#include <nlohmann/json_fwd.hpp>
 
 struct Guid;
 
@@ -18,8 +18,8 @@ void MessageBox(const std::string &title, const std::string &text);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadSelectorDialogPersistentDataGTK(const JSON &j, std::string *error);
-void SaveSelectorDialogPersistentDataGTK(JSON *j);
+bool LoadSelectorDialogPersistentDataGTK(const nlohmann::json &j, std::string *error);
+void SaveSelectorDialogPersistentDataGTK(nlohmann::json *j);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

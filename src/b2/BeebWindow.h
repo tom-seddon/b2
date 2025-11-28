@@ -81,7 +81,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(WindowLayoutPersistentData, popu
 // of the initial config name in BeebWindowInitArguments. Something needs
 // fixing...
 //
-// This is only partially serialized by the JSON_SERIALIZE mechanism.
+// This is only partially serialized by the
+// NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE mechanism.
 struct BeebWindowSettings {
     uint64_t popups = 0; //json:annoying one-off data type
 
