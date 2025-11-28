@@ -213,8 +213,8 @@ class SymbolTable {
     };
 
     // Persistence support
-    std::shared_ptr<nlohmann::json> SaveToJSON() const;
-    bool LoadFromJSON(const std::shared_ptr<nlohmann::json> &j, const LogSet *logs);
+    nlohmann::json SaveToJSON() const;
+    bool LoadFromJSON(const nlohmann::json &j, const LogSet *logs);
     void ReloadAllFiles(const LogSet *logs); // Reload all files from their source files
 
     // Debugging/utility

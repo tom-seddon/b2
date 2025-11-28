@@ -1199,7 +1199,7 @@ struct PersistentSymbolTableData {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PersistentSymbolTableData, groups, groups2);
 
-std::shared_ptr<nlohmann::json> SymbolTable::SaveToJSON() const {
+nlohmann::json SymbolTable::SaveToJSON() const {
     PersistentSymbolTableData p_std;
 
     for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
@@ -1210,17 +1210,13 @@ std::shared_ptr<nlohmann::json> SymbolTable::SaveToJSON() const {
         p_std.groups2.push_back(group);
     }
 
-    return std::make_shared<nlohmann::json>(p_std);
+    return p_std;
 }
 
-bool SymbolTable::LoadFromJSON(const std::shared_ptr<nlohmann::json> &j, const LogSet *logs) {
-    if (!j) {
-        return false;
-    }
-
+bool SymbolTable::LoadFromJSON(const nlohmann::json &j, const LogSet *logs) {
     PersistentSymbolTableData p_std;
     std::string error;
-    if (!LoadJSON(&p_std, *j, &error)) {
+    if (!LoadJSON(&p_std, j, &error)) {
         logs->e.f("Failed to load symbol file data from JSON: %s\n", error.c_str());
         return false;
     }

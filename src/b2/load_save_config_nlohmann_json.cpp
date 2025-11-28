@@ -92,7 +92,6 @@ KEY(popups);
 KEY(keymap);
 KEY(window_placement);
 KEY(popup_persistent_data);
-KEY(symbol_table_data);
 
 bool LoadWindows(const nlohmann::json &j, Messages *msg) {
     TryGet(&BeebWindows::defaults, j, msg);
@@ -149,11 +148,6 @@ bool LoadWindows(const nlohmann::json &j, Messages *msg) {
         }
     }
 
-    if (j.count(key_symbol_table_data) > 0) {
-        const nlohmann::json &j_std = j.at(key_symbol_table_data);
-        BeebWindows::defaults.symbol_table_data = std::make_shared<nlohmann::json>(j_std);
-    }
-
     return true;
 }
 
@@ -197,10 +191,6 @@ nlohmann::json SaveWindows() {
             }
         }
         j[key_popup_persistent_data] = j_ppds;
-    }
-
-    if (!!BeebWindows::defaults.symbol_table_data) {
-        j[key_symbol_table_data] = *BeebWindows::defaults.symbol_table_data;
     }
 
     return j;

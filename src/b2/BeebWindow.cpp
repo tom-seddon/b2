@@ -703,7 +703,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
 
 #if BBCMICRO_DEBUGGER
     // Load symbol table from persistent data if available
-    if (!!m_settings.symbol_table_data) {
+    if (!m_settings.symbol_table_data.is_null()) {
         try {
             if (!m_symbol_table->LoadFromJSON(m_settings.symbol_table_data, &m_msg)) {
                 m_msg.w.f("Failed to load persistent symbol table data\n");
