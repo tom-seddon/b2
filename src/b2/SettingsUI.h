@@ -49,7 +49,7 @@ class SettingsUI {
     void SetDefaultSize(ImVec2 default_size);
 
     virtual void LoadPersistentData(const nlohmann::json &j);
-    virtual void SavePersistentData(nlohmann::json *j);
+    virtual nlohmann::json SavePersistentData();
 
   protected:
   private:

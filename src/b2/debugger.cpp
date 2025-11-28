@@ -364,8 +364,8 @@ class DebugUIWithPersistentData : public DebugUI {
         LoadJSON(&m_persistent, j, nullptr);
     }
 
-    void SavePersistentData(nlohmann::json *j) override {
-        *j = m_persistent;
+    nlohmann::json SavePersistentData() override {
+        return m_persistent;
     }
 
   protected:
@@ -1327,13 +1327,13 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
         strlcpy(m_handler.m_save_end_buffer, m_persistent.save_end.c_str(), sizeof m_handler.m_save_end_buffer);
     }
 
-    void SavePersistentData(nlohmann::json *j) override {
+    nlohmann::json SavePersistentData() override {
         m_persistent.hex_editor_options = m_hex_editor.options;
         m_persistent.num_columns = m_hex_editor.GetNumColumns();
         m_persistent.scroll_y = m_hex_editor.GetLastFrameScrollY();
         m_persistent.save_begin = m_handler.m_save_begin_buffer;
         m_persistent.save_end = m_handler.m_save_end_buffer;
-        this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::SavePersistentData(j);
+        return this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::SavePersistentData();
     }
 
   protected:

@@ -1,5 +1,6 @@
 #include <shared/system.h>
 #include <shared/debug.h>
+#include "json.h"
 #include "SettingsUI.h"
 #include "commands.h"
 
@@ -72,8 +73,8 @@ void SettingsUI::LoadPersistentData(const nlohmann::json &j) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SettingsUI::SavePersistentData(nlohmann::json *j) {
-    (void)j;
+nlohmann::json SettingsUI::SavePersistentData() {
+    return {};
 }
 
 //////////////////////////////////////////////////////////////////////////

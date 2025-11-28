@@ -134,7 +134,7 @@ struct BeebWindowSettings {
     bool hide_cursor_when_unfocused = false;
     bool background_economy_mode = false;
 
-    std::shared_ptr<nlohmann::json> popup_persistent_data[BeebWindowPopupType_MaxValue]; //json:annoying one-off data type
+    nlohmann::json popup_persistent_data[BeebWindowPopupType_MaxValue]; //json:annoying one-off data type
 
     DebuggerSyntax debugger_syntax{DebuggerSyntax_BBCBASIC};
     bool debugger_show_mmio = false;

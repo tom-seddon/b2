@@ -1653,7 +1653,8 @@ SettingsUI *BeebWindow::DoSettingsUI() {
                 if (m_popups[type]) {
                     m_popups[type]->SetName(popup_metadata->command.GetText());
 
-                    if (std::shared_ptr<nlohmann::json> j = BeebWindows::defaults.popup_persistent_data[type]) {
+                    const nlohmann::json *j = &BeebWindows::defaults.popup_persistent_data[type];
+                    if (!j->is_null()) {
                         m_popups[type]->LoadPersistentData(*j);
                     }
                 }
@@ -3204,14 +3205,7 @@ void BeebWindow::SaveSettings() {
 
     for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
         if (m_popups[i]) {
-            std::shared_ptr<nlohmann::json> j_ptr = BeebWindows::defaults.popup_persistent_data[i];
-            if (!j_ptr) {
-                j_ptr = std::make_shared<nlohmann::json>();
-            }
-
-            m_popups[i]->SavePersistentData(j_ptr.get());
-
-            BeebWindows::defaults.popup_persistent_data[i] = std::move(j_ptr);
+            BeebWindows::defaults.popup_persistent_data[i] = m_popups[i]->SavePersistentData();
         }
     }
 }

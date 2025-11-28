@@ -137,13 +137,10 @@ bool LoadWindows(const nlohmann::json &j, Messages *msg) {
         if (j_ppds.is_object()) {
             for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
                 const char *popup_type_name = GetBeebWindowPopupTypeEnumName(i);
-                std::shared_ptr<nlohmann::json> j_ppd;
 
                 if (j_ppds.count(popup_type_name) > 0) {
-                    j_ppd = std::make_shared<nlohmann::json>(j_ppds.at(popup_type_name));
+                    BeebWindows::defaults.popup_persistent_data[i] = j_ppds.at(popup_type_name);
                 }
-
-                BeebWindows::defaults.popup_persistent_data[i] = j_ppd;
             }
         }
     }
@@ -185,9 +182,9 @@ nlohmann::json SaveWindows() {
     {
         nlohmann::json j_ppds = nlohmann::json::object_t{};
         for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
-            const std::shared_ptr<nlohmann::json> &j_ppd_ptr = BeebWindows::defaults.popup_persistent_data[i];
-            if (!!j_ppd_ptr) {
-                j_ppds[GetBeebWindowPopupTypeEnumName(i)] = *j_ppd_ptr;
+            const nlohmann::json *j_ppd = &BeebWindows::defaults.popup_persistent_data[i];
+            if (!j_ppd->is_null()) {
+                j_ppds[GetBeebWindowPopupTypeEnumName(i)] = *j_ppd;
             }
         }
         j[key_popup_persistent_data] = j_ppds;
