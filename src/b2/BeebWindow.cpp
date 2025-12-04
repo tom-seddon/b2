@@ -1244,9 +1244,9 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static BeebConfig *FindBeebConfigByName(const std::string &name) {
+static BeebConfig *FindMutableBeebConfigByName(const std::string &name) {
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
-        BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+        BeebConfig *config = BeebWindows::GetMutableConfigByIndex(i);
         if (config->name == name) {
             return config;
         }
@@ -1469,7 +1469,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 
     m_cst.SetEnabled(g_reset_default_nvram_command, m_cst.GetEnabled(g_save_default_nvram_command));
     if (m_cst.WasActioned(g_reset_default_nvram_command)) {
-        if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
+        if (BeebConfig *config = FindMutableBeebConfigByName(this->GetConfigName())) {
             config->ResetNVRAM();
         }
     }
@@ -2282,7 +2282,7 @@ void BeebWindow::DoHardwareMenu() {
 
             bool selected = false;
 
-            BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
+            BeebConfig *config = BeebWindows::GetMutableConfigByIndex(config_idx);
             bool ticked = config->name == config_name;
 
             if (IsMultiOSType(config->os_rom_type)) {
@@ -3857,7 +3857,7 @@ void BeebWindow::HardReset() {
 
     // Fetch config from the global list again.
     for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
-        BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
+        const BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
 
         if (config->name == current_config_name) {
             this->HardReset(*config, 0);
@@ -4025,7 +4025,7 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveDefaultNVRAMForCurrentConfig() {
-    if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
+    if (BeebConfig *config = FindMutableBeebConfigByName(this->GetConfigName())) {
         config->nvram = m_beeb_thread->GetNVRAM();
     }
 }

@@ -109,14 +109,16 @@ namespace BeebWindows {
     // Otherwise, try to initialize a BeebLoadedConfig, returning
     // false if there was a problem and printing messages out to *msg.
     bool LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, Messages *msg);
-
     void AddConfig(BeebConfig config);
+    void InsertConfig(BeebConfig config, size_t index);
     void RemoveConfigByIndex(size_t index);
-
+    size_t MoveConfigUp(size_t index);
+    size_t MoveConfigDown(size_t index);
     void ConfigDidChange(size_t index);
 
     size_t GetNumConfigs();
-    BeebConfig *GetConfigByIndex(size_t index);
+    BeebConfig *GetMutableConfigByIndex(size_t index);
+    const BeebConfig *GetConfigByIndex(size_t index);
 
     // When necessary, name will be adjusted to make it unique.
     void SetBeebWindowName(BeebWindow *window, std::string name);

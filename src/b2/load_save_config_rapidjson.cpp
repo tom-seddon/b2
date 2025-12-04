@@ -1131,7 +1131,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
         auto configs_json = ArrayWriter(writer, NEW_CONFIGS);
 
         for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
-            BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
+            const BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
 
             auto config_json = ObjectWriter(writer);
 
@@ -1474,7 +1474,7 @@ bool LoadGlobalConfigRapidJSON(Messages *msg) {
     }
 
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
-        BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+        BeebConfig *config = BeebWindows::GetMutableConfigByIndex(i);
 
         if (config->nvram.empty()) {
             switch (config->type_id) {

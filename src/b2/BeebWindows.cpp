@@ -422,9 +422,19 @@ bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config, const std::s
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::AddConfig(BeebConfig config) {
-    g_->configs.push_back(std::make_unique<BeebConfig>(std::move(config)));
+    InsertConfig(std::move(config), GetNumConfigs());
+}
 
-    MakeNameUnique(g_->configs.back().get());
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindows::InsertConfig(BeebConfig config, size_t index) {
+    ASSERT(index <= g_->configs.size());
+
+    g_->configs.insert(g_->configs.begin() + (ptrdiff_t)index,
+                       std::make_unique<BeebConfig>(std::move(config)));
+
+    MakeNameUnique(g_->configs[index].get());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -434,6 +444,30 @@ void BeebWindows::RemoveConfigByIndex(size_t index) {
     ASSERT(index < g_->configs.size());
     ASSERT(index < PTRDIFF_MAX);
     g_->configs.erase(g_->configs.begin() + (ptrdiff_t)index);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t BeebWindows::MoveConfigUp(size_t index) {
+    if (index > 0) {
+        std::swap(g_->configs[index - 1], g_->configs[index]);
+        --index;
+    }
+
+    return index;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t BeebWindows::MoveConfigDown(size_t index) {
+    if (index < g_->configs.size() - 1) {
+        std::swap(g_->configs[index], g_->configs[index + 1]);
+        ++index;
+    }
+
+    return index;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -455,9 +489,16 @@ size_t BeebWindows::GetNumConfigs() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebConfig *BeebWindows::GetConfigByIndex(size_t index) {
+BeebConfig *BeebWindows::GetMutableConfigByIndex(size_t index) {
     ASSERT(index < g_->configs.size());
     return g_->configs[index].get();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BeebConfig *BeebWindows::GetConfigByIndex(size_t index) {
+    return GetMutableConfigByIndex(index);
 }
 
 //////////////////////////////////////////////////////////////////////////

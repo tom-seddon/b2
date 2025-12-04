@@ -30,14 +30,16 @@
 //////////////////////////////////////////////////////////////////////////
 
 static const char NEW_CONFIG_POPUP[] = "new_config_popup";
-static const char COPY_CONFIG_POPUP[] = "copy_config_popup";
 static const char ROM_POPUP[] = "rom_popup";
 static const char SCSI_POPUP[] = "scsi_popup";
 static const char MMFS_POPUP[] = "mmfs_popup";
+static const char CONFIG_CONTEXT_POPUP[] = "config_context_popup";
 
 static RecentPaths g_hard_disks_recent_paths("hard_disks");
 static RecentPaths g_roms_recent_paths("roms");
 static RecentPaths g_mmfs_images_recent_paths("mmfs_images");
+
+static constexpr size_t INVALID_INDEX = ~(size_t)0;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -58,7 +60,7 @@ class ConfigsUI : public SettingsUI {
     OpenFileDialog m_hard_disk_ofd;
     OpenFileDialog m_mmfs_image_ofd;
     SaveFileDialog m_new_hard_disk_sfd;
-    int m_config_index = -1;
+    size_t m_config_index = INVALID_INDEX;
 
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
 
@@ -102,7 +104,7 @@ ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
         const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
         if (config->name == config_name) {
-            m_config_index = (int)i;
+            m_config_index = i;
             break;
         }
     }
@@ -111,45 +113,10 @@ ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char *const CAPTIONS[16] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
-
-template <class BeebConfigPointerType>
-const BeebConfig *ImGuiPickConfigPopup(const char *popup_name,
-                                       size_t (*get_num_configs_fn)(),
-                                       BeebConfigPointerType (*get_config_by_index_fn)(size_t)) {
-    const BeebConfig *result = nullptr;
-
-    if (ImGui::BeginPopup(popup_name)) {
-        for (size_t i = 0; i < (*get_num_configs_fn)(); ++i) {
-            const BeebConfig *config = (*get_config_by_index_fn)(i);
-            if (ImGui::MenuItem(config->name.c_str())) {
-                result = config;
-            }
-        }
-
-        ImGui::EndPopup();
-    }
-
-    return result;
-}
-
-static BeebConfig *GetConfigByIndex(int index) {
-    if (index < 0) {
-        return nullptr;
-    } else if ((size_t)index >= BeebWindows::GetNumConfigs()) {
-        return nullptr;
-    } else {
-        return BeebWindows::GetConfigByIndex((size_t)index);
-    }
-}
-
-static const char *GetBeebWindowConfigNameCallback(void *context, int index) {
-    (void)context;
-
-    const BeebConfig *config = GetConfigByIndex(index);
-    ASSERT(config);
-
-    return config->name.c_str();
+static void Duplicate(size_t *index) {
+    const BeebConfig *config = BeebWindows::GetConfigByIndex(*index);
+    ++*index; //select newly-inserted item
+    BeebWindows::InsertConfig(*config, *index);
 }
 
 void ConfigsUI::DoImGui() {
@@ -161,19 +128,35 @@ void ConfigsUI::DoImGui() {
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Copy...")) {
-        ImGui::OpenPopup(COPY_CONFIG_POPUP);
+    if (ImGui::Button("Duplicate")) {
+        if (m_config_index < BeebWindows::GetNumConfigs()) {
+            Duplicate(&m_config_index);
+        }
     }
 
     ImGui::SameLine();
 
     if (ImGuiConfirmButton("Delete")) {
-        if (m_config_index >= 0) {
-            BeebWindows::RemoveConfigByIndex((size_t)m_config_index);
-            if ((size_t)m_config_index >= BeebWindows::GetNumConfigs()) {
-                m_config_index = (int)(BeebWindows::GetNumConfigs() - 1);
+        if (m_config_index < BeebWindows::GetNumConfigs()) {
+            BeebWindows::RemoveConfigByIndex(m_config_index);
+            if (m_config_index >= BeebWindows::GetNumConfigs()) {
+                m_config_index = BeebWindows::GetNumConfigs() - 1;
             }
         }
+    }
+
+    ImGui::SameLine();
+
+    ImGui::SameLine();
+
+    if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
+        m_config_index = BeebWindows::MoveConfigUp(m_config_index);
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
+        m_config_index = BeebWindows::MoveConfigDown(m_config_index);
     }
 
     {
@@ -183,14 +166,39 @@ void ConfigsUI::DoImGui() {
         float h = ImGui::GetWindowHeight();
         float line_height = ImGui::GetTextLineHeightWithSpacing();
 
-        // -1 for the height in items, as there's some kind of border that isn't
-        // getting accommodated otherwise. A bit ugly.
-        ImGui::ListBox("##empty",
-                       &m_config_index,
-                       &GetBeebWindowConfigNameCallback,
-                       nullptr,
-                       (int)BeebWindows::GetNumConfigs(),
-                       (int)((h - y) / line_height) - 1);
+        bool popup = false;
+
+        ImGui::BeginListBox("##empty", ImVec2(-FLT_MIN, h - y - line_height * .5f));
+        for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
+            const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+            if (ImGui::Selectable(config->name.c_str(), i == m_config_index)) {
+                m_config_index = i;
+            }
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                m_config_index = i;
+                popup = true;
+            }
+        }
+
+        ImGui::EndListBox();
+
+        if (popup) {
+            ImGui::OpenPopup(CONFIG_CONTEXT_POPUP);
+        }
+
+        if (ImGui::BeginPopup(CONFIG_CONTEXT_POPUP)) {
+            if (ImGui::MenuItem("Duplicate")) {
+                Duplicate(&m_config_index);
+            }
+
+            if (ImGui::BeginMenu("Delete")) {
+                if (ImGui::MenuItem("Confirm")) {
+                    BeebWindows::RemoveConfigByIndex(m_config_index);
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndPopup();
+        }
     }
 
     ImGui::NextColumn();
@@ -203,16 +211,14 @@ void ConfigsUI::DoImGui() {
 
     ImGui::Columns(1);
 
-    if (const BeebConfig *config = ImGuiPickConfigPopup(NEW_CONFIG_POPUP,
-                                                        &GetNumDefaultBeebConfigs,
-                                                        &GetDefaultBeebConfigByIndex)) {
-        BeebWindows::AddConfig(*config);
-    }
-
-    if (const BeebConfig *config = ImGuiPickConfigPopup(COPY_CONFIG_POPUP,
-                                                        &BeebWindows::GetNumConfigs,
-                                                        &BeebWindows::GetConfigByIndex)) {
-        BeebWindows::AddConfig(*config);
+    if (ImGui::BeginPopup(NEW_CONFIG_POPUP)) {
+        for (size_t i = 0; i < GetNumDefaultBeebConfigs(); ++i) {
+            const BeebConfig *config = GetDefaultBeebConfigByIndex(i);
+            if (ImGui::MenuItem(config->name.c_str())) {
+                BeebWindows::AddConfig(*config);
+            }
+        }
+        ImGui::EndPopup();
     }
 }
 
@@ -229,10 +235,11 @@ static const char *GetADJIDIPSwitchesString(void *data, int index) {
 }
 
 void ConfigsUI::DoEditConfigGui() {
-    BeebConfig *config = GetConfigByIndex(m_config_index);
-    if (!config) {
+    if (m_config_index >= BeebWindows::GetNumConfigs()) {
         return;
     }
+
+    BeebConfig *config = BeebWindows::GetMutableConfigByIndex(m_config_index);
 
     uint32_t rom_edit_sideways_rom_flags;
     uint32_t rom_edit_os_rom_flags;
@@ -344,7 +351,10 @@ void ConfigsUI::DoEditConfigGui() {
                 rom_edit_flags |= ROMEditFlag_CanMoveDown;
             }
 
-            ROMEditAction a = this->DoROMEditGui(CAPTIONS[bank],
+            char caption[10];
+            snprintf(caption, sizeof caption, "%X", bank);
+
+            ROMEditAction a = this->DoROMEditGui(caption,
                                                  rom,
                                                  &rom->writeable,
                                                  &rom->type,
