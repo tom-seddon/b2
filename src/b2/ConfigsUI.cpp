@@ -11,7 +11,6 @@
 #include "BeebWindow.h"
 #include "BeebConfig.h"
 #include <beeb/type.h>
-#include <IconsFontAwesome5.h>
 #include <beeb/BBCMicro.h>
 #include <shared/strings.h>
 #include "discs.h"
@@ -294,7 +293,8 @@ void ConfigsUI::DoEditConfigGui() {
     ImGui::Columns(3, "rom_edit", true);
 
     ImGui::Text("ROM");
-    float rom_width = ImGui::GetItemRectSize().x + 5 * style.ItemSpacing.x;
+    // GetFrameHeight = size of the arrow button.
+    float rom_width = ImGui::GetItemRectSize().x + 2 * ImGui::GetFrameHeight() + 2 * style.ItemSpacing.x;
 
     ImGui::NextColumn();
 
@@ -833,7 +833,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             ImGuiStyleColourPusher pusher;
             bool can_move_up = !!(rom_edit_flags & ROMEditFlag_CanMoveUp);
             pusher.PushDisabledButtonColours(!can_move_up);
-            if (ImGui::Button(ICON_FA_LONG_ARROW_ALT_UP)) {
+            if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
                 if (can_move_up) {
                     action = ROMEditAction_MoveUp;
                 }
@@ -846,7 +846,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             ImGuiStyleColourPusher pusher;
             bool can_move_down = !!(rom_edit_flags & ROMEditFlag_CanMoveDown);
             pusher.PushDisabledButtonColours(!can_move_down);
-            if (ImGui::Button(ICON_FA_LONG_ARROW_ALT_DOWN)) {
+            if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
                 if (can_move_down) {
                     action = ROMEditAction_MoveDown;
                 }

@@ -6,7 +6,6 @@
 #include <string>
 #include "BeebLinkHTTPHandler.h"
 #include "dear_imgui.h"
-#include <IconsFontAwesome5.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -39,12 +38,12 @@ class BeebLinkUI : public SettingsUI {
                 bool up_disabled = i == 0;
                 style_pusher.PushDisabledButtonColours(up_disabled);
                 ImGui::SameLine();
-                up = ImGui::Button(ICON_FA_ARROW_UP) && !up_disabled;
+                up = ImGui::ArrowButton("##up", ImGuiDir_Up) && !up_disabled;
 
                 bool down_disabled = i == urls.size() - 1;
                 style_pusher.PushDisabledButtonColours(down_disabled);
                 ImGui::SameLine();
-                down = ImGui::Button(ICON_FA_ARROW_DOWN) && !down_disabled;
+                down = ImGui::ArrowButton("##down", ImGuiDir_Down) && !down_disabled;
             }
 
             ImGui::SameLine();
