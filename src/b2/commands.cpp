@@ -529,9 +529,9 @@ bool CommandStateTable::WasActioned(const Command2 &command) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CommandStateTable::ActionCommand(Command2 *command) {
-    ASSERT(command->m_index < m_states.size());
-    State *state = &m_states[command->m_index];
+bool CommandStateTable::ActionCommand(const Command2 &command) {
+    ASSERT(command.m_index < m_states.size());
+    State *state = &m_states[command.m_index];
 
     if (state->enabled) {
         state->actioned = 1;
@@ -539,6 +539,14 @@ bool CommandStateTable::ActionCommand(Command2 *command) {
     } else {
         return false;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandStateTable::ActionCommand(const Command2 *command) {
+    bool actioned = this->ActionCommand(*command);
+    return actioned;
 }
 
 //////////////////////////////////////////////////////////////////////////

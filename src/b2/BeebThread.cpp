@@ -690,7 +690,8 @@ void BeebThread::HardResetMessage::HardReset(
 
     ts->beeb_thread->ThreadReplaceBeeb(ts, std::move(beeb), replace_flags);
 
-    ts->beeb_thread->m_config_name = ts->current_config.config.name;
+    ts->beeb_thread->m_config = ts->current_config.config;
+    ts->beeb_thread->m_config_arguments = ts->current_config.arguments;
 
 #if BBCMICRO_DEBUGGER
     if (m_flags & BeebThreadHardResetFlag_Run) {
@@ -744,7 +745,7 @@ bool BeebThread::HardResetAndReloadConfigMessage::ThreadPrepare(std::shared_ptr<
     }
 
     BeebLoadedConfig reloaded_config;
-    if (!BeebLoadedConfig::Load(&reloaded_config, ts->current_config.config, &ts->msgs)) {
+    if (!BeebLoadedConfig::Load(&reloaded_config, ts->current_config.config, ts->current_config.arguments, &ts->msgs)) {
         return false;
     }
 
@@ -2418,10 +2419,20 @@ void BeebThread::SetShowCursor(bool show_cursor) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string BeebThread::GetConfigName() const {
+void BeebThread::GetConfig(std::string *config_name, BeebConfig *config, BeebConfigArguments *config_arguments) const {
     LockGuard<Mutex> lock(m_mutex);
 
-    return m_config_name;
+    if (config_name) {
+        *config_name = m_config.name;
+    }
+
+    if (config) {
+        *config = m_config;
+    }
+
+    if (config_arguments) {
+        *config_arguments = m_config_arguments;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

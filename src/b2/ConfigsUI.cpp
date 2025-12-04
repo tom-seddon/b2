@@ -38,14 +38,12 @@ static RecentPaths g_hard_disks_recent_paths("hard_disks");
 static RecentPaths g_roms_recent_paths("roms");
 static RecentPaths g_mmfs_images_recent_paths("mmfs_images");
 
-static constexpr size_t INVALID_INDEX = ~(size_t)0;
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class ConfigsUI : public SettingsUI {
   public:
-    explicit ConfigsUI(BeebWindow *window);
+    explicit ConfigsUI(BeebWindow *window, size_t initial_config_index);
 
     void DoImGui() override;
 
@@ -59,7 +57,7 @@ class ConfigsUI : public SettingsUI {
     OpenFileDialog m_hard_disk_ofd;
     OpenFileDialog m_mmfs_image_ofd;
     SaveFileDialog m_new_hard_disk_sfd;
-    size_t m_config_index = INVALID_INDEX;
+    size_t m_config_index = INVALID_CONFIG_INDEX;
 
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
 
@@ -82,12 +80,13 @@ class ConfigsUI : public SettingsUI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
+ConfigsUI::ConfigsUI(BeebWindow *beeb_window, size_t initial_config_index)
     : m_beeb_window(beeb_window)
     , m_rom_ofd({0xC4, 0x57, 0x6C, 0xD4, 0xE6, 0x33, 0x4C, 0x63, 0xAD, 0x43, 0xC0, 0x88, 0xF4, 0xC8, 0xFB, 0x2C})
     , m_hard_disk_ofd({0xF1, 0x5F, 0xA1, 0xE2, 0x3C, 0xF2, 0x48, 0x40, 0x95, 0x34, 0x90, 0x81, 0x32, 0x09, 0x4E, 0x10})
     , m_mmfs_image_ofd({0xA3, 0xB2, 0x91, 0xC8, 0xF4, 0x29, 0x49, 0x7D, 0x8E, 0x11, 0x6C, 0x45, 0xAB, 0x38, 0x2F, 0xE9})
-    , m_new_hard_disk_sfd({0xe7, 0x34, 0xcc, 0xea, 0x15, 0x0f, 0x44, 0x84, 0xa5, 0x42, 0x9d, 0x12, 0x83, 0x1f, 0xf1, 0xc8}) {
+    , m_new_hard_disk_sfd({0xe7, 0x34, 0xcc, 0xea, 0x15, 0x0f, 0x44, 0x84, 0xa5, 0x42, 0x9d, 0x12, 0x83, 0x1f, 0xf1, 0xc8})
+    , m_config_index(initial_config_index) {
     this->SetDefaultSize(ImVec2(650, 450));
 
     m_rom_ofd.AddAllFilesFilter();
@@ -97,16 +96,6 @@ ConfigsUI::ConfigsUI(BeebWindow *beeb_window)
 
     m_new_hard_disk_sfd.AddFilter("BBC hard disk file", {".dat"});
     m_new_hard_disk_sfd.AddAllFilesFilter();
-
-    const std::string &config_name = m_beeb_window->GetConfigName();
-
-    for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
-        const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
-        if (config->name == config_name) {
-            m_config_index = i;
-            break;
-        }
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -803,13 +792,6 @@ void ConfigsUI::DoROMs(BeebConfig::ROM *rom,
     }
 }
 
-static void DoOSROMTypeMenuItem(OSROMType *os_type, OSROMType type) {
-    const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata(type);
-    if (ImGui::MenuItem(metadata->description, nullptr, *os_type == type)) {
-        *os_type = type;
-    }
-}
-
 ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                                       BeebConfig::ROM *rom,
                                       bool *writeable,
@@ -927,20 +909,10 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             }
         } else if (os_type) {
             if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
-                DoOSROMTypeMenuItem(os_type, OSROMType_16KB);
-                DoOSROMTypeMenuItem(os_type, OSROMType_Compact);
-                DoOSROMTypeMenuItem(os_type, OSROMType_MegaROM);
-
-                // Special case. I messed this bit up, and (once I realised) didn't fancy redoing the config saving to fix it.
-                bool selected = (*os_type == OSROMType_MultiOSBank0 ||
-                                 *os_type == OSROMType_MultiOSBank1 ||
-                                 *os_type == OSROMType_MultiOSBank2 ||
-                                 *os_type == OSROMType_MultiOSBank3);
-                if (ImGui::MenuItem("Multi-OS (512 KB)", nullptr, selected)) {
-                    if (selected) {
-                        // leave the selected bank as-was.
-                    } else {
-                        *os_type = OSROMType_MultiOSBank0;
+                for (uint8_t i = 0; i < OSROMType_Count; ++i) {
+                    const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata((OSROMType)i);
+                    if (ImGui::MenuItem(metadata->description, nullptr, *os_type == i)) {
+                        *os_type = (OSROMType)i;
                     }
                 }
 
@@ -1047,8 +1019,8 @@ bool ConfigsUI::CreateNewHardDiskImage(const HardDisk &disk, const std::string &
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *beeb_window) {
-    return std::make_unique<ConfigsUI>(beeb_window);
+std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *beeb_window, size_t initial_config_index) {
+    return std::make_unique<ConfigsUI>(beeb_window, initial_config_index);
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1579,21 +1579,24 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             bool got_initial_loaded_config = false;
 
             if (!options.config_name.empty()) {
-                if (BeebWindows::LoadConfigByName(&initial_loaded_config, options.config_name, &init_messages)) {
+                if (BeebWindows::LoadConfigByName(&initial_loaded_config, options.config_name, {}, &init_messages)) {
                     got_initial_loaded_config = true;
                 }
             }
 
             if (!got_initial_loaded_config) {
-                if (!BeebWindows::default_config_name.empty()) {
-                    if (BeebWindows::LoadConfigByName(&initial_loaded_config, BeebWindows::default_config_name, &init_messages)) {
+                if (!BeebWindows::defaults.config.empty()) {
+                    if (BeebWindows::LoadConfigByName(&initial_loaded_config,
+                                                      BeebWindows::defaults.config,
+                                                      {},
+                                                      &init_messages)) {
                         got_initial_loaded_config = true;
                     }
                 }
             }
 
             if (!got_initial_loaded_config) {
-                if (BeebLoadedConfig::Load(&initial_loaded_config, *GetDefaultBeebConfigByIndex(0), &init_messages)) {
+                if (BeebLoadedConfig::Load(&initial_loaded_config, *GetDefaultBeebConfigByIndex(0), {}, &init_messages)) {
                     got_initial_loaded_config = true;
                 }
             }

@@ -28,6 +28,20 @@ class DiscInterface;
 // The BeebConfig holds all the config info that gets saved to the
 // JSON config file.
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct BeebConfigArguments {
+    // Multi-OS bank to use. Applies when OS type is multi-OS.
+    int multi_os_bank = -1;
+};
+
+// Doesn't curently get serialised - but maybe that'd actually be useful?
+//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebConfigArguments, multi_os_bank);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BeebConfig {
   public:
     struct ROM {
@@ -128,6 +142,7 @@ std::vector<uint8_t> GetDefaultMasterCompactNVRAM();
 class BeebLoadedConfig {
   public:
     BeebConfig config;
+    BeebConfigArguments arguments;
 
     std::shared_ptr<const std::array<uint8_t, 16384>> os;
     std::shared_ptr<const std::vector<uint8_t>> roms[16];
@@ -137,7 +152,7 @@ class BeebLoadedConfig {
     std::shared_ptr<const std::array<uint8_t, 4096>> parasite_os;
     HardDiskImageSet hard_disk_images;
 
-    static bool Load(BeebLoadedConfig *dest, const BeebConfig &src, Messages *msg);
+    static bool Load(BeebLoadedConfig *loaded_config, const BeebConfig &config, const BeebConfigArguments &arguments, Messages *msg);
 
     void ReuseROMs(const BeebLoadedConfig &oth);
 

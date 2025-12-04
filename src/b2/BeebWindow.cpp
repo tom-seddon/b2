@@ -94,7 +94,11 @@ static Command2 g_toggle_console_command = Command2(&g_beeb_window_command_table
 static Command2 g_clear_console_command(&g_beeb_window_command_table, "clear_console", "Clear Win32 console");
 static Command2 g_print_separator_command(&g_beeb_window_command_table, "print_separator", "Print stdout separator");
 #endif
-static Command2 g_hard_reset_command(&g_beeb_window_command_table, "hard_reset", "Power-on Reset");
+static Command2 g_hard_reset_command = Command2(&g_beeb_window_command_table, "hard_reset", "Power-on Reset").MustConfirm();
+static Command2 g_hard_reset_multi_os_bank_0_command = Command2(&g_beeb_window_command_table, "hard_reset_multi_os_bank_0", "Multi-OS bank 0").WithExtraText(g_hard_reset_command.GetText()).WithTick();
+static Command2 g_hard_reset_multi_os_bank_1_command = Command2(&g_beeb_window_command_table, "hard_reset_multi_os_bank_1", "Multi-OS bank 1").WithExtraText(g_hard_reset_command.GetText()).WithTick();
+static Command2 g_hard_reset_multi_os_bank_2_command = Command2(&g_beeb_window_command_table, "hard_reset_multi_os_bank_2", "Multi-OS bank 2").WithExtraText(g_hard_reset_command.GetText()).WithTick();
+static Command2 g_hard_reset_multi_os_bank_3_command = Command2(&g_beeb_window_command_table, "hard_reset_multi_os_bank_3", "Multi-OS bank 3").WithExtraText(g_hard_reset_command.GetText()).WithTick();
 static Command2 g_save_state_command(&g_beeb_window_command_table, "save_state", "Save State");
 static Command2 g_exit_command = Command2(&g_beeb_window_command_table, "exit", "Exit").MustConfirm();
 static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_command_table, "clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm();
@@ -177,7 +181,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_Messages, "toggle_messages", "Messages", &CreateMessagesUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_Timeline, "toggle_timeline", "Timeline", &BeebWindow::CreateTimelineUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SavedStates, "toggle_saved_states", "Saved States", &BeebWindow::CreateSavedStatesUI);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_Configs, "toggle_configurations", "Configs", &CreateConfigsUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Configs, "toggle_configurations", "Configs", &BeebWindow::CreateConfigsUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_Trace, "toggle_event_trace", "Tracing", &CreateTraceUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_AudioCallback, "toggle_date_rate", "Performance", &CreateDataRateUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_PixelMetadata, "toggle_pixel_metadata", "Pixel Metadata", &CreatePixelMetadataDebugWindow);
@@ -1290,7 +1294,23 @@ void BeebWindow::DoCopyModeCommands(BeebWindowSettings::CopySettings *settings,
 
 void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_hard_reset_command)) {
-        this->HardReset();
+        this->HardResetWithMultiOSBank(-1);
+    }
+
+    if (m_cst.WasActioned(g_hard_reset_multi_os_bank_0_command)) {
+        this->HardResetWithMultiOSBank(0);
+    }
+
+    if (m_cst.WasActioned(g_hard_reset_multi_os_bank_1_command)) {
+        this->HardResetWithMultiOSBank(1);
+    }
+
+    if (m_cst.WasActioned(g_hard_reset_multi_os_bank_2_command)) {
+        this->HardResetWithMultiOSBank(2);
+    }
+
+    if (m_cst.WasActioned(g_hard_reset_multi_os_bank_3_command)) {
+        this->HardResetWithMultiOSBank(3);
     }
 
     bool can_clone = m_beeb_thread->GetBBCMicroCloneImpediments() == 0;
@@ -1469,7 +1489,9 @@ void BeebWindow::DoCommands(bool *close_window) {
 
     m_cst.SetEnabled(g_reset_default_nvram_command, m_cst.GetEnabled(g_save_default_nvram_command));
     if (m_cst.WasActioned(g_reset_default_nvram_command)) {
-        if (BeebConfig *config = FindMutableBeebConfigByName(this->GetConfigName())) {
+        std::string config_name;
+        m_beeb_thread->GetConfig(&config_name, nullptr, nullptr);
+        if (BeebConfig *config = FindMutableBeebConfigByName(config_name)) {
             config->ResetNVRAM();
         }
     }
@@ -1949,7 +1971,38 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
 void BeebWindow::DoFileMenu() {
     if (ImGui::BeginMenu("File")) {
-        m_cst.DoMenuItem(g_hard_reset_command);
+        std::string config_name;
+        BeebConfigArguments config_arguments;
+        m_beeb_thread->GetConfig(&config_name, nullptr, &config_arguments);
+
+        // This relies on the logic in BeebLoadedConfig::Load to set
+        // multi_os_bank appropriately, including setting it to <0 in the case
+        // of the model not having a multi-OS in the first place.
+        if (config_arguments.multi_os_bank >= 0) {
+            if (ImGui::BeginMenu(g_hard_reset_command.GetText().c_str())) {
+                // TODO: the tick state should be set more often than this, but
+                // they're for informational purposes only, so it doesn't
+                // particularly matter.
+                m_cst.SetTicked(g_hard_reset_multi_os_bank_0_command, config_arguments.multi_os_bank == 0);
+                m_cst.SetTicked(g_hard_reset_multi_os_bank_1_command, config_arguments.multi_os_bank == 1);
+                m_cst.SetTicked(g_hard_reset_multi_os_bank_2_command, config_arguments.multi_os_bank == 2);
+                m_cst.SetTicked(g_hard_reset_multi_os_bank_3_command, config_arguments.multi_os_bank == 3);
+
+                if (ImGui::MenuItem("Confirm")) {
+                    m_cst.ActionCommand(g_hard_reset_command);
+                }
+
+                ImGui::Separator();
+
+                m_cst.DoMenuItem(g_hard_reset_multi_os_bank_0_command);
+                m_cst.DoMenuItem(g_hard_reset_multi_os_bank_1_command);
+                m_cst.DoMenuItem(g_hard_reset_multi_os_bank_2_command);
+                m_cst.DoMenuItem(g_hard_reset_multi_os_bank_3_command);
+                ImGui::EndMenu();
+            }
+        } else {
+            m_cst.DoMenuItem(g_hard_reset_command);
+        }
 
         if (ImGui::BeginMenu("Run")) {
             this->DoDiscImageSubMenu(0, true);
@@ -2266,16 +2319,14 @@ void BeebWindow::DoEditMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string MULTI_OS_SUFFIX_PREFIX = " (Multi-OS bank ";
-static const std::string MULTI_OS_SUFFIX_SUFFIX = ")";
-
 void BeebWindow::DoHardwareMenu() {
     if (ImGui::BeginMenu("Hardware")) {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Configs].command);
 
         ImGui::Separator();
 
-        std::string config_name = this->GetConfigName();
+        std::string config_name;
+        m_beeb_thread->GetConfig(&config_name, nullptr, nullptr);
 
         for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
             ImGuiIDPusher pusher((uint32_t)config_idx);
@@ -2285,25 +2336,14 @@ void BeebWindow::DoHardwareMenu() {
             BeebConfig *config = BeebWindows::GetMutableConfigByIndex(config_idx);
             bool ticked = config->name == config_name;
 
-            if (IsMultiOSType(config->os_rom_type)) {
-                std::string label;
-                for (int i = 0; i < 4; ++i) {
-                    auto type = (OSROMType)(OSROMType_MultiOSBank0 + i);
-
-                    label = config->name + MULTI_OS_SUFFIX_PREFIX + std::to_string(i) + MULTI_OS_SUFFIX_SUFFIX;
-                    if (ImGui::MenuItem(label.c_str(), nullptr, ticked && config->os_rom_type == type)) {
-                        config->os_rom_type = type;
-                        selected = true;
-                    }
-                }
-            } else {
-                if (ImGui::MenuItem(config->name.c_str(), nullptr, ticked)) {
-                    selected = true;
-                }
+            if (ImGui::MenuItem(config->name.c_str(), nullptr, ticked)) {
+                selected = true;
             }
 
             if (selected) {
-                this->HardReset(*config, BeebThreadHardResetFlag_Run);
+                if (this->HardReset(*config, {}, BeebThreadHardResetFlag_Run)) {
+                    m_settings.config = config->name;
+                }
             }
         }
 
@@ -3199,7 +3239,6 @@ void BeebWindow::SaveSettings() {
     m_settings.gui_scale = m_imgui_stuff->GetScale();
 
     BeebWindows::defaults = m_settings;
-    BeebWindows::default_config_name = this->GetConfigName();
 
     this->SavePosition();
 
@@ -3736,31 +3775,6 @@ SettingsUI *BeebWindow::GetPopupByType(BeebWindowPopupType type) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::HardReset(const BeebConfig &config, uint32_t flags) {
-    BeebLoadedConfig tmp;
-
-    if (BeebLoadedConfig::Load(&tmp, config, &m_msg)) {
-        m_init_arguments.default_config = std::move(tmp);
-
-        auto message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags, m_init_arguments.default_config);
-
-        m_beeb_thread->Send(std::move(message));
-
-        return true;
-    } else {
-        return false;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string BeebWindow::GetConfigName() const {
-    return m_beeb_thread->GetConfigName();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
 void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
     std::shared_ptr<MemoryDiscImage> disc_image = LoadMemoryDiscImage(arguments.file_path, m_msg);
     if (!disc_image) {
@@ -3797,6 +3811,25 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_win
 
 std::unique_ptr<SettingsUI> BeebWindow::CreateImGuiDebugWindow(BeebWindow *beeb_window) {
     return std::make_unique<ImGuiDebugUI>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> BeebWindow::CreateConfigsUI(BeebWindow *beeb_window) {
+    std::string config_name;
+    beeb_window->m_beeb_thread->GetConfig(&config_name, nullptr, nullptr);
+
+    size_t config_index = INVALID_CONFIG_INDEX;
+    for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
+        const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+        if (config->name == config_name) {
+            config_index = i;
+            break;
+        }
+    }
+
+    return ::CreateConfigsUI(beeb_window, config_index);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3847,26 +3880,6 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
     //ia.parent_timeline_event_id=0;//m_beeb_thread->GetParentTimelineEventId();
 
     return ia;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::HardReset() {
-    std::string current_config_name = this->GetConfigName();
-
-    // Fetch config from the global list again.
-    for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
-        const BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
-
-        if (config->name == current_config_name) {
-            this->HardReset(*config, 0);
-            return;
-        }
-    }
-
-    // Something went wrong. Just reuse the current config, whatever it is.
-    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4025,7 +4038,10 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveDefaultNVRAMForCurrentConfig() {
-    if (BeebConfig *config = FindMutableBeebConfigByName(this->GetConfigName())) {
+    std::string config_name;
+    m_beeb_thread->GetConfig(&config_name, nullptr, nullptr);
+
+    if (BeebConfig *config = FindMutableBeebConfigByName(config_name)) {
         config->nvram = m_beeb_thread->GetNVRAM();
     }
 }
@@ -4186,4 +4202,37 @@ void BeebWindow::LoadWindowLayout(const std::string &path) {
 
         m_settings.popups = wlpd.popups;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags) {
+    BeebLoadedConfig tmp;
+
+    if (BeebLoadedConfig::Load(&tmp, config, arguments, &m_msg)) {
+        m_init_arguments.default_config = std::move(tmp);
+
+        auto message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags, m_init_arguments.default_config);
+
+        m_beeb_thread->Send(std::move(message));
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
+    BeebConfig config;
+    BeebConfigArguments arguments;
+    m_beeb_thread->GetConfig(nullptr, &config, &arguments);
+
+    arguments.multi_os_bank = multi_os_bank;
+
+    bool good = this->HardReset(config, arguments, BeebThreadHardResetFlag_Run);
+    return good;
 }

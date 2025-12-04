@@ -535,8 +535,10 @@ const BeebConfig *GetDefaultBeebConfigByIndex(size_t index) {
 bool BeebLoadedConfig::Load(
     BeebLoadedConfig *dest,
     const BeebConfig &src,
+    const BeebConfigArguments &arguments,
     Messages *msg) {
     dest->config = src;
+    dest->arguments = arguments;
 
     size_t sideways_roms_end;
     if (dest->config.os.standard_rom || dest->config.os_rom_type == OSROMType_16KB) {
@@ -547,6 +549,17 @@ bool BeebLoadedConfig::Load(
 
         sideways_roms_end = 16;
     } else {
+        // Adjust the arguments so they can be used to recreate the actual config.
+        if (dest->config.os_rom_type >= OSROMType_MultiOSBank0 && dest->config.os_rom_type <= OSROMType_MultiOSBank3) {
+            if (dest->arguments.multi_os_bank >= 0 && dest->arguments.multi_os_bank <= 3) {
+                dest->config.os_rom_type = (OSROMType)(OSROMType_MultiOSBank0 + dest->arguments.multi_os_bank);
+            } else {
+                dest->arguments.multi_os_bank = dest->config.os_rom_type - OSROMType_MultiOSBank0;
+            }
+        } else {
+            dest->arguments.multi_os_bank = -1;
+        }
+
         const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata(dest->config.os_rom_type);
         ASSERT(metadata);
 

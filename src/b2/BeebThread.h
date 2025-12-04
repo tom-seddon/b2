@@ -1023,7 +1023,7 @@ class BeebThread {
     bool GetShowCursor() const;
     void SetShowCursor(bool show_cursor);
 
-    std::string GetConfigName() const;
+    void GetConfig(std::string *config_name, BeebConfig *config, BeebConfigArguments *config_arguments) const;
 
     bool TakeNVRAMChanged();
 
@@ -1121,7 +1121,8 @@ class BeebThread {
     mutable Mutex m_mutex;
 
     // Controlled by m_mutex.
-    std::string m_config_name;
+    BeebConfig m_config;
+    BeebConfigArguments m_config_arguments;
 
     // Main thread must take mutex to access.
     ThreadState *m_thread_state = nullptr;

@@ -289,10 +289,12 @@ class HTTPMethodsHandler : public HTTPHandler {
         BeebWindow *beeb_window;
         std::string config_name;
         bool boot = false;
+        int multi_os_bank = -1;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
                                            "std::string", "config", &config_name,
                                            "bool", "boot", &boot,
+                                           "int", "multi_os_bank", &multi_os_bank,
                                            nullptr)) {
             return;
         }
@@ -301,8 +303,11 @@ class HTTPMethodsHandler : public HTTPHandler {
             auto message_list = std::make_shared<MessageList>("HTTP reset");
             Messages messages(message_list);
 
+            BeebConfigArguments arguments;
+            arguments.multi_os_bank = multi_os_bank;
+
             BeebLoadedConfig loaded_config;
-            if (!BeebWindows::LoadConfigByName(&loaded_config, config_name, &messages)) {
+            if (!BeebWindows::LoadConfigByName(&loaded_config, config_name, arguments, &messages)) {
                 this->SendMessagesResponse(server, request, message_list);
                 return;
             }

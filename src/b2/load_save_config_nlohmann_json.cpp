@@ -85,7 +85,6 @@ nlohmann::json SaveTrace() {
 KEY(filter_bbc);
 KEY(auto_scale);
 KEY(manual_scale);
-KEY(config);
 
 // some annoying one-offs
 KEY(popups);
@@ -99,7 +98,6 @@ bool LoadWindows(const nlohmann::json &j, Messages *msg) {
     TryGet(&BeebWindows::defaults.display_filter, j, key_filter_bbc, msg);
     TryGet(&BeebWindows::defaults.display_auto_scale, j, key_auto_scale, msg);
     TryGet(&BeebWindows::defaults.display_manual_scale, j, key_manual_scale, msg);
-    TryGet(&BeebWindows::default_config_name, j, key_config, msg);
 
     if (j.count(key_popups) > 0) {
         const nlohmann::json &j_popups = j.at(key_popups);
@@ -157,7 +155,6 @@ nlohmann::json SaveWindows() {
     j[key_filter_bbc] = BeebWindows::defaults.display_filter;
     j[key_auto_scale] = BeebWindows::defaults.display_auto_scale;
     j[key_manual_scale] = BeebWindows::defaults.display_manual_scale;
-    j[key_config] = BeebWindows::default_config_name;
 
     if (BeebWindows::defaults.keymap) {
         j[key_keymap] = BeebWindows::defaults.keymap->GetName();

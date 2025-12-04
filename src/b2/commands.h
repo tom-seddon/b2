@@ -167,7 +167,8 @@ class CommandStateTable {
 
     bool WasActioned(const Command2 &command);
 
-    bool ActionCommand(Command2 *command);
+    bool ActionCommand(const Command2 &command);
+    bool ActionCommand(const Command2 *command);
     bool ActionCommands(const std::vector<Command2 *> *commands);
 
     bool ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key);

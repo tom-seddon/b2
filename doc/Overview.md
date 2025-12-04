@@ -390,9 +390,10 @@ OS ROM type. The options available are:
   This will work with a ROM dump from one of the commonly-available
   modern OS ROM switchers
   
-  (Configs using this option add 4 entries to the `Hardware` menu, one
-  per multi-OS bank. Select the entry according to the bank of
-  interest)
+  (After selecting a multi-OS config, the usual confirm popup for
+  `File` > `Power-on Reset` will include extra items letting you
+  select the multi-OS bank of interest. The currently selected bank is
+  ticked)
   
 If using one of the larger ROM types (64 KB, 128 KB, 512 KB), some
 sideways ROM banks will become hidden, as their contents are part of
@@ -498,15 +499,19 @@ to use with it - see the SCSI hard disks section below.
 Tick `MMFS` to add an emulated MMFS interface, emulating the
 memory-mapped SPI interface. See the MMFS section below.
 
-Changes to a configuration don't affect the running Beeb until you do
-a `File` > `Power-on Reset` (if you're editing the current config) or
-select the updated configuration from the `Hardware' menu.
+Changes to a configuration don't affect the running Beeb until you
+select the updated configuration from the `Hardware` menu.
 
 To create a new configuration, click the `New...` button to create one
-based off one of the default configs, or the `Copy...` button to
-create one that's a copy of one of the ones in the list.
+based off one of the default configs, or the `Duplicate` button to
+create a copy of the selected config. The `Delete` button will delete
+the currently selected config.
 
-The `Delete` button will delete the currently selected config.
+(The `Duplicate` and `Delete` options can also be found by right
+clicking the config of interest.)
+
+The two arrow buttons move the selected configuration up or down the
+list, allowing rearrangement.
 
 ## SCSI hard disks
 

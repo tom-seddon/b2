@@ -77,13 +77,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(WindowLayoutPersistentData, popu
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// The config name isn't part of this, because then there'd be two copies
-// of the initial config name in BeebWindowInitArguments. Something needs
-// fixing...
+// The config name isn't part of this, because then there'd be two copies of the
+// initial config name in BeebWindowInitArguments. Something needs fixing...
 //
-// This is only partially serialized by the
-// NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE mechanism.
+// This is only partially serialized by the NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
+// mechanism.
 struct BeebWindowSettings {
+    std::string config; //should really be config_name, but the JSON naming is wrong
+
     uint64_t popups = 0; //json:annoying one-off data type
 
     float bbc_volume = 0.f;
@@ -145,7 +146,7 @@ struct BeebWindowSettings {
     bool gui_pixel_font = true;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, config, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -349,10 +350,6 @@ class BeebWindow {
     // Helper function for memory context selection UI (shared between dialogs)
     //void DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help);
 
-    bool HardReset(const BeebConfig &config, uint32_t flags);
-
-    std::string GetConfigName() const;
-
 #if BBCMICRO_DEBUGGER
     bool DebugIsStopEnabled() const;
     bool DebugIsRunEnabled() const;
@@ -368,6 +365,7 @@ class BeebWindow {
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateImGuiDebugWindow(BeebWindow *beeb_window);
+    static std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *beeb_window);
 
     const BeebWindowSettings &GetSettings() const;
 
@@ -551,7 +549,6 @@ class BeebWindow {
     void DoDebugMenu();
     void DoWindowMenu();
     BeebWindowInitArguments GetNewWindowInitArguments() const;
-    void HardReset();
     void HandleJoystickResult(const JoystickResult &jr);
     bool HandleBeebKey(const SDL_Keysym &keysym, bool state);
     void RequestRecreateTexture();
@@ -583,6 +580,9 @@ class BeebWindow {
     void ResetImGuiWindows();
 
     void LoadWindowLayout(const std::string &path);
+
+    bool HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags);
+    bool HardResetWithMultiOSBank(int multi_os_bank);
 
     // Keep this at the end. It's massive.
     mutable Messages m_msg;
