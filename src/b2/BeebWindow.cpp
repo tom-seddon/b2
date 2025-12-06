@@ -1646,20 +1646,7 @@ void BeebWindow::DoCommands(bool *close_window) {
         if (fd.Open(m_window, &path)) {
             fd.AddLastPathToRecentPaths(&g_window_layout_recent_paths);
 
-            WindowLayoutPersistentData wlpd;
-
-            wlpd.popups = m_settings.popups;
-
-            size_t ini_data_size;
-            if (const char *ini_data = ImGui::SaveIniSettingsToMemory(&ini_data_size)) {
-                ForEachLine(std::string(ini_data, ini_data + ini_data_size),
-                            [&wlpd](const std::string_view &line) -> bool {
-                                wlpd.dear_imgui_settings.push_back(std::string(line.begin(), line.end()));
-                                return true;
-                            });
-            }
-
-            SaveJSONFile(wlpd, path, &m_msg);
+            this->SaveWindowLayout(path);
         }
     }
 }
@@ -4265,6 +4252,26 @@ void BeebWindow::LoadWindowLayout(const std::string &path) {
 
         m_settings.popups = wlpd.popups;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::SaveWindowLayout(const std::string &path) {
+    WindowLayoutPersistentData wlpd;
+
+    wlpd.popups = m_settings.popups;
+
+    size_t ini_data_size;
+    if (const char *ini_data = ImGui::SaveIniSettingsToMemory(&ini_data_size)) {
+        ForEachLine(std::string(ini_data, ini_data + ini_data_size),
+                    [&wlpd](const std::string_view &line) -> bool {
+                        wlpd.dear_imgui_settings.push_back(std::string(line.begin(), line.end()));
+                        return true;
+                    });
+    }
+
+    SaveJSONFile(wlpd, path, &m_msg);
 }
 
 //////////////////////////////////////////////////////////////////////////

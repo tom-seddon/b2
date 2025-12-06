@@ -595,6 +595,7 @@ class BeebWindow {
     void ResetImGuiWindows();
 
     void LoadWindowLayout(const std::string &path);
+    void SaveWindowLayout(const std::string &path);
 
     bool HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags);
     bool HardResetWithMultiOSBank(int multi_os_bank);
