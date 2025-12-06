@@ -313,18 +313,18 @@ const char BeebWindow::SDL_WINDOW_DATA_NAME[] = "D";
 void to_json(nlohmann::json &j, const BeebWindowPopupFlags &flags) {
     j = nlohmann::json::array();
     for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
-        if (flags.value & (uint64_t)1 << i) {
+        if (flags.flags[i]) {
             j.push_back(GetBeebWindowPopupTypeEnumName(i));
         }
     }
 }
 
 void from_json(const nlohmann::json &j, BeebWindowPopupFlags &flags) {
-    flags.value = 0;
+    flags = {};
     if (j.is_array()) {
         for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
             if (std::find(j.begin(), j.end(), GetBeebWindowPopupTypeEnumName(i)) != j.end()) {
-                flags.value |= (uint64_t)1 << i;
+                flags.flags[i] = true;
             }
         }
     }
@@ -1603,14 +1603,12 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
-        const uint64_t mask = (uint64_t)1 << type;
-
         PopupMetadata *popup_metadata = &g_popups[type];
 
         if (m_cst.WasActioned(popup_metadata->command)) {
-            m_settings.popups.value ^= mask;
+            m_settings.popups.flags[type] = !m_settings.popups.flags[type];
         }
-        m_cst.SetTicked(popup_metadata->command, !!(m_settings.popups.value & mask));
+        m_cst.SetTicked(popup_metadata->command, m_settings.popups.flags[type]);
     }
 
 #if BBCMICRO_DEBUGGER
@@ -1680,11 +1678,9 @@ SettingsUI *BeebWindow::DoSettingsUI() {
     SettingsUI *active_popup = nullptr;
 
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
-        const uint64_t mask = (uint64_t)1 << type;
-
         PopupMetadata *popup_metadata = &g_popups[type];
 
-        if (m_settings.popups.value & mask) {
+        if (m_settings.popups.flags[type]) {
             if (!m_popups[type]) {
                 m_popups[type] = CreatePopup(*popup_metadata, this, m_imgui_stuff);
 
@@ -1712,7 +1708,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             }
 
             if (ImGui::Begin(popup_metadata->command.GetText().c_str(), &opened, extra_flags)) {
-                m_settings.popups.value |= mask;
+                m_settings.popups.flags[type] = true;
 
                 if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
                     active_popup = popup;
@@ -1727,7 +1723,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             ImGui::End();
 
             if (!opened) {
-                m_settings.popups.value &= ~mask;
+                m_settings.popups.flags[type] = false;
 
                 // Leave the deletion until the next frame -
                 // references to its textures might still be queued up
@@ -1745,7 +1741,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
     }
 
     if (ValueChanged(&m_msg_last_num_errors_printed, m_message_list->GetNumErrorsPrinted())) {
-        m_settings.popups.value |= 1 << BeebWindowPopupType_Messages;
+        m_settings.popups.flags[BeebWindowPopupType_Messages] = true;
     }
 
     return active_popup;

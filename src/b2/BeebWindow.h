@@ -67,7 +67,7 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 
 struct BeebWindowPopupFlags {
-    uint64_t value = 0;
+    bool flags[BeebWindowPopupType_MaxValue] = {};
 };
 void to_json(nlohmann::json &j, const BeebWindowPopupFlags &flags);
 void from_json(const nlohmann::json &j, BeebWindowPopupFlags &flags);
