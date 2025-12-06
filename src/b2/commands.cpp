@@ -471,9 +471,21 @@ void CommandStateTable::DoMenuItem(const Command2 &command) {
     ASSERT(command.m_index < m_states.size());
     State *state = &m_states[command.m_index];
 
+    std::string shortcut_str;
+    if (const std::vector<uint32_t> *shortcuts = command.m_table->GetPCKeysForCommand(nullptr, &command)) {
+        shortcut_str = GetKeycodeName((*shortcuts)[0]);
+    }
+
+    const char *shortcut;
+    if (shortcut_str.empty()) {
+        shortcut = nullptr;
+    } else {
+        shortcut = shortcut_str.c_str();
+    }
+
     if (command.m_must_confirm) {
         if (ImGui::BeginMenu(command.m_text.c_str(), state->enabled)) {
-            if (ImGui::MenuItem("Confirm")) {
+            if (ImGui::MenuItem("Confirm", shortcut)) {
                 state->actioned = 1;
             }
             ImGui::EndMenu();
@@ -489,10 +501,7 @@ void CommandStateTable::DoMenuItem(const Command2 &command) {
             shortcut_str = GetKeycodeName((*shortcuts)[0]);
         }
 
-        if (ImGui::MenuItem(command.m_text.c_str(),
-                            shortcut_str.empty() ? nullptr : shortcut_str.c_str(),
-                            &ticked,
-                            state->enabled)) {
+        if (ImGui::MenuItem(command.m_text.c_str(), shortcut, &ticked, state->enabled)) {
             state->actioned = 1;
         }
     }
