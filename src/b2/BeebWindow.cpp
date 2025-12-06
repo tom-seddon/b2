@@ -139,9 +139,9 @@ static Command2 g_toggle_capture_mouse_command = Command2(&g_beeb_window_command
 static Command2 g_toggle_capture_mouse_on_click_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse_on_click", "Capture on click").WithTick();
 static Command2 g_clear_symbols_command = Command2(&g_beeb_window_command_table, "clear_symbols", "Clear symbols").MustConfirm().VisibleIf(BBCMICRO_DEBUGGER);
 static Command2 g_reload_all_symbols_command = Command2(&g_beeb_window_command_table, "reload_all_symbols", "Reload all symbols").VisibleIf(BBCMICRO_DEBUGGER);
-static Command2 g_load_project_command = Command2(&g_beeb_window_command_table, "load_project", "Load project...").VisibleIf(BBCMICRO_DEBUGGER);
-static Command2 g_save_project_command = Command2(&g_beeb_window_command_table, "save_project", "Save project").VisibleIf(BBCMICRO_DEBUGGER);
-static Command2 g_save_project_as_command = Command2(&g_beeb_window_command_table, "save_project_as", "Save project as...").VisibleIf(BBCMICRO_DEBUGGER);
+//static Command2 g_load_project_command = Command2(&g_beeb_window_command_table, "load_project", "Load project...").VisibleIf(BBCMICRO_DEBUGGER);
+//static Command2 g_save_project_command = Command2(&g_beeb_window_command_table, "save_project", "Save project").VisibleIf(BBCMICRO_DEBUGGER);
+//static Command2 g_save_project_as_command = Command2(&g_beeb_window_command_table, "save_project_as", "Save project as...").VisibleIf(BBCMICRO_DEBUGGER);
 
 struct PopupMetadata {
     Command2 command;
@@ -247,7 +247,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_ADCDebugger, "toggle_adc_debugger", "ADC Debug", &CreateADCDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_BeebLink, "toggle_beeblink_options", "BeebLink Options", &CreateBeebLinkUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DigitalJoystickDebugger, "toggle_digital_joystick_debugger", "Digital Joystick Debug", &CreateDigitalJoystickDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "Imgui debug", &BeebWindow::CreateImGuiDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "ImGui debug", &BeebWindow::CreateImGuiDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard debug", &CreateKeyboardDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_system_debug", "System debug", &CreateSystemDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MouseDebug, "toggle_mouse_debug", "Mouse debug", &CreateMouseDebugWindow);
@@ -565,6 +565,8 @@ void BeebWindow::OptionsUI::DoImGui() {
 
     {
         ImGuiHeader("Debug Options");
+
+        ImGui::Checkbox("Extra debug UI", &m_beeb_window->m_settings.extra_debug_ui);
 
         std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
         m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
@@ -1652,6 +1654,7 @@ void BeebWindow::DoMenuUI() {
         this->DoPrinterMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
+        this->DoExtraDebugMenu();
         this->DoWindowMenu();
         ImGui::EndMainMenuBar();
     }
@@ -2481,11 +2484,7 @@ void BeebWindow::DoToolsMenu() {
 void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
     if (ImGui::BeginMenu("Debug")) {
-#if ENABLE_IMGUI_TEST
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DearImguiTest].command);
-#endif
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Trace].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_AudioCallback].command);
 
 #if VIDEO_TRACK_METADATA
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PixelMetadata].command);
@@ -2661,18 +2660,23 @@ void BeebWindow::DoDebugMenu() {
 
 #endif
 
-        ImGui::Separator();
+        ImGui::EndMenu();
+    }
+#endif
+}
 
-#if SYSTEM_WINDOWS
-        m_cst.DoMenuItem(g_toggle_console_command);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-        if (HasWindowsConsole()) {
-            m_cst.DoMenuItem(g_clear_console_command);
+void BeebWindow::DoExtraDebugMenu() {
+    if (!m_settings.extra_debug_ui) {
+        return;
+    }
 
-            m_cst.DoMenuItem(g_print_separator_command);
-        }
-
-        ImGui::Separator();
+    if (ImGui::BeginMenu("Extras")) {
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_AudioCallback].command);
+#if ENABLE_IMGUI_TEST
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DearImguiTest].command);
 #endif
 
 #if ENABLE_IMGUI_DEMO
@@ -2684,9 +2688,20 @@ void BeebWindow::DoDebugMenu() {
 #endif
         ImGui::MenuItem("ImGui metrics...", nullptr, &m_imgui_metrics);
 
+#if SYSTEM_WINDOWS
+        ImGui::Separator();
+
+        m_cst.DoMenuItem(g_toggle_console_command);
+
+        if (HasWindowsConsole()) {
+            m_cst.DoMenuItem(g_clear_console_command);
+
+            m_cst.DoMenuItem(g_print_separator_command);
+        }
+#endif
+
         ImGui::EndMenu();
     }
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
