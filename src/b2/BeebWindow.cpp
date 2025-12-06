@@ -247,10 +247,10 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_ADCDebugger, "toggle_adc_debugger", "ADC Debug", &CreateADCDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_BeebLink, "toggle_beeblink_options", "BeebLink Options", &CreateBeebLinkUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DigitalJoystickDebugger, "toggle_digital_joystick_debugger", "Digital Joystick Debug", &CreateDigitalJoystickDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "ImGui debug", &BeebWindow::CreateImGuiDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard debug", &CreateKeyboardDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_system_debug", "System debug", &CreateSystemDebugWindow);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_MouseDebug, "toggle_mouse_debug", "Mouse debug", &CreateMouseDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "ImGui Debug", &BeebWindow::CreateImGuiDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard Debug", &CreateKeyboardDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_system_debug", "System Debug", &CreateSystemDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MouseDebug, "toggle_mouse_debug", "Mouse Debug", &CreateMouseDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_WD1770Debug, "toggle_wd1770_debug", "WD1770 Debug", &CreateWD1770DebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DiskDriveDebug, "toggle_disk_drive_debug", "Disk Drive Debug", &CreateDiskDriveDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_HardDiskDebug, "toggle_hard_disk_debug", "Hard Disk Debug", &CreateHardDiskDebugWindow);
@@ -2711,13 +2711,13 @@ void BeebWindow::DoExtraDebugMenu() {
 #endif
 
 #if ENABLE_IMGUI_DEMO
-        ImGui::MenuItem("ImGui demo...", NULL, &m_imgui_demo);
+        ImGui::MenuItem("ImGui demo", NULL, &m_imgui_demo);
 #endif
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ImGuiDebug].command);
 #if STORE_DRAWLISTS
-        ImGui::MenuItem("ImGui drawlists...", nullptr, &m_imgui_drawlists);
+        ImGui::MenuItem("ImGui drawlists", nullptr, &m_imgui_drawlists);
 #endif
-        ImGui::MenuItem("ImGui metrics...", nullptr, &m_imgui_metrics);
+        ImGui::MenuItem("ImGui metrics", nullptr, &m_imgui_metrics);
 
 #if SYSTEM_WINDOWS
         ImGui::Separator();

@@ -441,7 +441,7 @@ supported particularly well, in that if you view the I/O region, it'll
 show up as unreadable bytes, and instructions that straddle the I/O
 region may not be disassembled correctly.
 
-## `Hardware` > `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug`, `Disc Drive Debug` ##
+## `Devices` > `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug`, `Disc Drive Debug` ##
 
 Activate a debug window for the corresponding piece of BBC hardware
 (if present), showing current state and any other additional useful
