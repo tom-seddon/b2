@@ -139,6 +139,7 @@ class FileDialog : public SelectorDialog {
 
     explicit FileDialog(const Guid &guid);
 
+    void AddFilter(Filter filter);
     void AddFilter(std::string title, std::vector<std::string> extensions);
     void AddAllFilesFilter();
 

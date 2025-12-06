@@ -509,14 +509,18 @@ that you can open.)
 
 If you've activated a useful set of windows, and docked them to a
 useful set of positions, you can use `Window` > `Save window
-layout...` to save the layout to a JSON file.
+layout...` to save the layout to a b2_layout file.
 
 (The saved layout data doesn't include absolutely everything: just the
 set of set of open windows, and their (possibly docked) positions.)
 
 To load a previously-saved layout, use `Window` > `Load window
 layout...` to select a file, or `Window` > `Recent window layout` to
-reload a recently loaded or saved file.
+reload a recently loaded or saved file. (You can also drag and drop
+the b2_layout file onto a window to have the layout applied to that
+window. Or, if you have the [the file association
+mechanism](./File-Association.md) set up, double click it from the
+system file manager.)
 
 # Symbols
 

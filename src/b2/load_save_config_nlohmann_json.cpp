@@ -87,7 +87,6 @@ KEY(auto_scale);
 KEY(manual_scale);
 
 // some annoying one-offs
-KEY(popups);
 KEY(keymap);
 KEY(window_placement);
 KEY(popup_persistent_data);
@@ -98,17 +97,6 @@ bool LoadWindows(const nlohmann::json &j, Messages *msg) {
     TryGet(&BeebWindows::defaults.display_filter, j, key_filter_bbc, msg);
     TryGet(&BeebWindows::defaults.display_auto_scale, j, key_auto_scale, msg);
     TryGet(&BeebWindows::defaults.display_manual_scale, j, key_manual_scale, msg);
-
-    if (j.count(key_popups) > 0) {
-        const nlohmann::json &j_popups = j.at(key_popups);
-        if (j_popups.is_array()) {
-            for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
-                if (std::find(j_popups.begin(), j_popups.end(), GetBeebWindowPopupTypeEnumName(i)) != j_popups.end()) {
-                    BeebWindows::defaults.popups |= (uint64_t)1 << i;
-                }
-            }
-        }
-    }
 
     std::string keymap_name;
     if (TryGet(&keymap_name, j, key_keymap, msg)) {
@@ -163,17 +151,6 @@ nlohmann::json SaveWindows() {
     const std::vector<uint8_t> &placement_data = BeebWindows::GetLastWindowPlacementData();
     if (!placement_data.empty()) {
         j[key_window_placement] = GetHexStringFromData(placement_data);
-    }
-
-    {
-        nlohmann::json j_popups = nlohmann::json::array_t{};
-        for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
-            uint64_t mask = (uint64_t)1 << i;
-            if (BeebWindows::defaults.popups & mask) {
-                j_popups.push_back(GetBeebWindowPopupTypeEnumName(i));
-            }
-        }
-        j[key_popups] = std::move(j_popups);
     }
 
     {

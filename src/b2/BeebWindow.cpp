@@ -298,6 +298,7 @@ static const Guid OPEN_DISK_IMAGE_SELECTOR_GUID{0x4c, 0xed, 0x04, 0x1d, 0x00, 0x
 static const Guid OPEN_WINDOW_LAYOUT_SELECTOR_GUID{0xFF, 0x3E, 0x9F, 0xBB, 0xBE, 0x25, 0x48, 0xB0, 0xAA, 0x74, 0x03, 0x21, 0xB5, 0x4F, 0xCF, 0x83};
 static const Guid SAVE_WINDOW_LAYOUT_SELECTOR_GUID{0x9D, 0x61, 0x95, 0x0E, 0xF8, 0x19, 0x4A, 0x33, 0xB5, 0x2F, 0x9E, 0xB2, 0x15, 0xED, 0xD6, 0xF9};
 static RecentPaths g_window_layout_recent_paths("window_layout");
+static const FileDialog::Filter WINDOW_LAYOUT_FILTER{"b2 Window Layout", {".b2_layout"}};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -305,6 +306,29 @@ static RecentPaths g_window_layout_recent_paths("window_layout");
 // GetWindowData has a loop (!) with strcmp in it (!) so the data name
 // wants to be short.
 const char BeebWindow::SDL_WINDOW_DATA_NAME[] = "D";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void to_json(nlohmann::json &j, const BeebWindowPopupFlags &flags) {
+    j = nlohmann::json::array();
+    for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
+        if (flags.value & (uint64_t)1 << i) {
+            j.push_back(GetBeebWindowPopupTypeEnumName(i));
+        }
+    }
+}
+
+void from_json(const nlohmann::json &j, BeebWindowPopupFlags &flags) {
+    flags.value = 0;
+    if (j.is_array()) {
+        for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
+            if (std::find(j.begin(), j.end(), GetBeebWindowPopupTypeEnumName(i)) != j.end()) {
+                flags.value |= (uint64_t)1 << i;
+            }
+        }
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1584,9 +1608,9 @@ void BeebWindow::DoCommands(bool *close_window) {
         PopupMetadata *popup_metadata = &g_popups[type];
 
         if (m_cst.WasActioned(popup_metadata->command)) {
-            m_settings.popups ^= mask;
+            m_settings.popups.value ^= mask;
         }
-        m_cst.SetTicked(popup_metadata->command, !!(m_settings.popups & mask));
+        m_cst.SetTicked(popup_metadata->command, !!(m_settings.popups.value & mask));
     }
 
 #if BBCMICRO_DEBUGGER
@@ -1604,7 +1628,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 
     if (m_cst.WasActioned(g_load_window_layout_command)) {
         OpenFileDialog fd(OPEN_WINDOW_LAYOUT_SELECTOR_GUID);
-        fd.AddFilter("JSON", {".json"});
+        fd.AddFilter(WINDOW_LAYOUT_FILTER);
 
         std::string path;
         if (fd.Open(m_window, &path)) {
@@ -1616,7 +1640,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 
     if (m_cst.WasActioned(g_save_window_layout_command)) {
         SaveFileDialog fd(SAVE_WINDOW_LAYOUT_SELECTOR_GUID);
-        fd.AddFilter("JSON", {".json"});
+        fd.AddFilter(WINDOW_LAYOUT_FILTER);
 
         std::string path;
         if (fd.Open(m_window, &path)) {
@@ -1673,7 +1697,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 
         PopupMetadata *popup_metadata = &g_popups[type];
 
-        if (m_settings.popups & mask) {
+        if (m_settings.popups.value & mask) {
             if (!m_popups[type]) {
                 m_popups[type] = CreatePopup(*popup_metadata, this, m_imgui_stuff);
 
@@ -1701,7 +1725,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             }
 
             if (ImGui::Begin(popup_metadata->command.GetText().c_str(), &opened, extra_flags)) {
-                m_settings.popups |= mask;
+                m_settings.popups.value |= mask;
 
                 if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
                     active_popup = popup;
@@ -1716,7 +1740,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             ImGui::End();
 
             if (!opened) {
-                m_settings.popups &= ~mask;
+                m_settings.popups.value &= ~mask;
 
                 // Leave the deletion until the next frame -
                 // references to its textures might still be queued up
@@ -1734,7 +1758,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
     }
 
     if (ValueChanged(&m_msg_last_num_errors_printed, m_message_list->GetNumErrorsPrinted())) {
-        m_settings.popups |= 1 << BeebWindowPopupType_Messages;
+        m_settings.popups.value |= 1 << BeebWindowPopupType_Messages;
     }
 
     return active_popup;
@@ -3811,13 +3835,17 @@ SettingsUI *BeebWindow::GetPopupByType(BeebWindowPopupType type) const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
-    std::shared_ptr<MemoryDiscImage> disc_image = LoadMemoryDiscImage(arguments.file_path, m_msg);
-    if (!disc_image) {
-        return;
-    }
+    if (PathCompare(PathGetExtension(arguments.file_path), WINDOW_LAYOUT_FILTER.extensions[0]) == 0) {
+        this->LoadWindowLayout(arguments.file_path);
+    } else {
+        std::shared_ptr<MemoryDiscImage> disc_image = LoadMemoryDiscImage(arguments.file_path, m_msg);
+        if (!disc_image) {
+            return;
+        }
 
-    m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
-    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Boot | BeebThreadHardResetFlag_Run));
+        m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
+        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Boot | BeebThreadHardResetFlag_Run));
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4218,7 +4246,7 @@ void BeebWindow::ShowPrioritizeCommandShortcutsStatus() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::ResetImGuiWindows() {
-    m_settings.popups = 0;
+    m_settings.popups = {};
 }
 
 //////////////////////////////////////////////////////////////////////////

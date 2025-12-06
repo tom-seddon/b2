@@ -66,8 +66,17 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct BeebWindowPopupFlags {
+    uint64_t value = 0;
+};
+void to_json(nlohmann::json &j, const BeebWindowPopupFlags &flags);
+void from_json(const nlohmann::json &j, BeebWindowPopupFlags &flags);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct WindowLayoutPersistentData {
-    uint64_t popups = 0;
+    BeebWindowPopupFlags popups;
 
     // lines are joined with '\n' separator before being handed off to Dear ImGui. Gives the option of having a json file that's easier to read for debugging purposes.
     std::vector<std::string> dear_imgui_settings;
@@ -85,7 +94,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(WindowLayoutPersistentData, popu
 struct BeebWindowSettings {
     std::string config; //should really be config_name, but the JSON naming is wrong
 
-    uint64_t popups = 0; //json:annoying one-off data type
+    BeebWindowPopupFlags popups;
 
     float bbc_volume = 0.f;
     bool bbc_mute = false;
@@ -149,7 +158,7 @@ struct BeebWindowSettings {
     bool extra_debug_ui = false;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, config, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data, extra_debug_ui);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, config, popups, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data, extra_debug_ui);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

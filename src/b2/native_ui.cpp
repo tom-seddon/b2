@@ -299,16 +299,23 @@ FileDialog::FileDialog(const Guid &guid)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void FileDialog::AddFilter(std::string title, std::vector<std::string> patterns) {
+void FileDialog::AddFilter(Filter filter) {
 #if ASSERT_ENABLED
-    ASSERT(!patterns.empty());
-    for (const std::string &pattern : patterns) {
-        ASSERT(!pattern.empty());
-        ASSERT(pattern[0] == '.');
+    ASSERT(!filter.extensions.empty());
+    for (const std::string &extension : filter.extensions) {
+        ASSERT(!extension.empty());
+        ASSERT(extension[0] == '.');
     }
 #endif
 
-    m_filters.push_back({std::move(title), std::move(patterns)});
+    m_filters.push_back(std::move(filter));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void FileDialog::AddFilter(std::string title, std::vector<std::string> extensions) {
+    this->AddFilter({std::move(title), std::move(extensions)});
 }
 
 //////////////////////////////////////////////////////////////////////////
