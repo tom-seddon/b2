@@ -549,7 +549,9 @@ class BeebWindow {
     void DoMouseMenu();
     void DoPrinterMenu();
     void DoToolsMenu();
+#if ENABLE_DEBUG_MENU
     void DoDebugMenu();
+#endif
     void DoExtraDebugMenu();
     void DoWindowMenu();
     BeebWindowInitArguments GetNewWindowInitArguments() const;

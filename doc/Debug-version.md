@@ -170,7 +170,9 @@ The applicable address suffixes affect the mapped region as follows.
 
 # Debugger windows
 
-## `Tracing` ##
+Find these on the `Debug` menu.
+
+## `System` > `Tracing` ##
 
 The trace functionality records all CPU activity, and selected other
 events of interest. The recorded data can be saved to a text file for
@@ -348,19 +350,19 @@ symbols were found. Tick `Minimal symbols` to have it only shown for
 instructions where symbols were actually found, so there's less
 repeated information on the line.
 
-## `Pixel metadata` ##
+## `System` > `Pixel metadata` ##
 
 Show a window that displays the RAM address of the pixel the mouse
 cursor is over.
 
-## `System Debug`
+## `System` > `System Debug`
 
 Shows cycle counts and execution state (running/halted) for the
 system. The execution state covers the entire system (host processor,
 second processor, hardware, TV output, disk access, etc.), which runs
 as a unit.
 
-## `Host 6502 Debug`, `Parasite 6502 Debug` ##
+## `CPU` > `Host 6502 Debug`; `Tube` > `Parasite 6502 Debug` ##
 
 Show 6502 state: register info in the top half, and internal stuff
 (cycle count, internal state, data bus address, etc.) in the bottom
@@ -374,7 +376,7 @@ When `Reset on breakpoint` is ticked (as is the default), the relative
 cycle count is reset when a breakpoint is hit when running.
 Breakpoints hit while single stepping won't affect the counter.
 
-## `Host Memory Debug`, `Parasite Memory Debug` ##
+## `CPU` > `Host Memory Debug`; `Tube` > `Parasite Memory Debug` ##
 
 Show a memory debug window. Click to edit memory.
 
@@ -399,7 +401,7 @@ particularly well supported - if you view the I/O region, it'll show
 up as unreadable bytes. (A future revision of the emulator will fix
 this.)
 
-## `Host Disassembly Debug`, `Parasite Disassembly Debug` ##
+## `CPU` > `Host Disassembly Debug`; `Tube` > `Parasite Disassembly Debug` ##
 
 Show running disassembly.
 
@@ -439,17 +441,17 @@ supported particularly well, in that if you view the I/O region, it'll
 show up as unreadable bytes, and instructions that straddle the I/O
 region may not be disassembled correctly.
 
-## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug`, `Disc Drive Debug` ##
+## `Hardware` > `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug`, `WD1770 Debug`, `Disc Drive Debug` ##
 
 Activate a debug window for the corresponding piece of BBC hardware
 (if present), showing current state and any other additional useful
 info.
 
-## `Paging debug`
+## `System` > `Paging debug`
 
 Shows current paging settings for the host system.
 
-## `Breakpoints`
+## `System` > `Breakpoints`
 
 Shows a list of all breakpoints. When you use the byte popup to set a
 breakpoint on an address or byte, it will appear here.
@@ -459,7 +461,7 @@ particular address or byte, that byte or address will continue to be
 shown in the list even if all its breakpoint flags are cleared. When
 this happens, click the `x` button to get rid of it.
 
-## `Stack`, `Parasite Stack`
+## `CPU` > `Stack`; `Tube` > `Parasite Stack`
 
 Shows a dump of the stack contents, byte by byte. Values below the
 bottom of the stack are shown in a darker colour.
@@ -476,26 +478,26 @@ instruction), or in a darker column if not.
 The paging override UI doesn't affect the values read from the stack,
 but can affect whether a return address is detected as one or not.
 
-## `Tube Debug`
+## `Tube` > `Tube Debug`
 
 Shows current Tube status: IRQ state, control register values,
 contents and status for each FIFO.
 
-## `Digital Joystick Debug`
+## `Hardware` > `Digital Joystick Debug`
 
 Shows current digital joystick input state, if supported.
 
-## `Keyboard Debug`
+## `Hardware` > `Keyboard Debug`
 
 Lists current BBC keys pressed, keyboard scan state, and a diagram of
 the keyborad matrix.
 
-## `Mouse Debug`
+## `Hardware` > `Mouse Debug`
 
 Shows current mouse state. Four buttons permit generation of fake
 mouse motion.
 
-## `Symbols`
+## `Symbels` > `Symbols`
 
 Shows current loaded symbols file. See the Symbols section below.
 

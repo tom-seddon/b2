@@ -566,7 +566,7 @@ void BeebWindow::OptionsUI::DoImGui() {
     {
         ImGuiHeader("Debug Options");
 
-        ImGui::Checkbox("Extra debug UI", &m_beeb_window->m_settings.extra_debug_ui);
+        ImGui::Checkbox("Show extra C++ debug UI", &m_beeb_window->m_settings.extra_debug_ui);
 
         std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
         m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
@@ -1653,7 +1653,9 @@ void BeebWindow::DoMenuUI() {
         this->DoMouseMenu();
         this->DoPrinterMenu();
         this->DoToolsMenu();
+#if ENABLE_DEBUG_MENU
         this->DoDebugMenu();
+#endif
         this->DoExtraDebugMenu();
         this->DoWindowMenu();
         ImGui::EndMainMenuBar();
@@ -2481,80 +2483,105 @@ void BeebWindow::DoToolsMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
+void BeebWindow::DoDebugMenu() {
     if (ImGui::BeginMenu("Debug")) {
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Trace].command);
+        m_cst.DoMenuItem(g_debug_stop_command);
+        m_cst.DoMenuItem(g_debug_run_command);
 
-#if VIDEO_TRACK_METADATA
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PixelMetadata].command);
-#endif
-
-#if BBCMICRO_DEBUGGER
         ImGui::Separator();
 
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SystemDebug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_6502Debugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Parasite6502Debugger].command);
+        if (ImGui::BeginMenu("System")) {
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Trace].command);
+#if VIDEO_TRACK_METADATA
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PixelMetadata].command);
+#endif
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SystemDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingBrowserDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_BreakpointsDebugger].command);
+            ImGui::EndMenu();
+        }
 
-        if (ImGui::BeginMenu("Memory Debug")) {
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger1].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger2].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger3].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger4].command);
+        if (ImGui::BeginMenu("CPU")) {
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_6502Debugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_StackDebugger].command);
+
+            if (ImGui::BeginMenu("Memory Debug")) {
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger1].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger2].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger3].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger4].command);
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Disassembly Debug")) {
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger1].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger2].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger3].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger4].command);
+                ImGui::EndMenu();
+            }
+
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Parasite Memory Debug")) {
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger1].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger2].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger3].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger4].command);
+
+        if (ImGui::BeginMenu("Devices")) {
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_CRTCDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_VideoULADebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SystemVIADebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_UserVIADebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_NVRAMDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SN76489Debugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ADCDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DigitalJoystickDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_KeyboardDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MouseDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_WD1770Debug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DiskDriveDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_HardDiskDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
+            if (ImGui::BeginMenu("External Memory Debug")) {
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger3].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger4].command);
+                ImGui::EndMenu();
+            }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Disassembly Debug")) {
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger1].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger2].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger3].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger4].command);
+
+        if (ImGui::BeginMenu("Tube")) {
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TubeDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteStackDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Parasite6502Debugger].command);
+
+            if (ImGui::BeginMenu("Parasite Memory Debug")) {
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger1].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger2].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger3].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger4].command);
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Parasite Disassembly Debug")) {
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger1].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger2].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger3].command);
+                m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger4].command);
+                ImGui::EndMenu();
+            }
+
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Parasite Disassembly Debug")) {
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger1].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger2].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger3].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger4].command);
+
+        if (ImGui::BeginMenu("Symbols")) {
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupManagement].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupBrowser].command);
+
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("External Memory Debug")) {
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger3].command);
-            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger4].command);
-            ImGui::EndMenu();
-        }
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_CRTCDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_VideoULADebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SystemVIADebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_UserVIADebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_NVRAMDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SN76489Debugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ADCDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingBrowserDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_BreakpointsDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_StackDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteStackDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TubeDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DigitalJoystickDebugger].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_KeyboardDebug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MouseDebug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_WD1770Debug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DiskDriveDebug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_HardDiskDebug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupManagement].command);
-        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SymbolGroupBrowser].command);
 
         ImGui::Separator();
 
@@ -2653,17 +2680,10 @@ void BeebWindow::DoDebugMenu() {
             ImGui::EndMenu();
         }
 
-        ImGui::Separator();
-
-        m_cst.DoMenuItem(g_debug_stop_command);
-        m_cst.DoMenuItem(g_debug_run_command);
-
-#endif
-
         ImGui::EndMenu();
     }
-#endif
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
