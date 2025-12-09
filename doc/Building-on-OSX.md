@@ -1,8 +1,9 @@
 # Building on macOS
 
-You can treat macOS as a Unix, and
-[build from the command line](./Building-on-Unix.md). (The binary
-build is prepared this way.)
+You can treat macOS as a Unix, and [build from the command
+line](./Building-on-Unix.md). (The binary build is prepared this way,
+so it should work fine. But please do still give these notes a quick
+skim, as some macOS-specific stuff will still apply.)
 
 You can also build using Xcode, giving quick and easy access to a
 debugger.
@@ -12,12 +13,13 @@ debugger.
 For prerequisites, see the
 [building from the command line notes](./Building-on-Unix.md).
 
-Initial setup, for use after cloning or updating the repo:
+Initial setup, for use after cloning:
 
 1. Open terminal in working copy folder
 
-2. Run `make init_xcode` - you should get a bunch of output and no
-   obvious errors
+2. Run `make init_xcode` - _this may take a very long time_. (20
+   minutes on my laptop.) You should get a bunch of output and
+   hopefully no obvious errors
    
 3. Load `build/Xcode/b2.xcodeproj` from Xcode. I opt to automatically
    create all schemes
@@ -26,13 +28,21 @@ Initial setup, for use after cloning or updating the repo:
 
 5. Select `Edit Scheme...` from the schemes dropdown, select the `Run`
    option, `Info` section, and select `b2.app` as the `Executable`
+   
+For use after updating the repo:
+
+1. Open terminal in working copy folder
+
+2. Run `make reinit_xcode`
 
 General day-to-day build steps:
 
-1. Use `Product` > `Build` to build. It can take a while to build.
+1. Load `build/Xcode/b2.xcodeproj` in Xcode, if not there already
+
+2. Use `Product` > `Build` to build. It can take a while to build.
    Sorry
 
-2. Use `Product` > `Run` to run
+3. Use `Product` > `Run` to run
 
 By default, this builds the Debug build. Use `Edit Scheme...` from the
 scheme dropdown to select a different configuration for the `Run`
@@ -52,8 +62,8 @@ Don't edit it. The correct file to edit is `template.Info.plist`; the
 `${...}` values are replaced with corresponding values from the CMake
 setup.
 
-I'm not sure when `template.Info.plist` is supposed to be re-read, but
-after making a change, it seems most reliable to do `make
+If building with Xcode: I'm not sure when `template.Info.plist` is
+supposed to be re-read, but it seems most reliable to do `make
 reinit_xcode` to prod CMake into regenerating it.
 
 # Bundle identifiers (also applies if building Unix-style)
