@@ -194,7 +194,10 @@ class SymbolTable {
 
         explicit SymbolParser(const Guid &guid);
         virtual ~SymbolParser() = default;
-        virtual std::string GetFormatName() const = 0; // This value is serialized.
+
+        // This value is serialised, and (for reasons) compared case-insensitively.
+        virtual std::string GetFormatName() const = 0;
+        virtual std::string GetDisplayName() const = 0; // This value is used in the UI.
         virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;
         virtual bool MatchesLine(const std::string &line) const = 0;
         virtual bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const = 0;

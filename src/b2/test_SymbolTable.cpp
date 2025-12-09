@@ -95,7 +95,7 @@ static void TestBeebAsmStuff() {
 //////////////////////////////////////////////////////////////////////////
 
 static void TestTassLabelsStuff() {
-    const SymbolTable::SymbolParser *tass_labels_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("64tass labels");
+    const SymbolTable::SymbolParser *tass_labels_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("64tass_labels");
     TEST_NON_NULL(tass_labels_parser);
 
     SymbolTable st;
@@ -201,7 +201,7 @@ static const char TASS_LABELS_INCLUSIVE_1[] =
     "main1=1\n";
 
 static void TestInclusiveMode() {
-    const SymbolTable::SymbolParser *tass_labels_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("64tass labels");
+    const SymbolTable::SymbolParser *tass_labels_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("64tass_labels");
     TEST_NON_NULL(tass_labels_parser);
 
     SymbolTable st;

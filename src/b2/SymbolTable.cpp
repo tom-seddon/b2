@@ -145,7 +145,7 @@ const std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> &SymbolTable
 
 const SymbolTable::SymbolParser *SymbolTable::SymbolParserRegistry::FindParserByFormatName(const std::string &format_name) {
     for (const std::unique_ptr<const SymbolParser> &parser : s_parsers) {
-        if (parser->GetFormatName() == format_name) {
+        if (strcasecmp(parser->GetFormatName().c_str(), format_name.c_str()) == 0) {
             return parser.get();
         }
     }
@@ -182,6 +182,10 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
     }
 
     std::string GetFormatName() const override {
+        return "BeebAsm";
+    }
+
+    std::string GetDisplayName() const override {
         return "BeebAsm";
     }
 
@@ -362,6 +366,10 @@ class ViceParser : public SymbolTable::SymbolParser {
         : SymbolParser({0xbf, 0xb6, 0xd5, 0xe6, 0xe9, 0x79, 0x46, 0x82, 0x98, 0xd2, 0x59, 0x0f, 0x53, 0xc9, 0x2f, 0xc7}) {
     }
 
+    std::string GetDisplayName() const override {
+        return "VICE";
+    }
+
     std::string GetFormatName() const override {
         return "VICE";
     }
@@ -447,6 +455,10 @@ class AcmeParser : public SymbolTable::SymbolParser {
   public:
     AcmeParser()
         : SymbolParser({0x46, 0x9b, 0x95, 0xd1, 0x75, 0x16, 0x44, 0xd5, 0xa2, 0x0a, 0x9a, 0xbe, 0x3e, 0x36, 0xa5, 0x94}) {
+    }
+
+    std::string GetDisplayName() const override {
+        return "ACME";
     }
 
     std::string GetFormatName() const override {
@@ -537,6 +549,10 @@ class TassLabelsParser : public SymbolTable::SymbolParser {
     }
 
     std::string GetFormatName() const override {
+        return "64tass_labels";
+    }
+
+    std::string GetDisplayName() const override {
         return "64tass labels";
     }
 

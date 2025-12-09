@@ -2612,7 +2612,7 @@ void BeebWindow::DoDebugMenu() {
             }
 
             for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : parsers) {
-                std::string name = parser->GetFormatName() + "...";
+                std::string name = parser->GetDisplayName() + "...";
                 if (ImGui::MenuItem(name.c_str())) {
                     selected_parser = parser.get();
                     load_symbols = true;
@@ -2625,7 +2625,7 @@ void BeebWindow::DoDebugMenu() {
                 OpenFileDialog fd(selected_parser ? selected_parser->guid : Guid{0x8F, 0x3F, 0x81, 0xDE, 0x5D, 0x1B, 0x49, 0x9F, 0x83, 0xB0, 0xCB, 0xE5, 0x78, 0xA8, 0xB4, 0xD0});
 
                 if (selected_parser) {
-                    fd.AddFilter(selected_parser->GetFormatName(), selected_parser->GetSuggestedFileExtensions());
+                    fd.AddFilter(selected_parser->GetDisplayName(), selected_parser->GetSuggestedFileExtensions());
                 } else {
                     std::set<std::string> auto_detect_exts;
                     for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : parsers) {
