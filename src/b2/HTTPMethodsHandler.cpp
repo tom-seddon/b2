@@ -609,11 +609,11 @@ class HTTPMethodsHandler : public HTTPHandler {
         const SymbolTable::SymbolParser *parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName(format);
         if (!parser) {
             std::string formats;
-            for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : SymbolTable::SymbolParserRegistry::GetParsers()) {
+            for (const std::unique_ptr<const SymbolTable::SymbolParser> &registered_parser : SymbolTable::SymbolParserRegistry::GetParsers()) {
                 if (!formats.empty()) {
-                    formats + "; ";
+                    formats += "; ";
                 }
-                formats += parser->GetFormatName();
+                formats += registered_parser->GetFormatName();
             }
             server->SendResponse(request, HTTPResponse::BadRequest(request, "unknown format: %s (must be one of: %s)", format.c_str(), formats.c_str()));
             return;
