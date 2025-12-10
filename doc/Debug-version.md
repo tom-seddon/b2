@@ -704,6 +704,15 @@ non-success HTTP server status by exiting with a non-zero status.
 `--fail` discards any response body in the error case, and
 `--fail-with-body` processes it as normal despite the error.
 
+For escaping paths and strings, use `-G` and `--data-urlencode` to
+encode the URL appropriately. For example, if using the `reset`
+command:
+
+    curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
+
+The GET request may modify the state. The HTTP API is a work in
+progress.
+
 ## HTTP endpoints
 
 Names in capitals are argument placeholders. When listed as part of
@@ -751,11 +760,6 @@ specified.
 
 `BOOT`, if specified, can be `1` or `true` to attempt to auto-boot the
 disk by holding down SHIFT.
-
-Escaping the config name can be a pain. curl can do this for you on
-the command line with the `-G` and `--data-urlencode` options, e.g.:
-
-    curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
 
 ### `paste/WIN` ###
 
@@ -827,6 +831,57 @@ the `File` menu and picking the given file using the file selector.
 (There is also a `load-disk` endpoint, which behaves exactly the
 same.)
 
+### `set-address-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX`
+
+Set an address breakpoint at `ADDR`: an address, or a symbol name.
+
+`FLAGS` are the flags to set: a combination of `r` (read), `w` (write)
+or `x` (execute). The special `FLAGS` value of `-` means clear all
+flags.
+
+`SUFFIX` is the address suffix to use, as above. Use this if you want
+to specify parasite memory.
+
+### `set-byte-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX`
+
+Set a byte breakpoint. `ADDR` and `FLAGS` behave same as
+`set-address-breakpoints`
+
+`SUFFIX` is the address suffix to use. The current paging settings
+will be used. The byte is assumed to be in host memory but you can
+specify `p` for parasite memory instead.
+
+### `clear-breakpoints/WIN`
+
+Clear all breakpoints.
+
+### `clear-symbols/WIN`
+
+Unload all symbols.
+
+### `load-symbols/WIN/FORMAT?path=PATH&group=GROUP&s=SUFFIX&mode=MODE`
+
+Load symbols from `PATH`, which must be supplied.
+
+`FORMAT` is the format:
+
+| `FORMAT`        | Corresponding UI option |
+|-----------------|-------------------------|
+| `vice`          | VICE                    |
+| `64tass_labels` | 64tass labels           |
+| `beebasm`       | BeebAsm                 |
+| `acme`          | ACME                    |
+
+(There is no auto-detect option.)
+
+`GROUP` is the group to use. If not supplied, the symbols are added to
+group 0.
+
+`SUFFIX` is the address suffix. Only one may currently be specified.
+
+`MODE` may be `e` (exclusive) or `i` (inclusive). Default is
+exclusive.
+
 ## Using the HTTP API for developing BBC software
 
 The process involves having the Makefile (or batch
@@ -848,4 +903,3 @@ If you're working on a sideways ROM, you can make a hardware config
 that refers to the ROM you're building, then use `reset` to reboot the
 emulated BBC. `reset` will reload the paged ROMs from disk, so it'll
 be running with the updated code.
-

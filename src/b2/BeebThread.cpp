@@ -1590,6 +1590,23 @@ bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+bool BeebThread::DebugClearBreakpoints::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                      CompletionFun *completion_fun,
+                                                      ThreadState *ts) {
+    (void)completion_fun;
+
+    ts->beeb->DebugResetAllAddressAndByteDebugFlags();
+
+    ptr->reset();
+
+    return true;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebThread::CreateTimelineVideoMessage::CreateTimelineVideoMessage(std::shared_ptr<const BeebState> state,
                                                                    std::unique_ptr<VideoWriter> video_writer)
     : m_state(std::move(state))
@@ -2040,12 +2057,11 @@ std::vector<uint8_t> BeebThread::GetNVRAM() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::HasNVRAM() const {
-    return m_has_nvram.load(std::memory_order_acquire);
-}
+std::shared_ptr<const BBCMicroType> BeebThread::GetBBCMicroType() const {
+    LockGuard<Mutex> lock(m_mutex);
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    return m_bbc_micro_type;
+}
 
 BBCMicroTypeID BeebThread::GetBBCMicroTypeID() const {
     return m_beeb_type_id.load(std::memory_order_acquire);
@@ -2736,7 +2752,8 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         }
     }
 
-    m_has_nvram.store(!ts->beeb->GetNVRAM().empty(), std::memory_order_release);
+    //m_has_nvram.store(!ts->beeb->GetNVRAM().empty(), std::memory_order_release);
+    m_bbc_micro_type = ts->beeb->GetBBCMicroType();
     m_beeb_type_id.store(ts->beeb->GetTypeID(), std::memory_order_release);
 
     // Apply current keypresses to the emulated BBC. Reset fake shift

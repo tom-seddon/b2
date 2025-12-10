@@ -1142,13 +1142,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         this->DoPopupUI(ticks, output_width, output_height);
     }
 
-#if BBCMICRO_DEBUGGER
-    //// Independent symbol loading window (outside any menu context)
-    //if (m_show_enhanced_symbol_window) {
-    //    this->DoSymbolLoadingWindow();
-    //}
-#endif
-
 #if ENABLE_IMGUI_DEMO
     if (m_imgui_demo) {
         ImGui::ShowDemoWindow();
@@ -1508,7 +1501,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 #endif
 
-    m_cst.SetEnabled(g_save_default_nvram_command, m_beeb_thread->HasNVRAM());
+    m_cst.SetEnabled(g_save_default_nvram_command, HasNVRAM(m_beeb_thread->GetBBCMicroTypeID()));
     if (m_cst.WasActioned(g_save_default_nvram_command)) {
         this->SaveDefaultNVRAMForCurrentConfig();
     }

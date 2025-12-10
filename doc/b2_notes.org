@@ -7122,4 +7122,12 @@ Best of 3...
 | macOS  | RWDI  |    29.3 | 28.6 |
 | macOS  | Final |    16.9 | 17.0 |
 
+* debug port ideas
+
+I/O port (or several) for debugging stuff.
+
+1. Enable specific symbol group
+2. Disable symbol group
+3. Disable multiple symbol groups
+
 * eof.

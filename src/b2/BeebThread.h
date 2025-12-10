@@ -750,6 +750,20 @@ class BeebThread {
     };
 #endif
 
+#if BBCMICRO_DEBUGGER
+    class DebugClearBreakpoints : public Message {
+      public:
+        DebugClearBreakpoints() = default;
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+    };
+#endif
+
     class CreateTimelineVideoMessage : public Message {
       public:
         CreateTimelineVideoMessage(std::shared_ptr<const BeebState> state,
@@ -940,9 +954,7 @@ class BeebThread {
     // OSWORD calls.
     std::vector<uint8_t> GetNVRAM() const;
 
-    // Returns true if the emulated computer has NVRAM.
-    bool HasNVRAM() const;
-
+    std::shared_ptr<const BBCMicroType> GetBBCMicroType() const;
     BBCMicroTypeID GetBBCMicroTypeID() const;
 
     uint32_t GetBBCMicroCloneImpediments() const;
@@ -1076,7 +1088,6 @@ class BeebThread {
 #endif
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
-    std::atomic<bool> m_has_nvram{false};
     std::atomic<BBCMicroTypeID> m_beeb_type_id{BBCMicroTypeID_B};
     std::atomic<uint32_t> m_clone_impediments{0};
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
@@ -1117,6 +1128,9 @@ class BeebThread {
 
     // Controlled by m_mutex.
     std::vector<TimelineBeebStateEvent> m_timeline_beeb_state_events_copy;
+
+    // Controlled by m_mutex.
+    std::shared_ptr<const BBCMicroType> m_bbc_micro_type;
 
     mutable Mutex m_mutex;
 

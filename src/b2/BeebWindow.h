@@ -363,7 +363,7 @@ class BeebWindow {
     //void DoMemoryContextSelectionUI(std::set<char> &selected_contexts, bool &show_context_help);
 
 #if BBCMICRO_DEBUGGER
-    bool DebugIsStopEnabled() const;
+    //bool DebugIsStopEnabled() const;
     bool DebugIsRunEnabled() const;
     BBCMicroHaltReason DebugGetHaltReason() const;
     void DebugStepOver(uint32_t dso);
@@ -531,11 +531,6 @@ class BeebWindow {
     bool m_is_mouse_captured = false;
 
     bool m_beeb_got_imgui_focus = false;
-
-#if BBCMICRO_DEBUGGER
-    // Enhanced symbol loading state
-    bool m_show_enhanced_symbol_window = false;
-#endif
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

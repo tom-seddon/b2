@@ -139,8 +139,8 @@ class SymbolTable {
 
     // Core functionality
     void Clear();
-    bool LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs);
-    bool LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser, const LogSet *logs);
+    bool LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs, size_t *file_index_ptr = nullptr);
+    bool LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser, const LogSet *logs, size_t *file_index_ptr = nullptr);
     size_t GetSymbolCount() const;
     size_t GetEnabledSymbolCount() const;
     size_t GetSymbolCountForFile(size_t file_index) const;

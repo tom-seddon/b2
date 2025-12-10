@@ -429,6 +429,7 @@ class BBCMicro : private WD1770Handler {
     // Called when an address is about to be written.
     typedef bool (*WriteFn)(const BBCMicro *m, const M6502 *cpu, void *context);
 
+    std::shared_ptr<const BBCMicroType> GetBBCMicroType() const;
     BBCMicroTypeID GetTypeID() const;
     BBCMicroParasiteType GetParasiteType() const;
 
@@ -613,6 +614,8 @@ class BBCMicro : private WD1770Handler {
     // Get/set per-address byte debug flags for one address.
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
     void DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags);
+
+    void DebugResetAllAddressAndByteDebugFlags();
 
     void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso, bool mos);
     void DebugSetBytes(M6502Word addr, uint32_t dso, bool mos, const uint8_t *bytes, size_t num_bytes);

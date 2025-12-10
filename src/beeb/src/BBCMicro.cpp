@@ -1001,6 +1001,13 @@ uint8_t BBCMicro::GetStaleDatabusByte() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::shared_ptr<const BBCMicroType> BBCMicro::GetBBCMicroType() const {
+    return m_state.type;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BBCMicroTypeID BBCMicro::GetTypeID() const {
     return m_state.type->type_id;
 }
@@ -1803,6 +1810,27 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t f
                 m_debug->temp_execute_breakpoints.push_back(addr_flags);
             }
         }
+
+        this->UpdateCPUDataBusFn();
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugResetAllAddressAndByteDebugFlags() {
+    if (m_debug) {
+        memset(m_debug->parasite_address_debug_flags, 0, sizeof m_debug->parasite_address_debug_flags);
+        memset(m_debug->host_address_debug_flags, 0, sizeof m_debug->host_address_debug_flags);
+        memset(m_debug->io_byte_debug_flags, 0, sizeof m_debug->io_byte_debug_flags);
+        memset(m_debug->big_pages_byte_debug_flags, 0, sizeof m_debug->big_pages_byte_debug_flags);
+
+        m_debug->temp_execute_breakpoints.clear();
+        m_debug->num_breakpoint_bytes = 0;
+
+        ++m_debug->breakpoints_changed_counter;
 
         this->UpdateCPUDataBusFn();
     }

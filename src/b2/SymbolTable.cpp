@@ -76,13 +76,13 @@ void SymbolTable::Clear() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs) {
+bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *parser, const LogSet *logs, size_t *file_index_ptr) {
     std::string content;
     if (!LoadTextFile(&content, filepath, logs)) {
         return false;
     }
 
-    if (!this->LoadFromString(content, filepath, parser, logs)) {
+    if (!this->LoadFromString(content, filepath, parser, logs, file_index_ptr)) {
         return false;
     }
 
@@ -92,7 +92,7 @@ bool SymbolTable::LoadFromFile(const std::string &filepath, const SymbolParser *
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser, const LogSet *logs) {
+bool SymbolTable::LoadFromString(const std::string &content, const std::string &filepath, const SymbolParser *parser, const LogSet *logs, size_t *file_index_ptr) {
     size_t file_index;
     {
         SymbolFile new_file;
@@ -114,6 +114,10 @@ bool SymbolTable::LoadFromString(const std::string &content, const std::string &
         if (logs) {
             size_t new_count = GetSymbolCount();
             logs->i.f("Successfully loaded %zu symbols (%zu symbols total)\n", new_count - old_count, new_count);
+        }
+
+        if (file_index_ptr) {
+            *file_index_ptr = file_index;
         }
     }
 

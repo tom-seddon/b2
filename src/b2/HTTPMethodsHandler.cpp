@@ -21,6 +21,7 @@
 #include <http/http.h>
 #include "LoadMemoryDiscImage.h"
 #include <beeb/DirectDiscImage.h>
+#include "SymbolTable.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -99,6 +100,11 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"run", &HTTPMethodsHandler::HandleRunRequest},
         {"load-disc", &HTTPMethodsHandler::HandleLoadDiskRequest},
         {"load-disk", &HTTPMethodsHandler::HandleLoadDiskRequest},
+        {"clear-symbols", &HTTPMethodsHandler::HandleClearSymbolsRequest},
+        {"load-symbols", &HTTPMethodsHandler::HandleLoadSymbolsRequest},
+        {"set-address-breakpoint", &HTTPMethodsHandler::HandleSetAddressBreakpointRequest},
+        {"set-byte-breakpoint", &HTTPMethodsHandler::HandleSetByteBreakpointRequest},
+        {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
@@ -135,6 +141,8 @@ class HTTPMethodsHandler : public HTTPHandler {
         return true;
     }
 
+    typedef bool (*ParseArgsCallbackFn)(HTTPServer *, const HTTPRequest &, const std::string &, void *);
+
     bool ParseArgsOrSendResponse2(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const char *fmt0, va_list v) {
         size_t arg_index = command_index + 1;
         BeebWindow *beeb_window = nullptr;
@@ -167,6 +175,11 @@ class HTTPMethodsHandler : public HTTPHandler {
                     }
                 }
             } else {
+                if (arg_index >= parts.size()) {
+                    server->SendResponse(request, HTTPResponse::BadRequest(request, "missing argument %zu", arg_index - (command_index + 1)));
+                    return false;
+                }
+
                 value = &parts[arg_index++];
             }
 
@@ -180,6 +193,10 @@ class HTTPMethodsHandler : public HTTPHandler {
                 }
             } else if (strcmp(fmt, "x32") == 0) {
                 if (!this->HandleArgOrSendResponse(va_arg(v, uint32_t *), value, &GetUInt32FromString, 16, server, request, "32-bit hex value")) {
+                    return false;
+                }
+            } else if (strcmp(fmt, "u16") == 0) {
+                if (!this->HandleArgOrSendResponse(va_arg(v, uint16_t *), value, &GetUInt16FromString, 0, server, request, "16-bit value")) {
                     return false;
                 }
             } else if (strcmp(fmt, "u32") == 0) {
@@ -241,6 +258,14 @@ class HTTPMethodsHandler : public HTTPHandler {
                 if (!beeb_window) {
                     beeb_window = *ptr;
                 }
+            } else if (strcmp(fmt, "callback") == 0) {
+                auto fn = va_arg(v, ParseArgsCallbackFn);
+                auto context = va_arg(v, void *);
+                if (value) {
+                    if (!(*fn)(server, request, *value, context)) {
+                        return false;
+                    }
+                }
             } //<-- note
 #if BBCMICRO_DEBUGGER                           //<-- note
             else if (strcmp(fmt, "dso") == 0) { //<-- note
@@ -289,12 +314,10 @@ class HTTPMethodsHandler : public HTTPHandler {
         BeebWindow *beeb_window;
         std::string config_name;
         bool boot = false;
-        int multi_os_bank = -1;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
                                            "std::string", "config", &config_name,
                                            "bool", "boot", &boot,
-                                           "int", "multi_os_bank", &multi_os_bank,
                                            nullptr)) {
             return;
         }
@@ -304,7 +327,6 @@ class HTTPMethodsHandler : public HTTPHandler {
             Messages messages(message_list);
 
             BeebConfigArguments arguments;
-            arguments.multi_os_bank = multi_os_bank;
 
             BeebLoadedConfig loaded_config;
             if (!BeebWindows::LoadConfigByName(&loaded_config, config_name, arguments, &messages)) {
@@ -512,6 +534,266 @@ class HTTPMethodsHandler : public HTTPHandler {
         }
 
         beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive, std::move(image), true));
+
+        server->SendResponse(request, HTTPResponse::OK());
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleClearSymbolsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           nullptr)) {
+            return;
+        }
+
+        SymbolTable *symbol_table = beeb_window->GetMutableSymbolTable();
+        symbol_table->Clear();
+
+        server->SendResponse(request, HTTPResponse::OK());
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    static bool HandleLoadSymbolsSuffix(HTTPServer *server, const HTTPRequest &request, const std::string &path_part, void *context) {
+        (void)server, (void)request;
+
+        // copy of code in debugger.cpp - should really unify.
+        for (char c : path_part) {
+            if (!isalnum(c)) {
+                // cheeky way of avoiding running into any UTF-8...
+                server->SendResponse(request, HTTPResponse::BadRequest("suffixes must be alphanumeric only"));
+                return false;
+            } else if (!IsValidAddressSuffixChar(c)) {
+                server->SendResponse(request, HTTPResponse::BadRequest("invalid address suffix char: %c", c));
+                return false;
+            }
+        }
+
+        auto suffixes = (std::vector<std::string> *)context;
+
+        suffixes->push_back(path_part);
+
+        return true;
+    }
+
+    void HandleLoadSymbolsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        std::string format;
+        std::string path;
+        uint16_t group = 0xffff; //cheesy way of detecting 8-bit value not provided...
+        std::vector<std::string> suffixes;
+        std::string mode_str = "e";
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           "std::string", nullptr, &format,
+                                           "std::string", "path", &path,
+                                           "u16", "group", &group,
+                                           "callback", "s", &HandleLoadSymbolsSuffix, &suffixes,
+                                           "std::string", "mode", &mode_str,
+                                           nullptr)) {
+            return;
+        }
+
+        if (format.empty() || path.empty()) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "must supply path and format"));
+            return;
+        }
+
+        if (!(mode_str == "e" || mode_str == "i")) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "bad mode: %s", mode_str.c_str()));
+            return;
+        }
+
+        const SymbolTable::SymbolParser *parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName(format);
+        if (!parser) {
+            std::string formats;
+            for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : SymbolTable::SymbolParserRegistry::GetParsers()) {
+                if (!formats.empty()) {
+                    formats + "; ";
+                }
+                formats += parser->GetFormatName();
+            }
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "unknown format: %s (must be one of: %s)", format.c_str(), formats.c_str()));
+            return;
+        }
+
+        SymbolTable *symbol_table = beeb_window->GetMutableSymbolTable();
+
+        auto message_list = std::make_shared<MessageList>("HTTP load-symbols request");
+        Messages messages(message_list);
+
+        size_t file_index;
+        if (!symbol_table->LoadFromFile(path, parser, &messages, &file_index)) {
+            this->SendMessagesResponse(server, request, message_list);
+            return;
+        }
+
+        if (group < 256) {
+            symbol_table->SetFileGroupIndex(file_index, (uint8_t)group);
+        }
+
+        server->SendResponse(request, HTTPResponse::OK());
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    bool ParseBreakpointFlags(uint8_t *flags, const std::string &str) const {
+        *flags = 0;
+
+        if (str == "-") {
+            // specific value indicating no flags.
+        } else {
+            for (char c : str) {
+                if (c == 'r') {
+                    *flags |= BBCMicroByteDebugFlag_BreakRead;
+                } else if (c == 'w') {
+                    *flags |= BBCMicroByteDebugFlag_BreakWrite;
+                } else if (c == 'x') {
+                    *flags |= BBCMicroByteDebugFlag_BreakExecute;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    bool ParseBreakpointArgumentsOrSendResponse(M6502Word *addr,
+                                                uint32_t *dso,
+                                                uint8_t *flags,
+                                                const std::string &addr_str,
+                                                const std::string *dso_str,
+                                                const std::string *flags_str,
+                                                BeebWindow *beeb_window,
+                                                HTTPServer *server,
+                                                const HTTPRequest &request) {
+        std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
+        std::shared_ptr<const BBCMicroType> type = beeb_thread->GetBBCMicroType();
+
+        if (flags) {
+            if (flags_str) {
+                if (!this->ParseBreakpointFlags(flags, *flags_str)) {
+                    server->SendResponse(request, HTTPResponse::BadRequest("invalid breakpoint flags: %s", flags_str->c_str()));
+                    return false;
+                }
+            } else {
+                *flags = 0;
+            }
+        }
+
+        bool got_explicit_dso = false;
+        *dso = 0;
+        if (dso_str) {
+            if (!dso_str->empty()) {
+                if (!ParseAddressSuffix(dso, type, dso_str->c_str(), nullptr)) {
+                    server->SendResponse(request, HTTPResponse::BadRequest("invalid DSO: %s", dso_str->c_str()));
+                    return false;
+                }
+
+                got_explicit_dso = true;
+            }
+        }
+
+        const char *ep = nullptr;
+        if (!GetUInt16FromString(&addr->w, addr_str, 0, &ep) || *ep != 0) {
+            const SymbolTable *symbol_table = beeb_window->GetSymbolTable();
+
+            uint32_t symbol_table_dso;
+            if (!symbol_table->GetAddressForSymbol(&addr->w, &symbol_table_dso, type, addr_str)) {
+                server->SendResponse(request, HTTPResponse::BadRequest("unknown symbol: %s", addr_str.c_str()));
+                return false;
+            }
+
+            if (!got_explicit_dso) {
+                *dso = symbol_table_dso;
+            }
+        }
+
+        return true;
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleSetAddressBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        std::string addr_str;
+        std::string dso_str;
+        std::string flags_str;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           "std::string", nullptr, &addr_str,
+                                           "std::string", nullptr, &flags_str,
+                                           "std::string", "s", &dso_str,
+                                           nullptr)) {
+            return;
+        }
+
+        M6502Word addr;
+        uint32_t dso;
+        uint8_t flags;
+        if (!this->ParseBreakpointArgumentsOrSendResponse(&addr, &dso, &flags, addr_str, &dso_str, &flags_str, beeb_window, server, request)) {
+            return;
+        }
+
+        std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
+        beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, dso, flags));
+
+        server->SendResponse(request, HTTPResponse::OK());
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleSetByteBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        std::string addr_str;
+        std::string dso_str;
+        std::string flags_str;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           "std::string", nullptr, &addr_str,
+                                           "std::string", nullptr, &flags_str,
+                                           "std::string", "s", &dso_str,
+                                           nullptr)) {
+            return;
+        }
+
+        M6502Word addr;
+        uint32_t dso;
+        uint8_t flags;
+        if (!this->ParseBreakpointArgumentsOrSendResponse(&addr, &dso, &flags, addr_str, &dso_str, &flags_str, beeb_window, server, request)) {
+            return;
+        }
+
+        std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
+        std::shared_ptr<const BBCMicroReadOnlyState> state;
+        std::shared_ptr<const BBCMicro::DebugState> debug_state;
+        beeb_thread->DebugGetState(&state, &debug_state);
+
+        BBCMicro::ReadOnlyBigPage bp;
+        BBCMicro::DebugGetBigPageForAddress(&bp, state.get(), debug_state.get(), addr, false, dso);
+
+        beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp.index, (uint16_t)addr.p.o, flags));
+
+        server->SendResponse(request, HTTPResponse::OK());
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleClearBreakpointsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "window", nullptr, &beeb_window,
+                                           nullptr)) {
+            return;
+        }
+
+        std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
+        beeb_thread->Send(std::make_shared<BeebThread::DebugClearBreakpoints>());
 
         server->SendResponse(request, HTTPResponse::OK());
     }

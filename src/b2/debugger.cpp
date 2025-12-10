@@ -1341,7 +1341,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
         this->DoDebugPageOverrideImGui();
 
         if (m_show_mos_toggle) {
-            if (HasIndependentMOSView(m_beeb_window->GetBeebThread()->GetBBCMicroTypeID())) {
+            if (HasIndependentMOSView(m_beeb_state->type->type_id)) {
                 ImGui::SameLine();
                 ImGui::Checkbox("MOS's view", &this->m_handler.mos);
             }
