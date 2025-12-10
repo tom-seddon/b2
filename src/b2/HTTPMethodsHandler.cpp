@@ -109,31 +109,77 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
 
-    // Parse path parts.
-    //
-    // Send some kind of error and return false if there's a problem.
-    bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const char *partspec0, ...) {
-        va_list v;
-        va_start(v, partspec0);
-
-        bool result = this->ParseArgsOrSendResponse2(server, request, parts, command_index, partspec0, v);
-
-        va_end(v);
-
-        return result;
-    }
+    struct ParseArgsState {
+        BeebWindow *implicit_beeb_window = nullptr;
+        HTTPServer *server = nullptr;
+        const HTTPRequest *request = nullptr;
+    };
 
     template <class T>
-    bool HandleArgOrSendResponse(T *result,
-                                 const std::string *value,
-                                 bool (*f)(T *, const std::string &, int, const char **),
-                                 int radix,
-                                 HTTPServer *server,
-                                 const HTTPRequest &request,
-                                 const char *what) {
-        if (value) {
-            if (!(*f)(result, *value, radix, nullptr)) {
-                server->SendResponse(request, HTTPResponse::BadRequest(request, "bad %s: %s", what, value->c_str()));
+    static bool HandleArgOrSendResponse(const ParseArgsState &state,
+                                        T *result,
+                                        const std::string &value,
+                                        bool (*f)(T *, const std::string &, int, const char **),
+                                        int radix,
+                                        const char *what) {
+        if (!(*f)(result, value, radix, nullptr)) {
+            state.server->SendResponse(*state.request, HTTPResponse::BadRequest(*state.request, "bad %s: %s", what, value.c_str()));
+            return false;
+        }
+
+        return true;
+    }
+
+    typedef bool (*ParseArgsCallbackFn)(ParseArgsState *state, const std::string &str, void *context);
+
+    static bool ParseU8(ParseArgsState *state, const std::string &str, void *context) {
+        return HandleArgOrSendResponse(*state, (uint8_t *)context, str, &GetUInt8FromString, 0, "8-bit value");
+    }
+
+    static bool ParseU16(ParseArgsState *state, const std::string &str, void *context) {
+        return HandleArgOrSendResponse(*state, (uint16_t *)context, str, &GetUInt16FromString, 0, "16-bit value");
+    }
+
+    static bool ParseU32(ParseArgsState *state, const std::string &str, void *context) {
+        return HandleArgOrSendResponse(*state, (uint32_t *)context, str, &GetUInt32FromString, 0, "32-bit value");
+    }
+
+    static bool ParseU64(ParseArgsState *state, const std::string &str, void *context) {
+        return HandleArgOrSendResponse(*state, (uint64_t *)context, str, &GetUInt64FromString, 0, "64-bit value");
+    }
+
+    static bool ParseX16(ParseArgsState *state, const std::string &str, void *context) {
+        return HandleArgOrSendResponse(*state, (uint16_t *)context, str, &GetUInt16FromString, 16, "16-bit hex value");
+    }
+
+    static bool ParseX32(ParseArgsState *state, const std::string &str, void *context) {
+        return HandleArgOrSendResponse(*state, (uint32_t *)context, str, &GetUInt32FromString, 16, "32-bit hex value");
+    }
+
+    static bool ParseX64(ParseArgsState *state, const std::string &str, void *context) {
+        return HandleArgOrSendResponse(*state, (uint64_t *)context, str, &GetUInt64FromString, 16, "64-bit hex value");
+    }
+
+    struct EndOrLength {
+        uint64_t value = 0;
+        bool is_length = false;
+    };
+
+    static bool ParseEndAdressOrLength(ParseArgsState *state, const std::string &str, void *context) {
+        auto result = (EndOrLength *)context;
+
+        if (!str.empty() && str[0] == '+') {
+            result->is_length = true;
+
+            if (!GetUInt64FromString(&result->value, str.c_str() + 1)) {
+                state->server->SendResponse(*state->request, HTTPResponse::BadRequest(*state->request, "bad length: %s", str.c_str()));
+                return false;
+            }
+        } else {
+            result->is_length = false;
+
+            if (!GetUInt64FromString(&result->value, str.c_str(), 16)) {
+                state->server->SendResponse(*state->request, HTTPResponse::BadRequest(*state->request, "bad address: %s", str.c_str()));
                 return false;
             }
         }
@@ -141,172 +187,133 @@ class HTTPMethodsHandler : public HTTPHandler {
         return true;
     }
 
-    typedef bool (*ParseArgsCallbackFn)(HTTPServer *, const HTTPRequest &, const std::string &, void *);
+    static bool ParseBool(ParseArgsState *state, const std::string &str, void *context) {
+        if (!GetBoolFromString((bool *)context, str)) {
+            state->server->SendResponse(*state->request, HTTPResponse::BadRequest(*state->request, "bad bool value: %s", str.c_str()));
+            return false;
+        }
 
-    bool ParseArgsOrSendResponse2(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const char *fmt0, va_list v) {
-        size_t arg_index = command_index + 1;
-        BeebWindow *beeb_window = nullptr;
+        return true;
+    }
+
+    static bool ParseStdString(ParseArgsState *state, const std::string &str, void *context) {
+        (void)state;
+
+        *(std::string *)context = str;
+
+        return true;
+    }
+
+    static bool ParseWindow(ParseArgsState *state, const std::string &str, void *context) {
+        auto ptr = (BeebWindow **)context;
+
+        if (str == "*") {
+            *ptr = BeebWindows::FindMRUBeebWindow();
+        } else {
+            *ptr = BeebWindows::FindBeebWindowByName(str);
+        }
+
+        if (!*ptr) {
+            state->server->SendResponse(*state->request, HTTPResponse::NotFound(*state->request));
+            return false;
+        }
+
+        if (!state->implicit_beeb_window) {
+            state->implicit_beeb_window = *ptr;
+        }
+
+        return true;
+    }
+
+#if BBCMICRO_DEBUGGER
+    static bool ParseDSO(ParseArgsState *state, const std::string &str, void *context) {
+        if (!state->implicit_beeb_window) {
+            state->server->SendResponse(*state->request, HTTPResponse::InternalServerError("no BeebWindow for DSO"));
+            return false;
+        }
 
         std::string log_string;
         LogPrinterString log_printer_string(&log_string);
         Log log("", &log_printer_string);
 
-        // I got this wrong! Instead of having varargs, a mix of query
-        // parameters and URL parts, should be a bit more organised about it and
-        // have separate tables for query parameters and URL parts. Then any
-        // unrecognised query parts can be found when encountered (as the name
-        // won't be found in the query parameter table), rather than having to
-        // do this stupid thing.
-        std::vector<bool> query_argument_handled(request.query.size());
-
-        for (const char *fmt = fmt0; fmt; fmt = va_arg(v, const char *)) {
-            const char *name = va_arg(v, const char *);
-
-            const std::string *value;
-            if (name) {
-                value = nullptr;
-
-                for (size_t i = 0; i < request.query.size(); ++i) {
-                    const HTTPQueryParameter *q = &request.query[i];
-                    if (q->key == name) {
-                        value = &q->value;
-                        query_argument_handled[i] = true;
-                        break;
-                    }
-                }
-            } else {
-                if (arg_index >= parts.size()) {
-                    server->SendResponse(request, HTTPResponse::BadRequest(request, "missing argument %zu", arg_index - (command_index + 1)));
-                    return false;
-                }
-
-                value = &parts[arg_index++];
-            }
-
-            if (strcmp(fmt, "u8") == 0) {
-                if (!this->HandleArgOrSendResponse(va_arg(v, uint8_t *), value, &GetUInt8FromString, 0, server, request, "8-bit value")) {
-                    return false;
-                }
-            } else if (strcmp(fmt, "x16") == 0) {
-                if (!this->HandleArgOrSendResponse(va_arg(v, uint16_t *), value, &GetUInt16FromString, 16, server, request, "16-bit hex value")) {
-                    return false;
-                }
-            } else if (strcmp(fmt, "x32") == 0) {
-                if (!this->HandleArgOrSendResponse(va_arg(v, uint32_t *), value, &GetUInt32FromString, 16, server, request, "32-bit hex value")) {
-                    return false;
-                }
-            } else if (strcmp(fmt, "u16") == 0) {
-                if (!this->HandleArgOrSendResponse(va_arg(v, uint16_t *), value, &GetUInt16FromString, 0, server, request, "16-bit value")) {
-                    return false;
-                }
-            } else if (strcmp(fmt, "u32") == 0) {
-                if (!this->HandleArgOrSendResponse(va_arg(v, uint32_t *), value, &GetUInt32FromString, 0, server, request, "32-bit value")) {
-                    return false;
-                }
-            } else if (strcmp(fmt, "x64") == 0) {
-                if (!this->HandleArgOrSendResponse(va_arg(v, uint64_t *), value, &GetUInt64FromString, 16, server, request, "64-bit hex value")) {
-                    return false;
-                }
-            } else if (strcmp(fmt, "x64/len") == 0) {
-                auto u64 = va_arg(v, uint64_t *);
-                auto is_len = va_arg(v, bool *);
-                size_t index = 0;
-                if (value) {
-                    if ((*value)[index] == '+') {
-                        *is_len = true;
-
-                        if (!GetUInt64FromString(u64, value->c_str() + 1)) {
-                            server->SendResponse(request, HTTPResponse::BadRequest(request, "bad length: %s", value->c_str()));
-                            return false;
-                        }
-                    } else {
-                        *is_len = false;
-
-                        if (!GetUInt64FromString(u64, *value, 16)) {
-                            server->SendResponse(request, HTTPResponse::BadRequest(request, "bad address: %s", value->c_str()));
-                            return false;
-                        }
-                    }
-                }
-            } else if (strcmp(fmt, "bool") == 0) {
-                auto b = va_arg(v, bool *);
-                if (value) {
-                    if (!GetBoolFromString(b, *value)) {
-                        server->SendResponse(request, HTTPResponse::BadRequest(request, "bad bool value: %s", value->c_str()));
-                        return false;
-                    }
-                }
-            } else if (strcmp(fmt, "std::string") == 0) {
-                auto str = va_arg(v, std::string *);
-                if (value) {
-                    *str = *value;
-                }
-            } else if (strcmp(fmt, "window") == 0) {
-                auto ptr = va_arg(v, BeebWindow **);
-                if (value) {
-                    if (*value == "*") {
-                        *ptr = BeebWindows::FindMRUBeebWindow();
-                    } else {
-                        *ptr = BeebWindows::FindBeebWindowByName(*value);
-                    }
-
-                    if (!*ptr) {
-                        server->SendResponse(request, HTTPResponse::NotFound(request));
-                        return false;
-                    }
-                }
-                if (!beeb_window) {
-                    beeb_window = *ptr;
-                }
-            } else if (strcmp(fmt, "callback") == 0) {
-                auto fn = va_arg(v, ParseArgsCallbackFn);
-                auto context = va_arg(v, void *);
-                if (value) {
-                    if (!(*fn)(server, request, *value, context)) {
-                        return false;
-                    }
-                }
-            } //<-- note
-#if BBCMICRO_DEBUGGER                           //<-- note
-            else if (strcmp(fmt, "dso") == 0) { //<-- note
-                // Paging overrides. The BBCMicroType to use is inferred from
-                // the first `window' type seen.
-                auto ptr = va_arg(v, uint32_t *);
-                ASSERT(beeb_window);
-                if (value) {
-                    std::shared_ptr<const BBCMicroReadOnlyState> state;
-                    beeb_window->GetBeebThread()->DebugGetState(&state, nullptr);
-
-                    if (!ParseAddressSuffix(ptr,
-                                            state->type,
-                                            value->c_str(),
-                                            &log)) {
-                        server->SendResponse(request, HTTPResponse::BadRequest(request, "%s", log_string.c_str()));
-                        return false;
-                    }
-                }
-            } //<-- note
-#endif             //<-- note
-            else { //<-- note
-                ASSERT(false);
-                server->SendResponse(request, HTTPResponse());
-                return false;
-            }
-        }
-
-        for (size_t i = 0; i < query_argument_handled.size(); ++i) {
-            if (!query_argument_handled[i]) {
-                server->SendResponse(request, HTTPResponse::BadRequest(request, "no such query parameter: %s", request.query[i].key.c_str()));
-                return false;
-            }
-        }
-
-        if (arg_index != parts.size()) {
-            server->SendResponse(request, HTTPResponse::BadRequest(request, "too many arguments"));
+        std::shared_ptr<const BBCMicroType> type = state->implicit_beeb_window->GetBeebThread()->GetBBCMicroType();
+        if (!ParseAddressSuffix((uint32_t *)context, type, str.c_str(), &log)) {
+            state->server->SendResponse(*state->request, HTTPResponse::BadRequest(*state->request, "%s", log_string.c_str()));
             return false;
         }
 
         return true;
+    }
+#endif
+
+    struct PathParameter {
+        ParseArgsCallbackFn fn = nullptr;
+        void *fn_context = nullptr;
+    };
+
+    struct QueryParameter {
+        const char *name = nullptr;
+        ParseArgsCallbackFn fn = nullptr;
+        void *fn_context = nullptr;
+    };
+
+    static bool ParseArgsOrSendResponse2(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const PathParameter *path_parameters, size_t num_path_parameters, const QueryParameter *query_parameters, size_t num_query_parameters) {
+        ParseArgsState pas;
+        pas.implicit_beeb_window = nullptr;
+        pas.server = server;
+        pas.request = &request;
+
+        // Parse path args.
+        size_t num_path_args = parts.size() - (command_index + 1);
+        if (num_path_args != num_path_parameters) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "%zu arguments supplied; %zu required", num_path_args, num_path_parameters));
+            return false;
+        }
+
+        for (size_t i = 0; i < num_path_parameters; ++i) {
+            const PathParameter *p = &path_parameters[i];
+
+            if (!(*p->fn)(&pas, parts[command_index + 1 + i], p->fn_context)) {
+                return false;
+            }
+        }
+
+        // Parse query args.
+        //
+        // (The naming isn't really great, as HTTP refers to them as query parameters.)
+        for (const HTTPQueryParameter &query_arg : request.query) {
+            const QueryParameter *p = nullptr;
+
+            if (query_parameters) {
+                for (size_t i = 0; i < num_query_parameters; ++i) {
+                    if (query_arg.key == query_parameters[i].name) {
+                        p = &query_parameters[i];
+                        break;
+                    }
+                }
+            }
+
+            if (!p) {
+                server->SendResponse(request, HTTPResponse::BadRequest(request, "unrecognised query parameter: %s", query_arg.key.c_str()));
+                return false;
+            }
+
+            if (!(p->fn)(&pas, query_arg.value, p->fn_context)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    template <size_t NUM_PATH_PARAMETERS, size_t NUM_QUERY_PARAMETERS>
+    static bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const PathParameter (&path_parameters)[NUM_PATH_PARAMETERS], const QueryParameter (&query_parameters)[NUM_QUERY_PARAMETERS]) {
+        return ParseArgsOrSendResponse2(server, request, parts, command_index, path_parameters, NUM_PATH_PARAMETERS, query_parameters, NUM_QUERY_PARAMETERS);
+    }
+
+    template <size_t NUM_PATH_PARAMETERS>
+    static bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const PathParameter (&path_parameters)[NUM_PATH_PARAMETERS]) {
+        return ParseArgsOrSendResponse2(server, request, parts, command_index, path_parameters, NUM_PATH_PARAMETERS, nullptr, 0);
     }
 
 #if BBCMICRO_DEBUGGER
@@ -314,11 +321,14 @@ class HTTPMethodsHandler : public HTTPHandler {
         BeebWindow *beeb_window;
         std::string config_name;
         bool boot = false;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "std::string", "config", &config_name,
-                                           "bool", "boot", &boot,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        const QueryParameter qps[] = {
+            {"config", &ParseStdString, &config_name},
+            {"boot", &ParseBool, &boot},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
@@ -356,9 +366,10 @@ class HTTPMethodsHandler : public HTTPHandler {
 #if BBCMICRO_DEBUGGER
     void HandlePasteRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
             return;
         }
 
@@ -392,12 +403,15 @@ class HTTPMethodsHandler : public HTTPHandler {
         uint16_t addr;
         uint32_t dso = 0;
         bool mos = false;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "x16", nullptr, &addr,
-                                           "dso", "s", &dso,
-                                           "bool", "mos", &mos,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+            {&ParseX16, &addr},
+        };
+        const QueryParameter qps[] = {
+            {"s", &ParseDSO, &dso},
+            {"mos", &ParseBool, &mos},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
@@ -414,32 +428,34 @@ class HTTPMethodsHandler : public HTTPHandler {
     void HandlePeekRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         uint16_t begin;
-        uint64_t end;
-        bool end_is_len;
+        EndOrLength end;
         uint32_t dso = 0;
         bool mos = false;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "x16", nullptr, &begin,
-                                           "x64/len", nullptr, &end, &end_is_len,
-                                           "dso", "s", &dso,
-                                           "bool", "mos", &mos,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+            {&ParseX16, &begin},
+            {&ParseEndAdressOrLength, &end},
+        };
+        const QueryParameter qps[] = {
+            {"dso", &ParseDSO, &dso},
+            {"mos", &ParseBool, &mos},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
-        if (end_is_len) {
-            end += begin;
+        if (end.is_length) {
+            end.value += begin;
         }
 
-        if (end > 0x10000) {
+        if (end.value > 0x10000) {
             server->SendResponse(request, HTTPResponse::BadRequest(request, "can't peek past 0xffff"));
             return;
         }
 
         beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::CallbackMessage>([begin, end, dso, mos, server, response_data = request.response_data](BBCMicro *m) -> void {
             std::vector<uint8_t> data;
-            data.resize(end - begin);
+            data.resize(end.value - begin);
 
             m->DebugGetBytes(data.data(), data.size(), {begin}, dso, mos);
 
@@ -455,11 +471,14 @@ class HTTPMethodsHandler : public HTTPHandler {
         BeebWindow *beeb_window;
         std::string name;
         uint32_t drive = 0;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "std::string", "name", &name,
-                                           "u32", "drive", &drive,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        const QueryParameter qps[] = {
+            {"name", &ParseStdString, &name},
+            {"drive", &ParseU32, &drive},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
@@ -481,10 +500,13 @@ class HTTPMethodsHandler : public HTTPHandler {
     void HandleRunRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string name;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "std::string", "name", &name,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        const QueryParameter qps[] = {
+            {"name", &ParseStdString, &name},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
@@ -509,12 +531,15 @@ class HTTPMethodsHandler : public HTTPHandler {
         std::string path;
         bool in_memory = false;
         uint32_t drive = 0;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "std::string", "path", &path,
-                                           "bool", "in_memory", &in_memory,
-                                           "u32", "drive", &drive,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        const QueryParameter qps[] = {
+            {"path", &ParseStdString, &path},
+            {"in_memory", &ParseBool, &in_memory},
+            {"drive", &ParseU32, &drive},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
@@ -542,9 +567,10 @@ class HTTPMethodsHandler : public HTTPHandler {
 #if BBCMICRO_DEBUGGER
     void HandleClearSymbolsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           nullptr)) {
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
             return;
         }
 
@@ -556,53 +582,66 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    static bool HandleLoadSymbolsSuffix(HTTPServer *server, const HTTPRequest &request, const std::string &path_part, void *context) {
-        (void)server, (void)request;
-
+    static bool ParseLoadSymbolsSuffix(ParseArgsState *state, const std::string &str, void *context) {
         // copy of code in debugger.cpp - should really unify.
-        for (char c : path_part) {
+        for (char c : str) {
             if (!isalnum(c)) {
                 // cheeky way of avoiding running into any UTF-8...
-                server->SendResponse(request, HTTPResponse::BadRequest("suffixes must be alphanumeric only"));
+                state->server->SendResponse(*state->request, HTTPResponse::BadRequest(*state->request, "suffixes must be alphanumeric only"));
                 return false;
             } else if (!IsValidAddressSuffixChar(c)) {
-                server->SendResponse(request, HTTPResponse::BadRequest("invalid address suffix char: %c", c));
+                state->server->SendResponse(*state->request, HTTPResponse::BadRequest(*state->request, "invalid address suffix char: %c", c));
                 return false;
             }
         }
 
         auto suffixes = (std::vector<std::string> *)context;
 
-        suffixes->push_back(path_part);
+        suffixes->push_back(str);
 
         return true;
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
+    static bool ParseSymbolFileAddressSuffixMode(ParseArgsState *state, const std::string &str, void *context) {
+        if (str == "e") {
+            *(SymbolFileAddressSuffixMode *)context = SymbolFileAddressSuffixMode_Exclusive;
+            return true;
+        } else if (str == "i") {
+            *(SymbolFileAddressSuffixMode *)context = SymbolFileAddressSuffixMode_Inclusive;
+            return true;
+        } else {
+            state->server->SendResponse(*state->request, HTTPResponse::BadRequest(*state->request, "invalid address suffix mode: %s", str.c_str()));
+            return false;
+        }
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
     void HandleLoadSymbolsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string format;
         std::string path;
         uint16_t group = 0xffff; //cheesy way of detecting 8-bit value not provided...
         std::vector<std::string> suffixes;
-        std::string mode_str = "e";
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "std::string", nullptr, &format,
-                                           "std::string", "path", &path,
-                                           "u16", "group", &group,
-                                           "callback", "s", &HandleLoadSymbolsSuffix, &suffixes,
-                                           "std::string", "mode", &mode_str,
-                                           nullptr)) {
+        SymbolFileAddressSuffixMode mode = SymbolFileAddressSuffixMode_Exclusive;
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+            {&ParseStdString, &format},
+        };
+        const QueryParameter qps[] = {
+            {"path", &ParseStdString, &path},
+            {"group", &ParseU16, &group},
+            {"s", &ParseLoadSymbolsSuffix, &suffixes},
+            {"mode", &ParseSymbolFileAddressSuffixMode, &mode},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
         if (format.empty() || path.empty()) {
             server->SendResponse(request, HTTPResponse::BadRequest(request, "must supply path and format"));
-            return;
-        }
-
-        if (!(mode_str == "e" || mode_str == "i")) {
-            server->SendResponse(request, HTTPResponse::BadRequest(request, "bad mode: %s", mode_str.c_str()));
             return;
         }
 
@@ -633,6 +672,10 @@ class HTTPMethodsHandler : public HTTPHandler {
         if (group < 256) {
             symbol_table->SetFileGroupIndex(file_index, (uint8_t)group);
         }
+
+        symbol_table->SetFileAddressSuffixes(file_index, std::move(suffixes));
+
+        symbol_table->SetFileAddressSuffixMode(file_index, mode);
 
         server->SendResponse(request, HTTPResponse::OK());
     }
@@ -724,12 +767,15 @@ class HTTPMethodsHandler : public HTTPHandler {
         std::string addr_str;
         std::string dso_str;
         std::string flags_str;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "std::string", nullptr, &addr_str,
-                                           "std::string", nullptr, &flags_str,
-                                           "std::string", "s", &dso_str,
-                                           nullptr)) {
+        PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+            {&ParseStdString, &addr_str},
+            {&ParseStdString, &flags_str},
+        };
+        QueryParameter qps[] = {
+            {"s", &ParseStdString, &dso_str},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
@@ -753,12 +799,15 @@ class HTTPMethodsHandler : public HTTPHandler {
         std::string addr_str;
         std::string dso_str;
         std::string flags_str;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "std::string", nullptr, &addr_str,
-                                           "std::string", nullptr, &flags_str,
-                                           "std::string", "s", &dso_str,
-                                           nullptr)) {
+        PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+            {&ParseStdString, &addr_str},
+            {&ParseStdString, &flags_str},
+        };
+        QueryParameter qps[] = {
+            {"s", &ParseStdString, &dso_str},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
@@ -786,9 +835,10 @@ class HTTPMethodsHandler : public HTTPHandler {
 #if BBCMICRO_DEBUGGER
     void HandleClearBreakpointsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           nullptr)) {
+        PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
             return;
         }
 
@@ -801,9 +851,10 @@ class HTTPMethodsHandler : public HTTPHandler {
 
     void HandleLaunchRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         std::string path;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "std::string", "path", &path,
-                                           nullptr)) {
+        PathParameter pps[] = {
+            {&ParseStdString, &path},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
             return;
         }
 
