@@ -7130,4 +7130,122 @@ I/O port (or several) for debugging stuff.
 2. Disable symbol group
 3. Disable multiple symbol groups
 
+* Build times again
+
+** precommit_vs2022
+
+*** 16 groups
+
+| Compiler | Config         | Action | Time (s) |
+|----------+----------------+--------+----------|
+| VS2022   | Debug          | Clean  |    6.784 |
+| VS2022   | Debug          | Build  |   38.357 |
+| VS2022   | Debug          | Test   |   37.653 |
+| VS2022   | RelWithDebInfo | Clean  |    7.339 |
+| VS2022   | RelWithDebInfo | Build  |  124.952 |
+| VS2022   | RelWithDebInfo | Test   |   19.656 |
+| VS2022   | Final          | Clean  |    6.725 |
+| VS2022   | Final          | Build  |   51.412 |
+| VS2022   | Final          | Test   |   16.850 |
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 8.452    |
+| VS2022   | Debug          | Build  | 36.190   |
+| VS2022   | Debug          | Test   | 37.347   |
+| VS2022   | RelWithDebInfo | Clean  | 8.780    |
+| VS2022   | RelWithDebInfo | Build  | 94.910   |
+| VS2022   | RelWithDebInfo | Test   | 20.456   |
+| VS2022   | Final          | Clean  | 8.769    |
+| VS2022   | Final          | Build  | 54.684   |
+| VS2022   | Final          | Test   | 17.331   |
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 6.942    |
+| VS2022   | Debug          | Build  | 35.502   |
+| VS2022   | Debug          | Test   | 37.389   |
+| VS2022   | RelWithDebInfo | Clean  | 7.115    |
+| VS2022   | RelWithDebInfo | Build  | 92.707   |
+| VS2022   | RelWithDebInfo | Test   | 19.181   |
+| VS2022   | Final          | Clean  | 6.758    |
+| VS2022   | Final          | Build  | 59.841   |
+| VS2022   | Final          | Test   | 17.568   |
+
+*** 32 groups
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 6.811    |
+| VS2022   | Debug          | Build  | 37.853   |
+| VS2022   | Debug          | Test   | 37.970   |
+| VS2022   | RelWithDebInfo | Clean  | 8.796    |
+| VS2022   | RelWithDebInfo | Build  | 102.165  |
+| VS2022   | RelWithDebInfo | Test   | 19.383   |
+| VS2022   | Final          | Clean  | 8.752    |
+| VS2022   | Final          | Build  | 61.689   |
+| VS2022   | Final          | Test   | 17.511   |
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 8.408    |
+| VS2022   | Debug          | Build  | 37.061   |
+| VS2022   | Debug          | Test   | 38.304   |
+| VS2022   | RelWithDebInfo | Clean  | 8.835    |
+| VS2022   | RelWithDebInfo | Build  | 103.133  |
+| VS2022   | RelWithDebInfo | Test   | 19.515   |
+| VS2022   | Final          | Clean  | 8.875    |
+| VS2022   | Final          | Build  | 57.795   |
+| VS2022   | Final          | Test   | 17.466   |
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 6.909    |
+| VS2022   | Debug          | Build  | 37.159   |
+| VS2022   | Debug          | Test   | 37.039   |
+| VS2022   | RelWithDebInfo | Clean  | 7.027    |
+| VS2022   | RelWithDebInfo | Build  | 105.113  |
+| VS2022   | RelWithDebInfo | Test   | 19.454   |
+| VS2022   | Final          | Clean  | 6.996    |
+| VS2022   | Final          | Build  | 58.764   |
+| VS2022   | Final          | Test   | 17.753   |
+
+*** 64 groups
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 8.457    |
+| VS2022   | Debug          | Build  | 37.333   |
+| VS2022   | Debug          | Test   | 37.733   |
+| VS2022   | RelWithDebInfo | Clean  | 8.700    |
+| VS2022   | RelWithDebInfo | Build  | 126.750  |
+| VS2022   | RelWithDebInfo | Test   | 19.421   |
+| VS2022   | Final          | Clean  | 9.953    |
+| VS2022   | Final          | Build  | 58.364   |
+| VS2022   | Final          | Test   | 17.574   |
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 7.113    |
+| VS2022   | Debug          | Build  | 37.807   |
+| VS2022   | Debug          | Test   | 37.068   |
+| VS2022   | RelWithDebInfo | Clean  | 6.928    |
+| VS2022   | RelWithDebInfo | Build  | 97.156   |
+| VS2022   | RelWithDebInfo | Test   | 19.505   |
+| VS2022   | Final          | Clean  | 7.043    |
+| VS2022   | Final          | Build  | 57.105   |
+| VS2022   | Final          | Test   | 17.288   |
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| VS2022   | Debug          | Clean  | 6.808    |
+| VS2022   | Debug          | Build  | 37.244   |
+| VS2022   | Debug          | Test   | 38.226   |
+| VS2022   | RelWithDebInfo | Clean  | 6.926    |
+| VS2022   | RelWithDebInfo | Build  | 115.059  |
+| VS2022   | RelWithDebInfo | Test   | 19.426   |
+| VS2022   | Final          | Clean  | 6.842    |
+| VS2022   | Final          | Build  | 62.055   |
+| VS2022   | Final          | Test   | 17.848   |
+
 * eof.
