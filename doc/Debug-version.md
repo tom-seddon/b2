@@ -839,25 +839,25 @@ the `File` menu and picking the given file using the file selector.
 (There is also a `load-disk` endpoint, which behaves exactly the
 same.)
 
-### `set-address-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX`
+### `set-address-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX`, `clear-address-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX` 
 
-Set an address breakpoint at `ADDR`: an address, or a symbol name.
+Set or clear an address breakpoint at `ADDR`: an address, or a symbol
+name.
 
-`FLAGS` are the flags to set: a combination of `r` (read), `w` (write)
-or `x` (execute). The special `FLAGS` value of `-` means clear all
-flags.
+`FLAGS` are the flags to set or clear: a combination of `r` (read),
+`w` (write) or `x` (execute).
 
 `SUFFIX` is the address suffix to use, as above. Use this if you want
 to specify parasite memory.
 
-### `set-byte-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX`
+### `set-byte-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX`, `clear-byte-breakpoint/WIN/ADDR/FLAGS?s=SUFFIX`
 
-Set a byte breakpoint. `ADDR` and `FLAGS` behave same as
+Set or clear a byte breakpoint. `ADDR` and `FLAGS` behave same as
 `set-address-breakpoints`
 
 `SUFFIX` is the address suffix to use. The current paging settings
-will be used. The byte is assumed to be in host memory but you can
-specify `p` for parasite memory instead.
+will be used for any unspecified settings . The byte is assumed to be
+in host memory but you can specify `p` for parasite memory instead.
 
 ### `clear-breakpoints/WIN`
 

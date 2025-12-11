@@ -2042,7 +2042,7 @@ class DebuggerTestBreakpointsB : public Test {
         }
         uint8_t rts = bbc.MustFindOpcode("rts");
 
-        bbc.DebugSetReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + m_host_io_flags_for_breakpoint)}, addr, break_flag);
+        bbc.DebugModifyReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + m_host_io_flags_for_breakpoint)}, addr, 0, break_flag);
 
         TestBBCMicro::Writer w = bbc.GetWriter(0x70);
         w.Addbw(opcode, addr);
@@ -2226,9 +2226,10 @@ class DebuggerTestBreakpointsMaster : public Test {
 
         ASSERT(w.addr.w <= 0x90);
 
-        bbc.DebugSetReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + m_host_io_flags_for_breakpoint)},
-                                       addr,
-                                       m_write ? BBCMicroByteDebugFlag_BreakWrite : BBCMicroByteDebugFlag_BreakRead);
+        bbc.DebugModifyReadByteDebugFlags({(uint16_t)(FIRST_IO_BIG_PAGE_INDEX.i + m_host_io_flags_for_breakpoint)},
+                                          addr,
+                                          BBCMicroByteDebugFlag_BreakWrite | BBCMicroByteDebugFlag_BreakRead,
+                                          m_write ? BBCMicroByteDebugFlag_BreakWrite : BBCMicroByteDebugFlag_BreakRead);
 
         if (m_trace) {
             bbc.StartTrace(0, 256 * 1024 * 1024);

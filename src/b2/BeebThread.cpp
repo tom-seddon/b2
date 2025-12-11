@@ -1535,10 +1535,11 @@ void BeebThread::DebugSetExtByteMessage::ThreadHandle(
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t addr_flags)
+BeebThread::DebugModifyAddressDebugFlags::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t clear_flags, uint8_t set_flags)
     : m_addr(addr)
     , m_dso(dso)
-    , m_addr_flags(addr_flags) {
+    , m_clear_flags(clear_flags)
+    , m_set_flags(set_flags) {
 }
 #endif
 
@@ -1546,12 +1547,12 @@ BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                          CompletionFun *completion_fun,
-                                                          ThreadState *ts) {
+bool BeebThread::DebugModifyAddressDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                             CompletionFun *completion_fun,
+                                                             ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb->DebugSetAddressDebugFlags(m_addr, m_dso, m_addr_flags);
+    ts->beeb->DebugModifyAddressDebugFlags(m_addr, m_dso, m_clear_flags, m_set_flags);
 
     ptr->reset();
     return true;
@@ -1562,10 +1563,20 @@ bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Messag
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t byte_flags)
+BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags)
+    : DebugModifyAddressDebugFlags(addr, dso, ~flags, flags) {
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BeebThread::DebugModifyByteDebugFlags::DebugModifyByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t clear_flags, uint8_t set_flags)
     : m_big_page_index(big_page_index)
     , m_offset(offset)
-    , m_byte_flags(byte_flags) {
+    , m_clear_flags(clear_flags)
+    , m_set_flags(set_flags) {
     ASSERT(m_big_page_index.i < NUM_BIG_PAGES);
     ASSERT(offset < BIG_PAGE_SIZE_BYTES);
 }
@@ -1575,15 +1586,24 @@ BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(BigPageIndex big_page
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                       CompletionFun *completion_fun,
-                                                       ThreadState *ts) {
+bool BeebThread::DebugModifyByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                          CompletionFun *completion_fun,
+                                                          ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb->DebugSetReadByteDebugFlags(m_big_page_index, m_offset, m_byte_flags);
+    ts->beeb->DebugModifyReadByteDebugFlags(m_big_page_index, m_offset, m_clear_flags, m_set_flags);
 
     ptr->reset();
     return true;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t flags)
+    : DebugModifyByteDebugFlags(big_page_index, offset, ~flags, flags) {
 }
 #endif
 

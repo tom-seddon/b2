@@ -716,9 +716,9 @@ class BeebThread {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    class DebugSetAddressDebugFlags : public Message {
+    class DebugModifyAddressDebugFlags : public Message {
       public:
-        DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t addr_flags);
+        DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t clear_flags, uint8_t set_flags);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -729,14 +729,25 @@ class BeebThread {
       private:
         const M6502Word m_addr = {};
         const uint32_t m_dso = 0;
-        const uint8_t m_addr_flags = 0;
+        const uint8_t m_clear_flags = 0;
+        const uint8_t m_set_flags = 0;
     };
 #endif
 
 #if BBCMICRO_DEBUGGER
-    class DebugSetByteDebugFlags : public Message {
+    class DebugSetAddressDebugFlags : public DebugModifyAddressDebugFlags {
       public:
-        DebugSetByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t byte_flags);
+        DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags);
+
+      protected:
+      private:
+    };
+#endif
+
+#if BBCMICRO_DEBUGGER
+    class DebugModifyByteDebugFlags : public Message {
+      public:
+        DebugModifyByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t clear_flags, uint8_t set_flags);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -746,7 +757,18 @@ class BeebThread {
       private:
         const BigPageIndex m_big_page_index = {0};
         const uint16_t m_offset = 0;
-        const uint8_t m_byte_flags = 0;
+        const uint8_t m_clear_flags = 0;
+        const uint8_t m_set_flags = 0;
+    };
+#endif
+
+#if BBCMICRO_DEBUGGER
+    class DebugSetByteDebugFlags : public DebugModifyByteDebugFlags {
+      public:
+        DebugSetByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t flags);
+
+      protected:
+      private:
     };
 #endif
 

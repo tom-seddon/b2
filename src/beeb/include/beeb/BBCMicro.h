@@ -608,12 +608,12 @@ class BBCMicro : private WD1770Handler {
     static const uint8_t *DebugGetWriteByteDebugFlags(const BigPage *big_page, uint16_t offset);
     static const uint8_t *DebugGetReadByteDebugFlags(const ReadOnlyBigPage *big_page, uint16_t offset);
     static const uint8_t *DebugGetWriteByteDebugFlags(const ReadOnlyBigPage *big_page, uint16_t offset);
-    void DebugSetReadByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t flags);
-    void DebugSetWriteByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t flags);
+    void DebugModifyReadByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t clear_flags, uint8_t set_flags);
+    void DebugModifyWriteByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t clear_flags, uint8_t set_flags);
 
     // Get/set per-address byte debug flags for one address.
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
-    void DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags);
+    void DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t clear_flags, uint8_t set_flags);
 
     void DebugResetAllAddressAndByteDebugFlags();
 
@@ -947,7 +947,7 @@ class BBCMicro : private WD1770Handler {
                                            uint8_t *const *write_io_byte_debug_flags,
                                            M6502Word offset,
                                            bool write);
-    void DebugSetByteDebugFlags(BigPageIndex big_page_index, M6502Word offset, uint8_t flags, bool write);
+    void DebugModifyByteDebugFlags(BigPageIndex big_page_index, M6502Word offset, bool write, uint8_t clear_flags, uint8_t set_flags);
 #endif
 
     static void HandleRTCNVRAMChange(void *context);

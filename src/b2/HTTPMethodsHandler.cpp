@@ -103,7 +103,9 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"clear-symbols", &HTTPMethodsHandler::HandleClearSymbolsRequest},
         {"load-symbols", &HTTPMethodsHandler::HandleLoadSymbolsRequest},
         {"set-address-breakpoint", &HTTPMethodsHandler::HandleSetAddressBreakpointRequest},
+        {"clear-address-breakpoint", &HTTPMethodsHandler::HandleClearAddressBreakpointRequest},
         {"set-byte-breakpoint", &HTTPMethodsHandler::HandleSetByteBreakpointRequest},
+        {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
@@ -685,19 +687,15 @@ class HTTPMethodsHandler : public HTTPHandler {
     bool ParseBreakpointFlags(uint8_t *flags, const std::string &str) const {
         *flags = 0;
 
-        if (str == "-") {
-            // specific value indicating no flags.
-        } else {
-            for (char c : str) {
-                if (c == 'r') {
-                    *flags |= BBCMicroByteDebugFlag_BreakRead;
-                } else if (c == 'w') {
-                    *flags |= BBCMicroByteDebugFlag_BreakWrite;
-                } else if (c == 'x') {
-                    *flags |= BBCMicroByteDebugFlag_BreakExecute;
-                } else {
-                    return false;
-                }
+        for (char c : str) {
+            if (c == 'r') {
+                *flags |= BBCMicroByteDebugFlag_BreakRead;
+            } else if (c == 'w') {
+                *flags |= BBCMicroByteDebugFlag_BreakWrite;
+            } else if (c == 'x') {
+                *flags |= BBCMicroByteDebugFlag_BreakExecute;
+            } else {
+                return false;
             }
         }
 
@@ -762,7 +760,7 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    void HandleSetAddressBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+    void HandleAddressBreakpointRequest(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &path_parts, size_t command_index, bool set) {
         BeebWindow *beeb_window;
         std::string addr_str;
         std::string dso_str;
@@ -787,14 +785,22 @@ class HTTPMethodsHandler : public HTTPHandler {
         }
 
         std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
-        beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, dso, flags));
+        beeb_thread->Send(std::make_shared<BeebThread::DebugModifyAddressDebugFlags>(addr, dso, set ? (uint8_t)0 : flags, set ? flags : (uint8_t)0));
 
         server->SendResponse(request, HTTPResponse::OK());
+    }
+
+    void HandleSetAddressBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        this->HandleAddressBreakpointRequest(server, request, path_parts, command_index, true);
+    }
+
+    void HandleClearAddressBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        this->HandleAddressBreakpointRequest(server, request, path_parts, command_index, false);
     }
 #endif
 
 #if BBCMICRO_DEBUGGER
-    void HandleSetByteBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+    void HandleByteBreakpointRequest(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &path_parts, size_t command_index, bool set) {
         BeebWindow *beeb_window;
         std::string addr_str;
         std::string dso_str;
@@ -826,9 +832,17 @@ class HTTPMethodsHandler : public HTTPHandler {
         BBCMicro::ReadOnlyBigPage bp;
         BBCMicro::DebugGetBigPageForAddress(&bp, state.get(), debug_state.get(), addr, false, dso);
 
-        beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp.index, (uint16_t)addr.p.o, flags));
+        beeb_thread->Send(std::make_shared<BeebThread::DebugModifyByteDebugFlags>(bp.index, (uint16_t)addr.p.o, set ? (uint8_t)0 : flags, set ? flags : (uint8_t)0));
 
         server->SendResponse(request, HTTPResponse::OK());
+    }
+
+    void HandleSetByteBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        this->HandleByteBreakpointRequest(server, request, path_parts, command_index, true);
+    }
+
+    void HandleClearByteBreakpointRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        this->HandleByteBreakpointRequest(server, request, path_parts, command_index, false);
     }
 #endif
 

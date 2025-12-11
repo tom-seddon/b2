@@ -1749,18 +1749,20 @@ const uint8_t *BBCMicro::DebugGetWriteByteDebugFlags(const ReadOnlyBigPage *big_
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetReadByteDebugFlags(BigPageIndex big_page_index,
-                                          uint16_t offset,
-                                          uint8_t flags) {
-    this->DebugSetByteDebugFlags(big_page_index, {offset}, flags, false);
+void BBCMicro::DebugModifyReadByteDebugFlags(BigPageIndex big_page_index,
+                                             uint16_t offset,
+                                             uint8_t clear_flags,
+                                             uint8_t set_flags) {
+    this->DebugModifyByteDebugFlags(big_page_index, {offset}, false, clear_flags, set_flags);
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetWriteByteDebugFlags(BigPageIndex big_page_index,
-                                           uint16_t offset,
-                                           uint8_t flags) {
-    this->DebugSetByteDebugFlags(big_page_index, {offset}, flags, true);
+void BBCMicro::DebugModifyWriteByteDebugFlags(BigPageIndex big_page_index,
+                                              uint16_t offset,
+                                              uint8_t clear_flags,
+                                              uint8_t set_flags) {
+    this->DebugModifyByteDebugFlags(big_page_index, {offset}, true, clear_flags, set_flags);
 }
 #endif
 
@@ -1785,7 +1787,7 @@ uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const 
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags) {
+void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t clear_flags, uint8_t set_flags) {
     if (m_debug) {
         uint8_t *addr_flags;
         if (dso & BBCMicroDebugStateOverride_Parasite) {
@@ -1794,19 +1796,21 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t f
             addr_flags = &m_debug->host_address_debug_flags[addr.w];
         }
 
-        if (*addr_flags != flags) {
+        uint8_t new_flags = *addr_flags & ~clear_flags | set_flags;
+
+        if (*addr_flags != new_flags) {
             if (*addr_flags == 0) {
                 ++m_debug->num_breakpoint_bytes;
-            } else if (flags == 0) {
+            } else if (new_flags == 0) {
                 ASSERT(m_debug->num_breakpoint_bytes > 0);
                 --m_debug->num_breakpoint_bytes;
             }
 
-            *addr_flags = flags;
+            *addr_flags = new_flags;
 
             ++m_debug->breakpoints_changed_counter;
 
-            if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
+            if (new_flags & BBCMicroByteDebugFlag_TempBreakExecute) {
                 m_debug->temp_execute_breakpoints.push_back(addr_flags);
             }
         }
@@ -2001,12 +2005,13 @@ void BBCMicro::DebugStepOver(uint32_t dso) {
         const BBCMicro::BigPage *big_page = this->DebugGetBigPageForAddress(next_pc,
                                                                             !!pc_is_mos[s->pc.p.p],
                                                                             dso | DebugGetCurrentStateOverride(&m_state));
+        this->DebugModifyReadByteDebugFlags(big_page->index, next_pc.p.o, 0, BBCMicroByteDebugFlag_TempBreakExecute);
 
-        if (const uint8_t *flags_ = this->DebugGetReadByteDebugFlags(big_page, next_pc.p.o)) {
-            uint8_t flags = *flags_;
-            flags |= BBCMicroByteDebugFlag_TempBreakExecute;
-            this->DebugSetReadByteDebugFlags(big_page->index, next_pc.p.o, flags);
-        }
+        //if (const uint8_t *flags_ = this->DebugGetReadByteDebugFlags(big_page, next_pc.p.o)) {
+        //    uint8_t flags = *flags_;
+        //    flags |= BBCMicroByteDebugFlag_TempBreakExecute;
+        //    this->DebugSetReadByteDebugFlags(big_page->index, next_pc.p.o, flags);
+        //}
     }
 }
 #endif
@@ -2646,13 +2651,14 @@ void BBCMicro::DebugHandleStep() {
                 // Done.
                 this->DebugHalt(BBCMicroHaltReason_SingleStep, metadata, -1);
             } else if (m_debug->step_cpu->read == M6502ReadType_Interrupt) {
-                // The instruction was interrupted, so set a temp
-                // breakpoint in the right place.
-                uint8_t flags = this->DebugGetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso);
+                this->DebugModifyAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso, 0, BBCMicroByteDebugFlag_TempBreakExecute);
+                //// The instruction was interrupted, so set a temp
+                //// breakpoint in the right place.
+                //uint8_t flags = this->DebugGetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso);
 
-                flags |= BBCMicroByteDebugFlag_TempBreakExecute;
+                //flags |= BBCMicroByteDebugFlag_TempBreakExecute;
 
-                this->DebugSetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso, flags);
+                //this->DebugSetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso, flags);
                 this->SetDebugStepType(BBCMicroStepType_None, nullptr);
             }
         }
@@ -3789,7 +3795,7 @@ uint8_t *BBCMicro::DebugGetByteDebugFlags(const BigPageMetadata *metadata,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetByteDebugFlags(BigPageIndex big_page_index, M6502Word offset, uint8_t flags, bool write) {
+void BBCMicro::DebugModifyByteDebugFlags(BigPageIndex big_page_index, M6502Word offset, bool write, uint8_t clear_flags, uint8_t set_flags) {
     ASSERT(big_page_index.i < NUM_BIG_PAGES);
     BigPage *big_page = &m_big_pages[big_page_index.i];
 
@@ -3799,19 +3805,21 @@ void BBCMicro::DebugSetByteDebugFlags(BigPageIndex big_page_index, M6502Word off
                                                      big_page->write_io_byte_debug_flags,
                                                      offset,
                                                      write)) {
-        if (*byte_flags != flags) {
+        uint8_t new_flags = *byte_flags & ~clear_flags | set_flags;
+
+        if (*byte_flags != new_flags) {
             if (*byte_flags == 0) {
                 ++m_debug->num_breakpoint_bytes;
-            } else if (flags == 0) {
+            } else if (new_flags == 0) {
                 ASSERT(m_debug->num_breakpoint_bytes > 0);
                 --m_debug->num_breakpoint_bytes;
             }
 
-            *byte_flags = flags;
+            *byte_flags = new_flags;
 
             ++m_debug->breakpoints_changed_counter;
 
-            if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
+            if (new_flags & BBCMicroByteDebugFlag_TempBreakExecute) {
                 m_debug->temp_execute_breakpoints.push_back(byte_flags);
             }
         }
