@@ -81,9 +81,8 @@ static std::string GetEscaped(std::string str) {
     return result;
 }
 
-static HTTPResponse
-CreateErrorResponse(const HTTPRequest &request,
-                    std::string status) {
+static HTTPResponse CreateErrorResponse(const HTTPRequest &request,
+                                        std::string status) {
     std::string body;
 
     //HTTPResponse r;
@@ -625,6 +624,98 @@ int HTTPServerImpl::HandleHeaderValue(llhttp_t *parser, const char *at, size_t l
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool GetHexCharValue(uint8_t *value, uint8_t c) {
+    if (c >= '0' && c <= '9') {
+        *value = c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+        *value = c - 'a' + 10;
+    } else if (c >= 'A' && c <= 'F') {
+        *value = c - 'A' + 10;
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+static bool GetPercentDecoded(std::string *decoded, const std::vector<uint8_t> &encoded) {
+    size_t i = 0;
+    while (i < encoded.size()) {
+        uint8_t byte = encoded[i];
+        if (byte < 32 || byte >= 128) {
+            return false;
+        }
+
+        if (byte == '%') {
+            if (i + 2 >= encoded.size()) {
+                return false;
+            }
+
+            uint8_t h;
+            if (!GetHexCharValue(&h, encoded[i + 1])) {
+                return false;
+            }
+
+            uint8_t l;
+            if (!GetHexCharValue(&l, encoded[i + 2])) {
+                return false;
+            }
+
+            decoded->push_back((char)(h << 4 | l));
+
+            i += 2;
+        } else {
+            decoded->push_back((char)byte);
+        }
+
+        ++i;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool ParseQueryParameters(std::vector<HTTPQueryParameter> *params, const char *str) {
+    const char *begin = str;
+    while (*begin != 0) {
+
+        const char *k_begin = begin;
+        const char *k_end = begin;
+        while (*k_end != 0 && *k_end != '=') {
+            ++k_end;
+        }
+
+        if (*k_end == 0) {
+            //LOGF(HTTPSV, "invalid URL query (missing '='): %s\n", conn->request.url.c_str());
+            return false;
+        }
+
+        const char *v_begin = k_end + 1;
+        const char *v_end = v_begin;
+        while (*v_end != 0 && *v_end != '&') {
+            ++v_end;
+        }
+
+        HTTPQueryParameter kv;
+        kv.key.assign(k_begin, k_end);
+        kv.value.assign(v_begin, v_end);
+
+        params->push_back(std::move(kv));
+
+        begin = v_end;
+        if (*begin != 0) {
+            ++begin;
+        }
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int HTTPServerImpl::HandleHeadersComplete(llhttp_t *parser) {
     auto conn = (Connection *)parser->data;
     int rc;
@@ -661,36 +752,9 @@ int HTTPServerImpl::HandleHeadersComplete(llhttp_t *parser) {
 
     char *query;
     if (curl_url_get(url.get(), CURLUPART_QUERY, &query, CURLU_URLDECODE) == 0) {
-        const char *begin = query;
-        while (*begin != 0) {
-
-            const char *k_begin = begin;
-            const char *k_end = begin;
-            while (*k_end != 0 && *k_end != '=') {
-                ++k_end;
-            }
-
-            if (*k_end == 0) {
-                LOGF(HTTPSV, "invalid URL query (missing '='): %s\n", conn->request.url.c_str());
-                return -1;
-            }
-
-            const char *v_begin = k_end + 1;
-            const char *v_end = v_begin;
-            while (*v_end != 0 && *v_end != '&') {
-                ++v_end;
-            }
-
-            HTTPQueryParameter kv;
-            kv.key.assign(k_begin, k_end);
-            kv.value.assign(v_begin, v_end);
-
-            conn->request.query.push_back(std::move(kv));
-
-            begin = v_end;
-            if (*begin != 0) {
-                ++begin;
-            }
+        if (!ParseQueryParameters(&conn->request.query, query)) {
+            LOGF(HTTPSV, "invalid URL query parameters");
+            return -1;
         }
 
         curl_free(query);
@@ -790,15 +854,35 @@ int HTTPServerImpl::HandleMessageComplete(llhttp_t *parser) {
         }
     }
 
-    std::shared_ptr<HTTPHandler> handler = conn->server->m_sd.handler;
-
     HTTPResponse response;
     bool send_response = false;
-    if (!!handler) {
-        send_response = handler->ThreadHandleRequest(&response, conn->server, std::move(conn->request));
-    } else {
-        response = CreateErrorResponse(conn->request, "404 Not Found");
-        send_response = true;
+
+    // If the request is application/x-www-form-urlencoded, try to interpret the
+    // body. Find the key=value pairs, add them to the query parameters, then
+    // clear the body - the goal being that curl's --data-urlencode option
+    // behaves about the same whether using curl to GET or POST.
+    if (conn->request.content_type == HTTP_WWW_FORM_URLENCODED_CONTENT_TYPE) {
+        std::string decoded;
+        if (!GetPercentDecoded(&decoded, conn->request.body)) {
+            response = CreateErrorResponse(conn->request, "400 Bad Request");
+            send_response = true;
+        } else if (!ParseQueryParameters(&conn->request.query, decoded.c_str())) {
+            response = CreateErrorResponse(conn->request, "400 Bad Request");
+            send_response = true;
+        }
+
+        conn->request.body.clear();
+    }
+
+    if (!send_response) {
+        std::shared_ptr<HTTPHandler> handler = conn->server->m_sd.handler;
+
+        if (!!handler) {
+            send_response = handler->ThreadHandleRequest(&response, conn->server, std::move(conn->request));
+        } else {
+            response = CreateErrorResponse(conn->request, "404 Not Found");
+            send_response = true;
+        }
     }
 
     if (send_response) {

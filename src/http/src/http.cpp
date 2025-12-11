@@ -9,6 +9,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const std::string HTTP_WWW_FORM_URLENCODED_CONTENT_TYPE = "application/x-www-form-urlencoded";
 const std::string HTTP_OCTET_STREAM_CONTENT_TYPE = "application/octet-stream";
 const std::string HTTP_TEXT_CONTENT_TYPE = "text/plain";
 const std::string HTTP_JSON_CONTENT_TYPE = "application/json";

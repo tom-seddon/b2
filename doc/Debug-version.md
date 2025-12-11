@@ -704,14 +704,10 @@ non-success HTTP server status by exiting with a non-zero status.
 `--fail` discards any response body in the error case, and
 `--fail-with-body` processes it as normal despite the error.
 
-For escaping paths and strings, use `-G` and `--data-urlencode` to
-encode the URL appropriately. For example, if using the `reset`
-command:
+For escaping paths and strings, use `--data-urlencode` to encode the
+arguments appropriately. For example, if using the `reset` command:
 
-    curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
-
-The GET request may modify the state. The HTTP API is a work in
-progress.
+    curl 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
 
 ## HTTP endpoints
 
@@ -739,6 +735,18 @@ Generally the status code will be one of `200 OK` (success - no
 content), `400 Bad Request` or `404 Not Found` (invalid request), or
 `503 Service Unavailable` (request was valid but couldn't be
 fulfilled).
+
+Mandatory parameters are typically part of the URL, and optional
+parameters are query parameters, the idea being that there's no point
+having to type the query parameter names for mandatory stuff. But this
+isn't universally true: mandatory strings that might be paths, or
+might have spaces in them, are query parameters too, the goal being to
+work nicely with curl's `--data-urlencode` on the command line.
+
+Query parameters can be supplied as part of the URL, and/or in a
+request body with a Content-Encoding of
+`application/x-www-form-urlencoded`. The URL parameters are treated as
+being supplied first, followed by any parameters from the body.
 
 ### `launch?path=PATH`
 
