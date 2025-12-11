@@ -1796,7 +1796,7 @@ void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_
             addr_flags = &m_debug->host_address_debug_flags[addr.w];
         }
 
-        uint8_t new_flags = *addr_flags & ~clear_flags | set_flags;
+        uint8_t new_flags = (*addr_flags & ~clear_flags) | set_flags;
 
         if (*addr_flags != new_flags) {
             if (*addr_flags == 0) {
@@ -3805,7 +3805,7 @@ void BBCMicro::DebugModifyByteDebugFlags(BigPageIndex big_page_index, M6502Word 
                                                      big_page->write_io_byte_debug_flags,
                                                      offset,
                                                      write)) {
-        uint8_t new_flags = *byte_flags & ~clear_flags | set_flags;
+        uint8_t new_flags = (*byte_flags & ~clear_flags) | set_flags;
 
         if (*byte_flags != new_flags) {
             if (*byte_flags == 0) {
