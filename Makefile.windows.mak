@@ -55,18 +55,32 @@ precommit_vs2022:
 	$(MAKE) _precommit VSYEAR=2022 VSVER=17
 
 .PHONY: _precommit
+_precommit: TIME_JOBS_FILE=build\vs$(VSYEAR)\jobs.txt
 _precommit:
-	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=Debug CLEAN=$(CLEAN)
-	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=RelWithDebInfo CLEAN=$(CLEAN)
-	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=Final CLEAN=$(CLEAN)
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" init
+# might do something with the compiler column at some point?
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" push "VS$(VSYEAR)"
+	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=Debug CLEAN=$(CLEAN) TIME_JOBS_FILE=$(TIME_JOBS_FILE)
+	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=RelWithDebInfo CLEAN=$(CLEAN) TIME_JOBS_FILE=$(TIME_JOBS_FILE)
+	$(MAKE) _precommit2 VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=Final CLEAN=$(CLEAN) TIME_JOBS_FILE=$(TIME_JOBS_FILE)
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" pop
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" print "Compiler" "Config" "Action"
 
 .PHONY: _precommit2
 _precommit2: _VS_PATH:=$(shell "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -version $(VSVER) -property installationPath)
 _precommit2: _DEVENV_PATH:=$(_VS_PATH)/Common7/IDE/devenv.com
 _precommit2:
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" push "$(CONFIG)"
+	$(if $(CLEAN),@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" push "Clean")
 	$(if $(CLEAN),cd "build\vs$(VSYEAR)" && "..\..\bin\msbuild_bug_wrapper.bat" "$(_DEVENV_PATH)" b2.sln /Clean $(CONFIG))
+	$(if $(CLEAN),@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" pop)
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" push "Build"
 	cd "build\vs$(VSYEAR)" && "..\..\bin\msbuild_bug_wrapper.bat" "$(_DEVENV_PATH)" b2.sln /Build $(CONFIG)
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" pop
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" push "Test"
 	$(MAKE) _run_tests VSYEAR=$(VSYEAR) VSVER=$(VSVER) CONFIG=$(CONFIG)
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" pop
+	@$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)" pop -n "$(CONFIG)"
 
 ##########################################################################
 ##########################################################################

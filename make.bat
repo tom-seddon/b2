@@ -1,1 +1,1 @@
-@"%~dp0\bin\snmake.exe" --no-print-directory %*
+@cmd /c "%~dp0\bin\snmake.exe" --no-print-directory %*
