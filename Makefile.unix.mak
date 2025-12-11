@@ -62,41 +62,60 @@ _unix2:
 ##########################################################################
 ##########################################################################
 
+TIME_JOBS_FILE:=$(BUILD_FOLDER)/time_jobs.txt
+TIME_JOBS:=$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)"
+
+##########################################################################
+##########################################################################
+
 .PHONY: precommit
 precommit:
 	@echo clang-format...
 	@$(MAKE) clang-format QUIET=1
 	$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel NO_SANITIZERS=$(NO_SANITIZERS))
-# worth having a separate clean option - the init step could be faster
-# on macOS.
-	$(if $(CLEAN),$(MAKE) _precommit ACTION=clean)
+	@$(TIME_JOBS) init
+# TODO: is there a way to figure out which compiler cmake picked??
+	@$(TIME_JOBS) push Compiler Default
+# the init step can be rather slow on macOS, so it's worth having a
+# separate option for just the clean.
+	$(if $(CLEAN),$(MAKE) _precommit ACTION=Clean) COMPILER_NAME=Default
 	$(MAKE) _precommit ACTION=build
 	$(MAKE) _precommit ACTION=test
+	@$(TIME_JOBS) pop
+	@$(TIME_JOBS) print -s Config -s Compiler
 
 .PHONY:_precommit
 _precommit:
 _precommit:
-	$(MAKE) _precommit2 FOLDER=d
-	$(MAKE) _precommit2 FOLDER=r
-	$(MAKE) _precommit2 FOLDER=f
+	$(MAKE) _precommit2 FOLDER=d CONFIG_NAME=Debug
+	$(MAKE) _precommit2 FOLDER=r CONFIG_NAME=RelWithDebInfo
+	$(MAKE) _precommit2 FOLDER=f CONFIG_NAME=Final
 
 .PHONY:_precommit2
 _precommit2: export _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER)$(SANITIZER).$(OS)
 _precommit2:
-	$(MAKE) _precommit_$(ACTION) 
+	@$(TIME_JOBS) push "Config" "$(CONFIG_NAME)"
+	$(MAKE) _precommit_$(ACTION)
+	@$(TIME_JOBS) pop
 
 .PHONY:_precommit_clean
 _precommit_clean:
+	@$(TIME_JOBS) push "Action" "Clean"
 	cd "$(_FOLDER)" && ninja clean
+	@$(TIME_JOBS) pop
 
 .PHONY:_precommit_build
 _precommit_build:
+	@$(TIME_JOBS) push "Action" "Build"
 	cd "$(_FOLDER)" && time ninja
+	@$(TIME_JOBS) pop
 
 .PHONY:_precommit_test
 _precommit_test:
+	@$(TIME_JOBS) push "Action" "Test"
 	cd "$(_FOLDER)" && ctest --progress -j $(NPROC)
 	cd "$(_FOLDER)" && $(PYTHON3) "../../bin/check_ctest_log.py" "Testing/Temporary/LastTest.log"
+	@$(TIME_JOBS) pop
 
 ##########################################################################
 ##########################################################################
@@ -237,23 +256,37 @@ _ffmpeg_release:
 
 # for me, on my desktop PC...
 
+GCC_CC:=gcc
+GCC_CXX:=g++
+
+CLANG_CC:=clang-19
+CLANG_CXX:=clang++-19
+
 .PHONY:_precommit_tom_init_gcc
 _precommit_tom_init_gcc:
-	$(MAKE) init_parallel FOLDER_PREFIX=precommit-gcc. CC=gcc CXX=g++
+	$(MAKE) init_parallel FOLDER_PREFIX=precommit-gcc. CC=$(GCC_CC) CXX=$(GCC_CXX)
 
 .PHONY:_precommit_tom_init_clang
 _precommit_tom_init_clang:
-	$(MAKE) init_parallel FOLDER_PREFIX=precommit-clang. CC=clang-19 CXX=clang++-19
+	$(MAKE) init_parallel FOLDER_PREFIX=precommit-clang. CC=$(CLANG_CC) CXX=$(CLANG_CXX)
 
 .PHONY:precommit_tom
 precommit_tom:
 	@echo clang-format...
 	@$(MAKE) clang-format QUIET=1
 	$(if $(REINIT),$(MAKE) -j $(NPROC) _precommit_tom_init_gcc _precommit_tom_init_clang,)
+
+	@$(TIME_JOBS) init
+	@$(TIME_JOBS) push "Compiler" "$(shell $(GCC_CC) --version | head -n 1)"
 	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-gcc.
-	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-clang.
 	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-gcc.
+	@$(TIME_JOBS) pop
+	@$(TIME_JOBS) push "Compiler" "$(shell $(CLANG_CC) --version | head -n 1)"
+	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-clang.
 	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-clang.
+	@$(TIME_JOBS) pop
+
+	@$(TIME_JOBS) print -s Config -s Compiler
 
 ##########################################################################
 ##########################################################################

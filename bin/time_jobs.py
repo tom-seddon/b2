@@ -26,13 +26,15 @@ def init_cmd(options):
 
 def push_cmd(options):
     with open(options.g_path,'at') as f:
-        f.write('push\n%s\n%d\n'%(options.name,
-                                  time.time_ns()))
+        f.write('push\n%s\n%s\n%d\n'%(options.key,
+                                      options.value,
+                                      time.time_ns()))
 
 def pop_cmd(options):
     with open(options.g_path,'at') as f:
-        f.write('pop\n%s\n%d\n'%(options.name or '',
+        f.write('pop\n%s\n%d\n'%(options.key or '',
                                  time.time_ns()))
+
 
 def print_cmd(options):
     import collections
@@ -41,34 +43,40 @@ def print_cmd(options):
         lines=[line.rstrip() for line in f.readlines()]
 
     class Entry:
-        def __init__(self,name,start):
-            self.name=name
+        def __init__(self,key,value,start):
+            self.key=key
+            self.value=value
             self.start=start
+            self.end=None
             self.any_children=False
 
+    Row=collections.namedtuple('Row','values seconds')
+
+    headers=options.column_names[:]
     rows=[]
     stack=[]
     line_index=0
     while line_index<len(lines):
         if lines[line_index]=='push':
             if len(stack)>0: stack[-1].any_children=True
+
+            key=lines[line_index+1]
+            if key not in headers: headers.append(key)
             
-            stack.append(Entry(name=lines[line_index+1],
-                               start=int(lines[line_index+2])))
-            line_index+=3
+            stack.append(Entry(key=key,
+                               value=lines[line_index+2],
+                               start=int(lines[line_index+3])))
+            line_index+=4
         elif lines[line_index]=='pop':
-            name=lines[line_index+1]
+            key=lines[line_index+1]
             if len(stack)==0: fatal('mismatched push/pop')
-            if name!='' and name!=stack[-1].name:
-                fatal('mismatched push %s/pop %s'%(stack[-1].name,name))
+            if key!='' and key!=stack[-1].key:
+                fatal('mismatch: pushed %s, popped %s'%(stack[-1].key,key))
 
             if not stack[-1].any_children:
-                seconds=(int(lines[line_index+2])-stack[-1].start)/1e9
-
-                row=[]
-                for entry in stack: row.append(entry.name)
-                row.append('%.3f'%seconds)
-
+                row=Row(seconds=(int(lines[line_index+2])-stack[-1].start)/1e9,
+                        values={})
+                for entry in stack: row.values[entry.key]=entry.value
                 rows.append(row)
 
             del stack[-1]
@@ -77,18 +85,23 @@ def print_cmd(options):
         else:
             fatal('%s:%d: unrecognised'%(options.g_path,line_index+1))
 
-    headers=[]
-    for i in range(len(rows[0])-1):
-        if i<len(options.column_names):
-            headers.append(options.column_names[i])
-        else: headers.append('')
-    headers.append('Time (s)')
-        
-    column_widths=[len(header) for header in headers]
+    rows_strs=[]
     for row in rows:
-        assert len(row)==len(column_widths)
-        for i,column in enumerate(row):
-            column_widths[i]=max(column_widths[i],len(column))
+        row_strs=[row.values.get(header,'') for header in headers]
+        row_strs.append('%.3f'%row.seconds)
+        rows_strs.append(row_strs)
+
+    headers.append('Time (s)')
+
+    column_widths=[len(header) for header in headers]
+    for row_strs in rows_strs:
+        for i,s in enumerate(row_strs):
+            column_widths[i]=max(column_widths[i],len(s))
+
+    for name in options.sort_columns:
+        if name not in headers: fatal('unknown sort column: %s'%name)
+        index=headers.index(name)
+        rows_strs.sort(key=lambda x:x[index])
 
     def get_row_string(row):
         s=''
@@ -99,7 +112,7 @@ def print_cmd(options):
     print()
     print(get_row_string(headers))
     print('|%s|'%('|'.join(['-'*(2+n) for n in column_widths])))
-    for row in rows: print(get_row_string(row))
+    for row_strs in rows_strs: print(get_row_string(row_strs))
     print()
 
 ##########################################################################
@@ -124,14 +137,16 @@ def main(argv):
 
     init_parser=add_subparser(init_cmd,'init',help='''initialise timing process''')
 
-    push_parser=add_subparser(push_cmd,'push',help='''push new job''')
-    push_parser.add_argument('name',metavar='NAME',help='''use %(metavar)s as job's name''')
+    push_parser=add_subparser(push_cmd,'push',help='''push new key''')
+    push_parser.add_argument('key',metavar='KEY',help='''push key named %(metavar)s''')
+    push_parser.add_argument('value',metavar='VALUE',help='''value for key pushed''')
 
-    pop_parser=add_subparser(pop_cmd,'pop',help='''finish job''')
-    pop_parser.add_argument('-n','--name',metavar='NAME',help='''supply job's name. Will be checked against pushed name if supplied''')
+    pop_parser=add_subparser(pop_cmd,'pop',help='''pop key''')
+    pop_parser.add_argument('-k','--key',metavar='KEY',help='''supply key's name. Will be checked against pushed name if supplied''')
 
     print_parser=add_subparser(print_cmd,'print',help='''print results''')
-    print_parser.add_argument('column_names',metavar='NAME',nargs='*',help='''specify column names''')
+    print_parser.add_argument('column_names',metavar='NAME',nargs='*',help='''specify column name order''')
+    print_parser.add_argument('-s','--sort',metavar='NAME',action='append',dest='sort_columns',default=[],help='''sort on column named %(metavar)s. Can specify multiple times''')
 
     options=parser.parse_args(argv)
     if options.fun is None:
