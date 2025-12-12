@@ -7250,6 +7250,8 @@ I/O port (or several) for debugging stuff.
 
 ** precommit_tom
 
+477656e469b14d1151f4d45b6247264b5e98d260
+
 | Compiler                                       | Config         | Action | Time (s) |
 |------------------------------------------------|----------------|--------|----------|
 | Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 25.689   |
@@ -7264,5 +7266,96 @@ I/O port (or several) for debugging stuff.
 | gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.566   |
 | gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 112.043  |
 | gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.727   |
+
+** precommit (macOS)
+
+477656e469b14d1151f4d45b6247264b5e98d260
+
+*** 16 groups
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   12.020 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   32.645 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   17.425 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |   10.617 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   28.613 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   13.845 |
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   11.728 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   31.501 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   17.161 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |   10.278 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   28.456 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   12.313 |
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   11.689 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   32.402 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   17.306 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |    9.567 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   28.470 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   12.681 |
+
+*** 32 groups
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   12.529 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   32.072 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   18.547 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |   10.275 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   31.728 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   12.350 |
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   12.556 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   31.807 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   18.565 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |    9.861 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   31.714 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   12.732 |
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   12.571 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   32.574 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   18.780 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |   10.417 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   31.917 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   13.428 |
+
+*** 64 groups
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   12.835 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   34.330 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   18.053 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |   10.326 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   29.820 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   13.083 |
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   12.838 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   31.750 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   18.310 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |   10.160 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   30.042 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   12.674 |
+
+| Compiler                                      | Config         | Action | Time (s) |
+|-----------------------------------------------+----------------+--------+----------|
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Build  |   12.794 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Debug          | Test   |   31.791 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Build  |   18.135 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | Final          | Test   |   10.023 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   29.932 |
+| Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   12.521 |
 
 * eof.
