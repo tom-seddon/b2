@@ -7252,6 +7252,8 @@ I/O port (or several) for debugging stuff.
 
 477656e469b14d1151f4d45b6247264b5e98d260
 
+*** 16 groups
+
 | Compiler                                       | Config         | Action | Time (s) |
 |------------------------------------------------|----------------|--------|----------|
 | Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 25.689   |
@@ -7266,6 +7268,184 @@ I/O port (or several) for debugging stuff.
 | gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.566   |
 | gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 112.043  |
 | gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.727   |
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 23.597   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.784   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 43.586   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 11.973   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 86.157   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.378   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 33.040   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.254   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 56.124   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.370   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 115.056  |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.737   |
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 24.013   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.339   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 43.211   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.200   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 84.677   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.546   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 32.965   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.770   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 56.252   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.205   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 112.281  |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.646   |
+
+*** 32 groups
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 22.904   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 32.800   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 39.980   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.338   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 76.191   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.546   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 31.320   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 32.030   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 50.569   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.629   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 101.052  |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.907   |
+
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 22.508   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 32.122   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 41.102   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.261   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 73.213   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.849   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 31.639   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 32.055   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 49.278   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.520   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 102.236  |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.775   |
+
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 22.517   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 32.791   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 40.984   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.261   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 77.595   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.771   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 31.326   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.965   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 50.925   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.588   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 100.158  |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.971   |
+
+*** 64 groups
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 22.392   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.802   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 42.592   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.126   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 63.540   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.912   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 27.984   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.440   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 44.911   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.723   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 84.720   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.534   |
+
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 22.557   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.993   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 41.335   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.300   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 63.046   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.841   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 27.751   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.870   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 44.088   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 13.190   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 84.482   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 14.005   |
+
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 22.569   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.869   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 42.568   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.340   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 62.113   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.836   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 28.036   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.352   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 44.250   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.500   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 85.080   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 14.069   |
+
+*** 128 groups
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 23.504   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.829   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 44.559   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 11.978   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 63.923   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.811   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 28.443   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.320   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 47.366   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.392   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 86.571   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 14.032   |
+
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 23.727   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.589   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 45.487   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.184   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 63.304   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.716   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 28.418   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.798   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 47.812   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 13.374   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 85.094   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.670   |
+
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 23.697   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 31.982   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 45.202   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.124   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 63.682   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.684   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 28.732   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.367   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 47.864   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.482   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 85.142   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.846   |
+
 
 ** precommit (macOS)
 

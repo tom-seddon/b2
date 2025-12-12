@@ -286,7 +286,7 @@ precommit_tom:
 	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-clang.
 	@$(TIME_JOBS) pop
 
-	@$(TIME_JOBS) print -s Config -s Compiler
+	@$(TIME_JOBS) print -s Config -s Compiler $(if $(JOB_TIMES_FILE),>> $(JOB_TIMES_FILE))
 
 ##########################################################################
 ##########################################################################
