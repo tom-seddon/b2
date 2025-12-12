@@ -7248,4 +7248,21 @@ I/O port (or several) for debugging stuff.
 | VS2022   | Final          | Build  | 62.055   |
 | VS2022   | Final          | Test   | 17.848   |
 
+** precommit_tom
+
+| Compiler                                       | Config         | Action | Time (s) |
+|------------------------------------------------|----------------|--------|----------|
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Build  | 25.689   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Debug          | Test   | 32.055   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Build  | 44.387   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | Final          | Test   | 12.295   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Build  | 86.073   |
+| Ubuntu clang version 19.1.1 (1ubuntu1~24.04.2) | RelWithDebInfo | Test   | 13.429   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Build  | 32.415   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Debug          | Test   | 31.545   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Build  | 55.381   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | Final          | Test   | 12.566   |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Build  | 112.043  |
+| gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0      | RelWithDebInfo | Test   | 13.727   |
+
 * eof.
