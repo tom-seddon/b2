@@ -2998,7 +2998,7 @@ class NVRAMDebugWindow : public DebugUI {
             ImGui::Text("Default Shift lock: %s\n", BOOL_STR(nvram[11] & 8));
             ImGui::Text("Default No lock: %s\n", BOOL_STR(nvram[11] & 16));
             ImGui::Text("Default Caps lock: %s\n", BOOL_STR(nvram[11] & 32));
-            ImGui::Text("Default ADFS load dir: %s\n", BOOL_STR(nvram[11] & 64));
+            ImGui::Text("Default ADFS load dir: %s\n", BOOL_STR((nvram[11] & 64) == 0));
             // nvram[11] contrary to what NAUG says...
             ImGui::Text("Default drive: %s\n", nvram[11] & 128 ? "floppy drive" : "hard drive");
             ImGui::Text("Keyboard auto-repeat delay: %d\n", nvram[12]);
