@@ -256,8 +256,10 @@ class Instr {
 
         case Mode_Nop22_CMOS:
         case Mode_Nop23_CMOS:
-        case Mode_Nop24_CMOS:
             return Mode_Zpg;
+
+        case Mode_Nop24_CMOS:
+            return Mode_Zpx;
 
         case Mode_Nop34_CMOS:
         case Mode_Nop38_CMOS:
@@ -811,6 +813,7 @@ static const std::map<std::string, std::string> ADDR_EXPRS = {
     {"resh", "0xfffd"},
     {"irql", "0xfffe"},
     {"irqh", "0xffff"},
+    {"FF00|adl", "0xff00+s->ad.b.l"}, //oddity used in the 8-cycle CMOS NOP
 };
 
 static const std::map<std::string, std::string> WHAT_EXPRS = {
@@ -1365,14 +1368,13 @@ static std::vector<InstrGen> GetAll() {
 
         G("R_NOP22_CMOS", "CMOS NOP (2 bytes, 2 cycles)", {Ri("pc++", "data", nullptr)});
 
-        G("R_NOP23_CMOS", "CMOS NOP (2 bytes, 3 cycles)", {Ri("pc", "data", nullptr), Ri("pc++", "data", nullptr)});
+        G("R_NOP23_CMOS", "CMOS NOP (2 bytes, 3 cycles)", {Ri("pc++", "adl", nullptr), Ri("adl", "data", nullptr)});
 
-        G("R_NOP24_CMOS", "CMOS NOP (2 bytes, 4 cycles)", {Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc++", "data", nullptr)});
+        G("R_NOP24_CMOS", "CMOS NOP (2 bytes, 4 cycles)", {Ri("pc++", "adl", nullptr), Ri("adl", "data!", nullptr), Ri("adl+index", "data", nullptr)}, 'x');
 
-        //G("RMW_ABS", "Read-modify-write/Absolute", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Rd("ad", "data!", nullptr), W("ad", "data!", "call"), W("ad", "data", nullptr)});
         G("R_NOP34_CMOS", "CMOS NOP (3 bytes, 4 cycles)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ri("ad", "data!", nullptr)});
 
-        G("R_NOP38_CMOS", "CMOS NOP (3 bytes, 8 cycles)", {Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc++", "data", nullptr), Ri("pc++", "data", nullptr)});
+        G("R_NOP38_CMOS", "CMOS NOP (3 bytes, 8 cycles)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ri("FF00|adl", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr)});
     }
 
 #undef R
