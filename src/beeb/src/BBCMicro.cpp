@@ -2353,6 +2353,16 @@ void BBCMicro::PrintInfo(Log *log) {
     log->f("sizeof BBCMicro::ms_update_mfns: %zu\n", sizeof ms_update_mfns);
     log->f("sizeof BBCMicro::ms_update_mfns[0]: %zu\n", sizeof ms_update_mfns[0]);
     log->f("sizeof(BBCMicro::UpdateMFn): %zu\n", sizeof(UpdateMFn));
+#if BBCMICRO_DEBUGGER
+    log->f("sizeof(BBCMicro::DebugState): %zu\n",sizeof(BBCMicro::DebugState));
+    log->f("sizeof BBCMicro::DebugState::io_byte_debug_flags: %zu\n",sizeof BBCMicro::DebugState::io_byte_debug_flags);
+    log->f("sizeof BBCMicro::DebugState::big_pages_byte_debug_flags: %zu\n",sizeof BBCMicro::DebugState::big_pages_byte_debug_flags);
+    log->f("sizeof BBCMicro::DebugState::host_address_debug_flags: %zu\n",sizeof BBCMicro::DebugState::host_address_debug_flags);
+    log->f("sizeof BBCMicro::DebugState::parasite_address_debug_flags: %zu\n",sizeof BBCMicro::DebugState::parasite_address_debug_flags);
+    log->f("(debug flags total: %zu)\n",sizeof BBCMicro::DebugState::io_byte_debug_flags+sizeof BBCMicro::DebugState::big_pages_byte_debug_flags+sizeof BBCMicro::DebugState::host_address_debug_flags+sizeof BBCMicro::DebugState::parasite_address_debug_flags);
+    log->f("sizeof(std::shared_ptr<int>)=%zu\n",sizeof(std::shared_ptr<int>));
+    log->f("sizeof(std::unique_ptr<int>)=%zu\n",sizeof(std::unique_ptr<int>));
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
