@@ -173,7 +173,6 @@ struct BBCMicroM6502Metadata {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-// TODO: need to do a pass on the thread safety of this stuff?
 
 struct BBCMicroHardwareDebugState {
     R6522::IRQ system_via_irq_breakpoints = {};
@@ -182,6 +181,14 @@ struct BBCMicroHardwareDebugState {
 
 class BBCMicroDebugState {
   public:
+    BBCMicroDebugState() = default;
+    ~BBCMicroDebugState();
+
+    BBCMicroDebugState(const BBCMicroDebugState &) = delete;
+    BBCMicroDebugState &operator=(const BBCMicroDebugState &) = delete;
+    BBCMicroDebugState(BBCMicroDebugState &&) = delete;
+    BBCMicroDebugState &operator=(BBCMicroDebugState &&) = delete;
+
     static const uint16_t INVALID_PAGE_INDEX = 0xffff;
 
     // Byte-specific debug flags.
@@ -236,9 +243,6 @@ class BBCMicroDebugState {
     // No attempt made to minimize this stuff... it doesn't go into
     // the saved states, so whatever.
 
-    // Increases every time the breakpoint state changes.
-    uint64_t breakpoints_changed_counter = 1;
-
     // Total number of bytes and/or addresses that currently have any
     // breakpoints set on them. When num_breakpoint_bytes==0, no breakpoints
     // are set.
@@ -248,14 +252,28 @@ class BBCMicroDebugState {
     size_t num_host_instruction_callbacks = 0;
     size_t num_host_write_callbacks = 0;
 
+    // Dest must point to NUM_DEBUG_FLAGS bytes. *local_breakpoints_changed_counter is compared to the breakpoints changed counter to determine whether the data actually needs copying.
+    bool CopyDebugFlags(uint8_t *dest, uint64_t *local_breakpoints_changed_counter) const;
+
+    uint64_t GetBreakpointsChangedCounter() const;
+
+  protected:
+  private:
+    void BreakpointsDidChange();
+
+    // The breakpoint changed counter will never be 0.
+    std::atomic<uint64_t> m_breakpoints_changed_counter{1};
+
+    // The debug flags table.
+    uint8_t m_debug_flags[NUM_DEBUG_FLAGS] = {};
+
     // List of indexes of temp execute breakpoint flags to be reset on a halt. Each entry is an index into debug_flags.
     //
     // Entries are added to this list, but not removed - there's not really
     // much point.
-    std::vector<uint32_t> temp_execute_breakpoints;
+    std::vector<uint32_t> m_temp_execute_breakpoints;
 
-    // The debug flags table.
-    uint8_t debug_flags[NUM_DEBUG_FLAGS] = {};
+    friend class BBCMicro;
 };
 #endif
 
@@ -653,10 +671,6 @@ class BBCMicro : private WD1770Handler {
 
     static uint32_t DebugGetCurrentStateOverride(const BBCMicroState *state);
 
-    // The breakpoints change counter is incremented any time the set of
-    // breakpoints changes.
-    uint64_t DebugGetBreakpointsChangeCounter() const;
-
     void DebugResetRelativeCycleBase(uint32_t dso);
     void DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso);
 
@@ -976,6 +990,12 @@ class BBCMicro : private WD1770Handler {
     static const void *GetDebugMMIOReadADCContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadACIAContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadADJIContext(const BBCMicroReadOnlyState *state);
+#endif
+
+#if BBCMICRO_DEBUGGER
+    static uint8_t *GetByteDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug);
+    static uint8_t *GetAddressDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug);
+    static void GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint8_t **write_io_debug_flags, const BigPageMetadata *metadata, BBCMicroDebugState *debug);
 #endif
 
     // List terminated by nullptr - slightly odd arrangement that means the

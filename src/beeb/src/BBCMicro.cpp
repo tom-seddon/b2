@@ -70,89 +70,6 @@ const TraceEventType BBCMicro::INSTRUCTION_EVENT("Instruction", sizeof(Instructi
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static uint8_t *GetByteDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug) {
-    if (debug) {
-        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
-            return &debug->debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + metadata->debug_flags_index.i * BIG_PAGE_SIZE_BYTES];
-        }
-    }
-
-    return nullptr;
-}
-#endif
-
-#if BBCMICRO_DEBUGGER
-static uint8_t *GetAddressDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug) {
-    if (debug) {
-        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
-            if (metadata->is_parasite) {
-                return &debug->debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + metadata->addr];
-            } else {
-                return &debug->debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + metadata->addr];
-            }
-        }
-    }
-
-    return nullptr;
-}
-#endif
-
-#if BBCMICRO_DEBUGGER
-static void GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint8_t **write_io_debug_flags, const BigPageMetadata *metadata, BBCMicroDebugState *debug) {
-    if (debug) {
-        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
-            if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
-                // TODO: "region" is the wrong name for these values
-                if (metadata->host_io_flags & HostIOFlag_IFJ) {
-                    for (uint8_t region = 0; region < 16; ++region) {
-                        write_io_debug_flags[region] = &debug->debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
-                                                                           (BBCMicroIOByteDebugFlagRegion_IFJ + region) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
-                    }
-                } else {
-                    for (uint8_t region = 0; region < 16; ++region) {
-                        write_io_debug_flags[region] = &debug->debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
-                                                                           (BBCMicroIOByteDebugFlagRegion_XFJ + region) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
-                    }
-                }
-
-                for (uint8_t region = 0; region < 7; ++region) {
-                    write_io_debug_flags[16 + region] = &debug->debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
-                                                                            (BBCMicroIOByteDebugFlagRegion_S_XTU + region) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
-                }
-
-                if (metadata->host_io_flags & HostIOFlag_ITU) {
-                    write_io_debug_flags[23] = &debug->debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX + BBCMicroIOByteDebugFlagRegion_S_ITU * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
-                } else {
-                    write_io_debug_flags[23] = &debug->debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
-                                                                   (BBCMicroIOByteDebugFlagRegion_S_XTU + 7) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
-                }
-
-                if (metadata->host_io_flags & HostIOFlag_TST) {
-                    for (uint8_t region = 0; region < 24; ++region) {
-                        read_io_debug_flags[region] = &debug->debug_flags[(BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + metadata->debug_flags_index.i) * BIG_PAGE_SIZE_BYTES] + IO_BEGIN_ADDRESS.p.o + region * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES;
-                    }
-                } else {
-                    for (uint8_t region = 0; region < 24; ++region) {
-                        read_io_debug_flags[region] = write_io_debug_flags[region];
-                    }
-                }
-
-                return;
-            }
-        }
-    }
-
-    for (uint8_t region = 0; region < 24; ++region) {
-        read_io_debug_flags[region] = nullptr;
-        write_io_debug_flags[region] = nullptr;
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 class BBCMicroReadOnlyStateWithDebugMMIO : public BBCMicroReadOnlyState {
   public:
     explicit BBCMicroReadOnlyStateWithDebugMMIO(const BBCMicroUniqueState &src, std::shared_ptr<BBCMicro::DebugReadMMIOData> debug_read_mmio_data)
@@ -280,6 +197,14 @@ std::vector<uint8_t> PrinterBuffer::GetData() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+BBCMicroDebugState::~BBCMicroDebugState() {
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 bool BBCMicroDebugState::IsAddressDebugFlagIndex(uint32_t debug_flag_index) {
     if (debug_flag_index >= HOST_ADDRESS_DEBUG_FLAGS_INDEX && debug_flag_index < HOST_ADDRESS_DEBUG_FLAGS_INDEX + NUM_HOST_ADDRESS_DEBUG_FLAGS) {
         return true;
@@ -357,6 +282,41 @@ void BBCMicroDebugState::GetDetailsFromByteDebugFlagIndex(BigPageIndex *big_page
         *big_page_index = INVALID_BIG_PAGE_INDEX;
         *big_page_offset = 0;
     }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+bool BBCMicroDebugState::CopyDebugFlags(uint8_t *dest, uint64_t *local_breakpoints_changed_counter) const {
+    uint64_t breakpoints_changed_counter = this->GetBreakpointsChangedCounter();
+    if (breakpoints_changed_counter != *local_breakpoints_changed_counter) {
+        memcpy(dest, m_debug_flags, sizeof m_debug_flags);
+        *local_breakpoints_changed_counter = breakpoints_changed_counter;
+        return true;
+    } else {
+        return false;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+uint64_t BBCMicroDebugState::GetBreakpointsChangedCounter() const {
+    return m_breakpoints_changed_counter.load(std::memory_order_acquire);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicroDebugState::BreakpointsDidChange() {
+    std::atomic_thread_fence(std::memory_order_release);
+    m_breakpoints_changed_counter.fetch_add(1, std::memory_order_acq_rel);
 }
 #endif
 
@@ -1862,9 +1822,9 @@ void BBCMicro::DebugModifyWriteByteDebugFlags(BigPageIndex big_page_index,
 uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const {
     if (m_debug) {
         if (dso & BBCMicroDebugStateOverride_Parasite) {
-            return m_debug->debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
+            return m_debug->m_debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
         } else {
-            return m_debug->debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
+            return m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
         }
     } else {
         return 0;
@@ -1885,7 +1845,7 @@ void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_
             debug_flags_index = BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + addr.w;
         }
 
-        uint8_t *addr_flags = &m_debug->debug_flags[debug_flags_index];
+        uint8_t *addr_flags = &m_debug->m_debug_flags[debug_flags_index];
         uint8_t new_flags = (*addr_flags & ~clear_flags) | set_flags;
 
         if (*addr_flags != new_flags) {
@@ -1898,10 +1858,10 @@ void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_
 
             *addr_flags = new_flags;
 
-            ++m_debug->breakpoints_changed_counter;
+            m_debug->BreakpointsDidChange();
 
             if (new_flags & BBCMicroByteDebugFlag_TempBreakExecute) {
-                m_debug->temp_execute_breakpoints.push_back(debug_flags_index);
+                m_debug->m_temp_execute_breakpoints.push_back(debug_flags_index);
             }
         }
 
@@ -1916,12 +1876,12 @@ void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugResetAllAddressAndByteDebugFlags() {
     if (m_debug) {
-        memset(m_debug->debug_flags, 0, sizeof m_debug->debug_flags);
+        memset(m_debug->m_debug_flags, 0, sizeof m_debug->m_debug_flags);
 
-        m_debug->temp_execute_breakpoints.clear();
+        m_debug->m_temp_execute_breakpoints.clear();
         m_debug->num_breakpoint_bytes = 0;
 
-        ++m_debug->breakpoints_changed_counter;
+        m_debug->BreakpointsDidChange();
 
         this->UpdateCPUDataBusFn();
     }
@@ -1986,10 +1946,10 @@ void BBCMicro::DebugHalt(BBCMicroHaltReason reason, const BBCMicroM6502Metadata 
         m_debug->halt_cpu_metadata = cpu_metadata;
         m_debug->halt_addr = addr;
 
-        if (!m_debug->temp_execute_breakpoints.empty()) {
-            for (uint32_t index : m_debug->temp_execute_breakpoints) {
+        if (!m_debug->m_temp_execute_breakpoints.empty()) {
+            for (uint32_t index : m_debug->m_temp_execute_breakpoints) {
                 ASSERT(index < BBCMicroDebugState::NUM_DEBUG_FLAGS);
-                uint8_t *flags = &m_debug->debug_flags[index];
+                uint8_t *flags = &m_debug->m_debug_flags[index];
 
                 uint8_t old = *flags;
                 *flags &= (uint8_t)~BBCMicroByteDebugFlag_TempBreakExecute;
@@ -1999,9 +1959,9 @@ void BBCMicro::DebugHalt(BBCMicroHaltReason reason, const BBCMicroM6502Metadata 
                 }
             }
 
-            m_debug->temp_execute_breakpoints.clear();
+            m_debug->m_temp_execute_breakpoints.clear();
 
-            ++m_debug->breakpoints_changed_counter;
+            m_debug->BreakpointsDidChange();
 
             this->UpdateCPUDataBusFn();
         }
@@ -2195,19 +2155,6 @@ uint32_t BBCMicro::DebugGetCurrentStateOverride(const BBCMicroState *state) {
     }
 
     return dso;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
-    if (m_debug) {
-        return m_debug->breakpoints_changed_counter;
-    } else {
-        return 0;
-    }
 }
 #endif
 
@@ -3903,12 +3850,12 @@ void BBCMicro::DebugModifyByteDebugFlags(BigPageIndex big_page_index, M6502Word 
 
             *byte_flags = new_flags;
 
-            ++m_debug->breakpoints_changed_counter;
+            m_debug->BreakpointsDidChange();
 
             if (new_flags & BBCMicroByteDebugFlag_TempBreakExecute) {
-                ASSERT((uintptr_t)byte_flags >= (uintptr_t)m_debug->debug_flags &&
-                       (uintptr_t)byte_flags < (uintptr_t)m_debug->debug_flags + sizeof m_debug->debug_flags);
-                m_debug->temp_execute_breakpoints.push_back((uint32_t)(byte_flags - m_debug->debug_flags));
+                ASSERT((uintptr_t)byte_flags >= (uintptr_t)m_debug->m_debug_flags &&
+                       (uintptr_t)byte_flags < (uintptr_t)m_debug->m_debug_flags + sizeof m_debug->m_debug_flags);
+                m_debug->m_temp_execute_breakpoints.push_back((uint32_t)(byte_flags - m_debug->m_debug_flags));
             }
         }
 
@@ -4046,5 +3993,94 @@ const void *BBCMicro::GetDebugMMIOReadACIAContext(const BBCMicroReadOnlyState *s
 #if BBCMICRO_DEBUGGER
 const void *BBCMicro::GetDebugMMIOReadADJIContext(const BBCMicroReadOnlyState *state) {
     return &state->digital_joystick_state;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+uint8_t *BBCMicro::GetByteDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug) {
+    if (debug) {
+        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
+            return &debug->m_debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + metadata->debug_flags_index.i * BIG_PAGE_SIZE_BYTES];
+        }
+    }
+
+    return nullptr;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+uint8_t *BBCMicro::GetAddressDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug) {
+    if (debug) {
+        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
+            if (metadata->is_parasite) {
+                return &debug->m_debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + metadata->addr];
+            } else {
+                return &debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + metadata->addr];
+            }
+        }
+    }
+
+    return nullptr;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint8_t **write_io_debug_flags, const BigPageMetadata *metadata, BBCMicroDebugState *debug) {
+    if (debug) {
+        if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
+            if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
+                // TODO: "region" is the wrong name for these values
+                if (metadata->host_io_flags & HostIOFlag_IFJ) {
+                    for (uint8_t region = 0; region < 16; ++region) {
+                        write_io_debug_flags[region] = &debug->m_debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
+                                                                             (BBCMicroIOByteDebugFlagRegion_IFJ + region) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
+                    }
+                } else {
+                    for (uint8_t region = 0; region < 16; ++region) {
+                        write_io_debug_flags[region] = &debug->m_debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
+                                                                             (BBCMicroIOByteDebugFlagRegion_XFJ + region) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
+                    }
+                }
+
+                for (uint8_t region = 0; region < 7; ++region) {
+                    write_io_debug_flags[16 + region] = &debug->m_debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
+                                                                              (BBCMicroIOByteDebugFlagRegion_S_XTU + region) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
+                }
+
+                if (metadata->host_io_flags & HostIOFlag_ITU) {
+                    write_io_debug_flags[23] = &debug->m_debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX + BBCMicroIOByteDebugFlagRegion_S_ITU * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
+                } else {
+                    write_io_debug_flags[23] = &debug->m_debug_flags[BBCMicroDebugState::IO_BYTE_DEBUG_FLAGS_INDEX +
+                                                                     (BBCMicroIOByteDebugFlagRegion_S_XTU + 7) * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
+                }
+
+                if (metadata->host_io_flags & HostIOFlag_TST) {
+                    for (uint8_t region = 0; region < 24; ++region) {
+                        read_io_debug_flags[region] = &debug->m_debug_flags[(BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + metadata->debug_flags_index.i) * BIG_PAGE_SIZE_BYTES] + IO_BEGIN_ADDRESS.p.o + region * BBCMicroDebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES;
+                    }
+                } else {
+                    for (uint8_t region = 0; region < 24; ++region) {
+                        read_io_debug_flags[region] = write_io_debug_flags[region];
+                    }
+                }
+
+                return;
+            }
+        }
+    }
+
+    for (uint8_t region = 0; region < 24; ++region) {
+        read_io_debug_flags[region] = nullptr;
+        write_io_debug_flags[region] = nullptr;
+    }
 }
 #endif

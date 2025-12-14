@@ -172,21 +172,21 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
                 // The parasite paging is uncomplicated, and the byte address
                 // flags can be treated as a single 64 KB array.
-                uint8_t flags = (m_debug->debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX +
-                                                      m_state.parasite_cpu.abus.w] |
-                                 m_debug->debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX +
-                                                      PARASITE_BIG_PAGE_INDEX.i * BIG_PAGE_SIZE_BYTES +
-                                                      m_state.parasite_cpu.abus.w]);
+                uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX +
+                                                        m_state.parasite_cpu.abus.w] |
+                                 m_debug->m_debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX +
+                                                        PARASITE_BIG_PAGE_INDEX.i * BIG_PAGE_SIZE_BYTES +
+                                                        m_state.parasite_cpu.abus.w]);
 
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
                     // Really not concerned about the efficiency of special
                     // mode. The emulator is not in this state for long.
                     if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
-                        flags = (m_debug->debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX +
-                                                      m_state.parasite_cpu.abus.w] |
-                                 m_debug->debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX +
-                                                      PARASITE_ROM_BIG_PAGE_INDEX.i * BIG_PAGE_SIZE_BYTES +
-                                                      m_state.parasite_cpu.abus.p.o]);
+                        flags = (m_debug->m_debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX +
+                                                        m_state.parasite_cpu.abus.w] |
+                                 m_debug->m_debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX +
+                                                        PARASITE_ROM_BIG_PAGE_INDEX.i * BIG_PAGE_SIZE_BYTES +
+                                                        m_state.parasite_cpu.abus.p.o]);
                     }
                 }
 
@@ -217,11 +217,11 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
                 // The parasite paging is uncomplicated, and the byte address
                 // flags can be treated as a single 64 KB array.
-                uint8_t flags = (m_debug->debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX +
-                                                      m_state.parasite_cpu.abus.w] |
-                                 m_debug->debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX +
-                                                      PARASITE_BIG_PAGE_INDEX.i * BIG_PAGE_SIZE_BYTES +
-                                                      m_state.parasite_cpu.abus.w]);
+                uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX +
+                                                        m_state.parasite_cpu.abus.w] |
+                                 m_debug->m_debug_flags[BBCMicroDebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX +
+                                                        PARASITE_BIG_PAGE_INDEX.i * BIG_PAGE_SIZE_BYTES +
+                                                        m_state.parasite_cpu.abus.w]);
                 if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
                     this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_relative_base, flags);
                 }
@@ -506,7 +506,7 @@ parasite_update_done:
 
 #if BBCMICRO_DEBUGGER
                     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                        uint8_t flags = (m_debug->debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
+                        uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                          m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->read_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
                         if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
                             this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
@@ -561,7 +561,7 @@ parasite_update_done:
 
 #if BBCMICRO_DEBUGGER
                         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                            uint8_t flags = (m_debug->debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
+                            uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                              m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
                             if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
                                 this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
@@ -589,7 +589,7 @@ parasite_update_done:
                     (*write_mmio->fn)(write_mmio->context, m_state.cpu.abus, m_state.cpu.dbus);
 #if BBCMICRO_DEBUGGER
                     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                        uint8_t flags = (m_debug->debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
+                        uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                          m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->write_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
                         if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
                             this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
@@ -601,7 +601,7 @@ parasite_update_done:
 
 #if BBCMICRO_DEBUGGER
                     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                        uint8_t flags = (m_debug->debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
+                        uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                          m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
 
                         if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {

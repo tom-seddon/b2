@@ -1167,7 +1167,7 @@ class SystemDebugWindow : public DebugUI {
         }
 
         ImGuiHeader("Other Internal State");
-        ImGui::Text("Breakpoint change counter = %" PRIu64, m_beeb_debug_state->breakpoints_changed_counter);
+        ImGui::Text("Breakpoint change counter = %" PRIu64, m_beeb_debug_state->GetBreakpointsChangedCounter()); // TODO: ok, so is it "change" or "changed"
         ImGui::Text("Num bytes+addresses with breakpoints = %" PRIu64, m_beeb_debug_state->num_breakpoint_bytes);
         ImGui::Text("Num host instruction callbacks = %zu", m_beeb_debug_state->num_host_instruction_callbacks);
         ImGui::Text("Num host write callbacks = %zu", m_beeb_debug_state->num_host_write_callbacks);
@@ -3356,12 +3356,7 @@ class BreakpointsDebugWindow : public DebugUI {
         bool changed = false;
 
         if (m_beeb_debug_state) {
-            if (m_beeb_debug_state->breakpoints_changed_counter != m_breakpoints_change_counter) {
-                //m->DebugGetDebugFlags(m_host_address_debug_flags, m_parasite_address_debug_flags, &m_big_page_debug_flags[0][0]);
-
-                memcpy(m_debug_flags, m_beeb_debug_state->debug_flags, BBCMicroDebugState::NUM_DEBUG_FLAGS);
-
-                m_breakpoints_change_counter = m_beeb_debug_state->breakpoints_changed_counter;
+            if (m_beeb_debug_state->CopyDebugFlags(m_debug_flags, &m_breakpoints_change_counter)) {
                 ++m_num_updates;
                 changed = true;
             }
