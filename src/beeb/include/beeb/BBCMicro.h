@@ -188,7 +188,6 @@ class BBCMicro : private WD1770Handler {
     };
 
 #if BBCMICRO_DEBUGGER
-
     struct UpdateMFnData {
         // number of cycles spent in each state
         CycleCount update_mfn_cycle_count[NUM_BBCMICRO_UPDATE_MFNS] = {};
@@ -209,6 +208,21 @@ class BBCMicro : private WD1770Handler {
 
     struct DebugState {
         static const uint16_t INVALID_PAGE_INDEX = 0xffff;
+
+        static constexpr uint32_t BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX = 0;
+        static constexpr uint32_t NUM_BIG_PAGES_BYTE_DEBUG_FLAGS = NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
+
+        static constexpr uint32_t IO_BYTE_DEBUG_FLAGS_INDEX = BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + NUM_BIG_PAGES_BYTE_DEBUG_FLAGS;
+        static constexpr uint32_t IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES = 32;
+        static constexpr uint32_t NUM_IO_BYTE_DEBUG_FLAGS = BBCMicroIOByteDebugFlagRegion_Count * IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES;
+
+        static constexpr uint32_t HOST_ADDRESS_DEBUG_FLAGS_INDEX = IO_BYTE_DEBUG_FLAGS_INDEX + NUM_IO_BYTE_DEBUG_FLAGS;
+        static constexpr uint32_t NUM_HOST_ADDRESS_DEBUG_FLAGS = 65536;
+
+        static constexpr uint32_t PARASITE_ADDRESS_DEBUG_FLAGS_INDEX = HOST_ADDRESS_DEBUG_FLAGS_INDEX + NUM_HOST_ADDRESS_DEBUG_FLAGS;
+        static constexpr uint32_t NUM_PARASITE_ADDRESS_DEBUG_FLAGS = 65536;
+
+        static constexpr uint32_t NUM_DEBUG_FLAGS = PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + NUM_PARASITE_ADDRESS_DEBUG_FLAGS;
 
         struct RelativeCycleCountBase {
             // Cycle count of most recent reset, or invalid if no such.
@@ -247,10 +261,10 @@ class BBCMicro : private WD1770Handler {
         //
         // (It's not great, having these all jammed into one slightly inscrutable
         // array, but it simplifies an assert.)
-        uint8_t io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_Count][32] = {};
+        //        uint8_t io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_Count][32] = {};
 
         // Byte-specific breakpoint flags.
-        uint8_t big_pages_byte_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
+        //        uint8_t big_pages_byte_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
 
         // Increases every time the breakpoint state changes.
         uint64_t breakpoints_changed_counter = 1;
@@ -264,22 +278,22 @@ class BBCMicro : private WD1770Handler {
         size_t num_host_instruction_callbacks = 0;
         size_t num_host_write_callbacks = 0;
 
-        // List of temp execute breakpoints to be reset on a halt. Each entry is
-        // a pointer to one of the bytes in big_pages_debug_flags or
-        // address_debug_flags.
+        // List of indexes of temp execute breakpoint flags to be reset on a halt. Each entry is an index into debug_flags.
         //
         // Entries are added to this list, but not removed - there's not really
         // much point.
-        std::vector<uint8_t *> temp_execute_breakpoints;
+        std::vector<uint32_t> temp_execute_breakpoints;
 
-        // Host address-specific breakpoint flags.
-        uint8_t host_address_debug_flags[65536] = {};
-
-        // Parasite address-specific breakpoint flags.
+        uint8_t debug_flags[NUM_DEBUG_FLAGS] = {};
         //
-        // (This buffer exists even if the parasite is disabled. 64 KB just
-        // isn't enough to worry about any more.)
-        uint8_t parasite_address_debug_flags[65536] = {};
+        //        // Host address-specific breakpoint flags.
+        //        uint8_t host_address_debug_flags[65536] = {};
+        //
+        //        // Parasite address-specific breakpoint flags.
+        //        //
+        //        // (This buffer exists even if the parasite is disabled. 64 KB just
+        //        // isn't enough to worry about any more.)
+        //        uint8_t parasite_address_debug_flags[65536] = {};
     };
 #endif
 
