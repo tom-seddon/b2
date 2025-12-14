@@ -2021,7 +2021,7 @@ class DebuggerTestBreakpointsB : public Test {
         printf("host_io_flags_for_breakpoint=%d addr=0x%x write=%s: should_succeed=%s\n", m_host_io_flags_for_breakpoint, addr, BOOL_STR(m_write), BOOL_STR(should_succeed));
         TestBBCMicro bbc(m_type);
         TEST_TRUE(bbc.GetTypeID() == BBCMicroTypeID_B || bbc.GetTypeID() == BBCMicroTypeID_BPlus);
-        bbc.SetDebugState(std::make_shared<BBCMicro::DebugState>());
+        bbc.SetDebugState(std::make_shared<BBCMicroDebugState>());
         if (m_verbose) {
             bbc.StartCaptureOSWRCH();
         }
@@ -2059,7 +2059,7 @@ class DebuggerTestBreakpointsB : public Test {
             LOG(BBC_OUTPUT).EnsureBOL();
         }
 
-        std::shared_ptr<const BBCMicro::DebugState> debug = bbc.GetDebugState();
+        std::shared_ptr<const BBCMicroDebugState> debug = bbc.GetDebugState();
         TEST_NON_NULL(debug);
         if (should_succeed) {
             TEST_NE_II(bbc.DebugGetHaltReason(), BBCMicroHaltReason_None);
@@ -2192,7 +2192,7 @@ class DebuggerTestBreakpointsMaster : public Test {
         printf("bp=%s sys=%s addr=0x%x write=%s: should_succeed=%s\n", GetDescription(m_host_io_flags_for_breakpoint).c_str(), GetDescription(m_host_io_flags_for_system).c_str(), addr, BOOL_STR(m_write), BOOL_STR(should_succeed));
 
         TestBBCMicro bbc(m_type);
-        bbc.SetDebugState(std::make_shared<BBCMicro::DebugState>());
+        bbc.SetDebugState(std::make_shared<BBCMicroDebugState>());
         TEST_TRUE(bbc.GetTypeID() == BBCMicroTypeID_Master || bbc.GetTypeID() == BBCMicroTypeID_MasterCompact);
         bbc.RunUntilOSWORD0(10.0);
 
@@ -2242,7 +2242,7 @@ class DebuggerTestBreakpointsMaster : public Test {
             bbc.SaveTestTrace(m_name + "." + strprintf("%04x", addr));
         }
 
-        std::shared_ptr<const BBCMicro::DebugState> debug = bbc.GetDebugState();
+        std::shared_ptr<const BBCMicroDebugState> debug = bbc.GetDebugState();
         TEST_NON_NULL(debug);
         if (should_succeed) {
             TEST_NE_II(bbc.DebugGetHaltReason(), BBCMicroHaltReason_None);

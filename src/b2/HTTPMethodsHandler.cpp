@@ -826,7 +826,7 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
         std::shared_ptr<const BBCMicroReadOnlyState> state;
-        std::shared_ptr<const BBCMicro::DebugState> debug_state;
+        std::shared_ptr<const BBCMicroDebugState> debug_state;
         beeb_thread->DebugGetState(&state, &debug_state);
 
         BBCMicro::ReadOnlyBigPage bp;

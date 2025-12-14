@@ -32,6 +32,7 @@ class BeebKeymap;
 class ImGuiStuff;
 class SymbolTable;
 struct Disc;
+enum BBCMicroHaltReason : uint8_t;
 
 #include "keys.h"
 #include <string>
@@ -50,7 +51,6 @@ struct Disc;
 #include <condition_variable>
 #include <thread>
 #include "json.h"
-#include <beeb/BBCMicro.h>
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"

@@ -273,7 +273,7 @@ class DebugUI : public SettingsUI {
     bool m_debug_read_mmio = true;
 
     std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
-    std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
+    std::shared_ptr<const BBCMicroDebugState> m_beeb_debug_state;
 
     virtual void DoImGui2() = 0;
 
@@ -1207,9 +1207,9 @@ class M6502DebugWindow : public DebugUI {
         uint64_t relative_cycles;
         bool reset_on_breakpoint;
         {
-            BBCMicro::DebugState::RelativeCycleCountBase BBCMicro::DebugState::*base_mptr = BBCMicro::DebugGetRelativeCycleCountBaseMPtr(*m_beeb_state, m_dso);
+            BBCMicroDebugState::RelativeCycleCountBase BBCMicroDebugState::*base_mptr = BBCMicro::DebugGetRelativeCycleCountBaseMPtr(*m_beeb_state, m_dso);
             ASSERT(base_mptr);
-            const BBCMicro::DebugState::RelativeCycleCountBase *base = &((*m_beeb_debug_state).*base_mptr);
+            const BBCMicroDebugState::RelativeCycleCountBase *base = &((*m_beeb_debug_state).*base_mptr);
             reset_on_breakpoint = base->reset_on_breakpoint;
 
             CycleCount relative_base = base->recent;
@@ -2747,7 +2747,7 @@ class R6522DebugWindow : public DebugUI {
     }
 
   protected:
-    void DoRegisterValuesGui(const R6522 &via, const std::shared_ptr<const BBCMicro::DebugState> &debug_state, R6522::IRQ BBCMicro::HardwareDebugState::*irq_mptr) {
+    void DoRegisterValuesGui(const R6522 &via, const std::shared_ptr<const BBCMicroDebugState> &debug_state, R6522::IRQ BBCMicroHardwareDebugState::*irq_mptr) {
         this->DoPortRegisterValuesGui('A', via.a);
         this->DoPortRegisterValuesGui('B', via.b);
 
@@ -2778,7 +2778,7 @@ class R6522DebugWindow : public DebugUI {
 
             bool changed = false;
 
-            BBCMicro::HardwareDebugState hw = debug_state->hw;
+            BBCMicroHardwareDebugState hw = debug_state->hw;
             R6522::IRQ *irq = &(hw.*irq_mptr);
 
             ImGui::Text("Break: ");
@@ -2864,7 +2864,7 @@ class SystemVIADebugWindow : public R6522DebugWindow {
         const MC146818 *rtc = m_beeb_state->DebugGetRTC();
         const PCD8572 *eeprom = m_beeb_state->DebugGetEEPROM();
 
-        this->DoRegisterValuesGui(m_beeb_state->system_via, m_beeb_debug_state, &BBCMicro::HardwareDebugState::system_via_irq_breakpoints);
+        this->DoRegisterValuesGui(m_beeb_state->system_via, m_beeb_debug_state, &BBCMicroHardwareDebugState::system_via_irq_breakpoints);
 
         ImGui::Separator();
 
@@ -2931,7 +2931,7 @@ class UserVIADebugWindow : public R6522DebugWindow {
   public:
   protected:
     void DoImGui2() override {
-        this->DoRegisterValuesGui(m_beeb_state->user_via, m_beeb_debug_state, &BBCMicro::HardwareDebugState::user_via_irq_breakpoints);
+        this->DoRegisterValuesGui(m_beeb_state->user_via, m_beeb_debug_state, &BBCMicroHardwareDebugState::user_via_irq_breakpoints);
     }
 
   private:
@@ -3359,7 +3359,7 @@ class BreakpointsDebugWindow : public DebugUI {
             if (m_beeb_debug_state->breakpoints_changed_counter != m_breakpoints_change_counter) {
                 //m->DebugGetDebugFlags(m_host_address_debug_flags, m_parasite_address_debug_flags, &m_big_page_debug_flags[0][0]);
 
-                memcpy(m_debug_flags, m_beeb_debug_state->debug_flags, BBCMicro::DebugState::NUM_DEBUG_FLAGS);
+                memcpy(m_debug_flags, m_beeb_debug_state->debug_flags, BBCMicroDebugState::NUM_DEBUG_FLAGS);
 
                 m_breakpoints_change_counter = m_beeb_debug_state->breakpoints_changed_counter;
                 ++m_num_updates;
@@ -3407,10 +3407,10 @@ class BreakpointsDebugWindow : public DebugUI {
                 for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
                     uint32_t debug_flag_index = m_breakpoints[(size_t)i];
 
-                    if (BBCMicro::DebugState::IsAddressDebugFlagIndex(debug_flag_index)) {
+                    if (BBCMicroDebugState::IsAddressDebugFlagIndex(debug_flag_index)) {
                         M6502Word addr;
                         uint32_t dso;
-                        BBCMicro::DebugState::GetDetailsFromAddressDebugFlagIndex(&addr, &dso, debug_flag_index);
+                        BBCMicroDebugState::GetDetailsFromAddressDebugFlagIndex(&addr, &dso, debug_flag_index);
 
                         const char *system = dso & BBCMicroDebugStateOverride_Parasite ? "Parasite" : "Host";
 
@@ -3420,7 +3420,7 @@ class BreakpointsDebugWindow : public DebugUI {
                     } else {
                         BigPageIndex big_page_index;
                         uint16_t big_page_offset;
-                        BBCMicro::DebugState::GetDetailsFromByteDebugFlagIndex(&big_page_index, &big_page_offset, debug_flag_index);
+                        BBCMicroDebugState::GetDetailsFromByteDebugFlagIndex(&big_page_index, &big_page_offset, debug_flag_index);
 
                         const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[big_page_index.i];
 
@@ -3446,12 +3446,12 @@ class BreakpointsDebugWindow : public DebugUI {
     uint64_t m_num_updates = 0;
 
     // This is quite a large object, by BBC standards at least.
-    uint8_t m_debug_flags[BBCMicro::DebugState::NUM_DEBUG_FLAGS] = {};
+    uint8_t m_debug_flags[BBCMicroDebugState::NUM_DEBUG_FLAGS] = {};
 
     // The retain flag indicates that the byte should be listed even if there's
     // no breakpoint set. This prevents rows disappearing when you untick all
     // the entries.
-    std::bitset<BBCMicro::DebugState::NUM_DEBUG_FLAGS> m_debug_flags_retain;
+    std::bitset<BBCMicroDebugState::NUM_DEBUG_FLAGS> m_debug_flags_retain;
 
     std::vector<uint32_t> m_breakpoints;
 
@@ -3532,7 +3532,7 @@ class BreakpointsDebugWindow : public DebugUI {
     void Update() {
         m_breakpoints.clear();
 
-        for (uint32_t i = 0; i < BBCMicro::DebugState::NUM_DEBUG_FLAGS; ++i) {
+        for (uint32_t i = 0; i < BBCMicroDebugState::NUM_DEBUG_FLAGS; ++i) {
             if (m_debug_flags[i] || m_debug_flags_retain[i]) {
                 m_breakpoints.push_back(i);
             }

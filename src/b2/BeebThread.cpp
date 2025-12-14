@@ -2499,7 +2499,7 @@ BBCMicroHaltReason BeebThread::DebugGetHaltReason() const {
 
 #if BBCMICRO_DEBUGGER
 void BeebThread::DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr,
-                               std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const {
+                               std::shared_ptr<const BBCMicroDebugState> *debug_state_ptr) const {
     LockGuard<Mutex> lock(m_beeb_state_mutex);
 
     if (state_ptr) {
@@ -2720,7 +2720,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     std::shared_ptr<DiscImage> old_disc_images[NUM_DRIVES];
     {
 #if BBCMICRO_DEBUGGER
-        std::shared_ptr<BBCMicro::DebugState> debug_state;
+        std::shared_ptr<BBCMicroDebugState> debug_state;
 #endif
 
         if (ts->beeb) {
@@ -2743,7 +2743,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         if (!debug_state) {
             // Probably just the first time round.
             ts->log.f("Creating new BBCMicro::DebugState.\n");
-            debug_state = std::make_shared<BBCMicro::DebugState>();
+            debug_state = std::make_shared<BBCMicroDebugState>();
         }
 #endif
 

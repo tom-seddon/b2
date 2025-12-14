@@ -161,6 +161,107 @@ class Callbacks {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: is this the right thing.
+struct BBCMicroM6502Metadata {
+    const char *name = nullptr;
+#if BBCMICRO_DEBUGGER
+    uint32_t dso = 0;
+#endif
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+// TODO: need to do a pass on the thread safety of this stuff?
+
+struct BBCMicroHardwareDebugState {
+    R6522::IRQ system_via_irq_breakpoints = {};
+    R6522::IRQ user_via_irq_breakpoints = {};
+};
+
+class BBCMicroDebugState {
+  public:
+    static const uint16_t INVALID_PAGE_INDEX = 0xffff;
+
+    // Byte-specific debug flags.
+    static constexpr uint32_t BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX = 0;
+    static constexpr uint32_t NUM_BIG_PAGES_BYTE_DEBUG_FLAGS = NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
+
+    // The I/O region gets special handling. It's divided up
+    // into 32-byte pieces.
+    static constexpr uint32_t IO_BYTE_DEBUG_FLAGS_INDEX = BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + NUM_BIG_PAGES_BYTE_DEBUG_FLAGS;
+    static constexpr uint32_t IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES = 32;
+    static constexpr uint32_t NUM_IO_BYTE_DEBUG_FLAGS = BBCMicroIOByteDebugFlagRegion_Count * IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES;
+
+    // Host per-address breakpoint flags.
+    static constexpr uint32_t HOST_ADDRESS_DEBUG_FLAGS_INDEX = IO_BYTE_DEBUG_FLAGS_INDEX + NUM_IO_BYTE_DEBUG_FLAGS;
+    static constexpr uint32_t NUM_HOST_ADDRESS_DEBUG_FLAGS = 65536;
+
+    // Parasite per-address breakpoint flags. (N.B., this section of the array is always included, even if there's no parasite CPU.)
+    static constexpr uint32_t PARASITE_ADDRESS_DEBUG_FLAGS_INDEX = HOST_ADDRESS_DEBUG_FLAGS_INDEX + NUM_HOST_ADDRESS_DEBUG_FLAGS;
+    static constexpr uint32_t NUM_PARASITE_ADDRESS_DEBUG_FLAGS = 65536;
+
+    static constexpr uint32_t NUM_DEBUG_FLAGS = PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + NUM_PARASITE_ADDRESS_DEBUG_FLAGS;
+
+    static bool IsAddressDebugFlagIndex(uint32_t debug_flag_index);
+    static void GetDetailsFromAddressDebugFlagIndex(M6502Word *addr, uint32_t *dso, uint32_t debug_flag_index);
+    static void GetDetailsFromByteDebugFlagIndex(BigPageIndex *big_page_index, uint16_t *big_page_offset, uint32_t debug_flag_index);
+
+    struct RelativeCycleCountBase {
+        // Cycle count of most recent reset, or invalid if no such.
+        CycleCount recent = {};
+
+        // Cycle count of previous reset, if any. Used to provide a useful
+        // time-since-last-breakpoint indicator if a breakpoint was hit this
+        // cycle (thus overwriting hit_recent).
+        CycleCount prev = {};
+
+        // Whether to reset when a breokpoint is hit.
+        bool reset_on_breakpoint = true;
+    };
+
+    BBCMicroHaltReason halt_reason = BBCMicroHaltReason_None;
+    const BBCMicroM6502Metadata *halt_cpu_metadata = nullptr;
+    int32_t halt_addr = -1; //may be negative, indicating irrelevant...
+
+    BBCMicroStepType step_type = BBCMicroStepType_None;
+    const M6502 *step_cpu = nullptr;
+
+    BBCMicroHardwareDebugState hw;
+
+    RelativeCycleCountBase host_relative_base;
+    RelativeCycleCountBase parasite_relative_base;
+
+    // No attempt made to minimize this stuff... it doesn't go into
+    // the saved states, so whatever.
+
+    // Increases every time the breakpoint state changes.
+    uint64_t breakpoints_changed_counter = 1;
+
+    // Total number of bytes and/or addresses that currently have any
+    // breakpoints set on them. When num_breakpoint_bytes==0, no breakpoints
+    // are set.
+    uint64_t num_breakpoint_bytes = 0;
+
+    //
+    size_t num_host_instruction_callbacks = 0;
+    size_t num_host_write_callbacks = 0;
+
+    // List of indexes of temp execute breakpoint flags to be reset on a halt. Each entry is an index into debug_flags.
+    //
+    // Entries are added to this list, but not removed - there's not really
+    // much point.
+    std::vector<uint32_t> temp_execute_breakpoints;
+
+    // The debug flags table.
+    uint8_t debug_flags[NUM_DEBUG_FLAGS] = {};
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BBCMicro : private WD1770Handler {
   public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
@@ -179,14 +280,6 @@ class BBCMicro : private WD1770Handler {
 
     typedef void (*NVRAMChangedCallbackFn)(BBCMicro *, void *context);
 
-    // TODO: is this the right thing.
-    struct M6502Metadata {
-        const char *name = nullptr;
-#if BBCMICRO_DEBUGGER
-        uint32_t dso = 0;
-#endif
-    };
-
 #if BBCMICRO_DEBUGGER
     struct UpdateMFnData {
         // number of cycles spent in each state
@@ -197,94 +290,6 @@ class BBCMicro : private WD1770Handler {
 
         // Number of UpdatePaging calls
         uint64_t num_UpdatePaging_calls = 0;
-    };
-
-    // TODO: need to do a pass on the thread safety of this stuff?
-
-    struct HardwareDebugState {
-        R6522::IRQ system_via_irq_breakpoints = {};
-        R6522::IRQ user_via_irq_breakpoints = {};
-    };
-
-    struct DebugState {
-        static const uint16_t INVALID_PAGE_INDEX = 0xffff;
-
-        // Byte-specific debug flags.
-        static constexpr uint32_t BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX = 0;
-        static constexpr uint32_t NUM_BIG_PAGES_BYTE_DEBUG_FLAGS = NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
-
-        // The I/O region gets special handling. It's divided up
-        // into 32-byte pieces.
-        static constexpr uint32_t IO_BYTE_DEBUG_FLAGS_INDEX = BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + NUM_BIG_PAGES_BYTE_DEBUG_FLAGS;
-        static constexpr uint32_t IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES = 32;
-        static constexpr uint32_t NUM_IO_BYTE_DEBUG_FLAGS = BBCMicroIOByteDebugFlagRegion_Count * IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES;
-
-        // Host per-address breakpoint flags.
-        static constexpr uint32_t HOST_ADDRESS_DEBUG_FLAGS_INDEX = IO_BYTE_DEBUG_FLAGS_INDEX + NUM_IO_BYTE_DEBUG_FLAGS;
-        static constexpr uint32_t NUM_HOST_ADDRESS_DEBUG_FLAGS = 65536;
-
-        // Parasite per-address breakpoint flags. (N.B., this section of the array is always included, even if there's no parasite CPU.)
-        static constexpr uint32_t PARASITE_ADDRESS_DEBUG_FLAGS_INDEX = HOST_ADDRESS_DEBUG_FLAGS_INDEX + NUM_HOST_ADDRESS_DEBUG_FLAGS;
-        static constexpr uint32_t NUM_PARASITE_ADDRESS_DEBUG_FLAGS = 65536;
-
-        static constexpr uint32_t NUM_DEBUG_FLAGS = PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + NUM_PARASITE_ADDRESS_DEBUG_FLAGS;
-
-        static bool IsAddressDebugFlagIndex(uint32_t debug_flag_index);
-        static void GetDetailsFromAddressDebugFlagIndex(M6502Word *addr, uint32_t *dso, uint32_t debug_flag_index);
-        static void GetDetailsFromByteDebugFlagIndex(BigPageIndex *big_page_index, uint16_t *big_page_offset, uint32_t debug_flag_index);
-
-        struct RelativeCycleCountBase {
-            // Cycle count of most recent reset, or invalid if no such.
-            CycleCount recent = {};
-
-            // Cycle count of previous reset, if any. Used to provide a useful
-            // time-since-last-breakpoint indicator if a breakpoint was hit this
-            // cycle (thus overwriting hit_recent).
-            CycleCount prev = {};
-
-            // Whether to reset when a breokpoint is hit.
-            bool reset_on_breakpoint = true;
-        };
-
-        struct Breakpoint {
-            uint64_t id = 0;
-        };
-
-        BBCMicroHaltReason halt_reason = BBCMicroHaltReason_None;
-        const M6502Metadata *halt_cpu_metadata = nullptr;
-        int32_t halt_addr = -1; //may be negative, indicating irrelevant...
-
-        BBCMicroStepType step_type = BBCMicroStepType_None;
-        const M6502 *step_cpu = nullptr;
-
-        HardwareDebugState hw;
-
-        RelativeCycleCountBase host_relative_base;
-        RelativeCycleCountBase parasite_relative_base;
-
-        // No attempt made to minimize this stuff... it doesn't go into
-        // the saved states, so whatever.
-
-        // Increases every time the breakpoint state changes.
-        uint64_t breakpoints_changed_counter = 1;
-
-        // Total number of bytes and/or addresses that currently have any
-        // breakpoints set on them. When num_breakpoint_bytes==0, no breakpoints
-        // are set.
-        uint64_t num_breakpoint_bytes = 0;
-
-        //
-        size_t num_host_instruction_callbacks = 0;
-        size_t num_host_write_callbacks = 0;
-
-        // List of indexes of temp execute breakpoint flags to be reset on a halt. Each entry is an index into debug_flags.
-        //
-        // Entries are added to this list, but not removed - there's not really
-        // much point.
-        std::vector<uint32_t> temp_execute_breakpoints;
-
-        // The debug flags table.
-        uint8_t debug_flags[NUM_DEBUG_FLAGS] = {};
     };
 #endif
 
@@ -594,7 +599,7 @@ class BBCMicro : private WD1770Handler {
     const BigPage *DebugGetBigPageForAddress(M6502Word addr, bool mos, uint32_t dso) const;
     static void DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
                                           const BBCMicroState *state,
-                                          const DebugState *debug_state,
+                                          const BBCMicroDebugState *debug_state,
                                           M6502Word addr,
                                           bool mos,
                                           uint32_t dso);
@@ -627,7 +632,7 @@ class BBCMicro : private WD1770Handler {
 
     void SetExtMemory(uint32_t addr, uint8_t value);
 
-    void DebugHalt(BBCMicroHaltReason reason, const M6502Metadata *cpu_metadata, int32_t addr);
+    void DebugHalt(BBCMicroHaltReason reason, const BBCMicroM6502Metadata *cpu_metadata, int32_t addr);
 
     inline BBCMicroHaltReason DebugGetHaltReason() const {
         return m_debug_halt_reason;
@@ -639,12 +644,12 @@ class BBCMicro : private WD1770Handler {
     void DebugStepIn(uint32_t dso);
 
     bool HasDebugState() const;
-    std::shared_ptr<DebugState> TakeDebugState();
-    std::shared_ptr<const DebugState> GetDebugState() const;
-    void SetDebugState(std::shared_ptr<DebugState> debug);
+    std::shared_ptr<BBCMicroDebugState> TakeDebugState();
+    std::shared_ptr<const BBCMicroDebugState> GetDebugState() const;
+    void SetDebugState(std::shared_ptr<BBCMicroDebugState> debug);
 
-    HardwareDebugState GetHardwareDebugState() const;
-    void SetHardwareDebugState(const HardwareDebugState &hw);
+    BBCMicroHardwareDebugState GetHardwareDebugState() const;
+    void SetHardwareDebugState(const BBCMicroHardwareDebugState &hw);
 
     static uint32_t DebugGetCurrentStateOverride(const BBCMicroState *state);
 
@@ -656,7 +661,7 @@ class BBCMicro : private WD1770Handler {
     void DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso);
 
     // Bit ugly to actually use, but it at least centralises some logic.
-    static DebugState::RelativeCycleCountBase DebugState::*DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state, uint32_t dso);
+    static BBCMicroDebugState::RelativeCycleCountBase BBCMicroDebugState::*DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state, uint32_t dso);
 
 #endif
 
@@ -787,8 +792,8 @@ class BBCMicro : private WD1770Handler {
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    M6502Metadata m_host_cpu_metadata;
-    M6502Metadata m_parasite_cpu_metadata;
+    BBCMicroM6502Metadata m_host_cpu_metadata;
+    BBCMicroM6502Metadata m_parasite_cpu_metadata;
 
     // This doesn't need to be copied. The event list records its
     // influence.
@@ -819,10 +824,10 @@ class BBCMicro : private WD1770Handler {
     Callbacks<WriteFn> m_host_write_callbacks;
 
 #if BBCMICRO_DEBUGGER
-    std::shared_ptr<DebugState> m_debug_ptr;
+    std::shared_ptr<BBCMicroDebugState> m_debug_ptr;
 
     // try to avoid appalling debug build performance...
-    DebugState *m_debug = nullptr;
+    BBCMicroDebugState *m_debug = nullptr;
     BBCMicroHaltReason m_debug_halt_reason = BBCMicroHaltReason_None;
 #else
     static const bool m_debug_is_halted = false;
@@ -884,14 +889,14 @@ class BBCMicro : private WD1770Handler {
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cpu);
-    void DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::RelativeCycleCountBase *base, uint8_t flags);
+    void DebugHitBreakpoint(const M6502 *cpu, BBCMicroDebugState::RelativeCycleCountBase *base, uint8_t flags);
     void DebugHandleStep();
     // Public for the debugger's benefit.
 #endif
     static void InitReadOnlyBigPage(ReadOnlyBigPage *bp,
                                     const BBCMicroState *state,
 #if BBCMICRO_DEBUGGER
-                                    const DebugState *debug_state,
+                                    const BBCMicroDebugState *debug_state,
 #endif
                                     BigPageIndex big_page_index);
     static void GetBigPageProperties(const uint8_t **read_ptr,

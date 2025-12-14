@@ -12,11 +12,11 @@
 #include <vector>
 #include <beeb/Trace.h>
 #include "keys.h"
-#include <beeb/BBCMicro.h>
 #include <atomic>
 #include "BeebConfig.h"
 #include "MessageQueue.h"
 #include "BeebWindow.h"
+#include <beeb/BBCMicro.h>
 
 #include <shared/enum_decl.h>
 #include "BeebThread.inl"
@@ -1043,7 +1043,7 @@ class BeebThread {
 
 #if BBCMICRO_DEBUGGER
     BBCMicroHaltReason DebugGetHaltReason() const;
-    void DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
+    void DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr, std::shared_ptr<const BBCMicroDebugState> *debug_state_ptr) const;
 #endif
 
     uint32_t GetUpdateFlags() const;
@@ -1139,7 +1139,7 @@ class BeebThread {
     // get wrong.)
     mutable Mutex m_beeb_state_mutex;
     std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
-    std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
+    std::shared_ptr<const BBCMicroDebugState> m_beeb_debug_state;
     std::shared_ptr<const BBCMicro::UpdateMFnData> m_update_mfn_data;
 #endif
 
