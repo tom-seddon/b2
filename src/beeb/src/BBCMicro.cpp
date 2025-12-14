@@ -74,7 +74,6 @@ static uint8_t *GetByteDebugFlagsForBigPage(const BigPageMetadata *metadata, BBC
     if (debug) {
         if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
             return &debug->debug_flags[BBCMicro::DebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + metadata->debug_flags_index.i * BIG_PAGE_SIZE_BYTES];
-            //return debug->big_pages_byte_debug_flags[metadata->debug_flags_index.i];
         }
     }
 
@@ -88,10 +87,8 @@ static uint8_t *GetAddressDebugFlagsForBigPage(const BigPageMetadata *metadata, 
         if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
             if (metadata->is_parasite) {
                 return &debug->debug_flags[BBCMicro::DebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + metadata->addr];
-                //return &debug->parasite_address_debug_flags[metadata->addr];
             } else {
                 return &debug->debug_flags[BBCMicro::DebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + metadata->addr];
-                //return &debug->host_address_debug_flags[metadata->addr];
             }
         }
     }
@@ -105,35 +102,30 @@ static void GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint8_t
     if (debug) {
         if (metadata->addr != BigPageMetadata::INVALID_ADDR) {
             if (!(metadata->host_io_flags & HostIOFlag_NoIO)) {
+                // TODO: "region" is the wrong name for these values
                 if (metadata->host_io_flags & HostIOFlag_IFJ) {
                     for (uint8_t region = 0; region < 16; ++region) {
-                        //write_io_debug_flags[region] = debug->io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_IFJ + region];
                         write_io_debug_flags[region] = &debug->debug_flags[BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX + (BBCMicroIOByteDebugFlagRegion_IFJ + region) * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
                     }
                 } else {
                     for (uint8_t region = 0; region < 16; ++region) {
-                        //write_io_debug_flags[region] = debug->io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_XFJ + region];
                         write_io_debug_flags[region] = &debug->debug_flags[BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX + (BBCMicroIOByteDebugFlagRegion_XFJ + region) * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
                     }
                 }
 
                 for (uint8_t region = 0; region < 7; ++region) {
-                    //write_io_debug_flags[16 + region] = debug->io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_S_XTU + region];
                     write_io_debug_flags[16 + region] = &debug->debug_flags[BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX + (BBCMicroIOByteDebugFlagRegion_S_XTU + region) * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
                 }
 
                 if (metadata->host_io_flags & HostIOFlag_ITU) {
-                    //write_io_debug_flags[23] = debug->io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_S_ITU];
                     write_io_debug_flags[23] = &debug->debug_flags[BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX + BBCMicroIOByteDebugFlagRegion_S_ITU * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
                 } else {
-                    //write_io_debug_flags[23] = debug->io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_S_XTU + 7];
                     write_io_debug_flags[23] = &debug->debug_flags[BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX + (BBCMicroIOByteDebugFlagRegion_S_XTU + 7) * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES];
                 }
 
                 if (metadata->host_io_flags & HostIOFlag_TST) {
                     for (uint8_t region = 0; region < 24; ++region) {
                         read_io_debug_flags[region] = &debug->debug_flags[(BBCMicro::DebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + metadata->debug_flags_index.i) * BIG_PAGE_SIZE_BYTES] + IO_BEGIN_ADDRESS.p.o + region * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES;
-                        //read_io_debug_flags[region] = debug->big_pages_byte_debug_flags[metadata->debug_flags_index.i] + IO_BEGIN_ADDRESS.p.o + region * 32;
                     }
                 } else {
                     for (uint8_t region = 0; region < 24; ++region) {
@@ -279,6 +271,90 @@ std::vector<uint8_t> PrinterBuffer::GetData() const {
 
     return m_data;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+bool BBCMicro::DebugState::IsAddressDebugFlagIndex(uint32_t debug_flag_index) {
+    if (debug_flag_index >= HOST_ADDRESS_DEBUG_FLAGS_INDEX && debug_flag_index < HOST_ADDRESS_DEBUG_FLAGS_INDEX + NUM_HOST_ADDRESS_DEBUG_FLAGS) {
+        return true;
+    } else if (debug_flag_index >= PARASITE_ADDRESS_DEBUG_FLAGS_INDEX && debug_flag_index < PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + NUM_PARASITE_ADDRESS_DEBUG_FLAGS) {
+        return true;
+    } else {
+        return false;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugState::GetDetailsFromAddressDebugFlagIndex(M6502Word *addr, uint32_t *dso, uint32_t debug_flag_index) {
+    if (debug_flag_index >= BBCMicro::DebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX &&
+        debug_flag_index < BBCMicro::DebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + BBCMicro::DebugState::NUM_HOST_ADDRESS_DEBUG_FLAGS) {
+        static_assert(BBCMicro::DebugState::NUM_HOST_ADDRESS_DEBUG_FLAGS <= 65536);
+        addr->w = (uint16_t)(debug_flag_index - BBCMicro::DebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX);
+        *dso = 0;
+    } else if (debug_flag_index >= BBCMicro::DebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX &&
+               debug_flag_index < BBCMicro::DebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + BBCMicro::DebugState::NUM_PARASITE_ADDRESS_DEBUG_FLAGS) {
+        static_assert(BBCMicro::DebugState::NUM_PARASITE_ADDRESS_DEBUG_FLAGS <= 65536);
+        addr->w = (uint16_t)(debug_flag_index - BBCMicro::DebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX);
+        *dso = BBCMicroDebugStateOverride_Parasite;
+    } else {
+        ASSERT(false);
+        *addr = {};
+        *dso = 0;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugState::GetDetailsFromByteDebugFlagIndex(BigPageIndex *big_page_index, uint16_t *big_page_offset, uint32_t debug_flag_index) {
+    ASSERT(!IsAddressDebugFlagIndex(debug_flag_index));
+
+    if (debug_flag_index >= BBCMicro::DebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX &&
+        debug_flag_index < BBCMicro::DebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + BBCMicro::DebugState::NUM_BIG_PAGES_BYTE_DEBUG_FLAGS) {
+        *big_page_index = {(BigPageIndex::Type)((debug_flag_index - BBCMicro::DebugState::BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX) / BIG_PAGE_SIZE_BYTES)};
+        *big_page_offset = debug_flag_index % BIG_PAGE_SIZE_BYTES;
+    } else if (debug_flag_index >= BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX &&
+               debug_flag_index < BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX + BBCMicro::DebugState::NUM_IO_BYTE_DEBUG_FLAGS) {
+        auto region = (BBCMicroIOByteDebugFlagRegion)((debug_flag_index - BBCMicro::DebugState::IO_BYTE_DEBUG_FLAGS_INDEX) / BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES);
+
+        if (region >= BBCMicroIOByteDebugFlagRegion_XFJ && region < BBCMicroIOByteDebugFlagRegion_XFJ + 16) {
+            *big_page_index = FIRST_IO_BIG_PAGE_INDEX;
+            *big_page_offset = (FJ_IO_BEGIN_ADDRESS.p.o +
+                                (region - BBCMicroIOByteDebugFlagRegion_XFJ) * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES +
+                                debug_flag_index % BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES);
+        } else if (region >= BBCMicroIOByteDebugFlagRegion_IFJ && region < BBCMicroIOByteDebugFlagRegion_IFJ + 16) {
+            *big_page_index = {FIRST_IO_BIG_PAGE_INDEX.i + HostIOFlag_IFJ};
+            *big_page_offset = (FJ_IO_BEGIN_ADDRESS.p.o +
+                                (region - BBCMicroIOByteDebugFlagRegion_IFJ) * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES +
+                                debug_flag_index % BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES);
+        } else if (region >= BBCMicroIOByteDebugFlagRegion_S_XTU && region < BBCMicroIOByteDebugFlagRegion_S_XTU + 8) {
+            *big_page_index = FIRST_IO_BIG_PAGE_INDEX;
+            *big_page_offset = (S_IO_BEGIN_ADDRESS.p.o +
+                                (region - BBCMicroIOByteDebugFlagRegion_S_XTU) * BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES +
+                                debug_flag_index % BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES);
+        } else if (region == BBCMicroIOByteDebugFlagRegion_S_ITU) {
+            *big_page_index = {FIRST_IO_BIG_PAGE_INDEX.i + HostIOFlag_ITU};
+            *big_page_offset = (S_IO_BEGIN_ADDRESS.p.o + 0xe0 +
+                                debug_flag_index % BBCMicro::DebugState::IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES);
+        } else {
+            goto bad;
+        }
+    } else {
+    bad:
+        ASSERT(false);
+        *big_page_index = INVALID_BIG_PAGE_INDEX;
+        *big_page_offset = 0;
+    }
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1783,10 +1859,8 @@ uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const 
     if (m_debug) {
         if (dso & BBCMicroDebugStateOverride_Parasite) {
             return m_debug->debug_flags[BBCMicro::DebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
-            //return m_debug->parasite_address_debug_flags[addr.w];
         } else {
             return m_debug->debug_flags[BBCMicro::DebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
-            //return m_debug->host_address_debug_flags[addr.w];
         }
     } else {
         return 0;
@@ -1803,10 +1877,8 @@ void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_
         uint32_t debug_flags_index;
         if (dso & BBCMicroDebugStateOverride_Parasite) {
             debug_flags_index = BBCMicro::DebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + addr.w;
-            //addr_flags = &m_debug->parasite_address_debug_flags[addr.w];
         } else {
             debug_flags_index = BBCMicro::DebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + addr.w;
-            //addr_flags = &m_debug->host_address_debug_flags[addr.w];
         }
 
         uint8_t *addr_flags = &m_debug->debug_flags[debug_flags_index];
@@ -1841,10 +1913,6 @@ void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_
 void BBCMicro::DebugResetAllAddressAndByteDebugFlags() {
     if (m_debug) {
         memset(m_debug->debug_flags, 0, sizeof m_debug->debug_flags);
-        //        memset(m_debug->parasite_address_debug_flags, 0, sizeof m_debug->parasite_address_debug_flags);
-        //        memset(m_debug->host_address_debug_flags, 0, sizeof m_debug->host_address_debug_flags);
-        //        memset(m_debug->io_byte_debug_flags, 0, sizeof m_debug->io_byte_debug_flags);
-        //        memset(m_debug->big_pages_byte_debug_flags, 0, sizeof m_debug->big_pages_byte_debug_flags);
 
         m_debug->temp_execute_breakpoints.clear();
         m_debug->num_breakpoint_bytes = 0;

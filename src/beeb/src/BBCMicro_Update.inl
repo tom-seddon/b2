@@ -497,8 +497,6 @@ parasite_update_done:
 
 #if BBCMICRO_DEBUGGER
                     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                        //                        uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
-                        //                                         m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->read_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
                         uint8_t flags = (m_debug->debug_flags[DebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                          m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->read_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
                         if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {

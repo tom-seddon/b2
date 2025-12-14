@@ -209,20 +209,29 @@ class BBCMicro : private WD1770Handler {
     struct DebugState {
         static const uint16_t INVALID_PAGE_INDEX = 0xffff;
 
+        // Byte-specific debug flags.
         static constexpr uint32_t BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX = 0;
         static constexpr uint32_t NUM_BIG_PAGES_BYTE_DEBUG_FLAGS = NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
+        // The I/O region gets special handling. It's divided up
+        // into 32-byte pieces.
         static constexpr uint32_t IO_BYTE_DEBUG_FLAGS_INDEX = BIG_PAGES_BYTE_DEBUG_FLAGS_INDEX + NUM_BIG_PAGES_BYTE_DEBUG_FLAGS;
         static constexpr uint32_t IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES = 32;
         static constexpr uint32_t NUM_IO_BYTE_DEBUG_FLAGS = BBCMicroIOByteDebugFlagRegion_Count * IO_BYTE_DEBUG_FLAG_REGION_SIZE_BYTES;
 
+        // Host per-address breakpoint flags.
         static constexpr uint32_t HOST_ADDRESS_DEBUG_FLAGS_INDEX = IO_BYTE_DEBUG_FLAGS_INDEX + NUM_IO_BYTE_DEBUG_FLAGS;
         static constexpr uint32_t NUM_HOST_ADDRESS_DEBUG_FLAGS = 65536;
 
+        // Parasite per-address breakpoint flags. (N.B., this section of the array is always included, even if there's no parasite CPU.)
         static constexpr uint32_t PARASITE_ADDRESS_DEBUG_FLAGS_INDEX = HOST_ADDRESS_DEBUG_FLAGS_INDEX + NUM_HOST_ADDRESS_DEBUG_FLAGS;
         static constexpr uint32_t NUM_PARASITE_ADDRESS_DEBUG_FLAGS = 65536;
 
         static constexpr uint32_t NUM_DEBUG_FLAGS = PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + NUM_PARASITE_ADDRESS_DEBUG_FLAGS;
+
+        static bool IsAddressDebugFlagIndex(uint32_t debug_flag_index);
+        static void GetDetailsFromAddressDebugFlagIndex(M6502Word *addr, uint32_t *dso, uint32_t debug_flag_index);
+        static void GetDetailsFromByteDebugFlagIndex(BigPageIndex *big_page_index, uint16_t *big_page_offset, uint32_t debug_flag_index);
 
         struct RelativeCycleCountBase {
             // Cycle count of most recent reset, or invalid if no such.
@@ -256,16 +265,6 @@ class BBCMicro : private WD1770Handler {
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
 
-        // For byte-specific breakpoint purposes, the I/O region is divided up
-        // into 32-byte pieces.
-        //
-        // (It's not great, having these all jammed into one slightly inscrutable
-        // array, but it simplifies an assert.)
-        //        uint8_t io_byte_debug_flags[BBCMicroIOByteDebugFlagRegion_Count][32] = {};
-
-        // Byte-specific breakpoint flags.
-        //        uint8_t big_pages_byte_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
-
         // Increases every time the breakpoint state changes.
         uint64_t breakpoints_changed_counter = 1;
 
@@ -284,16 +283,8 @@ class BBCMicro : private WD1770Handler {
         // much point.
         std::vector<uint32_t> temp_execute_breakpoints;
 
+        // The debug flags table.
         uint8_t debug_flags[NUM_DEBUG_FLAGS] = {};
-        //
-        //        // Host address-specific breakpoint flags.
-        //        uint8_t host_address_debug_flags[65536] = {};
-        //
-        //        // Parasite address-specific breakpoint flags.
-        //        //
-        //        // (This buffer exists even if the parasite is disabled. 64 KB just
-        //        // isn't enough to worry about any more.)
-        //        uint8_t parasite_address_debug_flags[65536] = {};
     };
 #endif
 
