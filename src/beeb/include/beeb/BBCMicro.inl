@@ -243,10 +243,10 @@ EEND()
 
 #define ENAME BBCMicroIOByteDebugFlagRegion
 EBEGIN_DERIVED(uint8_t)
-EPNV(XFJ, 0)
-EPNV(IFJ, 16)
-EPNV(S_XTU, 24)
-EPNV(S_ITU, 24 + 8) //only one region here
+EPNV(XFJ, 0)        // 16*32 external FRED/JIM - 0xfc00-0xfdff
+EPNV(IFJ, 16)       // 16*32 internal FRED/JIM - 0xfc00-0xfdff
+EPNV(S_XTU, 32)     // 8*32 Sheila with XTU - 0xfe00-0xfeff
+EPNV(S_ITU, 32 + 8) // 1*32 Sheila with ITU - 0xfee0-0xfeff
 EPN(Count)
 EEND()
 #undef ENAME
