@@ -78,7 +78,7 @@ precommit:
 	@$(TIME_JOBS) push Compiler Default
 # the init step can be rather slow on macOS, so it's worth having a
 # separate option for just the clean.
-	$(if $(CLEAN),$(MAKE) _precommit ACTION=Clean) COMPILER_NAME=Default
+	$(if $(CLEAN),$(MAKE) _precommit ACTION=clean) COMPILER_NAME=Default
 	$(MAKE) _precommit ACTION=build
 	$(MAKE) _precommit ACTION=test
 	@$(TIME_JOBS) pop
