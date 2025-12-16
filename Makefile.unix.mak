@@ -82,7 +82,7 @@ precommit:
 	$(MAKE) _precommit ACTION=build
 	$(MAKE) _precommit ACTION=test
 	@$(TIME_JOBS) pop
-	@$(TIME_JOBS) print -s Config -s Compiler
+	@$(TIME_JOBS) print -s Config -s Compiler  $(if $(JOB_TIMES_FILE),| tee $(JOB_TIMES_FILE))
 
 .PHONY:_precommit
 _precommit:
