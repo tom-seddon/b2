@@ -232,13 +232,7 @@ class BBCMicroDebugState {
     const BBCMicroM6502Metadata *halt_cpu_metadata = nullptr;
     int32_t halt_addr = -1; //may be negative, indicating irrelevant...
 
-    BBCMicroStepType step_type = BBCMicroStepType_None;
-    const M6502 *step_cpu = nullptr;
-
     BBCMicroHardwareDebugState hw;
-
-    RelativeCycleCountBase host_relative_base;
-    RelativeCycleCountBase parasite_relative_base;
 
     // No attempt made to minimize this stuff... it doesn't go into
     // the saved states, so whatever.
@@ -260,6 +254,12 @@ class BBCMicroDebugState {
   protected:
   private:
     void BreakpointsDidChange();
+
+    RelativeCycleCountBase m_host_relative_base;
+    RelativeCycleCountBase m_parasite_relative_base;
+
+    BBCMicroStepType m_step_type = BBCMicroStepType_None;
+    const M6502 *m_step_cpu = nullptr;
 
     // The breakpoint changed counter will never be 0.
     std::atomic<uint64_t> m_breakpoints_changed_counter{1};
@@ -666,7 +666,7 @@ class BBCMicro : private WD1770Handler {
     std::shared_ptr<const BBCMicroDebugState> GetDebugState() const;
     void SetDebugState(std::shared_ptr<BBCMicroDebugState> debug);
 
-    BBCMicroHardwareDebugState GetHardwareDebugState() const;
+    //BBCMicroHardwareDebugState GetHardwareDebugState() const;
     void SetHardwareDebugState(const BBCMicroHardwareDebugState &hw);
 
     static uint32_t DebugGetCurrentStateOverride(const BBCMicroState *state);

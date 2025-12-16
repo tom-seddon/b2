@@ -2119,19 +2119,6 @@ void BBCMicro::SetDebugState(std::shared_ptr<BBCMicroDebugState> debug) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BBCMicroHardwareDebugState BBCMicro::GetHardwareDebugState() const {
-    if (!m_debug) {
-        return BBCMicroHardwareDebugState();
-    }
-
-    return m_debug->hw;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 void BBCMicro::SetHardwareDebugState(const BBCMicroHardwareDebugState &hw) {
     if (!m_debug) {
         return;
@@ -2198,10 +2185,10 @@ void BBCMicro::DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso) {
 BBCMicroDebugState::RelativeCycleCountBase BBCMicroDebugState::*BBCMicro::DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         if (state.parasite_type != BBCMicroParasiteType_None) {
-            return &BBCMicroDebugState::parasite_relative_base;
+            return &BBCMicroDebugState::m_parasite_relative_base;
         }
     } else {
-        return &BBCMicroDebugState::host_relative_base;
+        return &BBCMicroDebugState::m_host_relative_base;
     }
 
     return nullptr;
@@ -2604,9 +2591,9 @@ void BBCMicro::SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cp
 
     if (m_debug) {
         // changes in CPU pointer won't affect the update function.
-        if (m_debug->step_type != step_type) {
-            m_debug->step_type = step_type;
-            m_debug->step_cpu = step_cpu;
+        if (m_debug->m_step_type != step_type) {
+            m_debug->m_step_type = step_type;
+            m_debug->m_step_cpu = step_cpu;
             this->UpdateCPUDataBusFn();
         }
     }
@@ -2634,7 +2621,7 @@ void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicroDebugState::Relative
         } else if (flags & BBCMicroByteDebugFlag_BreakExecute) {
             if (cpu->read == M6502ReadType_Opcode) {
                 // Only update the hit cycle count when not stepping.
-                if (m_debug->step_type == BBCMicroStepType_None) {
+                if (m_debug->m_step_type == BBCMicroStepType_None) {
                     maybe_update_base = true;
                 }
 
@@ -2665,7 +2652,7 @@ void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicroDebugState::Relative
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugHandleStep() {
 
-    switch (m_debug->step_type) {
+    switch (m_debug->m_step_type) {
     default:
         ASSERT(false);
         [[fallthrough]];
@@ -2677,14 +2664,14 @@ void BBCMicro::DebugHandleStep() {
 
     case BBCMicroStepType_StepIn:
         {
-            ASSERT(m_debug->step_cpu);
-            auto metadata = (const BBCMicroM6502Metadata *)m_debug->step_cpu->context;
+            ASSERT(m_debug->m_step_cpu);
+            auto metadata = (const BBCMicroM6502Metadata *)m_debug->m_step_cpu->context;
 
-            if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
+            if (m_debug->m_step_cpu->read == M6502ReadType_Opcode) {
                 // Done.
                 this->DebugHalt(BBCMicroHaltReason_SingleStep, metadata, -1);
-            } else if (m_debug->step_cpu->read == M6502ReadType_Interrupt) {
-                this->DebugModifyAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso, 0, BBCMicroByteDebugFlag_TempBreakExecute);
+            } else if (m_debug->m_step_cpu->read == M6502ReadType_Interrupt) {
+                this->DebugModifyAddressDebugFlags(m_debug->m_step_cpu->pc, metadata->dso, 0, BBCMicroByteDebugFlag_TempBreakExecute);
                 //// The instruction was interrupted, so set a temp
                 //// breakpoint in the right place.
                 //uint8_t flags = this->DebugGetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso);
@@ -2699,11 +2686,11 @@ void BBCMicro::DebugHandleStep() {
 
     case BBCMicroStepType_StepIntoIRQHandler:
         {
-            ASSERT(m_debug->step_cpu);
-            auto metadata = (const BBCMicroM6502Metadata *)m_debug->step_cpu->context;
+            ASSERT(m_debug->m_step_cpu);
+            auto metadata = (const BBCMicroM6502Metadata *)m_debug->m_step_cpu->context;
 
-            ASSERT(m_debug->step_cpu->read == M6502ReadType_Opcode || m_debug->step_cpu->read == M6502ReadType_Interrupt);
-            if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
+            ASSERT(m_debug->m_step_cpu->read == M6502ReadType_Opcode || m_debug->m_step_cpu->read == M6502ReadType_Interrupt);
+            if (m_debug->m_step_cpu->read == M6502ReadType_Opcode) {
                 this->DebugHalt(BBCMicroHaltReason_Interrupt, metadata, -1);
             }
         }
@@ -3568,12 +3555,12 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
 #if BBCMICRO_DEBUGGER
     if (m_debug) {
-        if (m_debug->step_type == BBCMicroStepType_None) {
+        if (m_debug->m_step_type == BBCMicroStepType_None) {
             if (m_debug->num_breakpoint_bytes > 0) {
                 update_flags |= BBCMicroUpdateFlag_Debug;
             }
         } else {
-            ASSERT(m_debug->step_cpu);
+            ASSERT(m_debug->m_step_cpu);
             update_flags |= BBCMicroUpdateFlag_Debug | BBCMicroUpdateFlag_RareNonFastPath;
         }
     }

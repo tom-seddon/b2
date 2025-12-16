@@ -191,7 +191,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 }
 
                 if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
-                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_relative_base, flags);
+                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->m_parasite_relative_base, flags);
                 }
             }
 #endif
@@ -223,7 +223,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                                                         PARASITE_BIG_PAGE_INDEX.i * BIG_PAGE_SIZE_BYTES +
                                                         m_state.parasite_cpu.abus.w]);
                 if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
-                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_relative_base, flags);
+                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->m_parasite_relative_base, flags);
                 }
             }
 #endif
@@ -261,7 +261,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
             if (m_debug) {
-                if (m_debug->step_cpu == &m_state.parasite_cpu) {
+                if (m_debug->m_step_cpu == &m_state.parasite_cpu) {
                     this->DebugHandleStep();
                 }
             }
@@ -509,7 +509,7 @@ parasite_update_done:
                         uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                          m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->read_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
                         if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
-                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->m_host_relative_base, flags);
                         }
                     }
 #endif
@@ -564,7 +564,7 @@ parasite_update_done:
                             uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                              m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
                             if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
-                                this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                                this->DebugHitBreakpoint(&m_state.cpu, &m_debug->m_host_relative_base, flags);
                             }
                         }
 #endif
@@ -592,7 +592,7 @@ parasite_update_done:
                         uint8_t flags = (m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + m_state.cpu.abus.w] |
                                          m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->write_io_byte_debug_flags[m_state.cpu.abus.io.r][m_state.cpu.abus.io.o]);
                         if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
-                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->m_host_relative_base, flags);
                         }
                     }
 #endif
@@ -605,7 +605,7 @@ parasite_update_done:
                                          m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
 
                         if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
-                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
+                            this->DebugHitBreakpoint(&m_state.cpu, &m_debug->m_host_relative_base, flags);
                         }
                     }
 #endif
@@ -711,7 +711,7 @@ parasite_update_done:
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
                 if (m_debug) {
-                    if (m_debug->step_cpu == &m_state.cpu) {
+                    if (m_debug->m_step_cpu == &m_state.cpu) {
                         this->DebugHandleStep();
                     }
                 }
