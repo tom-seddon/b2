@@ -65,7 +65,7 @@ def main3(f,options):
     
     f.write('.PHONY:all %s\n'%all_file_targets)
     f.write('all: %s\n'%all_file_targets)
-    f.write('all: _PREFIX:=$(if $(QUIET),@,)\n')
+    f.write('all: _PREFIX:=$(if $(VERBOSE),,@)\n')
 
     for i,argv in enumerate(argvs):
         f.write('%s%d:\n'%(prefix,i))

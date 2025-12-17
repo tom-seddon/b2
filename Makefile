@@ -24,6 +24,8 @@ PYTHON3:=python3
 CAT:=cat
 endif
 
+_V:=$(if $(VERBOSE),,@)
+
 SHELLCMD:=$(PYTHON3) ./submodules/shellcmd.py/shellcmd.py
 
 NPROC:=$(shell $(SHELLCMD) nproc)
@@ -77,52 +79,52 @@ endif
 
 .PHONY:rel
 rel:
-	$(PYTHON3) ./etc/release/release.py --make=$(MAKE)
+	$(_V)$(PYTHON3) ./etc/release/release.py --make=$(MAKE)
 
 ##########################################################################
 ##########################################################################
 
 .PHONY:rel_tests
 rel_tests:
-	$(PYTHON3) ./etc/b2_tests/rel_tests.py
+	$(_V)$(PYTHON3) ./etc/b2_tests/rel_tests.py
 
 ##########################################################################
 ##########################################################################
 
 .PHONY: clang-format
-clang-format: _PREFIX:=$(if $(QUIET),@,)
 clang-format:
-	$(_PREFIX)$(SHELLCMD) cat experimental/clang-format.header.txt src/.clang-format experimental/clang-format.header.txt > experimental/.clang-format
+clang-format:
+	$(_V)$(_PREFIX)$(SHELLCMD) cat experimental/clang-format.header.txt src/.clang-format experimental/clang-format.header.txt > experimental/.clang-format
 
-	$(_PREFIX)$(SHELLCMD) mkdir $(BUILD_FOLDER)
-	$(_PREFIX)$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" --ignore "src/beeb/generated/*" src experimental submodules/shared_lib
-	$(_PREFIX)$(MAKE) -f "$(BUILD_FOLDER)/clang-format.mak" -j $(NPROC) QUIET=$(QUIET)
+	$(_V)$(_PREFIX)$(SHELLCMD) mkdir $(BUILD_FOLDER)
+	$(_V)$(_PREFIX)$(PYTHON3) ./bin/make_clang-format_makefile.py -o "$(BUILD_FOLDER)/clang-format.mak" -e "$(CLANG_FORMAT)" --ignore "src/beeb/generated/*" src experimental submodules/shared_lib
+	$(_V)$(_PREFIX)$(MAKE) -f "$(BUILD_FOLDER)/clang-format.mak" -j $(NPROC) VERBOSE=$(VERBOSE)
 
 ##########################################################################
 ##########################################################################
 
 .PHONY: set_submodule_upstreams
 set_submodule_upstreams:
-	@$(MAKE) _set_submodule_upstream SUBMODULE=Remotery UPSTREAM=https://github.com/Celtoys/Remotery
-	@$(MAKE) _set_submodule_upstream SUBMODULE=SDL_official UPSTREAM=https://github.com/libsdl-org/SDL
-	@$(MAKE) _set_submodule_upstream SUBMODULE=curl UPSTREAM=https://github.com/curl/curl
-	@$(MAKE) _set_submodule_upstream SUBMODULE=http-parser UPSTREAM=https://github.com/nodejs/http-parser
-	@$(MAKE) _set_submodule_upstream SUBMODULE=imgui UPSTREAM=https://github.com/ocornut/imgui
-	@$(MAKE) _set_submodule_upstream SUBMODULE=imgui_club UPSTREAM=https://github.com/ocornut/imgui_club
-	@$(MAKE) _set_submodule_upstream SUBMODULE=libuv UPSTREAM=https://github.com/libuv/libuv
-	@$(MAKE) _set_submodule_upstream SUBMODULE=macdylibbundler UPSTREAM=https://github.com/auriamg/macdylibbundler
-	@$(MAKE) _set_submodule_upstream SUBMODULE=perfect6502 UPSTREAM=https://github.com/mist64/perfect6502
-	@$(MAKE) _set_submodule_upstream SUBMODULE=rapidjson UPSTREAM=https://github.com/Tencent/rapidjson
-	@$(MAKE) _set_submodule_upstream SUBMODULE=relacy UPSTREAM=https://github.com/dvyukov/relacy
-	@$(MAKE) _set_submodule_upstream SUBMODULE=salieri UPSTREAM=https://github.com/nemequ/salieri
-	@$(MAKE) _set_submodule_upstream SUBMODULE=visual6502 UPSTREAM=https://github.com/trebonian/visual6502
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=Remotery UPSTREAM=https://github.com/Celtoys/Remotery
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=SDL_official UPSTREAM=https://github.com/libsdl-org/SDL
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=curl UPSTREAM=https://github.com/curl/curl
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=http-parser UPSTREAM=https://github.com/nodejs/http-parser
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui UPSTREAM=https://github.com/ocornut/imgui
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui_club UPSTREAM=https://github.com/ocornut/imgui_club
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=libuv UPSTREAM=https://github.com/libuv/libuv
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=macdylibbundler UPSTREAM=https://github.com/auriamg/macdylibbundler
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=perfect6502 UPSTREAM=https://github.com/mist64/perfect6502
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=rapidjson UPSTREAM=https://github.com/Tencent/rapidjson
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=relacy UPSTREAM=https://github.com/dvyukov/relacy
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=salieri UPSTREAM=https://github.com/nemequ/salieri
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=visual6502 UPSTREAM=https://github.com/trebonian/visual6502
 
 .PHONY:_set_submodule_upstream
 _set_submodule_upstream: SUBMODULE=$(error must supply SUBMODULE)
 _set_submodule_upstream: UPSTREAM=$(error must supply UPSTREAM)
 _set_submodule_upstream:
-	-cd "submodules/$(SUBMODULE)" && git remote remove upstream
-	cd "submodules/$(SUBMODULE)" && git remote add upstream "$(UPSTREAM)"
+	$(_V)-cd "submodules/$(SUBMODULE)" && git remote remove upstream
+	$(_V)cd "submodules/$(SUBMODULE)" && git remote add upstream "$(UPSTREAM)"
 
 ##########################################################################
 ##########################################################################
@@ -132,13 +134,13 @@ backup_b2_config: B2_JSON_FOLDER?=$(error B2_JSON_FOLDER not set!)
 backup_b2_config: _TIMESTAMP:=$(shell $(SHELLCMD) strftime --UTC -d _ _Y_m_dT_H_M_SZ)
 backup_b2_config: _DEST:=$(BUILD_FOLDER)/configs/$(_TIMESTAMP)$(SUFFIX)
 backup_b2_config:
-	$(SHELLCMD) mkdir "$(_DEST)"
-	$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/b2.json" "$(_DEST)/b2.json"
-	-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.ini" "$(_DEST)/"
-	-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.1.92+.ini" "$(_DEST)/"
+	$(_V)$(SHELLCMD) mkdir "$(_DEST)"
+	$(_V)$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/b2.json" "$(_DEST)/b2.json"
+	$(_V)-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.ini" "$(_DEST)/"
+	$(_V)-$(SHELLCMD) copy-file "$(B2_JSON_FOLDER)/imgui.1.92+.ini" "$(_DEST)/"
 # copy/paste fodder
-	@$(SHELLCMD) realpath "$(B2_JSON_FOLDER)"
-	@$(SHELLCMD) realpath "$(_DEST)"
+	$(_V)$(SHELLCMD) realpath "$(B2_JSON_FOLDER)"
+	$(_V)$(SHELLCMD) realpath "$(_DEST)"
 
 ##########################################################################
 ##########################################################################

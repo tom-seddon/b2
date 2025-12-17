@@ -62,60 +62,64 @@ _unix2:
 ##########################################################################
 ##########################################################################
 
-TIME_JOBS_FILE:=$(BUILD_FOLDER)/time_jobs.txt
-TIME_JOBS:=$(PYTHON3) "bin/time_jobs.py" -f "$(TIME_JOBS_FILE)"
+TIME_JOBS:=$(PYTHON3) "bin/time_jobs.py" -f "$(BUILD_FOLDER)/time_jobs.txt"
 
 ##########################################################################
 ##########################################################################
 
 .PHONY: precommit
 precommit:
-	@echo clang-format...
-	@$(MAKE) clang-format QUIET=1
-	$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel NO_SANITIZERS=$(NO_SANITIZERS))
-	@$(TIME_JOBS) init
+	$(_V)echo clang-format...
+	$(_V)$(MAKE) clang-format VERBOSE=$(VERBOSE)
+	$(_V)$(TIME_JOBS) init
+	$(_V)$(MAKE) precommit_main
+	$(_V)$(TIME_JOBS) print -s Config -s Compiler  $(if $(JOB_TIMES_FILE),| tee "$(JOB_TIMES_FILE)")
+
+.PHONY:precommit_body
+precommit_main:
+	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel NO_SANITIZERS=$(NO_SANITIZERS))
 # TODO: is there a way to figure out which compiler cmake picked??
-	@$(TIME_JOBS) push Compiler Default
+	$(_V)$(TIME_JOBS) push Compiler Default
 # the init step can be rather slow on macOS, so it's worth having a
 # separate option for just the clean.
-	$(if $(CLEAN),$(MAKE) _precommit ACTION=clean) COMPILER_NAME=Default
-	$(MAKE) _precommit ACTION=build
-	$(MAKE) _precommit ACTION=test
-	@$(TIME_JOBS) pop
-	@$(TIME_JOBS) print -s Config -s Compiler  $(if $(JOB_TIMES_FILE),| tee $(JOB_TIMES_FILE))
+	$(_V)$(if $(CLEAN),$(MAKE) _precommit ACTION=clean) COMPILER_NAME=Default
+	$(_V)$(if $(EXTRA_MESSAGE),echo $(EXTRA_MESSAGE))
+	$(_V)$(MAKE) _precommit ACTION=build
+	$(_V)$(_V)$(MAKE) _precommit ACTION=test
+	$(_V)$(TIME_JOBS) pop
 
 .PHONY:_precommit
 _precommit:
 _precommit:
-	$(MAKE) _precommit2 FOLDER=d CONFIG_NAME=Debug
-	$(MAKE) _precommit2 FOLDER=r CONFIG_NAME=RelWithDebInfo
-	$(MAKE) _precommit2 FOLDER=f CONFIG_NAME=Final
+	$(_V)$(MAKE) _precommit2 FOLDER=d CONFIG_NAME=Debug
+	$(_V)$(MAKE) _precommit2 FOLDER=r CONFIG_NAME=RelWithDebInfo
+	$(_V)$(MAKE) _precommit2 FOLDER=f CONFIG_NAME=Final
 
 .PHONY:_precommit2
 _precommit2: export _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER)$(SANITIZER).$(OS)
 _precommit2:
-	@$(TIME_JOBS) push "Config" "$(CONFIG_NAME)"
-	$(MAKE) _precommit_$(ACTION)
-	@$(TIME_JOBS) pop
+	$(_V)$(TIME_JOBS) push "Config" "$(CONFIG_NAME)"
+	$(_V)$(MAKE) _precommit_$(ACTION)
+	$(_V)$(TIME_JOBS) pop
 
 .PHONY:_precommit_clean
 _precommit_clean:
-	@$(TIME_JOBS) push "Action" "Clean"
-	cd "$(_FOLDER)" && ninja clean
-	@$(TIME_JOBS) pop
+	$(_V)$(TIME_JOBS) push "Action" "Clean"
+	$(_V)cd "$(_FOLDER)" && ninja clean
+	$(_V)$(TIME_JOBS) pop
 
 .PHONY:_precommit_build
 _precommit_build:
-	@$(TIME_JOBS) push "Action" "Build"
-	cd "$(_FOLDER)" && time ninja
-	@$(TIME_JOBS) pop
+	$(_V)$(TIME_JOBS) push "Action" "Build"
+	$(_V)cd "$(_FOLDER)" && ninja
+	$(_V)$(TIME_JOBS) pop
 
 .PHONY:_precommit_test
 _precommit_test:
-	@$(TIME_JOBS) push "Action" "Test"
-	cd "$(_FOLDER)" && ctest --progress -j $(NPROC)
-	cd "$(_FOLDER)" && $(PYTHON3) "../../bin/check_ctest_log.py" "Testing/Temporary/LastTest.log"
-	@$(TIME_JOBS) pop
+	$(_V)$(TIME_JOBS) push "Action" "Test"
+	$(_V)cd "$(_FOLDER)" && ctest --progress -j $(NPROC)
+	$(_V)cd "$(_FOLDER)" && $(PYTHON3) "../../bin/check_ctest_log.py" "Testing/Temporary/LastTest.log"
+	$(_V)$(TIME_JOBS) pop
 
 ##########################################################################
 ##########################################################################
@@ -264,19 +268,24 @@ CLANG_CXX:=clang++-19
 
 .PHONY:_precommit_tom_init_gcc
 _precommit_tom_init_gcc:
-	$(MAKE) init_parallel FOLDER_PREFIX=precommit-gcc. CC=$(GCC_CC) CXX=$(GCC_CXX)
+	$(_V)$(MAKE) init_parallel FOLDER_PREFIX=precommit-gcc. CC=$(GCC_CC) CXX=$(GCC_CXX)
 
 .PHONY:_precommit_tom_init_clang
 _precommit_tom_init_clang:
-	$(MAKE) init_parallel FOLDER_PREFIX=precommit-clang. CC=$(CLANG_CC) CXX=$(CLANG_CXX)
+	$(_V)$(MAKE) init_parallel FOLDER_PREFIX=precommit-clang. CC=$(CLANG_CC) CXX=$(CLANG_CXX)
 
 .PHONY:precommit_tom
 precommit_tom:
-	@echo clang-format...
-	@$(MAKE) clang-format QUIET=1
-	$(if $(REINIT),$(MAKE) -j $(NPROC) _precommit_tom_init_gcc _precommit_tom_init_clang,)
+	$(_V)echo clang-format...
+	$(_V)$(MAKE) clang-format
 
-	@$(TIME_JOBS) init
+	$(_V)$(TIME_JOBS) init
+	$(_V)$(MAKE) precommit_tom_main REINIT=$(REINIT)
+	$(_V)$(TIME_JOBS) print -s Config -s Compiler $(if $(JOB_TIMES_FILE),| tee "$(JOB_TIMES_FILE)")
+
+.PHONY:precommit_tom_main
+precommit_tom_main:
+	$(if $(REINIT),$(MAKE) -j $(NPROC) _precommit_tom_init_gcc _precommit_tom_init_clang,)
 	@$(TIME_JOBS) push "Compiler" "$(shell $(GCC_CC) --version | head -n 1)"
 	$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-gcc.
 	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-gcc.
@@ -286,7 +295,24 @@ precommit_tom:
 	$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-clang.
 	@$(TIME_JOBS) pop
 
-	@$(TIME_JOBS) print -s Config -s Compiler $(if $(JOB_TIMES_FILE),>> $(JOB_TIMES_FILE))
+##########################################################################
+##########################################################################
+
+.PHONY:test_build_times
+test_build_times: TARGET=$(error must specify TARGET)
+test_build_times:
+	$(_V)$(TIME_JOBS) init
+	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=1
+	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=2
+	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=3
+	$(_V)$(TIME_JOBS) print -s Run -s Config -s Compiler  $(if $(JOB_TIMES_FILE),| tee "$(JOB_TIMES_FILE)")
+
+.PHONY:_test_build_times
+_test_build_times: TARGET=$(error must specify TARGET)
+_test_build_times:
+	$(_V)$(TIME_JOBS) push "Run" "$(RUN)"
+	$(_V)$(MAKE) $(TARGET)_main REINIT=1 NO_SANITIZERS=1 "EXTRA_MESSAGE=Run $(RUN)"
+	$(_V)$(TIME_JOBS) pop
 
 ##########################################################################
 ##########################################################################
