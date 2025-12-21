@@ -638,7 +638,7 @@ static bool GetHexCharValue(uint8_t *value, uint8_t c) {
     return true;
 }
 
-static bool GetPercentDecoded(std::string *decoded, const std::vector<uint8_t> &encoded) {
+static bool GetFormURLDecoded(std::string *decoded, const std::vector<uint8_t> &encoded) {
     size_t i = 0;
     while (i < encoded.size()) {
         uint8_t byte = encoded[i];
@@ -664,6 +664,8 @@ static bool GetPercentDecoded(std::string *decoded, const std::vector<uint8_t> &
             decoded->push_back((char)(h << 4 | l));
 
             i += 2;
+        } else if (byte == '+') {
+            decoded->push_back(' ');
         } else {
             decoded->push_back((char)byte);
         }
@@ -863,7 +865,7 @@ int HTTPServerImpl::HandleMessageComplete(llhttp_t *parser) {
     // behaves about the same whether using curl to GET or POST.
     if (conn->request.content_type == HTTP_WWW_FORM_URLENCODED_CONTENT_TYPE) {
         std::string decoded;
-        if (!GetPercentDecoded(&decoded, conn->request.body)) {
+        if (!GetFormURLDecoded(&decoded, conn->request.body)) {
             response = CreateErrorResponse(conn->request, "400 Bad Request");
             send_response = true;
         } else if (!ParseQueryParameters(&conn->request.query, decoded.c_str())) {
