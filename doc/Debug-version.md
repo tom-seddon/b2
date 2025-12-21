@@ -744,9 +744,11 @@ might have spaces in them, are query parameters too, the goal being to
 work nicely with curl's `--data-urlencode` on the command line.
 
 Query parameters can be supplied as part of the URL, and/or in a
-request body with a Content-Encoding of
-`application/x-www-form-urlencoded`. The URL parameters are treated as
-being supplied first, followed by any parameters from the body.
+request body with a `Content-Type` of
+`application/x-www-form-urlencoded`. (The URL parameters are treated
+as being supplied first, followed by any parameters from the body.)
+The recommended way of dealing with this is using curl's
+`--data-urlencode`: b2 should hopefully be able to handle the request.
 
 ### `launch?path=PATH`
 
@@ -774,8 +776,12 @@ disk by holding down SHIFT.
 Paste text in as if by `Paste OSRDCH` from the `Edit` menu.
 
 The text to paste is taken from the request body, which must be
-`text/plain`, with `Content-Encoding` of `ISO-8859-1` (assumed if not
+`text/plain`, with `charset` of `ISO-8859-1` (assumed if not
 specified) or `utf-8`.
+
+If using curl, supply this using the `-H` switch. For example:
+
+    curl --fail-with-body --connect-timeout 0.25 --silent -H 'Content-Type:text/plain;charset:utf-8' --upload-file "file.txt" "http://localhost:48075/paste/b2"
 
 ### `peek/WIN/BEGIN-ADDR/END-ADDR?s=SUFFIX&mos=MOS`; `peek/WIN/BEGIN-ADDR/+SIZE?s=SUFFIX&mos=MOS` ###
 
