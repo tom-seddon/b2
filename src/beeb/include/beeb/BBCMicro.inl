@@ -44,6 +44,8 @@ EPNV(SCSI, 1 << 16)
 #endif
 EPNV(Serial, 1 << 17)
 EPNV(SerialExtra, 1 << 18)
+EPNV(6845Rows, 1 << 19)
+EPNV(6845Columns, 1 << 20)
 EEND_SERIALIZABLE()
 #undef ENAME
 

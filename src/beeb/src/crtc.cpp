@@ -200,6 +200,7 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
             if (m_st.raster == m_registers.values[9]) {
                 m_st.end_of_main_latched = true;
                 m_st.vadj_counter = 0;
+                TRACEF_IF(m_trace_scanlines, m_trace, "6845 - %u - end_of_main_latched (column=%u; row=%u; R4=%u; R9=%u)", m_st.num_updates, m_st.column, m_st.row, m_registers.values[4], m_registers.values[9]);
             }
         }
 
@@ -208,7 +209,7 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
 
     // Handle horizontal total.
     if (m_st.column == m_registers.values[0]) {
-        TRACEF_IF(m_trace_scanlines, m_trace, "6845 - %u - end of scanline", m_st.num_updates);
+        TRACEF_IF(m_trace_scanlines, m_trace, "6845 - %u - end of scanline: raster=%u; row=%u", m_st.num_updates, m_st.raster, m_st.row);
         this->EndOfScanline();
 
         m_st.column = 0;
@@ -265,7 +266,7 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
         }
 
         ++m_st.column;
-        TRACEF_IF(m_trace_scanlines, m_trace, "6845 - %u - column was %u now %u", m_st.num_updates, m_st.column - 1, m_st.column);
+        TRACEF_IF(m_trace_columns, m_trace, "6845 - %u - column was %u now %u", m_st.num_updates, m_st.column - 1, m_st.column);
     }
 
     // Handle end of vertical displayed.
@@ -291,6 +292,8 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
     output.hsync = m_st.hsync_counter >= 0;
     output.vsync = m_st.vsync_counter >= 0;
 
+    TRACEF_IF(output.vsync, m_trace, "6845 - %u - vsync=1", m_st.num_updates);
+
     return output;
 }
 
@@ -298,6 +301,7 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
 //////////////////////////////////////////////////////////////////////////
 
 void CRTC::EndOfFrame() {
+    TRACEF_IF(m_trace_rows, m_trace, "6845 - %u - end of frame (N.B., ignore any preceding doubled-up end of row)", m_st.num_updates);
     m_st.row = 0;
     m_st.first_scanline = true;
     m_st.next_line_addr.b.l = m_registers.values[13];
@@ -311,6 +315,7 @@ void CRTC::EndOfFrame() {
 }
 
 void CRTC::EndOfRow() {
+    TRACEF_IF(m_trace_rows, m_trace, "6845 - %u - end of row: %u", m_st.num_updates, m_st.row);
     ++m_st.row;
 
     m_st.raster = 0;
@@ -387,7 +392,9 @@ void CRTC::EndOfScanline() {
 
 #if BBCMICRO_TRACE
 void CRTC::SetTrace(Trace *t,
+                    bool trace_columns,
                     bool trace_scanlines,
+                    bool trace_rows,
                     bool trace_scanlines_separators) {
     // these just need to go somewhere... anywhere will do...
     CHECK_SIZEOF(RegisterBits, 18);
@@ -398,7 +405,9 @@ void CRTC::SetTrace(Trace *t,
     CHECK_SIZEOF(Output, 4);
 
     m_trace = t;
+    m_trace_columns = trace_columns;
     m_trace_scanlines = trace_scanlines;
+    m_trace_rows = trace_rows;
     m_trace_scanlines_separators = trace_scanlines_separators;
 }
 #endif

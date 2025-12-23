@@ -47,7 +47,9 @@ class CRTC {
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t,
+                  bool trace_columns,
                   bool trace_scanlines,
+                  bool trace_rows,
                   bool trace_scanlines_separators);
 #endif
   protected:
@@ -162,7 +164,9 @@ class CRTC {
 
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;
+    bool m_trace_columns = false;
     bool m_trace_scanlines = false;
+    bool m_trace_rows = false;
     bool m_trace_scanlines_separators = false;
 #endif
 

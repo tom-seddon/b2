@@ -390,7 +390,9 @@ void TraceUI::DoImGui() {
             uint32_t flags_seen = 0;
 
             DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845, "6845");
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845Columns, "Columns");
             DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845Scanlines, "Scanlines");
+            DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845Rows, "Rows");
             DoTraceFlag(&flags_seen, BBCMicroTraceFlag_6845ScanlinesSeparators, "Separators", true);
 
             DoTraceFlag(&flags_seen, BBCMicroTraceFlag_SystemVIA, "System VIA");
