@@ -308,6 +308,9 @@ class BBCMicro : private WD1770Handler {
 
         // Number of UpdatePaging calls
         uint64_t num_UpdatePaging_calls = 0;
+
+        // Number of UpdateCpuDataBusFn calls
+        uint64_t num_UpdateCpuDataBusFn_calls = 0;
     };
 #endif
 

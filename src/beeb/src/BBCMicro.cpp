@@ -2127,6 +2127,8 @@ void BBCMicro::SetHardwareDebugState(const BBCMicroHardwareDebugState &hw) {
     }
 
     m_debug->hw = hw;
+
+    this->UpdateCPUDataBusFn();
 }
 #endif
 
@@ -2691,7 +2693,9 @@ void BBCMicro::DebugHandleStep() {
             ASSERT(m_debug->m_step_cpu);
             auto metadata = (const BBCMicroM6502Metadata *)m_debug->m_step_cpu->context;
 
-            ASSERT(m_debug->m_step_cpu->read == M6502ReadType_Opcode || m_debug->m_step_cpu->read == M6502ReadType_Interrupt);
+            // TODO: not sure this assert is correct? Just keep going until the opcode fetch occurs, and that'll inevitably be the start of the IRQ handler.
+            //ASSERT(m_debug->m_step_cpu->read == M6502ReadType_Opcode || m_debug->m_step_cpu->read == M6502ReadType_Interrupt);
+
             if (m_debug->m_step_cpu->read == M6502ReadType_Opcode) {
                 this->DebugHalt(BBCMicroHaltReason_Interrupt, metadata, -1);
             }
@@ -3565,6 +3569,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
             ASSERT(m_debug->m_step_cpu);
             update_flags |= BBCMicroUpdateFlag_Debug | BBCMicroUpdateFlag_RareNonFastPath;
         }
+
+        if (((m_debug->hw.system_via_irq_breakpoints.value | m_debug->hw.user_via_irq_breakpoints.value) & 0x7f) != 0) {
+            update_flags |= BBCMicroUpdateFlag_Debug;
+        }
     }
 
     if (m_state.ram_and != 0xff || m_state.ram_or != 0x00) {
@@ -3617,6 +3625,8 @@ void BBCMicro::UpdateCPUDataBusFn() {
     if (update_flags != m_update_flags) {
         ++m_update_mfn_data->num_update_mfn_changes;
     }
+
+    ++m_update_mfn_data->num_UpdateCpuDataBusFn_calls;
 #endif
 
     update_flags |= (uint32_t)m_state.update_rom_types[m_state.paging.romsel.b_bits.pr] << BBCMicroUpdateFlag_UpdateROMTypeShift;
