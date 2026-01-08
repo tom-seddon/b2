@@ -25,6 +25,9 @@ class HardDiskImage;
 #include "BBCMicroParasiteType.h"
 #include "BBCMicroState.h"
 #include <shared/mutex.h>
+#if BBCMICRO_DEBUGGER
+#include <atomic>
+#endif
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"

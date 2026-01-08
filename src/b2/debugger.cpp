@@ -45,6 +45,7 @@ static Command2 g_toggle_reset_relative_cycles_on_breakpoint_command = Command2(
 #include "misc.h"
 #include "load_save.h"
 #include <algorithm>
+#include <bitset>
 
 // Ugh, ugh, ugh.
 #ifdef __GNUC__
