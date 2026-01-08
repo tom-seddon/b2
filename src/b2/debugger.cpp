@@ -1,17 +1,8 @@
 #include <shared/system.h>
-#include "json.h"
 #include "debugger.h"
 #include "commands.h"
 #include <SDL.h>
-#include "joysticks.h"
 #include "SettingsUI.h"
-#include <shared/file_io.h>
-#include <shared/strings.h>
-#include <beeb/DiscImage.h>
-#include <beeb/scsi.h>
-#include <beeb/HardDiskImage.h>
-#include "SymbolTable.h"
-#include <shared/path.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -36,6 +27,15 @@ static Command2 g_toggle_reset_relative_cycles_on_breakpoint_command = Command2(
 
 #if BBCMICRO_DEBUGGER
 
+#include "json.h"
+#include "joysticks.h"
+#include <shared/file_io.h>
+#include <shared/strings.h>
+#include <beeb/DiscImage.h>
+#include <beeb/scsi.h>
+#include <beeb/HardDiskImage.h>
+#include "SymbolTable.h"
+#include <shared/path.h>
 #include "dear_imgui.h"
 #include "BeebWindow.h"
 #include "BeebThread.h"
