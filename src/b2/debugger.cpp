@@ -2646,6 +2646,7 @@ class VideoULADebugWindow : public DebugUI {
             for (uint8_t j = 0; j < 4; ++j) {
                 uint8_t index = i + j;
                 uint8_t entry = u->m_palette[index];
+                ImGuiIDPusher id_pusher(index);
 
                 uint8_t colour = entry & 7;
                 if (entry & 8) {
