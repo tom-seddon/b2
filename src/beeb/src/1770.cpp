@@ -81,12 +81,6 @@ static const int SETTLE_uS_1770 = 30000;
 const int WD1770::STEP_RATES_MS_1772[] = {2, 3, 6, 12};
 //static const int SETTLE_uS_1772=30000;
 
-// Time between each byte when doing a read or write.
-//
-// This is what model-b used, and I don't remember where the value
-// came from!
-static const int uS_PER_BYTE = 64;
-
 // Assuming 300rpm.
 #define INDEX_PULSES_uS(N) ((N) * 200000)
 
@@ -131,6 +125,17 @@ int WD1770::GetStepRateMS(uint8_t index) const {
         return STEP_RATES_MS_1772[index];
     } else {
         return STEP_RATES_MS_1770[index];
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int WD1770::GetTimeBetweenBytesMicroseconds() const {
+    if (m_dden) {
+        return 32;
+    } else {
+        return 64;
     }
 }
 
@@ -1011,7 +1016,7 @@ WD1770::Pins WD1770::Update() {
 
             this->SetDRQ(1);
 
-            this->Wait(uS_PER_BYTE, WD1770State_ReadSectorNextByte);
+            this->Wait(this->GetTimeBetweenBytesMicroseconds(), WD1770State_ReadSectorNextByte);
         }
         break;
 
@@ -1045,7 +1050,7 @@ WD1770::Pins WD1770::Update() {
     case WD1770State_WriteSectorSetFirstDRQ:
         {
             this->SetDRQ(1);
-            this->Wait(9 * uS_PER_BYTE, WD1770State_WriteSectorReceiveFirstDataByte);
+            this->Wait(9 * this->GetTimeBetweenBytesMicroseconds(), WD1770State_WriteSectorReceiveFirstDataByte);
         }
         break;
 
@@ -1059,7 +1064,7 @@ WD1770::Pins WD1770::Update() {
             }
 
             // Need to handle double density properly here.
-            this->Wait(1 * uS_PER_BYTE, WD1770State_WriteSectorWriteByte);
+            this->Wait(1 * this->GetTimeBetweenBytesMicroseconds(), WD1770State_WriteSectorWriteByte);
         }
         break;
 
@@ -1109,7 +1114,7 @@ WD1770::Pins WD1770::Update() {
         {
             this->SetDRQ(1);
 
-            this->Wait(uS_PER_BYTE, WD1770State_WriteSectorWriteByte);
+            this->Wait(this->GetTimeBetweenBytesMicroseconds(), WD1770State_WriteSectorWriteByte);
         }
         break;
 
@@ -1192,7 +1197,7 @@ WD1770::Pins WD1770::Update() {
 
             ++m_offset;
 
-            this->Wait(uS_PER_BYTE, WD1770State_ReadAddressNextByte);
+            this->Wait(this->GetTimeBetweenBytesMicroseconds(), WD1770State_ReadAddressNextByte);
         }
         break;
 

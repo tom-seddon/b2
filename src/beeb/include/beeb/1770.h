@@ -217,6 +217,7 @@ struct WD1770 {
     void SpinUp();
     void SpinDown();
     int GetStepRateMS(uint8_t index) const;
+    int GetTimeBetweenBytesMicroseconds() const;
     void SetState(WD1770State state);
     void Print1770Registers(Log *log);
     void SetDRQ(bool value);
