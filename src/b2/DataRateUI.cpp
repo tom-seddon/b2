@@ -7,104 +7,37 @@
 #include "SettingsUI.h"
 #include <inttypes.h>
 #include "b2.h"
+#include <shared/metrics.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::unique_ptr<std::vector<TimerDef *>> g_all_root_timer_defs;
 static uint64_t APPROX_STARTUP_TICKS = GetCurrentTickCount(); //doesn't need to be perfect...
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TimerDef::TimerDef(std::string name_, TimerDef *parent)
-    : name(std::move(name_))
-    , m_parent(parent) {
-    if (m_parent) {
-        m_parent->m_children.push_back(this);
-    } else {
-        if (!g_all_root_timer_defs) {
-            g_all_root_timer_defs = std::make_unique<std::vector<TimerDef *>>();
+static void DoTimerDefImGui(const TimerDef *def) {
+    if (ImGui::TreeNode(def->name.c_str())) {
+        uint64_t total_num_ticks = def->GetTotalNumTicks();
+        uint64_t num_samples = def->GetNumSamples();
+        ImGui::Text("%.3f sec tot", GetSecondsFromTicks(total_num_ticks));
+        ImGui::Text("%.3f " MICROSECONDS_UTF8 " avg", GetSecondsFromTicks((uint64_t)((double)total_num_ticks / num_samples)) * 1.e6);
+
+        if (const TimerDef *parent = def->GetParent()) {
+            ImGui::Text("%.3f%% of parent", (double)total_num_ticks / parent->GetTotalNumTicks() * 100.);
         }
 
-        g_all_root_timer_defs->push_back(this);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-TimerDef::~TimerDef() {
-    // this can probably be arranged using (for example) a shared_ptr, with
-    // each TimerDef having its own reference, but this hardly seems worth the
-    // bother...
-
-    //    std::vector<TimerDef *> *list;
-    //    if(m_parent) {
-    //        list=&m_parent->m_children;
-    //    } else {
-    //        list=g_all_root_timer_defs.get();
-    //    }
-    //
-    //    auto it=std::find(list->begin(),list->end(),this);
-    //    ASSERT(it!=list->end());
-    //    list->erase(it);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TimerDef::Reset() {
-    m_total_num_ticks = 0;
-    m_num_samples = 0;
-
-    for (TimerDef *child_def : m_children) {
-        child_def->Reset();
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint64_t TimerDef::GetTotalNumTicks() const {
-    return m_total_num_ticks;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint64_t TimerDef::GetNumSamples() const {
-    return m_num_samples;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TimerDef::AddTicks(uint64_t num_ticks) {
-    m_total_num_ticks += num_ticks;
-    ++m_num_samples;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TimerDef::DoImGui() {
-    if (ImGui::TreeNode(this->name.c_str())) {
-        ImGui::Text("%.3f sec tot", GetSecondsFromTicks(m_total_num_ticks));
-        ImGui::Text("%.3f " MICROSECONDS_UTF8 " avg", GetSecondsFromTicks((uint64_t)((double)m_total_num_ticks / m_num_samples)) * 1.e6);
-
-        if (m_parent) {
-            ImGui::Text("%.3f%% of parent", (double)m_total_num_ticks / m_parent->m_total_num_ticks * 100.);
-        }
-
-        if (!m_children.empty()) {
+        size_t num_children = def->GetNumChildren();
+        if (num_children > 0) {
             uint64_t total_child_ticks = 0;
-            for (TimerDef *def : m_children) {
-                def->DoImGui();
-                total_child_ticks += def->m_total_num_ticks;
+            for (size_t child_idx = 0; child_idx < num_children; ++child_idx) {
+                const TimerDef *child_def = def->GetChildByIndex(child_idx);
+                DoTimerDefImGui(child_def);
+                total_child_ticks += child_def->GetTotalNumTicks();
             }
 
-            ImGui::Text("%.3f%% non-child time", ((double)m_total_num_ticks - total_child_ticks) / m_total_num_ticks * 100.);
+            ImGui::Text("%.3f%% non-child time", ((double)total_num_ticks - total_child_ticks) / total_num_ticks * 100.);
         }
 
         ImGui::TreePop();
@@ -315,10 +248,11 @@ void DataRateUI::DoImGui() {
             ResetTimerDefs();
         }
 
-        if (!!g_all_root_timer_defs && !g_all_root_timer_defs->empty()) {
+        std::vector<const TimerDef *> roots = GetRootTimerDefs();
+        if (!roots.empty()) {
             ImGui::Separator();
-            for (TimerDef *def : *g_all_root_timer_defs) {
-                def->DoImGui();
+            for (const TimerDef *root : roots) {
+                DoTimerDefImGui(root);
             }
         }
     }
@@ -420,17 +354,6 @@ bool DataRateUI::OnClose() {
 void DataRateUI::GetVBlankRecords(std::vector<BeebWindow::VBlankRecord> *vblank_records) {
     if (vblank_records->empty()) {
         *vblank_records = m_beeb_window->GetVBlankRecords();
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void ResetTimerDefs() {
-    if (!!g_all_root_timer_defs) {
-        for (TimerDef *def : *g_all_root_timer_defs) {
-            def->Reset();
-        }
     }
 }
 

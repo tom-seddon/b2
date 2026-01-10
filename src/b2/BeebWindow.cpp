@@ -51,6 +51,7 @@
 #include <shared/file_io.h>
 #include "SymbolTable.h"
 #include <shared/strings.h>
+#include <shared/metrics.h>
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
