@@ -167,6 +167,7 @@ void WriteVideoJob::ThreadExecute() {
     event_lists.push_back(std::move(m_event_list));
 
     beeb_thread = std::make_shared<BeebThread>(m_msg.GetMessageList(),
+                                               nullptr,
                                                0,
                                                afmt.freq,
                                                NUM_SAMPLES,

@@ -52,6 +52,7 @@
 #include <http/HTTPClient.h>
 #include "dear_imgui.h"
 #include <http/http.h>
+#include <shared/metrics.h>
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -317,8 +318,9 @@ class b2VBlankHandler : public VBlankMonitor::Handler {
         VBlank vblanks[NUM_VBLANK_RECORDS] = {};
         size_t vblank_index = 0;
         bool message_pending = false;
-        uint64_t num_thread_vblanks = 0;
-        uint64_t num_messages_sent = 0;
+        std::shared_ptr<MetricSet> metric_set;
+        Counter *thread_vblanks_counter = nullptr;
+        Counter *messages_sent_counter = nullptr;
     };
 
     b2VBlankHandler();
@@ -330,40 +332,9 @@ class b2VBlankHandler : public VBlankMonitor::Handler {
   private:
     Mutex m_mutex;
     std::map<uint32_t, std::shared_ptr<Display>> m_data_by_display_id;
-
-    friend std::vector<DisplayData> GetDisplaysData();
 };
 
 static std::unique_ptr<b2VBlankHandler> g_vblank_handler;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::vector<DisplayData> GetDisplaysData() {
-    std::vector<DisplayData> datas;
-    if (!!g_vblank_handler) {
-        std::map<uint32_t, std::shared_ptr<b2VBlankHandler::Display>> data_by_display_id;
-        {
-            LockGuard<Mutex> lock(g_vblank_handler->m_mutex);
-            data_by_display_id = g_vblank_handler->m_data_by_display_id;
-        }
-
-        datas.reserve(data_by_display_id.size());
-        for (const auto &display_id_and_data : data_by_display_id) {
-            DisplayData dd;
-
-            dd.display_id = display_id_and_data.first;
-
-            LockGuard<Mutex> lock(display_id_and_data.second->mutex);
-            dd.num_messages_sent = display_id_and_data.second->num_messages_sent;
-            dd.num_thread_vblanks = display_id_and_data.second->num_thread_vblanks;
-
-            datas.push_back(std::move(dd));
-        }
-    }
-
-    return datas;
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -377,6 +348,15 @@ b2VBlankHandler::b2VBlankHandler() {
 
 void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
     auto &&display = std::make_shared<Display>();
+
+    display->metric_set = MetricSet::Create(strprintf("Display %" PRIu32, display_id));
+    display->thread_vblanks_counter = MetricSet::CreateCounter(display->metric_set, "Thread Vblanks");
+    display->messages_sent_counter = MetricSet::CreateCounter(display->metric_set, "Messages Sent");
+    MetricSet::CreateDerivedValue(display->metric_set,
+                                  "Vblanks Skipped",
+                                  [thread_vblanks_counter = display->thread_vblanks_counter, messages_sent_counter = display->messages_sent_counter]() {
+                                      return thread_vblanks_counter->GetValue() - messages_sent_counter->GetValue();
+                                  });
 
     MUTEX_SET_NAME(display->mutex, strprintf("DisplayData for display %" PRIu32, display_id));
 
@@ -416,7 +396,7 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id, void *data) {
     ++display->vblank_index;
     display->vblank_index %= NUM_VBLANK_RECORDS;
 
-    ++display->num_thread_vblanks;
+    display->thread_vblanks_counter->Increment();
 
     vblank->ticks = GetCurrentTickCount();
 
@@ -435,7 +415,7 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id, void *data) {
             SDL_PushEvent(&event);
 
             display->message_pending = true;
-            ++display->num_messages_sent;
+            display->messages_sent_counter->Increment();
         }
     }
 }

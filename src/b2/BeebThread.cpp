@@ -34,6 +34,7 @@
 #include "profiler.h"
 #include <system_error>
 #include <shared/strings.h>
+#include <shared/metrics.h>
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
@@ -1855,6 +1856,7 @@ void BeebThread::KeyStates::SetState(BeebKey key, bool state) {
 //////////////////////////////////////////////////////////////////////////
 
 BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
+                       std::shared_ptr<MetricSet> metric_set,
                        uint32_t sound_device_id,
                        int sound_freq,
                        size_t sound_buffer_size_samples,
@@ -1867,7 +1869,8 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
     , m_video_output(NUM_VIDEO_UNITS)
     , m_sound_output(NUM_AUDIO_UNITS)
     , m_is_main_thread_ready(is_main_thread_ready)
-    , m_message_list(std::move(message_list)) {
+    , m_message_list(std::move(message_list))
+    , m_metric_set(std::move(metric_set)) {
     m_sound_device_id = sound_device_id;
 
     ASSERT(sound_freq >= 0);
@@ -1883,6 +1886,9 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
     MUTEX_SET_NAME(m_beeb_state_mutex, "BeebThread beeb_state");
 #endif
     m_mq.SetName("BeebThread MQ");
+
+    m_mq_polls_counter = MetricSet::CreateCounter(m_metric_set, "MQ polls");
+    m_mq_waits_counter = MetricSet::CreateCounter(m_metric_set, "MQ waits");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2353,18 +2359,6 @@ std::vector<BeebThread::AudioCallbackRecord> BeebThread::GetAudioCallbackRecords
     }
 
     return records;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebThread::TimingStats BeebThread::GetTimingStats() const {
-    TimingStats ts;
-
-    ts.num_mq_polls = m_num_mq_polls.load(std::memory_order_acquire);
-    ts.num_mq_waits = m_num_mq_waits.load(std::memory_order_acquire);
-
-    return ts;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3147,7 +3141,7 @@ void BeebThread::ThreadMain(void) {
             PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Wait");
             rmt_ScopedCPUSample(MessageQueueWaitForMessage, 0);
             m_mq.ConsumerWaitForMessages(&messages);
-            ++m_num_mq_waits;
+            m_mq_waits_counter->Increment();
             what = "waited";
             (void)what;
         } else {
@@ -3157,7 +3151,7 @@ void BeebThread::ThreadMain(void) {
 
             //PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Poll");
             m_mq.ConsumerPollForMessages(&messages);
-            ++m_num_mq_polls;
+            m_mq_polls_counter->Increment();
             what = "polled";
             (void)what;
         }

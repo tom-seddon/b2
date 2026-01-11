@@ -196,25 +196,6 @@ void DataRateUI::DoImGui() {
         ImGuiPlotLines("", &GetPercentage, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 200.f, ImVec2(0, 100), ImVec2(0, 50));
     }
 
-    if (ImGui::CollapsingHeader("Displays")) {
-        std::vector<DisplayData> dds = GetDisplaysData();
-        for (const DisplayData &dd : dds) {
-            char header[100];
-            snprintf(header, sizeof header, "Display ID: %" PRIu32, dd.display_id);
-            ImGuiHeader(header);
-            ImGui::Text("Num messages sent: %" PRIu64, dd.num_messages_sent);
-            ImGui::Text("Num thread vblanks: %" PRIu64, dd.num_thread_vblanks);
-            ImGui::Text("(Num vblanks skipped: %" PRIu64, dd.num_thread_vblanks - dd.num_messages_sent);
-        }
-    }
-
-    if (ImGui::CollapsingHeader("BeebThread Timing Stats")) {
-        BeebThread::TimingStats stats = beeb_thread->GetTimingStats();
-
-        ImGui::Text("MQ polls: %zu", stats.num_mq_polls);
-        ImGui::Text("MQ waits: %zu", stats.num_mq_waits);
-    }
-
 #if BBCMICRO_DEBUGGER
     if (ImGui::CollapsingHeader("Update MFn Stats")) {
         std::shared_ptr<const BBCMicro::UpdateMFnData> data = beeb_thread->GetUpdateMFnData();
@@ -249,15 +230,27 @@ void DataRateUI::DoImGui() {
     } else {
         for (const std::shared_ptr<MetricSet> &metric_set : metric_sets) {
             if (ImGui::CollapsingHeader(("Metrics: " + metric_set->GetName()).c_str())) {
-                if (ImGui::Button("Reset Timers")) {
-                    metric_set->ResetTimerDefs();
-                }
-
                 std::vector<const TimerDef *> roots = metric_set->GetRootTimerDefs();
                 if (!roots.empty()) {
+                    if (ImGui::Button("Reset Timers")) {
+                        metric_set->ResetTimerDefs();
+                    }
+
                     ImGui::Separator();
                     for (const TimerDef *root : roots) {
                         DoTimerDefImGui(root);
+                    }
+                }
+
+                std::vector<const Value *> values = metric_set->GetValues();
+                if (!values.empty()) {
+                    if (ImGui::Button("Reset Counters")) {
+                        metric_set->ResetCounters();
+                    }
+
+                    ImGui::Separator();
+                    for (const Value *value : values) {
+                        ImGui::Text("%s: %" PRIu64, value->name.c_str(), value->GetValue());
                     }
                 }
             }

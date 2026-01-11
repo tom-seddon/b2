@@ -37,6 +37,8 @@ class R6522;
 struct SoundDataUnit;
 struct VideoDataUnit;
 class DiscImage;
+class MetricSet;
+class Counter;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -904,15 +906,11 @@ class BeebThread {
         uint64_t available = 0;
     };
 
-    struct TimingStats {
-        size_t num_mq_waits = 0;
-        size_t num_mq_polls = 0;
-    };
-
     // When planning to set up the BeebThread using a saved state,
     // DEFAULT_LOADED_CONFIG may be default-constructed. In this case hard reset
     // messages and clone window messages won't work, though.
     explicit BeebThread(std::shared_ptr<MessageList> message_list,
+                        std::shared_ptr<MetricSet> metric_set,
                         uint32_t sound_device_id,
                         int sound_freq,
                         size_t sound_buffer_size_samples,
@@ -1021,8 +1019,6 @@ class BeebThread {
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
 
-    TimingStats GetTimingStats() const;
-
     void GetTimelineState(BeebThreadTimelineState *timeline_state) const;
 
     // Got total number of events on the timeline.
@@ -1115,8 +1111,6 @@ class BeebThread {
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
     std::atomic<bool> m_is_printer_enabled{false};
     std::atomic<size_t> m_printer_data_size_bytes{false};
-    std::atomic<uint64_t> m_num_mq_polls{0};
-    std::atomic<uint64_t> m_num_mq_waits{0};
     std::atomic<BBCMicroHaltReason> m_debug_halt_reason{BBCMicroHaltReason_None};
     std::atomic<uint32_t> m_update_flags{0};
 
@@ -1192,9 +1186,13 @@ class BeebThread {
 
     //
     std::shared_ptr<MessageList> m_message_list;
+    std::shared_ptr<MetricSet> m_metric_set;
+
+    Counter *m_mq_polls_counter = nullptr, *m_mq_waits_counter = nullptr;
 
 #if BBCMICRO_TRACE
-    static bool ThreadHandleTraceInstructionConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);
+    static bool
+    ThreadHandleTraceInstructionConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadHandleTraceWriteConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);
 #endif
 

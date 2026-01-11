@@ -714,19 +714,13 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_name = m_init_arguments.name;
 
     m_metric_set = MetricSet::Create(m_name);
-    m_HandleVBlank_timer_def = m_metric_set->CreateTimerDef("BeebWindow::HandleVBlank");
-    m_HandleVBlank_end_of_frame_timer_def = m_metric_set->CreateTimerDef("BeebWindow::HandleVBlank end of frame",
-                                                                         m_HandleVBlank_timer_def);
-    m_HandleVBlank_start_of_frame_timer_def = m_metric_set->CreateTimerDef("BeebWindow::HandleVBlank start of frame",
-                                                                           m_HandleVBlank_timer_def);
-    m_HandleVBlank_UpdateTVTexture_Consume_timer_def = m_metric_set->CreateTimerDef("UpdateTVTexture Consume",
-                                                                                    m_HandleVBlank_end_of_frame_timer_def);
-    m_HandleVBlank_UpdateTVTexture_Copy_timer_def = m_metric_set->CreateTimerDef("UpdateTVTexture Copy",
-                                                                                 m_HandleVBlank_end_of_frame_timer_def);
-    m_HandleVBlank_RenderSDL_timer_def = m_metric_set->CreateTimerDef("Render SDL",
-                                                                      m_HandleVBlank_end_of_frame_timer_def);
-    m_HandleVBlank_DoImGui_timer_def = m_metric_set->CreateTimerDef("DoImGui",
-                                                                    m_HandleVBlank_end_of_frame_timer_def);
+    m_HandleVBlank_timer_def = MetricSet::CreateTimerDef(m_metric_set, "BeebWindow::HandleVBlank");
+    m_HandleVBlank_end_of_frame_timer_def = MetricSet::CreateTimerDef(m_metric_set, "BeebWindow::HandleVBlank end of frame", m_HandleVBlank_timer_def);
+    m_HandleVBlank_start_of_frame_timer_def = MetricSet::CreateTimerDef(m_metric_set, "BeebWindow::HandleVBlank start of frame", m_HandleVBlank_timer_def);
+    m_HandleVBlank_UpdateTVTexture_Consume_timer_def = MetricSet::CreateTimerDef(m_metric_set, "UpdateTVTexture Consume", m_HandleVBlank_end_of_frame_timer_def);
+    m_HandleVBlank_UpdateTVTexture_Copy_timer_def = MetricSet::CreateTimerDef(m_metric_set, "UpdateTVTexture Copy", m_HandleVBlank_end_of_frame_timer_def);
+    m_HandleVBlank_RenderSDL_timer_def = MetricSet::CreateTimerDef(m_metric_set, "Render SDL", m_HandleVBlank_end_of_frame_timer_def);
+    m_HandleVBlank_DoImGui_timer_def = MetricSet::CreateTimerDef(m_metric_set, "DoImGui", m_HandleVBlank_end_of_frame_timer_def);
 
     m_message_list = std::make_shared<MessageList>("BeebWindow");
     m_msg.SetMessageList(m_message_list);
@@ -736,6 +730,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     }
 
     m_beeb_thread = std::make_shared<BeebThread>(m_message_list,
+                                                 m_metric_set,
                                                  m_init_arguments.sound_device,
                                                  m_init_arguments.sound_spec.freq,
                                                  m_init_arguments.sound_spec.samples,
