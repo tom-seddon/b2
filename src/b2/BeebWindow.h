@@ -33,6 +33,8 @@ class ImGuiStuff;
 class SymbolTable;
 struct Disc;
 enum BBCMicroHaltReason : uint8_t;
+class MetricSet;
+class TimerDef;
 
 #include "keys.h"
 #include <string>
@@ -531,6 +533,15 @@ class BeebWindow {
     bool m_is_mouse_captured = false;
 
     bool m_beeb_got_imgui_focus = false;
+
+    std::shared_ptr<MetricSet> m_metric_set;
+    TimerDef *m_HandleVBlank_timer_def = nullptr;
+    TimerDef *m_HandleVBlank_end_of_frame_timer_def = nullptr;
+    TimerDef *m_HandleVBlank_start_of_frame_timer_def = nullptr;
+    TimerDef *m_HandleVBlank_UpdateTVTexture_Consume_timer_def = nullptr;
+    TimerDef *m_HandleVBlank_UpdateTVTexture_Copy_timer_def = nullptr;
+    TimerDef *m_HandleVBlank_RenderSDL_timer_def = nullptr;
+    TimerDef *m_HandleVBlank_DoImGui_timer_def = nullptr;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

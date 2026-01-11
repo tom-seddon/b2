@@ -7538,4 +7538,22 @@ I/O port (or several) for debugging stuff.
 | Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Build  |   29.932 |
 | Apple clang version 17.0.0 (clang-1700.4.4.1) | RelWithDebInfo | Test   |   12.521 |
 
+* Timer Stuff
+
+#+begin_src c++
+  static TimerDef g_HandleVBlank_timer_def("BeebWindow::HandleVBlank");
+  static TimerDef g_HandleVBlank_end_of_frame_timer_def("BeebWindow::HandleVBlank end of frame",
+                                                       &g_HandleVBlank_timer_def);
+  static TimerDef g_HandleVBlank_start_of_frame_timer_def("BeebWindow::HandleVBlank start of frame",
+                                                         &g_HandleVBlank_timer_def);
+  static TimerDef g_HandleVBlank_UpdateTVTexture_Consume_timer_def("UpdateTVTexture Consume",
+                                                                  &g_HandleVBlank_end_of_frame_timer_def);
+  static TimerDef g_HandleVBlank_UpdateTVTexture_Copy_timer_def("UpdateTVTexture Copy",
+                                                               &g_HandleVBlank_end_of_frame_timer_def);
+  static TimerDef g_HandleVBlank_RenderSDL_timer_def("Render SDL",
+                                                    &g_HandleVBlank_end_of_frame_timer_def);
+  static TimerDef g_HandleVBlank_DoImGui_timer_def("DoImGui",
+                                                  &g_HandleVBlank_end_of_frame_timer_def);
+#+end_src
+
 * eof.

@@ -28,11 +28,10 @@ static void DoTimerDefImGui(const TimerDef *def) {
             ImGui::Text("%.3f%% of parent", (double)total_num_ticks / parent->GetTotalNumTicks() * 100.);
         }
 
-        size_t num_children = def->GetNumChildren();
-        if (num_children > 0) {
+        std::vector<const TimerDef *> children = def->GetChildren();
+        if (!children.empty()) {
             uint64_t total_child_ticks = 0;
-            for (size_t child_idx = 0; child_idx < num_children; ++child_idx) {
-                const TimerDef *child_def = def->GetChildByIndex(child_idx);
+            for (const TimerDef *child_def : children) {
                 DoTimerDefImGui(child_def);
                 total_child_ticks += child_def->GetTotalNumTicks();
             }
@@ -243,23 +242,45 @@ void DataRateUI::DoImGui() {
     }
 #endif
 
-    if (ImGui::CollapsingHeader("Timers")) {
-        if (ImGui::Button("Reset all")) {
-            ResetTimerDefs();
+    std::vector<std::shared_ptr<MetricSet>> metric_sets = MetricSet::GetAll();
+    if (metric_sets.empty()) {
+        if (ImGui::CollapsingHeader("Metrics")) {
         }
+    } else {
+        for (const std::shared_ptr<MetricSet> &metric_set : metric_sets) {
+            if (ImGui::CollapsingHeader(("Metrics: " + metric_set->GetName()).c_str())) {
+                if (ImGui::Button("Reset Timers")) {
+                    metric_set->ResetTimerDefs();
+                }
 
-        std::vector<const TimerDef *> roots = GetRootTimerDefs();
-        if (!roots.empty()) {
-            ImGui::Separator();
-            for (const TimerDef *root : roots) {
-                DoTimerDefImGui(root);
+                std::vector<const TimerDef *> roots = metric_set->GetRootTimerDefs();
+                if (!roots.empty()) {
+                    ImGui::Separator();
+                    for (const TimerDef *root : roots) {
+                        DoTimerDefImGui(root);
+                    }
+                }
             }
         }
     }
 
+    //if (ImGui::CollapsingHeader("Timers")) {
+    //    if (ImGui::Button("Reset all")) {
+    //        ResetTimerDefs();
+    //    }
+
+    //    std::vector<const TimerDef *> roots = GetRootTimerDefs();
+    //    if (!roots.empty()) {
+    //        ImGui::Separator();
+    //        for (const TimerDef *root : roots) {
+    //            DoTimerDefImGui(root);
+    //        }
+    //    }
+    //}
+
 #if MUTEX_DEBUGGING
 
-    ImGui::Separator();
+    ImGuiHeader("Mutexes");
 
     bool assume_free_uncontended_locks = Mutex::GetAssumeFreeUncontendedLocks();
     if (ImGui::Checkbox("Assume uncontended locks are free", &assume_free_uncontended_locks)) {

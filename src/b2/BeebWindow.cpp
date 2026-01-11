@@ -72,19 +72,19 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static TimerDef g_HandleVBlank_timer_def("BeebWindow::HandleVBlank");
-static TimerDef g_HandleVBlank_end_of_frame_timer_def("BeebWindow::HandleVBlank end of frame",
-                                                      &g_HandleVBlank_timer_def);
-static TimerDef g_HandleVBlank_start_of_frame_timer_def("BeebWindow::HandleVBlank start of frame",
-                                                        &g_HandleVBlank_timer_def);
-static TimerDef g_HandleVBlank_UpdateTVTexture_Consume_timer_def("UpdateTVTexture Consume",
-                                                                 &g_HandleVBlank_end_of_frame_timer_def);
-static TimerDef g_HandleVBlank_UpdateTVTexture_Copy_timer_def("UpdateTVTexture Copy",
-                                                              &g_HandleVBlank_end_of_frame_timer_def);
-static TimerDef g_HandleVBlank_RenderSDL_timer_def("Render SDL",
-                                                   &g_HandleVBlank_end_of_frame_timer_def);
-static TimerDef g_HandleVBlank_DoImGui_timer_def("DoImGui",
-                                                 &g_HandleVBlank_end_of_frame_timer_def);
+//static TimerDef g_HandleVBlank_timer_def("BeebWindow::HandleVBlank");
+//static TimerDef g_HandleVBlank_end_of_frame_timer_def("BeebWindow::HandleVBlank end of frame",
+//                                                      &g_HandleVBlank_timer_def);
+//static TimerDef g_HandleVBlank_start_of_frame_timer_def("BeebWindow::HandleVBlank start of frame",
+//                                                        &g_HandleVBlank_timer_def);
+//static TimerDef g_HandleVBlank_UpdateTVTexture_Consume_timer_def("UpdateTVTexture Consume",
+//                                                                 &g_HandleVBlank_end_of_frame_timer_def);
+//static TimerDef g_HandleVBlank_UpdateTVTexture_Copy_timer_def("UpdateTVTexture Copy",
+//                                                              &g_HandleVBlank_end_of_frame_timer_def);
+//static TimerDef g_HandleVBlank_RenderSDL_timer_def("Render SDL",
+//                                                   &g_HandleVBlank_end_of_frame_timer_def);
+//static TimerDef g_HandleVBlank_DoImGui_timer_def("DoImGui",
+//                                                 &g_HandleVBlank_end_of_frame_timer_def);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -479,7 +479,9 @@ void BeebWindow::OptionsUI::DoImGui() {
 
 #if 1 //BUILD_TYPE_Debug
         if (ImGui::Checkbox("Threaded texture update", &m_beeb_window->m_update_tv_texture_thread_enabled)) {
-            ResetTimerDefs();
+            if (!!m_beeb_window->m_metric_set) {
+                m_beeb_window->m_metric_set->ResetTimerDefs();
+            }
         }
 #endif
     }
@@ -710,6 +712,21 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
 #endif
 {
     m_name = m_init_arguments.name;
+
+    m_metric_set = MetricSet::Create(m_name);
+    m_HandleVBlank_timer_def = m_metric_set->CreateTimerDef("BeebWindow::HandleVBlank");
+    m_HandleVBlank_end_of_frame_timer_def = m_metric_set->CreateTimerDef("BeebWindow::HandleVBlank end of frame",
+                                                                         m_HandleVBlank_timer_def);
+    m_HandleVBlank_start_of_frame_timer_def = m_metric_set->CreateTimerDef("BeebWindow::HandleVBlank start of frame",
+                                                                           m_HandleVBlank_timer_def);
+    m_HandleVBlank_UpdateTVTexture_Consume_timer_def = m_metric_set->CreateTimerDef("UpdateTVTexture Consume",
+                                                                                    m_HandleVBlank_end_of_frame_timer_def);
+    m_HandleVBlank_UpdateTVTexture_Copy_timer_def = m_metric_set->CreateTimerDef("UpdateTVTexture Copy",
+                                                                                 m_HandleVBlank_end_of_frame_timer_def);
+    m_HandleVBlank_RenderSDL_timer_def = m_metric_set->CreateTimerDef("Render SDL",
+                                                                      m_HandleVBlank_end_of_frame_timer_def);
+    m_HandleVBlank_DoImGui_timer_def = m_metric_set->CreateTimerDef("DoImGui",
+                                                                    m_HandleVBlank_end_of_frame_timer_def);
 
     m_message_list = std::make_shared<MessageList>("BeebWindow");
     m_msg.SetMessageList(m_message_list);
@@ -2907,7 +2924,7 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, void *dest_pixels, int dest_pitch) {
-    Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
+    Timer tmr(m_HandleVBlank_UpdateTVTexture_Consume_timer_def);
 
     if (threaded) {
         UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
@@ -3115,7 +3132,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     PROFILE_SCOPE(PROFILER_COLOUR_DEEP_PINK, "HandleVBlank");
     ImGuiContextSetter setter(m_imgui_stuff);
 
-    Timer HandleVBlank_timer(&g_HandleVBlank_timer_def);
+    Timer HandleVBlank_timer(m_HandleVBlank_timer_def);
 
     bool keep_window = true;
 
@@ -3141,7 +3158,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 #endif
 
     {
-        Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
+        Timer tmr2(m_HandleVBlank_start_of_frame_timer_def);
 
         //if (m_pushed_window_padding) {
         //    ImGui::PopStyleVar(1);
@@ -3169,7 +3186,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     }
 
     {
-        Timer HandleVBlank_end_of_frame_timer(&g_HandleVBlank_end_of_frame_timer_def);
+        Timer HandleVBlank_end_of_frame_timer(m_HandleVBlank_end_of_frame_timer_def);
 
         VBlankRecord *vblank_record = this->NewVBlankRecord(ticks);
 
@@ -3183,7 +3200,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
         {
             PROFILE_SCOPE(PROFILER_COLOUR_INDIAN_RED, "DoImGui");
-            Timer tmr3(&g_HandleVBlank_DoImGui_timer_def);
+            Timer tmr3(m_HandleVBlank_DoImGui_timer_def);
 
             if (!this->DoImGui(ticks)) {
                 keep_window = false;
@@ -3215,7 +3232,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
         {
             PROFILE_SCOPE(PROFILER_COLOUR_LIGHT_GREEN, "RenderSDL");
-            Timer HandleVBlank_RenderSDL_timer(&g_HandleVBlank_RenderSDL_timer_def);
+            Timer HandleVBlank_RenderSDL_timer(m_HandleVBlank_RenderSDL_timer_def);
 
             m_imgui_stuff->RenderSDL();
 
