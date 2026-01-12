@@ -350,10 +350,10 @@ void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
     auto &&display = std::make_shared<Display>();
 
     display->metric_set = MetricSet::Create(strprintf("Display %" PRIu32, display_id));
-    display->thread_vblanks_counter = MetricSet::CreateCounter(display->metric_set, "Thread Vblanks");
-    display->messages_sent_counter = MetricSet::CreateCounter(display->metric_set, "Messages Sent");
+    display->thread_vblanks_counter = MetricSet::CreateCounter(display->metric_set, "Thread vblanks");
+    display->messages_sent_counter = MetricSet::CreateCounter(display->metric_set, "Messages sent");
     MetricSet::CreateDerivedValue(display->metric_set,
-                                  "Vblanks Skipped",
+                                  "Vblanks skipped",
                                   [thread_vblanks_counter = display->thread_vblanks_counter, messages_sent_counter = display->messages_sent_counter]() {
                                       return thread_vblanks_counter->GetValue() - messages_sent_counter->GetValue();
                                   });
