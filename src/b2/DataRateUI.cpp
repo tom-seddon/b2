@@ -141,7 +141,7 @@ static void MutexMetadataUI(MutexMetadata *m, const MutexDetails *details) {
 
     ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", details->stats.num_locks, num_ticks == 0 ? 0 : details->stats.num_locks / GetSecondsFromTicks(num_ticks));
     if (details->stats.num_locks > 0) {
-        ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", details->stats.num_contended_locks, details->stats.num_locks == 0 ? 0. : (double)details->stats.num_contended_locks / details->stats.num_locks);
+        ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", details->stats.num_contended_locks, details->stats.num_locks == 0 ? 0. : (double)details->stats.num_contended_locks / details->stats.num_locks * 100.);
 
         ImGui::Text("Lock Wait Time: %.01f ms (~%.1f%% total)",
                     GetMillisecondsFromTicks(details->stats.total_lock_wait_ticks),
@@ -170,16 +170,32 @@ static void MutexMetadataUI(MutexMetadata *m, const MutexDetails *details) {
 }
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if MUTEX_DEBUGGING
-static void DoCommonMutexMetadataUI(uint64_t tick_count, const std::vector<std::shared_ptr<MutexMetadata>> &mutex_metadata, const std::vector<MutexDetails> &mutex_details) {
-    uint64_t runtime_ticks = tick_count - APPROX_STARTUP_TICKS;
+struct MutexUIContext {
+    uint64_t tick_count = 0;
+    uint64_t total_lock_wait_ticks = 0;
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if MUTEX_DEBUGGING
+static void DoCommonMutexMetadataUI(MutexUIContext *context, const std::vector<std::shared_ptr<MutexMetadata>> &mutex_metadata, const std::vector<MutexDetails> &mutex_details) {
+    context->tick_count = GetCurrentTickCount();
+
+    context->total_lock_wait_ticks = 0;
+    for (const MutexDetails &details : mutex_details) {
+        context->total_lock_wait_ticks += details.stats.total_lock_wait_ticks;
+    }
+
+    uint64_t runtime_ticks = context->tick_count - APPROX_STARTUP_TICKS;
     ImGui::Text("Total run time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(runtime_ticks), GetMillisecondsFromTicks(runtime_ticks));
 
-    uint64_t total_lock_wait_ticks = 0;
-    for (const MutexDetails &details : mutex_details) {
-        total_lock_wait_ticks += details.stats.total_lock_wait_ticks;
-    }
-    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks), total_lock_wait_ticks / (double)runtime_ticks * 100.);
+    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(context->total_lock_wait_ticks), GetMillisecondsFromTicks(context->total_lock_wait_ticks), context->total_lock_wait_ticks / (double)runtime_ticks * 100.);
 
     uint64_t name_overhead_ticks = Mutex::GetNameOverheadTicks();
     ImGui::Text("Mutex Name Overhead: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(name_overhead_ticks), GetMillisecondsFromTicks(name_overhead_ticks), name_overhead_ticks / (double)runtime_ticks * 100.);
@@ -191,6 +207,9 @@ static void DoCommonMutexMetadataUI(uint64_t tick_count, const std::vector<std::
     }
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void DataRateUI::DoImGui() {
     std::shared_ptr<BeebThread> beeb_thread = m_beeb_window->GetBeebThread();
@@ -311,7 +330,8 @@ void DataRateUI::DoImGui() {
             metadata[i]->GetDetails(&mutex_details[i]);
         }
 
-        DoCommonMutexMetadataUI(GetCurrentTickCount(), metadata, mutex_details);
+        MutexUIContext context;
+        DoCommonMutexMetadataUI(&context, metadata, mutex_details);
 
         size_t num_never_locked = 0;
         size_t num_0_locks = 0;
@@ -420,11 +440,7 @@ enum class MutexTableColumn : ImGuiID {
 
 //ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", stats->num_locks, num_ticks == 0 ? 0 : stats->num_locks / GetSecondsFromTicks(num_ticks));
 
-struct MutexTableContext {
-    uint64_t tick_count = 0;
-};
-
-static double GetMutexDetailsLockFrequency(const MutexDetails &details, const MutexTableContext &context) {
+static double GetMutexDetailsLockFrequency(const MutexDetails &details, const MutexUIContext &context) {
     uint64_t num_ticks = context.tick_count - details.stats.start_ticks;
     if (num_ticks == 0) {
         return 0.;
@@ -433,7 +449,7 @@ static double GetMutexDetailsLockFrequency(const MutexDetails &details, const Mu
     }
 }
 
-static double GetMutexDetailsContendedLockFrequency(const MutexDetails &details, const MutexTableContext &context) {
+static double GetMutexDetailsContendedLockFrequency(const MutexDetails &details, const MutexUIContext &context) {
     uint64_t num_ticks = context.tick_count - details.stats.start_ticks;
     if (num_ticks == 0) {
         return 0.;
@@ -442,39 +458,49 @@ static double GetMutexDetailsContendedLockFrequency(const MutexDetails &details,
     }
 }
 
-static bool MutexDetailsLessThanByName(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+static bool MutexDetailsLessThanByName(const MutexDetails &a, const MutexDetails &b, const MutexUIContext &) {
     return a.name < b.name;
 }
 
-static bool MutexDetailsLessThanByLockCount(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+static bool MutexDetailsLessThanByLockCount(const MutexDetails &a, const MutexDetails &b, const MutexUIContext &) {
     return a.stats.num_locks < b.stats.num_locks;
 }
 
-static bool MutexDetailsLessThanByLockFrequency(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &context) {
+static bool MutexDetailsLessThanByLockFrequency(const MutexDetails &a, const MutexDetails &b, const MutexUIContext &context) {
     double fa = GetMutexDetailsLockFrequency(a, context);
     double fb = GetMutexDetailsLockFrequency(b, context);
     return fa < fb;
 }
 
-static bool MutexDetailsLessThanByContendedLockCount(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+static bool MutexDetailsLessThanByContendedLockCount(const MutexDetails &a, const MutexDetails &b, const MutexUIContext &) {
     return a.stats.num_contended_locks < b.stats.num_contended_locks;
 }
 
-static bool MutexDetailsLessThanByContendedLockFrequency(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &context) {
+static bool MutexDetailsLessThanByContendedLockFrequency(const MutexDetails &a, const MutexDetails &b, const MutexUIContext &context) {
     double fa = GetMutexDetailsContendedLockFrequency(a, context);
     double fb = GetMutexDetailsContendedLockFrequency(b, context);
     return fa < fb;
 }
 
-static bool MutexDetailsLessThanByLockWaitTime(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+static bool MutexDetailsLessThanByLockWaitTime(const MutexDetails &a, const MutexDetails &b, const MutexUIContext &) {
     return a.stats.total_lock_wait_ticks < b.stats.total_lock_wait_ticks;
 }
 
-static bool MutexDetailsLessThanByEverLocked(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+static bool MutexDetailsLessThanByEverLocked(const MutexDetails &a, const MutexDetails &b, const MutexUIContext &) {
     if (!a.stats.ever_locked && b.stats.ever_locked) {
         return true;
     } else {
         return false;
+    }
+}
+
+static void DoLockFrequencyColumnImGui(float hz) {
+    ImGui::Text("%.3f", hz);
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("%.3f/sec", hz);
+        ImGui::Text("%.3f/ms", hz / 1000.);
+        ImGui::EndTooltip();
     }
 }
 
@@ -501,10 +527,8 @@ void MutexStatsUI::DoImGui() {
         m_mutex_metadata[i]->GetDetails(&mutex_details[i]);
     }
 
-    MutexTableContext context;
-    context.tick_count = GetCurrentTickCount();
-
-    DoCommonMutexMetadataUI(context.tick_count, m_mutex_metadata, mutex_details);
+    MutexUIContext context;
+    DoCommonMutexMetadataUI(&context, m_mutex_metadata, mutex_details);
 
     const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
     if (ImGui::BeginTable("mutexes", 8, table_flags)) {
@@ -525,7 +549,7 @@ void MutexStatsUI::DoImGui() {
                 specs->SpecsDirty = false;
                 for (int spec_index = 0; spec_index < specs->SpecsCount; ++spec_index) {
                     const ImGuiTableColumnSortSpecs *spec = &specs->Specs[spec_index];
-                    bool (*lt_fn)(const MutexDetails &, const MutexDetails &, const MutexTableContext &) = nullptr;
+                    bool (*lt_fn)(const MutexDetails &, const MutexDetails &, const MutexUIContext &) = nullptr;
                     switch ((MutexTableColumn)spec->ColumnUserID) {
                     default:
                         ASSERT(false);
@@ -586,7 +610,13 @@ void MutexStatsUI::DoImGui() {
         }
 
         for (size_t i = 0; i < m_mutex_metadata_order_table.size(); ++i) {
-            const MutexDetails *details = &mutex_details[m_mutex_metadata_order_table[i]];
+            size_t mutex_index = m_mutex_metadata_order_table[i];
+
+            const std::shared_ptr<MutexMetadata> &metadata = m_mutex_metadata[mutex_index];
+            ImGuiIDPusher pusher(metadata.get());
+
+            const MutexDetails *details = &mutex_details[mutex_index];
+
             char str[MAX_UINT64_THOUSANDS_SIZE];
 
             ImGui::TableNextRow();
@@ -595,24 +625,50 @@ void MutexStatsUI::DoImGui() {
             ImGui::TextUnformatted(details->name.c_str());
 
             ImGui::TableNextColumn();
-            ImGui::Text("TODO");
+            {
+                uint8_t events = metadata->GetInterestingEvents();
+                ImGuiCheckboxFlags("L", &events, MutexInterestingEvent_Lock);
+                ImGui::SameLine();
+                ImGuiCheckboxFlags("C", &events, MutexInterestingEvent_ContendedLock);
+                metadata->SetInterestingEvents(events);
+            }
 
             ImGui::TableNextColumn();
             GetThousandsString(str, details->stats.num_locks);
             ImGui::TextUnformatted(str);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%.3f", GetMutexDetailsLockFrequency(*details, context));
+            DoLockFrequencyColumnImGui(GetMutexDetailsLockFrequency(*details, context));
 
             ImGui::TableNextColumn();
             GetThousandsString(str, details->stats.num_contended_locks);
             ImGui::TextUnformatted(str);
+            if (details->stats.num_locks > 0) {
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("~%.3f%% of total", (double)details->stats.num_contended_locks / details->stats.num_locks * 100.);
+                    ImGui::EndTooltip();
+                }
+            }
 
             ImGui::TableNextColumn();
-            ImGui::Text("%.3f", GetMutexDetailsContendedLockFrequency(*details, context));
+            DoLockFrequencyColumnImGui(GetMutexDetailsContendedLockFrequency(*details, context));
 
             ImGui::TableNextColumn();
-            ImGui::Text("%.01f", GetMillisecondsFromTicks(details->stats.total_lock_wait_ticks));
+            ImGui::Text("%.3f", GetMillisecondsFromTicks(details->stats.total_lock_wait_ticks));
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("%.3f ms", GetMillisecondsFromTicks(details->stats.total_lock_wait_ticks));
+                ImGui::Text("%.3f " MICROSECONDS_UTF8, GetMicrosecondsFromTicks(details->stats.total_lock_wait_ticks));
+                if (context.total_lock_wait_ticks > 0) {
+                    ImGui::Text("~%.3f%% of total wait", (double)details->stats.total_lock_wait_ticks / context.total_lock_wait_ticks * 100.);
+                }
+                ImGui::Separator();
+                ImGui::Text("Min Wait: %.3f " MICROSECONDS_UTF8, GetMicrosecondsFromTicks(details->stats.min_lock_wait_ticks));
+                ImGui::Text("Max Wait: %.3f " MICROSECONDS_UTF8, GetMicrosecondsFromTicks(details->stats.max_lock_wait_ticks));
+                ImGui::Text("Mean Wait: %.3f " MICROSECONDS_UTF8, details->stats.num_locks == 0 ? 0. : details->stats.total_lock_wait_ticks / details->stats.num_locks);
+                ImGui::EndTooltip();
+            }
 
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(BOOL_STR(details->stats.ever_locked));
