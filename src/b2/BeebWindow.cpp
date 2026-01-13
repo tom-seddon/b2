@@ -259,6 +259,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_SerialDebug, "toggle_serial_debug", "Serial Debug", &CreateSerialDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupManagement, "toggle_symbol_group_management", "Symbols", &CreateSymbolGroupManagementWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupBrowser, "toggle_symbol_browser_debug", "Browse Symbols", &CreateSymbolBrowserWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MutexStats, "toggle_mutex_stats", "Mutex Stats", &CreateMutexStatsUI);
     return true;
 }
 
@@ -2708,6 +2709,7 @@ void BeebWindow::DoExtraDebugMenu() {
 
     if (ImGui::BeginMenu("Extras")) {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_AudioCallback].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MutexStats].command);
 #if ENABLE_IMGUI_TEST
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DearImguiTest].command);
 #endif

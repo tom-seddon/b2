@@ -21,8 +21,9 @@ static void DoTimerDefImGui(const TimerDef *def) {
     if (ImGui::TreeNode(def->name.c_str())) {
         uint64_t total_num_ticks = def->GetTotalNumTicks();
         uint64_t num_samples = def->GetNumSamples();
-        ImGui::Text("%.3f sec tot", GetSecondsFromTicks(total_num_ticks));
-        ImGui::Text("%.3f " MICROSECONDS_UTF8 " avg", GetSecondsFromTicks((uint64_t)((double)total_num_ticks / num_samples)) * 1.e6);
+        double total_num_seconds = GetSecondsFromTicks(total_num_ticks);
+        ImGui::Text("%.3f sec (%.3f " MICROSECONDS_UTF8 ") tot", total_num_seconds, total_num_seconds * 1000.);
+        ImGui::Text("%.3f " MICROSECONDS_UTF8 " mean", GetSecondsFromTicks((uint64_t)((double)total_num_ticks / num_samples)) * 1.e6);
 
         if (const TimerDef *parent = def->GetParent()) {
             ImGui::Text("%.3f%% of parent", (double)total_num_ticks / parent->GetTotalNumTicks() * 100.);
@@ -118,13 +119,13 @@ static float GetPercentage(void *data_, int idx) {
 
 #if MUTEX_DEBUGGING
 
-static void MutexMetadataUI(MutexMetadata *m, const MutexStats *stats) {
+static void MutexMetadataUI(MutexMetadata *m, const MutexDetails *details) {
     ImGuiIDPusher pusher(m);
 
-    uint64_t num_ticks = GetCurrentTickCount() - stats->start_ticks;
+    uint64_t num_ticks = GetCurrentTickCount() - details->stats.start_ticks;
 
     ImGui::Spacing();
-    ImGui::Text("Mutex Name: %s", stats->name.c_str());
+    ImGui::Text("Mutex Name: %s", details->name.c_str());
 
     ImGui::TextUnformatted("Interesting:");
     {
@@ -138,18 +139,18 @@ static void MutexMetadataUI(MutexMetadata *m, const MutexStats *stats) {
         m->SetInterestingEvents(events);
     }
 
-    ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", stats->num_locks, num_ticks == 0 ? 0 : stats->num_locks / GetSecondsFromTicks(num_ticks));
-    if (stats->num_locks > 0) {
-        ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", stats->num_contended_locks, stats->num_locks == 0 ? 0. : (double)stats->num_contended_locks / stats->num_locks);
+    ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", details->stats.num_locks, num_ticks == 0 ? 0 : details->stats.num_locks / GetSecondsFromTicks(num_ticks));
+    if (details->stats.num_locks > 0) {
+        ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", details->stats.num_contended_locks, details->stats.num_locks == 0 ? 0. : (double)details->stats.num_contended_locks / details->stats.num_locks);
 
         ImGui::Text("Lock Wait Time: %.01f ms (~%.1f%% total)",
-                    GetMillisecondsFromTicks(stats->total_lock_wait_ticks),
-                    stats->total_lock_wait_ticks / (double)num_ticks * 100.);
+                    GetMillisecondsFromTicks(details->stats.total_lock_wait_ticks),
+                    details->stats.total_lock_wait_ticks / (double)num_ticks * 100.);
 
         ImGui::Text("Lock Wait Stats: Min: %.01f ms; Max: %0.1f ms; Mean: %.01f ms",
-                    GetMillisecondsFromTicks(stats->min_lock_wait_ticks),
-                    GetMillisecondsFromTicks(stats->max_lock_wait_ticks),
-                    GetMillisecondsFromTicks(stats->total_lock_wait_ticks) / stats->num_locks);
+                    GetMillisecondsFromTicks(details->stats.min_lock_wait_ticks),
+                    GetMillisecondsFromTicks(details->stats.max_lock_wait_ticks),
+                    GetMillisecondsFromTicks(details->stats.total_lock_wait_ticks) / details->stats.num_locks);
 
     } else {
         ImGui::TextUnformatted("Contended Locks: N/A");
@@ -157,12 +158,34 @@ static void MutexMetadataUI(MutexMetadata *m, const MutexStats *stats) {
         ImGui::TextUnformatted("Lock Wait Stats: N/A");
     }
 
-    if (stats->num_try_locks > 0) {
-        ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64, stats->num_successful_try_locks, stats->num_try_locks);
+    if (details->stats.num_try_locks > 0) {
+        ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64, details->stats.num_successful_try_locks, details->stats.num_try_locks);
     }
 
-    if (stats->ever_locked) {
+    if (details->stats.ever_locked) {
         if (ImGui::Button("Reset Stats")) {
+            m->RequestReset();
+        }
+    }
+}
+#endif
+
+#if MUTEX_DEBUGGING
+static void DoCommonMutexMetadataUI(uint64_t tick_count, const std::vector<std::shared_ptr<MutexMetadata>> &mutex_metadata, const std::vector<MutexDetails> &mutex_details) {
+    uint64_t runtime_ticks = tick_count - APPROX_STARTUP_TICKS;
+    ImGui::Text("Total run time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(runtime_ticks), GetMillisecondsFromTicks(runtime_ticks));
+
+    uint64_t total_lock_wait_ticks = 0;
+    for (const MutexDetails &details : mutex_details) {
+        total_lock_wait_ticks += details.stats.total_lock_wait_ticks;
+    }
+    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks), total_lock_wait_ticks / (double)runtime_ticks * 100.);
+
+    uint64_t name_overhead_ticks = Mutex::GetNameOverheadTicks();
+    ImGui::Text("Mutex Name Overhead: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(name_overhead_ticks), GetMillisecondsFromTicks(name_overhead_ticks), name_overhead_ticks / (double)runtime_ticks * 100.);
+
+    if (ImGui::Button("Reset all stats")) {
+        for (const std::shared_ptr<MutexMetadata> &m : mutex_metadata) {
             m->RequestReset();
         }
     }
@@ -230,6 +253,8 @@ void DataRateUI::DoImGui() {
     } else {
         for (const std::shared_ptr<MetricSet> &metric_set : metric_sets) {
             if (ImGui::CollapsingHeader(("Metrics: " + metric_set->GetName()).c_str())) {
+                ImGuiIDPusher id_pusher(metric_set.get());
+
                 std::vector<const TimerDef *> roots = metric_set->GetRootTimerDefs();
                 if (!roots.empty()) {
                     if (ImGui::Button("Reset Timers")) {
@@ -273,80 +298,64 @@ void DataRateUI::DoImGui() {
 
 #if MUTEX_DEBUGGING
 
-    ImGuiHeader("Mutexes");
-
-    bool assume_free_uncontended_locks = Mutex::GetAssumeFreeUncontendedLocks();
-    if (ImGui::Checkbox("Assume uncontended locks are free", &assume_free_uncontended_locks)) {
-        Mutex::SetAssumeFreeUncontendedLocks(assume_free_uncontended_locks);
-    }
-
-    std::vector<std::shared_ptr<MutexMetadata>> metadata = Mutex::GetAllMetadata();
-
-    std::vector<MutexStats> mutex_stats(metadata.size());
-    for (size_t i = 0; i < metadata.size(); ++i) {
-        metadata[i]->GetStats(&mutex_stats[i]);
-    }
-
-    uint64_t runtime_ticks = GetCurrentTickCount() - APPROX_STARTUP_TICKS;
-    ImGui::Text("Total run time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(runtime_ticks), GetMillisecondsFromTicks(runtime_ticks));
-
-    uint64_t total_lock_wait_ticks = 0;
-    for (const MutexStats &stats : mutex_stats) {
-        total_lock_wait_ticks += stats.total_lock_wait_ticks;
-    }
-    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks), total_lock_wait_ticks / (double)runtime_ticks * 100.);
-
-    uint64_t name_overhead_ticks = Mutex::GetNameOverheadTicks();
-    ImGui::Text("Mutex Name Overhead: ~%.3f sec (~%.1f ms) (%.3f%%)", GetSecondsFromTicks(name_overhead_ticks), GetMillisecondsFromTicks(name_overhead_ticks), name_overhead_ticks / (double)runtime_ticks * 100.);
-
-    if (ImGui::Button("Reset all stats")) {
-        for (const std::shared_ptr<MutexMetadata> &m : metadata) {
-            m->RequestReset();
+    if (ImGui::CollapsingHeader("Mutexes")) {
+        bool assume_free_uncontended_locks = Mutex::GetAssumeFreeUncontendedLocks();
+        if (ImGui::Checkbox("Assume uncontended locks are free", &assume_free_uncontended_locks)) {
+            Mutex::SetAssumeFreeUncontendedLocks(assume_free_uncontended_locks);
         }
-    }
 
-    size_t num_never_locked = 0;
-    size_t num_0_locks = 0;
+        std::vector<std::shared_ptr<MutexMetadata>> metadata = Mutex::GetAllMetadata();
 
-    for (size_t i = 0; i < metadata.size(); ++i) {
-        MutexMetadata *m = metadata[i].get();
-        const MutexStats *stats = &mutex_stats[i];
-
-        if (stats->ever_locked) {
-            if (stats->num_locks == 0) {
-                ++num_0_locks;
-            } else {
-                ImGui::Separator();
-                MutexMetadataUI(m, stats);
-            }
-        } else {
-            ++num_never_locked;
+        std::vector<MutexDetails> mutex_details(metadata.size());
+        for (size_t i = 0; i < metadata.size(); ++i) {
+            metadata[i]->GetDetails(&mutex_details[i]);
         }
-    }
 
-    if (num_0_locks > 0) {
-        if (ImGui::CollapsingHeader("0 locks since stats reset")) {
-            for (size_t i = 0; i < metadata.size(); ++i) {
-                MutexMetadata *m = metadata[i].get();
-                const MutexStats *stats = &mutex_stats[i];
+        DoCommonMutexMetadataUI(GetCurrentTickCount(), metadata, mutex_details);
 
-                if (stats->ever_locked && stats->num_locks == 0) {
+        size_t num_never_locked = 0;
+        size_t num_0_locks = 0;
+
+        for (size_t i = 0; i < metadata.size(); ++i) {
+            MutexMetadata *m = metadata[i].get();
+            const MutexDetails *details = &mutex_details[i];
+
+            if (details->stats.ever_locked) {
+                if (details->stats.num_locks == 0) {
+                    ++num_0_locks;
+                } else {
                     ImGui::Separator();
-                    MutexMetadataUI(m, stats);
+                    MutexMetadataUI(m, details);
+                }
+            } else {
+                ++num_never_locked;
+            }
+        }
+
+        if (num_0_locks > 0) {
+            if (ImGui::CollapsingHeader("0 locks since stats reset")) {
+                for (size_t i = 0; i < metadata.size(); ++i) {
+                    MutexMetadata *m = metadata[i].get();
+                    const MutexDetails *details = &mutex_details[i];
+
+                    if (details->stats.ever_locked && details->stats.num_locks == 0) {
+                        ImGui::Separator();
+                        MutexMetadataUI(m, details);
+                    }
                 }
             }
         }
-    }
 
-    if (num_never_locked > 0) {
-        if (ImGui::CollapsingHeader("Never locked ever")) {
-            for (size_t i = 0; i < metadata.size(); ++i) {
-                MutexMetadata *m = metadata[i].get();
-                const MutexStats *stats = &mutex_stats[i];
+        if (num_never_locked > 0) {
+            if (ImGui::CollapsingHeader("Never locked ever")) {
+                for (size_t i = 0; i < metadata.size(); ++i) {
+                    MutexMetadata *m = metadata[i].get();
+                    const MutexDetails *details = &mutex_details[i];
 
-                if (!stats->ever_locked) {
-                    ImGui::Separator();
-                    MutexMetadataUI(m, stats);
+                    if (!details->stats.ever_locked) {
+                        ImGui::Separator();
+                        MutexMetadataUI(m, details);
+                    }
                 }
             }
         }
@@ -380,3 +389,253 @@ std::unique_ptr<SettingsUI> CreateDataRateUI(BeebWindow *beeb_window) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if MUTEX_DEBUGGING
+
+class MutexStatsUI : public SettingsUI {
+  public:
+    explicit MutexStatsUI();
+
+    void DoImGui() override;
+
+    bool OnClose() override;
+
+  protected:
+  private:
+    uint64_t m_last_mutex_metadata_change_counter = 0;
+    std::vector<std::shared_ptr<MutexMetadata>> m_mutex_metadata;
+    std::vector<size_t> m_mutex_metadata_order_table;
+};
+
+enum class MutexTableColumn : ImGuiID {
+    Name,
+    Interesting,
+    LockCount,
+    LockFrequency,
+    ContendedLockCount,
+    ContendedLockFrequency,
+    LockWaitTime,
+    EverLocked,
+};
+
+//ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", stats->num_locks, num_ticks == 0 ? 0 : stats->num_locks / GetSecondsFromTicks(num_ticks));
+
+struct MutexTableContext {
+    uint64_t tick_count = 0;
+};
+
+static double GetMutexDetailsLockFrequency(const MutexDetails &details, const MutexTableContext &context) {
+    uint64_t num_ticks = context.tick_count - details.stats.start_ticks;
+    if (num_ticks == 0) {
+        return 0.;
+    } else {
+        return details.stats.num_locks / GetSecondsFromTicks(num_ticks);
+    }
+}
+
+static double GetMutexDetailsContendedLockFrequency(const MutexDetails &details, const MutexTableContext &context) {
+    uint64_t num_ticks = context.tick_count - details.stats.start_ticks;
+    if (num_ticks == 0) {
+        return 0.;
+    } else {
+        return details.stats.num_contended_locks / GetSecondsFromTicks(num_ticks);
+    }
+}
+
+static bool MutexDetailsLessThanByName(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+    return a.name < b.name;
+}
+
+static bool MutexDetailsLessThanByLockCount(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+    return a.stats.num_locks < b.stats.num_locks;
+}
+
+static bool MutexDetailsLessThanByLockFrequency(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &context) {
+    double fa = GetMutexDetailsLockFrequency(a, context);
+    double fb = GetMutexDetailsLockFrequency(b, context);
+    return fa < fb;
+}
+
+static bool MutexDetailsLessThanByContendedLockCount(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+    return a.stats.num_contended_locks < b.stats.num_contended_locks;
+}
+
+static bool MutexDetailsLessThanByContendedLockFrequency(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &context) {
+    double fa = GetMutexDetailsContendedLockFrequency(a, context);
+    double fb = GetMutexDetailsContendedLockFrequency(b, context);
+    return fa < fb;
+}
+
+static bool MutexDetailsLessThanByLockWaitTime(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+    return a.stats.total_lock_wait_ticks < b.stats.total_lock_wait_ticks;
+}
+
+static bool MutexDetailsLessThanByEverLocked(const MutexDetails &a, const MutexDetails &b, const MutexTableContext &) {
+    if (!a.stats.ever_locked && b.stats.ever_locked) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+MutexStatsUI::MutexStatsUI() {
+    this->SetDefaultSize(ImVec2(550, 450));
+}
+
+void MutexStatsUI::DoImGui() {
+    bool table_updated = false;
+    uint64_t change_counter = Mutex::GetMetadataChangeCounter();
+    if (change_counter != m_last_mutex_metadata_change_counter) {
+        m_last_mutex_metadata_change_counter = change_counter;
+        m_mutex_metadata = Mutex::GetAllMetadata();
+
+        m_mutex_metadata_order_table.resize(m_mutex_metadata.size());
+        for (size_t i = 0; i < m_mutex_metadata.size(); ++i) {
+            m_mutex_metadata_order_table[i] = i;
+        }
+        table_updated = true;
+    }
+
+    std::vector<MutexDetails> mutex_details(m_mutex_metadata.size());
+    for (size_t i = 0; i < m_mutex_metadata.size(); ++i) {
+        m_mutex_metadata[i]->GetDetails(&mutex_details[i]);
+    }
+
+    MutexTableContext context;
+    context.tick_count = GetCurrentTickCount();
+
+    DoCommonMutexMetadataUI(context.tick_count, m_mutex_metadata, mutex_details);
+
+    const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
+    if (ImGui::BeginTable("mutexes", 8, table_flags)) {
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::Name);
+        ImGui::TableSetupColumn("Interesting", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::Interesting);
+        ImGui::TableSetupColumn("Locks", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::LockCount);
+        ImGui::TableSetupColumn("Locks/sec", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::LockFrequency);
+        ImGui::TableSetupColumn("C'locks", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::ContendedLockCount);
+        ImGui::TableSetupColumn("C'locks/sec", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::ContendedLockFrequency);
+        ImGui::TableSetupColumn("Wait Time (ms)", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::LockWaitTime);
+        ImGui::TableSetupColumn("Ever", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::EverLocked);
+
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableHeadersRow();
+
+        if (ImGuiTableSortSpecs *specs = ImGui::TableGetSortSpecs()) {
+            if (specs->SpecsDirty || table_updated) {
+                specs->SpecsDirty = false;
+                for (int spec_index = 0; spec_index < specs->SpecsCount; ++spec_index) {
+                    const ImGuiTableColumnSortSpecs *spec = &specs->Specs[spec_index];
+                    bool (*lt_fn)(const MutexDetails &, const MutexDetails &, const MutexTableContext &) = nullptr;
+                    switch ((MutexTableColumn)spec->ColumnUserID) {
+                    default:
+                        ASSERT(false);
+                        break;
+
+                    case MutexTableColumn::Name:
+                        lt_fn = &MutexDetailsLessThanByName;
+                        break;
+
+                    case MutexTableColumn::Interesting:
+                        // doesn't actually participate in the sorting.
+                        break;
+
+                    case MutexTableColumn::LockCount:
+                        lt_fn = &MutexDetailsLessThanByLockCount;
+                        break;
+
+                    case MutexTableColumn::LockFrequency:
+                        lt_fn = &MutexDetailsLessThanByLockFrequency;
+                        break;
+
+                    case MutexTableColumn::ContendedLockCount:
+                        lt_fn = &MutexDetailsLessThanByContendedLockCount;
+                        break;
+
+                    case MutexTableColumn::ContendedLockFrequency:
+                        lt_fn = &MutexDetailsLessThanByContendedLockFrequency;
+                        break;
+
+                    case MutexTableColumn::LockWaitTime:
+                        lt_fn = &MutexDetailsLessThanByLockWaitTime;
+                        break;
+
+                    case MutexTableColumn::EverLocked:
+                        lt_fn = &MutexDetailsLessThanByEverLocked;
+                        break;
+                    }
+
+                    if (lt_fn) {
+                        std::stable_sort(m_mutex_metadata_order_table.begin(),
+                                         m_mutex_metadata_order_table.end(),
+                                         [lt_fn, &mutex_details, context, ascending = spec->SortDirection == ImGuiSortDirection_Ascending](size_t a, size_t b) {
+                                             ASSERT(a < mutex_details.size());
+                                             const MutexDetails *da = &mutex_details[a];
+
+                                             ASSERT(b < mutex_details.size());
+                                             const MutexDetails *db = &mutex_details[b];
+
+                                             if (ascending) {
+                                                 return lt_fn(*da, *db, context);
+                                             } else {
+                                                 return lt_fn(*db, *da, context);
+                                             }
+                                         });
+                    }
+                }
+            }
+        }
+
+        for (size_t i = 0; i < m_mutex_metadata_order_table.size(); ++i) {
+            const MutexDetails *details = &mutex_details[m_mutex_metadata_order_table[i]];
+            char str[MAX_UINT64_THOUSANDS_SIZE];
+
+            ImGui::TableNextRow();
+
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(details->name.c_str());
+
+            ImGui::TableNextColumn();
+            ImGui::Text("TODO");
+
+            ImGui::TableNextColumn();
+            GetThousandsString(str, details->stats.num_locks);
+            ImGui::TextUnformatted(str);
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%.3f", GetMutexDetailsLockFrequency(*details, context));
+
+            ImGui::TableNextColumn();
+            GetThousandsString(str, details->stats.num_contended_locks);
+            ImGui::TextUnformatted(str);
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%.3f", GetMutexDetailsContendedLockFrequency(*details, context));
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%.01f", GetMillisecondsFromTicks(details->stats.total_lock_wait_ticks));
+
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(BOOL_STR(details->stats.ever_locked));
+        }
+
+        ImGui::EndTable();
+    }
+}
+
+bool MutexStatsUI::OnClose() {
+    return false;
+}
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateMutexStatsUI(BeebWindow *beeb_window) {
+    (void)beeb_window;
+#if MUTEX_DEBUGGING
+    return std::make_unique<MutexStatsUI>();
+#else
+    return nullptr;
+#endif
+}

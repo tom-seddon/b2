@@ -83,6 +83,7 @@ EPN(SerialDebug) //55
 EPN(SymbolGroupManagement)
 EPN(PagingBrowserDebugger)
 EPN(SymbolGroupBrowser)
+EPN(MutexStats)
 
 // must be last
 EQPN(MaxValue)
