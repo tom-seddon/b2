@@ -429,13 +429,14 @@ class MutexStatsUI : public SettingsUI {
 
 enum class MutexTableColumn : ImGuiID {
     Name,
-    Interesting,
     LockCount,
     LockFrequency,
     ContendedLockCount,
     ContendedLockFrequency,
     LockWaitTime,
     EverLocked,
+
+    Count //must be last
 };
 
 //ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", stats->num_locks, num_ticks == 0 ? 0 : stats->num_locks / GetSecondsFromTicks(num_ticks));
@@ -531,9 +532,8 @@ void MutexStatsUI::DoImGui() {
     DoCommonMutexMetadataUI(&context, m_mutex_metadata, mutex_details);
 
     const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
-    if (ImGui::BeginTable("mutexes", 8, table_flags)) {
+    if (ImGui::BeginTable("mutexes", (int)MutexTableColumn::Count, table_flags)) {
         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::Name);
-        ImGui::TableSetupColumn("Interesting", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::Interesting);
         ImGui::TableSetupColumn("Locks", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::LockCount);
         ImGui::TableSetupColumn("Locks/sec", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::LockFrequency);
         ImGui::TableSetupColumn("C'locks", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)MutexTableColumn::ContendedLockCount);
@@ -557,10 +557,6 @@ void MutexStatsUI::DoImGui() {
 
                     case MutexTableColumn::Name:
                         lt_fn = &MutexDetailsLessThanByName;
-                        break;
-
-                    case MutexTableColumn::Interesting:
-                        // doesn't actually participate in the sorting.
                         break;
 
                     case MutexTableColumn::LockCount:
@@ -610,6 +606,8 @@ void MutexStatsUI::DoImGui() {
         }
 
         for (size_t i = 0; i < m_mutex_metadata_order_table.size(); ++i) {
+            static const char POPUP_NAME[] = "mutex_context_popup";
+
             size_t mutex_index = m_mutex_metadata_order_table[i];
 
             const std::shared_ptr<MutexMetadata> &metadata = m_mutex_metadata[mutex_index];
@@ -623,14 +621,8 @@ void MutexStatsUI::DoImGui() {
 
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(details->name.c_str());
-
-            ImGui::TableNextColumn();
-            {
-                uint8_t events = metadata->GetInterestingEvents();
-                ImGuiCheckboxFlags("L", &events, MutexInterestingEvent_Lock);
-                ImGui::SameLine();
-                ImGuiCheckboxFlags("C", &events, MutexInterestingEvent_ContendedLock);
-                metadata->SetInterestingEvents(events);
+            if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+                ImGui::OpenPopup(POPUP_NAME);
             }
 
             ImGui::TableNextColumn();
@@ -672,6 +664,16 @@ void MutexStatsUI::DoImGui() {
 
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(BOOL_STR(details->stats.ever_locked));
+
+            if (ImGui::BeginPopup(POPUP_NAME)) {
+                ImGuiHeader("Interesting Events");
+                uint8_t events = metadata->GetInterestingEvents();
+                ImGuiCheckboxFlags("Locks", &events, MutexInterestingEvent_Lock);
+                ImGuiCheckboxFlags("Contended Locks", &events, MutexInterestingEvent_ContendedLock);
+                metadata->SetInterestingEvents(events);
+
+                ImGui::EndPopup();
+            }
         }
 
         ImGui::EndTable();
