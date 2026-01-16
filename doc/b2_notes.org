@@ -7055,15 +7055,17 @@ though.
 
   ,* Add symbol file address suffix modes
   ,* Add disassembly window column resizing, thanks to [Mark Fisher](https://github.com/markjfisher)
+  ,* Fix some 
 
   # UI stuff
 
+  ,* Make Master 128 multi-OS banks a bit easier to select
   ,* (macOS) Hopefully fix b2 coming up without a name in Activity Monitor
 
   # Emulation stuff
 
   ,* Add MMFS emulation support, thanks to [Mark Fisher](https://github.com/markjfisher) (based on code from Martin Mathers; see https://github.com/mmbeeb/MMBeebXL)
-  		  
+  ,* Fix 65c02 `NOP` behaviour
 #+end_src
 
 * snapcraft build stuff
