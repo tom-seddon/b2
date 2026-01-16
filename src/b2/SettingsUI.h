@@ -7,7 +7,7 @@
 class CommandStateTable;
 class CommandTable2;
 
-#include <nlohmann/json_fwd.hpp>
+#include "json.h"
 #include <string>
 #include "dear_imgui.h"
 
@@ -51,10 +51,26 @@ class SettingsUI {
     virtual void LoadPersistentData(const nlohmann::json &j);
     virtual nlohmann::json SavePersistentData();
 
+    template <class PersistentDataType>
+    void SetPersistentData(PersistentDataType *persistent_data) {
+        m_load_persistent_data_fun = [persistent_data](const nlohmann::json &j) -> void {
+            LoadJSON(persistent_data, j, nullptr);
+        };
+
+        m_save_persistent_data_fun = [persistent_data]() -> nlohmann::json {
+            return *persistent_data;
+        };
+    }
+
   protected:
   private:
     std::string m_name;
     ImVec2 m_default_size = {};
+    std::function<void(const nlohmann::json &)> m_load_persistent_data_fun;
+    std::function<nlohmann::json()> m_save_persistent_data_fun;
+
+    static void NullLoadPersistentData(void *persistent_data, const nlohmann::json &j);
+    static nlohmann::json NullSavePersistentData(const void *persistent_data);
 };
 
 //////////////////////////////////////////////////////////////////////////

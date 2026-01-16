@@ -356,28 +356,6 @@ class DebugUI : public SettingsUI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class PersistentDataType>
-class DebugUIWithPersistentData : public DebugUI {
-  public:
-    using DebugUI::DebugUI;
-
-    void LoadPersistentData(const nlohmann::json &j) override {
-        LoadJSON(&m_persistent, j, nullptr);
-    }
-
-    nlohmann::json SavePersistentData() override {
-        return m_persistent;
-    }
-
-  protected:
-    PersistentDataType m_persistent;
-
-  private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class RevealTargetUI {
   public:
     virtual void RevealAddress(M6502Word addr) = 0;
@@ -1295,13 +1273,14 @@ struct MemoryDebugWindowPersistentData {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MemoryDebugWindowPersistentData, hex_editor_options, save_begin, save_end, specify_end, num_columns, scroll_y);
 
-class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPersistentData>,
+class MemoryDebugWindow : public DebugUI,
                           public RevealTargetUI {
   public:
     MemoryDebugWindow()
         : m_handler(this)
         , m_hex_editor(&m_handler) {
         this->SetDefaultSize(ImVec2(600, 450));
+        this->SetPersistentData(&m_persistent);
     }
 
     void AllowMOSToggle() {
@@ -1318,7 +1297,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
     }
 
     void LoadPersistentData(const nlohmann::json &j) override {
-        this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::LoadPersistentData(j);
+        this->DebugUI::LoadPersistentData(j);
         m_hex_editor.options = m_persistent.hex_editor_options;
         m_hex_editor.SetNumColumns(m_persistent.num_columns);
         if (m_persistent.scroll_y >= 0.f) {
@@ -1334,7 +1313,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
         m_persistent.scroll_y = m_hex_editor.GetLastFrameScrollY();
         m_persistent.save_begin = m_handler.m_save_begin_buffer;
         m_persistent.save_end = m_handler.m_save_end_buffer;
-        return this->DebugUIWithPersistentData<MemoryDebugWindowPersistentData>::SavePersistentData();
+        return this->DebugUI::SavePersistentData();
     }
 
   protected:
@@ -1553,6 +1532,7 @@ class MemoryDebugWindow : public DebugUIWithPersistentData<MemoryDebugWindowPers
     bool m_show_mos_toggle = false;
     Handler m_handler;
     HexEditor m_hex_editor;
+    MemoryDebugWindowPersistentData m_persistent;
 };
 
 std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window) {
@@ -1643,12 +1623,13 @@ struct DisassemblyDebugWindowPersistentData {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(DisassemblyDebugWindowPersistentData, track_pc, show_symbols, show_column_lines);
 
-class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebugWindowPersistentData>,
+class DisassemblyDebugWindow : public DebugUI,
                                public RevealTargetUI {
   public:
     DisassemblyDebugWindow()
-        : DebugUIWithPersistentData<DisassemblyDebugWindowPersistentData>(&g_disassembly_table) {
+        : DebugUI(&g_disassembly_table) {
         this->SetDefaultSize(ImVec2(450, 500));
+        this->SetPersistentData(&m_persistent);
     }
 
     uint32_t GetExtraImGuiWindowFlags() const override {
@@ -2190,6 +2171,7 @@ class DisassemblyDebugWindow : public DebugUIWithPersistentData<DisassemblyDebug
     uint32_t m_next_address_id = 0;
     //char m_disassembly_text[100];
     float m_wheel = 0;
+    DisassemblyDebugWindowPersistentData m_persistent;
 
     static bool IsBranchTaken(M6502Condition condition, M6502P p) {
         switch (condition) {
@@ -3222,8 +3204,12 @@ struct PagingBrowserDebugWindowPersistentData {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(PagingBrowserDebugWindowPersistentData, show_unused, show_debug_duplicates);
 
-class PagingBrowserDebugWindow : public DebugUIWithPersistentData<PagingBrowserDebugWindowPersistentData> {
+class PagingBrowserDebugWindow : public DebugUI {
   public:
+    PagingBrowserDebugWindow() {
+        this->SetPersistentData(&m_persistent);
+    }
+
   protected:
     void DoImGui2() override {
         ImGui::Checkbox("Show unused", &m_persistent.show_unused);
@@ -3342,6 +3328,7 @@ class PagingBrowserDebugWindow : public DebugUIWithPersistentData<PagingBrowserD
     }
 
   private:
+    PagingBrowserDebugWindowPersistentData m_persistent;
 };
 
 std::unique_ptr<SettingsUI> CreatePagingBrowserDebugWindow(BeebWindow *beeb_window) {
