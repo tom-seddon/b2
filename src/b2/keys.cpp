@@ -131,7 +131,7 @@ std::string GetKeycodeName(uint32_t keycode) {
 
     for (uint32_t mask = PCKeyModifier_Begin; mask != PCKeyModifier_End; mask <<= 1) {
         if (keycode & mask) {
-            name += GetPCKeyModifierEnumName((int)mask);
+            name += GetPCKeyModifierEnumName(mask);
             name += "-";
         }
     }

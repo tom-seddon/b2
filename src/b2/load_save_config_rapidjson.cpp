@@ -441,7 +441,7 @@ static bool LoadKeycodeFromObject(uint32_t *keycode, rapidjson::Value *keycode_j
 
     for (uint32_t mask = PCKeyModifier_Begin; mask != PCKeyModifier_End; mask <<= 1) {
         bool value;
-        if (FindBoolMember(&value, keycode_json, GetPCKeyModifierEnumName((int)mask), nullptr)) {
+        if (FindBoolMember(&value, keycode_json, GetPCKeyModifierEnumName(mask), nullptr)) {
             if (value) {
                 *keycode |= mask;
             }
@@ -457,7 +457,7 @@ static void SaveKeycodeObject(JSONWriter<StringStream> *writer, uint32_t keycode
     if ((keycode & ~PCKeyModifier_All) != 0) {
         for (uint32_t mask = PCKeyModifier_Begin; mask != PCKeyModifier_End; mask <<= 1) {
             if (keycode & mask) {
-                writer->Key(GetPCKeyModifierEnumName((int)mask));
+                writer->Key(GetPCKeyModifierEnumName(mask));
                 writer->Bool(true);
             }
         }
