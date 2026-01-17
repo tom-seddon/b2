@@ -13,7 +13,7 @@ static void Thread() {
     while (!g_done) {
         //SleepMS(1);
         LockGuard<Mutex> lock(g_mutex);
-        ++g_counter;
+        g_counter = g_counter + 1;
     }
 }
 
@@ -25,7 +25,7 @@ int main() {
     for (int i = 0; i < 2000000; ++i) {
         LockGuard<Mutex> lock(g_mutex);
 
-        ++g_counter;
+        g_counter = g_counter + 1;
     }
 
     uint64_t b = GetCurrentTickCount();

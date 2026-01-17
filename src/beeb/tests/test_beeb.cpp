@@ -672,7 +672,7 @@ std::string GetPrintable(const std::string &bbc_output) {
             break;
 
         case '`':
-            r += u8"\u00a3"; //POUND SIGN
+            r += (const char *)u8"\u00a3"; //POUND SIGN
             break;
 
         default:

@@ -28,12 +28,12 @@ LOG_TAGGED_DEFINE(HTTPSV, "http", "HTTPSV", &log_printer_stdout_and_debugger, fa
 //////////////////////////////////////////////////////////////////////////
 
 static const std::string CONTENT_LENGTH = "Content-Length";
-static const std::string HOST = "Host";
-static const std::string UNKNOWN_HOST = "unknown-host";
+//static const std::string HOST = "Host";
+//static const std::string UNKNOWN_HOST = "unknown-host";
 static const std::string DUMP = "b2Dump";
 static const std::string EXPECT = "Expect";
 static const std::string EXPECT_CONTINUE = "100-continue";
-static const std::string CONTINUE_RESPONSE = "100 Continue\r\n";
+//static const std::string CONTINUE_RESPONSE = "100 Continue\r\n";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

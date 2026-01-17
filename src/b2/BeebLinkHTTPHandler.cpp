@@ -37,12 +37,6 @@ static const std::string BEEBLINK_SENDER_ID = "BeebLink-Sender-Id";
 struct Request {
     std::vector<uint8_t> data;
     bool is_fire_and_forget = false;
-
-    Request() = default;
-    Request(const Request &) = delete;
-    Request &operator=(const Request &) = delete;
-    Request(Request &&) = default;
-    Request &operator=(Request &&) = default;
 };
 
 struct BeebLinkHTTPHandler::ThreadState {
@@ -165,7 +159,7 @@ bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data, bool is_fi
     {
         LockGuard<Mutex> lock(m_ts->mutex);
 
-        m_ts->request_queue.push_back({std::move(data), is_fire_and_forget});
+        m_ts->request_queue.emplace_back(std::move(data), is_fire_and_forget);
     }
 
     m_ts->cv.notify_one();

@@ -440,9 +440,9 @@ int main(int argc, char *argv[]) {
             asbd.mBitsPerChannel = fmt->wBitsPerSample;
             asbd.mBytesPerFrame = asbd.mChannelsPerFrame * asbd.mBitsPerChannel / 8;
             asbd.mBytesPerPacket = asbd.mFramesPerPacket * asbd.mBytesPerFrame;
-            asbd.mFormatFlags = (kAudioFormatFlagIsSignedInteger |
-                                 kAudioFormatFlagsNativeEndian |
-                                 kAudioFormatFlagIsPacked);
+            asbd.mFormatFlags = ((UInt32)kAudioFormatFlagIsSignedInteger |
+                                 (UInt32)kAudioFormatFlagsNativeEndian |
+                                 (UInt32)kAudioFormatFlagIsPacked);
 
             CMFormatDescriptionRef afd_ref;
             OSStatus result = CMAudioFormatDescriptionCreate(kCFAllocatorDefault, &asbd, 0, nullptr, 0, nullptr, nullptr, &afd_ref);
