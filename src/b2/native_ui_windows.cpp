@@ -78,6 +78,7 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
 
     HDC screen_dc = nullptr;
     HBITMAP bitmap = nullptr;
+    int n;
 
     screen_dc = CreateDC("DISPLAY", nullptr, nullptr, nullptr);
     if (!screen_dc) {
@@ -91,7 +92,7 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
         goto done;
     }
 
-    int n = SetDIBits(screen_dc, bitmap, 0, surface->h, dibits, (BITMAPINFO *)&header, DIB_RGB_COLORS);
+    n = SetDIBits(screen_dc, bitmap, 0, surface->h, dibits, (BITMAPINFO *)&header, DIB_RGB_COLORS);
     if (n != surface->h) {
         messages->e.f("SetDIBits failed: result was %d\n", n);
         goto done;

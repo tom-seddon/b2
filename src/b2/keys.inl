@@ -8,7 +8,7 @@
 // of space.)
 
 #define ENAME PCKeyModifier
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 EPNV(Shift, 1 << 24)
 EPNV(Ctrl, 1 << 25)
 EPNV(Alt, 1 << 26)
@@ -52,7 +52,7 @@ EEND()
 
 // All BeebKeySym values fit in an int8_t.
 #define ENAME BeebKeySym
-EBEGIN()
+EBEGIN_DERIVED(int8_t)
 EPNV(None, -1)
 EPN(f0)
 EPN(f1)

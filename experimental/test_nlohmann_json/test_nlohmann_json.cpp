@@ -449,7 +449,7 @@ int main(int argc, char *argv[]) {
         k.name = "test_keymap";
         k.prefer_shortcuts = false;
         k.keys["f0"].push_back({SDLK_UNKNOWN, SDL_SCANCODE_F10});
-        k.keys["f1"].push_back({SDLK_F10 | PCKeyModifier_Shift});
+        k.keys["f1"].push_back({SDLK_F10 | (uint32_t)PCKeyModifier_Shift});
 
         test.keymaps.push_back(k);
     }

@@ -495,7 +495,7 @@ static bool MutexDetailsLessThanByEverLocked(const MutexDetails &a, const MutexD
     }
 }
 
-static void DoLockFrequencyColumnImGui(float hz) {
+static void DoLockFrequencyColumnImGui(double hz) {
     ImGui::Text("%.3f", hz);
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
