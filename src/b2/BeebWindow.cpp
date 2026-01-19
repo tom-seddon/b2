@@ -822,9 +822,9 @@ BeebWindow::~BeebWindow() {
     }
 #endif
 
-    if (m_sound_device != 0) {
-        SDL_UnlockAudioDevice(m_sound_device);
-    }
+    //    if (m_sound_device != 0) {
+    //        SDL_UnlockAudioDevice(m_sound_device);
+    //    }
 }
 
 //////////////////////////////////////////////////////////////////////////
