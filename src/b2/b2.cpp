@@ -710,6 +710,8 @@ struct Options {
     bool fail_startup_late = false;
     bool fail_startup_early = false;
 #endif
+
+    bool headless = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -830,6 +832,8 @@ static bool ParseCommandLineOptions(
     p.AddOption("fail-startup-late").SetIfPresent(&options->fail_startup_late).Help("fail the startup process at a late stage, even if it actually succeeded. Use this to test the failure UI");
 #endif
 
+    p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode");
+
     if (!p.Parse((int)args.size(), args.data())) {
         return false;
     }
@@ -837,8 +841,15 @@ static bool ParseCommandLineOptions(
     if (options->audio_buffer_size <= 0 ||
         options->audio_buffer_size >= 65535 ||
         (options->audio_buffer_size & (options->audio_buffer_size - 1)) != 0) {
-        init_messages->e.f("invalid audio buffer size: %d\n", options->audio_buffer_size);
+        init_messages->e.f("Invalid audio buffer size: %d\n", options->audio_buffer_size);
         return false;
+    }
+
+    if (options->headless) {
+        if (!options->override_config_folder_specified) {
+            init_messages->e.f("Must specify override config folder in headless mode");
+            return false;
+        }
     }
 
     return true;
@@ -877,6 +888,9 @@ static void SDLCALL HandleWindowsMessage(void *userdata, void *hWnd, unsigned in
 // from `main2' with an error to trust this as a local...
 static FillAudioBufferData g_fill_audio_buffer_data;
 
+//
+static std::unique_ptr<std::thread> g_headless_audio_thread;
+
 static bool InitSystem(
     SDL_AudioDeviceID *device_id,
     SDL_AudioSpec *got_spec,
@@ -900,7 +914,12 @@ static bool InitSystem(
 #endif
 
     // Initialise SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
+    Uint32 sdl_init_flags = SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER;
+    sdl_init_flags |= SDL_INIT_VIDEO;
+    if (!options.headless) {
+        sdl_init_flags |= SDL_INIT_AUDIO;
+    }
+    if (SDL_Init(sdl_init_flags) != 0) {
         init_messages->e.f("FATAL: SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
@@ -923,7 +942,7 @@ static bool InitSystem(
 #endif
 
     // Start audio
-    {
+    if (sdl_init_flags & SDL_INIT_AUDIO) {
         SDL_AudioSpec spec = {};
 
         spec.freq = options.audio_hz;
@@ -1397,7 +1416,7 @@ bool IsMainThread() {
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
-    init_messages.i.f("%s\n", PRODUCT_NAME);
+    //init_messages.i.f("%s\n", PRODUCT_NAME);
 
     CheckAssetPaths();
 
@@ -1487,6 +1506,12 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 #endif
 
+    if (!BeebWindows::Init()) {
+        init_messages.e.f(
+            "FATAL: failed to initialize window manager.\n");
+        return false;
+    }
+
     SDL_AudioDeviceID audio_device;
     SDL_AudioSpec audio_spec;
     if (!InitSystem(&audio_device, &audio_spec, options, &init_messages)) {
@@ -1524,12 +1549,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         //                "FATAL: failed to initialize timeline.\n");
         //            return false;
         //        }
-
-        if (!BeebWindows::Init()) {
-            init_messages.e.f(
-                "FATAL: failed to initialize window manager.\n");
-            return false;
-        }
 
         SDL_PauseAudioDevice(audio_device, 0);
 
@@ -1637,7 +1656,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             }
 
             ia.boot = options.boot;
+
             ia.limit_speed = options.limit_speed;
+            ia.headless = options.headless;
         }
 
         if (!BeebWindows::CreateBeebWindow(ia)) {

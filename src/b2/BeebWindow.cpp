@@ -730,9 +730,14 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
         m_message_list->SetFlags(m_message_list->GetFlags() | MessageListFlags_Stdio);
     }
 
+    uint32_t sound_device = m_init_arguments.sound_device;
+    if (m_init_arguments.headless) {
+        sound_device = 0;
+    }
+
     m_beeb_thread = std::make_shared<BeebThread>(m_message_list,
                                                  m_metric_set,
-                                                 m_init_arguments.sound_device,
+                                                 sound_device,
                                                  m_init_arguments.sound_spec.freq,
                                                  m_init_arguments.sound_spec.samples,
                                                  m_init_arguments.default_config,
@@ -3103,7 +3108,10 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
-    m_beeb_thread->MainThreadIsReady();
+    if (!m_send_main_thread_ready_message) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::MainThreadIsReadyMessage>());
+        m_send_main_thread_ready_message = true;
+    }
 
     bool economy = false;
 
@@ -3640,8 +3648,10 @@ void BeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id, float 
         return;
     }
 
-    if (m_sound_device != audio_device_id) {
-        return;
+    if (audio_device_id != 0) {
+        if (m_sound_device != audio_device_id) {
+            return;
+        }
     }
 
     m_beeb_thread->AudioThreadFillAudioBuffer(mix_buffer, num_samples, false);

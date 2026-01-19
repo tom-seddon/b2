@@ -900,6 +900,16 @@ class BeebThread {
         const uint8_t m_value = 0;
     };
 
+    class MainThreadIsReadyMessage : public Message {
+      public:
+        MainThreadIsReadyMessage() = default;
+
+        void ThreadHandle(ThreadState *ts) const override;
+
+      protected:
+      private:
+    };
+
     struct AudioCallbackRecord {
         uint64_t time = 0;
         uint64_t needed = 0;
@@ -1057,8 +1067,6 @@ class BeebThread {
 
     bool TakeNVRAMChanged();
 
-    void MainThreadIsReady();
-
   protected:
   private:
     struct AudioThreadData;
@@ -1079,6 +1087,7 @@ class BeebThread {
     };
 
     const uint64_t m_uid = 0;
+    const bool m_is_main_thread_ready = false; //initial value for the thread's corresponding flag
 
     // Initialisation-time stuff. Controlled by m_mutex, but it's not terribly
     // important as the thread just moves this stuff on initialisation.
@@ -1113,9 +1122,6 @@ class BeebThread {
     std::atomic<size_t> m_printer_data_size_bytes{false};
     std::atomic<BBCMicroHaltReason> m_debug_halt_reason{BBCMicroHaltReason_None};
     std::atomic<uint32_t> m_update_flags{0};
-
-    // Set once the main thread is ready for the BBC to start running.
-    std::atomic<bool> m_is_main_thread_ready{false};
 
     // Set if NVRAM changes. Query using TakeNVRAMChanged, which does an atomic
     // swap with false. (The way b2 is arranged, it's just a lot simpler to

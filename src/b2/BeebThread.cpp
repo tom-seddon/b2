@@ -130,6 +130,7 @@ static const float VOLUMES_TABLE[] = {
 
 struct BeebThread::ThreadState {
     bool stop = false;
+    bool is_main_thread_ready = false;
 
     // For the benefit of callbacks that have a ThreadState * as their context.
     BeebThread *beeb_thread = nullptr;
@@ -1826,6 +1827,13 @@ void BeebThread::MouseButtonsMessage::ThreadHandle(ThreadState *ts) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::MainThreadIsReadyMessage::ThreadHandle(ThreadState *ts) const {
+    ts->is_main_thread_ready = true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebThread::KeyStates::GetState(BeebKey key) const {
     ASSERT(key >= 0 && (int)key < 128);
 
@@ -1864,11 +1872,11 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        std::vector<TimelineEventList> initial_timeline_event_lists,
                        bool is_main_thread_ready)
     : m_uid(g_next_uid++)
+    , m_is_main_thread_ready(is_main_thread_ready)
     , m_default_loaded_config(std::move(default_loaded_config))
     , m_initial_timeline_event_lists(std::move(initial_timeline_event_lists))
     , m_video_output(NUM_VIDEO_UNITS)
     , m_sound_output(NUM_AUDIO_UNITS)
-    , m_is_main_thread_ready(is_main_thread_ready)
     , m_message_list(std::move(message_list))
     , m_metric_set(std::move(metric_set)) {
     m_sound_device_id = sound_device_id;
@@ -2470,13 +2478,6 @@ void BeebThread::GetConfig(std::string *config_name, BeebConfig *config, BeebCon
 
 bool BeebThread::TakeNVRAMChanged() {
     return m_nvram_changed.exchange(false, std::memory_order_acq_rel);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::MainThreadIsReady() {
-    m_is_main_thread_ready.store(true, std::memory_order_release);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3091,6 +3092,7 @@ void BeebThread::ThreadMain(void) {
 
         SetCurrentThreadNamef("BeebThread");
 
+        ts.is_main_thread_ready = m_is_main_thread_ready;
         ts.beeb_thread = this;
         ts.msgs.SetMessageList(m_message_list);
         ts.timeline_event_lists = std::move(m_initial_timeline_event_lists);
@@ -3111,6 +3113,14 @@ void BeebThread::ThreadMain(void) {
 
         ts.current_config = std::move(m_default_loaded_config);
 
+        if (m_sound_device_id == 0) {
+            // If no sound device, assume headless mode, so no speed limiting.
+            //
+            // TODO: should really be made to work ok if genuinely no sound device! But nobody has ever complained.
+            ts.next_stop_cycles.n = ~(uint64_t)0;
+            m_is_speed_limited.store(false, std::memory_order_release);
+        }
+
         m_thread_state = &ts;
     }
 
@@ -3124,7 +3134,7 @@ void BeebThread::ThreadMain(void) {
         bool paused = false;
         if (!ts.beeb) {
             paused = true;
-        } else if (!m_is_main_thread_ready.load(std::memory_order_acquire)) {
+        } else if (!ts.is_main_thread_ready) {
             paused = true;
         } else {
 #if BBCMICRO_DEBUGGER
@@ -3137,7 +3147,9 @@ void BeebThread::ThreadMain(void) {
         const char *what;
 
         if (paused ||
-            (m_is_speed_limited.load(std::memory_order_acquire) && ts.next_stop_cycles.n <= ts.num_executed_cycles->n)) {
+            (m_is_speed_limited.load(std::memory_order_acquire) &&
+             m_sound_device_id != 0 &&
+             ts.next_stop_cycles.n <= ts.num_executed_cycles->n)) {
             PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Wait");
             rmt_ScopedCPUSample(MessageQueueWaitForMessage, 0);
             m_mq.ConsumerWaitForMessages(&messages);
@@ -3430,6 +3442,15 @@ void BeebThread::ThreadMain(void) {
 
             // It's a bit dumb having multiple copies.
             m_num_cycles.store(*ts.num_executed_cycles, std::memory_order_release);
+        }
+
+        if (m_sound_device_id == 0) {
+            // Must be headless mode. Consume all produced data.
+            const SoundDataUnit *sa, *sb;
+            size_t na, nb;
+            if (m_sound_output.GetConsumerBuffers(&sa, &na, &sb, &nb)) {
+                m_sound_output.Consume(na + nb);
+            }
         }
     }
 done:

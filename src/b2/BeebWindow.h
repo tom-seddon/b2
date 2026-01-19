@@ -264,6 +264,9 @@ struct BeebWindowInitArguments {
     // line.
     float gui_scale = 0.f;
 #endif
+
+    // Set if b2 was started in headless mode.
+    bool headless = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -533,6 +536,8 @@ class BeebWindow {
     bool m_is_mouse_captured = false;
 
     bool m_beeb_got_imgui_focus = false;
+
+    bool m_send_main_thread_ready_message = false;
 
     std::shared_ptr<MetricSet> m_metric_set;
     TimerDef *m_HandleVBlank_timer_def = nullptr;
