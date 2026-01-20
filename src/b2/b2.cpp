@@ -914,10 +914,11 @@ static bool InitSystem(
 #endif
 
     // Initialise SDL
-    Uint32 sdl_init_flags = SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER;
+    Uint32 sdl_init_flags = SDL_INIT_TIMER;
     sdl_init_flags |= SDL_INIT_VIDEO;
     if (!options.headless) {
         sdl_init_flags |= SDL_INIT_AUDIO;
+        sdl_init_flags |= SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER;
     }
     if (SDL_Init(sdl_init_flags) != 0) {
         init_messages->e.f("FATAL: SDL_Init failed: %s\n", SDL_GetError());
