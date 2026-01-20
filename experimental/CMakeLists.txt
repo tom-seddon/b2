@@ -1,5 +1,7 @@
 include("../common.cmake")
 
+set(CMAKE_CXX_SCAN_FOR_MODULES FALSE)
+
 if(WIN32)
   add_subdirectory(test_dxgi)
   add_subdirectory(test_dxgi2)

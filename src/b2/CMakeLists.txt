@@ -411,7 +411,7 @@ add_test(
 ##########################################################################
 
 add_executable(b2client b2client.cpp)
-b2_target_boilerplate(b2client,SANITIZERS)
+b2_target_boilerplate(b2client SANITIZERS)
 target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohmann_json)
 
 ##########################################################################

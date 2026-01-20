@@ -379,6 +379,8 @@ function(b2_target_boilerplate TARGET)
   if(${arg_b2_target_boilerplate_SANITIZERS})
     add_sanitizers(${TARGET})
   endif()
+
+  set_property(TARGET ${TARGET} PROPERTY CXX_SCAN_FOR_MODULES FALSE)
 endfunction()
 
 ##########################################################################

@@ -6,4 +6,4 @@ add_library(dear_imgui_hex_editor_lib STATIC
 
 target_include_directories(dear_imgui_hex_editor_lib PUBLIC .)
 target_link_libraries(dear_imgui_hex_editor_lib imgui_lib)
-add_sanitizers(dear_imgui_hex_editor_lib)
+b2_target_boilerplate(dear_imgui_hex_editor_lib SANITIZERS)
