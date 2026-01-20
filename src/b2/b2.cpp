@@ -965,6 +965,9 @@ static bool InitSystem(
 
         g_fill_audio_buffer_data.spec = *got_spec;
         g_fill_audio_buffer_data.device = *device_id;
+    } else {
+        *device_id = 0;
+        *got_spec = {};
     }
 
     return true;

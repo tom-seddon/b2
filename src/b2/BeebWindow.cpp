@@ -3382,7 +3382,7 @@ bool BeebWindow::InitInternal() {
     //m_msg.e.f("error init message\n");
 
     m_sound_device = m_init_arguments.sound_device;
-    ASSERT(m_init_arguments.sound_spec.freq > 0);
+    ASSERT(m_sound_device == 0 || m_init_arguments.sound_spec.freq > 0);
 
 #if BUILD_TYPE_Debug
     m_msg.i.f("%d popup types\n", BeebWindowPopupType_MaxValue);
