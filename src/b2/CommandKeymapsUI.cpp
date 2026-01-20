@@ -36,14 +36,14 @@ class CommandKeymapsUI : public SettingsUI {
         m_wants_keyboard_focus = false;
 
         ForEachCommandTable2([this](CommandTable2 *table) {
-            ImGuiIDPusher id_pusher(table->GetName().c_str());
+            ImGuiIDPusher id_pusher(table->GetDisplayText().c_str());
             bool header_shown = false;
             bool table_visible = true;
 
             table->ForEachCommand([this, table, &table_visible, &header_shown](Command2 *command) {
                 if (command->IsVisible()) {
                     if (!header_shown) {
-                        std::string title = table->GetName() + " shortcuts";
+                        std::string title = table->GetDisplayText() + " shortcuts";
                         table_visible = ImGui::CollapsingHeader(title.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
                         header_shown = true;
                     }

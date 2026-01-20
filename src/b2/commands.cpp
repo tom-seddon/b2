@@ -47,8 +47,9 @@ static std::vector<CommandTable2 *> *GetCommandTable2sList() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CommandTable2::CommandTable2(std::string name, int default_command_visibility)
+CommandTable2::CommandTable2(std::string name, std::string display_text, int default_command_visibility)
     : m_name(std::move(name))
+    , m_display_text(std::move(display_text))
     , m_default_command_visibility(!!default_command_visibility) {
     std::vector<CommandTable2 *> *const list = GetCommandTable2sList();
     ASSERT(!Contains(*list, this));
@@ -69,6 +70,13 @@ CommandTable2::~CommandTable2() {
 
 const std::string &CommandTable2::GetName() const {
     return m_name;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string &CommandTable2::GetDisplayText() const {
+    return m_display_text;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -602,9 +610,9 @@ void ForEachCommandTable2(std::function<void(CommandTable2 *)> fun) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CommandTable2 *FindCommandTable2ByName(const std::string &name) {
+CommandTable2 *FindCommandTable2ByDisplayText(const std::string &display_text) {
     for (CommandTable2 *table : *GetCommandTable2sList()) {
-        if (table->GetName() == name) {
+        if (table->GetDisplayText() == display_text) {
             return table;
         }
     }

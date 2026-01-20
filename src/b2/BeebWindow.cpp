@@ -89,7 +89,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static CommandTable2 g_beeb_window_command_table("Beeb Window");
+static CommandTable2 g_beeb_window_command_table("beeb_window", "Beeb Window");
 #if SYSTEM_WINDOWS
 static Command2 g_toggle_console_command = Command2(&g_beeb_window_command_table, "toggle_console", "Show Win32 console").WithTick();
 static Command2 g_clear_console_command(&g_beeb_window_command_table, "clear_console", "Clear Win32 console");

@@ -7,7 +7,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static CommandTable2 g_disassembly_table("Disassembly Window", BBCMICRO_DEBUGGER);
+static CommandTable2 g_disassembly_table("disassembly_window", "Disassembly Window", BBCMICRO_DEBUGGER);
 static Command2 g_toggle_track_pc_command = Command2(&g_disassembly_table, "toggle_track_pc", "Track PC").WithShortcut(SDLK_t);
 static Command2 g_toggle_show_labels_command = Command2(&g_disassembly_table, "toggle_show_symbols", "Show Symbols").WithShortcut(SDLK_l);
 static Command2 g_back_command = Command2(&g_disassembly_table, "back", "Back").WithShortcut(SDLK_BACKSPACE);
@@ -18,7 +18,7 @@ static Command2 g_page_down_command = Command2(&g_disassembly_table, "page_down"
 static Command2 g_step_over_command = Command2(&g_disassembly_table, "step_over", "Step Over").WithShortcut(SDLK_F10);
 static Command2 g_step_in_command = Command2(&g_disassembly_table, "step_in", "Step In").WithShortcut(SDLK_F11);
 
-static CommandTable2 g_6502_table("6502 Window", BBCMICRO_DEBUGGER);
+static CommandTable2 g_6502_table("_6502_window", "6502 Window", BBCMICRO_DEBUGGER);
 static Command2 g_reset_relative_cycles_command = Command2(&g_6502_table, "reset_relative_cycles", "Reset").WithExtraText("Relative cycles");
 static Command2 g_toggle_reset_relative_cycles_on_breakpoint_command = Command2(&g_6502_table, "toggle_reset_relative_cycles_on_breakpoint", "Reset on breakpoint").WithExtraText("Relative cycles").WithTick();
 

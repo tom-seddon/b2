@@ -13,8 +13,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //
-//
-//
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -24,7 +22,7 @@ class CommandTable2 {
   public:
     typedef Command2 CommandType; //temporary measure
 
-    explicit CommandTable2(std::string name, int default_command_visibility = 1);
+    explicit CommandTable2(std::string name, std::string display_text, int default_command_visibility = 1);
     ~CommandTable2();
 
     CommandTable2(const CommandTable2 &) = delete;
@@ -33,6 +31,7 @@ class CommandTable2 {
     CommandTable2 &operator=(CommandTable2 &&) = delete;
 
     const std::string &GetName() const;
+    const std::string &GetDisplayText() const;
 
     void ForEachCommand(std::function<void(Command2 *)> fun) const;
 
@@ -54,6 +53,7 @@ class CommandTable2 {
   protected:
   private:
     std::string m_name;
+    std::string m_display_text;
     bool m_default_command_visibility = true;
 
     std::map<const Command2 *, std::vector<uint32_t>> m_pc_keys_by_command;
@@ -192,7 +192,9 @@ class CommandStateTable {
 
 void ForEachCommand2(std::function<void(Command2 *)> fun);
 void ForEachCommandTable2(std::function<void(CommandTable2 *)> fun);
-CommandTable2 *FindCommandTable2ByName(const std::string &name);
+
+// TODO: finding things by their display text shouldn't be a thing, of course. I messed up the JSON serialization here.
+CommandTable2 *FindCommandTable2ByDisplayText(const std::string &display_text);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

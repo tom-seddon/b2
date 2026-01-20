@@ -55,7 +55,7 @@ class MessagesUI : public SettingsUI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static CommandTable2 g_messages_table("Messages Window");
+static CommandTable2 g_messages_table("messages_window", "Messages Window");
 static Command2 g_copy_command(&g_messages_table, "copy", "Copy");
 static Command2 g_clear_command(&g_messages_table, "clear", "Clear");
 

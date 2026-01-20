@@ -800,7 +800,8 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
          table_it != shortcuts_json->MemberEnd();
          ++table_it) {
 
-        CommandTable2 *table2 = FindCommandTable2ByName(table_it->name.GetString());
+        // TODO: bleargh. Should be storing these by name, not display text!
+        CommandTable2 *table2 = FindCommandTable2ByDisplayText(table_it->name.GetString());
 
         if (!table2) {
             msg->w.f("unknown command table: %s\n", table_it->name.GetString());
