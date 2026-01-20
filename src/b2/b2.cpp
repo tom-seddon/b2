@@ -1568,10 +1568,14 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         }
 
         g_vblank_handler = std::make_unique<b2VBlankHandler>();
-        init_messages.i.f("Timing method: %s\n", g_global_settings.vsync ? "vsync" : "timer");
-        std::unique_ptr<VBlankMonitor> vblank_monitor = CreateVBlankMonitor(g_vblank_handler.get(),
-                                                                            !g_global_settings.vsync,
-                                                                            &init_messages);
+        std::unique_ptr<VBlankMonitor> vblank_monitor;
+        {
+            bool use_vsync = g_global_settings.vsync && !options.headless;
+            init_messages.i.f("Timing method: %s\n", use_vsync ? "vsync" : "timer");
+            vblank_monitor = CreateVBlankMonitor(g_vblank_handler.get(),
+                                                 !use_vsync,
+                                                 &init_messages);
+        }
         if (!vblank_monitor) {
             init_messages.e.f("Failed to initialise vblank monitor.\n");
             return false;

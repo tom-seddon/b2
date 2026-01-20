@@ -242,7 +242,11 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     ImGuiIO &io = ImGui::GetIO();
     ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
 
-    io.BackendRendererName = "b2 SDL/OpenGL";
+    if (m_renderer) {
+        io.BackendRendererName = "b2 SDL/OpenGL";
+    } else {
+        io.BackendRendererName = "b2 Headless";
+    }
     io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 
 #if SYSTEM_WINDOWS
@@ -265,8 +269,15 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     // See ImGui_ImplSDL2_Init.
 
-    SDL_Window *window = SDL_RenderGetWindow(m_renderer);
-    uint32_t window_flags = SDL_GetWindowFlags(window);
+    SDL_Window *window;
+    uint32_t window_flags;
+    if (m_renderer) {
+        window = SDL_RenderGetWindow(m_renderer);
+        window_flags = SDL_GetWindowFlags(window);
+    } else {
+        window = nullptr;
+        window_flags = 0;
+    }
 
     if (window_flags & SDL_WINDOW_ALLOW_HIGHDPI) {
 #if SYSTEM_WINDOWS
@@ -453,7 +464,7 @@ void ImGuiStuff::NewFrame() {
         }
     }
 
-    {
+    if (m_renderer) {
         SDL_Window *window = SDL_RenderGetWindow(m_renderer);
 
         int window_width, window_height;
@@ -469,6 +480,11 @@ void ImGuiStuff::NewFrame() {
         //
         // TODO: there's probably somewhere better to get this value from... right?!
         m_mouse_scale = (float)output_width / window_width;
+    } else {
+        io.DisplaySize.x = 1024;
+        io.DisplaySize.y = 768;
+
+        m_mouse_scale = 1.f;
     }
 
     this->EnsureFontsReady();
@@ -516,6 +532,10 @@ void ImGuiStuff::RenderSDL() {
     }
 
     if (!draw_data->Valid) {
+        return;
+    }
+
+    if (!m_renderer) {
         return;
     }
 
@@ -936,7 +956,7 @@ void ImGuiStuff::UpdateImTextureData(ImTextureData *im_texture) {
         break;
 
     case ImTextureStatus_WantCreate:
-        {
+        if (m_renderer) {
             ASSERT(im_texture->TexID == 0);
             ASSERT(!im_texture->BackendUserData);
             ASSERT(im_texture->Format == ImTextureFormat_RGBA32);
@@ -960,27 +980,31 @@ void ImGuiStuff::UpdateImTextureData(ImTextureData *im_texture) {
         break;
 
     case ImTextureStatus_WantUpdates:
-        if (auto sdl_texture = (SDL_Texture *)im_texture->TexID) {
-            for (const ImTextureRect &im_rect : im_texture->Updates) {
-                SDL_Rect sdl_rect;
-                sdl_rect.x = im_rect.x;
-                sdl_rect.y = im_rect.y;
-                sdl_rect.w = im_rect.w;
-                sdl_rect.h = im_rect.h;
+        if (m_renderer) {
+            if (auto sdl_texture = (SDL_Texture *)im_texture->TexID) {
+                for (const ImTextureRect &im_rect : im_texture->Updates) {
+                    SDL_Rect sdl_rect;
+                    sdl_rect.x = im_rect.x;
+                    sdl_rect.y = im_rect.y;
+                    sdl_rect.w = im_rect.w;
+                    sdl_rect.h = im_rect.h;
 
-                const void *pixels = im_texture->GetPixelsAt(im_rect.x, im_rect.y);
-                int pitch = im_texture->GetPitch();
-                SDL_UpdateTexture(sdl_texture, &sdl_rect, pixels, pitch);
+                    const void *pixels = im_texture->GetPixelsAt(im_rect.x, im_rect.y);
+                    int pitch = im_texture->GetPitch();
+                    SDL_UpdateTexture(sdl_texture, &sdl_rect, pixels, pitch);
+                }
             }
         }
         break;
 
     case ImTextureStatus_WantDestroy:
         {
-            if (auto sdl_texture = (SDL_Texture *)im_texture->TexID) {
-                SDL_DestroyTexture(sdl_texture);
-                im_texture->SetTexID(0);
-                im_texture->SetStatus(ImTextureStatus_Destroyed);
+            if (m_renderer) {
+                if (auto sdl_texture = (SDL_Texture *)im_texture->TexID) {
+                    SDL_DestroyTexture(sdl_texture);
+                    im_texture->SetTexID(0);
+                    im_texture->SetStatus(ImTextureStatus_Destroyed);
+                }
             }
         }
         break;

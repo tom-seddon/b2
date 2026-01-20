@@ -723,7 +723,11 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_HandleVBlank_RenderSDL_timer_def = MetricSet::CreateTimerDef(m_metric_set, "Render SDL", m_HandleVBlank_end_of_frame_timer_def);
     m_HandleVBlank_DoImGui_timer_def = MetricSet::CreateTimerDef(m_metric_set, "DoImGui", m_HandleVBlank_end_of_frame_timer_def);
 
-    m_message_list = std::make_shared<MessageList>("BeebWindow");
+    if (m_init_arguments.headless) {
+        m_message_list = MessageList::stdio;
+    } else {
+        m_message_list = std::make_shared<MessageList>("BeebWindow");
+    }
     m_msg.SetMessageList(m_message_list);
 
     if (init_arguments.verbose) {
@@ -2804,8 +2808,11 @@ void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
                 PROFILE_SCOPE(PROFILER_COLOUR_CORAL, "CopyTexturePixels");
 
                 ASSERT(state->update_dest_pitch >= 0);
-                state->update_tv->CopyTexturePixels(state->update_dest_pixels,
-                                                    (size_t)state->update_dest_pitch);
+
+                if (state->update_dest_pixels) {
+                    state->update_tv->CopyTexturePixels(state->update_dest_pixels,
+                                                        (size_t)state->update_dest_pitch);
+                }
             }
 
             lock.lock();
@@ -2906,7 +2913,7 @@ bool BeebWindow::InhibitUpdateTVTexture() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest_pitch) {
-    ASSERT(dest_pitch > 0);
+    ASSERT(!dest_pixels || dest_pitch > 0);
     if (threaded) {
         {
             UniqueLock<Mutex> lock(m_update_tv_texture_state.mutex);
@@ -3388,105 +3395,107 @@ bool BeebWindow::InitInternal() {
     m_msg.i.f("%d popup types\n", BeebWindowPopupType_MaxValue);
 #endif
 
-    // Add some extra space round the edges so the display doesn't have to
-    // be scaled down noticeably.
-    //
-    // 19 is the height of the dear imgui menu bar with the default font.
-    // (Ideally this would be retrieved at runtime, but that can't be done
-    // until after the window is created.)
-    //
-    // Maddeningly, this still isn't quite perfect - at least on OS X. It
-    // seems like there's a window border that's drawn on top of everything,
-    // inside the window? Bleargh. The dear imgui window position is probably
-    // wrong as well. Maybe all the border size saving and restoring is
-    // causing problems.
-    //
-    // Anyway, obvious with the test pattern, but in practice not an issue,
-    // as the borders are so large...
-    uint32_t window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL;
-    if (m_init_arguments.enable_high_dpi) {
-        window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
-    }
-    m_window = SDL_CreateWindow("",
-                                SDL_WINDOWPOS_UNDEFINED,
-                                SDL_WINDOWPOS_UNDEFINED,
-                                TV_TEXTURE_WIDTH + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f),
-                                TV_TEXTURE_HEIGHT + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f),
-                                window_flags);
-    if (!m_window) {
-        m_msg.e.f("SDL_CreateWindow failed: %s\n", SDL_GetError());
-        return false;
-    }
-
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
-    m_renderer = SDL_CreateRenderer(m_window, -1, 0);
-    if (!m_renderer) {
-        m_msg.e.f("SDL_CreateRenderer failed: %s\n", SDL_GetError());
-        return false;
-    }
-
-    SDL_SetWindowData(m_window, SDL_WINDOW_DATA_NAME, this);
-
-    SDL_SysWMinfo wmi;
-    SDL_VERSION(&wmi.version);
-    SDL_GetWindowWMInfo(m_window, &wmi);
-
     bool reset_windows = m_init_arguments.reset_windows;
     m_init_arguments.reset_windows = false;
 
+    if (!m_init_arguments.headless) {
+        // Add some extra space round the edges so the display doesn't have to
+        // be scaled down noticeably.
+        //
+        // 19 is the height of the dear imgui menu bar with the default font.
+        // (Ideally this would be retrieved at runtime, but that can't be done
+        // until after the window is created.)
+        //
+        // Maddeningly, this still isn't quite perfect - at least on OS X. It
+        // seems like there's a window border that's drawn on top of everything,
+        // inside the window? Bleargh. The dear imgui window position is probably
+        // wrong as well. Maybe all the border size saving and restoring is
+        // causing problems.
+        //
+        // Anyway, obvious with the test pattern, but in practice not an issue,
+        // as the borders are so large...
+        uint32_t window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL;
+        if (m_init_arguments.enable_high_dpi) {
+            window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+        }
+        m_window = SDL_CreateWindow("",
+                                    SDL_WINDOWPOS_UNDEFINED,
+                                    SDL_WINDOWPOS_UNDEFINED,
+                                    TV_TEXTURE_WIDTH + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f),
+                                    TV_TEXTURE_HEIGHT + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f),
+                                    window_flags);
+        if (!m_window) {
+            m_msg.e.f("SDL_CreateWindow failed: %s\n", SDL_GetError());
+            return false;
+        }
+
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+        m_renderer = SDL_CreateRenderer(m_window, -1, 0);
+        if (!m_renderer) {
+            m_msg.e.f("SDL_CreateRenderer failed: %s\n", SDL_GetError());
+            return false;
+        }
+
+        SDL_SetWindowData(m_window, SDL_WINDOW_DATA_NAME, this);
+
+        SDL_SysWMinfo wmi;
+        SDL_VERSION(&wmi.version);
+        SDL_GetWindowWMInfo(m_window, &wmi);
+
 #if SYSTEM_WINDOWS
 
-    m_hwnd = wmi.info.win.window;
+        m_hwnd = wmi.info.win.window;
 
-    // 33 = window corner preference -
-    // https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
-    //
-    // 1 = don't round -
-    // https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_window_corner_preference
-    uint32_t wcp = 1;
-    DwmSetWindowAttribute((HWND)m_hwnd, 33, &wcp, sizeof wcp);
+        // 33 = window corner preference -
+        // https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
+        //
+        // 1 = don't round -
+        // https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_window_corner_preference
+        uint32_t wcp = 1;
+        DwmSetWindowAttribute((HWND)m_hwnd, 33, &wcp, sizeof wcp);
 
-    if (!reset_windows) {
-        if (m_hwnd) {
-            if (m_init_arguments.placement_data.size() == sizeof(WINDOWPLACEMENT)) {
-                auto wp = (const WINDOWPLACEMENT *)m_init_arguments.placement_data.data();
+        if (!reset_windows) {
+            if (m_hwnd) {
+                if (m_init_arguments.placement_data.size() == sizeof(WINDOWPLACEMENT)) {
+                    auto wp = (const WINDOWPLACEMENT *)m_init_arguments.placement_data.data();
 
-                SetWindowPlacement((HWND)m_hwnd, wp);
+                    SetWindowPlacement((HWND)m_hwnd, wp);
+                }
             }
         }
-    }
 
 #elif SYSTEM_OSX
 
-    m_nswindow = wmi.info.cocoa.window;
+        m_nswindow = wmi.info.cocoa.window;
 
-    if (!reset_windows) {
-        SetCocoaFrameUsingName(m_nswindow, m_init_arguments.frame_name);
-    }
+        if (!reset_windows) {
+            SetCocoaFrameUsingName(m_nswindow, m_init_arguments.frame_name);
+        }
 
 #else
 
-    if (!reset_windows) {
-        if (m_init_arguments.placement_data.size() == sizeof(WindowPlacementData)) {
-            auto wp = (const WindowPlacementData *)m_init_arguments.placement_data.data();
+        if (!reset_windows) {
+            if (m_init_arguments.placement_data.size() == sizeof(WindowPlacementData)) {
+                auto wp = (const WindowPlacementData *)m_init_arguments.placement_data.data();
 
-            SDL_RestoreWindow(m_window);
+                SDL_RestoreWindow(m_window);
 
-            if (wp->x != INT_MIN && wp->y != INT_MIN) {
-                SDL_SetWindowPosition(m_window, wp->x, wp->y);
-            }
+                if (wp->x != INT_MIN && wp->y != INT_MIN) {
+                    SDL_SetWindowPosition(m_window, wp->x, wp->y);
+                }
 
-            if (wp->width > 0 && wp->height > 0) {
-                SDL_SetWindowSize(m_window, wp->width, wp->height);
-            }
+                if (wp->width > 0 && wp->height > 0) {
+                    SDL_SetWindowSize(m_window, wp->width, wp->height);
+                }
 
-            if (wp->maximized) {
-                SDL_MaximizeWindow(m_window);
+                if (wp->maximized) {
+                    SDL_MaximizeWindow(m_window);
+                }
             }
         }
-    }
 
 #endif
+    }
 
 #if ENABLE_SDL_FULL_SCREEN
     if (!reset_windows) {
@@ -3494,22 +3503,18 @@ bool BeebWindow::InitInternal() {
     }
 #endif
 
-    SDL_RendererInfo info;
-    if (SDL_GetRendererInfo(m_renderer, &info) < 0) {
-        m_msg.e.f("SDL_GetRendererInfo failed: %s\n", SDL_GetError());
-        return false;
-    }
-
 #if RMT_ENABLED
-    if (g_num_BeebWindow_inits == 0) {
+    if (m_renderer) {
+        if (g_num_BeebWindow_inits == 0) {
 #if RMT_USE_OPENGL
-        if (strcmp(info.name, "opengl") == 0) {
-            rmt_BindOpenGL();
-            g_unbind_opengl = 1;
-        }
+            if (strcmp(info.name, "opengl") == 0) {
+                rmt_BindOpenGL();
+                g_unbind_opengl = 1;
+            }
 #endif
+        }
+        ++g_num_BeebWindow_inits;
     }
-    ++g_num_BeebWindow_inits;
 #endif
 
     if (!this->RecreateTexture()) {
@@ -3614,15 +3619,23 @@ bool BeebWindow::InitInternal() {
     //    }
     //}
 
-    {
+    if (m_renderer) {
+        SDL_RendererInfo renderer_info;
+        if (SDL_GetRendererInfo(m_renderer, &renderer_info) < 0) {
+            m_msg.e.f("SDL_GetRendererInfo failed: %s\n", SDL_GetError());
+            return false;
+        }
+
         Uint32 format;
         int width, height;
         SDL_QueryTexture(m_tv_texture, &format, nullptr, &width, &height);
         m_msg.i.f("Renderer: %s, %dx%d %s\n",
-                  info.name,
+                  renderer_info.name,
                   width,
                   height,
                   SDL_GetPixelFormatName(format));
+    } else {
+        m_msg.i.f("Renderer: none (running headless)\n");
     }
 
     m_msg.i.f("Sound: %s, %dHz %d-channel (%d byte buffer)\n",
@@ -3714,7 +3727,11 @@ void BeebWindow::UpdateTitle() {
 
     m_last_title_speed = speed;
 
-    SDL_SetWindowTitle(m_window, title);
+    if (m_window) {
+        SDL_SetWindowTitle(m_window, title);
+    } else {
+        puts(title);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3964,10 +3981,12 @@ bool BeebWindow::RecreateTexture() {
 
     SetRenderScaleQualityHint(m_settings.display_filter);
 
-    m_tv_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT);
-    if (!m_tv_texture) {
-        m_msg.e.f("Failed to create TV texture: %s\n", SDL_GetError());
-        return false;
+    if (m_renderer) {
+        m_tv_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT);
+        if (!m_tv_texture) {
+            m_msg.e.f("Failed to create TV texture: %s\n", SDL_GetError());
+            return false;
+        }
     }
 
     return true;
