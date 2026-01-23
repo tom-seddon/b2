@@ -9,7 +9,9 @@ target_include_directories(miniz_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniz
 
 set(IMGUI__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-add_library(imgui_lib STATIC
+add_library(imgui_lib INTERFACE)
+
+target_sources(imgui_lib INTERFACE
   ${IMGUI__FOLDER}/imconfig.h
   ${IMGUI__FOLDER}/imgui.cpp
   ${IMGUI__FOLDER}/imgui.h
@@ -22,20 +24,9 @@ add_library(imgui_lib STATIC
   ${IMGUI__FOLDER}/imstb_textedit.h
   ${IMGUI__FOLDER}/imstb_truetype.h)
 
-target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
-target_compile_definitions(imgui_lib PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
-target_compile_features(imgui_lib PUBLIC cxx_constexpr)
-
-if(MSVC)
-  target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)
-
-  # C4305: 'identifier' : truncation from 'type1' to 'type2'
-  # C4267: 'var' : conversion from 'size_t' to 'type', possible loss of data
-  # C4800: 'type' : forcing value to bool 'true' or 'false' (performance warning)
-  # C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data
-  # C4312: 'operation' : conversion from 'type1' to 'type2' of greater size 
-  target_compile_options(imgui_lib PRIVATE /wd4305 /wd4267 /wd4800 /wd4244 /wd4312 /wd4458)
-endif()
+target_include_directories(imgui_lib INTERFACE ${IMGUI__FOLDER})
+target_compile_definitions(imgui_lib INTERFACE IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
+target_compile_features(imgui_lib INTERFACE cxx_constexpr)
 
 # Add standalone Dear ImGui examples, for emergency testing purposes.
 
