@@ -847,26 +847,6 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
     return true;
 }
 
-template <class CommandTableType>
-static void SaveCommandTableShortcuts(JSONWriter<StringStream> *writer, const CommandTableType *table) {
-    if (!table) {
-        return;
-    }
-
-    table->ForEachCommand([writer, table](typename CommandTableType::CommandType *command) {
-        bool are_defaults;
-        if (const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&are_defaults, command)) {
-            if (!are_defaults) {
-                auto command_json = ArrayWriter(writer, command->GetName().c_str());
-
-                for (uint32_t pc_key : *pc_keys) {
-                    SaveKeycodeObject(writer, pc_key);
-                }
-            }
-        }
-    });
-}
-
 static void SaveShortcuts(JSONWriter<StringStream> *writer) {
     auto shortcuts_json = ObjectWriter(writer, SHORTCUTS);
 
