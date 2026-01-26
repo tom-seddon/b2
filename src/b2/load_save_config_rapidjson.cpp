@@ -851,7 +851,7 @@ static void SaveShortcuts(JSONWriter<StringStream> *writer) {
     auto shortcuts_json = ObjectWriter(writer, SHORTCUTS);
 
     ForEachCommandTable2([writer](CommandTable2 *table) {
-        auto commands_json = ObjectWriter(writer, table->GetName().c_str());
+        auto commands_json = ObjectWriter(writer, table->GetDisplayText().c_str());
 
         table->ForEachCommand([table, writer](Command2 *command) {
             bool are_defaults;
