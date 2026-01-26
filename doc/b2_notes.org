@@ -7612,4 +7612,20 @@ ok only:
 3803008280
 3920138873 <-- ""
 
+** running in Linux
+
+Working folder:
+
+#+begin_example
+~/github/b2/submodules/imgui_test_engine/imgui_test_suite
+#+end_example
+
+Executable:
+
+#+begin_example
+/home/tom/github/b2/build/d.linux/submodules/imgui_test_suite_sdl2_opengl3
+#+end_example
+
+-nopause -nocapture
+
 * eof.

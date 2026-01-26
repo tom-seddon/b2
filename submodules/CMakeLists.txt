@@ -94,6 +94,11 @@ if(WIN32)
     ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.natvis)
 endif()
 
+if(${CMAKE_C_COMPILER_ID} MATCHES "GNU")
+  # warning: ignoring return value of ‘xxx’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  target_compile_options(imgui_test_engine_lib PRIVATE "-Wno-unused-result")
+endif()
+
 # TODO: this should maybe actually all be tied together via interface
 # libraries somehow? But this best reflects how the example VC++
 # solution is configured: the test engine library doesn't link with
@@ -161,7 +166,7 @@ if(WIN32)
   target_link_libraries(imgui_test_suite_win32_directx11 PRIVATE d3d11.lib)
 endif()
 
-if(APPLE)
+if(OSX OR LINUX)
   add_imgui_test_suite_executable(imgui_test_suite_sdl2_opengl3)
   target_compile_definitions(imgui_test_suite_sdl2_opengl3 PRIVATE IMGUI_APP_SDL2_GL3)
   target_link_libraries(imgui_test_suite_sdl2_opengl3 PRIVATE ${SDL2_LIBRARY} ${OPENGL_LIBRARIES})
