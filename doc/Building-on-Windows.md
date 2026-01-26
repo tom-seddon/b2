@@ -2,21 +2,19 @@
 
 Prerequisites:
 
-- Visual Studio 2022 or Visual Studio 2019 (ensure C++ CMake tools
-  for Windows is included)
-- Python 3.x (the version that comes with Visual Studio 2019 is fine)
+- Visual Studio 2022 (ensure C++ CMake tools for Windows is included)
+- Python 3.x (the version that comes with Visual Studio 2022 is fine)
   
 Optional, but recommended:
 
-- Microsoft Child Process Debugging Power Tool: [VS2019](https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool); [VS2022](https://marketplace.visualstudio.com/items?itemName=vsdbgplat.MicrosoftChildProcessDebuggingPowerTool2022)
+- Microsoft Child Process Debugging Power Tool: [VS2022](https://marketplace.visualstudio.com/items?itemName=vsdbgplat.MicrosoftChildProcessDebuggingPowerTool2022)
 
 Initial setup, for use after cloning or updating the repo:
 
 1. Open command prompt in working copy folder 
 
 2. Run `make init_vs2022` to generate a solution for Visual Studio
-   2022, or `make init_vs2019` to generate a solution for Visual
-   Studio 2019
+   2022
    
    You should get a bunch of output - there may be the odd warning,
    but there should be no obvious errors, and it should finish with an
@@ -26,7 +24,6 @@ General day-to-day build steps:
 
 1. Load solution into Visual Studio:
 
-   - `build\vs2019\b2.sln` if using VS2019
    - `build\vs2022\b2.sln` if using VS2022
 
 2. Build
@@ -43,15 +40,12 @@ information and the initial build steps ensure everything is rebuilt.)
   solution. Even though most are rarely used, they're still there
   cluttering the place up. You just have to put up with this
   
-- support for Visual Studio 2019 will probably go away eventually...
-
 # Running the automated tests
 
 To run from the command line, run the following (depending on Visual
 Studio version), replacing `<<config>>` with the config of interest:
 `Debug`, `RelWithDebInfo`, or `Final`.
 
-- `make run_tests_vs2019 CONFIG=<<config>>` if using VS2019
 - `make run_tests_vs2022 CONFIG=<<config>>` if using VS2022
 
 This will run the tests in parallel according to PC core count.

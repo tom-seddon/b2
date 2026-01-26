@@ -8,9 +8,9 @@ SHELL:=$(windir)\system32\cmd.exe
 init_vs2022:
 	$(_V)$(MAKE) _newer_vs VSYEAR=2022 VSVER=17 VSVERNAME="Visual Studio 17 2022"
 
-.PHONY:init_vs2019
-init_vs2019:
-	$(_V)$(MAKE) _newer_vs VSYEAR=2019 VSVER=16 VSVERNAME="Visual Studio 16"
+# .PHONY:init_vs2019
+# init_vs2019:
+# 	$(_V)$(MAKE) _newer_vs VSYEAR=2019 VSVER=16 VSVERNAME="Visual Studio 16"
 
 ##########################################################################
 ##########################################################################
@@ -33,10 +33,10 @@ run_tests_vs2022: CONFIG=$(error Must specify CONFIG)
 run_tests_vs2022:
 	$(_V)$(MAKE) _run_tests VSYEAR=2022 VSVER=17 CONFIG=$(CONFIG)
 
-.PHONY: run_tests_vs2019
-run_tests_vs2019: CONFIG=$(error Must specify CONFIG)
-run_tests_vs2019:
-	$(_V)$(MAKE) _run_tests VSYEAR=2019 VSVER=16 CONFIG=$(CONFIG)
+# .PHONY: run_tests_vs2019
+# run_tests_vs2019: CONFIG=$(error Must specify CONFIG)
+# run_tests_vs2019:
+# 	$(_V)$(MAKE) _run_tests VSYEAR=2019 VSVER=16 CONFIG=$(CONFIG)
 
 .PHONY:_run_tests
 _run_tests: VS_PATH:=$(shell "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -version $(VSVER) -property installationPath)
