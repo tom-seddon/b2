@@ -7559,45 +7559,6 @@ I/O port (or several) for debugging stuff.
 #+end_src
 
 * Dear ImGui Test Engine Stuff
-
-** cmake
-
-Untested guesswork:
-
-#+begin_src cmake
-  set(IMGUI_TEST_ENGINE__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui_test_engine)
-  set(IMGUI_TEST_ENGINE__TE_FOLDER ${IMGUI_TEST_ENGINE__FOLDER}/imgui_test_engine)
-
-  add_library(imgui_te_lib STATIC
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_context.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_context.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_coroutine.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_coroutine.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_engine.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_engine.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_exporters.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_exporters.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_perftool.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_perftool.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_ui.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_ui.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_utils.cpp
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_utils.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_imconfig.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_internal.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/stb/imstb_image_write.h
-    ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.h)
-
-  target_link_libraries(imgui_te_lib PRIVATE imgui_testable_lib)
-
-  if(WIN32)
-    target_sources(imgui_te_lib PRIVATE
-      ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.natvis)
-  endif()
-#+end_src
-
 ** ids mismatch
 
 borked only:
@@ -7628,4 +7589,42 @@ Executable:
 
 -nopause -nocapture
 
+=======
+  # set(IMGUI_TEST_ENGINE__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui_test_engine)
+  # set(IMGUI_TEST_ENGINE__TE_FOLDER ${IMGUI_TEST_ENGINE__FOLDER}/imgui_test_engine)
+
+  # add_library(imgui_te_lib STATIC
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_context.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_context.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_coroutine.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_coroutine.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_engine.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_engine.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_exporters.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_exporters.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_perftool.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_perftool.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_ui.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_ui.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_utils.cpp
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_utils.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_imconfig.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_internal.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/stb/imstb_image_write.h
+  #   ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.h)
+
+  # target_link_libraries(imgui_te_lib PRIVATE imgui_testable_lib)
+
+  # if(WIN32)
+  #   target_sources(imgui_te_lib PRIVATE
+  #     ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.natvis)
+  # endif()
+
+  ##########################################################################
+  ##########################################################################
+#+end_src
+
+>>>>>>> wip/headless2
 * eof.
