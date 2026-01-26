@@ -107,8 +107,8 @@ target_compile_definitions(imgui_test_engine_lib PRIVATE IMGUI_USER_CONFIG="${IM
 target_compile_definitions(imgui_test_engine_lib PUBLIC IMGUI_TEST_ENGINE_ENABLE_STD_FUNCTION=1)
 target_compile_definitions(imgui_test_engine_lib PUBLIC IMGUI_TEST_ENGINE_ENABLE_COROUTINE_STDTHREAD_IMPL=1)
 
-if(WIN32)
-  add_executable(imgui_test_suite_win32_directx11
+function(add_imgui_test_suite_executable TARGET)
+  add_executable(${TARGET}
     ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite.cpp
     ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite.h
     ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h
@@ -134,19 +134,39 @@ if(WIN32)
   # build.
   #
   # TODO: this hangs together OK(ish), but it'd be nice to tidy it up.
-  target_sources(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__SOURCES})
-  target_include_directories(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__FOLDER})
+  target_sources(${TARGET} PRIVATE ${IMGUI__SOURCES})
+  target_include_directories(${TARGET} PRIVATE ${IMGUI__FOLDER})
   # Don't include IMGUI__DEFINITIONS. The custom imconfig will look
   # after that.
-  target_compile_features(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__FEATURES})
-  target_include_directories(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__FOLDER}/backends)
-  target_link_libraries(imgui_test_suite_win32_directx11 PRIVATE imgui_test_engine_lib d3d11.lib)
-  target_compile_definitions(imgui_test_suite_win32_directx11 PRIVATE IMGUI_USER_CONFIG="${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h")
+  target_compile_features(${TARGET} PRIVATE ${IMGUI__FEATURES})
+  target_include_directories(${TARGET} PRIVATE ${IMGUI__FOLDER}/backends)
+  target_link_libraries(${TARGET} PRIVATE imgui_test_engine_lib)
+  target_compile_definitions(${TARGET} PRIVATE IMGUI_USER_CONFIG="${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h")
 
-  # DEBUGGER_WORKING_DIRECTORY is the better one to set, but it only
-  # came in CMake 4.0.
-  set_property(TARGET imgui_test_suite_win32_directx11 PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
-  set_property(TARGET imgui_test_suite_win32_directx11 PROPERTY DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
+  # DEBUGGER_WORKING_DIRECTORY looks like the best one to set, but it
+  # only came in CMake 4.0.
+  #
+  # VS_DEBUGGER_WORKING_DIRECTORY only applies for Visual Studio, and
+  # XCODE_SCHEME_WORKING_DIRECTORY only applies for Xcode, but
+  # hopuefully no harm in setting them in all cases.
+  set_property(TARGET ${TARGET} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
+  set_property(TARGET ${TARGET} PROPERTY DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
+  set_property(TARGET ${TARGET} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
+endfunction()
+
+if(WIN32)
+  # the test suite imconfig.h has a #ifdef _WIN32 in it, which limits
+  # the options.
+  add_imgui_test_suite_executable(imgui_test_suite_win32_directx11)
+  target_link_libraries(imgui_test_suite_win32_directx11 PRIVATE d3d11.lib)
+endif()
+
+if(APPLE)
+  add_imgui_test_suite_executable(imgui_test_suite_sdl2_opengl3)
+  target_compile_definitions(imgui_test_suite_sdl2_opengl3 PRIVATE IMGUI_APP_SDL2_GL3)
+  target_link_libraries(imgui_test_suite_sdl2_opengl3 PRIVATE ${SDL2_LIBRARY} ${OPENGL_LIBRARIES})
+
+  add_imgui_test_suite_executable(imgui_test_suite_null)
 endif()
 
 ##########################################################################

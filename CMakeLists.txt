@@ -103,6 +103,9 @@ elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
   # use the system libcurl, given that it ships with OS X and is
   # probably tuned for the system SSL and so on.
   set(USE_SYSTEM_CURL_DEFAULT ON)
+
+  # ...
+  set(CMAKE_XCODE_GENERATE_SCHEME ON)
 elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
   set(LINUX 1)
 

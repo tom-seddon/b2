@@ -24,11 +24,8 @@ Initial setup, for use after cloning:
 3. Load `build/Xcode/b2.xcodeproj` from Xcode. I opt to automatically
    create all schemes
 
-4. Select `ALL_BUILD` in the schemes dropdown
+4. Select `b2` in the schemes dropdown
 
-5. Select `Edit Scheme...` from the schemes dropdown, select the `Run`
-   option, `Info` section, and select `b2.app` as the `Executable`
-   
 For use after updating the repo:
 
 1. Open terminal in working copy folder
