@@ -8,10 +8,9 @@ target_include_directories(miniz_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniz
 ##########################################################################
 
 set(IMGUI__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
-
-add_library(imgui_lib INTERFACE)
-
-target_sources(imgui_lib INTERFACE
+set(IMGUI__DEFINITIONS IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
+set(IMGUI__FEATURES cxx_constexpr)
+set(IMGUI__SOURCES
   ${IMGUI__FOLDER}/imconfig.h
   ${IMGUI__FOLDER}/imgui.cpp
   ${IMGUI__FOLDER}/imgui.h
@@ -23,10 +22,20 @@ target_sources(imgui_lib INTERFACE
   ${IMGUI__FOLDER}/imstb_rectpack.h
   ${IMGUI__FOLDER}/imstb_textedit.h
   ${IMGUI__FOLDER}/imstb_truetype.h)
+if(MSVC)
+  set(IMGUI__SOURCES
+    ${IMGUI__SOURCES}
+    ${IMGUI__FOLDER}/misc/debuggers/imgui.natvis)
+endif()
+add_library(imgui_lib INTERFACE)
 
+target_sources(imgui_lib INTERFACE ${IMGUI__SOURCES})
 target_include_directories(imgui_lib INTERFACE ${IMGUI__FOLDER})
-target_compile_definitions(imgui_lib INTERFACE IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
-target_compile_features(imgui_lib INTERFACE cxx_constexpr)
+target_compile_definitions(imgui_lib INTERFACE ${IMGUI__DEFINITIONS})
+target_compile_features(imgui_lib INTERFACE ${IMGUI__FEATURES})
+
+##########################################################################
+##########################################################################
 
 # Add standalone Dear ImGui examples, for emergency testing purposes.
 
@@ -49,6 +58,96 @@ add_executable(imgui_example_sdl2_opengl2
   ${IMGUI__FOLDER}/backends/imgui_impl_sdl2.h)
 target_include_directories(imgui_example_sdl2_opengl2 PRIVATE ${IMGUI__FOLDER}/backends)
 target_link_libraries(imgui_example_sdl2_opengl2 PRIVATE imgui_lib ${SDL2_LIBRARY} ${OPENGL_LIBRARIES})
+
+##########################################################################
+##########################################################################
+
+set(IMGUI_TEST_ENGINE__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui_test_engine)
+set(IMGUI_TEST_ENGINE__TE_FOLDER ${IMGUI_TEST_ENGINE__FOLDER}/imgui_test_engine)
+set(IMGUI_TEST_ENGINE__TS_FOLDER ${IMGUI_TEST_ENGINE__FOLDER}/imgui_test_suite)
+set(IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER ${IMGUI_TEST_ENGINE__TS_FOLDER}/thirdparty/implot)
+
+add_library(imgui_test_engine_lib STATIC
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_context.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_context.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_coroutine.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_coroutine.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_engine.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_engine.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_exporters.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_exporters.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_perftool.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_perftool.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_ui.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_ui.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_utils.cpp
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_utils.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_imconfig.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_internal.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/stb/imstb_image_write.h
+  ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.h)
+
+if(WIN32)
+  target_sources(imgui_test_engine_lib PRIVATE
+    ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.natvis)
+endif()
+
+# TODO: this should maybe actually all be tied together via interface
+# libraries somehow? But this best reflects how the example VC++
+# solution is configured: the test engine library doesn't link with
+# Dear ImGui proper at all, just includes its headers.
+target_include_directories(imgui_test_engine_lib PRIVATE ${IMGUI__FOLDER} ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER})
+target_include_directories(imgui_test_engine_lib INTERFACE ${IMGUI_TEST_ENGINE__FOLDER})
+# Don't include IMGUI__DEFINITIONS. The custom imconfig will look
+# after that.
+target_compile_features(imgui_test_engine_lib PUBLIC ${IMGUI__FEATURES})
+target_compile_definitions(imgui_test_engine_lib PRIVATE IMGUI_USER_CONFIG="${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h")
+target_compile_definitions(imgui_test_engine_lib PUBLIC IMGUI_TEST_ENGINE_ENABLE_STD_FUNCTION=1)
+target_compile_definitions(imgui_test_engine_lib PUBLIC IMGUI_TEST_ENGINE_ENABLE_COROUTINE_STDTHREAD_IMPL=1)
+
+if(WIN32)
+  add_executable(imgui_test_suite_win32_directx11
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite.h
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_core.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_docking.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_inputs.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_nav.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_perf.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_tables.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_viewports.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_widgets.cpp
+    ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_tests_widgets_inputtext.cpp
+    ${IMGUI_TEST_ENGINE__FOLDER}/shared/imgui_app.cpp
+    ${IMGUI_TEST_ENGINE__FOLDER}/shared/imgui_app.h
+    ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot.cpp
+    ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot.h
+    ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot_demo.cpp
+    ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot_internal.h
+    ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot_items.cpp)
+
+  # Manually add Dear ImGui to the test suite. Don't use imgui_lib, as
+  # that brings in IMGUI__DEFINITIONS, producing a warning during the
+  # build.
+  #
+  # TODO: this hangs together OK(ish), but it'd be nice to tidy it up.
+  target_sources(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__SOURCES})
+  target_include_directories(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__FOLDER})
+  # Don't include IMGUI__DEFINITIONS. The custom imconfig will look
+  # after that.
+  target_compile_features(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__FEATURES})
+  target_include_directories(imgui_test_suite_win32_directx11 PRIVATE ${IMGUI__FOLDER}/backends)
+  target_link_libraries(imgui_test_suite_win32_directx11 PRIVATE imgui_test_engine_lib d3d11.lib)
+  target_compile_definitions(imgui_test_suite_win32_directx11 PRIVATE IMGUI_USER_CONFIG="${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h")
+
+  # DEBUGGER_WORKING_DIRECTORY is the better one to set, but it only
+  # came in CMake 4.0.
+  set_property(TARGET imgui_test_suite_win32_directx11 PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
+  set_property(TARGET imgui_test_suite_win32_directx11 PROPERTY DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
+endif()
 
 ##########################################################################
 ##########################################################################
