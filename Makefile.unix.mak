@@ -287,10 +287,12 @@ precommit_tom:
 precommit_tom_main:
 	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) _precommit_tom_init_gcc _precommit_tom_init_clang,)
 	$(_V)$(TIME_JOBS) push "Compiler" "$(shell $(GCC_CC) --version | head -n 1)"
+	$(_V)$(if $(CLEAN),$(MAKE) _precommit ACTION=clean FOLDER_PREFIX=precommit-gcc.)
 	$(_V)$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-gcc.
 	$(_V)$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-gcc.
 	$(_V)$(TIME_JOBS) pop
 	$(_V)$(TIME_JOBS) push "Compiler" "$(shell $(CLANG_CC) --version | head -n 1)"
+	$(_V)$(if $(CLEAN),$(MAKE) _precommit ACTION=clean FOLDER_PREFIX=precommit-clang.)
 	$(_V)$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-clang.
 	$(_V)$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-clang.
 	$(_V)$(TIME_JOBS) pop
