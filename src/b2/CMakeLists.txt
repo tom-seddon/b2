@@ -36,7 +36,7 @@ add_executable(b2 MACOSX_BUNDLE
   b2.cpp b2.h b2.inl
   commands.cpp commands.h
   conf.cpp conf.h
-  dear_imgui.cpp dear_imgui.h dear_imgui.inl
+  dear_imgui.cpp dear_imgui.h dear_imgui.inl dear_imgui.imconfig.h
   debugger.cpp debugger.h
   discs.cpp discs.h
   keymap.cpp keymap.h
@@ -74,6 +74,17 @@ target_compile_definitions(b2 PRIVATE RELEASE_NAME=${RELEASE_NAME})
 if(HAVE_SDL_SOFTSTRETCHLINEAR)
   target_compile_definitions(b2 PRIVATE HAVE_SDL_SOFTSTRETCHLINEAR=1)
 endif()
+
+##########################################################################
+##########################################################################
+
+# since Dear ImGui is an interface library, this'll apply to b2's
+# copy when built and used.
+target_compile_definitions(b2 PRIVATE IMGUI_USER_CONFIG="${CMAKE_CURRENT_LIST_DIR}/dear_imgui.imconfig.h")
+
+target_link_libraries(b2 PRIVATE
+  imgui_lib
+  imgui_test_engine_lib)
 
 ##########################################################################
 ##########################################################################
@@ -242,7 +253,6 @@ target_link_libraries(b2 PRIVATE
   6502_lib
   miniz_lib
   remotery_lib
-  imgui_lib
   imgui_memory_editor_lib
   rapidjson_lib
   IconFontCppHeaders_lib

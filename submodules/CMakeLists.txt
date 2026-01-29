@@ -8,7 +8,6 @@ target_include_directories(miniz_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniz
 ##########################################################################
 
 set(IMGUI__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
-set(IMGUI__DEFINITIONS IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
 set(IMGUI__FEATURES cxx_constexpr)
 set(IMGUI__SOURCES
   ${IMGUI__FOLDER}/imconfig.h
@@ -31,7 +30,6 @@ add_library(imgui_lib INTERFACE)
 
 target_sources(imgui_lib INTERFACE ${IMGUI__SOURCES})
 target_include_directories(imgui_lib INTERFACE ${IMGUI__FOLDER})
-target_compile_definitions(imgui_lib INTERFACE ${IMGUI__DEFINITIONS})
 target_compile_features(imgui_lib INTERFACE ${IMGUI__FEATURES})
 
 ##########################################################################
@@ -67,7 +65,9 @@ set(IMGUI_TEST_ENGINE__TE_FOLDER ${IMGUI_TEST_ENGINE__FOLDER}/imgui_test_engine)
 set(IMGUI_TEST_ENGINE__TS_FOLDER ${IMGUI_TEST_ENGINE__FOLDER}/imgui_test_suite)
 set(IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER ${IMGUI_TEST_ENGINE__TS_FOLDER}/thirdparty/implot)
 
-add_library(imgui_test_engine_lib STATIC
+add_library(imgui_test_engine_lib INTERFACE)
+
+target_sources(imgui_test_engine_lib INTERFACE
   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.cpp
   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_capture_tool.h
   ${IMGUI_TEST_ENGINE__TE_FOLDER}/imgui_te_context.cpp
@@ -90,27 +90,25 @@ add_library(imgui_test_engine_lib STATIC
   ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.h)
 
 if(WIN32)
-  target_sources(imgui_test_engine_lib PRIVATE
+  target_sources(imgui_test_engine_lib INTERFACE
     ${IMGUI_TEST_ENGINE__TE_FOLDER}/thirdparty/Str/Str.natvis)
 endif()
 
-if(${CMAKE_C_COMPILER_ID} MATCHES "GNU")
-  # warning: ignoring return value of ‘xxx’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
-  target_compile_options(imgui_test_engine_lib PRIVATE "-Wno-unused-result")
-endif()
+# TODO...???
+# if(${CMAKE_C_COMPILER_ID} MATCHES "GNU")
+#   # warning: ignoring return value of ‘xxx’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+#   target_compile_options(imgui_test_engine_lib PRIVATE "-Wno-unused-result")
+# endif()
 
 # TODO: this should maybe actually all be tied together via interface
 # libraries somehow? But this best reflects how the example VC++
 # solution is configured: the test engine library doesn't link with
 # Dear ImGui proper at all, just includes its headers.
-target_include_directories(imgui_test_engine_lib PRIVATE ${IMGUI__FOLDER} ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER})
+target_include_directories(imgui_test_engine_lib INTERFACE ${IMGUI__FOLDER} ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER})
 target_include_directories(imgui_test_engine_lib INTERFACE ${IMGUI_TEST_ENGINE__FOLDER})
-# Don't include IMGUI__DEFINITIONS. The custom imconfig will look
-# after that.
-target_compile_features(imgui_test_engine_lib PUBLIC ${IMGUI__FEATURES})
-target_compile_definitions(imgui_test_engine_lib PRIVATE IMGUI_USER_CONFIG="${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h")
-target_compile_definitions(imgui_test_engine_lib PUBLIC IMGUI_TEST_ENGINE_ENABLE_STD_FUNCTION=1)
-target_compile_definitions(imgui_test_engine_lib PUBLIC IMGUI_TEST_ENGINE_ENABLE_COROUTINE_STDTHREAD_IMPL=1)
+target_compile_features(imgui_test_engine_lib INTERFACE ${IMGUI__FEATURES})
+target_compile_definitions(imgui_test_engine_lib INTERFACE IMGUI_TEST_ENGINE_ENABLE_STD_FUNCTION=1)
+target_compile_definitions(imgui_test_engine_lib INTERFACE IMGUI_TEST_ENGINE_ENABLE_COROUTINE_STDTHREAD_IMPL=1)
 
 function(add_imgui_test_suite_executable TARGET)
   add_executable(${TARGET}
@@ -134,18 +132,8 @@ function(add_imgui_test_suite_executable TARGET)
     ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot_internal.h
     ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot_items.cpp)
 
-  # Manually add Dear ImGui to the test suite. Don't use imgui_lib, as
-  # that brings in IMGUI__DEFINITIONS, producing a warning during the
-  # build.
-  #
-  # TODO: this hangs together OK(ish), but it'd be nice to tidy it up.
-  target_sources(${TARGET} PRIVATE ${IMGUI__SOURCES})
-  target_include_directories(${TARGET} PRIVATE ${IMGUI__FOLDER})
-  # Don't include IMGUI__DEFINITIONS. The custom imconfig will look
-  # after that.
-  target_compile_features(${TARGET} PRIVATE ${IMGUI__FEATURES})
   target_include_directories(${TARGET} PRIVATE ${IMGUI__FOLDER}/backends)
-  target_link_libraries(${TARGET} PRIVATE imgui_test_engine_lib)
+  target_link_libraries(${TARGET} PRIVATE imgui_test_engine_lib imgui_lib)
   target_compile_definitions(${TARGET} PRIVATE IMGUI_USER_CONFIG="${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h")
 
   # DEBUGGER_WORKING_DIRECTORY looks like the best one to set, but it
