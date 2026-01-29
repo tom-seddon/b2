@@ -118,6 +118,7 @@ set_submodule_upstreams:
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=relacy UPSTREAM=https://github.com/dvyukov/relacy
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=salieri UPSTREAM=https://github.com/nemequ/salieri
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=visual6502 UPSTREAM=https://github.com/trebonian/visual6502
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui_test_engine UPSTREAM=https://github.com/ocornut/imgui_test_engine
 
 .PHONY:_set_submodule_upstream
 _set_submodule_upstream: SUBMODULE=$(error must supply SUBMODULE)

@@ -84,4 +84,4 @@
 	url = https://github.com/tom-seddon/shared_lib
 [submodule "submodules/imgui_test_engine"]
 	path = submodules/imgui_test_engine
-	url = https://github.com/ocornut/imgui_test_engine
+	url = https://github.com/tom-seddon/imgui_test_engine
