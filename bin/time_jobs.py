@@ -56,16 +56,20 @@ def print_cmd(options):
     rows=[]
     stack=[]
     line_index=0
+    first_push_start=None
+    last_pop_start=None
     while line_index<len(lines):
         if lines[line_index]=='push':
             if len(stack)>0: stack[-1].any_children=True
 
             key=lines[line_index+1]
             if key not in headers: headers.append(key)
-            
+
+            start=int(lines[line_index+3])
             stack.append(Entry(key=key,
                                value=lines[line_index+2],
-                               start=int(lines[line_index+3])))
+                               start=start))
+            if first_push_start is None: first_push_start=start
             line_index+=4
         elif lines[line_index]=='pop':
             key=lines[line_index+1]
@@ -73,13 +77,15 @@ def print_cmd(options):
             if key!='' and key!=stack[-1].key:
                 fatal('mismatch: pushed %s, popped %s'%(stack[-1].key,key))
 
+            start=int(lines[line_index+2])
             if not stack[-1].any_children:
-                row=Row(seconds=(int(lines[line_index+2])-stack[-1].start)/1e9,
-                        values={})
+                row=Row(seconds=(start-stack[-1].start)/1e9,values={})
                 for entry in stack: row.values[entry.key]=entry.value
                 rows.append(row)
 
             del stack[-1]
+
+            last_pop_start=start
 
             line_index+=3
         else:
@@ -114,6 +120,8 @@ def print_cmd(options):
     print('|%s|'%('|'.join(['-'*(2+n) for n in column_widths])))
     for row_strs in rows_strs: print(get_row_string(row_strs))
     print()
+    if first_push_start is not None and last_pop_start is not None: 
+        print('Total time: %.1f seconds'%((last_pop_start-first_push_start)/1e9))
 
 ##########################################################################
 ##########################################################################
