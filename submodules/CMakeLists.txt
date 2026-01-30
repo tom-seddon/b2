@@ -110,6 +110,9 @@ target_compile_features(imgui_test_engine_lib INTERFACE ${IMGUI__FEATURES})
 target_compile_definitions(imgui_test_engine_lib INTERFACE IMGUI_TEST_ENGINE_ENABLE_STD_FUNCTION=1)
 target_compile_definitions(imgui_test_engine_lib INTERFACE IMGUI_TEST_ENGINE_ENABLE_COROUTINE_STDTHREAD_IMPL=1)
 
+find_file(FFMPEG_PATH NAMES ffmpeg${CMAKE_HOST_EXECUTABLE_SUFFIX})
+message(STATUS "FFmpeg path: ${FFMPEG_PATH}")
+
 function(add_imgui_test_suite_executable TARGET)
   add_executable(${TARGET}
     ${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite.cpp
@@ -145,6 +148,12 @@ function(add_imgui_test_suite_executable TARGET)
   set_property(TARGET ${TARGET} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
   set_property(TARGET ${TARGET} PROPERTY DEBUGGER_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
   set_property(TARGET ${TARGET} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY ${IMGUI_TEST_ENGINE__TS_FOLDER})
+
+  if(NOT ${FFMPEG_PATH} STREQUAL FFMPEG_PATH-NOTFOUND)
+    set(EXTRA_COMMAND_ARGUMENTS " -ffmpeg \"${FFMPEG_PATH}\"")
+    set_property(TARGET ${TARGET} APPEND_STRING PROPERTY VS_DEBUGGER_COMMAND_ARGUMENTS ${EXTRA_COMMAND_ARGUMENTS})
+    set_property(TARGET ${TARGET} APPEND PROPERTY XCODE_SCHEME_ARGUMENTS ${EXTRA_COMMAND_ARGUMENTS})
+  endif()
 endfunction()
 
 if(WIN32)
