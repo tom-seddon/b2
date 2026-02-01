@@ -2672,7 +2672,7 @@ static Options GetOptions(int argc, char *argv[]) {
     p.AddOption('T', "test-pattern").Meta("TEST").AddArgToList(&test_name_patterns).Help("run test(s) matching TEST, a case-insensitive glob pattern");
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption('l', "list-for-check_ctest_log").SetIfPresent(&options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
-    p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("wanted images may not exist if one doesn't, assume the got image is the right one, and copy it to the wanted image path");
+    p.AddOption(0, "infer-wanted-images").SetIfPresent(&options.infer_wanted_images).Help("if a wanted image doesn't exist, assume the got image is the right one, and copy it to the wanted image path");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
 
     // intended for use when adding new tests, in conjunction with -T, on the
