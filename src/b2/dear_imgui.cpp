@@ -13,6 +13,11 @@
 #include "b2.h"
 #include <SDL_syswm.h>
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+#include <imgui_test_engine/imgui_te_engine.h>
+#include <imgui_test_engine/imgui_te_ui.h>
+#endif
+
 #include <shared/enum_def.h>
 #include "dear_imgui.inl"
 #include <shared/enum_end.h>
@@ -95,11 +100,17 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer)
+ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer, bool enable_test_engine)
     : m_renderer(renderer) {
     m_last_new_frame_ticks = GetCurrentTickCount();
 
     static_assert(sizeof m_imgui_key_from_sdl_scancode / sizeof m_imgui_key_from_sdl_scancode[0] == SDL_NUM_SCANCODES);
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    m_enable_test_engine = enable_test_engine;
+#else
+    (void)enable_test_engine;
+#endif
 
 #if SYSTEM_WINDOWS
     FindProcAddress("user32.dll", "GetDpiForWindow", &g_GetDpiForWindow);
@@ -127,9 +138,22 @@ ImGuiStuff::~ImGuiStuff() {
             }
         }
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+        if (m_test_engine) {
+            ImGuiTestEngine_Stop(m_test_engine);
+        }
+#endif
+
         ImGui::DestroyPlatformWindows();
         ImGui::DestroyContext(m_context);
         m_context = nullptr;
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+        if (m_test_engine) {
+            ImGuiTestEngine_DestroyContext(m_test_engine);
+            m_test_engine = nullptr;
+        }
+#endif
     }
 
     for (size_t i = 0; i < sizeof m_cursors / sizeof m_cursors[0]; ++i) {
@@ -282,7 +306,6 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     if (window_flags & SDL_WINDOW_ALLOW_HIGHDPI) {
 #if SYSTEM_WINDOWS
-
         SDL_SysWMinfo wm_info;
         SDL_VERSION(&wm_info.version);
         SDL_GetWindowWMInfo(window, &wm_info);
@@ -385,6 +408,11 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_RGUI)] = ImGuiKey_RightSuper;
 
     m_default_style = ImGui::GetStyle();
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    m_test_engine = ImGuiTestEngine_CreateContext();
+    ImGuiTestEngine_Start(m_test_engine, ImGui::GetCurrentContext());
+#endif
 
     return true;
 }
@@ -688,6 +716,17 @@ void ImGuiStuff::RenderSDL() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void ImGuiStuff::PostSwap() {
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    if (m_test_engine) {
+        ImGuiTestEngine_PostSwap(m_test_engine);
+    }
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void ImGuiStuff::AddFocusEvent(bool got_focus) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
@@ -875,6 +914,25 @@ void ImGuiStuff::DoStoredDrawListWindow() {
 }
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+bool ImGuiStuff::IsTestEngineEnabled() const {
+    return m_enable_test_engine;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+void ImGuiStuff::DoTestEngineWindow(bool *p_open) {
+    if (m_test_engine) {
+        ImGuiTestEngine_ShowTestEngineWindows(m_test_engine, p_open);
+    }
+}
+#endif
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

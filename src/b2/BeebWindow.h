@@ -267,6 +267,11 @@ struct BeebWindowInitArguments {
 
     // Set if b2 was started in headless mode.
     bool headless = false;
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    // Set if Dear ImGui Test Engine should be enabled.
+    bool imgui_enable_test_engine = false;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -464,6 +469,9 @@ class BeebWindow {
     bool m_imgui_drawlists = false;
 #endif
     bool m_imgui_metrics = false;
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    bool m_imgui_test_engine = false;
+#endif
 
     std::vector<std::string> m_display_size_options;
 

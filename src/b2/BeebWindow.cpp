@@ -52,6 +52,9 @@
 #include "SymbolTable.h"
 #include <shared/strings.h>
 #include <shared/metrics.h>
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+#include <imgui_test_engine/imgui_te_engine.h>
+#endif
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -1180,6 +1183,12 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     if (m_imgui_metrics) {
         ImGui::ShowMetricsWindow();
     }
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    if (m_imgui_test_engine) {
+        m_imgui_stuff->DoTestEngineWindow(nullptr);
+    }
+#endif
 
     // Handle input as appropriate.
     //
@@ -2731,6 +2740,11 @@ void BeebWindow::DoExtraDebugMenu() {
         ImGui::MenuItem("ImGui drawlists", nullptr, &m_imgui_drawlists);
 #endif
         ImGui::MenuItem("ImGui metrics", nullptr, &m_imgui_metrics);
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+        if (m_imgui_stuff->IsTestEngineEnabled()) {
+            ImGui::MenuItem("ImGui Test Engine", nullptr, &m_imgui_test_engine);
+        }
+#endif
 
 #if SYSTEM_WINDOWS
         ImGui::Separator();
@@ -3249,6 +3263,8 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             m_imgui_stuff->RenderSDL();
 
             SDL_RenderPresent(m_renderer);
+
+            m_imgui_stuff->PostSwap();
         }
     }
 
@@ -3521,7 +3537,12 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    m_imgui_stuff = new ImGuiStuff(m_renderer);
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    bool imgui_enable_test_engine = m_init_arguments.imgui_enable_test_engine;
+#else
+    bool imgui_enable_test_engine = false;
+#endif
+    m_imgui_stuff = new ImGuiStuff(m_renderer, imgui_enable_test_engine);
     if (!m_imgui_stuff->Init(ImGuiConfigFlags_DockingEnable)) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;

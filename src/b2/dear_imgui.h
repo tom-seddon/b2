@@ -55,6 +55,9 @@ struct SDL_Renderer;
 struct SDL_Cursor;
 class Messages;
 class RecentPaths;
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+struct ImGuiTestEngine;
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -72,7 +75,7 @@ extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
 
 class ImGuiStuff {
   public:
-    explicit ImGuiStuff(SDL_Renderer *renderer);
+    explicit ImGuiStuff(SDL_Renderer *renderer, bool enable_test_engine);
     ~ImGuiStuff();
 
     ImGuiStuff(const ImGuiStuff &) = delete;
@@ -91,6 +94,9 @@ class ImGuiStuff {
     // does the SDL rendering stuff.
     void RenderSDL();
 
+    // any post-swap stuff, if any. Relevant for the test engine.
+    void PostSwap();
+
     void AddFocusEvent(bool got_focus);
     void AddMouseWheelEvent(uint32_t mouse_id, float x, float y);
     void AddMouseButtonEvent(uint32_t mouse_id, uint8_t button, bool state);
@@ -100,6 +106,10 @@ class ImGuiStuff {
 
 #if STORE_DRAWLISTS
     void DoStoredDrawListWindow();
+#endif
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    bool IsTestEngineEnabled() const;
+    void DoTestEngineWindow(bool *p_open);
 #endif
     void DoDebugGui();
 
@@ -166,6 +176,11 @@ class ImGuiStuff {
 
     bool m_pixel_font = true;
     bool m_fonts_dirty = true;
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    bool m_enable_test_engine = false;
+    ImGuiTestEngine *m_test_engine = nullptr;
+#endif
 
     ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
 

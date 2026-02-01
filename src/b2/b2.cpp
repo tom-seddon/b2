@@ -712,6 +712,9 @@ struct Options {
 #endif
 
     bool headless = false;
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    bool imgui_enable_test_engine = false;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -833,6 +836,9 @@ static bool ParseCommandLineOptions(
 #endif
 
     p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode");
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    p.AddOption("imgui-enable-test-engine").SetIfPresent(&options->imgui_enable_test_engine).Help("enable Dear ImGui Test Engine");
+#endif
 
     if (!p.Parse((int)args.size(), args.data())) {
         return false;
@@ -1667,6 +1673,10 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
             ia.limit_speed = options.limit_speed;
             ia.headless = options.headless;
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+            ia.imgui_enable_test_engine = options.imgui_enable_test_engine;
+#endif
         }
 
         if (!BeebWindows::CreateBeebWindow(ia)) {
@@ -1958,7 +1968,7 @@ int main(int argc, char *argv[]) {
 #ifdef _MSC_VER
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
     //_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_CHECK_ALWAYS_DF);
-    //_crtBreakAlloc=12520;
+    //_crtBreakAlloc=93384;
 #endif
 
 #if SYSTEM_WINDOWS

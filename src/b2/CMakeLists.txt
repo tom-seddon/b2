@@ -82,6 +82,13 @@ endif()
 # copy when built and used.
 target_compile_definitions(b2 PRIVATE IMGUI_USER_CONFIG="${CMAKE_CURRENT_LIST_DIR}/dear_imgui.imconfig.h")
 
+# imgui_te_imconfig.h defines this, but having it specified externally
+# affords additional options: headers that don't themselves include
+# imgui headers can still test for it, and the custom imgui user
+# config file can skip including imgui_te_imconfig.h if it isn't
+# defined, to simplify disabling it.
+target_compile_definitions(b2 PRIVATE IMGUI_ENABLE_TEST_ENGINE)
+
 target_link_libraries(b2 PRIVATE
   imgui_lib
   imgui_test_engine_lib)
