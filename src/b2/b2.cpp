@@ -714,6 +714,8 @@ struct Options {
     bool headless = false;
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool imgui_enable_test_engine = false;
+    bool imgui_list_tests = false;
+    std::vector<std::string> imgui_tests;
 #endif
 };
 
@@ -838,6 +840,8 @@ static bool ParseCommandLineOptions(
     p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode");
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     p.AddOption("imgui-enable-test-engine").SetIfPresent(&options->imgui_enable_test_engine).Help("enable Dear ImGui Test Engine");
+    p.AddOption("imgui-list-tests").SetIfPresent(&options->imgui_list_tests).Help("list all Dear ImGui tests on stdout, formatted for the benefit of check_ctest_log");
+    p.AddOption("imgui-run-test").AddArgToList(&options->imgui_tests).Help("run the given Dear ImGui test(s)");
 #endif
 
     if (!p.Parse((int)args.size(), args.data())) {
@@ -1441,6 +1445,18 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    if (options.imgui_enable_test_engine) {
+        if (options.imgui_list_tests) {
+            std::vector<std::string> test_names = BeebWindow::GetAllDearImGuiTestNames();
+            for (const std::string &test_name : test_names) {
+                printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", test_name.c_str());
+            }
+            return true;
+        }
+    }
+#endif
+
     if (options.version) {
         init_messages.i.f("b2 version: %s\n", STRINGIZE(RELEASE_NAME));
         init_messages.i.f("Dear ImGui version: %s\n", IMGUI_VERSION);
@@ -1676,6 +1692,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
             ia.imgui_enable_test_engine = options.imgui_enable_test_engine;
+            ia.imgui_tests = options.imgui_tests;
 #endif
         }
 

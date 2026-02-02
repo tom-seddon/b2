@@ -110,6 +110,7 @@ class ImGuiStuff {
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsTestEngineEnabled() const;
     void DoTestEngineWindow(bool *p_open);
+    ImGuiTestEngine *GetTestEngine() const;
 #endif
     void DoDebugGui();
 

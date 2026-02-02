@@ -35,6 +35,9 @@ struct Disc;
 enum BBCMicroHaltReason : uint8_t;
 class MetricSet;
 class TimerDef;
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+struct ImGuiTestEngine;
+#endif
 
 #include "keys.h"
 #include <string>
@@ -271,6 +274,9 @@ struct BeebWindowInitArguments {
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     // Set if Dear ImGui Test Engine should be enabled.
     bool imgui_enable_test_engine = false;
+
+    // Tests to run. The window clears the list, so this only applies to the first window created.
+    std::vector<std::string> imgui_tests;
 #endif
 };
 
@@ -390,6 +396,10 @@ class BeebWindow {
     static std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *beeb_window);
 
     const BeebWindowSettings &GetSettings() const;
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    static std::vector<std::string> GetAllDearImGuiTestNames();
+#endif
 
   protected:
   private:
@@ -618,6 +628,10 @@ class BeebWindow {
 
     bool HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags);
     bool HardResetWithMultiOSBank(int multi_os_bank);
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    static void RegisterDearImGuiTests(BeebWindow *beeb_window, ImGuiTestEngine *test_engine, std::vector<std::string> *test_names, const std::vector<std::string> *tests_to_run);
+#endif
 
     // Keep this at the end. It's massive.
     mutable Messages m_msg;

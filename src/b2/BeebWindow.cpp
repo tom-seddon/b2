@@ -54,6 +54,7 @@
 #include <shared/metrics.h>
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 #include <imgui_test_engine/imgui_te_engine.h>
+#include <imgui_test_engine/imgui_te_context.h>
 #endif
 
 #ifdef _MSC_VER
@@ -3548,6 +3549,11 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    RegisterDearImGuiTests(this, m_imgui_stuff->GetTestEngine(), nullptr, &m_init_arguments.imgui_tests);
+    m_init_arguments.imgui_tests.clear();
+#endif
+
     m_imgui_stuff->SetScale(m_settings.gui_scale);
 #if SYSTEM_LINUX
     if (m_init_arguments.gui_scale > 0.f) {
@@ -3940,6 +3946,17 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateConfigsUI(BeebWindow *beeb_window)
 const BeebWindowSettings &BeebWindow::GetSettings() const {
     return m_settings;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+std::vector<std::string> BeebWindow::GetAllDearImGuiTestNames() {
+    std::vector<std::string> names;
+    RegisterDearImGuiTests(nullptr, nullptr, &names, nullptr);
+    return names;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -4360,3 +4377,67 @@ bool BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
     bool good = this->HardReset(config, arguments, BeebThreadHardResetFlag_Run);
     return good;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+
+static ImGuiTest *RegisterDearImGuiTest(ImGuiTestEngine *test_engine,
+                                        const char *category,
+                                        const char *name,
+                                        const char *file,
+                                        int line,
+                                        ImGuiTest *dummy_test,
+                                        std::vector<std::string> *test_names,
+                                        const std::vector<std::string> *tests_to_run) {
+    // Always return a valid ImGuiTest pointer.
+    ImGuiTest *t;
+    if (test_engine) {
+        t = ImGuiTestEngine_RegisterTest(test_engine, category, name, file, line);
+    } else {
+        ASSERT(dummy_test);
+        t = dummy_test;
+    }
+
+    ASSERT(!strchr(category, '.'));
+    ASSERT(!strchr(name, '.'));
+    std::string test_name = std::string(category) + "." + name;
+
+    if (test_names) {
+        test_names->push_back(name);
+    }
+
+    if (tests_to_run) {
+        ASSERT(test_engine);
+        if (std::find(tests_to_run->begin(), tests_to_run->end(), test_name) != tests_to_run->end()) {
+            ImGuiTestEngine_QueueTest(test_engine, t, ImGuiTestRunFlags_RunFromCommandLine);
+        }
+    }
+
+    return t;
+}
+
+#define REGISTER_TEST(CATEGORY, NAME) (RegisterDearImGuiTest(test_engine, (CATEGORY), (NAME), __FILE__, __LINE__, &dummy_test, test_names, tests_to_run))
+
+// The all-in-one Dear ImGui Test Engine test register/collect names/queue function.
+void BeebWindow::RegisterDearImGuiTests(BeebWindow *beeb_window,
+                                        ImGuiTestEngine *test_engine,
+                                        std::vector<std::string> *test_names,
+                                        const std::vector<std::string> *tests_to_run) {
+    ImGuiTest dummy_test;
+
+    (void)beeb_window;
+
+    ImGuiTest *t;
+
+    t = REGISTER_TEST("b2_tests", "quit");
+    t->TestFunc = [](ImGuiTestContext *ctx) {
+        ctx->SetRef("##MainMenuBar");
+        ctx->MenuClick("File/Exit/Confirm");
+    };
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
