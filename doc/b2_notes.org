@@ -7627,4 +7627,21 @@ Executable:
 #+end_src
 
 >>>>>>> wip/headless2
+* Headless mode
+
+Activate using =--headless=.
+
+- Implies =--imgui-enable-test-engine=
+
+- Doesn't initialise sound or graphics, creates no window, and times
+  itself via a timer rather than vsync. The intention is that it be
+  operated via the HTTP API or Dear ImGui Test Engine
+
+- Requires =--config-folder=, to avoid polluting the normal config
+  files
+
+- Opens the HTTP server on a random port. Writes a file called
+  =b2_http_listen_port.txt= to the config folder, a text file
+  containing the port number in decimal
+
 * eof.

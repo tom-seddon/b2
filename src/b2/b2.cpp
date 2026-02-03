@@ -53,6 +53,7 @@
 #include "dear_imgui.h"
 #include <http/http.h>
 #include <shared/metrics.h>
+#include <shared/file_io.h>
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -96,7 +97,7 @@ NEND()
 
 static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " STRINGIZE(RELEASE_NAME);
 
-static const int HTTP_SERVER_PORT = 0xbbcb;
+static const int DEFAULT_HTTP_SERVER_PORT = 0xbbcb;
 
 static SDL_threadID g_main_thread_id = 0;
 
@@ -837,7 +838,7 @@ static bool ParseCommandLineOptions(
     p.AddOption("fail-startup-late").SetIfPresent(&options->fail_startup_late).Help("fail the startup process at a late stage, even if it actually succeeded. Use this to test the failure UI");
 #endif
 
-    p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode");
+    p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode (implies --imgui-enable-test-engine)");
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     p.AddOption("imgui-enable-test-engine").SetIfPresent(&options->imgui_enable_test_engine).Help("enable Dear ImGui Test Engine");
     p.AddOption("imgui-list-tests").SetIfPresent(&options->imgui_list_tests).Help("list all Dear ImGui tests on stdout, formatted for the benefit of check_ctest_log");
@@ -860,6 +861,8 @@ static bool ParseCommandLineOptions(
             init_messages->e.f("Must specify override config folder in headless mode");
             return false;
         }
+
+        options->imgui_enable_test_engine = true;
     }
 
     return true;
@@ -1258,7 +1261,9 @@ static bool BootDiskInExistingProcess(const std::string &path, Messages *message
     client->SetLogs(messages);
 
     HTTPRequest request;
-    request.url = strprintf("http://127.0.0.1:%d/launch", HTTP_SERVER_PORT);
+    // If there's a copy of b2 listening on some other port, it won't be found -
+    // which is deliberate.
+    request.url = strprintf("http://127.0.0.1:%d/launch", DEFAULT_HTTP_SERVER_PORT);
     request.method = "POST";
     request.AddQueryParameter("path", path);
 
@@ -1278,6 +1283,7 @@ static bool BootDiskInExistingProcess(const std::string &path, Messages *message
 
 static std::unique_ptr<HTTPServer> g_http_server;
 static std::shared_ptr<HTTPHandler> g_http_handler;
+static int g_http_server_requested_listen_port = DEFAULT_HTTP_SERVER_PORT;
 
 void StartHTTPServer(Messages *messages) {
     if (GetHTTPServerListenPort() != 0) {
@@ -1285,7 +1291,7 @@ void StartHTTPServer(Messages *messages) {
     }
 
     g_http_server = CreateHTTPServer();
-    if (!g_http_server->Start(HTTP_SERVER_PORT, messages)) {
+    if (!g_http_server->Start(g_http_server_requested_listen_port, messages)) {
         g_http_server.reset();
         messages->e.f("Failed to start HTTP server.\n");
         return;
@@ -1304,7 +1310,7 @@ int GetHTTPServerListenPort() {
     if (!g_http_server) {
         return 0;
     } else {
-        return HTTP_SERVER_PORT;
+        return g_http_server->GetListenPort();
     }
 }
 
@@ -1494,12 +1500,24 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
+    if (options.headless) {
+        // Listen on any old port.
+        g_http_server_requested_listen_port = 0;
+    }
+
     StartHTTPServer(&init_messages);
+
+    if (options.headless) {
+        // This isn't really the right use for the config path, but in headless
+        // mode it can be assumed to point somewhere transient.
+        SaveTextFile(std::to_string(GetHTTPServerListenPort()), GetConfigPath("b2_http_listen_port.txt"), nullptr, 0);
+    }
 
     if (options.file_association_mode) {
         if (GetHTTPServerListenPort() != 0) {
             // The HTTP server started, so there's definitely no other instance
-            // running that could handle the request.
+            // running that could handle the request (even if possibly because
+            // it's headless mode and a random port was picked - but that's ok).
         } else {
             if (BootDiskInExistingProcess(options.file_association_path, &init_messages)) {
                 return true;

@@ -44,6 +44,7 @@ class HTTPServer {
     HTTPServer &operator=(HTTPServer &&) = delete;
 
     virtual bool Start(int port, LogSet *messages) = 0;
+    virtual int GetListenPort() = 0;
 
     virtual void SetHandler(std::shared_ptr<HTTPHandler> handler) = 0;
 

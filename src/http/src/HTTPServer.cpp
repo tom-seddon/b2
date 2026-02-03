@@ -200,6 +200,7 @@ class HTTPServerImpl : public HTTPServer {
     ~HTTPServerImpl();
 
     bool Start(int port, LogSet *logs) override;
+    int GetListenPort() override;
     void SetHandler(std::shared_ptr<HTTPHandler> handler) override;
     void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) override;
 
@@ -243,6 +244,7 @@ class HTTPServerImpl : public HTTPServer {
     struct SharedData {
         uv_loop_t loop{};
         std::shared_ptr<HTTPHandler> handler;
+        int actual_listen_port = -1;
     };
 
     SharedData m_sd;
@@ -256,6 +258,7 @@ class HTTPServerImpl : public HTTPServer {
     void StartReading(Connection *conn);
     bool StopReading(Connection *conn);
     void SendResponse(Connection *conn, bool dump, HTTPResponse &&response, bool interim);
+    void CloseListenHandle();
 
     static void SendResponseAsyncCallback(uv_async_t *send_response_async);
     static void StopAsyncCallback(uv_async_t *stop_async);
@@ -297,7 +300,7 @@ HTTPServerImpl::~HTTPServerImpl() {
     // This normally gets closed by the thread, but if an error prevented the
     // thread from starting it could still need closing.
     if (m_td.listen_tcp.data) {
-        uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
+        this->CloseListenHandle();
     }
 
     if (m_sd.loop.data) {
@@ -340,16 +343,39 @@ bool HTTPServerImpl::Start(int port, LogSet *logs) {
         rc = uv_tcp_bind(&m_td.listen_tcp, (struct sockaddr *)&addr, 0);
         if (rc != 0) {
             PrintLibUVError(&logs->e, rc, "uv_tcp_bind failed");
-            uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
-            m_td.listen_tcp.data = nullptr;
+            this->CloseListenHandle();
             return false;
         }
+
+        struct sockaddr_storage actual_addr;
+        int actual_addr_len = sizeof actual_addr;
+        rc = uv_tcp_getsockname(&m_td.listen_tcp, (struct sockaddr *)&actual_addr, &actual_addr_len);
+        if (rc != 0) {
+            PrintLibUVError(&logs->e, rc, "uv_tcp_getsockname failed");
+            this->CloseListenHandle();
+            return false;
+        }
+
+        if (actual_addr_len != sizeof(sockaddr_in)) {
+            logs->e.f("didn't open AF_INET socket: actual_addr_len=%d", actual_addr_len);
+            this->CloseListenHandle();
+            return false;
+        }
+
+        if (actual_addr.ss_family != AF_INET) {
+            logs->e.f("didn't open AF_INET socket: ss_family=%u (0x%x)", actual_addr.ss_family, actual_addr.ss_family);
+            this->CloseListenHandle();
+            return false;
+        }
+
+        struct sockaddr_in actual_addr_in;
+        memcpy(&actual_addr_in, &actual_addr, sizeof(sockaddr_in));
+        m_sd.actual_listen_port = ntohs(actual_addr_in.sin_port);
 
         rc = uv_listen((uv_stream_t *)&m_td.listen_tcp, 10, &HandleNewConnection);
         if (rc != 0) {
             PrintLibUVError(&logs->e, rc, "uv_listen failed");
-            uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
-            m_td.listen_tcp.data = nullptr;
+            this->CloseListenHandle();
             return false;
         }
     }
@@ -361,6 +387,13 @@ bool HTTPServerImpl::Start(int port, LogSet *logs) {
     logs->i.f("HTTP server listening on port %d (0x%x)\n", port, port);
 
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::GetListenPort() {
+    return m_sd.actual_listen_port;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -398,6 +431,16 @@ void HTTPServerImpl::SendResponse(const HTTPResponseData &response_data, HTTPRes
     uv_async_init(&m_sd.loop, send_response_async, &SendResponseAsyncCallback);
     uv_async_send(send_response_async);
     send_response_async = nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::CloseListenHandle() {
+    if (m_td.listen_tcp.data) {
+        uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
+        m_td.listen_tcp.data = nullptr;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -559,8 +602,7 @@ void HTTPServerImpl::StopAsyncCallback(uv_async_t *stop_async) {
         server->CloseConnection(server->m_td.connection_by_id.begin()->second);
     }
 
-    uv_close((uv_handle_t *)&server->m_td.listen_tcp, nullptr);
-    server->m_td.listen_tcp.data = nullptr;
+    server->CloseListenHandle();
 
     uv_close((uv_handle_t *)stop_async, &ScalarDeleteCloseCallback<uv_async_t>);
 }
