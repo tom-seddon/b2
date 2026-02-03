@@ -52,7 +52,13 @@
 #include "SymbolTable.h"
 #include <shared/strings.h>
 #include <shared/metrics.h>
+
 #ifdef IMGUI_ENABLE_TEST_ENGINE
+#ifdef KeyPress
+// X.h nonsense.
+#undef KeyPress
+#endif
+
 #include <imgui_test_engine/imgui_te_engine.h>
 #include <imgui_test_engine/imgui_te_context.h>
 #endif

@@ -7693,4 +7693,16 @@ Activate using =--headless=.
 
 #+end_example
 
+* More X11 stuff
+
+#+begin_example
+  In file included from /usr/include/X11/Xlib.h:44,
+		   from /usr/include/SDL2/SDL_syswm.h:69,
+		   from /home/tom/github/b2/src/b2/BeebWindow.cpp:19:
+  /home/tom/github/b2/submodules/imgui_test_engine/imgui_test_engine/imgui_te_context.h:380:17: error: expected unqualified-id before numeric constant
+    380 |     void        KeyPress(ImGuiKeyChord key_chord, int count = 1);
+	|                 ^~~~~~~~
+  [285/294] Building CXX object src/beeb/CMakeFiles/beeb_lib.dir/generated/BBCMicro.group11.generated.cpp.o
+#+end_example
+
 * eof.
