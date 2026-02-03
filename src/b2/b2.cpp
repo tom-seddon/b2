@@ -1452,14 +1452,12 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    if (options.imgui_enable_test_engine) {
-        if (options.imgui_list_tests) {
-            std::vector<std::string> test_names = BeebWindow::GetAllDearImGuiTestNames();
-            for (const std::string &test_name : test_names) {
-                printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", test_name.c_str());
-            }
-            return true;
+    if (options.imgui_list_tests) {
+        std::vector<std::string> test_names = BeebWindow::GetAllDearImGuiTestNames();
+        for (const std::string &test_name : test_names) {
+            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", test_name.c_str());
         }
+        return true;
     }
 #endif
 
@@ -1512,6 +1510,14 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         // mode it can be assumed to point somewhere transient.
         SaveTextFile(std::to_string(GetHTTPServerListenPort()), GetConfigPath("b2_http_listen_port.txt"), nullptr, 0);
     }
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    // If the test engine isn't enabled, the b2_tests list will always be empty.
+    std::vector<std::shared_ptr<b2Test>> b2_tests;
+    if (options.imgui_enable_test_engine) {
+        b2_tests = BeebWindow::Getb2Tests(options.imgui_tests);
+    }
+#endif
 
     if (options.file_association_mode) {
         if (GetHTTPServerListenPort() != 0) {
@@ -1713,6 +1719,15 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             ia.imgui_tests = options.imgui_tests;
 #endif
         }
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+        for (const std::shared_ptr<b2Test> &b2_test : b2_tests) {
+            printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:%s\n", b2_test->name.c_str());
+            if (!!b2_test->will_create_BeebWindow_fn) {
+                b2_test->will_create_BeebWindow_fn(&ia);
+            }
+        }
+#endif
 
         if (!BeebWindows::CreateBeebWindow(ia)) {
             init_messages.e.f("FATAL: failed to open initial window.\n");

@@ -293,6 +293,19 @@ struct BeebWindowLaunchArguments {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+struct b2Test {
+    // For reference.
+    std::string name;
+
+    // Called before the first BeebWindow is created.
+    std::function<void(BeebWindowInitArguments *)> will_create_BeebWindow_fn;
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BeebWindow {
   public:
     struct VBlankRecord {
@@ -399,6 +412,7 @@ class BeebWindow {
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     static std::vector<std::string> GetAllDearImGuiTestNames();
+    static std::vector<std::shared_ptr<b2Test>> Getb2Tests(const std::vector<std::string> &tests_to_run);
 #endif
 
   protected:
@@ -630,7 +644,11 @@ class BeebWindow {
     bool HardResetWithMultiOSBank(int multi_os_bank);
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    static void RegisterDearImGuiTests(BeebWindow *beeb_window, ImGuiTestEngine *test_engine, std::vector<std::string> *test_names, const std::vector<std::string> *tests_to_run);
+    static void InitDearImGuiTests(BeebWindow *beeb_window,
+                                   ImGuiTestEngine *test_engine,
+                                   std::vector<std::shared_ptr<b2Test>> *b2_tests,
+                                   std::vector<std::string> *test_names,
+                                   const std::vector<std::string> *tests_to_run);
 #endif
 
     // Keep this at the end. It's massive.

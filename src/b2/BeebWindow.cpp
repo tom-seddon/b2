@@ -3550,7 +3550,7 @@ bool BeebWindow::InitInternal() {
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    RegisterDearImGuiTests(this, m_imgui_stuff->GetTestEngine(), nullptr, &m_init_arguments.imgui_tests);
+    InitDearImGuiTests(this, m_imgui_stuff->GetTestEngine(), nullptr, nullptr, &m_init_arguments.imgui_tests);
     m_init_arguments.imgui_tests.clear();
 #endif
 
@@ -3953,8 +3953,19 @@ const BeebWindowSettings &BeebWindow::GetSettings() const {
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 std::vector<std::string> BeebWindow::GetAllDearImGuiTestNames() {
     std::vector<std::string> names;
-    RegisterDearImGuiTests(nullptr, nullptr, &names, nullptr);
+    InitDearImGuiTests(nullptr, nullptr, nullptr, &names, nullptr);
     return names;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+std::vector<std::shared_ptr<b2Test>> BeebWindow::Getb2Tests(const std::vector<std::string> &tests_to_run) {
+    std::vector<std::shared_ptr<b2Test>> b2_tests;
+    InitDearImGuiTests(nullptr, nullptr, &b2_tests, nullptr, &tests_to_run);
+    return b2_tests;
 }
 #endif
 
@@ -4383,21 +4394,28 @@ bool BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 
-static ImGuiTest *RegisterDearImGuiTest(ImGuiTestEngine *test_engine,
-                                        const char *category,
-                                        const char *name,
-                                        const char *file,
-                                        int line,
-                                        ImGuiTest *dummy_test,
-                                        std::vector<std::string> *test_names,
-                                        const std::vector<std::string> *tests_to_run) {
+struct DummyTestObjects {
+    ImGuiTest dummy_imgui_test;
+    b2Test dummy_b2_test;
+};
+
+static void RegisterDearImGuiTest(ImGuiTest **imgui_test_ptr,
+                                  b2Test **b2_test_ptr,
+                                  ImGuiTestEngine *test_engine,
+                                  const char *category,
+                                  const char *name,
+                                  const char *file,
+                                  int line,
+                                  std::vector<std::string> *test_names,
+                                  const std::vector<std::string> *tests_to_run,
+                                  std::vector<std::shared_ptr<b2Test>> *b2_tests,
+                                  DummyTestObjects *dummy_test_objects) {
     // Always return a valid ImGuiTest pointer.
-    ImGuiTest *t;
     if (test_engine) {
-        t = ImGuiTestEngine_RegisterTest(test_engine, category, name, file, line);
+        *imgui_test_ptr = ImGuiTestEngine_RegisterTest(test_engine, category, name, file, line);
     } else {
-        ASSERT(dummy_test);
-        t = dummy_test;
+        ASSERT(dummy_test_objects);
+        *imgui_test_ptr = &dummy_test_objects->dummy_imgui_test;
     }
 
     ASSERT(!strchr(category, '.'));
@@ -4405,33 +4423,74 @@ static ImGuiTest *RegisterDearImGuiTest(ImGuiTestEngine *test_engine,
     std::string test_name = std::string(category) + "." + name;
 
     if (test_names) {
-        test_names->push_back(name);
+        test_names->push_back(test_name);
     }
 
+    *b2_test_ptr = nullptr;
+
     if (tests_to_run) {
-        ASSERT(test_engine);
         if (std::find(tests_to_run->begin(), tests_to_run->end(), test_name) != tests_to_run->end()) {
-            ImGuiTestEngine_QueueTest(test_engine, t, ImGuiTestRunFlags_RunFromCommandLine);
+            if (test_engine) {
+                ImGuiTestEngine_QueueTest(test_engine, *imgui_test_ptr, ImGuiTestRunFlags_RunFromCommandLine);
+            }
+
+            if (b2_tests) {
+                b2_tests->push_back(std::make_shared<b2Test>());
+                *b2_test_ptr = b2_tests->back().get();
+                (*b2_test_ptr)->name = test_name;
+            }
         }
     }
 
-    return t;
+    if (!*b2_test_ptr) {
+        ASSERT(dummy_test_objects);
+        *b2_test_ptr = &dummy_test_objects->dummy_b2_test;
+
+        // no point bothering to store the name in this case. It's only going to
+        // be thrown away.
+    }
 }
 
-#define REGISTER_TEST(CATEGORY, NAME) (RegisterDearImGuiTest(test_engine, (CATEGORY), (NAME), __FILE__, __LINE__, &dummy_test, test_names, tests_to_run))
+#define REGISTER_TEST(CATEGORY, NAME) (RegisterDearImGuiTest(&t,           \
+                                                             &b,           \
+                                                             test_engine,  \
+                                                             (CATEGORY),   \
+                                                             (NAME),       \
+                                                             __FILE__,     \
+                                                             __LINE__,     \
+                                                             test_names,   \
+                                                             tests_to_run, \
+                                                             b2_tests,     \
+                                                             &dummy_test_objects))
 
-// The all-in-one Dear ImGui Test Engine test register/collect names/queue function.
-void BeebWindow::RegisterDearImGuiTests(BeebWindow *beeb_window,
-                                        ImGuiTestEngine *test_engine,
-                                        std::vector<std::string> *test_names,
-                                        const std::vector<std::string> *tests_to_run) {
-    ImGuiTest dummy_test;
+// The all-in-one Dear ImGui Test Engine test register/collect names/queue
+// function.
+//
+// This will get called multiple times, and needs to register the same things on
+// each call. Calls will be made with non-null arguments for the following
+// parameters:
+//
+// - test_names: fill *test_names with names of all tests
+//
+// - b2_tests, tests_to_run: fill *b2_tests with list of tests to be run (caller
+//   must arrange for the actual running)
+//
+// - beeb_window, test_engine, tests_to_run: populate test_engine with the tests
+//   to run, and enqueue them on the test engine
+
+void BeebWindow::InitDearImGuiTests(BeebWindow *beeb_window,
+                                    ImGuiTestEngine *test_engine,
+                                    std::vector<std::shared_ptr<b2Test>> *b2_tests,
+                                    std::vector<std::string> *test_names,
+                                    const std::vector<std::string> *tests_to_run) {
+    DummyTestObjects dummy_test_objects;
 
     (void)beeb_window;
 
     ImGuiTest *t;
+    b2Test *b;
 
-    t = REGISTER_TEST("b2_tests", "quit");
+    REGISTER_TEST("b2_tests", "quit");
     t->TestFunc = [](ImGuiTestContext *ctx) {
         ctx->SetRef("##MainMenuBar");
         ctx->MenuClick("File/Exit/Confirm");

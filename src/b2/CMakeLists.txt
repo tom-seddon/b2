@@ -443,3 +443,31 @@ target_link_libraries(test_SymbolTable shared_lib beeb_lib nlohmann_json::nlohma
 add_test(
   NAME b2/test_SymbolTable
   COMMAND $<TARGET_FILE:test_SymbolTable>)
+
+##########################################################################
+##########################################################################
+
+add_test(
+  NAME b2/list_tests
+  COMMAND $<TARGET_FILE:b2> --imgui-list-tests)
+
+function(add_b2_integration_test test_name)
+  set(config_folder "${CMAKE_BINARY_DIR}/${test_name}")
+
+  add_test(
+    NAME b2/delete_config_folder/${test_name}
+    COMMAND ${CMAKE_COMMAND} -E rm -Rf "${config_folder}")
+  
+  add_test(
+    NAME b2/${test_name}
+    COMMAND $<TARGET_FILE:b2> --headless --imgui-enable-test-engine "--config-folder=${config_folder}" --imgui-run-test=${test_name})
+
+  set_tests_properties(b2/delete_config_folder/${test_name}
+    PROPERTIES
+    FIXTURES_SETUP fixture_delete_config_folder/${test_name})
+  set_tests_properties(b2/${test_name}
+    PROPERTIES
+    FIXTURES_REQUIRED fixture_delete_config_folder/${test_name})
+endfunction()
+
+add_b2_integration_test(b2_tests.quit)
