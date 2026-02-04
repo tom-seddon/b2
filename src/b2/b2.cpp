@@ -488,15 +488,15 @@ static Uint32 UpdateWindowTitle(Uint32 interval, void *param) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void PushNewWindowMessage(BeebWindowInitArguments init_arguments_) {
+void PushMainThreadMessage(std::unique_ptr<MainThreadMessage> message) {
     SDL_Event event = {};
 
-    event.user.type = g_first_event_type + SDLEventType_NewWindow;
+    event.user.type = g_first_event_type + SDLEventType_Message;
 
     // This relies on the message loop receiving it, so it can delete
     // it. It's probably possible for an SDL_QUIT to end up ahead of
     // it in the queue, meaning that the object could leak.
-    event.user.data1 = new BeebWindowInitArguments(std::move(init_arguments_));
+    event.user.data1 = message.release();
 
     SDL_PushEvent(&event);
 }
@@ -504,14 +504,41 @@ void PushNewWindowMessage(BeebWindowInitArguments init_arguments_) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void PushFunctionMessage(std::function<void()> fun) {
-    SDL_Event event = {};
+class NewWindowMessage : public MainThreadMessage {
+  public:
+    explicit NewWindowMessage(BeebWindowInitArguments init_arguments)
+        : m_init_arguments(std::move(init_arguments)) {
+    }
 
-    event.user.type = g_first_event_type + SDLEventType_Function;
+    void HandleMessage() override {
+        rmt_ScopedCPUSample(SDLEventType_NewWindow, 0);
 
-    event.user.data1 = new std::function<void()>(std::move(fun));
+        BeebWindows::CreateBeebWindow(std::move(m_init_arguments));
+    }
 
-    SDL_PushEvent(&event);
+  protected:
+  private:
+    BeebWindowInitArguments m_init_arguments;
+};
+
+void PushNewWindowMessage(BeebWindowInitArguments init_arguments) {
+    PushMainThreadMessage(std::make_unique<NewWindowMessage>(std::move(init_arguments)));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+FunctionMessage::FunctionMessage(std::function<void()> fun)
+    : m_fun(std::move(fun)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void FunctionMessage::HandleMessage() {
+    rmt_ScopedCPUSample(SDLEventType_Function, 0);
+
+    m_fun();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1240,15 +1267,33 @@ static void SetRmtThreadName(const char *name, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PushLaunchEvent(uint32_t sdl_window_id, std::unique_ptr<BeebWindowLaunchArguments> arguments) {
-    SDL_Event event{};
+class LaunchMessage : public MainThreadMessage {
+  public:
+    LaunchMessage(uint32_t sdl_window_id, BeebWindowLaunchArguments arguments)
+        : m_sdl_window_id(sdl_window_id)
+        , m_arguments(std::move(arguments)) {
+    }
 
-    event.type = g_first_event_type + SDLEventType_Launch;
-    event.user.windowID = sdl_window_id;
-    event.user.data1 = arguments.release();
+    void HandleMessage() override {
+        BeebWindow *beeb_window = nullptr;
+        if (m_sdl_window_id != 0) {
+            beeb_window = BeebWindows::FindBeebWindowBySDLWindowID(m_sdl_window_id);
+        }
 
-    SDL_PushEvent(&event);
-}
+        if (!beeb_window) {
+            beeb_window = BeebWindows::FindMRUBeebWindow();
+        }
+
+        beeb_window->Launch(m_arguments);
+    }
+
+  protected:
+  private:
+    // there's a window ID in the event, but simplest to have everything part
+    // of the message payload.
+    uint32_t m_sdl_window_id = 0;
+    BeebWindowLaunchArguments m_arguments;
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1366,29 +1411,13 @@ static void FreeEventData(SDL_Event *event) {
         break;
 
     default:
-        // TODO: should rationalize these with a base type. Then it
-        // could do just "delete (EventDataBaseType
-        // *)event->user.data1" or whatever. data1 is NULL if
-        // unspecified so it'll just work.
-        //
-        // It'd be a bit more boilerplate per event, but assuming
-        // everything uses the C++ destructor mechanism then the
-        // deletion would be managed automatically.
         if (event->type >= g_first_event_type && event->type < g_first_event_type + SDLEventType_Count) {
             switch ((SDLEventType)(event->type - g_first_event_type)) {
             default:
                 break;
 
-            case SDLEventType_NewWindow:
-                delete (BeebWindowInitArguments *)event->user.data1;
-                break;
-
-            case SDLEventType_Function:
-                delete (std::function<void()> *)event->user.data1;
-                break;
-
-            case SDLEventType_Launch:
-                delete (BeebWindowLaunchArguments *)event->user.data1;
+            case SDLEventType_Message:
+                delete (MainThreadMessage *)event->user.data1;
                 break;
             }
 
@@ -1834,12 +1863,12 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 {
                     LOGF(OUTPUT, "SDL_DROPFILE: %s\n", event.drop.file);
 
-                    auto arguments = std::make_unique<BeebWindowLaunchArguments>();
+                    BeebWindowLaunchArguments arguments;
 
-                    arguments->type = BeebWindowLaunchType_DragAndDrop;
-                    arguments->file_path = event.drop.file;
+                    arguments.type = BeebWindowLaunchType_DragAndDrop;
+                    arguments.file_path = event.drop.file;
 
-                    PushLaunchEvent(event.drop.windowID, std::move(arguments));
+                    PushMainThreadMessage(std::make_unique<LaunchMessage>(event.drop.windowID, std::move(arguments)));
                 }
                 break;
 
@@ -1929,38 +1958,11 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                             }
                             break;
 
-                        case SDLEventType_NewWindow:
+                        case SDLEventType_Message:
                             {
-                                rmt_ScopedCPUSample(SDLEventType_NewWindow, 0);
-                                auto init_arguments = (BeebWindowInitArguments *)event.user.data1;
-
-                                BeebWindows::CreateBeebWindow(*init_arguments);
-                            }
-                            break;
-
-                        case SDLEventType_Function:
-                            {
-                                rmt_ScopedCPUSample(SDLEventType_Function, 0);
-                                auto fun = (std::function<void()> *)event.user.data1;
-
-                                (*fun)();
-                            }
-                            break;
-
-                        case SDLEventType_Launch:
-                            {
-                                auto arguments = (BeebWindowLaunchArguments *)event.user.data1;
-
-                                BeebWindow *beeb_window = nullptr;
-                                if (event.user.windowID != 0) {
-                                    beeb_window = BeebWindows::FindBeebWindowBySDLWindowID(event.user.windowID);
+                                if (auto message = (MainThreadMessage *)event.user.data1) {
+                                    message->HandleMessage();
                                 }
-
-                                if (!beeb_window) {
-                                    beeb_window = BeebWindows::FindMRUBeebWindow();
-                                }
-
-                                beeb_window->Launch(*arguments);
                             }
                             break;
 

@@ -15,11 +15,48 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Create new window with the given init arguments.
-void PushNewWindowMessage(BeebWindowInitArguments init_arguments);
+class MainThreadMessage {
+  public:
+    MainThreadMessage() = default;
+    virtual ~MainThreadMessage() = default;
 
-// Call the given function next time round the loop.
-void PushFunctionMessage(std::function<void()> fun);
+    MainThreadMessage(const MainThreadMessage &) = delete;
+    MainThreadMessage &operator=(const MainThreadMessage &) = delete;
+    MainThreadMessage(MainThreadMessage &&) = delete;
+    MainThreadMessage &operator=(MainThreadMessage &&) = delete;
+
+    virtual void HandleMessage() = 0;
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void PushMainThreadMessage(std::unique_ptr<MainThreadMessage> message);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class FunctionMessage : public MainThreadMessage {
+  public:
+    explicit FunctionMessage(std::function<void()> fun);
+
+    void HandleMessage() override;
+
+  protected:
+  private:
+    std::function<void()> m_fun;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Create new window with the given init arguments.
+//
+// Factory function for this one as BeebWindowInitArguments is forward-declared.
+void PushNewWindowMessage(BeebWindowInitArguments init_arguments);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

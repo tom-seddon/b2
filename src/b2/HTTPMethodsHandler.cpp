@@ -76,14 +76,15 @@ class HTTPMethodsHandler : public HTTPHandler {
         data->server = server;
         data->request = std::move(request);
 
-        PushFunctionMessage([this, data]() {
-            HTTPServer *server = data->server;
-            HTTPRequest request = std::move(data->request);
+        PushMainThreadMessage(std::make_unique<FunctionMessage>(
+            [this, data]() -> void {
+                HTTPServer *server = data->server;
+                HTTPRequest request = std::move(data->request);
 
-            delete data;
+                delete data;
 
-            this->HandleRequest(server, std::move(request));
-        });
+                this->HandleRequest(server, std::move(request));
+            }));
 
         return false;
     }

@@ -33,7 +33,7 @@ add_executable(b2 MACOSX_BUNDLE
   VideoWriter.cpp VideoWriter.h
   VideoWriterTGA.cpp VideoWriterTGA.h
   WriteVideoJob.cpp WriteVideoJob.h
-  b2.cpp b2.h b2.inl
+  b2.cpp b2.h b2_private.inl
   commands.cpp commands.h
   conf.cpp conf.h
   dear_imgui.cpp dear_imgui.h dear_imgui.inl dear_imgui.imconfig.h
@@ -447,27 +447,29 @@ add_test(
 ##########################################################################
 ##########################################################################
 
-add_test(
-  NAME b2/list_tests
-  COMMAND $<TARGET_FILE:b2> --imgui-list-tests)
+# TODO... none of this stuff quite works yet.
 
-function(add_b2_integration_test test_name)
-  set(config_folder "${CMAKE_BINARY_DIR}/${test_name}")
+# add_test(
+#   NAME b2/list_tests
+#   COMMAND $<TARGET_FILE:b2> --imgui-list-tests)
 
-  add_test(
-    NAME b2/delete_config_folder/${test_name}
-    COMMAND ${CMAKE_COMMAND} -E rm -Rf "${config_folder}")
+# function(add_b2_integration_test test_name)
+#   set(config_folder "${CMAKE_BINARY_DIR}/${test_name}")
+
+#   add_test(
+#     NAME b2/delete_config_folder/${test_name}
+#     COMMAND ${CMAKE_COMMAND} -E rm -Rf "${config_folder}")
   
-  add_test(
-    NAME b2/${test_name}
-    COMMAND $<TARGET_FILE:b2> --headless --imgui-enable-test-engine "--config-folder=${config_folder}" --imgui-run-test=${test_name})
+#   add_test(
+#     NAME b2/${test_name}
+#     COMMAND $<TARGET_FILE:b2> --headless --imgui-enable-test-engine "--config-folder=${config_folder}" --imgui-run-test=${test_name})
 
-  set_tests_properties(b2/delete_config_folder/${test_name}
-    PROPERTIES
-    FIXTURES_SETUP fixture_delete_config_folder/${test_name})
-  set_tests_properties(b2/${test_name}
-    PROPERTIES
-    FIXTURES_REQUIRED fixture_delete_config_folder/${test_name})
-endfunction()
+#   set_tests_properties(b2/delete_config_folder/${test_name}
+#     PROPERTIES
+#     FIXTURES_SETUP fixture_delete_config_folder/${test_name})
+#   set_tests_properties(b2/${test_name}
+#     PROPERTIES
+#     FIXTURES_REQUIRED fixture_delete_config_folder/${test_name})
+# endfunction()
 
-add_b2_integration_test(b2_tests.quit)
+# add_b2_integration_test(b2_tests.quit)

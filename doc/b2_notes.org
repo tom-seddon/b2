@@ -7644,6 +7644,12 @@ Activate using =--headless=.
   =b2_http_listen_port.txt= to the config folder, a text file
   containing the port number in decimal
 
+Sample command line:
+
+#+begin_example
+  --headless --imgui-enable-test-engine  --config-folder=D:/temp/b2_tests.quit --imgui-run-test=b2_tests.quit
+#+end_example
+
 * =cmake -E help=
 
 #+begin_example

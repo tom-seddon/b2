@@ -3074,9 +3074,10 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
         }
     }
 
-    PushFunctionMessage([data = std::move(ts->copy_data), fun = std::move(ts->copy_stop_fun)]() {
-        fun(std::move(data));
-    });
+    PushMainThreadMessage(std::make_unique<FunctionMessage>(
+        [data = std::move(ts->copy_data), fun = std::move(ts->copy_stop_fun)]() -> void {
+            fun(std::move(data));
+        }));
 
     m_is_copying.store(false, std::memory_order_release);
 }
