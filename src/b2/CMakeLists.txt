@@ -448,37 +448,6 @@ add_custom_command(
 ##########################################################################
 ##########################################################################
 
-# Job queue unit tests.
-
-add_executable(test_JobQueue
-  test_JobQueue.cpp
-  JobQueue.cpp JobQueue.h
-  )
-b2_target_boilerplate(test_JobQueue SANITIZERS)
-target_link_libraries(test_JobQueue PRIVATE shared_lib)
-add_test(
-  NAME b2/test_JobQueue
-  COMMAND $<TARGET_FILE:test_JobQueue>)
-
-##########################################################################
-##########################################################################
-
-# Don't add misc.cpp. There doesn't seem to be any way to set the
-# HEADER_FILE_ONLY source file property on a per-target basis.
-add_executable(test_UTF8
-  test_UTF8.cpp
-  misc.inl misc.h
-  Messages.cpp Messages.h
-  )
-b2_target_boilerplate(test_UTF8 SANITIZERS)
-target_link_libraries(test_UTF8 PRIVATE shared_lib beeb_lib ${SDL2_LIBRARY})
-add_test(
-  NAME b2/test_UTF8
-  COMMAND $<TARGET_FILE:test_UTF8>)
-
-##########################################################################
-##########################################################################
-
 add_executable(b2client b2client.cpp)
 b2_target_boilerplate(b2client SANITIZERS)
 target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohmann_json)
@@ -486,15 +455,22 @@ target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohma
 ##########################################################################
 ##########################################################################
 
-add_executable(test_SymbolTable
-  test_SymbolTable.cpp
-  misc.cpp misc.h
-  SymbolTable.cpp SymbolTable.h)
-b2_target_boilerplate(test_SymbolTable SANITIZERS)
-target_link_libraries(test_SymbolTable shared_lib beeb_lib nlohmann_json::nlohmann_json ${SDL2_LIBRARY})
-add_test(
-  NAME b2/test_SymbolTable
-  COMMAND $<TARGET_FILE:test_SymbolTable>)
+add_executable(b2_test
+  b2_test.cpp)
+b2_target_boilerplate(b2_test SANITIZERS)
+target_link_libraries(b2_test PRIVATE b2_lib)
+
+add_test(NAME b2/b2_test_list_tests
+  COMMAND $<TARGET_FILE:b2_test> --list-for-check_ctest_log)
+
+function(add_b2_test_literal_category test_name)
+  add_test(NAME b2/${test_name}
+    COMMAND $<TARGET_FILE:b2_test> -t "${test_name}")
+endfunction()
+
+add_b2_test_literal_category(misc.utf8)
+add_b2_test_literal_category(b2.JobQueue)
+add_b2_test_literal_category(b2.SymbolTable)
 
 ##########################################################################
 ##########################################################################

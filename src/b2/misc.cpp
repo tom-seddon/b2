@@ -623,7 +623,7 @@ static uint32_t GetCodePointForBBCChar(uint8_t bbc_char, BBCUTF8ConvertMode mode
     }
 }
 
-static std::string GetUTF8StringForCodePoint(uint32_t u) {
+std::string GetUTF8StringForCodePoint(uint32_t u) {
     if (u < 0x80) {
         return std::string(1, (char)u);
     } else if (u < 0x800) {

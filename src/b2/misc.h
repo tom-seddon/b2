@@ -189,6 +189,9 @@ uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii,
 // according to the mode.
 std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete);
 
+// Exposed only for testing purposes.
+std::string GetUTF8StringForCodePoint(uint32_t u);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
