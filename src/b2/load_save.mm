@@ -77,7 +77,7 @@ static std::string GetPath(const std::string &path,
 
         // This uses the default bundle identifier, not the actual one, so that
         // all builds can share the same config file.
-        fname = PathJoined(fname, MACOS_DEFAULT_BUNDLE_IDENTIFIER);
+        fname = PathJoined(fname, MACOS_BUNDLE_IDENTIFIER);
     }
 
     fname = PathJoined(fname, path);

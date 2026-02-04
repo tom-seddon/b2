@@ -103,6 +103,25 @@ target_link_libraries(b2_lib PUBLIC
 
 # Windows-specific general stuff.
 
+if(APPLE)
+  # Default bundle identifier for b2, used to form paths for config
+  # files.
+  #
+  # (The release process may change the actual bundle identifier, so
+  # that debug and non-debug versions can coexist sensibly, so this
+  # value is hardcoded rather than being picked up at runtime.)
+  set(BUNDLE_IDENTIFIER "com.tom-seddon.b2")
+
+  # TODO: this needs sorting out properly...
+  target_compile_definitions(b2_lib PUBLIC
+    MACOS_BUNDLE_IDENTIFIER="${BUNDLE_IDENTIFIER}")
+endif()
+
+##########################################################################
+##########################################################################
+
+# Windows-specific general stuff.
+
 if(WIN32)
   target_link_libraries(b2_lib PRIVATE pix_lib)
   target_link_libraries(b2_lib PRIVATE Dwmapi.lib)
@@ -250,11 +269,6 @@ if(APPLE)
     COMMAND iconutil -c icns -o b2.icns ${ICONSET}
     DEPENDS ${ICONSET}/icon_1024x1024.png ${ICONSET}/icon_128x128.png ${ICONSET}/icon_128x128@2x.png ${ICONSET}/icon_16x16.png ${ICONSET}/icon_16x16@2x.png ${ICONSET}/icon_256x256.png ${ICONSET}/icon_32x32.png ${ICONSET}/icon_32x32@2x.png ${ICONSET}/icon_512x512.png ${ICONSET}/icon_64x64.png ${ICONSET}/icon_64x64@2x.png)
 
-  set(BUNDLE_IDENTIFIER "com.tom-seddon.b2")
-
-  target_compile_definitions(b2 PRIVATE
-    MACOS_DEFAULT_BUNDLE_IDENTIFIER="${BUNDLE_IDENTIFIER}")
-  
   set_target_properties(b2
     PROPERTIES
     MACOSX_BUNDLE_NAME "b2"
