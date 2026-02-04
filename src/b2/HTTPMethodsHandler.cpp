@@ -63,7 +63,7 @@ class HTTPMethodsHandler : public HTTPHandler {
     };
 
   public:
-    bool ThreadHandleRequest(HTTPResponse *response, HTTPServer *server, HTTPRequest &&request) {
+    bool ThreadHandleRequest(HTTPResponse *response, HTTPServer *server, HTTPRequest &&request) override {
         (void)response;
 
         if (!CloseModalDialog()) {

@@ -87,8 +87,10 @@ class DearImGuiTest : public Test {
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    void RegisterDearImGuiTest(ImGuiTestEngine *test_engine) {
-        ImGuiTest *t = IM_REGISTER_TEST(test_engine, "b2", this->GetFullName().c_str());
+    void RegisterDearImGuiTest(ImGuiTestEngine *test_engine) override {
+
+        ImGuiTest *t = IM_REGISTER_TEST(test_engine, "b2", nullptr);
+        t->SetOwnedName(this->GetFullName().c_str());
         t->TestFunc = [this](ImGuiTestContext *ctx) {
             this->DearImGuiTestFunc(ctx);
         };
@@ -539,7 +541,7 @@ class TestJobQueue : public Test {
 
 class TestFileExit : public DearImGuiTest {
   public:
-    std::string GetFullName() const {
+    std::string GetFullName() const override {
         return "b2ui.FileExit";
     };
 

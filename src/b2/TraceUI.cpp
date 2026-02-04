@@ -133,7 +133,7 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
         ASSERT(!!m_trace);
     }
 
-    void ThreadExecute() {
+    void ThreadExecute() override {
         FILE *f = fopenUTF8(m_file_name.c_str(), m_fopen_mode.c_str());
         if (!f) {
             int err = errno;
