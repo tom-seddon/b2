@@ -10,15 +10,8 @@ EPN(VBlank)
 // N/A
 EPN(UpdateWindowTitle)
 
-// (BeebWindowInitArguments *)data1 - delete
-EPN(NewWindow)
-
-// (std::function<void()> *)data1 - delete
-EPN(Function)
-
-// event windowID - the window ID of the target, or 0 if any will do
-// (BeebWindowLaunchArguments *)data1 - delete
-EPN(Launch)
+// (MessageHandler *)data1 - delete
+EPN(Message)
 
 EPN(Count)
 

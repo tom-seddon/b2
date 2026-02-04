@@ -56,11 +56,11 @@
 #include <shared/file_io.h>
 
 #include <shared/enum_decl.h>
-#include "b2.inl"
+#include "b2_private.inl"
 #include <shared/enum_end.h>
 
 #include <shared/enum_def.h>
-#include "b2.inl"
+#include "b2_private.inl"
 #include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////
