@@ -38,6 +38,7 @@ class TimerDef;
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 struct ImGuiTestEngine;
 #endif
+class AppHandler;
 
 #include "keys.h"
 #include <string>
@@ -268,16 +269,8 @@ struct BeebWindowInitArguments {
     float gui_scale = 0.f;
 #endif
 
-    // Set if b2 is running in headless mode.
-    bool headless = false;
-
-    //#ifdef IMGUI_ENABLE_TEST_ENGINE
-    //    // Set if Dear ImGui Test Engine should be enabled.
-    //    bool imgui_enable_test_engine = false;
-    //
-    //    // Tests to run. The window clears the list, so this only applies to the first window created.
-    //    std::vector<std::string> imgui_tests;
-    //#endif
+    // The AppHandler to use.
+    AppHandler *app_handler = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -487,14 +480,14 @@ class BeebWindow {
 #endif
 
 #if ENABLE_IMGUI_DEMO
-    bool m_imgui_demo = false;
+    bool m_imgui_demo_ui = false;
 #endif
 #if STORE_DRAWLISTS
-    bool m_imgui_drawlists = false;
+    bool m_imgui_drawlists_ui = false;
 #endif
-    bool m_imgui_metrics = false;
+    bool m_imgui_metrics_ui = false;
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    bool m_imgui_test_engine = false;
+    bool m_imgui_test_engine_ui = false;
 #endif
 
     std::vector<std::string> m_display_size_options;

@@ -12,6 +12,13 @@
 #include "JobQueue.h"
 #include <string.h>
 #include "b2.h"
+#include "load_save.h"
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+#include <imgui_test_engine/imgui_te_engine.h>
+#include <imgui_test_engine/imgui_te_context.h>
+#endif
+#include "dear_imgui.h"
+#include <shared/debug.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -21,10 +28,20 @@ class Test {
     Test() = default;
     virtual ~Test() = 0;
 
+    // hidden tests don't appear in the ctest_check_log list, but can be run
+    // manually.
+    //
+    // default impl returns false.
+    virtual bool IsHidden() const;
+
     virtual std::string GetFullName() const = 0;
 
     virtual void Run() = 0;
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    virtual void RegisterDearImGuiTest(ImGuiTestEngine *test_engine);
+    virtual void DearImGuiTestFunc(ImGuiTestContext *ctx);
+#endif
   protected:
   private:
 };
@@ -34,6 +51,52 @@ class Test {
 
 Test::~Test() {
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool Test::IsHidden() const {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+void Test::RegisterDearImGuiTest(ImGuiTestEngine *test_engine) {
+    (void)test_engine;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+void Test::DearImGuiTestFunc(ImGuiTestContext *ctx) {
+    (void)ctx;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class DearImGuiTest : public Test {
+  public:
+    void Run() override {
+        return;
+    }
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    void RegisterDearImGuiTest(ImGuiTestEngine *test_engine) {
+        ImGuiTest *t = IM_REGISTER_TEST(test_engine, "b2", this->GetFullName().c_str());
+        t->TestFunc = [this](ImGuiTestContext *ctx) {
+            this->DearImGuiTestFunc(ctx);
+        };
+    }
+#endif
+  protected:
+  private:
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -474,6 +537,25 @@ class TestJobQueue : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestFileExit : public DearImGuiTest {
+  public:
+    std::string GetFullName() const {
+        return "b2ui.FileExit";
+    };
+
+    bool IsHidden() const override {
+        return true;
+    }
+
+    void DearImGuiTestFunc(ImGuiTestContext *ctx) override {
+        ctx->SetRef("##MainMenuBar");
+        ctx->MenuClick("File/Exit/Confirm");
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct TestOptions {
     bool verbose = false;
     std::vector<std::string> test_name_strs;
@@ -502,7 +584,7 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption('l', "list-for-check_ctest_log").SetIfPresent(&options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
-    p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2 (takes priority over anything else)");
+    p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2, with Dear ImGui Test Engine enabled (no tests will be run)");
     p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
 
     // intended for use when adding new tests, in conjunction with -T, on the
@@ -553,8 +635,80 @@ static TestOptions GetOptions(int argc, char *argv[]) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class b2ModeAppHandler : public OrdinaryAppHandler {
+  public:
+    b2ModeAppHandler(int argc, char *argv[], std::vector<std::unique_ptr<Test>> *tests)
+        : OrdinaryAppHandler(argc, argv)
+        , m_tests(tests) {
+    }
+
+    bool IsDearImGuiTestEngineEnabled() const override {
+        return true;
+    }
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    void DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
+        (void)beeb_window;
+
+        ImGuiTestEngine *test_engine = imgui_stuff->GetTestEngine();
+        ASSERT(test_engine);
+
+        for (const std::unique_ptr<Test> &test : *m_tests) {
+            test->RegisterDearImGuiTest(test_engine);
+        }
+    }
+#endif
+
+    void MessageLoopWillStart() override {
+        printf("Config path: %s\n", GetConfigPath("").c_str());
+        printf("Cache path: %s\n", GetCachePath("").c_str());
+        printf("Example asset path: %s\n", GetAssetPath(GAMECONTROLLER_DB_FILE_NAME).c_str());
+    }
+
+  protected:
+  private:
+    std::vector<std::unique_ptr<Test>> *m_tests = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char *argv[]) {
     TestOptions options = GetOptions(argc, argv);
+
+    std::vector<std::unique_ptr<Test>> all_tests;
+
+    all_tests.push_back(std::make_unique<TestUTF8>());
+    all_tests.push_back(std::make_unique<TestSymbolTable>());
+    all_tests.push_back(std::make_unique<TestJobQueue>());
+    all_tests.push_back(std::make_unique<TestFileExit>());
+
+    std::map<std::string, Test *> tests_by_name;
+    for (const std::unique_ptr<Test> &test : all_tests) {
+        tests_by_name[test->GetFullName()] = test.get();
+    }
+    TEST_EQ_UU(all_tests.size(), tests_by_name.size());
+
+    if (options.list) {
+        for (auto &&name_and_test : tests_by_name) {
+            if (name_and_test.second->IsHidden()) {
+                printf("(hidden) ");
+            }
+            printf("%s\n", name_and_test.first.c_str());
+        }
+
+        return 0;
+    }
+
+    if (options.list_for_check_ctest_log) {
+        for (auto &&name_and_test : tests_by_name) {
+            if (!name_and_test.second->IsHidden()) {
+                printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:test_beeb.%s\n", name_and_test.first.c_str());
+            }
+        }
+
+        return 0;
+    }
 
     if (options.b2) {
         std::vector<char *> b2_argv;
@@ -564,86 +718,58 @@ int main(int argc, char *argv[]) {
         }
         b2_argv.push_back(nullptr);
 
-        OrdinaryAppHandler app_handler((int)(b2_argv.size() - 1), b2_argv.data());
+        b2ModeAppHandler app_handler((int)(b2_argv.size() - 1), b2_argv.data(), &all_tests);
         int result = b2_main(&app_handler);
         return result;
-    }
+    } else {
+        bool ran_any_tests = false;
 
-    std::vector<std::unique_ptr<Test>> all_tests;
+        for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {
+            std::unique_ptr<Test> &test = options.reverse ? all_tests[all_tests.size() - 1 - test_index] : all_tests[test_index];
+            bool run = options.test_name_regexes.empty() && options.test_name_strs.empty();
 
-    all_tests.push_back(std::make_unique<TestUTF8>());
-    all_tests.push_back(std::make_unique<TestSymbolTable>());
-    all_tests.push_back(std::make_unique<TestJobQueue>());
-
-    std::set<std::string> names;
-    for (const std::unique_ptr<Test> &test : all_tests) {
-        names.insert(test->GetFullName());
-    }
-    TEST_EQ_UU(names.size(), all_tests.size());
-
-    if (options.list) {
-        for (const std::string &name : names) {
-            printf("%s\n", name.c_str());
-        }
-
-        return 0;
-    }
-
-    if (options.list_for_check_ctest_log) {
-        for (const std::string &name : names) {
-            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:test_beeb.%s\n", name.c_str());
-        }
-
-        return 0;
-    }
-
-    bool ran_any_tests = false;
-
-    for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {
-        std::unique_ptr<Test> &test = options.reverse ? all_tests[all_tests.size() - 1 - test_index] : all_tests[test_index];
-        bool run = options.test_name_regexes.empty() && options.test_name_strs.empty();
-
-        if (!run) {
-            for (const std::regex &test_name_regex : options.test_name_regexes) {
-                if (std::regex_match(test->GetFullName(), test_name_regex)) {
-                    run = true;
-                    break;
+            if (!run) {
+                for (const std::regex &test_name_regex : options.test_name_regexes) {
+                    if (std::regex_match(test->GetFullName(), test_name_regex)) {
+                        run = true;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (!run) {
-            for (const std::string &test_name_str : options.test_name_strs) {
-                if (strcasecmp(test->GetFullName().c_str(), test_name_str.c_str()) == 0) {
-                    run = true;
-                    break;
+            if (!run) {
+                for (const std::string &test_name_str : options.test_name_strs) {
+                    if (strcasecmp(test->GetFullName().c_str(), test_name_str.c_str()) == 0) {
+                        run = true;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (!run) {
+            if (!run) {
+                if (options.verbose) {
+                    printf("skipping test: %s\n", test->GetFullName().c_str());
+                }
+                continue;
+            }
+
             if (options.verbose) {
-                printf("skipping test: %s\n", test->GetFullName().c_str());
+                printf("starting test: %s\n", test->GetFullName().c_str());
             }
-            continue;
+            printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:test_beeb.%s\n", test->GetFullName().c_str());
+
+            uint64_t start_ticks = GetCurrentTickCount();
+
+            test->Run();
+            ran_any_tests = true;
+
+            uint64_t end_ticks = GetCurrentTickCount();
+
+            if (options.verbose) {
+                printf("test finished: %s (took %.3f seconds)\n", test->GetFullName().c_str(), GetSecondsFromTicks(end_ticks - start_ticks));
+            }
         }
 
-        if (options.verbose) {
-            printf("starting test: %s\n", test->GetFullName().c_str());
-        }
-        printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:test_beeb.%s\n", test->GetFullName().c_str());
-
-        uint64_t start_ticks = GetCurrentTickCount();
-
-        test->Run();
-        ran_any_tests = true;
-
-        uint64_t end_ticks = GetCurrentTickCount();
-
-        if (options.verbose) {
-            printf("test finished: %s (took %.3f seconds)\n", test->GetFullName().c_str(), GetSecondsFromTicks(end_ticks - start_ticks));
-        }
+        TEST_TRUE(ran_any_tests);
     }
-
-    TEST_TRUE(ran_any_tests);
 }

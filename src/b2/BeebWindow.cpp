@@ -733,7 +733,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_HandleVBlank_RenderSDL_timer_def = MetricSet::CreateTimerDef(m_metric_set, "Render SDL", m_HandleVBlank_end_of_frame_timer_def);
     m_HandleVBlank_DoImGui_timer_def = MetricSet::CreateTimerDef(m_metric_set, "DoImGui", m_HandleVBlank_end_of_frame_timer_def);
 
-    if (m_init_arguments.headless) {
+    if (m_init_arguments.app_handler->IsHeadless()) {
         m_message_list = MessageList::stdio;
     } else {
         m_message_list = std::make_shared<MessageList>("BeebWindow");
@@ -745,7 +745,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     }
 
     uint32_t sound_device = m_init_arguments.sound_device;
-    if (m_init_arguments.headless) {
+    if (m_init_arguments.app_handler->IsHeadless()) {
         sound_device = 0;
     }
 
@@ -1176,23 +1176,23 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     }
 
 #if ENABLE_IMGUI_DEMO
-    if (m_imgui_demo) {
+    if (m_imgui_demo_ui) {
         ImGui::ShowDemoWindow();
     }
 #endif
 
 #if STORE_DRAWLISTS
-    if (m_imgui_drawlists) {
+    if (m_imgui_drawlists_ui) {
         m_imgui_stuff->DoStoredDrawListWindow();
     }
 #endif
 
-    if (m_imgui_metrics) {
+    if (m_imgui_metrics_ui) {
         ImGui::ShowMetricsWindow();
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    if (m_imgui_test_engine) {
+    if (m_imgui_test_engine_ui) {
         m_imgui_stuff->DoTestEngineWindow(nullptr);
     }
 #endif
@@ -2740,16 +2740,16 @@ void BeebWindow::DoExtraDebugMenu() {
 #endif
 
 #if ENABLE_IMGUI_DEMO
-        ImGui::MenuItem("ImGui demo", NULL, &m_imgui_demo);
+        ImGui::MenuItem("ImGui demo", NULL, &m_imgui_demo_ui);
 #endif
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ImGuiDebug].command);
 #if STORE_DRAWLISTS
-        ImGui::MenuItem("ImGui drawlists", nullptr, &m_imgui_drawlists);
+        ImGui::MenuItem("ImGui drawlists", nullptr, &m_imgui_drawlists_ui);
 #endif
-        ImGui::MenuItem("ImGui metrics", nullptr, &m_imgui_metrics);
+        ImGui::MenuItem("ImGui metrics", nullptr, &m_imgui_metrics_ui);
 #ifdef IMGUI_ENABLE_TEST_ENGINE
         if (m_imgui_stuff->IsTestEngineEnabled()) {
-            ImGui::MenuItem("ImGui Test Engine", nullptr, &m_imgui_test_engine);
+            ImGui::MenuItem("ImGui Test Engine", nullptr, &m_imgui_test_engine_ui);
         }
 #endif
 
@@ -3421,7 +3421,7 @@ bool BeebWindow::InitInternal() {
     bool reset_windows = m_init_arguments.reset_windows;
     m_init_arguments.reset_windows = false;
 
-    if (!m_init_arguments.headless) {
+    if (!m_init_arguments.app_handler->IsHeadless()) {
         // Add some extra space round the edges so the display doesn't have to
         // be scaled down noticeably.
         //
@@ -3545,7 +3545,7 @@ bool BeebWindow::InitInternal() {
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    bool imgui_enable_test_engine = false; //m_init_arguments.imgui_enable_test_engine;
+    bool imgui_enable_test_engine = m_init_arguments.app_handler->IsDearImGuiTestEngineEnabled();
 #else
     bool imgui_enable_test_engine = false;
 #endif
@@ -3555,10 +3555,9 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    //#ifdef IMGUI_ENABLE_TEST_ENGINE
-    //    InitDearImGuiTests(this, m_imgui_stuff->GetTestEngine(), nullptr, nullptr, &m_init_arguments.imgui_tests);
-    //    m_init_arguments.imgui_tests.clear();
-    //#endif
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    m_init_arguments.app_handler->DearImGuiTestEngineWasCreated(this, m_imgui_stuff);
+#endif
 
     m_imgui_stuff->SetScale(m_settings.gui_scale);
 #if SYSTEM_LINUX

@@ -6,6 +6,10 @@
 
 struct BeebWindowInitArguments;
 class Messages;
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+class BeebWindow;
+class ImGuiStuff;
+#endif
 
 #include <functional>
 #include <vector>
@@ -15,10 +19,21 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Printable product name, including version string.
+extern const char PRODUCT_NAME[];
+
+// Name of the game controller database file.
+extern const char GAMECONTROLLER_DB_FILE_NAME[];
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Handle communication between b2 and the actual app it's embedded in.
 //
-// The objective is that the b2 app proper won't have much logic in its
+// The objective is that the b2 app proper won't need to have much logic in its
 // implementation, but the b2 test app might.
+//
+//
 class AppHandler {
   public:
     AppHandler() = default;
@@ -48,11 +63,27 @@ class AppHandler {
 
     // Indicate actual HTTP server listen port chosen, or 0 if the HTTP server
     // didn't start.
-    virtual void SetActualHttpServerListenPort(int port) = 0;
+    //
+    // Default impl does nothing.
+    virtual void SetActualHttpServerListenPort(int port);
 
     // Return port to use for HTTP launch requests.
     virtual int GetLaunchRequestHttpServerPort() const = 0;
 
+    // Message loop is about to start.
+    //
+    // Default impl does nothing.
+    virtual void MessageLoopWillStart();
+
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    // Whether to initialise Dear ImGui Test Engine.
+    virtual bool IsDearImGuiTestEngineEnabled() const = 0;
+
+    // Called when the Dear ImGui Test Engine was created.
+    //
+    // Default impl does nothing.
+    virtual void DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
+#endif
   protected:
   private:
 };
@@ -66,13 +97,14 @@ class OrdinaryAppHandler : public AppHandler {
   public:
     OrdinaryAppHandler(int argc, char *argv[]);
 
-    bool IsHeadless() const override;
+    bool IsHeadless() const override; //returns false
     std::vector<std::string> GetCommandLineArgs() const override;
-    bool GetConfigFolder(std::string *config_folder) const override;
-    int GetRequestedHttpServerListenPort() const override;
-    void SetActualHttpServerListenPort(int port) override;
-    int GetLaunchRequestHttpServerPort() const override;
-
+    bool GetConfigFolder(std::string *config_folder) const override; //returns false
+    int GetRequestedHttpServerListenPort() const override;           //returns 0xbbcb
+    int GetLaunchRequestHttpServerPort() const override;             //returns 0xbbcb
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    bool IsDearImGuiTestEngineEnabled() const override; //returns false
+#endif
   protected:
   private:
     std::vector<std::string> m_argv;

@@ -95,7 +95,9 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " STRINGIZE(RELEASE_NAME);
+const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master emulator - " STRINGIZE(RELEASE_NAME);
+
+const char GAMECONTROLLER_DB_FILE_NAME[] = "gamecontrollerdb.txt";
 
 static SDL_threadID g_main_thread_id = 0;
 
@@ -171,6 +173,26 @@ AppHandler::~AppHandler() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void AppHandler::SetActualHttpServerListenPort(int port) {
+    (void)port;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void AppHandler::DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
+    (void)beeb_window, (void)imgui_stuff;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void AppHandler::MessageLoopWillStart() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 OrdinaryAppHandler::OrdinaryAppHandler(int argc, char *argv[])
     : m_argv(argv + 0, argv + argc) {
 }
@@ -209,15 +231,15 @@ int OrdinaryAppHandler::GetRequestedHttpServerListenPort() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void OrdinaryAppHandler::SetActualHttpServerListenPort(int port) {
-    (void)port;
+int OrdinaryAppHandler::GetLaunchRequestHttpServerPort() const {
+    return this->GetRequestedHttpServerListenPort();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int OrdinaryAppHandler::GetLaunchRequestHttpServerPort() const {
-    return this->GetRequestedHttpServerListenPort();
+bool OrdinaryAppHandler::IsDearImGuiTestEngineEnabled() const {
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -977,7 +999,7 @@ static bool InitSystem(
     Messages *init_messages) {
     (void)options;
 
-    SDL_SetHint(SDL_HINT_GAMECONTROLLERCONFIG_FILE, GetAssetPath("gamecontrollerdb.txt").c_str());
+    SDL_SetHint(SDL_HINT_GAMECONTROLLERCONFIG_FILE, GetAssetPath(GAMECONTROLLER_DB_FILE_NAME).c_str());
 
     if (options.enable_high_dpi) {
 #if SYSTEM_WINDOWS
@@ -1506,8 +1528,6 @@ bool IsMainThread() {
 static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
-    //init_messages.i.f("%s\n", PRODUCT_NAME);
-
     CheckAssetPaths();
 
     Options options;
@@ -1791,7 +1811,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
             ia.boot = options.boot;
 
             ia.limit_speed = options.limit_speed;
-            ia.headless = app_handler->IsHeadless();
+            ia.app_handler = app_handler;
 
             //#ifdef IMGUI_ENABLE_TEST_ENGINE
             //            ia.imgui_enable_test_engine = options.imgui_enable_test_engine;
@@ -1815,6 +1835,8 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
 
         // not needed any more.
         init_message_list->ClearMessages();
+
+        app_handler->MessageLoopWillStart();
 
         while (BeebWindows::GetNumWindows() > 0) {
             SDL_Event event;
