@@ -11,6 +11,7 @@
 #include <beeb/type.h>
 #include "JobQueue.h"
 #include <string.h>
+#include "b2.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -473,7 +474,7 @@ class TestJobQueue : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct Options {
+struct TestOptions {
     bool verbose = false;
     std::vector<std::string> test_name_strs;
     std::vector<std::regex> test_name_regexes;
@@ -481,12 +482,14 @@ struct Options {
     bool list_for_check_ctest_log = false;
     bool wip = false;
     bool reverse = false;
+    bool b2 = false;
+    std::vector<std::string> b2_argv;
 };
 
-static Options GetOptions(int argc, char *argv[]) {
+static TestOptions GetOptions(int argc, char *argv[]) {
     CommandLineParser p;
 
-    Options options;
+    TestOptions options;
 
     bool help;
     p.AddHelpOption(&help);
@@ -499,6 +502,8 @@ static Options GetOptions(int argc, char *argv[]) {
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption('l', "list-for-check_ctest_log").SetIfPresent(&options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
+    p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2 (takes priority over anything else)");
+    p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
 
     // intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
@@ -549,7 +554,20 @@ static Options GetOptions(int argc, char *argv[]) {
 //////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[]) {
-    Options options = GetOptions(argc, argv);
+    TestOptions options = GetOptions(argc, argv);
+
+    if (options.b2) {
+        std::vector<char *> b2_argv;
+        b2_argv.push_back(argv[0]);
+        for (std::string &b2_arg : options.b2_argv) {
+            b2_argv.push_back(b2_arg.data());
+        }
+        b2_argv.push_back(nullptr);
+
+        OrdinaryAppHandler app_handler((int)(b2_argv.size() - 1), b2_argv.data());
+        int result = b2_main(&app_handler);
+        return result;
+    }
 
     std::vector<std::unique_ptr<Test>> all_tests;
 

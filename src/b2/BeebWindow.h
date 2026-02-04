@@ -268,16 +268,16 @@ struct BeebWindowInitArguments {
     float gui_scale = 0.f;
 #endif
 
-    // Set if b2 was started in headless mode.
+    // Set if b2 is running in headless mode.
     bool headless = false;
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    // Set if Dear ImGui Test Engine should be enabled.
-    bool imgui_enable_test_engine = false;
-
-    // Tests to run. The window clears the list, so this only applies to the first window created.
-    std::vector<std::string> imgui_tests;
-#endif
+    //#ifdef IMGUI_ENABLE_TEST_ENGINE
+    //    // Set if Dear ImGui Test Engine should be enabled.
+    //    bool imgui_enable_test_engine = false;
+    //
+    //    // Tests to run. The window clears the list, so this only applies to the first window created.
+    //    std::vector<std::string> imgui_tests;
+    //#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -293,15 +293,15 @@ struct BeebWindowLaunchArguments {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-struct b2Test {
-    // For reference.
-    std::string name;
-
-    // Called before the first BeebWindow is created.
-    std::function<void(BeebWindowInitArguments *)> will_create_BeebWindow_fn;
-};
-#endif
+//#ifdef IMGUI_ENABLE_TEST_ENGINE
+//struct b2Test {
+//    // For reference.
+//    std::string name;
+//
+//    // Called before the first BeebWindow is created.
+//    std::function<void(BeebWindowInitArguments *)> will_create_BeebWindow_fn;
+//};
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -410,10 +410,10 @@ class BeebWindow {
 
     const BeebWindowSettings &GetSettings() const;
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    static std::vector<std::string> GetAllDearImGuiTestNames();
-    static std::vector<std::shared_ptr<b2Test>> Getb2Tests(const std::vector<std::string> &tests_to_run);
-#endif
+    //#ifdef IMGUI_ENABLE_TEST_ENGINE
+    //    static std::vector<std::string> GetAllDearImGuiTestNames();
+    //    static std::vector<std::shared_ptr<b2Test>> Getb2Tests(const std::vector<std::string> &tests_to_run);
+    //#endif
 
   protected:
   private:
@@ -643,13 +643,13 @@ class BeebWindow {
     bool HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags);
     bool HardResetWithMultiOSBank(int multi_os_bank);
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    static void InitDearImGuiTests(BeebWindow *beeb_window,
-                                   ImGuiTestEngine *test_engine,
-                                   std::vector<std::shared_ptr<b2Test>> *b2_tests,
-                                   std::vector<std::string> *test_names,
-                                   const std::vector<std::string> *tests_to_run);
-#endif
+    //#ifdef IMGUI_ENABLE_TEST_ENGINE
+    //    static void InitDearImGuiTests(BeebWindow *beeb_window,
+    //                                   ImGuiTestEngine *test_engine,
+    //                                   std::vector<std::shared_ptr<b2Test>> *b2_tests,
+    //                                   std::vector<std::string> *test_names,
+    //                                   const std::vector<std::string> *tests_to_run);
+    //#endif
 
     // Keep this at the end. It's massive.
     mutable Messages m_msg;

@@ -30,5 +30,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[]) {
-    return b2_main(argc, argv);
+    OrdinaryAppHandler app_handler(argc, argv);
+
+    return b2_main(&app_handler);
 }

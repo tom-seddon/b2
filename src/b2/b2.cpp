@@ -97,8 +97,6 @@ NEND()
 
 static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " STRINGIZE(RELEASE_NAME);
 
-static const int DEFAULT_HTTP_SERVER_PORT = 0xbbcb;
-
 static SDL_threadID g_main_thread_id = 0;
 
 //////////////////////////////////////////////////////////////////////////
@@ -163,6 +161,64 @@ static bool g_got_console = false;
 //void operator delete[](void *p) {
 //    free(p);
 //}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+AppHandler::~AppHandler() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+OrdinaryAppHandler::OrdinaryAppHandler(int argc, char *argv[])
+    : m_argv(argv + 0, argv + argc) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool OrdinaryAppHandler::IsHeadless() const {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<std::string> OrdinaryAppHandler::GetCommandLineArgs() const {
+    return m_argv;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool OrdinaryAppHandler::GetConfigFolder(std::string *config_folder) const {
+    (void)config_folder;
+
+    // the default logic is sensible.
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int OrdinaryAppHandler::GetRequestedHttpServerListenPort() const {
+    return 0xbbcb;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void OrdinaryAppHandler::SetActualHttpServerListenPort(int port) {
+    (void)port;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int OrdinaryAppHandler::GetLaunchRequestHttpServerPort() const {
+    return this->GetRequestedHttpServerListenPort();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -715,12 +771,12 @@ struct Options {
     bool fail_startup_early = false;
 #endif
 
-    bool headless = false;
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    bool imgui_enable_test_engine = false;
-    bool imgui_list_tests = false;
-    std::vector<std::string> imgui_tests;
-#endif
+    //bool headless = false;
+    //#ifdef IMGUI_ENABLE_TEST_ENGINE
+    //    bool imgui_enable_test_engine = false;
+    //    bool imgui_list_tests = false;
+    //    std::vector<std::string> imgui_tests;
+    //#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -758,12 +814,14 @@ static void RemovePSNArguments(std::vector<const char *> *argv) {
 
 static bool ParseCommandLineOptions(
     Options *options,
-    int argc, char *argv[],
+    const AppHandler *app_handler,
     Messages *init_messages) {
+
+    std::vector<std::string> argv = app_handler->GetCommandLineArgs();
 
     // Detect the File Explorer double-click case on Windows (also acts as a
     // convenient command-line shortcut).
-    if (argc == 2 && PathIsFileOnDisk(argv[1], nullptr, nullptr)) {
+    if (argv.size() == 2 && PathIsFileOnDisk(argv[1], nullptr, nullptr)) {
         options->file_association_mode = true;
         options->file_association_path = argv[1];
 
@@ -820,7 +878,9 @@ static bool ParseCommandLineOptions(
     p.AddOption("remotery-thread-sampler").SetIfPresent(&options->remotery_thread_sampler).Help("activate Remotery thread sampler");
 #endif
 
-    p.AddOption("config-folder").Arg(&options->override_config_folder).SetIfPresent(&options->override_config_folder_specified).Help("specify folder for config files (will be created if non-existent)").ShowDefault();
+    if (!app_handler->GetConfigFolder(nullptr)) {
+        p.AddOption("config-folder").Arg(&options->override_config_folder).SetIfPresent(&options->override_config_folder_specified).Help("specify folder for config files (will be created if non-existent)").ShowDefault();
+    }
 
     p.AddOption("disable-high-dpi").ResetIfPresent(&options->enable_high_dpi).Help("disable handling of high-DPI displays");
 
@@ -829,8 +889,6 @@ static bool ParseCommandLineOptions(
 #endif
 
     p.AddHelpOption(&options->help);
-
-    std::vector<const char *> args(argv, argv + argc);
 
 #if SYSTEM_OSX
     RemovePSNArguments(&args);
@@ -841,14 +899,14 @@ static bool ParseCommandLineOptions(
     p.AddOption("fail-startup-late").SetIfPresent(&options->fail_startup_late).Help("fail the startup process at a late stage, even if it actually succeeded. Use this to test the failure UI");
 #endif
 
-    p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode (implies --imgui-enable-test-engine)");
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    p.AddOption("imgui-enable-test-engine").SetIfPresent(&options->imgui_enable_test_engine).Help("enable Dear ImGui Test Engine");
-    p.AddOption("imgui-list-tests").SetIfPresent(&options->imgui_list_tests).Help("list all Dear ImGui tests on stdout, formatted for the benefit of check_ctest_log");
-    p.AddOption("imgui-run-test").AddArgToList(&options->imgui_tests).Help("run the given Dear ImGui test(s)");
-#endif
+    //p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode (implies --imgui-enable-test-engine)");
+    //#ifdef IMGUI_ENABLE_TEST_ENGINE
+    //    p.AddOption("imgui-enable-test-engine").SetIfPresent(&options->imgui_enable_test_engine).Help("enable Dear ImGui Test Engine");
+    //    p.AddOption("imgui-list-tests").SetIfPresent(&options->imgui_list_tests).Help("list all Dear ImGui tests on stdout, formatted for the benefit of check_ctest_log");
+    //    p.AddOption("imgui-run-test").AddArgToList(&options->imgui_tests).Help("run the given Dear ImGui test(s)");
+    //#endif
 
-    if (!p.Parse((int)args.size(), args.data())) {
+    if (!p.Parse(argv)) {
         return false;
     }
 
@@ -859,14 +917,14 @@ static bool ParseCommandLineOptions(
         return false;
     }
 
-    if (options->headless) {
-        if (!options->override_config_folder_specified) {
-            init_messages->e.f("Must specify override config folder in headless mode");
-            return false;
-        }
+    //if (options->headless) {
+    //    if (!options->override_config_folder_specified) {
+    //        init_messages->e.f("Must specify override config folder in headless mode");
+    //        return false;
+    //    }
 
-        options->imgui_enable_test_engine = true;
-    }
+    //    options->imgui_enable_test_engine = true;
+    //}
 
     return true;
 }
@@ -911,6 +969,7 @@ static bool InitSystem(
     SDL_AudioDeviceID *device_id,
     SDL_AudioSpec *got_spec,
     const Options &options,
+    const AppHandler *app_handler,
     Messages *init_messages) {
     (void)options;
 
@@ -932,7 +991,7 @@ static bool InitSystem(
     // Initialise SDL
     Uint32 sdl_init_flags = SDL_INIT_TIMER;
     sdl_init_flags |= SDL_INIT_VIDEO;
-    if (!options.headless) {
+    if (!app_handler->IsHeadless()) {
         sdl_init_flags |= SDL_INIT_AUDIO;
         sdl_init_flags |= SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER;
     }
@@ -1274,7 +1333,7 @@ class LaunchMessage : public MainThreadMessage {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool BootDiskInExistingProcess(const std::string &path, Messages *messages) {
+static bool BootDiskInExistingProcess(const std::string &path, const AppHandler *app_handler, Messages *messages) {
     //auto client_message_list = std::make_shared<MessageList>();
     //Messages client_messages(client_message_list);
 
@@ -1284,7 +1343,7 @@ static bool BootDiskInExistingProcess(const std::string &path, Messages *message
     HTTPRequest request;
     // If there's a copy of b2 listening on some other port, it won't be found -
     // which is deliberate.
-    request.url = strprintf("http://127.0.0.1:%d/launch", DEFAULT_HTTP_SERVER_PORT);
+    request.url = strprintf("http://127.0.0.1:%d/launch", app_handler->GetLaunchRequestHttpServerPort());
     request.method = "POST";
     request.AddQueryParameter("path", path);
 
@@ -1304,15 +1363,17 @@ static bool BootDiskInExistingProcess(const std::string &path, Messages *message
 
 static std::unique_ptr<HTTPServer> g_http_server;
 static std::shared_ptr<HTTPHandler> g_http_handler;
-static int g_http_server_requested_listen_port = DEFAULT_HTTP_SERVER_PORT;
+static int g_requested_http_server_port = -1;
 
 void StartHTTPServer(Messages *messages) {
+    ASSERT(g_requested_http_server_port >= 0);
+
     if (GetHTTPServerListenPort() != 0) {
         return;
     }
 
     g_http_server = CreateHTTPServer();
-    if (!g_http_server->Start(g_http_server_requested_listen_port, messages)) {
+    if (!g_http_server->Start(g_requested_http_server_port, messages)) {
         g_http_server.reset();
         messages->e.f("Failed to start HTTP server.\n");
         return;
@@ -1438,7 +1499,7 @@ bool IsMainThread() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
+static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
     //init_messages.i.f("%s\n", PRODUCT_NAME);
@@ -1446,8 +1507,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     CheckAssetPaths();
 
     Options options;
-
-    if (!ParseCommandLineOptions(&options, argc, argv, &init_messages)) {
+    if (!ParseCommandLineOptions(&options, app_handler, &init_messages)) {
         if (options.help) {
             ShowOutputMessagesDialog("Command line help", init_messages);
             return true;
@@ -1456,15 +1516,15 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    if (options.imgui_list_tests) {
-        std::vector<std::string> test_names = BeebWindow::GetAllDearImGuiTestNames();
-        for (const std::string &test_name : test_names) {
-            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", test_name.c_str());
-        }
-        return true;
-    }
-#endif
+    //#ifdef IMGUI_ENABLE_TEST_ENGINE
+    //    if (options.imgui_list_tests) {
+    //        std::vector<std::string> test_names = BeebWindow::GetAllDearImGuiTestNames();
+    //        for (const std::string &test_name : test_names) {
+    //            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", test_name.c_str());
+    //        }
+    //        return true;
+    //    }
+    //#endif
 
     if (options.version) {
         init_messages.i.f("b2 version: %s\n", STRINGIZE(RELEASE_NAME));
@@ -1484,8 +1544,13 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return true;
     }
 
-    if (options.override_config_folder_specified) {
-        SetConfigFolder(options.override_config_folder);
+    {
+        std::string config_folder;
+        if (app_handler->GetConfigFolder(&config_folder)) {
+            SetConfigFolder(config_folder);
+        } else if (options.override_config_folder_specified) {
+            SetConfigFolder(options.override_config_folder);
+        }
     }
 
 #if ENABLE_FAIL_STARTUP
@@ -1503,26 +1568,31 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
-    if (options.headless) {
-        // Listen on any old port.
-        g_http_server_requested_listen_port = 0;
-    }
+    //if (g_app_handler->IsHeadless()) {
+    //    // Listen on any old port.
+    //    g_http_server_requested_listen_port = 0;
+    //}
 
+    // TODO: not very nice, but StartHTTPServer gets called via the UI as well,
+    // and the app handler isn't accessible there.
+    g_requested_http_server_port = app_handler->GetRequestedHttpServerListenPort();
     StartHTTPServer(&init_messages);
 
-    if (options.headless) {
-        // This isn't really the right use for the config path, but in headless
-        // mode it can be assumed to point somewhere transient.
-        SaveTextFile(std::to_string(GetHTTPServerListenPort()), GetConfigPath("b2_http_listen_port.txt"), nullptr, 0);
-    }
+    app_handler->SetActualHttpServerListenPort(GetHTTPServerListenPort());
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    // If the test engine isn't enabled, the b2_tests list will always be empty.
-    std::vector<std::shared_ptr<b2Test>> b2_tests;
-    if (options.imgui_enable_test_engine) {
-        b2_tests = BeebWindow::Getb2Tests(options.imgui_tests);
-    }
-#endif
+    //if (g_app_handler->IsHeadless()) {
+    //    // This isn't really the right use for the config path, but in headless
+    //    // mode it can be assumed to point somewhere transient.
+    //    SaveTextFile(std::to_string(GetHTTPServerListenPort()), GetConfigPath("b2_http_listen_port.txt"), nullptr, 0);
+    //}
+
+    //#ifdef IMGUI_ENABLE_TEST_ENGINE
+    //    // If the test engine isn't enabled, the b2_tests list will always be empty.
+    //    std::vector<std::shared_ptr<b2Test>> b2_tests;
+    //    if (options.imgui_enable_test_engine) {
+    //        b2_tests = BeebWindow::Getb2Tests(options.imgui_tests);
+    //    }
+    //#endif
 
     if (options.file_association_mode) {
         if (GetHTTPServerListenPort() != 0) {
@@ -1530,7 +1600,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             // running that could handle the request (even if possibly because
             // it's headless mode and a random port was picked - but that's ok).
         } else {
-            if (BootDiskInExistingProcess(options.file_association_path, &init_messages)) {
+            if (BootDiskInExistingProcess(options.file_association_path, app_handler, &init_messages)) {
                 return true;
             }
         }
@@ -1569,7 +1639,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
     SDL_AudioDeviceID audio_device;
     SDL_AudioSpec audio_spec;
-    if (!InitSystem(&audio_device, &audio_spec, options, &init_messages)) {
+    if (!InitSystem(&audio_device, &audio_spec, options, app_handler, &init_messages)) {
         return false;
     }
 
@@ -1621,7 +1691,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         g_vblank_handler = std::make_unique<b2VBlankHandler>();
         std::unique_ptr<VBlankMonitor> vblank_monitor;
         {
-            bool use_vsync = g_global_settings.vsync && !options.headless;
+            bool use_vsync = g_global_settings.vsync && !app_handler->IsHeadless();
             init_messages.i.f("Timing method: %s\n", use_vsync ? "vsync" : "timer");
             vblank_monitor = CreateVBlankMonitor(g_vblank_handler.get(),
                                                  !use_vsync,
@@ -1717,22 +1787,22 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             ia.boot = options.boot;
 
             ia.limit_speed = options.limit_speed;
-            ia.headless = options.headless;
+            ia.headless = app_handler->IsHeadless();
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-            ia.imgui_enable_test_engine = options.imgui_enable_test_engine;
-            ia.imgui_tests = options.imgui_tests;
-#endif
+            //#ifdef IMGUI_ENABLE_TEST_ENGINE
+            //            ia.imgui_enable_test_engine = options.imgui_enable_test_engine;
+            //            ia.imgui_tests = options.imgui_tests;
+            //#endif
         }
 
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-        for (const std::shared_ptr<b2Test> &b2_test : b2_tests) {
-            printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:%s\n", b2_test->name.c_str());
-            if (!!b2_test->will_create_BeebWindow_fn) {
-                b2_test->will_create_BeebWindow_fn(&ia);
-            }
-        }
-#endif
+        //#ifdef IMGUI_ENABLE_TEST_ENGINE
+        //        for (const std::shared_ptr<b2Test> &b2_test : b2_tests) {
+        //            printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:%s\n", b2_test->name.c_str());
+        //            if (!!b2_test->will_create_BeebWindow_fn) {
+        //                b2_test->will_create_BeebWindow_fn(&ia);
+        //            }
+        //        }
+        //#endif
 
         if (!BeebWindows::CreateBeebWindow(ia)) {
             init_messages.e.f("FATAL: failed to open initial window.\n");
@@ -1992,7 +2062,13 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int b2_main(int argc, char *argv[]) {
+//static AppHandler *g_app_handler_mutable = nullptr;
+//AppHandler *const &g_app_handler = g_app_handler_mutable;
+
+int b2_main(AppHandler *app_handler) {
+    ASSERT(app_handler);
+    //g_app_handler_mutable = app_handler;
+
 #ifdef _MSC_VER
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
     //_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_CHECK_ALWAYS_DF);
@@ -2009,7 +2085,9 @@ int b2_main(int argc, char *argv[]) {
 
     auto &&messages = std::make_shared<MessageList>("b2");
 
-    bool good = main2(argc, argv, messages);
+    bool good = main2(app_handler, messages);
+
+    //g_app_handler_mutable = nullptr;
 
     if (!good) {
 #if SYSTEM_LINUX

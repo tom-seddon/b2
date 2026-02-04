@@ -15,6 +15,72 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Handle communication between b2 and the actual app it's embedded in.
+//
+// The objective is that the b2 app proper won't have much logic in its
+// implementation, but the b2 test app might.
+class AppHandler {
+  public:
+    AppHandler() = default;
+    virtual ~AppHandler() = 0;
+
+    AppHandler(const AppHandler &) = delete;
+    AppHandler &operator=(const AppHandler &) = delete;
+    AppHandler(AppHandler &&) = delete;
+    AppHandler &operator=(AppHandler &&) = delete;
+
+    // Whether running headless or not. Must always return the same value for a given
+    // run.
+    virtual bool IsHeadless() const = 0;
+
+    // argc/argv access.
+    virtual std::vector<std::string> GetCommandLineArgs() const = 0;
+
+    // Folder for config files. Return false if none (and b2 will pick a
+    // default).
+    //
+    // (config_folder may be null, just to query whether an override was
+    // actually specified.)
+    virtual bool GetConfigFolder(std::string *config_folder) const = 0;
+
+    // Return HTTP server listen port. May be 0 to specify any.
+    virtual int GetRequestedHttpServerListenPort() const = 0;
+
+    // Indicate actual HTTP server listen port chosen, or 0 if the HTTP server
+    // didn't start.
+    virtual void SetActualHttpServerListenPort(int port) = 0;
+
+    // Return port to use for HTTP launch requests.
+    virtual int GetLaunchRequestHttpServerPort() const = 0;
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// App handler to make the thing behave largely like ordinary b2.
+
+class OrdinaryAppHandler : public AppHandler {
+  public:
+    OrdinaryAppHandler(int argc, char *argv[]);
+
+    bool IsHeadless() const override;
+    std::vector<std::string> GetCommandLineArgs() const override;
+    bool GetConfigFolder(std::string *config_folder) const override;
+    int GetRequestedHttpServerListenPort() const override;
+    void SetActualHttpServerListenPort(int port) override;
+    int GetLaunchRequestHttpServerPort() const override;
+
+  protected:
+  private:
+    std::vector<std::string> m_argv;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class MainThreadMessage {
   public:
     MainThreadMessage() = default;
@@ -110,7 +176,7 @@ bool IsMainThread();
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int b2_main(int argc, char *argv[]);
+int b2_main(AppHandler *handler);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
