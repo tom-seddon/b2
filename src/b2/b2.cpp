@@ -783,12 +783,16 @@ struct Options {
 //////////////////////////////////////////////////////////////////////////
 
 #if SYSTEM_OSX
-static bool IsPSNArgument(const char *arg) {
+static bool IsPSNArgument(std::string arg) {
+    if (arg.size() < 8) {
+        return false;
+    }
+
     if (arg[0] != '-' || arg[1] != 'p' || arg[2] != 's' || arg[3] != 'n' || arg[4] != '_' || !isdigit(arg[5]) || arg[6] != '_') {
         return false;
     }
 
-    for (int i = 7; arg[i] != 0; ++i) {
+    for (size_t i = 7; i < arg.size(); ++i) {
         if (!isdigit(arg[i])) {
             return false;
         }
@@ -800,7 +804,7 @@ static bool IsPSNArgument(const char *arg) {
 
 #if SYSTEM_OSX
 // http://stackoverflow.com/questions/10242115/
-static void RemovePSNArguments(std::vector<const char *> *argv) {
+static void RemovePSNArguments(std::vector<std::string> *argv) {
     auto &&it = argv->begin();
     while (it != argv->end()) {
         if (IsPSNArgument(*it)) {
@@ -891,7 +895,7 @@ static bool ParseCommandLineOptions(
     p.AddHelpOption(&options->help);
 
 #if SYSTEM_OSX
-    RemovePSNArguments(&args);
+    RemovePSNArguments(&argv);
 #endif
 
 #if ENABLE_FAIL_STARTUP
