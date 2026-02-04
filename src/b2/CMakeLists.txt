@@ -232,6 +232,7 @@ target_link_libraries(b2_lib PRIVATE ${SDL2_LIBRARY})
 add_executable(b2 MACOSX_BUNDLE
   b2_app.cpp)
 target_link_libraries(b2 PRIVATE b2_lib)
+b2_target_boilerplate(b2 SANITIZERS)
 
 if(WIN32)
   # /INCREMENTAL:NO - http://stackoverflow.com/questions/21569478
