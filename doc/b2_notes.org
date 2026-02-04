@@ -7711,4 +7711,73 @@ Sample command line:
   [285/294] Building CXX object src/beeb/CMakeFiles/beeb_lib.dir/generated/BBCMicro.group11.generated.cpp.o
 #+end_example
 
+* b2_lib build time stuff
+
+** macOS
+
+*** wip/tom (93359245c0efe2ba9a888f5359fdf3335a053231)
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| Default  | Debug          | Build  | 12.808   |
+| Default  | Debug          | Test   | 31.266   |
+| Default  | Final          | Build  | 18.445   |
+| Default  | Final          | Test   | 9.218    |
+| Default  | RelWithDebInfo | Build  | 30.513   |
+| Default  | RelWithDebInfo | Test   | 11.815   |
+
+(114.065 seconds)
+
+*** Before (874ef2d2610954afd9b269b9bc0300372b50c76c)
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| Default  | Debug          | Build  | 15.622   |
+| Default  | Debug          | Test   | 32.116   |
+| Default  | Final          | Build  | 28.069   |
+| Default  | Final          | Test   | 9.581    |
+| Default  | RelWithDebInfo | Build  | 35.969   |
+| Default  | RelWithDebInfo | Test   | 12.112   |
+
+Total time: 134.7 seconds
+
+*** After (5c38b42bf04f324ff00503d9abc0664ca2c75d83)
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| Default  | Debug          | Build  | 16.274   |
+| Default  | Debug          | Test   | 31.590   |
+| Default  | Final          | Build  | 31.776   |
+| Default  | Final          | Test   | 9.251    |
+| Default  | RelWithDebInfo | Build  | 41.025   |
+| Default  | RelWithDebInfo | Test   | 12.369   |
+
+Total time: 143.6 seconds
+
+*** Just before (294965ddde4ed219f7ec5a5df45e569f402af970)
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| Default  | Debug          | Build  | 16.270   |
+| Default  | Debug          | Test   | 31.390   |
+| Default  | Final          | Build  | 31.437   |
+| Default  | Final          | Test   | 9.912    |
+| Default  | RelWithDebInfo | Build  | 41.525   |
+| Default  | RelWithDebInfo | Test   | 12.441   |
+
+Total time: 144.3 seconds
+
+*** Just after (73c97f348a9ab45b4266a1f5bf26f236e4aa2915)
+
+| Compiler | Config         | Action | Time (s) |
+|----------|----------------|--------|----------|
+| Default  | Debug          | Build  | 15.695   |
+| Default  | Debug          | Test   | 31.705   |
+| Default  | Final          | Build  | 28.300   |
+| Default  | Final          | Test   | 9.329    |
+| Default  | RelWithDebInfo | Build  | 36.088   |
+| Default  | RelWithDebInfo | Test   | 11.937   |
+
+Total time: 134.3 seconds
+
 * eof.
