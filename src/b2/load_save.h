@@ -27,6 +27,10 @@ std::string GetAssetPath(const std::string &f0, const std::string &f1);
 // default will be used.
 void SetConfigFolder(std::string folder);
 
+// Set folder for asset files explicitly. If never set, a system-specific
+// default will be used.
+void SetAssetsFolder(std::string folder);
+
 // Get path to user-specific config file. This will be stored
 // somewhere persistent, that may follow the user around.
 //

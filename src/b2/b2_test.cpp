@@ -667,6 +667,11 @@ class b2ModeAppHandler : public OrdinaryAppHandler {
         printf("Example asset path: %s\n", GetAssetPath(GAMECONTROLLER_DB_FILE_NAME).c_str());
     }
 
+    bool GetAssetsFolder(std::string *assets_folder) const override {
+        *assets_folder = ASSETS_FOLDER;
+        return true;
+    }
+
   protected:
   private:
     std::vector<std::unique_ptr<Test>> *m_tests = nullptr;

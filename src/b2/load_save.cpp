@@ -60,6 +60,9 @@ LOG_TAGGED_DEFINE(LOADSAVE, "config", "LD/SV ", &log_printer_stdout_and_debugger
 // If non-empty, use this as the folder to save config files in.
 static std::string g_override_config_folder;
 
+// If non-empty, use this as the folder to load assets from.
+static std::string g_override_assets_folder;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -111,6 +114,13 @@ static std::string GetXDGPath(const char *env_name, const char *folder_name, con
 
 void SetConfigFolder(std::string folder) {
     g_override_config_folder = std::move(folder);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SetAssetsFolder(std::string folder) {
+    g_override_assets_folder = std::move(folder);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -200,21 +210,27 @@ static bool FindAssetLinux(std::string *result,
 #endif
 
 static std::string GetAssetPathInternal(const std::string *f0, ...) {
+    std::string suffix;
+    {
+        va_list v;
+        va_start(v, f0);
+        for (const std::string *f = f0; f; f = va_arg(v, const std::string *)) {
+            suffix = PathJoined(suffix, *f);
+        }
+
+        va_end(v);
+    }
+
+    if (!g_override_assets_folder.empty()) {
+        std::string path = PathJoined(g_override_assets_folder, ASSETS_FOLDER, suffix);
+        return path;
+    }
+
 #if SYSTEM_WINDOWS || SYSTEM_OSX
 
     // Look somewhere relative to the EXE.
 
-    std::string path = PathJoined(PathGetFolder(PathGetEXEFileName()), ASSETS_FOLDER);
-
-    va_list v;
-    va_start(v, f0);
-
-    for (const std::string *f = f0; f; f = va_arg(v, const std::string *)) {
-        path = PathJoined(path, *f);
-    }
-
-    va_end(v);
-
+    std::string path = PathJoined(PathGetFolder(PathGetEXEFileName()), ASSETS_FOLDER, suffix);
     return path;
 
 #elif SYSTEM_LINUX
@@ -229,16 +245,6 @@ static std::string GetAssetPathInternal(const std::string *f0, ...) {
     // 3. XDG_DATA_HOME (use "$HOME/.local/share" if not set)
     //
     // 4. XDG_DATA_DIRS (use "/usr/local/share/:/usr/share/ if not set)
-    std::string suffix;
-    {
-        va_list v;
-        va_start(v, f0);
-        for (const std::string *f = f0; f; f = va_arg(v, const std::string *)) {
-            suffix = PathJoined(suffix, *f);
-        }
-
-        va_end(v);
-    }
 
     LOGF(LOADSAVE, "Searching for \"%s\": ", suffix.c_str());
     LOGI(LOADSAVE);

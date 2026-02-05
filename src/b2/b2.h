@@ -70,10 +70,13 @@ class AppHandler {
     // Return port to use for HTTP launch requests.
     virtual int GetLaunchRequestHttpServerPort() const = 0;
 
-    // Message loop is about to start.
+    // Indicate message loop is about to start.
     //
     // Default impl does nothing.
     virtual void MessageLoopWillStart();
+
+    // Folder for asset files. Return false if none (and b2 will pick a default).
+    virtual bool GetAssetsFolder(std::string *assets_folder) const = 0;
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     // Whether to initialise Dear ImGui Test Engine.
@@ -102,6 +105,7 @@ class OrdinaryAppHandler : public AppHandler {
     bool GetConfigFolder(std::string *config_folder) const override; //returns false
     int GetRequestedHttpServerListenPort() const override;           //returns 0xbbcb
     int GetLaunchRequestHttpServerPort() const override;             //returns 0xbbcb
+    bool GetAssetsFolder(std::string *asset_folder) const override;  //returns false
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override; //returns false
 #endif

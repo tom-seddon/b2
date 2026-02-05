@@ -457,6 +457,8 @@ target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohma
 
 add_executable(b2_test
   b2_test.cpp)
+# Load assets from wherever b2 was built to. 
+target_compile_definitions(b2_test PRIVATE ASSETS_FOLDER="$<TARGET_FILE_DIR:b2>")
 b2_target_boilerplate(b2_test SANITIZERS)
 target_link_libraries(b2_test PRIVATE b2_lib)
 

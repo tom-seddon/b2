@@ -231,6 +231,15 @@ int OrdinaryAppHandler::GetRequestedHttpServerListenPort() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool OrdinaryAppHandler::GetAssetsFolder(std::string *assets_folder) const {
+    (void)assets_folder;
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int OrdinaryAppHandler::GetLaunchRequestHttpServerPort() const {
     return this->GetRequestedHttpServerListenPort();
 }
@@ -1527,6 +1536,13 @@ bool IsMainThread() {
 
 static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
+
+    {
+        std::string assets_folder;
+        if (app_handler->GetAssetsFolder(&assets_folder)) {
+            SetAssetsFolder(assets_folder);
+        }
+    }
 
     CheckAssetPaths();
 
