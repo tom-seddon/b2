@@ -159,7 +159,12 @@ bool BeebLinkHTTPHandler::GotRequestPacket(std::vector<uint8_t> data, bool is_fi
     {
         LockGuard<Mutex> lock(m_ts->mutex);
 
-        m_ts->request_queue.emplace_back(std::move(data), is_fire_and_forget);
+        Request request;
+
+        request.data = std::move(data);
+        request.is_fire_and_forget = is_fire_and_forget;
+
+        m_ts->request_queue.push_back(std::move(request));
     }
 
     m_ts->cv.notify_one();
