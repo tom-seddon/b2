@@ -135,6 +135,8 @@ function(add_imgui_test_suite_executable TARGET)
     ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot_internal.h
     ${IMGUI_TEST_ENGINE__TS_IMPLOT_FOLDER}/implot_items.cpp)
 
+  set_property(TARGET ${TARGET} PROPERTY CXX_STANDARD 17)
+
   target_include_directories(${TARGET} PRIVATE ${IMGUI__FOLDER}/backends)
   target_link_libraries(${TARGET} PRIVATE imgui_test_engine_lib imgui_lib)
   target_compile_definitions(${TARGET} PRIVATE IMGUI_USER_CONFIG="${IMGUI_TEST_ENGINE__TS_FOLDER}/imgui_test_suite_imconfig.h")
