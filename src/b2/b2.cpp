@@ -1049,7 +1049,9 @@ static bool InitSystem(
     SDL_StartTextInput();
 
 #if SYSTEM_OSX
-    InitHIDCallback(init_messages);
+    if (!app_handler->IsHeadless()) {
+        InitHIDCallback(init_messages);
+    }
 #endif
 
     // Start audio
@@ -2086,7 +2088,9 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     }
 
 #if SYSTEM_OSX
-    QuitHIDCallback();
+    if (!app_handler->IsHeadless()) {
+        QuitHIDCallback();
+    }
 #endif
 
     SDL_Quit();
