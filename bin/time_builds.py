@@ -283,12 +283,12 @@ def main(argv):
     init.set_defaults(fun=init_cmd)
 
     run=subparsers.add_parser('run',help='''continue timing run''')
-    run.add_argument('-j',type=auto_int,dest='num_jobs',metavar='N',help='''run up to %(metavar)s job(s) simultaneously''')
+    run.add_argument('-j',type=auto_int,dest='num_jobs',metavar='N',default=multiprocessing.cpu_count(),help='''run up to %(metavar)s job(s) simultaneously. Default: %(default)s''')
     run.set_defaults(fun=run_cmd)
 
     export=subparsers.add_parser('export',help='''export data''')
     export.add_argument('-o',metavar='FILE',dest='output_path',help='''write data to %(metavar)s (specify - for stdout)''')
-    export.add_argument('-t',metavar='TYPE',default=DEFAULT_EXPORT_TYPE,dest='export_type',help='''export format (one of: '''+'; '.join(sorted(EXPORT_TYPES.keys()))+'''). Default: %(default)ss''')
+    export.add_argument('-t',metavar='TYPE',default=DEFAULT_EXPORT_TYPE,dest='export_type',help='''export format (one of: '''+'; '.join(sorted(EXPORT_TYPES.keys()))+'''). Default: %(default)s''')
     export.set_defaults(fun=export_cmd)
 
     options=parser.parse_args(argv)
