@@ -105,13 +105,13 @@ _precommit2:
 .PHONY:_precommit_clean
 _precommit_clean:
 	$(_V)$(TIME_JOBS) push "Action" "Clean"
-	$(_V)cd "$(_FOLDER)" && ninja clean
+	$(_V)cd "$(_FOLDER)" && ninja -j $(NPROC) clean
 	$(_V)$(TIME_JOBS) pop
 
 .PHONY:_precommit_build
 _precommit_build:
 	$(_V)$(TIME_JOBS) push "Action" "Build"
-	$(_V)cd "$(_FOLDER)" && ninja
+	$(_V)cd "$(_FOLDER)" && ninja -j $(NPROC)
 	$(_V)$(TIME_JOBS) pop
 
 .PHONY:_precommit_test
