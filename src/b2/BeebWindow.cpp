@@ -800,6 +800,13 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(m_init_arguments.limit_speed));
 
     m_blend_amt = 1.f;
+
+    if (!m_init_arguments.app_handler->IsHeadless()) {
+        if (m_init_arguments.app_handler->IsDearImGuiTestEngineEnabled()) {
+            m_settings.extra_debug_ui = true;
+            m_imgui_test_engine_ui = true;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

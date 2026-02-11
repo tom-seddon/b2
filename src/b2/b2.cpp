@@ -193,6 +193,13 @@ void AppHandler::MessageLoopWillStart() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void AppHandler::SetSelectorDialogResult(const Guid &guid, const std::string &result) {
+    (void)guid, (void)result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 OrdinaryAppHandler::OrdinaryAppHandler(int argc, char *argv[])
     : m_argv(argv + 0, argv + argc) {
 }
@@ -1039,7 +1046,7 @@ static bool InitSystem(
 #endif
 
     // Initialise SDL
-    Uint32 sdl_init_flags = SDL_INIT_TIMER;
+    Uint32 sdl_init_flags = SDL_INIT_TIMER | SDL_INIT_EVENTS;
     if (!app_handler->IsHeadless()) {
         sdl_init_flags |= SDL_INIT_VIDEO;
         sdl_init_flags |= SDL_INIT_AUDIO;
@@ -1877,6 +1884,8 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
             {
                 rmt_ScopedCPUSample(SDL_WaitEvent, 0);
                 if (!SDL_WaitEvent(&event)) {
+                    const char *error = SDL_GetError();
+                    (void)error;
                     goto done;
                 }
             }

@@ -283,6 +283,8 @@ bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
         result = this->HandleOpen(parent);
     }
 
+    m_app_handler->SetSelectorDialogResult(m_guid, result);
+
     if (result.empty()) {
         m_last_path.clear();
         return false;

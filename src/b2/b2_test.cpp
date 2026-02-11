@@ -144,7 +144,11 @@ class DearImGuiTest : public Test, public AppHandler {
         this->RegisterDearImGuiTest(test_engine);
         TEST_EQ_PP(m_test_engine, test_engine);
         TEST_NON_NULL(m_test);
-        ImGuiTestEngine_QueueTest(m_test_engine, m_test);
+
+        // TODO: maybe improve the logic here.
+        if (this->IsHeadless()) {
+            ImGuiTestEngine_QueueTest(m_test_engine, m_test);
+        }
     }
 
     void RegisterDearImGuiTest(ImGuiTestEngine *test_engine) override {
@@ -152,17 +156,31 @@ class DearImGuiTest : public Test, public AppHandler {
         m_test->SetOwnedName(this->GetFullName().c_str());
         m_test->TestFunc = [this](ImGuiTestContext *ctx) {
             this->DearImGuiTestFunc(ctx);
+            m_test_was_run = true;
         };
         m_test_engine = test_engine;
     }
 #endif
 
     bool HandleSelectorDialogOpen(std::string *result, const Guid &guid) override {
+        auto &&it = m_selector_results_by_guid.find(guid);
+        if (it == m_selector_results_by_guid.end()) {
+            return false;
+        }
+
         SelectorResults *results = &m_selector_results_by_guid[guid];
-        TEST_LT_UU(results->next_result_index, results->results.size());
-        *result = results->results[results->next_result_index];
-        ++results->next_result_index;
+        TEST_TRUE(results->got_next_result);
+        *result = std::move(results->next_result);
+        results->got_next_result = false;
         return true;
+    }
+
+    void SetSelectorDialogResult(const Guid &guid, const std::string &result) override {
+        // TODO: unrealised plan for this is/was that it'd be possible to select files with the native UI dialog when running interactively, and the test would just fall into place same as if using the predetermined path.
+        SelectorResults *results = &m_selector_results_by_guid[guid];
+        TEST_FALSE(results->got_last_result);
+        results->got_last_result = true;
+        results->last_result = result;
     }
 
     bool ShouldQuitWhenTestQueueEmpty() const override {
@@ -176,11 +194,22 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
   protected:
-    void AddSelectorResult(const Guid &guid, std::string result) {
-        m_selector_results_by_guid[guid].results.push_back(std::move(result));
+    std::string GetLastSelectorDialogResult(const Guid &guid) {
+        SelectorResults *results = &m_selector_results_by_guid[guid];
+        TEST_TRUE(results->got_last_result);
+        results->got_last_result = false;
+        return std::move(results->last_result);
+    }
+
+    void SetNextSelectorDialogResult(const Guid &guid, std::string result) {
+        SelectorResults *results = &m_selector_results_by_guid[guid];
+        TEST_FALSE(results->got_next_result);
+        results->next_result = std::move(result);
+        results->got_next_result = true;
     }
 
     [[nodiscard]] int Run2() {
+        // Get custom config folder. Don't continue if using the default, as files will be deleted.
         std::string config_folder;
         TEST_TRUE(this->GetConfigFolder(&config_folder));
 
@@ -203,20 +232,25 @@ class DearImGuiTest : public Test, public AppHandler {
         });
 
         int result = b2_main(this);
+        TEST_TRUE(m_test_was_run);
         return result;
     }
 
     std::vector<std::string> m_args; //excludes argv[0]
   private:
     struct SelectorResults {
-        std::vector<std::string> results;
-        size_t next_result_index = 0;
+        std::string next_result;
+        bool got_next_result = false;
+
+        std::string last_result;
+        bool got_last_result = false;
     };
 
     ImGuiTestEngine *m_test_engine = nullptr;
     ImGuiTest *m_test = nullptr;
     int m_http_port = 0;
     std::map<Guid, SelectorResults> m_selector_results_by_guid;
+    bool m_test_was_run = false;
 
     static bool ms_interactive;
 };
@@ -703,14 +737,28 @@ class TestCopyOfDisk : public DearImGuiTest {
     }
 
     void DearImGuiTestFunc(ImGuiTestContext *ctx) override {
-        TEST_FALSE(m_disk_path.empty());
-        this->AddSelectorResult(NEW_DISK_IMAGE_SELECTOR_GUID, m_disk_path);
+        if (!m_disk_path.empty()) {
+            this->SetNextSelectorDialogResult(NEW_DISK_IMAGE_SELECTOR_GUID, m_disk_path);
+        }
+
         ctx->SetRef("##MainMenuBar");
-        ctx->MenuClick(strprintf("File/Drive %d/New %s/%s %s", m_drive,
-                                 m_in_memory ? "in-memory disc image" : "disc image",
-                                 m_disk->blank ? "Blank" : "Copy of",
-                                 m_disk->name.c_str())
-                           .c_str());
+
+        // TODO: would be nice not to have to duplicate this logic
+        std::string path = "File/Drive " + std::to_string(m_drive) + "/New ";
+        if (m_in_memory) {
+            path += "in-memory ";
+        }
+        path += "disc image/";
+        if (!m_disk->blank) {
+            path += "Copy of ";
+        }
+        path += m_disk->name;
+
+        ctx->MenuClick(path.c_str());
+
+        m_disk_path = this->GetLastSelectorDialogResult(NEW_DISK_IMAGE_SELECTOR_GUID);
+        TEST_FALSE(m_disk_path.empty());
+
         TEST_TRUE(PathIsFileOnDisk(m_disk_path, nullptr, nullptr));
 
         std::vector<uint8_t> wanted_data;
@@ -784,7 +832,7 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
     p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2, with Dear ImGui Test Engine enabled. Tests will be available - run at own risk");
     p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
-    p.AddOption(0, "interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run it in interactive mode");
+    p.AddOption(0, "interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run UI in interactive mode for manual initiation");
 
     // intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
@@ -979,9 +1027,8 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            // TODO: more experimentation required.
-            (void)n;
-            //TEST_EQ_UU(n,1);
+            // TODO: the b2 code isn't designed to be re-initialised after it's quit, but... maybe it'd actually work? To be continued.
+            TEST_EQ_UU(n, 1);
 
             DearImGuiTest::Interactive();
         }

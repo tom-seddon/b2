@@ -94,6 +94,11 @@ class AppHandler {
     // Return false to pass through to default native UI handling.
     virtual bool HandleSelectorDialogOpen(std::string *result, const Guid &guid) = 0;
 
+    // Indicate selector dialog result obtained.
+    //
+    // Default impl does nothing.
+    virtual void SetSelectorDialogResult(const Guid &guid, const std::string &result);
+
     // Whether to quit once the test queue becomes empty.
     virtual bool ShouldQuitWhenTestQueueEmpty() const = 0;
 
