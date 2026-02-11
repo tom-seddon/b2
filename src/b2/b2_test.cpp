@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/system_specific.h>
 #include <shared/CommandLineParser.h>
 #include <string>
 #include <vector>
@@ -194,6 +195,8 @@ class DearImGuiTest : public Test, public AppHandler {
 #if SYSTEM_OSX
             int rc = unlink(path.c_str());
             TEST_EQ_II(rc, 0);
+#elif SYSTEM_WINDOWS
+            TEST_TRUE(DeleteFileW(GetWideString(path).c_str()));
 #else
 #error //TODO...
 #endif
@@ -1013,4 +1016,6 @@ int main(int argc, char *argv[]) {
 
         TEST_TRUE(ran_any_tests);
     }
+
+    return 0;
 }
