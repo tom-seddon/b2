@@ -263,8 +263,8 @@ _ffmpeg_release:
 GCC_CC:=gcc
 GCC_CXX:=g++
 
-CLANG_CC:=clang-19
-CLANG_CXX:=clang++-19
+CLANG_CC:=clang-20
+CLANG_CXX:=clang++-20
 
 .PHONY:_precommit_tom_init_gcc
 _precommit_tom_init_gcc:
