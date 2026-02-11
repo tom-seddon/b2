@@ -459,6 +459,8 @@ add_executable(b2_test
   b2_test.cpp)
 # Load assets from wherever b2 was built to. 
 target_compile_definitions(b2_test PRIVATE ASSETS_FOLDER="$<TARGET_FILE_DIR:b2>")
+# Stick config stuff in some transient place.
+target_compile_definitions(b2_test PRIVATE CONFIG_FOLDER="${CMAKE_BINARY_DIR}/b2_test_configs.$<CONFIG>")
 b2_target_boilerplate(b2_test SANITIZERS)
 target_link_libraries(b2_test PRIVATE b2_lib)
 
@@ -473,6 +475,13 @@ endfunction()
 add_b2_test_literal_category(misc.utf8)
 add_b2_test_literal_category(b2.JobQueue)
 add_b2_test_literal_category(b2.SymbolTable)
+foreach(DRIVE 0 1)
+  foreach(MEM 0 1)
+    foreach(DISK 80.ssd 80.dsd ads.ads adm.adm adl.adl Welcome.ssd MasterWelcome.adl CompactWelcome.adl PC128SWelcome.adl)
+      add_b2_test_literal_category(b2ui.copy_of_disk.${DRIVE}.${MEM}.${DISK})
+    endforeach()
+  endforeach()
+endforeach()
 
 ##########################################################################
 ##########################################################################

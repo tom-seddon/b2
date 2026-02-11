@@ -99,6 +99,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static CommandTable2 g_beeb_window_command_table("beeb_window", "Beeb Window");
 #if SYSTEM_WINDOWS
 static Command2 g_toggle_console_command = Command2(&g_beeb_window_command_table, "toggle_console", "Show Win32 console").WithTick();
@@ -300,17 +303,29 @@ static const double LEDS_POPUP_TIME_SECONDS = 1.;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const Guid NEW_DISK_IMAGE_SELECTOR_GUID{0x72, 0x23, 0xE7, 0xC3, 0x78, 0xA0, 0x41, 0x0C, 0xB9, 0x63, 0x90, 0x2F, 0x24, 0x25, 0x01, 0xD7};
+const Guid AUTODETECT_SYMBOL_PARSER_SELECTOR_GUID{0x8F, 0x3F, 0x81, 0xDE, 0x5D, 0x1B, 0x49, 0x9F, 0x83, 0xB0, 0xCB, 0xE5, 0x78, 0xA8, 0xB4, 0xD0};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const Guid SAVE_PRINTER_DATA_SELECTOR_GUID{0xC8, 0x23, 0x72, 0x73, 0x34, 0x60, 0x48, 0x94, 0x8D, 0x84, 0xD4, 0xE0, 0x61, 0xAA, 0xC7, 0x79};
+const Guid SAVE_SCREENSHOT_SELECTOR_GUID{0x86, 0x14, 0x49, 0x92, 0xE5, 0x36, 0x4D, 0x99, 0xBE, 0xF1, 0x4A, 0xCA, 0x8B, 0x26, 0x05, 0x13};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const Guid NEW_DISK_IMAGE_SELECTOR_GUID{0x72, 0x23, 0xE7, 0xC3, 0x78, 0xA0, 0x41, 0x0C, 0xB9, 0x63, 0x90, 0x2F, 0x24, 0x25, 0x01, 0xD7};
 static RecentPaths g_disk_image_recent_paths("disc_image");
-static const Guid OPEN_DISK_IMAGE_SELECTOR_GUID{0x4c, 0xed, 0x04, 0x1d, 0x00, 0xf1, 0x46, 0x2f, 0x88, 0x0e, 0xc2, 0x39, 0x95, 0xd0, 0x38, 0xde};
+const Guid OPEN_DISK_IMAGE_SELECTOR_GUID{0x4c, 0xed, 0x04, 0x1d, 0x00, 0xf1, 0x46, 0x2f, 0x88, 0x0e, 0xc2, 0x39, 0x95, 0xd0, 0x38, 0xde};
+const Guid SAVE_DISK_IMAGE_COPY_SELECTOR_GUID{0x3e, 0x34, 0x69, 0xad, 0xf8, 0xc6, 0x44, 0x79, 0xbe, 0x5c, 0x7d, 0x2a, 0xa3, 0x6a, 0xce, 0x64};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const Guid OPEN_WINDOW_LAYOUT_SELECTOR_GUID{0xFF, 0x3E, 0x9F, 0xBB, 0xBE, 0x25, 0x48, 0xB0, 0xAA, 0x74, 0x03, 0x21, 0xB5, 0x4F, 0xCF, 0x83};
-static const Guid SAVE_WINDOW_LAYOUT_SELECTOR_GUID{0x9D, 0x61, 0x95, 0x0E, 0xF8, 0x19, 0x4A, 0x33, 0xB5, 0x2F, 0x9E, 0xB2, 0x15, 0xED, 0xD6, 0xF9};
+const Guid OPEN_WINDOW_LAYOUT_SELECTOR_GUID{0xFF, 0x3E, 0x9F, 0xBB, 0xBE, 0x25, 0x48, 0xB0, 0xAA, 0x74, 0x03, 0x21, 0xB5, 0x4F, 0xCF, 0x83};
+const Guid SAVE_WINDOW_LAYOUT_SELECTOR_GUID{0x9D, 0x61, 0x95, 0x0E, 0xF8, 0x19, 0x4A, 0x33, 0xB5, 0x2F, 0x9E, 0xB2, 0x15, 0xED, 0xD6, 0xF9};
 static RecentPaths g_window_layout_recent_paths("window_layout");
-static const FileDialog::Filter WINDOW_LAYOUT_FILTER{"b2 Window Layout", {".b2_layout"}};
+const FileDialog::Filter WINDOW_LAYOUT_FILTER{"b2 Window Layout", {".b2_layout"}};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1300,6 +1315,19 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     }
     m_beeb_thread->SetShowCursor(beeb_actually_got_focus || !m_settings.hide_cursor_when_unfocused);
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    if (ImGuiTestEngine *test_engine = m_imgui_stuff->GetTestEngine()) {
+        if (!m_test_engine_queue_empty) {
+            if (ImGuiTestEngine_IsTestQueueEmpty(test_engine)) {
+                if (m_init_arguments.app_handler->ShouldQuitWhenTestQueueEmpty()) {
+                    this->Exit();
+                    m_test_engine_queue_empty = true;
+                }
+            }
+        }
+    }
+#endif
+
     return !close_window; // sigh, inverted logic
 }
 
@@ -1408,12 +1436,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 #endif
 
     if (m_cst.WasActioned(g_exit_command)) {
-        this->SaveSettings();
-
-        SDL_Event event = {};
-        event.type = SDL_QUIT;
-
-        SDL_PushEvent(&event);
+        this->Exit();
     }
 
     if (m_cst.WasActioned(g_clean_up_recent_files_lists_command)) {
@@ -1505,7 +1528,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_save_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
-        SaveFileDialog fd({0xC8, 0x23, 0x72, 0x73, 0x34, 0x60, 0x48, 0x94, 0x8D, 0x84, 0xD4, 0xE0, 0x61, 0xAA, 0xC7, 0x79});
+        SaveFileDialog fd(SAVE_PRINTER_DATA_SELECTOR_GUID, m_init_arguments.app_handler);
 
         fd.AddFilter("Data", {".dat"});
 
@@ -1566,7 +1589,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_save_screenshot_command)) {
-        SaveFileDialog fd({0x86, 0x14, 0x49, 0x92, 0xE5, 0x36, 0x4D, 0x99, 0xBE, 0xF1, 0x4A, 0xCA, 0x8B, 0x26, 0x05, 0x13});
+        SaveFileDialog fd(SAVE_SCREENSHOT_SELECTOR_GUID, m_init_arguments.app_handler);
 
         fd.AddFilter("PNG", {".png"});
 
@@ -1657,7 +1680,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 #endif
 
     if (m_cst.WasActioned(g_load_window_layout_command)) {
-        OpenFileDialog fd(OPEN_WINDOW_LAYOUT_SELECTOR_GUID);
+        OpenFileDialog fd(OPEN_WINDOW_LAYOUT_SELECTOR_GUID, m_init_arguments.app_handler);
         fd.AddFilter(WINDOW_LAYOUT_FILTER);
 
         std::string path;
@@ -1669,7 +1692,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_save_window_layout_command)) {
-        SaveFileDialog fd(SAVE_WINDOW_LAYOUT_SELECTOR_GUID);
+        SaveFileDialog fd(SAVE_WINDOW_LAYOUT_SELECTOR_GUID, m_init_arguments.app_handler);
         fd.AddFilter(WINDOW_LAYOUT_FILTER);
 
         std::string path;
@@ -2168,7 +2191,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
         }
 
         if (ImGui::MenuItem("Save copy as...")) {
-            SaveFileDialog fd({0x3e, 0x34, 0x69, 0xad, 0xf8, 0xc6, 0x44, 0x79, 0xbe, 0x5c, 0x7d, 0x2a, 0xa3, 0x6a, 0xce, 0x64});
+            SaveFileDialog fd(SAVE_DISK_IMAGE_COPY_SELECTOR_GUID, m_init_arguments.app_handler);
 
             std::vector<FileDialogFilter> filters = disc_image->GetFileDialogFilters();
             for (const FileDialogFilter &filter : filters) {
@@ -2215,7 +2238,7 @@ bool BeebWindow::DoNewCopyOfDiskMenu(std::string *path,
                 RandomizeADFSDiskIdentifier(&data);
             }
 
-            SaveFileDialog fd(NEW_DISK_IMAGE_SELECTOR_GUID);
+            SaveFileDialog fd(NEW_DISK_IMAGE_SELECTOR_GUID, m_init_arguments.app_handler);
 
             if (const char *ext = GetExtensionFromDiscGeometry(*disk->geometry)) {
                 fd.AddFilter(std::string(ext) + " file", {ext});
@@ -2255,7 +2278,7 @@ bool BeebWindow::DoDiscImageSubMenu2(std::string *path,
 
     if (disk_image_caption) {
         if (ImGui::MenuItem(disk_image_caption)) {
-            OpenFileDialog fd(OPEN_DISK_IMAGE_SELECTOR_GUID);
+            OpenFileDialog fd(OPEN_DISK_IMAGE_SELECTOR_GUID, m_init_arguments.app_handler);
 
             fd.AddFilter("BBC disc images", DISC_IMAGE_EXTENSIONS);
             if (allow_zipped) {
@@ -2654,7 +2677,7 @@ void BeebWindow::DoDebugMenu() {
             ImGui::EndMenu();
 
             if (load_symbols) {
-                OpenFileDialog fd(selected_parser ? selected_parser->guid : Guid{0x8F, 0x3F, 0x81, 0xDE, 0x5D, 0x1B, 0x49, 0x9F, 0x83, 0xB0, 0xCB, 0xE5, 0x78, 0xA8, 0xB4, 0xD0});
+                OpenFileDialog fd(selected_parser ? selected_parser->guid : AUTODETECT_SYMBOL_PARSER_SELECTOR_GUID, m_init_arguments.app_handler);
 
                 if (selected_parser) {
                     fd.AddFilter(selected_parser->GetDisplayName(), selected_parser->GetSuggestedFileExtensions());
@@ -3955,6 +3978,13 @@ const BeebWindowSettings &BeebWindow::GetSettings() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+AppHandler *BeebWindow::GetAppHandler() const {
+    return m_init_arguments.app_handler;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //#ifdef IMGUI_ENABLE_TEST_ENGINE
 //std::vector<std::string> BeebWindow::GetAllDearImGuiTestNames() {
 //    std::vector<std::string> names;
@@ -4396,3 +4426,12 @@ bool BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::Exit() {
+    this->SaveSettings();
+
+    SDL_Event event = {};
+    event.type = SDL_QUIT;
+
+    SDL_PushEvent(&event);
+}

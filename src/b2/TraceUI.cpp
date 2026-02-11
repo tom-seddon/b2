@@ -427,7 +427,7 @@ void TraceUI::DoImGui() {
         ImGui::Checkbox("Auto-save on stop", &g_default_settings.auto_save);
         if (g_default_settings.auto_save) {
             if (ImGui::Button("...")) {
-                SaveFileDialog fd(TRACE_SELECTOR_GUID);
+                SaveFileDialog fd(TRACE_SELECTOR_GUID, m_beeb_window->GetAppHandler());
 
                 fd.AddFilter("Text files", {".txt"});
                 fd.AddAllFilesFilter();
@@ -479,7 +479,7 @@ void TraceUI::DoImGui() {
             DoTraceStatsImGui(&stats);
 
             if (ImGui::Button("Save...")) {
-                SaveFileDialog fd(TRACE_SELECTOR_GUID);
+                SaveFileDialog fd(TRACE_SELECTOR_GUID, m_beeb_window->GetAppHandler());
 
                 fd.AddFilter("Text files", {".txt"});
                 fd.AddAllFilesFilter();

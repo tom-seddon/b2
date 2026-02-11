@@ -10,6 +10,7 @@ class Messages;
 class BeebWindow;
 class ImGuiStuff;
 #endif
+struct Guid;
 
 #include <functional>
 #include <vector>
@@ -32,8 +33,6 @@ extern const char GAMECONTROLLER_DB_FILE_NAME[];
 //
 // The objective is that the b2 app proper won't need to have much logic in its
 // implementation, but the b2 test app might.
-//
-//
 class AppHandler {
   public:
     AppHandler() = default;
@@ -48,7 +47,7 @@ class AppHandler {
     // run.
     virtual bool IsHeadless() const = 0;
 
-    // argc/argv access.
+    // argc/argv access. Return value is the full argv, including argv[0].
     virtual std::vector<std::string> GetCommandLineArgs() const = 0;
 
     // Folder for config files. Return false if none (and b2 will pick a
@@ -87,6 +86,17 @@ class AppHandler {
     // Default impl does nothing.
     virtual void DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
 #endif
+
+    // Indicate selector dialog has been opened.
+    //
+    // Return true to override dialog behaviour. Fill in *result with file selectod.
+    //
+    // Return false to pass through to default native UI handling.
+    virtual bool HandleSelectorDialogOpen(std::string *result, const Guid &guid) = 0;
+
+    // Whether to quit once the test queue becomes empty.
+    virtual bool ShouldQuitWhenTestQueueEmpty() const = 0;
+
   protected:
   private:
 };
@@ -109,6 +119,8 @@ class OrdinaryAppHandler : public AppHandler {
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override; //returns false
 #endif
+    bool HandleSelectorDialogOpen(std::string *result, const Guid &guid) override; //returns false
+    bool ShouldQuitWhenTestQueueEmpty() const override;                            //returns false
   protected:
   private:
     std::vector<std::string> m_argv;

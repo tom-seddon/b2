@@ -17,6 +17,8 @@
 
 static const char VIDEO_FORMATS_POPUP[] = "video_formats_popup";
 
+const Guid SAVE_VIDEO_FILE_SELECTOR_GUID{0x19, 0xDF, 0x9B, 0x1A, 0x43, 0xC6, 0x4B, 0xA8, 0x97, 0x20, 0x9A, 0x8B, 0xFD, 0x68, 0xCB, 0xE4};
+
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
@@ -226,7 +228,7 @@ class TimelineUI : public SettingsUI {
                             if (ImGui::Button(format->description.c_str())) {
                                 ImGui::CloseCurrentPopup();
 
-                                SaveFileDialog fd({0x19, 0xDF, 0x9B, 0x1A, 0x43, 0xC6, 0x4B, 0xA8, 0x97, 0x20, 0x9A, 0x8B, 0xFD, 0x68, 0xCB, 0xE4});
+                                SaveFileDialog fd(SAVE_VIDEO_FILE_SELECTOR_GUID, m_beeb_window->GetAppHandler());
                                 fd.AddFilter(format->description, {format->extension});
 
                                 std::string path;

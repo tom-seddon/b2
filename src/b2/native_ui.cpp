@@ -253,8 +253,9 @@ void RecentPaths::RemovePathByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SelectorDialog::SelectorDialog(const Guid &guid)
-    : m_guid(guid) {
+SelectorDialog::SelectorDialog(const Guid &guid, AppHandler *app_handler)
+    : m_guid(guid)
+    , m_app_handler(app_handler) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -276,7 +277,12 @@ void SelectorDialog::AddLastPathToRecentPaths(RecentPaths *paths) {
 //////////////////////////////////////////////////////////////////////////
 
 bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
-    std::string result = this->HandleOpen(parent);
+    std::string result;
+
+    if (!m_app_handler->HandleSelectorDialogOpen(&result, m_guid)) {
+        result = this->HandleOpen(parent);
+    }
+
     if (result.empty()) {
         m_last_path.clear();
         return false;
@@ -292,8 +298,8 @@ bool SelectorDialog::Open(SDL_Window *parent, std::string *path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FileDialog::FileDialog(const Guid &guid)
-    : SelectorDialog(guid) {
+FileDialog::FileDialog(const Guid &guid, AppHandler *app_handler)
+    : SelectorDialog(guid, app_handler) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -328,8 +334,8 @@ void FileDialog::AddAllFilesFilter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-OpenFileDialog::OpenFileDialog(const Guid &guid)
-    : FileDialog(guid) {
+OpenFileDialog::OpenFileDialog(const Guid &guid, AppHandler *app_handler)
+    : FileDialog(guid, app_handler) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -368,8 +374,8 @@ std::string OpenFileDialog::HandleOpen(SDL_Window *parent) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SaveFileDialog::SaveFileDialog(const Guid &guid)
-    : FileDialog(guid) {
+SaveFileDialog::SaveFileDialog(const Guid &guid, AppHandler *app_handler)
+    : FileDialog(guid, app_handler) {
 }
 
 //////////////////////////////////////////////////////////////////////////

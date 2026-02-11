@@ -76,6 +76,11 @@ LOG_TAGGED_DEFINE(DBG, "debugger", "DBG   ", &log_printer_stdout_and_debugger, t
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const Guid SAVE_MEMORY_SELECTOR_GUID{0x43, 0xB8, 0xD1, 0x9F, 0x52, 0x13, 0x42, 0x21, 0x92, 0x0A, 0x83, 0xAF, 0x96, 0xD6, 0x69, 0x9D};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const char *g_hex;
 static const char *g_bin;
 
@@ -1425,7 +1430,7 @@ class MemoryDebugWindow : public DebugUI,
                 ImGuiStyleColourPusher pusher;
                 pusher.PushDisabledButtonColours(!save_enabled);
                 if (ImGui::Button("Save memory...") && save_enabled) {
-                    SaveFileDialog fd({0x43, 0xB8, 0xD1, 0x9F, 0x52, 0x13, 0x42, 0x21, 0x92, 0x0A, 0x83, 0xAF, 0x96, 0xD6, 0x69, 0x9D});
+                    SaveFileDialog fd(SAVE_MEMORY_SELECTOR_GUID, m_window->m_beeb_window->GetAppHandler());
 
                     fd.AddAllFilesFilter();
 

@@ -65,6 +65,18 @@ class AppHandler;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+extern const Guid AUTODETECT_SYMBOL_PARSER_SELECTOR_GUID;
+extern const Guid SAVE_PRINTER_DATA_SELECTOR_GUID;
+extern const Guid SAVE_SCREENSHOT_SELECTOR_GUID;
+extern const Guid NEW_DISK_IMAGE_SELECTOR_GUID;
+extern const Guid OPEN_DISK_IMAGE_SELECTOR_GUID;
+extern const Guid SAVE_DISK_IMAGE_COPY_SELECTOR_GUID;
+extern const Guid OPEN_WINDOW_LAYOUT_SELECTOR_GUID;
+extern const Guid SAVE_WINDOW_LAYOUT_SELECTOR_GUID;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct BeebWindowTextureDataVersion {
     uint64_t version = 0;
 };
@@ -408,6 +420,8 @@ class BeebWindow {
     //    static std::vector<std::shared_ptr<b2Test>> Getb2Tests(const std::vector<std::string> &tests_to_run);
     //#endif
 
+    AppHandler *GetAppHandler() const;
+
   protected:
   private:
     BeebWindowInitArguments m_init_arguments;
@@ -488,6 +502,7 @@ class BeebWindow {
     bool m_imgui_metrics_ui = false;
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool m_imgui_test_engine_ui = false;
+    bool m_test_engine_queue_empty = false;
 #endif
 
     std::vector<std::string> m_display_size_options;
@@ -643,6 +658,8 @@ class BeebWindow {
     //                                   std::vector<std::string> *test_names,
     //                                   const std::vector<std::string> *tests_to_run);
     //#endif
+
+    void Exit();
 
     // Keep this at the end. It's massive.
     mutable Messages m_msg;

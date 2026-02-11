@@ -19,6 +19,15 @@
 #endif
 #include "dear_imgui.h"
 #include <shared/debug.h>
+#include <shared/path.h>
+#include "discs.h"
+#if SYSTEM_OSX
+#include <unistd.h>
+#endif
+#include "BeebWindow.h"
+#include <shared/strings.h>
+#include <shared/file_io.h>
+#include <beeb/DiscGeometry.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -80,25 +89,137 @@ void Test::DearImGuiTestFunc(ImGuiTestContext *ctx) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class DearImGuiTest : public Test {
+class DearImGuiTest : public Test, public AppHandler {
   public:
-    void Run() override {
-        return;
+    bool IsHeadless() const override {
+        return !ms_interactive;
+    }
+
+    static void Interactive() {
+        ms_interactive = true;
+    }
+
+    std::vector<std::string> GetCommandLineArgs() const override {
+        std::vector<std::string> argv;
+        argv.push_back("<<placeholder>>");
+        argv.insert(argv.end(), m_args.begin(), m_args.end());
+        return argv;
+    }
+
+    bool GetConfigFolder(std::string *config_folder) const override {
+        if (config_folder) {
+            *config_folder = PathJoined(CONFIG_FOLDER, this->GetFullName());
+        }
+        return true;
+    }
+
+    virtual int GetRequestedHttpServerListenPort() const override {
+        // Let the OS choose. Don't have multiple instances fight.
+        return 0;
+    }
+
+    void SetActualHttpServerListenPort(int port) override {
+        m_http_port = port;
+    }
+
+    int GetLaunchRequestHttpServerPort() const override {
+        return m_http_port;
+    }
+
+    bool GetAssetsFolder(std::string *assets_folder) const override {
+        *assets_folder = ASSETS_FOLDER;
+        return true;
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    void RegisterDearImGuiTest(ImGuiTestEngine *test_engine) override {
+    bool IsDearImGuiTestEngineEnabled() const override {
+        return true;
+    }
 
-        ImGuiTest *t = IM_REGISTER_TEST(test_engine, "b2", nullptr);
-        t->SetOwnedName(this->GetFullName().c_str());
-        t->TestFunc = [this](ImGuiTestContext *ctx) {
+    void DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
+        (void)beeb_window;
+        ImGuiTestEngine *test_engine = imgui_stuff->GetTestEngine();
+        TEST_NON_NULL(test_engine);
+        this->RegisterDearImGuiTest(test_engine);
+        TEST_EQ_PP(m_test_engine, test_engine);
+        TEST_NON_NULL(m_test);
+        ImGuiTestEngine_QueueTest(m_test_engine, m_test);
+    }
+
+    void RegisterDearImGuiTest(ImGuiTestEngine *test_engine) override {
+        m_test = IM_REGISTER_TEST(test_engine, "b2", nullptr);
+        m_test->SetOwnedName(this->GetFullName().c_str());
+        m_test->TestFunc = [this](ImGuiTestContext *ctx) {
             this->DearImGuiTestFunc(ctx);
         };
+        m_test_engine = test_engine;
     }
 #endif
+
+    bool HandleSelectorDialogOpen(std::string *result, const Guid &guid) override {
+        SelectorResults *results = &m_selector_results_by_guid[guid];
+        TEST_LT_UU(results->next_result_index, results->results.size());
+        *result = results->results[results->next_result_index];
+        ++results->next_result_index;
+        return true;
+    }
+
+    bool ShouldQuitWhenTestQueueEmpty() const override {
+        if (ms_interactive) {
+            // Keep running. See what happens. Quit manually if you want the test to continue.
+            return false;
+        } else {
+            // Quit.
+            return true;
+        }
+    }
+
   protected:
+    void AddSelectorResult(const Guid &guid, std::string result) {
+        m_selector_results_by_guid[guid].results.push_back(std::move(result));
+    }
+
+    [[nodiscard]] int Run2() {
+        std::string config_folder;
+        TEST_TRUE(this->GetConfigFolder(&config_folder));
+
+        // Create config folder if it doesn't exist.
+        if (!PathIsFolderOnDisk(config_folder)) {
+            PathCreateFolder(config_folder);
+        }
+
+        // Clear out contents of config folder.
+        PathGlob(config_folder, [](const std::string &path, bool is_folder) -> void {
+            TEST_FALSE(is_folder);
+#if SYSTEM_OSX
+            int rc = unlink(path.c_str());
+            TEST_EQ_II(rc, 0);
+#else
+#error //TODO...
+#endif
+        });
+
+        int result = b2_main(this);
+        return result;
+    }
+
+    std::vector<std::string> m_args; //excludes argv[0]
   private:
+    struct SelectorResults {
+        std::vector<std::string> results;
+        size_t next_result_index = 0;
+    };
+
+    ImGuiTestEngine *m_test_engine = nullptr;
+    ImGuiTest *m_test = nullptr;
+    int m_http_port = 0;
+    std::map<Guid, SelectorResults> m_selector_results_by_guid;
+
+    static bool ms_interactive;
 };
+
+// TODO: some better mechanism for this, surely.
+bool DearImGuiTest::ms_interactive = false;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -553,6 +674,77 @@ class TestFileExit : public DearImGuiTest {
         ctx->SetRef("##MainMenuBar");
         ctx->MenuClick("File/Exit/Confirm");
     }
+
+    void Run() override {
+        TEST_EQ_II(this->Run2(), 0);
+    }
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TestCopyOfDisk : public DearImGuiTest {
+  public:
+    TestCopyOfDisk(const Disc *disk, int drive, bool in_memory)
+        : m_disk(disk)
+        , m_drive(drive)
+        , m_in_memory(in_memory) {
+    }
+
+    std::string GetFullName() const override {
+        std::string name = "b2ui.copy_of_disk." + std::to_string(m_drive) + "." + std::to_string(m_in_memory) + "." + PathGetName(m_disk->path);
+        return name;
+    }
+
+    void DearImGuiTestFunc(ImGuiTestContext *ctx) override {
+        TEST_FALSE(m_disk_path.empty());
+        this->AddSelectorResult(NEW_DISK_IMAGE_SELECTOR_GUID, m_disk_path);
+        ctx->SetRef("##MainMenuBar");
+        ctx->MenuClick(strprintf("File/Drive %d/New %s/%s %s", m_drive,
+                                 m_in_memory ? "in-memory disc image" : "disc image",
+                                 m_disk->blank ? "Blank" : "Copy of",
+                                 m_disk->name.c_str())
+                           .c_str());
+        TEST_TRUE(PathIsFileOnDisk(m_disk_path, nullptr, nullptr));
+
+        std::vector<uint8_t> wanted_data;
+        TEST_TRUE(LoadFile(&wanted_data, m_disk->GetAssetPath(), nullptr));
+
+        std::vector<uint8_t> got_data;
+        TEST_TRUE(LoadFile(&got_data, m_disk_path, nullptr));
+
+        TEST_EQ_UU(got_data.size(), wanted_data.size());
+
+        if (m_disk->geometry->adfs) {
+            // The disk identifier (and therefore the checksum) will have been updated. Don't check that it's different, as the identifier is random and so there's a non-zero chance that it'll be the same. Overwrite the relevant got bytes with the wanted bytes so the disk images otherwise match.
+            //
+            // See RandomizeADFSDiskIdentifier.
+            TEST_GE_UU(got_data.size(), 512u);
+
+            got_data[0x1fb] = wanted_data[0x1fb];
+            got_data[0x1fc] = wanted_data[0x1fc];
+            got_data[511] = wanted_data[511];
+        }
+
+        TEST_EQ_AA(got_data.data(), wanted_data.data(), got_data.size());
+    }
+
+    void Run() override {
+        std::string config_folder;
+        TEST_TRUE(this->GetConfigFolder(&config_folder));
+        m_disk_path = PathJoined(config_folder, "test." + m_disk->path);
+        TEST_EQ_II(this->Run2(), 0);
+    }
+
+  protected:
+  private:
+    std::string m_disk_path;
+    const Disc *m_disk = nullptr;
+    const int m_drive = 0;
+    const bool m_in_memory = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -568,6 +760,7 @@ struct TestOptions {
     bool reverse = false;
     bool b2 = false;
     std::vector<std::string> b2_argv;
+    bool interactive = false;
 };
 
 static TestOptions GetOptions(int argc, char *argv[]) {
@@ -586,8 +779,9 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption('l', "list-for-check_ctest_log").SetIfPresent(&options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
-    p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2, with Dear ImGui Test Engine enabled (no tests will be run)");
+    p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2, with Dear ImGui Test Engine enabled. Tests will be available - run at own risk");
     p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
+    p.AddOption(0, "interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run it in interactive mode");
 
     // intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
@@ -680,6 +874,17 @@ class b2ModeAppHandler : public OrdinaryAppHandler {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void AddCopyOfDiskTests(std::vector<std::unique_ptr<Test>> *all_tests, const Disc *disks, size_t num_disks) {
+    for (int drive = 0; drive < 2; ++drive) {
+        for (int in_memory = 0; in_memory < 2; ++in_memory) {
+            for (size_t disk_idx = 0; disk_idx < num_disks; ++disk_idx) {
+                const Disc *disk = &disks[disk_idx];
+                all_tests->push_back(std::make_unique<TestCopyOfDisk>(disk, drive, !!in_memory));
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     TestOptions options = GetOptions(argc, argv);
 
@@ -689,6 +894,10 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestSymbolTable>());
     all_tests.push_back(std::make_unique<TestJobQueue>());
     all_tests.push_back(std::make_unique<TestFileExit>());
+
+    AddCopyOfDiskTests(&all_tests, BLANK_DFS_DISCS, NUM_BLANK_DFS_DISCS);
+    AddCopyOfDiskTests(&all_tests, BLANK_ADFS_DISCS, NUM_BLANK_ADFS_DISCS);
+    AddCopyOfDiskTests(&all_tests, WELCOME_DISKS, NUM_WELCOME_DISKS);
 
     std::map<std::string, Test *> tests_by_name;
     for (const std::unique_ptr<Test> &test : all_tests) {
@@ -710,7 +919,7 @@ int main(int argc, char *argv[]) {
     if (options.list_for_check_ctest_log) {
         for (auto &&name_and_test : tests_by_name) {
             if (!name_and_test.second->IsHidden()) {
-                printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:test_beeb.%s\n", name_and_test.first.c_str());
+                printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:b2_test: %s\n", name_and_test.first.c_str());
             }
         }
 
@@ -731,6 +940,7 @@ int main(int argc, char *argv[]) {
     } else {
         bool ran_any_tests = false;
 
+        std::vector<bool> run_test;
         for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {
             std::unique_ptr<Test> &test = options.reverse ? all_tests[all_tests.size() - 1 - test_index] : all_tests[test_index];
             bool run = options.test_name_regexes.empty() && options.test_name_strs.empty();
@@ -753,6 +963,30 @@ int main(int argc, char *argv[]) {
                 }
             }
 
+            run_test.push_back(run);
+        }
+
+        TEST_EQ_UU(run_test.size(), all_tests.size());
+
+        if (options.interactive) {
+            size_t n = 0;
+            for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {
+                if (run_test[test_index]) {
+                    ++n;
+                }
+            }
+
+            // TODO: more experimentation required.
+            (void)n;
+            //TEST_EQ_UU(n,1);
+
+            DearImGuiTest::Interactive();
+        }
+
+        for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {
+            bool run = run_test[test_index];
+            Test *test = all_tests[test_index].get();
+
             if (!run) {
                 if (options.verbose) {
                     printf("skipping test: %s\n", test->GetFullName().c_str());
@@ -763,7 +997,7 @@ int main(int argc, char *argv[]) {
             if (options.verbose) {
                 printf("starting test: %s\n", test->GetFullName().c_str());
             }
-            printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:test_beeb.%s\n", test->GetFullName().c_str());
+            printf("ea73a8dc-2d1a-43bc-ae41-078e441e53c5:b2_test: %s\n", test->GetFullName().c_str());
 
             uint64_t start_ticks = GetCurrentTickCount();
 

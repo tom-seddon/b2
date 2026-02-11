@@ -77,7 +77,7 @@ extern const size_t NUM_BLANK_HARD_DISKS = sizeof BLANK_HARD_DISKS / sizeof BLAN
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static uint8_t GetADFSChecksum(const uint8_t *sector) {
+uint8_t GetADFSChecksum(const uint8_t *sector) {
     uint32_t sum = 255;
 
     for (size_t i = 0; i < 255; ++i) {

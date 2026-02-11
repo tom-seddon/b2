@@ -15,6 +15,7 @@ class MessageList;
 class Messages;
 struct SDL_Surface;
 struct SDL_Window;
+class AppHandler;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -104,7 +105,7 @@ bool CloseModalDialog();
 
 class SelectorDialog {
   public:
-    explicit SelectorDialog(const Guid &guid);
+    explicit SelectorDialog(const Guid &guid, AppHandler *app_handler);
     virtual ~SelectorDialog() = 0;
 
     // return value is valid only until next LoadRecentPathsSettings.
@@ -120,6 +121,7 @@ class SelectorDialog {
     std::string m_last_path;
 
     const Guid m_guid;
+    AppHandler *const m_app_handler = nullptr;
 
   private:
 };
@@ -137,7 +139,7 @@ class FileDialog : public SelectorDialog {
         std::vector<std::string> extensions;
     };
 
-    explicit FileDialog(const Guid &guid);
+    explicit FileDialog(const Guid &guid, AppHandler *app_handler);
 
     void AddFilter(Filter filter);
     void AddFilter(std::string title, std::vector<std::string> extensions);
@@ -156,7 +158,7 @@ class FileDialog : public SelectorDialog {
 
 class OpenFileDialog : public FileDialog {
   public:
-    explicit OpenFileDialog(const Guid &guid);
+    explicit OpenFileDialog(const Guid &guid, AppHandler *app_handler);
 
   protected:
     std::string HandleOpen(SDL_Window *parent) override;
@@ -169,7 +171,7 @@ class OpenFileDialog : public FileDialog {
 
 class SaveFileDialog : public FileDialog {
   public:
-    explicit SaveFileDialog(const Guid &guid);
+    explicit SaveFileDialog(const Guid &guid, AppHandler *app_handler);
 
     // Set the suggested name. The dialog will open at the last path used, with
     // the name part of the path suggested.
