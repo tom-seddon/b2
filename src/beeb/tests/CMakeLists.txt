@@ -37,7 +37,7 @@ add_executable(test_beeb
   test_beeb.cpp test_beeb.inl)
 target_compile_definitions(test_beeb PRIVATE
   -Db2_SOURCE_DIR="${b2_SOURCE_DIR}"
-  -DBBC_TESTS_OUTPUT_FOLDER="${CMAKE_BINARY_DIR}/b2_tests_output")
+  -DBBC_TESTS_OUTPUT_FOLDER="${CMAKE_BINARY_DIR}/b2_tests_output.$<CONFIG>")
 target_link_libraries(test_beeb PRIVATE shared_lib beeb_lib stb_image_lib)
 b2_target_boilerplate(test_beeb SANITIZERS)
 
