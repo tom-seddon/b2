@@ -1025,8 +1025,8 @@ static bool InitSystem(
 
     // Initialise SDL
     Uint32 sdl_init_flags = SDL_INIT_TIMER;
-    sdl_init_flags |= SDL_INIT_VIDEO;
     if (!app_handler->IsHeadless()) {
+        sdl_init_flags |= SDL_INIT_VIDEO;
         sdl_init_flags |= SDL_INIT_AUDIO;
         sdl_init_flags |= SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER;
     }
