@@ -192,7 +192,7 @@ class DearImGuiTest : public Test, public AppHandler {
         // Clear out contents of config folder.
         PathGlob(config_folder, [](const std::string &path, bool is_folder) -> void {
             TEST_FALSE(is_folder);
-#if SYSTEM_OSX
+#if SYSTEM_OSX || SYSTEM_LINUX
             int rc = unlink(path.c_str());
             TEST_EQ_II(rc, 0);
 #elif SYSTEM_WINDOWS
