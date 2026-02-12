@@ -70,11 +70,6 @@
 #endif
 #endif
 
-#ifdef Success
-// X.h nonsense.
-#undef Success
-#endif
-
 #include <shared/enum_def.h>
 #include "BeebWindow.inl"
 #include <shared/enum_end.h>
