@@ -257,6 +257,11 @@ else()
 
   set(SDL_STATIC ON)
   set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+
+  # setting this to OFF avoids a cmake_minimum_required call that
+  # triggers a deprecation warning on newer CMake versions.
+  option(SDL_CCACHE "" OFF)
+
   add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/SDL_official)
 
   if(OSX)
