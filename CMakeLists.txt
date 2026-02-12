@@ -324,6 +324,8 @@ progress_message("libuv")
 if(USE_SYSTEM_LIBUV)
   find_package(LibUV REQUIRED)
 else()
+  option(LIBUV_BUILD_SHARED "" OFF)
+  
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
 
   # I'm trusting (possibly wrongly...) that these are benign.
@@ -337,7 +339,7 @@ else()
     )
     
     # Shows up with the Xcode 26 compiler.
-    target_compile_options(uv PRIVATE ${OSX_OPTIONS})
+    #target_compile_options(uv PRIVATE ${OSX_OPTIONS})
     target_compile_options(uv_a PRIVATE ${OSX_OPTIONS})
   elseif(MSVC)
     # C4152: nonstandard extension: function/data pointer conversion in expression
@@ -349,7 +351,7 @@ else()
     # C4701: potentially uninitialized local variable '' used
     # C4702: unreachable code
     set(MSVC_OPTIONS /wd4152 /wd4189 /wd4244 /wd4245 /wd4267 /wd4334 /wd4701 /wd4702)
-    target_compile_options(uv PRIVATE ${MSVC_OPTIONS})
+    #target_compile_options(uv PRIVATE ${MSVC_OPTIONS})
     target_compile_options(uv_a PRIVATE ${MSVC_OPTIONS})
   endif()
 
