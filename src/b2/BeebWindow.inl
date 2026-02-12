@@ -133,6 +133,12 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
+
+#ifdef None
+// X.h nonsense.
+#undef None
+#endif
+
 #define ENAME DearImGuiTestEngineState
 EBEGIN_DERIVED(uint8_t)
 EPN(None)
