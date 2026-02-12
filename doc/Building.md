@@ -10,13 +10,12 @@ To clone the repo:
 	
 If you're reading this after already cloning it:
 
-    git submodule init
-    git submodule update
+    git submodule update --init --recursive
+	
+After doing a `git pull` or switching branch, you'll need to do it
+again:
 
-(If anything goes wrong during initial cloning or updating, a `git
-submodule update --force` may or may not fix things. If you're not
-intending to make any changes, the easiest thing is usually to delete
-the working copy and start again.)
+    git submodule update --init --recursive
 
 # Branches
 
@@ -31,9 +30,8 @@ The following should always build:
 (Anything else: at your own risk. Anything worth keeping always ends
 up in `wip/master`.)
 
-After switching branches, you will need to do `git submodule update`
-again, to ensure the submodules are also at the correct revisions. Git
-doesn't do this for you.
+Don't forget to `git submodule update --init --recursive` after
+changing branch.
 
 # Building
 
