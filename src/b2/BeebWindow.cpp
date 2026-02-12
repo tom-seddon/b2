@@ -2055,7 +2055,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoFileMenu() {
-    if (ImGui::BeginMenu("File")) {
+    if (ImGui::BeginMenu("File###file")) {
         std::string config_name;
         BeebConfigArguments config_arguments;
         m_beeb_thread->GetConfig(&config_name, nullptr, &config_arguments);
@@ -2099,7 +2099,7 @@ void BeebWindow::DoFileMenu() {
 
         for (int drive = 0; drive < NUM_DRIVES; ++drive) {
             char title[100];
-            snprintf(title, sizeof title, "Drive %d", drive);
+            snprintf(title, sizeof title, "Drive %d###drive%d", drive, drive);
 
             UniqueLock<Mutex> d_lock;
             std::shared_ptr<const DiscImage> disc_image = m_beeb_thread->GetDiscImage(&d_lock, drive);
@@ -2244,6 +2244,7 @@ bool BeebWindow::DoNewCopyOfDiskMenu(std::string *path,
         } else {
             text = "Copy of " + disk->name;
         }
+        text += "###" + disk->name;
 
         if (ImGui::MenuItem(text.c_str())) {
             std::string src_path = disk->GetAssetPath();
@@ -2352,7 +2353,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
 
     if (this->DoDiscImageSubMenu2(&path,
                                   "Disc image...",
-                                  boot ? nullptr : "New disc image",
+                                  boot ? nullptr : "New disc image###new_file",
                                   "Recent disc image",
                                   false)) {
         disc_image = DirectDiscImage::CreateForFile(path, m_msg);
@@ -2360,7 +2361,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
 
     if (this->DoDiscImageSubMenu2(&path,
                                   "In-memory disc image...",
-                                  boot ? nullptr : "New in-memory disc image",
+                                  boot ? nullptr : "New in-memory disc image###new_memory",
                                   "Recent in-memory disc image",
                                   true)) {
         disc_image = LoadMemoryDiscImage(path, m_msg);

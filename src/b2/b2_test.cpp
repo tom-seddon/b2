@@ -764,16 +764,13 @@ class TestCopyOfDisk : public DearImGuiTest {
 
         ctx->SetRef("##MainMenuBar");
 
-        // TODO: would be nice not to have to duplicate this logic
-        std::string path = "File/Drive " + std::to_string(m_drive) + "/New ";
+        std::string path = "###file/###drive" + std::to_string(m_drive) + "/";
         if (m_in_memory) {
-            path += "in-memory ";
+            path += "###new_memory/";
+        } else {
+            path += "###new_file/";
         }
-        path += "disc image/";
-        if (!m_disk->blank) {
-            path += "Copy of ";
-        }
-        path += m_disk->name;
+        path += "###" + m_disk->name;
 
         ctx->MenuClick(path.c_str());
 
