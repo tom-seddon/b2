@@ -13,9 +13,6 @@
 [submodule "submodules/macdylibbundler"]
 	path = submodules/macdylibbundler
 	url = https://github.com/tom-seddon/macdylibbundler
-[submodule "submodules/noc"]
-	path = submodules/noc
-	url = https://github.com/tom-seddon/noc
 [submodule "submodules/rapidjson"]
 	path = submodules/rapidjson
 	url = https://github.com/tom-seddon/rapidjson
