@@ -50,17 +50,6 @@ Studio version), replacing `<<config>>` with the config of interest:
 
 This will run the tests in parallel according to PC core count.
 
-To run in the debugger, set the Visual Studio startup project to be
-`visual_studio_test_runner`, build, and run. This runs the full set of
-tests, such as it is, one test at a time.
-
-You can exclude the particularly slow tests with the
-`visual_studio_test_runner_subset` project, which will finish a bit
-more quickly.
-
-If you have the child process debugging tool installed, the debugger
-will attach to each test case as it is executed. This does add
-overhead but makes debugging a lot easier.
-
-Individual tests can be run by setting each one as the startup
-project.
+(Running individual tests in the debugger is a DIY job. Consult
+`CMakeLists.txt`. The command line setup for most tests is not onerous
+and they will run from any working folder.)
