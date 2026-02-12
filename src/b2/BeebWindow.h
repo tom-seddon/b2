@@ -502,7 +502,13 @@ class BeebWindow {
     bool m_imgui_metrics_ui = false;
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool m_imgui_test_engine_ui = false;
-    bool m_test_engine_queue_empty = false;
+    DearImGuiTestEngineState m_test_engine_state = DearImGuiTestEngineState_None;
+
+    // TODO: a warmup period of some kind seems to be required before initiating
+    // the tests. 10 updates appears to be enough?
+    //
+    // Not happy about this, and I'll get to the bottom of it eventually...
+    int m_test_engine_ready_counter = 10;
 #endif
 
     std::vector<std::string> m_display_size_options;

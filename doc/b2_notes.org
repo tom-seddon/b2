@@ -7627,6 +7627,69 @@ Executable:
 #+end_src
 
 >>>>>>> wip/headless2
+** CopyOfDisk test problems
+
+work:
+
+#+begin_example
+  ea73a8dc-2d1a-43bc-ae41-078e441e53c5:b2_test: b2ui.copy_of_disk.0.0.80.ssd
+  b2 [0.000x]
+  [0000] Test: 'b2' 'b2ui.copy_of_disk.0.0.80.ssd'..
+  File/Drive 0/New disc image/Blank DFS 80T SSD
+  ,**** //##MainMenuBar/##MenuBar/File
+  ,**** not opened
+  ,**** case else: MBV=0x0; buf="//##MainMenuBar/##MenuBar/File"
+  ,**** //File###Menu_00/Drive 0
+  ,**** not opened
+  ,**** case else: MBV=0x0; buf="//File###Menu_00/Drive 0"
+  ,**** //Drive 0###Menu_01/New disc image
+  ,**** not opened
+  ,**** case else: MBV=0x0; buf="//Drive 0###Menu_01/New disc image"
+  b2 [3.372x]
+  ,**** //New disc image###Menu_02/Blank DFS 80T SSD
+  ,**** not opened
+  ,**** final item: action=2; buf="//New disc image###Menu_02/Blank DFS 80T SSD"
+  [-AI] async    00000204F6153A20
+  [RA-] tcp      00000204F6153B18
+  [RA-] async    00000204F6101C90
+#+end_example
+
+no work:
+
+#+begin_example
+  ea73a8dc-2d1a-43bc-ae41-078e441e53c5:b2_test: b2ui.copy_of_disk.0.0.80.ssd
+  b2 [0.000x]
+  [0000] Test: 'b2' 'b2ui.copy_of_disk.0.0.80.ssd'..
+  File/Drive 0/New disc image/Blank DFS 80T SSD
+  ,**** //##MainMenuBar/##MenuBar/File
+  ,**** not opened
+  ,**** case else: MBV=0x0; buf="//##MainMenuBar/##MenuBar/File"
+  [0000] Test: 'b2' 'b2ui.copy_of_disk.0.0.80.ssd'..
+  [0011] Error imgui_te_context.cpp:3628 'current_window != nullptr'
+  D:\tom\github\b2\src\b2\b2_test.cpp(215): test failure:
+      Got expr: results->got_last_result
+
+      Wanted value: true
+      Got value: false
+#+end_example
+
+No work windows list:
+
+#+begin_example
+  GImGui->WindowsById	{Data={Size=7 Capacity=8} }	ImGuiStorage
+  Data	{Size=7 Capacity=8}	ImVector<ImGuiStoragePair>
+  [0]	{key=59136440 val_i=1351217904 val_f=1.85151980e+10 ...}	ImGuiStoragePair
+  [1]	{key=68858251 val_i=1351224528 val_f=1.85287639e+10 ...}	ImGuiStoragePair
+  [2]	{key=376584597 val_i=1351153632 val_f=1.83835689e+10 ...}	ImGuiStoragePair
+  [3]	{key=465309568 val_i=1351219152 val_f=1.85177539e+10 ...}	ImGuiStoragePair
+  [4]	{key=1091104937 val_i=1351228800 val_f=1.85375130e+10 ...}	ImGuiStoragePair
+  [5]	{key=1440638469 val_i=1350662768 val_f=1.73782794e+10 ...}	ImGuiStoragePair
+  [6]	{key=1660739254 val_i=1351226368 val_f=1.85325322e+10 ...}	ImGuiStoragePair
+  [Raw View]	{Size=7 Capacity=8 Data=0x000002ae4fcbc080 {key=59136440 val_i=1351217904 val_f=1.85151980e+10 ...} }	ImVector<ImGuiStoragePair>
+#+end_example
+
+- ~//###Menu_00~ :: 1438662658
+
 * Headless mode
 
 Activate using =--headless=.

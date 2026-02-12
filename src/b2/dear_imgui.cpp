@@ -100,8 +100,10 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer, bool enable_test_engine)
-    : m_renderer(renderer) {
+ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer, bool enable_test_engine, float default_display_size_x, float default_display_size_y)
+    : m_renderer(renderer)
+    , m_default_display_size_x(default_display_size_x)
+    , m_default_display_size_y(default_display_size_y) {
     m_last_new_frame_ticks = GetCurrentTickCount();
 
     static_assert(sizeof m_imgui_key_from_sdl_scancode / sizeof m_imgui_key_from_sdl_scancode[0] == SDL_NUM_SCANCODES);
@@ -510,8 +512,8 @@ void ImGuiStuff::NewFrame() {
         // TODO: there's probably somewhere better to get this value from... right?!
         m_mouse_scale = (float)output_width / window_width;
     } else {
-        io.DisplaySize.x = 1024;
-        io.DisplaySize.y = 768;
+        io.DisplaySize.x = m_default_display_size_x;
+        io.DisplaySize.y = m_default_display_size_y;
 
         m_mouse_scale = 1.f;
     }

@@ -75,7 +75,8 @@ extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
 
 class ImGuiStuff {
   public:
-    explicit ImGuiStuff(SDL_Renderer *renderer, bool enable_test_engine);
+    // Default display size is used if the renderer is NULL.
+    explicit ImGuiStuff(SDL_Renderer *renderer, bool enable_test_engine, float default_display_size_x, float default_display_size_y);
     ~ImGuiStuff();
 
     ImGuiStuff(const ImGuiStuff &) = delete;
@@ -182,6 +183,9 @@ class ImGuiStuff {
     bool m_enable_test_engine = false;
     ImGuiTestEngine *m_test_engine = nullptr;
 #endif
+
+    float m_default_display_size_x = 0.f;
+    float m_default_display_size_y = 0.f;
 
     ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
 

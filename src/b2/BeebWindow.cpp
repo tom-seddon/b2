@@ -1324,13 +1324,29 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     if (ImGuiTestEngine *test_engine = m_imgui_stuff->GetTestEngine()) {
-        if (!m_test_engine_queue_empty) {
+        switch (m_test_engine_state) {
+        case DearImGuiTestEngineState_None:
+            if (m_test_engine_ready_counter > 0) {
+                --m_test_engine_ready_counter;
+            }
+            if (m_test_engine_ready_counter == 0) {
+                //if (m_beeb_thread->IsStarted()){
+                m_init_arguments.app_handler->DearImGuiTestEngineDidBecomeReady(this, m_imgui_stuff);
+                m_test_engine_state = DearImGuiTestEngineState_Initialised;
+            }
+            break;
+
+        case DearImGuiTestEngineState_Initialised:
             if (ImGuiTestEngine_IsTestQueueEmpty(test_engine)) {
                 if (m_init_arguments.app_handler->ShouldQuitWhenTestQueueEmpty()) {
                     this->Exit();
-                    m_test_engine_queue_empty = true;
+                    m_test_engine_state = DearImGuiTestEngineState_Done;
                 }
             }
+            break;
+
+        case DearImGuiTestEngineState_Done:
+            break;
         }
     }
 #endif
@@ -3173,9 +3189,11 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
     bool economy = false;
 
+    ++m_vblank_counter;
+
     if (m_settings.background_economy_mode) {
         if (SDL_GetKeyboardFocus() != m_window && SDL_GetMouseFocus() != m_window) {
-            if (m_vblank_counter++ % 15 != 0) {
+            if (m_vblank_counter % 16 != 0) {
                 economy = true;
             }
         }
@@ -3272,7 +3290,9 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             m_imgui_stuff->RenderImGui();
         }
 
-        SDL_RenderClear(m_renderer);
+        if (m_renderer) {
+            SDL_RenderClear(m_renderer);
+        }
 
         this->EndUpdateTVTexture(threaded_update, vblank_record, dest_pixels, dest_pitch);
 
@@ -3299,7 +3319,9 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
             m_imgui_stuff->RenderSDL();
 
-            SDL_RenderPresent(m_renderer);
+            if (m_renderer) {
+                SDL_RenderPresent(m_renderer);
+            }
 
             m_imgui_stuff->PostSwap();
         }
@@ -3451,6 +3473,9 @@ bool BeebWindow::InitInternal() {
     bool reset_windows = m_init_arguments.reset_windows;
     m_init_arguments.reset_windows = false;
 
+    const float display_size_x = TV_TEXTURE_WIDTH + IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f;
+    const float display_size_y = TV_TEXTURE_HEIGHT + IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f;
+
     if (!m_init_arguments.app_handler->IsHeadless()) {
         // Add some extra space round the edges so the display doesn't have to
         // be scaled down noticeably.
@@ -3474,8 +3499,8 @@ bool BeebWindow::InitInternal() {
         m_window = SDL_CreateWindow("",
                                     SDL_WINDOWPOS_UNDEFINED,
                                     SDL_WINDOWPOS_UNDEFINED,
-                                    TV_TEXTURE_WIDTH + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f),
-                                    TV_TEXTURE_HEIGHT + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f),
+                                    (int)display_size_x,
+                                    (int)display_size_y,
                                     window_flags);
         if (!m_window) {
             m_msg.e.f("SDL_CreateWindow failed: %s\n", SDL_GetError());
@@ -3579,15 +3604,11 @@ bool BeebWindow::InitInternal() {
 #else
     bool imgui_enable_test_engine = false;
 #endif
-    m_imgui_stuff = new ImGuiStuff(m_renderer, imgui_enable_test_engine);
+    m_imgui_stuff = new ImGuiStuff(m_renderer, imgui_enable_test_engine, display_size_x, display_size_y);
     if (!m_imgui_stuff->Init(ImGuiConfigFlags_DockingEnable)) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
     }
-
-#ifdef IMGUI_ENABLE_TEST_ENGINE
-    m_init_arguments.app_handler->DearImGuiTestEngineWasCreated(this, m_imgui_stuff);
-#endif
 
     m_imgui_stuff->SetScale(m_settings.gui_scale);
 #if SYSTEM_LINUX

@@ -180,7 +180,7 @@ void AppHandler::SetActualHttpServerListenPort(int port) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void AppHandler::DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
+void AppHandler::DearImGuiTestEngineDidBecomeReady(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
     (void)beeb_window, (void)imgui_stuff;
 }
 
@@ -209,6 +209,20 @@ OrdinaryAppHandler::OrdinaryAppHandler(int argc, char *argv[])
 
 bool OrdinaryAppHandler::IsHeadless() const {
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool OrdinaryAppHandler::IsHighDPIEnabled() const {
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool OrdinaryAppHandler::IsSoundEnabled() const {
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -939,7 +953,9 @@ static bool ParseCommandLineOptions(
         p.AddOption("config-folder").Arg(&options->override_config_folder).SetIfPresent(&options->override_config_folder_specified).Help("specify folder for config files (will be created if non-existent)").ShowDefault();
     }
 
-    p.AddOption("disable-high-dpi").ResetIfPresent(&options->enable_high_dpi).Help("disable handling of high-DPI displays");
+    if (app_handler->IsHighDPIEnabled()) {
+        p.AddOption("disable-high-dpi").ResetIfPresent(&options->enable_high_dpi).Help("disable handling of high-DPI displays");
+    }
 
 #if SYSTEM_LINUX
     p.AddOption("gui-scale").Arg(&options->gui_scale).Meta("SCALE").Help("set GUI scale to SCALE, overriding any value previously set via the UI");
@@ -1022,6 +1038,18 @@ static FillAudioBufferData g_fill_audio_buffer_data;
 //
 static std::unique_ptr<std::thread> g_headless_audio_thread;
 
+static bool IsHighDPIEnabled(const Options &options, const AppHandler *app_handler) {
+    if (!options.enable_high_dpi) {
+        return false;
+    }
+
+    if (!app_handler->IsHighDPIEnabled()) {
+        return false;
+    }
+
+    return true;
+}
+
 static bool InitSystem(
     SDL_AudioDeviceID *device_id,
     SDL_AudioSpec *got_spec,
@@ -1032,7 +1060,7 @@ static bool InitSystem(
 
     SDL_SetHint(SDL_HINT_GAMECONTROLLERCONFIG_FILE, GetAssetPath(GAMECONTROLLER_DB_FILE_NAME).c_str());
 
-    if (options.enable_high_dpi) {
+    if (IsHighDPIEnabled(options, app_handler)) {
 #if SYSTEM_WINDOWS
         SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
 #endif
@@ -1051,6 +1079,9 @@ static bool InitSystem(
         sdl_init_flags |= SDL_INIT_VIDEO;
         sdl_init_flags |= SDL_INIT_AUDIO;
         sdl_init_flags |= SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER;
+    }
+    if (!app_handler->IsSoundEnabled()) {
+        sdl_init_flags &= ~SDL_INIT_AUDIO;
     }
     if (SDL_Init(sdl_init_flags) != 0) {
         init_messages->e.f("FATAL: SDL_Init failed: %s\n", SDL_GetError());
@@ -1819,7 +1850,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
             ia.name = "b2";
             ia.preinit_message_list = init_message_list;
             ia.verbose = options.verbose;
-            ia.enable_high_dpi = options.enable_high_dpi;
+            ia.enable_high_dpi = IsHighDPIEnabled(options, app_handler);
 #if SYSTEM_LINUX
             ia.gui_scale = options.gui_scale;
 #endif

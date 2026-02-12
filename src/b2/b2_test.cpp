@@ -92,12 +92,26 @@ void Test::DearImGuiTestFunc(ImGuiTestContext *ctx) {
 
 class DearImGuiTest : public Test, public AppHandler {
   public:
+    static void Interactive() {
+        ms_interactive = true;
+    }
+
     bool IsHeadless() const override {
         return !ms_interactive;
     }
 
-    static void Interactive() {
-        ms_interactive = true;
+    bool IsHighDPIEnabled() const override {
+        // The test engine seems to have trouble with display scales. And it's
+        // hard to pick the right (scale-dependent) size on Windows until the
+        // window is already created. So for test purposes, just disable it.
+        //
+        // This intentionally also affects --interactive.
+        return false;
+    }
+
+    bool IsSoundEnabled() const override {
+        // This intentionally also affects --interactive.
+        return false;
     }
 
     std::vector<std::string> GetCommandLineArgs() const override {
@@ -137,7 +151,7 @@ class DearImGuiTest : public Test, public AppHandler {
         return true;
     }
 
-    void DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
+    void DearImGuiTestEngineDidBecomeReady(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
         (void)beeb_window;
         ImGuiTestEngine *test_engine = imgui_stuff->GetTestEngine();
         TEST_NON_NULL(test_engine);
@@ -145,7 +159,11 @@ class DearImGuiTest : public Test, public AppHandler {
         TEST_EQ_PP(m_test_engine, test_engine);
         TEST_NON_NULL(m_test);
 
-        // TODO: maybe improve the logic here.
+        ImGuiTestEngineIO *io = &ImGuiTestEngine_GetIO(test_engine);
+        io->ConfigLogToTTY = true;
+        io->ConfigLogToDebugger = true;
+        io->ConfigBreakOnError = true;
+
         if (this->IsHeadless()) {
             ImGuiTestEngine_QueueTest(m_test_engine, m_test);
         }
@@ -176,7 +194,10 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
     void SetSelectorDialogResult(const Guid &guid, const std::string &result) override {
-        // TODO: unrealised plan for this is/was that it'd be possible to select files with the native UI dialog when running interactively, and the test would just fall into place same as if using the predetermined path.
+        // TODO: unrealised plan for this is/was that it'd be possible to select
+        // files with the native UI dialog when running interactively, and the
+        // test would just fall into place same as if using the predetermined
+        // path.
         SelectorResults *results = &m_selector_results_by_guid[guid];
         TEST_FALSE(results->got_last_result);
         results->got_last_result = true;
@@ -770,7 +791,11 @@ class TestCopyOfDisk : public DearImGuiTest {
         TEST_EQ_UU(got_data.size(), wanted_data.size());
 
         if (m_disk->geometry->adfs) {
-            // The disk identifier (and therefore the checksum) will have been updated. Don't check that it's different, as the identifier is random and so there's a non-zero chance that it'll be the same. Overwrite the relevant got bytes with the wanted bytes so the disk images otherwise match.
+            // The disk identifier (and therefore the checksum) will have been
+            // updated. Don't check that it's different, as the identifier is
+            // random and so there's a non-zero chance that it'll be the same.
+            // Overwrite the relevant got bytes with the wanted bytes so the
+            // disk images otherwise match.
             //
             // See RandomizeADFSDiskIdentifier.
             TEST_GE_UU(got_data.size(), 512u);
@@ -832,7 +857,7 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
     p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2, with Dear ImGui Test Engine enabled. Tests will be available - run at own risk");
     p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
-    p.AddOption(0, "interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run UI in interactive mode for manual initiation");
+    p.AddOption(0, "interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run UI in interactive mode");
 
     // intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
@@ -894,7 +919,7 @@ class b2ModeAppHandler : public OrdinaryAppHandler {
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    void DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
+    void DearImGuiTestEngineDidBecomeReady(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
         (void)beeb_window;
 
         ImGuiTestEngine *test_engine = imgui_stuff->GetTestEngine();
@@ -1028,7 +1053,7 @@ int main(int argc, char *argv[]) {
             }
 
             // TODO: the b2 code isn't designed to be re-initialised after it's quit, but... maybe it'd actually work? To be continued.
-            TEST_EQ_UU(n, 1);
+            TEST_LE_UU(n, 1);
 
             DearImGuiTest::Interactive();
         }

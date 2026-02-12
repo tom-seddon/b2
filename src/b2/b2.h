@@ -47,6 +47,12 @@ class AppHandler {
     // run.
     virtual bool IsHeadless() const = 0;
 
+    // Whether to allow high-DPI support.
+    virtual bool IsHighDPIEnabled() const = 0;
+
+    // Whether to allow sound.
+    virtual bool IsSoundEnabled() const = 0;
+
     // argc/argv access. Return value is the full argv, including argv[0].
     virtual std::vector<std::string> GetCommandLineArgs() const = 0;
 
@@ -81,10 +87,10 @@ class AppHandler {
     // Whether to initialise Dear ImGui Test Engine.
     virtual bool IsDearImGuiTestEngineEnabled() const = 0;
 
-    // Called when the Dear ImGui Test Engine was created.
+    // Called when the Dear ImGui Test Engine is ready for use.
     //
     // Default impl does nothing.
-    virtual void DearImGuiTestEngineWasCreated(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
+    virtual void DearImGuiTestEngineDidBecomeReady(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
 #endif
 
     // Indicate selector dialog has been opened.
@@ -115,7 +121,9 @@ class OrdinaryAppHandler : public AppHandler {
   public:
     OrdinaryAppHandler(int argc, char *argv[]);
 
-    bool IsHeadless() const override; //returns false
+    bool IsHeadless() const override;       //returns false
+    bool IsHighDPIEnabled() const override; //returns true
+    bool IsSoundEnabled() const override;   //returns true
     std::vector<std::string> GetCommandLineArgs() const override;
     bool GetConfigFolder(std::string *config_folder) const override; //returns false
     int GetRequestedHttpServerListenPort() const override;           //returns 0xbbcb
