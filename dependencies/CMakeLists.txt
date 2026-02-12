@@ -3,7 +3,7 @@
 
 option(BUILD_STATIC_LIBS "" ON)
 option(BUILD_SHARED_LIBS "" OFF)
-add_subdirectory(llhttp-release-v9.1.3)
+add_subdirectory(llhttp-release-v9.3.0)
 
 ##########################################################################
 ##########################################################################

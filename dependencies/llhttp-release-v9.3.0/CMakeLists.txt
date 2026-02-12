@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.25.0)
 cmake_policy(SET CMP0069 NEW)
 
-project(llhttp VERSION 9.1.3)
+project(llhttp VERSION 9.3.0)
 include(GNUInstallDirs)
 
 set(CMAKE_C_STANDARD 99)
@@ -38,20 +38,18 @@ set(LLHTTP_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/llhttp.h
 )
 
-if(NOT CMAKE_SKIP_INSTALL_RULES)
-  configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc
-    @ONLY
-    )
-endif()
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc.in
+  ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc
+  @ONLY
+)
 
 function(config_library target)
   target_sources(${target} PRIVATE ${LLHTTP_SOURCES} ${LLHTTP_HEADERS})
 
   target_include_directories(${target} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   )
 
   set_target_properties(${target} PROPERTIES
@@ -63,6 +61,7 @@ function(config_library target)
 
   install(TARGETS ${target}
     EXPORT llhttp
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
