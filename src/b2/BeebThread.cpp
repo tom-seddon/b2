@@ -3765,6 +3765,13 @@ void BeebThread::ThreadHandleNVRAMChanged(BBCMicro *m, void *context) {
     auto beeb_thread = (BeebThread *)context;
 
     if (beeb_thread->m_thread_state->timeline_mode == BeebThreadTimelineMode_None) {
+        // Update thread's copy of the config too.
+        //
+        // Don't bother updating the thread state's BeebLoadedConfig. Its copy of the data was already used to initialise the current Beeb state. Next reset, it'll be overwritten, possibly by m_config.
+        //
+        // m_mutex is already locked when this callback is called.
+        beeb_thread->m_config.nvram = m->GetNVRAM();
+
         beeb_thread->m_nvram_changed.store(true, std::memory_order_release);
     } else {
         // TODO maybe tweak this later...?
