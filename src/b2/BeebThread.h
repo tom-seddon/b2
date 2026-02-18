@@ -1251,8 +1251,6 @@ class BeebThread {
     void SetLastTrace(std::shared_ptr<Trace> last_trace);
 
     static void ThreadHandleNVRAMChanged(BBCMicro *m, void *context);
-
-    static bool ThreadWaitForHardReset(const BBCMicro *beeb, const M6502 *cpu, void *context);
 };
 
 //////////////////////////////////////////////////////////////////////////

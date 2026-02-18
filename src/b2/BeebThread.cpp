@@ -3773,23 +3773,3 @@ void BeebThread::ThreadHandleNVRAMChanged(BBCMicro *m, void *context) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb, const M6502 *cpu, void *context) {
-    (void)beeb;
-    auto ts = (ThreadState *)context;
-
-    // Watch for OSWORD 0, OSRDCH, or 5 seconds.
-    //
-    // TODO - does timeout mean the request actually failed?
-    if ((cpu->opcode_pc.w == 0xfff1 && cpu->a == 0) ||
-        cpu->opcode_pc.w == 0xffe0 ||
-        ts->num_executed_cycles->n > ts->reset_timeout_cycles.n) {
-        Message::CallCompletionFun(&ts->reset_completion_fun, true, nullptr);
-        return false;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
