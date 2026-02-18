@@ -257,7 +257,8 @@ void Command2::RemoveCommand(Command2 *command) {
 Command2Data::Command2Data(CommandTable2 *table, std::string name, std::string text)
     : m_table(table)
     , m_name(std::move(name))
-    , m_text(std::move(text)) {
+    , m_text(std::move(text))
+    , m_imgui_label(m_text + "###" + m_name) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -461,12 +462,12 @@ void CommandStateTable::DoButton(const Command2 &command) {
 
     if (command.m_has_tick) {
         bool ticked = state->ticked;
-        if (ImGui::Checkbox(command.m_text.c_str(), &ticked)) {
+        if (ImGui::Checkbox(command.m_imgui_label.c_str(), &ticked)) {
             state->ticked = ticked;
             state->actioned = 1;
         }
     } else {
-        if (ImGuiButton(command.m_text.c_str(), state->enabled)) {
+        if (ImGuiButton(command.m_imgui_label.c_str(), state->enabled)) {
             state->actioned = 1;
         }
     }
@@ -485,8 +486,8 @@ void CommandStateTable::DoMenuItem(const Command2 &command) {
     }
 
     if (command.m_must_confirm) {
-        if (ImGui::BeginMenu(command.m_text.c_str(), state->enabled)) {
-            if (ImGui::MenuItem("Confirm", shortcut.c_str())) {
+        if (ImGui::BeginMenu(command.m_imgui_label.c_str(), state->enabled)) {
+            if (ImGui::MenuItem("Confirm###confirm", shortcut.c_str())) {
                 state->actioned = 1;
             }
             ImGui::EndMenu();
@@ -500,7 +501,7 @@ void CommandStateTable::DoMenuItem(const Command2 &command) {
             shortcut = GetKeycodeName((*shortcuts)[0]);
         }
 
-        if (ImGui::MenuItem(command.m_text.c_str(), shortcut.c_str(), &ticked, state->enabled)) {
+        if (ImGui::MenuItem(command.m_imgui_label.c_str(), shortcut.c_str(), &ticked, state->enabled)) {
             state->actioned = 1;
         }
     }
@@ -514,7 +515,7 @@ void CommandStateTable::DoToggleCheckbox(const Command2 &command) {
     State *state = &m_states[command.m_index];
 
     bool ticked = state->ticked;
-    if (ImGui::Checkbox(command.m_text.c_str(), &ticked)) {
+    if (ImGui::Checkbox(command.m_imgui_label.c_str(), &ticked)) {
         if (state->enabled) {
             state->actioned = 1;
         }

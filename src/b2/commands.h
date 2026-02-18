@@ -91,6 +91,9 @@ class Command2Data {
     size_t m_index = ~(size_t)0;
     bool m_always_prioritized = false;
 
+    // m_text+"###"+m_name - as makes a bit more sense for use with the test engine.
+    std::string m_imgui_label;
+
     Command2Data(const Command2Data &) = default;
     Command2Data(Command2Data &&) = default;
     Command2Data &operator=(const Command2Data &) = default;
