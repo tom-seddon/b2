@@ -31,6 +31,7 @@
 #include <beeb/DiscGeometry.h>
 #include "BeebWindows.h"
 #include "BeebThread.h"
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -900,10 +901,13 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, const std::shared_ptr<
 
     PasteAndWait(ctx, beeb_thread, "*STATUS");
 
+    printf("ZZTOM pasted *STATUS\n");
+
     std::string text;
     std::atomic<bool> done = false;
 
     uint64_t num_osword0s = beeb_thread->GetNumOSWORD0s();
+    printf("ZZTOM num_osword0s=%" PRIu64 "\n", num_osword0s);
     beeb_thread->Send(std::make_shared<BeebThread::StartCountingOSWORD0sMessage>());
     beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([&done, &text](std::vector<uint8_t> data) {
         text = GetUTF8FromBBCASCII(data, BBCUTF8ConvertMode_PassThrough, false);
@@ -912,10 +916,14 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, const std::shared_ptr<
                                                                      false));
 
     // (strictly speaking, no need to wait - polling the OSWORD 0 count would cover it)
+    printf("ZZTOM pre PasteAndWait \\r\n");
     PasteAndWait(ctx, beeb_thread, "\r");
+    printf("ZZTOM post PasteAndWait \\r\n");
     while (beeb_thread->GetNumOSWORD0s() == num_osword0s) {
         ctx->Yield();
     }
+
+    printf("ZZTOM got next OSWORD 0\n");
 
     beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
 
