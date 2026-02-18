@@ -111,7 +111,7 @@ class BeebThread {
         explicit Message() = default;
         virtual ~Message() = 0;
 
-        static void CallCompletionFun(CompletionFun *completion_fun,
+        static void CallCompletionFun(CompletionFun &&completion_fun,
                                       bool success,
                                       const char *message);
 
@@ -869,7 +869,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-
                            ThreadState *ts) override;
 
       protected:
@@ -904,7 +903,29 @@ class BeebThread {
       public:
         MainThreadIsReadyMessage() = default;
 
-        void ThreadHandle(ThreadState *ts) const override;
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+    };
+
+    class StartCountingOSWORD0sMessage : public Message {
+      public:
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+    };
+
+    class StopCountingOSWORD0sMessage : public Message {
+      public:
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
 
       protected:
       private:
@@ -1067,6 +1088,8 @@ class BeebThread {
 
     bool TakeNVRAMChanged();
 
+    uint64_t GetNumOSWORD0s() const;
+
   protected:
   private:
     struct AudioThreadData;
@@ -1122,6 +1145,7 @@ class BeebThread {
     std::atomic<size_t> m_printer_data_size_bytes{false};
     std::atomic<BBCMicroHaltReason> m_debug_halt_reason{BBCMicroHaltReason_None};
     std::atomic<uint32_t> m_update_flags{0};
+    std::atomic<uint64_t> m_num_osword0s{0};
 
     // Set if NVRAM changes. Query using TakeNVRAMChanged, which does an atomic
     // swap with false. (The way b2 is arranged, it's just a lot simpler to
@@ -1204,6 +1228,7 @@ class BeebThread {
 
     static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void *context);
+    static bool ThreadCountOSWORD0s(const BBCMicro *beeb, const M6502 *cpu, void *context);
 
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
     void ThreadReplaceBeebFromState(ThreadState *ts, const std::shared_ptr<const BeebState> &beeb_state, uint32_t flags);

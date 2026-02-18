@@ -2415,14 +2415,13 @@ void BeebWindow::DoHardwareMenu() {
         m_beeb_thread->GetConfig(&config_name, nullptr, nullptr);
 
         for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
-            ImGuiIDPusher pusher((uint32_t)config_idx);
-
             bool selected = false;
 
             BeebConfig *config = BeebWindows::GetMutableConfigByIndex(config_idx);
             bool ticked = config->name == config_name;
+            std::string item_name = config->name + "###" + std::to_string(config_idx);
 
-            if (ImGui::MenuItem(config->name.c_str(), nullptr, ticked)) {
+            if (ImGui::MenuItem(item_name.c_str(), nullptr, ticked)) {
                 selected = true;
             }
 

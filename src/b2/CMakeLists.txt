@@ -483,6 +483,10 @@ foreach(DRIVE 0 1)
   endforeach()
 endforeach()
 
+foreach(MODEL master compact)
+  add_b2_test_literal_category(b2ui.nvram_update.${MODEL})
+endforeach()
+
 ##########################################################################
 ##########################################################################
 

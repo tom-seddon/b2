@@ -29,6 +29,8 @@
 #include <shared/strings.h>
 #include <shared/file_io.h>
 #include <beeb/DiscGeometry.h>
+#include "BeebWindows.h"
+#include "BeebThread.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -49,8 +51,8 @@ class Test {
     virtual void Run() = 0;
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    virtual void RegisterDearImGuiTest(ImGuiTestEngine *test_engine);
-    virtual void DearImGuiTestFunc(ImGuiTestContext *ctx);
+    virtual void RegisterDearImGuiTest(ImGuiTestEngine *test_engine, BeebWindow *beeb_window);
+    virtual void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window);
 #endif
   protected:
   private:
@@ -73,8 +75,8 @@ bool Test::IsHidden() const {
 //////////////////////////////////////////////////////////////////////////
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-void Test::RegisterDearImGuiTest(ImGuiTestEngine *test_engine) {
-    (void)test_engine;
+void Test::RegisterDearImGuiTest(ImGuiTestEngine *test_engine, BeebWindow *beeb_window) {
+    (void)test_engine, (void)beeb_window;
 }
 #endif
 
@@ -82,13 +84,15 @@ void Test::RegisterDearImGuiTest(ImGuiTestEngine *test_engine) {
 //////////////////////////////////////////////////////////////////////////
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-void Test::DearImGuiTestFunc(ImGuiTestContext *ctx) {
-    (void)ctx;
+void Test::DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) {
+    (void)ctx, (void)beeb_window;
 }
 #endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+// Still some work required - e.g., if a test needs to create a second window, what then?
 
 class DearImGuiTest : public Test, public AppHandler {
   public:
@@ -152,10 +156,9 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
     void DearImGuiTestEngineDidBecomeReady(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
-        (void)beeb_window;
         ImGuiTestEngine *test_engine = imgui_stuff->GetTestEngine();
         TEST_NON_NULL(test_engine);
-        this->RegisterDearImGuiTest(test_engine);
+        this->RegisterDearImGuiTest(test_engine, beeb_window);
         TEST_EQ_PP(m_test_engine, test_engine);
         TEST_NON_NULL(m_test);
 
@@ -169,13 +172,14 @@ class DearImGuiTest : public Test, public AppHandler {
         }
     }
 
-    void RegisterDearImGuiTest(ImGuiTestEngine *test_engine) override {
+    void RegisterDearImGuiTest(ImGuiTestEngine *test_engine, BeebWindow *beeb_window) override {
         m_test = IM_REGISTER_TEST(test_engine, "b2", nullptr);
         m_test->SetOwnedName(this->GetFullName().c_str());
-        m_test->TestFunc = [this](ImGuiTestContext *ctx) {
-            this->DearImGuiTestFunc(ctx);
+        m_test->TestFunc = [this, beeb_window](ImGuiTestContext *ctx) {
+            this->DearImGuiTestFunc(ctx, beeb_window);
             m_test_was_run = true;
         };
+        TEST_NULL(m_test_engine);
         m_test_engine = test_engine;
     }
 #endif
@@ -267,6 +271,7 @@ class DearImGuiTest : public Test, public AppHandler {
         bool got_last_result = false;
     };
 
+    //BeebWindow *m_beeb_window = nullptr;
     ImGuiTestEngine *m_test_engine = nullptr;
     ImGuiTest *m_test = nullptr;
     int m_http_port = 0;
@@ -728,7 +733,9 @@ class TestFileExit : public DearImGuiTest {
         return true;
     }
 
-    void DearImGuiTestFunc(ImGuiTestContext *ctx) override {
+    void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        (void)beeb_window;
+
         ctx->SetRef("##MainMenuBar");
         ctx->MenuClick("File/Exit/Confirm");
     }
@@ -757,7 +764,9 @@ class TestCopyOfDisk : public DearImGuiTest {
         return name;
     }
 
-    void DearImGuiTestFunc(ImGuiTestContext *ctx) override {
+    void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        (void)beeb_window;
+
         if (!m_disk_path.empty()) {
             this->SetNextSelectorDialogResult(NEW_DISK_IMAGE_SELECTOR_GUID, m_disk_path);
         }
@@ -818,6 +827,171 @@ class TestCopyOfDisk : public DearImGuiTest {
     const Disc *m_disk = nullptr;
     const int m_drive = 0;
     const bool m_in_memory = false;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const BeebConfig *FindConfigByName(size_t *index, const std::string &name) {
+    for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
+        const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+        if (config->name == name) {
+            *index = i;
+            return config;
+        }
+    }
+
+    return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//static void WaitForOSWORD0(ImGuiTestContext *ctx, std::shared_ptr<BeebThread> beeb_thread, uint64_t *num_osword0s_ptr) {
+//    for (;;) {
+//        uint64_t num_osword0s = beeb_thread->GetNumOSWORD0s();
+//        if (num_osword0s > *num_osword0s_ptr) {
+//            *num_osword0s_ptr = num_osword0s;
+//            return;
+//        }
+//
+//        ctx->Yield();
+//    }
+//}
+
+// Pick out the MODE value from the *STATUS output.
+static uint8_t GetMODEFromSTATUSOutput(const std::string &status_output) {
+    uint8_t mode;
+    bool got_mode = false;
+    std::string mode_prefix = "Mode     ";
+    ForEachLine(status_output, [&mode, &got_mode, mode_prefix](const std::string_view &line) -> bool {
+        if (line.size() > mode_prefix.size()) {
+            if (line.substr(0, mode_prefix.size()) == mode_prefix) {
+                TEST_FALSE(got_mode);
+                std::string mode_str(line.substr(mode_prefix.size()));
+                TEST_TRUE(GetUInt8FromString(&mode, mode_str, 10, nullptr));
+                got_mode = true;
+            }
+        }
+
+        return true;
+    });
+    TEST_TRUE(got_mode);
+    return mode;
+}
+
+// Paste text and wait for the paste to complete.
+static void PasteAndWait(ImGuiTestContext *ctx, const std::shared_ptr<BeebThread> &beeb_thread, const std::string &text) {
+    std::atomic<bool> pasted_status = false;
+    beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text),
+                      [&pasted_status](bool success, std::string) -> void {
+                          TEST_TRUE(success);
+                          pasted_status = true;
+                      });
+
+    while (!pasted_status) {
+        ctx->Yield();
+    }
+}
+
+// Do a *STATUS and retrieve the output.
+static std::string GetSTATUSOutput(ImGuiTestContext *ctx, const std::shared_ptr<BeebThread> &beeb_thread) {
+    // the captures here are a little questionable. But nothing will be out of scope at the wrong point!
+
+    PasteAndWait(ctx, beeb_thread, "*STATUS");
+
+    std::string text;
+    std::atomic<bool> done = false;
+
+    uint64_t num_osword0s = beeb_thread->GetNumOSWORD0s();
+    beeb_thread->Send(std::make_shared<BeebThread::StartCountingOSWORD0sMessage>());
+    beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([&done, &text](std::vector<uint8_t> data) {
+        text = GetUTF8FromBBCASCII(data, BBCUTF8ConvertMode_PassThrough, false);
+        done = true;
+    },
+                                                                     false));
+
+    // (strictly speaking, no need to wait - polling the OSWORD 0 count would cover it)
+    PasteAndWait(ctx, beeb_thread, "\r");
+    while (beeb_thread->GetNumOSWORD0s() == num_osword0s) {
+        ctx->Yield();
+    }
+
+    beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
+
+    while (!done) {
+        ctx->Yield();
+    }
+
+    return text;
+}
+
+// https://github.com/tom-seddon/b2/issues/559
+class TestNVRAMUpdate : public DearImGuiTest {
+  public:
+    TestNVRAMUpdate(std::string model_name, std::string config_name)
+        : m_model_name(std::move(model_name))
+        , m_config_name(std::move(config_name)) {
+    }
+
+    std::string GetFullName() const override {
+        return "b2ui.nvram_update." + m_model_name;
+    }
+
+    void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        size_t config_index;
+        const BeebConfig *config = FindConfigByName(&config_index, m_config_name);
+        TEST_NON_NULL(config);
+
+        // Any mode that isn't the default for any of the MOS versions.
+        static constexpr uint8_t NEW_MODE = 0;
+
+        TEST_FALSE(config->nvram.empty());
+        TEST_NE_UU(config->nvram[10] & 7, NEW_MODE);
+
+        ctx->SetRef("##MainMenuBar");
+        std::string hardware_config_path = "Hardware/###" + std::to_string(config_index);
+        ctx->MenuClick(hardware_config_path.c_str());
+
+        std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
+
+        std::string original_status_output = GetSTATUSOutput(ctx, beeb_thread);
+        uint8_t original_mode = GetMODEFromSTATUSOutput(original_status_output);
+
+        printf("original mode: %u\n", original_mode);
+
+        PasteAndWait(ctx, beeb_thread, "*CONFIGURE MODE " + std::to_string(NEW_MODE) + "\r");
+
+        std::string new_status_output = GetSTATUSOutput(ctx, beeb_thread);
+        uint8_t new_mode = GetMODEFromSTATUSOutput(new_status_output);
+        TEST_EQ_UU(new_mode, NEW_MODE);
+
+        // Ensure the BeebThread's copy of the BeebConfig got updated.
+        ctx->MenuClick("###file/###hard_reset/###confirm");
+
+        new_status_output = GetSTATUSOutput(ctx, beeb_thread);
+        new_mode = GetMODEFromSTATUSOutput(new_status_output);
+        TEST_EQ_UU(new_mode, NEW_MODE);
+
+        // Ensure the original copy of the BeebConfig got updated.
+        ctx->MenuClick(hardware_config_path.c_str());
+
+        new_status_output = GetSTATUSOutput(ctx, beeb_thread);
+        new_mode = GetMODEFromSTATUSOutput(new_status_output);
+        TEST_EQ_UU(new_mode, NEW_MODE);
+
+        // And make sure this wasn't just all a big coincidence.
+        TEST_EQ_UU(config->nvram[10] & 7, NEW_MODE);
+    }
+
+    void Run() override {
+        TEST_EQ_II(this->Run2(), 0);
+    }
+
+  protected:
+  private:
+    const std::string m_model_name;
+    const std::string m_config_name;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -917,13 +1091,11 @@ class b2ModeAppHandler : public OrdinaryAppHandler {
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     void DearImGuiTestEngineDidBecomeReady(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) override {
-        (void)beeb_window;
-
         ImGuiTestEngine *test_engine = imgui_stuff->GetTestEngine();
         ASSERT(test_engine);
 
         for (const std::unique_ptr<Test> &test : *m_tests) {
-            test->RegisterDearImGuiTest(test_engine);
+            test->RegisterDearImGuiTest(test_engine, beeb_window);
         }
     }
 #endif
@@ -967,6 +1139,10 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestSymbolTable>());
     all_tests.push_back(std::make_unique<TestJobQueue>());
     all_tests.push_back(std::make_unique<TestFileExit>());
+
+    // the callback handling is model-dependent, so not much point checking the whole lineup.
+    all_tests.push_back(std::make_unique<TestNVRAMUpdate>("master", "Master 128 (MOS 3.20)"));
+    all_tests.push_back(std::make_unique<TestNVRAMUpdate>("compact", "Master Compact (MOS 5.10)"));
 
     AddCopyOfDiskTests(&all_tests, BLANK_DFS_DISCS, NUM_BLANK_DFS_DISCS);
     AddCopyOfDiskTests(&all_tests, BLANK_ADFS_DISCS, NUM_BLANK_ADFS_DISCS);
