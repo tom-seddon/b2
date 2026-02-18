@@ -939,7 +939,7 @@ class TestNVRAMUpdate : public DearImGuiTest {
     }
 
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
-        size_t config_index;
+        size_t config_index = 0;
         const BeebConfig *config = FindConfigByName(&config_index, m_config_name);
         TEST_NON_NULL(config);
 
