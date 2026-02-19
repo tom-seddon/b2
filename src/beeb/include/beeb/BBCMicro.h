@@ -605,7 +605,7 @@ class BBCMicro : private WD1770Handler {
     static const char PASTE_START_CHAR;
 
     bool IsPasting() const;
-    void StartPaste(std::shared_ptr<const std::string> text);
+    void StartPaste(std::string text);
     void StopPaste();
 
 #if BBCMICRO_DEBUGGER

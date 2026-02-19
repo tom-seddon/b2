@@ -33,6 +33,10 @@
 #include "BeebThread.h"
 #include <inttypes.h>
 
+// the b2 code includes implementations for both of these.
+#include <stb_image_write.h>
+#include <stb_image.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -860,6 +864,45 @@ static const BeebConfig *FindConfigByName(size_t *index, const std::string &name
 //    }
 //}
 
+class Yielder {
+  public:
+    explicit Yielder(ImGuiTestContext *ctx, BeebWindow *beeb_window, DearImGuiTest *test)
+        : m_ctx(ctx)
+        , m_beeb_window(beeb_window)
+        , m_test(test) {
+        this->Reset();
+    }
+
+    void Reset() {
+        m_start_ticks = GetCurrentTickCount();
+    }
+
+    void Yield() {
+        if (GetSecondsFromTicks(GetCurrentTickCount() - m_start_ticks) > m_time_limit_seconds) {
+            std::string config_folder;
+            TEST_TRUE(m_test->GetConfigFolder(&config_folder));
+
+            std::vector<uint8_t> display_data = m_beeb_window->GetR8G8B8A8DisplayData();
+
+            std::string image_path = PathJoined(config_folder, "timeout." + m_test->GetFullName() + ".png");
+            TEST_TRUE(stbi_write_png(image_path.c_str(), TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, 4, display_data.data(), TV_TEXTURE_WIDTH * 4));
+
+            TEST_FALSE(true);
+        }
+        m_ctx->Yield();
+    }
+
+  protected:
+  private:
+    ImGuiTestContext *const m_ctx = nullptr;
+    BeebWindow *const m_beeb_window = nullptr;
+    DearImGuiTest *const m_test = nullptr;
+    uint64_t m_start_ticks = 0;
+
+    // TODO: make it configurable. Default test engine watchdog starts moaning at 30 seconds.
+    const double m_time_limit_seconds = 30.f;
+};
+
 // Pick out the MODE value from the *STATUS output.
 static uint8_t GetMODEFromSTATUSOutput(const std::string &status_output) {
     uint8_t mode;
@@ -882,7 +925,7 @@ static uint8_t GetMODEFromSTATUSOutput(const std::string &status_output) {
 }
 
 // Paste text and wait for the paste to complete.
-static void PasteAndWait(ImGuiTestContext *ctx, const std::shared_ptr<BeebThread> &beeb_thread, const std::string &text) {
+static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &beeb_thread, const std::string &text) {
     std::atomic<bool> pasted_status = false;
     beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text),
                       [&pasted_status](bool success, std::string) -> void {
@@ -890,24 +933,43 @@ static void PasteAndWait(ImGuiTestContext *ctx, const std::shared_ptr<BeebThread
                           pasted_status = true;
                       });
 
+    int state = 0;
+    yielder->Reset();
     while (!pasted_status) {
-        ctx->Yield();
+        yielder->Yield();
+
+        switch (state) {
+        case 0:
+            if (beeb_thread->IsPasting()) {
+                state = 1;
+            }
+            break;
+
+        case 1:
+            if (!beeb_thread->IsPasting()) {
+                state = 2;
+            }
+            break;
+
+        default:
+            break;
+        }
     }
 }
 
 // Do a *STATUS and retrieve the output.
-static std::string GetSTATUSOutput(ImGuiTestContext *ctx, const std::shared_ptr<BeebThread> &beeb_thread) {
+static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_window, DearImGuiTest *test) {
     // the captures here are a little questionable. But nothing will be out of scope at the wrong point!
+    std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
 
-    PasteAndWait(ctx, beeb_thread, "*STATUS");
+    Yielder yielder(ctx, beeb_window, test);
 
-    printf("ZZTOM pasted *STATUS\n");
+    PasteAndWait(&yielder, beeb_thread, "*STATUS");
 
     std::string text;
     std::atomic<bool> done = false;
 
     uint64_t num_osword0s = beeb_thread->GetNumOSWORD0s();
-    printf("ZZTOM num_osword0s=%" PRIu64 "\n", num_osword0s);
     beeb_thread->Send(std::make_shared<BeebThread::StartCountingOSWORD0sMessage>());
     beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([&done, &text](std::vector<uint8_t> data) {
         text = GetUTF8FromBBCASCII(data, BBCUTF8ConvertMode_PassThrough, false);
@@ -916,19 +978,17 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, const std::shared_ptr<
                                                                      false));
 
     // (strictly speaking, no need to wait - polling the OSWORD 0 count would cover it)
-    printf("ZZTOM pre PasteAndWait \\r\n");
-    PasteAndWait(ctx, beeb_thread, "\r");
-    printf("ZZTOM post PasteAndWait \\r\n");
+    PasteAndWait(&yielder, beeb_thread, "\r");
+
+    yielder.Reset();
     while (beeb_thread->GetNumOSWORD0s() == num_osword0s) {
-        ctx->Yield();
+        yielder.Yield();
     }
 
-    printf("ZZTOM got next OSWORD 0\n");
-
     beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
-
+    yielder.Reset();
     while (!done) {
-        ctx->Yield();
+        yielder.Yield();
     }
 
     return text;
@@ -947,15 +1007,16 @@ class TestNVRAMUpdate : public DearImGuiTest {
     }
 
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        Yielder yielder(ctx, beeb_window, this);
+
         size_t config_index = 0;
         const BeebConfig *config = FindConfigByName(&config_index, m_config_name);
         TEST_NON_NULL(config);
 
-        // Any mode that isn't the default for any of the MOS versions.
-        static constexpr uint8_t NEW_MODE = 0;
-
+        uint8_t old_nvram_mode = config->nvram[10] & 7;
         TEST_FALSE(config->nvram.empty());
-        TEST_NE_UU(config->nvram[10] & 7, NEW_MODE);
+
+        const uint8_t new_mode = (old_nvram_mode + 1) & 7;
 
         ctx->SetRef("##MainMenuBar");
         std::string hardware_config_path = "Hardware/###" + std::to_string(config_index);
@@ -963,33 +1024,39 @@ class TestNVRAMUpdate : public DearImGuiTest {
 
         std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
 
-        std::string original_status_output = GetSTATUSOutput(ctx, beeb_thread);
-        uint8_t original_mode = GetMODEFromSTATUSOutput(original_status_output);
+        std::string old_status_output = GetSTATUSOutput(ctx, beeb_window, this);
+        uint8_t old_status_mode = GetMODEFromSTATUSOutput(old_status_output);
 
-        printf("original mode: %u\n", original_mode);
+        printf("original mode: %u\n", old_status_mode);
+        TEST_EQ_UU(old_nvram_mode, old_status_mode);
 
-        PasteAndWait(ctx, beeb_thread, "*CONFIGURE MODE " + std::to_string(NEW_MODE) + "\r");
+        PasteAndWait(&yielder, beeb_thread, "*CONFIGURE MODE " + std::to_string(new_mode) + "\r");
 
-        std::string new_status_output = GetSTATUSOutput(ctx, beeb_thread);
-        uint8_t new_mode = GetMODEFromSTATUSOutput(new_status_output);
-        TEST_EQ_UU(new_mode, NEW_MODE);
+        std::string new_status_output = GetSTATUSOutput(ctx, beeb_window, this);
+        uint8_t new_status_mode = GetMODEFromSTATUSOutput(new_status_output);
+        TEST_EQ_UU(new_mode, new_status_mode);
 
         // Ensure the BeebThread's copy of the BeebConfig got updated.
         ctx->MenuClick("###file/###hard_reset/###confirm");
 
-        new_status_output = GetSTATUSOutput(ctx, beeb_thread);
-        new_mode = GetMODEFromSTATUSOutput(new_status_output);
-        TEST_EQ_UU(new_mode, NEW_MODE);
+        new_status_output = GetSTATUSOutput(ctx, beeb_window, this);
+        new_status_mode = GetMODEFromSTATUSOutput(new_status_output);
+        TEST_EQ_UU(new_mode, new_status_mode);
 
         // Ensure the original copy of the BeebConfig got updated.
         ctx->MenuClick(hardware_config_path.c_str());
 
-        new_status_output = GetSTATUSOutput(ctx, beeb_thread);
-        new_mode = GetMODEFromSTATUSOutput(new_status_output);
-        TEST_EQ_UU(new_mode, NEW_MODE);
+        new_status_output = GetSTATUSOutput(ctx, beeb_window, this);
+        new_status_mode = GetMODEFromSTATUSOutput(new_status_output);
+        TEST_EQ_UU(new_mode, new_status_mode);
 
         // And make sure this wasn't just all a big coincidence.
-        TEST_EQ_UU(config->nvram[10] & 7, NEW_MODE);
+        TEST_EQ_UU(config->nvram[10] & 7, new_mode);
+
+        //        if(!this->IsHeadless()){
+        //            // reset for the next interactive round.
+        //            config->nvram[10]=(config->nvram[10]&0xf8)|old_mode;
+        //        }
     }
 
     void Run() override {

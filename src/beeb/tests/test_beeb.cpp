@@ -997,7 +997,9 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::Paste(std::string text) {
-    this->StartPaste(std::make_shared<std::string>(std::move(text)));
+    printf("Paste: %s\n", text.c_str());
+
+    this->StartPaste(std::move(text));
 
     uint64_t start_ticks = GetCurrentTickCount();
 
@@ -1252,7 +1254,13 @@ void TestBBCMicro::GotOSWRCH() {
     }
 
     if (m_spooling) {
-        this->spool_output.push_back(c);
+        if (c == 127) {
+            if (!this->spool_output.empty()) {
+                this->spool_output.pop_back();
+            }
+        } else {
+            this->spool_output.push_back(c);
+        }
     }
 }
 
@@ -2724,6 +2732,9 @@ static Options GetOptions(int argc, char *argv[]) {
 //////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[]) {
+    setbuf(stdout, nullptr);
+    setbuf(stderr, nullptr);
+
     Options options = GetOptions(argc, argv);
 
     std::vector<std::unique_ptr<Test>> all_tests;

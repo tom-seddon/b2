@@ -635,40 +635,50 @@ parasite_update_done:
                     if (m_state.hack_flags & BBCMicroHackFlag_Paste) {
                         ASSERT(m_state.paste_state != BBCMicroPasteState_None);
 
-                        if (m_state.cpu.pc.w == 0xffe1) {
-                            // OSRDCH
-
-                            // Put next byte in A.
-                            switch (m_state.paste_state) {
-                            case BBCMicroPasteState_None:
-                                ASSERT(false);
-                                break;
-
-                            case BBCMicroPasteState_Wait:
-                                SetKeyState(PASTE_START_KEY, false);
-                                m_state.paste_state = BBCMicroPasteState_Delete;
-                                [[fallthrough]];
-                            case BBCMicroPasteState_Delete:
-                                m_state.cpu.a = 127;
-                                m_state.paste_state = BBCMicroPasteState_Paste;
-                                break;
-
-                            case BBCMicroPasteState_Paste:
-                                ASSERT(m_state.paste_index < m_state.paste_text->size());
-                                m_state.cpu.a = (uint8_t)m_state.paste_text->at(m_state.paste_index);
-
-                                ++m_state.paste_index;
-                                if (m_state.paste_index == m_state.paste_text->size()) {
-                                    StopPaste();
-                                }
-                                break;
+                        if (m_state.paste_state == BBCMicroPasteState_DelayBeforeStartKey) {
+                            ASSERT(m_state.paste_delay_cycles > 0);
+                            --m_state.paste_delay_cycles;
+                            if (m_state.paste_delay_cycles == 0) {
+                                this->SetKeyState(PASTE_START_KEY, true);
+                                m_state.paste_state = BBCMicroPasteState_WaitForFirstOSRDCH;
                             }
+                        } else {
+                            if (m_state.cpu.pc.w == 0xffe1) {
+                                // OSRDCH
 
-                            // No Escape.
-                            m_state.cpu.p.bits.c = 0;
+                                // Put next byte in A.
+                                switch (m_state.paste_state) {
+                                case BBCMicroPasteState_None:
+                                    ASSERT(false);
+                                    break;
 
-                            // Pretend the instruction was RTS.
-                            m_state.cpu.dbus = 0x60;
+                                case BBCMicroPasteState_DelayBeforeStartKey:
+                                    // could happen! Just ignore it.
+                                    break;
+
+                                case BBCMicroPasteState_WaitForFirstOSRDCH:
+                                    SetKeyState(PASTE_START_KEY, false);
+                                    m_state.cpu.a = 127;
+                                    m_state.paste_state = BBCMicroPasteState_Paste;
+                                    break;
+
+                                case BBCMicroPasteState_Paste:
+                                    ASSERT(m_state.paste_index < m_state.paste_text->size());
+                                    m_state.cpu.a = (uint8_t)m_state.paste_text->at(m_state.paste_index);
+
+                                    ++m_state.paste_index;
+                                    if (m_state.paste_index == m_state.paste_text->size()) {
+                                        StopPaste();
+                                    }
+                                    break;
+                                }
+
+                                // No Escape.
+                                m_state.cpu.p.bits.c = 0;
+
+                                // Pretend the instruction was RTS.
+                                m_state.cpu.dbus = 0x60;
+                            }
                         }
                     }
                 }

@@ -610,7 +610,7 @@ class BeebThread {
 
       protected:
       private:
-        std::shared_ptr<const std::string> m_text;
+        std::string m_text;
     };
 
     class StopPasteMessage : public Message {
@@ -1244,7 +1244,7 @@ class BeebThread {
     void ThreadSetBootState(ThreadState *ts, bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
     void ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<DiscImage> disc_image);
-    void ThreadStartPaste(ThreadState *ts, std::shared_ptr<const std::string> text);
+    void ThreadStartPaste(ThreadState *ts, std::string text);
     void ThreadStopCopy(ThreadState *ts);
     void ThreadMain();
     void SetVolume(float *scale_var, float db, bool mute);

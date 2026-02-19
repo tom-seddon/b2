@@ -1608,17 +1608,17 @@ bool BBCMicro::IsPasting() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::StartPaste(std::shared_ptr<const std::string> text) {
+void BBCMicro::StartPaste(std::string text) {
     this->StopPaste();
 
-    if (!text->empty()) {
+    if (!text.empty()) {
         m_state.hack_flags |= BBCMicroHackFlag_Paste;
-        m_state.paste_state = BBCMicroPasteState_Wait;
-        m_state.paste_text = std::move(text);
+        m_state.paste_state = BBCMicroPasteState_DelayBeforeStartKey;
+        m_state.paste_text = std::make_shared<std::string>(std::move(text));
         m_state.paste_index = 0;
-        m_state.paste_wait_end = m_state.cycle_count.n + CYCLES_PER_SECOND;
+        m_state.paste_delay_cycles = 10000; //whatever
 
-        this->SetKeyState(PASTE_START_KEY, true);
+        //this->SetKeyState(PASTE_START_KEY, true);
 
         this->UpdateCPUDataBusFn();
     }

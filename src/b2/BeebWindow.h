@@ -422,6 +422,9 @@ class BeebWindow {
 
     AppHandler *GetAppHandler() const;
 
+    // Get recent display data, suitable for saving with stbimage_write.
+    std::vector<uint8_t> GetR8G8B8A8DisplayData() const;
+
   protected:
   private:
     BeebWindowInitArguments m_init_arguments;

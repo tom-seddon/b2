@@ -94,7 +94,7 @@ LOG_DEFINE(REPLAY, "REPLAY ", &log_printer_stderr_and_debugger, false);
 //////////////////////////////////////////////////////////////////////////
 
 // What to feed to OSRDCH (via Paste OSRDCH) to list a program.
-static const std::shared_ptr<const std::string> COPY_BASIC = std::make_shared<const std::string>("OLD\rLIST\r");
+static const std::string COPY_BASIC("OLD\rLIST\r");
 
 // What a listed program's OSWRCH output will start with if it was listed by
 // doing a Paste OSRDCH with *COPY_BASIC.
@@ -1296,7 +1296,7 @@ bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 //////////////////////////////////////////////////////////////////////////
 
 BeebThread::StartPasteMessage::StartPasteMessage(std::string text)
-    : m_text(std::make_shared<std::string>(std::move(text))) {
+    : m_text(std::move(text)) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3106,8 +3106,7 @@ void BeebThread::ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadStartPaste(ThreadState *ts,
-                                  std::shared_ptr<const std::string> text) {
+void BeebThread::ThreadStartPaste(ThreadState *ts, std::string text) {
     // No need to call paste_completion_fun - this is looked after elsewhere.
 
     ts->beeb->StartPaste(std::move(text));

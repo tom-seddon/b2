@@ -30,11 +30,11 @@ EBEGIN()
 // No pasting. Hack flags paste bit must be reset.
 EPN(None)
 
-// Wait for the fake keypress that hopefully prods OSRDCH into action.
-EPN(Wait)
+// Delaying before pressing the fake keypress. This seems to be necessary to ensure the fake keypress never gets lost - possibly a race condition of some kind depending on the timing of the events? So tedious to actually debug properly that I didn't bother
+EPN(DelayBeforeStartKey)
 
-// Delete the fake keypress with a DELETE.
-EPN(Delete)
+// Wait for the fake keypress to prod OSRDCH into action, and send a DELETE as the first char to get rid of it.
+EPN(WaitForFirstOSRDCH)
 
 // Paste the string.
 EPN(Paste)

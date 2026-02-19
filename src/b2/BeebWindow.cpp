@@ -4008,6 +4008,30 @@ AppHandler *BeebWindow::GetAppHandler() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::vector<uint8_t> BeebWindow::GetR8G8B8A8DisplayData() const {
+    UniqueLock<Mutex> lock;
+    uint32_t *tv_pixels = m_tv.GetLastVSyncTexturePixels(&lock);
+
+    std::vector<uint8_t> data(TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT * 4);
+    const uint32_t *src = tv_pixels;
+    uint8_t *dest = data.data();
+    for (int y = 0; y < TV_TEXTURE_HEIGHT; ++y) {
+        for (int x = 0; x < TV_TEXTURE_WIDTH; ++x) {
+            uint32_t v = *src++;
+
+            *dest++ = v >> 16 & 0xff; //r
+            *dest++ = v >> 8 & 0xff;  //g
+            *dest++ = v & 0xff;       //b
+            *dest++ = 0xff;           //a
+        }
+    }
+
+    return data;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //#ifdef IMGUI_ENABLE_TEST_ENGINE
 //std::vector<std::string> BeebWindow::GetAllDearImGuiTestNames() {
 //    std::vector<std::string> names;
