@@ -20,7 +20,7 @@
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBI_WINDOWS_UTF8
+#define STBIW_WINDOWS_UTF8
 #include <shared/pushwarn_case_fallthrough.h>
 #include <stb_image_write.h>
 #include <shared/popwarn.h>
