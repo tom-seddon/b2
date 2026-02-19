@@ -33,9 +33,13 @@
 #include "BeebThread.h"
 #include <inttypes.h>
 
-// the b2 code includes implementations for both of these.
+// the b2 code includes the stb_image_write implementation.
 #include <stb_image_write.h>
-#include <stb_image.h>
+//#include <stb_image.h>
+
+#ifndef TRANSIENT_DATA_FOLDER
+#error
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -132,7 +136,7 @@ class DearImGuiTest : public Test, public AppHandler {
 
     bool GetConfigFolder(std::string *config_folder) const override {
         if (config_folder) {
-            *config_folder = PathJoined(CONFIG_FOLDER, this->GetFullName());
+            *config_folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
         }
         return true;
     }
@@ -756,6 +760,47 @@ class TestFileExit : public DearImGuiTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestStbImageUTF8 : public Test {
+  public:
+    std::string GetFullName() const override {
+        return "misc.stb_image_utf8";
+    }
+
+    void Run() override {
+#if SYSTEM_WINDOWS
+
+        std::string image_path_utf8 = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName(), (const char *)u8"\u00A3.png");
+        PathCreateFolder(PathGetFolder(image_path_utf8));
+
+        TEST_EQ_SS(GetUTF8String(GetWideString(image_path_utf8)), image_path_utf8);
+        TEST_NE_SS(GetByteString(GetWideString(image_path_utf8), CP_THREAD_ACP), image_path_utf8);
+
+        int width = 100, height = 100;
+
+        std::vector<uint8_t> png_data;
+        for (int i = 0; i < width * height * 4; ++i) {
+            png_data.push_back(0xff);
+        }
+
+        TEST_TRUE(stbi_write_png(image_path_utf8.c_str(), width, height, 4, png_data.data(), width * 4));
+
+        std::vector<uint8_t> data;
+        TEST_TRUE(LoadFile(&data, image_path_utf8, nullptr, 0));
+
+#else
+
+        // not much point. Everything will be UTF8-friendly already.
+
+#endif
+    }
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TestCopyOfDisk : public DearImGuiTest {
   public:
     TestCopyOfDisk(const Disc *disk, int drive, bool in_memory)
@@ -1214,6 +1259,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestSymbolTable>());
     all_tests.push_back(std::make_unique<TestJobQueue>());
     all_tests.push_back(std::make_unique<TestFileExit>());
+    all_tests.push_back(std::make_unique<TestStbImageUTF8>());
 
     // the callback handling is model-dependent, so not much point checking the whole lineup.
     all_tests.push_back(std::make_unique<TestNVRAMUpdate>("master", "Master 128 (MOS 3.20)"));
