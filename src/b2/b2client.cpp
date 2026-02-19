@@ -79,7 +79,11 @@ static const char *const B2_BINARY_NAMES[] = {
 static bool HandleCommandLineOptions(Options *options, int argc, char *argv[]) {
     std::vector<std::string> argv_utf8;
     for (int i = 0; i < argc; ++i) {
+#if SYSTEM_WINDOWS
         argv_utf8.push_back(GetUTF8String(GetWideString(argv[i], CP_THREAD_ACP)));
+#else
+        argv_utf8.push_back(argv[i]);
+#endif
     }
 
     // Make a guess as to default b2 exe.
