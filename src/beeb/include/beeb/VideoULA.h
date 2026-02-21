@@ -103,11 +103,9 @@ class VideoULA {
     void UpdatePixelBufferOffset();
 
     void ResetNuLAState();
-    VideoDataPixel GetPalette(uint8_t index);
     template <bool LOGICAL, uint8_t ATTRIBUTE_MODE, int BPP>
     VideoDataPixel ShiftNuLA();
     uint16_t ShiftULA();
-    VideoDataPixel ShiftAttributeText();
 
     template <uint32_t FLAGS>
     void EmitNuLA(VideoDataUnitPixels *pixels);

@@ -344,23 +344,6 @@ void VideoULA::ResetNuLAState() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-VideoDataPixel VideoULA::GetPalette(uint8_t index) {
-    if (!m_logical_mode) {
-        index = m_palette[index];
-
-        if (m_flash[index]) {
-            if (this->control.bits.flash) {
-                index ^= 7;
-            }
-        }
-    }
-
-    return this->output_palette[index];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 template <bool LOGICAL, uint8_t ATTRIBUTE_MODE, int BPP>
 VideoDataPixel VideoULA::ShiftNuLA() {
     uint8_t index = m_work_byte;
@@ -412,18 +395,6 @@ uint16_t VideoULA::ShiftULA() {
     m_work_byte |= 1;
 
     return ULA_PALETTE[this->control.bits.flash][m_palette[index]];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-VideoDataPixel VideoULA::ShiftAttributeText() {
-    uint8_t index = (m_work_byte >> 7 | m_original_byte << 1) & 0xf;
-
-    m_work_byte <<= 1;
-    m_work_byte &= 0xf0;
-
-    return this->GetPalette(index);
 }
 
 //////////////////////////////////////////////////////////////////////////
