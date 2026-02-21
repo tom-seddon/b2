@@ -25,6 +25,7 @@ def init_cmd(options):
     with open(options.g_path,'wt') as f: pass
 
 def push_cmd(options):
+    if options.echo: print('%s: %s'%(options.key,options.value))
     with open(options.g_path,'at') as f:
         f.write('push\n%s\n%s\n%d\n'%(options.key,
                                       options.value,
@@ -146,6 +147,7 @@ def main(argv):
     init_parser=add_subparser(init_cmd,'init',help='''initialise timing process''')
 
     push_parser=add_subparser(push_cmd,'push',help='''push new key''')
+    push_parser.add_argument('--echo',action='store_true',help='''echo key name and value to stdout''')
     push_parser.add_argument('key',metavar='KEY',help='''push key named %(metavar)s''')
     push_parser.add_argument('value',metavar='VALUE',help='''value for key pushed''')
 
