@@ -258,44 +258,72 @@ _ffmpeg_release:
 ##########################################################################
 ##########################################################################
 
-# for me, on my desktop PC...
+# for me, on my desktop PC or my Mac.
 
-GCC_CC:=gcc
-GCC_CXX:=g++
+ifeq ($(UNAME),Darwin)
+DEFAULT_COMPILERS:=clang
+else
+DEFAULT_COMPILERS:=gcc-13 clang-20
+endif
 
-CLANG_CC:=clang-20
-CLANG_CXX:=clang++-20
+ifdef COMPILERS
 
-.PHONY:_precommit_tom_init_gcc
-_precommit_tom_init_gcc:
-	$(_V)$(MAKE) init_parallel FOLDER_PREFIX=precommit-gcc. CC=$(GCC_CC) CXX=$(GCC_CXX)
+define _precommit_tom2_stuff_template=
+# intended for running with -j
+.PHONY:_precommit_tom2_init_$(1)
+_precommit_tom2_init_$(1):
+	$$(_V)$$(MAKE) init_parallel FOLDER_PREFIX=precommit-$(1) CC=$(1) CXX=$(subst clang,clang++,$(subst gcc,g++,$(1)))
 
-.PHONY:_precommit_tom_init_clang
-_precommit_tom_init_clang:
-	$(_V)$(MAKE) init_parallel FOLDER_PREFIX=precommit-clang. CC=$(CLANG_CC) CXX=$(CLANG_CXX)
+.PHONY:_precommit_tom2_clean_and_build_$(1)
+_precommit_tom2_clean_and_build_$(1):
+	$$(_V)$$(MAKE) _precommit_tom2_run COMPILER=$(1) CLEAN=$$(CLEAN) BUILD=1
+
+.PHONY:_precommit_tom2_test_$(1)
+_precommit_tom2_test_$(1):
+	$$(_V)$$(MAKE) _precommit_tom2_run COMPILER=$(1) TEST=1
+endef
+
+define _precommit_tom2_make__precommit_tom2_compiler_template=
+	$(MAKE) _precommit_tom2_compiler COMPILER=$(1)
+endef
+
+$(foreach COMPILER,$(COMPILERS),$(eval $(call _precommit_tom2_stuff_template,$(COMPILER))))
+
+endif
+
+.PHONY:precommit_tom2
+precommit_tom2: COMPILERS=$(error must specify COMPILERS)
+precommit_tom2:
+	$(_V)echo clang-format...
+	$(_V)$(MAKE) clang-format
+	$(_V)$(MAKE) precommit_tom2_main "COMPILERS=$(COMPILERS)" $(if $(NPROC),NPROC=$(NPROC))
+	$(_V)$(TIME_JOBS) print -s Config -s Compiler  $(if $(JOB_TIMES_FILE),| tee "$(JOB_TIMES_FILE)")
+
+.PHONY:precommit_tom2_main
+precommit_tom2_main: COMPILERS=$(error must specify COMPILERS)
+precommit_tom2_main:
+	$(_V)$(TIME_JOBS) init
+	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) $(foreach COMPILER,$(COMPILERS),_precommit_tom2_init_$(COMPILER)))
+# intentionally run without -j, so they're done in sequence.
+	$(_V)$(MAKE) $(foreach COMPILER,$(COMPILERS),_precommit_tom2_clean_and_build_$(COMPILER) CLEAN=$(CLEAN))
+	$(_V)$(MAKE) $(foreach COMPILER,$(COMPILERS),_precommit_tom2_test_$(COMPILER))
+
+.PHONY:_precommit_tom2_run
+_precommit_tom2_run: COMPILER=$(error must specify COMPILER)
+_precommit_tom2_run: FOLDER_PREFIX=precommit-$(COMPILER)
+_precommit_tom2_run:
+	$(_V)$(TIME_JOBS) push --echo "Compiler" "$(shell $(COMPILER) --version | head -n 1)"
+	$(_V)$(if $(CLEAN),$(MAKE) _precommit ACTION=clean FOLDER_PREFIX=$(FOLDER_PREFIX))
+	$(_V)$(if $(BUILD),$(MAKE) _precommit ACTION=build FOLDER_PREFIX=$(FOLDER_PREFIX))
+	$(_V)$(if $(TEST),$(MAKE) _precommit ACTION=test FOLDER_PREFIX=$(FOLDER_PREFIX))
+	$(_V)$(TIME_JOBS) pop --key "Compiler"
+
+##########################################################################
+##########################################################################
 
 .PHONY:precommit_tom
 precommit_tom:
-	$(_V)echo clang-format...
-	$(_V)$(MAKE) clang-format
-
-	$(_V)$(TIME_JOBS) init
-	$(_V)$(MAKE) precommit_tom_main REINIT=$(REINIT)
-	$(_V)$(TIME_JOBS) print -s Config -s Compiler $(if $(JOB_TIMES_FILE),| tee "$(JOB_TIMES_FILE)")
-
-.PHONY:precommit_tom_main
-precommit_tom_main:
-	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) _precommit_tom_init_gcc _precommit_tom_init_clang,)
-	$(_V)$(TIME_JOBS) push "Compiler" "$(shell $(GCC_CC) --version | head -n 1)"
-	$(_V)$(if $(CLEAN),$(MAKE) _precommit ACTION=clean FOLDER_PREFIX=precommit-gcc.)
-	$(_V)$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-gcc.
-	$(_V)$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-gcc.
-	$(_V)$(TIME_JOBS) pop
-	$(_V)$(TIME_JOBS) push "Compiler" "$(shell $(CLANG_CC) --version | head -n 1)"
-	$(_V)$(if $(CLEAN),$(MAKE) _precommit ACTION=clean FOLDER_PREFIX=precommit-clang.)
-	$(_V)$(MAKE) _precommit ACTION=build FOLDER_PREFIX=precommit-clang.
-	$(_V)$(MAKE) _precommit ACTION=test FOLDER_PREFIX=precommit-clang.
-	$(_V)$(TIME_JOBS) pop
+	$(_V)$(MAKE) precommit_tom2 "COMPILERS=$(if $(COMPILERS),$(COMPILERS),$(DEFAULT_COMPILERS))"
 
 ##########################################################################
 ##########################################################################
@@ -304,16 +332,16 @@ precommit_tom_main:
 test_build_times: TARGET=$(error must specify TARGET)
 test_build_times:
 	$(_V)$(TIME_JOBS) init
-	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=1
-	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=2
-	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=3
+	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=1 $(if $(COMPILERS),"COMPILERS=$(COMPILERS)")
+	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=2 $(if $(COMPILERS),"COMPILERS=$(COMPILERS)")
+	$(_V)$(MAKE) _test_build_times TARGET=$(TARGET) RUN=3 $(if $(COMPILERS),"COMPILERS=$(COMPILERS)")
 	$(_V)$(TIME_JOBS) print -s Run -s Config -s Compiler  $(if $(JOB_TIMES_FILE),| tee "$(JOB_TIMES_FILE)")
 
 .PHONY:_test_build_times
 _test_build_times: TARGET=$(error must specify TARGET)
 _test_build_times:
 	$(_V)$(TIME_JOBS) push "Run" "$(RUN)"
-	$(_V)$(MAKE) $(TARGET)_main REINIT=1 NO_SANITIZERS=1 "EXTRA_MESSAGE=Run $(RUN)"
+	$(_V)$(MAKE) $(TARGET)_main REINIT=1 NO_SANITIZERS=1 "EXTRA_MESSAGE=Run $(RUN)" "COMPILERS=$(if $(COMPILERS),$(COMPILERS),$(DEFAULT_COMPILERS))"
 	$(_V)$(TIME_JOBS) pop
 
 ##########################################################################
