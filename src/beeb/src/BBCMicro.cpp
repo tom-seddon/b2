@@ -1030,11 +1030,11 @@ uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
     // Good luck!
     SERPROC::Write(&m->m_state.serproc, a, value);
 
-    if (m->m_update_flags & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) {
-        return value;
-    } else {
+    if (GetBBCMicroUpdateFlagsUpdateSystemType(m->m_update_flags) == BBCMicroUpdateSystemType_BBCMicro) {
         // I don't get this. Maybe the BBC part can dissipate the signals?
         return 0;
+    } else {
+        return value;
     }
 }
 
@@ -1042,10 +1042,10 @@ uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t BBCMicro::GetStaleDatabusByte() const {
-    if (m_update_flags & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) {
-        return m_state.last_fetched_video_byte;
-    } else {
+    if (GetBBCMicroUpdateFlagsUpdateSystemType(m_update_flags) == BBCMicroUpdateSystemType_BBCMicro) {
         return m_state.cpu.dbus;
+    } else {
+        return m_state.last_fetched_video_byte;
     }
 }
 
@@ -2445,7 +2445,7 @@ void BBCMicro::SetMouseButtons(uint8_t mask, uint8_t value) {
         return;
     }
 
-    if (m_update_flags & BBCMicroUpdateFlag_IsMasterCompact) {
+    if (GetBBCMicroUpdateFlagsUpdateSystemType(m_update_flags) == BBCMicroUpdateSystemType_MasterCompact) {
         if (mask & BBCMicroMouseButton_Left) {
             m_state.mouse_data.compact_bits.l = !(value & BBCMicroMouseButton_Left);
         }
@@ -3588,10 +3588,28 @@ void BBCMicro::UpdateCPUDataBusFn() {
         update_flags |= BBCMicroUpdateFlag_NonFastPath;
     }
 
-    if (m_state.type->type_id == BBCMicroTypeID_Master) {
-        update_flags |= BBCMicroUpdateFlag_IsMaster128;
-    } else if (m_state.type->type_id == BBCMicroTypeID_MasterCompact) {
-        update_flags |= BBCMicroUpdateFlag_IsMasterCompact;
+    switch (m_state.type->type_id) {
+    default:
+        [[fallthrough]];
+    case BBCMicroTypeID_B:
+        [[fallthrough]];
+    case BBCMicroTypeID_BPlus:
+        update_flags |= BBCMicroUpdateSystemType_BBCMicro << BBCMicroUpdateFlag_UpdateSystemTypeShift;
+        break;
+
+    case BBCMicroTypeID_Master:
+        update_flags |= BBCMicroUpdateSystemType_Master128 << BBCMicroUpdateFlag_UpdateSystemTypeShift;
+        break;
+
+    case BBCMicroTypeID_MasterCompact:
+        update_flags |= BBCMicroUpdateSystemType_MasterCompact << BBCMicroUpdateFlag_UpdateSystemTypeShift;
+        break;
+
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+        update_flags |= BBCMicroUpdateSystemType_Electron << BBCMicroUpdateFlag_UpdateSystemTypeShift;
+        break;
+#endif
     }
 
     if (m_state.parasite_type != BBCMicroParasiteType_None) {

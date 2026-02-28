@@ -44,6 +44,10 @@ constexpr BBCMicroUpdateROMType GetBBCMicroUpdateFlagsUpdateROMType(uint32_t upd
     return (BBCMicroUpdateROMType)(update_flags >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
 }
 
+constexpr BBCMicroUpdateSystemType GetBBCMicroUpdateFlagsUpdateSystemType(uint32_t update_flags) {
+    return (BBCMicroUpdateSystemType)(update_flags >> BBCMicroUpdateFlag_UpdateSystemTypeShift & BBCMicroUpdateFlag_UpdateSystemTypeMask);
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

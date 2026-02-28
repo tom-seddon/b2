@@ -162,11 +162,35 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//// Master Compact gets its own flag, as it implies multiple things:
+////
+//// - no Tube
+//// - has Master Compact EEPROM
+//// - mouse (if present) is Compact type
+//EPNV(IsMasterCompact, 1 << 6)
+//
+//// Machine is Master 128.
+//EPNV(IsMaster128, 1 << 7)
+
+#define ENAME BBCMicroUpdateSystemType
+EBEGIN_DERIVED(uint8_t)
+EPNV(BBCMicro, 0)
+EPNV(Master128, 1)
+EPNV(MasterCompact, 2)
+#if ENABLE_ELECTRON
+EPNV(Electron, 3)
+#endif
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // There are actually private, but at some point I realised it would be useful
 // to have them displayed in the debugging UI.
 //
-// Lower bits should ideally not include flags modified or tested by
-// GetNormalizedBBCMicroUpdateFlags, because that will result in unnecessary
+// Lower bits should ideally not include flags conditionally modified or tested
+// by GetNormalizedBBCMicroUpdateFlags, because that will result in unnecessary
 // instantations when building with BBCMICRO_NUM_UPDATE_GROUPS>1.
 //
 // The update_mfns table is not accessed often enough for its layout to be a
@@ -211,15 +235,8 @@ EPNV(Parasite, 1 << 4)
 // These are rare and/or transient, and don't promise to be remotely efficient.
 EPNV(RareNonFastPath, 1 << 5)
 
-// Master Compact gets its own flag, as it implies multiple things:
-//
-// - no Tube
-// - has Master Compact EEPROM
-// - mouse (if present) is Compact type
-EPNV(IsMasterCompact, 1 << 6)
-
-// Machine is Master 128.
-EPNV(IsMaster128, 1 << 7)
+EQPNV(UpdateSystemTypeShift, 6)
+EQPNV(UpdateSystemTypeMask, 3)
 
 // If clear, parasite (if any) runs at 4 MHz.
 //

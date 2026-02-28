@@ -535,7 +535,7 @@ parasite_update_done:
                             }
                         } else {
                             // see corresponding logic in BBCMicro::GetStaleDatabusByte.
-                            if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) == 0) {
+                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_BBCMicro) {
                                 // For B/B+, leave the previous value in place.
                                 // The CPU data bus is buffered so it'll read
                                 // whatever was last written.
@@ -826,7 +826,8 @@ parasite_update_done:
 #endif
             }
 
-            if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_IsMasterCompact)) != 0) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128 ||
+                          GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
                 m_state.last_fetched_video_byte = value;
             }
 
@@ -960,7 +961,8 @@ parasite_update_done:
                 m_state.user_via.b.c2 = m_state.mouse_signal_y;
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0 && (UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) == 0) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact &&
+                          (UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) == 0) {
                 // <pre>
                 //  PB4 PB3 PB2 PB1 PB0
                 // +---+---+---+---+---+
@@ -977,7 +979,8 @@ parasite_update_done:
                                                 (uint8_t)m_state.digital_joystick_state.bits.fire1 | (uint8_t)m_state.digital_joystick_state.bits.fire0));
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) == 0) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_BBCMicro ||
+                          GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
                 // Update analogue joystick buttons.
                 m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
             }
@@ -1003,26 +1006,26 @@ parasite_update_done:
                 }
 #endif
 
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) != 0) {
+                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
                     if (pb.m128_bits.rtc_chip_select &&
                         m_state.old_system_via_pb.m128_bits.rtc_address_strobe &&
                         !pb.m128_bits.rtc_address_strobe) {
                         // Latch address on AS 1->0 transition.
                         m_state.rtc.SetAddress(m_state.system_via.a.p);
                     }
-                } else if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                } else if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
                     UpdatePCD8572(&m_state.eeprom, pb.mcompact_bits.clk, pb.mcompact_bits.data);
                 }
 
                 m_state.old_system_via_pb = pb;
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
                 // Update EEPROM data output bit.
                 m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT)) | (uint8_t)(m_state.eeprom.data_output << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT);
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) != 0) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
                 if (pb.m128_bits.rtc_chip_select &&
                     !pb.m128_bits.rtc_address_strobe) {
                     // AS=0
@@ -1076,7 +1079,8 @@ parasite_update_done:
             // Update 1770.
             M6502_SetDeviceNMI(&m_state.cpu, BBCMicroNMIDevice_1770, m_state.fdc.Update().value);
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) == 0) {
+            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_BBCMicro ||
+                          GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
                 // Update ADC.
                 m_state.system_via.b.c1 = m_state.adc.Update();
             }
@@ -1098,7 +1102,7 @@ parasite_update_done:
                         m_state.mouse_signal_x ^= 1;
 
                         if (m_state.mouse_dx > 0) {
-                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
                                 m_state.mouse_data.compact_bits.x = !m_state.mouse_signal_x;
                             } else {
                                 m_state.mouse_data.amx_bits.x = !m_state.mouse_signal_x;
@@ -1106,7 +1110,7 @@ parasite_update_done:
 
                             --m_state.mouse_dx;
                         } else {
-                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
                                 m_state.mouse_data.compact_bits.x = m_state.mouse_signal_x;
                             } else {
                                 m_state.mouse_data.amx_bits.x = m_state.mouse_signal_x;
@@ -1120,7 +1124,7 @@ parasite_update_done:
                         m_state.mouse_signal_y ^= 1;
 
                         if (m_state.mouse_dy > 0) {
-                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
                                 m_state.mouse_data.compact_bits.y = m_state.mouse_signal_y;
                             } else {
                                 m_state.mouse_data.amx_bits.y = m_state.mouse_signal_y;
@@ -1128,7 +1132,7 @@ parasite_update_done:
 
                             --m_state.mouse_dy;
                         } else {
-                            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
                                 m_state.mouse_data.compact_bits.y = !m_state.mouse_signal_y;
                             } else {
                                 m_state.mouse_data.amx_bits.y = !m_state.mouse_signal_y;
@@ -1175,14 +1179,29 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
     flags &= ~BBCMicroUpdateFlag_Debug;
 #endif
 
-    if (flags & BBCMicroUpdateFlag_IsMasterCompact) {
-        flags &= ~(BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_Parasite);
+    switch ((BBCMicroUpdateSystemType)((flags >> BBCMicroUpdateFlag_UpdateSystemTypeShift) & BBCMicroUpdateFlag_UpdateSystemTypeMask)) {
+    default:
+        // normalize to BBC Micro type.
+        flags &= ~(BBCMicroUpdateFlag_UpdateSystemTypeMask << BBCMicroUpdateFlag_UpdateSystemTypeShift);
+        [[fallthrough]];
+    case BBCMicroUpdateSystemType_BBCMicro:
+        break;
 
-        // (the parasite-specific debug flags are dealt with below)
-    }
+    case BBCMicroUpdateSystemType_Master128:
+        break;
 
-    if (flags & BBCMicroUpdateFlag_IsMaster128) {
-        flags &= ~BBCMicroUpdateFlag_IsMasterCompact;
+    case BBCMicroUpdateSystemType_MasterCompact:
+        flags &= ~BBCMicroUpdateFlag_Parasite;
+        break;
+
+#if ENABLE_ELECTRON
+    case BBCMicroUpdateSystemType_Electron:
+        flags &= ~BBCMicroUpdateFlag_Parasite;
+        flags &= ~BBCMicroUpdateFlag_Mouse;
+        flags &= ~BBCMicroUpdateFlag_ParallelPrinter;
+        flags &= ~BBCMicroUpdateFlag_Serial;
+        break;
+#endif
     }
 
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
