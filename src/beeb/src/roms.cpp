@@ -41,10 +41,10 @@ static const OSROMTypeMetadata OS_ROM_TYPES_METADATA[OSROMType_Count] = {
     {OSROMType_16KB, "16 KB", 16384, 0, 16384},
     {OSROMType_Compact, "Master Compact (64 KB)", 65536, 0, 65536},
     {OSROMType_MegaROM, "MegaROM (128 KB)", 131072, 0, 131072},
-    {OSROMType_MultiOSBank0, "Multi-OS (512 KB) bank 0", 524288, 0 * 131072, 131072},
-    {OSROMType_MultiOSBank1, "Multi-OS (512 KB) bank 1", 524288, 1 * 131072, 131072},
-    {OSROMType_MultiOSBank2, "Multi-OS (512 KB) bank 2", 524288, 2 * 131072, 131072},
-    {OSROMType_MultiOSBank3, "Multi-OS (512 KB) bank 3", 524288, 3 * 131072, 131072},
+    {OSROMType_MultiOSBank0, "Multi-OS (512 KB) (default bank: 0)", 524288, 0 * 131072, 131072},
+    {OSROMType_MultiOSBank1, "Multi-OS (512 KB) (default bank: 1)", 524288, 1 * 131072, 131072},
+    {OSROMType_MultiOSBank2, "Multi-OS (512 KB) (default bank: 2)", 524288, 2 * 131072, 131072},
+    {OSROMType_MultiOSBank3, "Multi-OS (512 KB) (default bank: 3)", 524288, 3 * 131072, 131072},
 };
 
 //////////////////////////////////////////////////////////////////////////
