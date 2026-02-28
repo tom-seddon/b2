@@ -317,6 +317,10 @@ const char *GetModelName(BBCMicroTypeID type_id);
 bool Has4ROMSlots(BBCMicroTypeID type_id);
 bool HasSerial(BBCMicroTypeID type_id);
 bool IsMasterSeries(BBCMicroTypeID type_id);
+bool CanHaveVideoNuLA(BBCMicroTypeID type_id);
+#if ENABLE_ELECTRON
+bool IsElectron(BBCMicroTypeID type_id);
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

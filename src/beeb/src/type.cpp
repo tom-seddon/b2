@@ -83,7 +83,13 @@
 //
 // The Master can have 2 parasites, when there's both internal and external
 // second processors connected. This isn't supported currently.
-
+//
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//
+// The Electron was not quite an afterthought, but I didn't plan for it very
+// carefully. It's so different in many respects anyway.
+//
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -197,10 +203,6 @@ char GetMapperRegionCode(uint32_t region) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-static bool IsMaster(BBCMicroTypeID type_id) {
-    return type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
-}
 
 static bool IsB(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus;
@@ -1081,22 +1083,36 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         type->rom_types[i] = rom_types_[i];
     }
 
-    if (IsMaster(type->type_id)) {
+    if (IsMasterSeries(type->type_id)) {
         type->m6502_config = &M6502_cmos6502_config;
     } else {
         type->m6502_config = &M6502_nmos6502_config;
     }
 
-    if (type->type_id == BBCMicroTypeID_B) {
+    switch (type->type_id) {
+    case BBCMicroTypeID_B:
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+#endif
         type->ram_buffer_size = 32768;
-    } else {
+        break;
+
+    default:
         type->ram_buffer_size = 65536;
+        break;
     }
 
-    if (type->type_id == BBCMicroTypeID_MasterCompact) {
+    switch (type->type_id) {
+    case BBCMicroTypeID_MasterCompact:
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+#endif
         type->default_disc_drive_type = DiscDriveType_90mm;
-    } else {
+        break;
+
+    default:
         type->default_disc_drive_type = DiscDriveType_133mm;
+        break;
     }
 
     switch (type->type_id) {
@@ -1220,7 +1236,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
     }
 #endif
 
-    if (IsMaster(type->type_id)) {
+    if (IsMasterSeries(type->type_id)) {
         type->sheila_cycle_stretch_regions = {
             {0x00, 0x1f},
             {0x28, 0x2b},
@@ -1235,7 +1251,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
     }
 
     if (HasADC(type->type_id)) {
-        if (IsMaster(type->type_id)) {
+        if (IsMasterSeries(type->type_id)) {
             type->adc_addr = 0xfe18;
             type->adc_count = 8;
         } else {
@@ -1253,7 +1269,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
 //////////////////////////////////////////////////////////////////////////
 
 bool HasNVRAM(BBCMicroTypeID type_id) {
-    return IsMaster(type_id);
+    return IsMasterSeries(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1267,7 +1283,7 @@ bool CanDisplayTeletextAt3C00(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 bool HasNumericKeypad(BBCMicroTypeID type_id) {
-    return IsMaster(type_id);
+    return IsMasterSeries(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1281,42 +1297,52 @@ bool HasSpeech(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 bool HasTube(BBCMicroTypeID type_id) {
-    return type_id != BBCMicroTypeID_MasterCompact;
+    return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool HasCartridges(BBCMicroTypeID type_id) {
-    return type_id == BBCMicroTypeID_Master;
+    if (type_id == BBCMicroTypeID_Master) {
+        return true;
+    }
+
+#if ENABLE_ELECTRON
+    if (type_id == BBCMicroTypeID_Electron) {
+        return true;
+    }
+#endif
+
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool HasUserPort(BBCMicroTypeID type_id) {
-    return type_id != BBCMicroTypeID_MasterCompact;
+    return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool Has1MHzBus(BBCMicroTypeID type_id) {
-    return type_id != BBCMicroTypeID_MasterCompact;
+    return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool HasADC(BBCMicroTypeID type_id) {
-    return type_id != BBCMicroTypeID_MasterCompact;
+    return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool HasIndependentMOSView(BBCMicroTypeID type_id) {
-    return type_id != BBCMicroTypeID_B;
+    return IsMasterSeries(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1330,7 +1356,7 @@ bool Has4ROMSlots(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 bool HasSerial(BBCMicroTypeID type_id) {
-    return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus || type_id == BBCMicroTypeID_Master;
+    return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1339,6 +1365,22 @@ bool HasSerial(BBCMicroTypeID type_id) {
 bool IsMasterSeries(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CanHaveVideoNuLA(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus || type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+bool IsElectron(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_Electron;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1359,6 +1401,11 @@ const char *GetModelName(BBCMicroTypeID type_id) {
 
     case BBCMicroTypeID_MasterCompact:
         return "Master Compact";
+
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+        return "Electron";
+#endif
     }
 }
 

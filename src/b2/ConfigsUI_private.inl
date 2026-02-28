@@ -14,7 +14,7 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME ROMEditFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 EPNV(CanMoveUp, 1 << 0)
 EPNV(CanMoveDown, 1 << 1)
 EPNV(BSidewaysROMs, 1 << 2)
@@ -28,8 +28,20 @@ EPNV(MasterCompactSidewaysROMs, 1 << 9)
 EPNV(MasterCompactOSROMs, 1 << 10)
 EPNV(ContainedInOSROM, 1 << 11)
 EPNV(NotAccessibleWithoutROMBoard, 1 << 12)
+EPNV(NotAvailable, 1 << 13)
+EPNV(ElectronSidewaysROMs, 1 << 14)
+EPNV(ElectronOSROMs, 1 << 15)
 EEND()
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+//#define ENAME ROMEditBankType
+//EBEGIN_DERIVED(uint8_t)
+//EPNV(Normal)
+//EPNV(NotAvailable)
+//EPNV(NotAccessibleWithoutROMBoard)
+//EPNV(ContainedInOSROM)
+//EEND()
+//#undef ENAME

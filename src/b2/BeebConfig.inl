@@ -16,6 +16,7 @@ EPNV(6502SecondProcessor, 1 << 1)
 EPNV(MasterCompact, 1 << 2)
 EPNV(OlivettiPC128S, 1 << 3)
 EPNV(MasterCompactArabic, 1 << 4)
+EPNV(Electron, 1 << 5)
 EEND_SERIALIZABLE()
 #undef ENAME
 

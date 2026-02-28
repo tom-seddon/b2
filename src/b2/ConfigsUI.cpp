@@ -259,6 +259,13 @@ void ConfigsUI::DoEditConfigGui() {
         rom_edit_sideways_rom_flags = ROMEditFlag_MasterCompactSidewaysROMs;
         rom_edit_os_rom_flags = ROMEditFlag_MasterCompactOSROMs;
         break;
+
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+        rom_edit_sideways_rom_flags = ROMEditFlag_ElectronSidewaysROMs;
+        rom_edit_os_rom_flags = ROMEditFlag_ElectronOSROMs;
+        break;
+#endif
     }
 
     // set to true if *config was edited - as well as
@@ -271,7 +278,7 @@ void ConfigsUI::DoEditConfigGui() {
     ImGuiIDPusher config_id_pusher(config);
 
     ImGui::Text("Model: %s", GetModelName(config->type_id));
-    ImGui::Text("Disc interface: %s", config->disc_interface->display_name.c_str());
+    ImGui::Text("Disc interface: %s", config->disc_interface ? config->disc_interface->display_name.c_str() : "(none)");
 
     std::string title = config->name;
 
@@ -314,11 +321,50 @@ void ConfigsUI::DoEditConfigGui() {
 
     ROMEditAction action = ROMEditAction_None;
     uint8_t action_bank = 0;
+    ROMEditFlag bank_fixed_flags[16] = {};
 
-    uint8_t sideways_roms_end = 16 - GetNumNonOSSidewaysROMs(config->os_rom_type);
-    uint8_t sideways_roms_begin = 0;
-    if (Has4ROMSlots(config->type_id) && !config->rom_board) {
-        sideways_roms_begin = 12;
+#if ENABLE_ELECTRON
+    if (IsElectron(config->type_id)) {
+        bank_fixed_flags[8] = ROMEditFlag_NotAvailable;
+        bank_fixed_flags[9] = ROMEditFlag_NotAvailable;
+        bank_fixed_flags[10] = ROMEditFlag_NotAvailable;
+    } else //<--note
+#endif     //<--note
+    {
+        uint8_t sideways_roms_end = 16 - GetNumNonOSSidewaysROMs(config->os_rom_type);
+        for (uint8_t i = sideways_roms_end; i < 16; ++i) {
+            bank_fixed_flags[i] = ROMEditFlag_ContainedInOSROM;
+        }
+
+        if (Has4ROMSlots(config->type_id) && !config->rom_board) {
+            for (uint8_t i = 0; i < 12; ++i) {
+                bank_fixed_flags[i] = ROMEditFlag_NotAccessibleWithoutROMBoard;
+            }
+        }
+    }
+
+    uint8_t bank_up[16];
+    {
+        uint8_t last_normal_bank = 0xff;
+
+        for (int8_t bank = 15; bank >= 0; --bank) {
+            bank_up[bank] = last_normal_bank;
+            if (bank_fixed_flags[bank] == 0) {
+                last_normal_bank = bank;
+            }
+        }
+    }
+
+    uint8_t bank_down[16];
+    {
+        uint8_t last_normal_bank = 0xff;
+
+        for (uint8_t bank = 0; bank < 16; ++bank) {
+            bank_down[bank] = last_normal_bank;
+            if (bank_fixed_flags[bank] == 0) {
+                last_normal_bank = bank;
+            }
+        }
     }
 
     for (uint8_t i = 0; i < 16; ++i) {
@@ -331,17 +377,13 @@ void ConfigsUI::DoEditConfigGui() {
 
             BeebConfig::SidewaysROM *rom = &config->roms[bank];
 
-            uint32_t rom_edit_flags = rom_edit_sideways_rom_flags;
+            uint32_t rom_edit_flags = rom_edit_sideways_rom_flags | bank_fixed_flags[bank];
 
-            if (bank < sideways_roms_end - 1) {
+            if (bank_up[bank] < 16) {
                 rom_edit_flags |= ROMEditFlag_CanMoveUp;
-            } else if (bank >= sideways_roms_end) {
-                rom_edit_flags |= ROMEditFlag_ContainedInOSROM;
             }
 
-            if (bank < sideways_roms_begin) {
-                rom_edit_flags |= ROMEditFlag_NotAccessibleWithoutROMBoard;
-            } else if (bank > sideways_roms_begin && bank < sideways_roms_end) {
+            if (bank_down[bank] < 16) {
                 rom_edit_flags |= ROMEditFlag_CanMoveDown;
             }
 
@@ -369,12 +411,14 @@ void ConfigsUI::DoEditConfigGui() {
 
     case ROMEditAction_MoveUp:
         ASSERT(action_bank < 15);
-        std::swap(config->roms[action_bank], config->roms[action_bank + 1]);
+        ASSERT(bank_up[action_bank] < 16);
+        std::swap(config->roms[action_bank], config->roms[bank_up[action_bank]]);
         break;
 
     case ROMEditAction_MoveDown:
         ASSERT(action_bank > 0);
-        std::swap(config->roms[action_bank], config->roms[action_bank - 1]);
+        ASSERT(bank_down[action_bank] < 16);
+        std::swap(config->roms[action_bank], config->roms[bank_down[action_bank]]);
         break;
     }
 
@@ -388,7 +432,7 @@ void ConfigsUI::DoEditConfigGui() {
     ImGuiHeader("Additional hardware");
 
     if (Has1MHzBus(config->type_id)) {
-        if (!(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
+        if (!config->disc_interface || !(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
             if (ImGui::Checkbox("External memory", &config->ext_mem)) {
                 edited = true;
             }
@@ -401,8 +445,10 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (ImGui::Checkbox("Video NuLA", &config->video_nula)) {
-        edited = true;
+    if (CanHaveVideoNuLA(config->type_id)) {
+        if (ImGui::Checkbox("Video NuLA", &config->video_nula)) {
+            edited = true;
+        }
     }
 
     if (HasCartridges(config->type_id)) {
@@ -771,6 +817,20 @@ static const BeebROM *const MOS511i_SIDEWAYS_ROMS[] = {
     nullptr,
 };
 
+#if ENABLE_ELECTRON
+static const BeebROM *const ELECTRON_SIDEWAYS_ROMS[] = {
+    &BEEB_ROM_BASIC2,
+    nullptr,
+};
+#endif
+
+#if ENABLE_ELECTRON
+static const BeebROM *const ELECTRON_MOS_ROMS[] = {
+    &BEEB_ROM_ELECTRON_MOS,
+    nullptr,
+};
+#endif
+
 static bool ImGuiROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
     for (size_t i = 0; b_roms[i]; ++i) {
         if (ImGuiROM(rom, b_roms[i])) {
@@ -845,7 +905,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
     ImGui::NextColumn();
 
-    if (writeable && !(rom_edit_flags & (ROMEditFlag_ContainedInOSROM | ROMEditFlag_NotAccessibleWithoutROMBoard))) {
+    if (writeable && !(rom_edit_flags & (ROMEditFlag_ContainedInOSROM | ROMEditFlag_NotAccessibleWithoutROMBoard | ROMEditFlag_NotAvailable))) {
         ImGui::BeginDisabled(!type || *type != ROMType_16KB);
         if (ImGui::Checkbox("##ram", writeable)) {
             edited = true;
@@ -870,6 +930,8 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             ImGui::Text("(contained in OS ROM)");
         } else if (rom_edit_flags & ROMEditFlag_NotAccessibleWithoutROMBoard) {
             ImGui::Text("(inaccessible without ROM board)");
+        } else if (rom_edit_flags & ROMEditFlag_NotAvailable) {
+            ImGui::Text("(this bank is not available for use)");
         } else if (rom->standard_rom) {
             ImGui::TextUnformatted(rom->standard_rom->name.c_str());
         } else {
@@ -953,6 +1015,10 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.10 OS ROM", MOS510_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "PC 128 S OS ROM", MOSI510C_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.11i OS ROM", MOS511i_MOS_ROMS);
+#if ENABLE_ELECTRON
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ElectronSidewaysROMs, "Electron Sideways ROM", ELECTRON_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ElectronOSROMs, "Electron OS", ELECTRON_MOS_ROMS);
+#endif
 
         ImGui::EndPopup();
     }

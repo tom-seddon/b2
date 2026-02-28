@@ -116,6 +116,9 @@ void BeebConfig::ResetNVRAM() {
             [[fallthrough]];
         case BBCMicroTypeID_B:
         case BBCMicroTypeID_BPlus:
+#if ENABLE_ELECTRON
+        case BBCMicroTypeID_Electron:
+#endif
             goto BeebConfigNVRAMType_None;
 
         case BBCMicroTypeID_Master:
@@ -452,6 +455,21 @@ void InitDefaultBeebConfigs() {
 
         g_default_configs.push_back(config);
     }
+
+#if ENABLE_ELECTRON
+    {
+        BeebConfig config;
+
+        config.name = "Electron";
+        config.disc_interface = nullptr;
+        config.type_id = BBCMicroTypeID_Electron;
+        config.os.standard_rom = &BEEB_ROM_ELECTRON_MOS;
+        config.roms[11].standard_rom = &BEEB_ROM_BASIC2;
+        config.feature_flags = BeebConfigFeatureFlag_Electron;
+
+        g_default_configs.push_back(config);
+    }
+#endif
 
     for (BeebConfig &config : g_default_configs) {
         config.ResetNVRAM();
