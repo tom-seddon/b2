@@ -682,6 +682,71 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB(const ROMType *rom_type
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_ELECTRON
+static void GetMemBigPageTablesElectron(MemoryBigPageTables *tables,
+                                        uint32_t *paging_flags,
+                                        const PagingState &paging) {
+    ASSERT(false); //TODO...
+
+    tables->mem_big_pages[0][0].i = MAIN_BIG_PAGE_INDEX.i + 0;
+    tables->mem_big_pages[0][1].i = MAIN_BIG_PAGE_INDEX.i + 1;
+    tables->mem_big_pages[0][2].i = MAIN_BIG_PAGE_INDEX.i + 2;
+    tables->mem_big_pages[0][3].i = MAIN_BIG_PAGE_INDEX.i + 3;
+    tables->mem_big_pages[0][4].i = MAIN_BIG_PAGE_INDEX.i + 4;
+    tables->mem_big_pages[0][5].i = MAIN_BIG_PAGE_INDEX.i + 5;
+    tables->mem_big_pages[0][6].i = MAIN_BIG_PAGE_INDEX.i + 6;
+    tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
+
+    uint8_t pr = paging.romsel.b_bits.pr;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + pr * NUM_ROM_BIG_PAGES + paging.rom_regions[pr] * 4;
+    tables->mem_big_pages[0][0x8].i = rom + 0;
+    tables->mem_big_pages[0][0x9].i = rom + 1;
+    tables->mem_big_pages[0][0xa].i = rom + 2;
+    tables->mem_big_pages[0][0xb].i = rom + 3;
+
+    tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
+    tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
+    tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
+    tables->mem_big_pages[0][0xf].i = FIRST_IO_BIG_PAGE_INDEX.i + 0;
+
+    memset(tables->mem_big_pages[1], 0, sizeof tables->mem_big_pages[1]);
+    memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
+    *paging_flags = 0;
+}
+
+#endif
+
+#if ENABLE_ELECTRON
+#if BBCMICRO_DEBUGGER
+static void ApplyDSOElectron(PagingState *paging, uint32_t dso) {
+    ApplyROMDSO(paging, dso);
+}
+#endif
+#endif
+
+#if ENABLE_ELECTRON
+#if BBCMICRO_DEBUGGER
+static uint32_t GetDSOElectron(const PagingState &paging) {
+    uint32_t dso = 0;
+
+    dso |= GetROMDSO(paging);
+
+    return dso;
+}
+#endif
+#endif
+
+#if ENABLE_ELECTRON
+static std::vector<BigPageMetadata> GetBigPagesMetadataElectron(const ROMType *rom_types) {
+    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types, 0);
+
+    return big_pages;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // YXE  Usr  MOS
 // ---  ---  ---
 // 000   M    M
@@ -1141,6 +1206,14 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         type->get_mem_big_page_tables_fn = &GetMemBigPagesTablesMaster;
         type->host_io_flags_mask = HostIOFlag_IFJ | HostIOFlag_ITU | HostIOFlag_TST;
         break;
+
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+        type->big_pages_metadata = GetBigPagesMetadataElectron(type->rom_types);
+        type->get_mem_big_page_tables_fn = &GetMemBigPageTablesElectron;
+        type->host_io_flags_mask = 0;
+        break;
+#endif
     }
 
 #if BBCMICRO_DEBUGGER
@@ -1195,6 +1268,16 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         type->apply_dso_fn = &ApplyDSOB;
         type->get_dso_fn = &GetDSOB;
         break;
+
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+        type->dso_mask = (BBCMicroDebugStateOverride_OverrideROM |
+                          BBCMicroDebugStateOverride_ROM);
+        type->apply_dso_fn = &ApplyDSOElectron;
+        type->get_dso_fn = &GetDSOElectron;
+        break;
+
+#endif
 
     case BBCMicroTypeID_BPlus:
         type->dso_mask = (BBCMicroDebugStateOverride_ROM |
@@ -1357,6 +1440,13 @@ bool Has4ROMSlots(BBCMicroTypeID type_id) {
 
 bool HasSerial(BBCMicroTypeID type_id) {
     return IsB(type_id) || type_id == BBCMicroTypeID_Master;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool IsBBCMicro(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus || IsMasterSeries(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////

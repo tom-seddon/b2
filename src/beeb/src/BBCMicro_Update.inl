@@ -492,7 +492,13 @@ parasite_update_done:
                 if ((m_state.cpu.abus.w & 0xfff0) == 0xa000) {
                     this->UpdateMapperRegion(m_state.cpu.abus.w & 0xf);
                 }
-            } else {
+            } //<--note
+#if ENABLE_ELECTRON //<--note
+            else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ElectronKeyboard) {
+                // nothing to do at this point, but at least cover the case.
+            }
+#endif             //<--note
+            else { //<--note
                 static_assert(AlwaysFalseUInt<UPDATE_FLAGS>::value);
             }
 
@@ -547,7 +553,17 @@ parasite_update_done:
                                 m_state.cpu.dbus = m_state.last_fetched_video_byte;
                             }
                         }
-                    } else {
+                    } //<--note
+#if ENABLE_ELECTRON //<--note
+                    else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ElectronKeyboard) {
+                        // Handle the Electron's slightly inconsistent
+                        // memory-mapped keyboard.
+                        if (m_state.cpu.abus.b.h >= 0x80 && m_state.cpu.abus.b.h < 0xc0) {
+                            m_state.cpu.dbus = 0xf; //TODO: keyboard
+                        }
+                    } //<--note
+#endif //<--note
+                    else {
                         m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
 
                         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
@@ -1179,7 +1195,7 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
     flags &= ~BBCMicroUpdateFlag_Debug;
 #endif
 
-    switch ((BBCMicroUpdateSystemType)((flags >> BBCMicroUpdateFlag_UpdateSystemTypeShift) & BBCMicroUpdateFlag_UpdateSystemTypeMask)) {
+    switch (GetBBCMicroUpdateFlagsUpdateSystemType(flags)) {
     default:
         // normalize to BBC Micro type.
         flags &= ~(BBCMicroUpdateFlag_UpdateSystemTypeMask << BBCMicroUpdateFlag_UpdateSystemTypeShift);
@@ -1214,6 +1230,13 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         // out of bounds ROMType... reset to 0.
         update_rom_type = (BBCMicroUpdateROMType)0;
     }
+
+#if ENABLE_ELECTRON
+    if (update_rom_type == BBCMicroUpdateROMType_ElectronKeyboard && GetBBCMicroUpdateFlagsUpdateSystemType(flags) != BBCMicroUpdateSystemType_Electron) {
+        // Invalid combination. Treat as 16 KB.
+        update_rom_type = BBCMicroUpdateROMType_16KB;
+    }
+#endif
 
     flags = (flags & ~(BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift)) | (uint32_t)update_rom_type << BBCMicroUpdateFlag_UpdateROMTypeShift;
 

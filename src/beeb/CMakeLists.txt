@@ -38,6 +38,7 @@ set(SRCS
   ${S}/HardDiskImage.cpp ${I}/HardDiskImage.h
   ${S}/MC6850.cpp ${I}/MC6850.h ${I}/MC6850.inl
   ${S}/serproc.cpp ${I}/serproc.h ${I}/serproc.inl
+  ${S}/ElectronULA.cpp ${I}/ElectronULA.h ${I}/ElectronULA.inl
 )
 
 if(MSVC)

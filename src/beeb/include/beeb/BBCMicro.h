@@ -908,6 +908,26 @@ class BBCMicro : private WD1770Handler {
     static uint8_t DebugReadADJI(const void *dji_, M6502Word a);
 #endif
     static uint8_t ReadSERPROC(void *m_, M6502Word a);
+
+#if ENABLE_ELECTRON
+    static uint8_t ReadElectronULA0(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA1(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA2(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA3(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA4(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA5(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA6(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA7(void *m_, M6502Word a);
+    static void WriteElectronULA0(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA1(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA2(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA3(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA4(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA5(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA6(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA7(void *m_, M6502Word a, uint8_t value);
+#endif
+
     uint8_t GetStaleDatabusByte() const;
 #if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);

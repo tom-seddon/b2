@@ -1041,6 +1041,158 @@ uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA0(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA1(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA2(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA3(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA4(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA5(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA6(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA7(void *m_, M6502Word a) {
+    ASSERT(false);
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA0(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA1(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA2(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA3(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA4(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA5(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA6(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA7(void *m_, M6502Word a, uint8_t value) {
+    ASSERT(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 uint8_t BBCMicro::GetStaleDatabusByte() const {
     if (GetBBCMicroUpdateFlagsUpdateSystemType(m_update_flags) == BBCMicroUpdateSystemType_BBCMicro) {
         return m_state.cpu.dbus;
@@ -2903,51 +3055,108 @@ void BBCMicro::InitStuff() {
         }
     }
 
-    // I/O: VIAs
-    for (uint16_t i = 0; i < 32; ++i) {
-        this->SetSIO(0xfe40 + i, g_R6522_read_fns[i & 15], &m_state.system_via, g_R6522_write_fns[i & 15], &m_state.system_via);
-        this->SetSIO(0xfe60 + i, g_R6522_read_fns[i & 15], &m_state.user_via, g_R6522_write_fns[i & 15], &m_state.user_via);
+    if (IsBBCMicro(m_state.type->type_id)) {
+        // I/O: VIAs
+        for (uint16_t i = 0; i < 32; ++i) {
+            this->SetSIO(0xfe40 + i, g_R6522_read_fns[i & 15], &m_state.system_via, g_R6522_write_fns[i & 15], &m_state.system_via);
+            this->SetSIO(0xfe60 + i, g_R6522_read_fns[i & 15], &m_state.user_via, g_R6522_write_fns[i & 15], &m_state.user_via);
 #if BBCMICRO_DEBUGGER
-        this->SetDebugSIO(0xfe40 + i, g_R6522_debug_read_fns[i & 15], &GetDebugMMIOReadSystemVIAContext);
-        this->SetDebugSIO(0xfe60 + i, g_R6522_debug_read_fns[i & 15], &GetDebugMMIOReadUserVIAContext);
+            this->SetDebugSIO(0xfe40 + i, g_R6522_debug_read_fns[i & 15], &GetDebugMMIOReadSystemVIAContext);
+            this->SetDebugSIO(0xfe60 + i, g_R6522_debug_read_fns[i & 15], &GetDebugMMIOReadUserVIAContext);
 #endif
-    }
-
-    // I/O: 6845
-    for (int i = 0; i < 8; i += 2) {
-        this->SetSIO((uint16_t)(0xfe00 + i + 0), &CRTC::ReadAddress, &m_state.crtc, &CRTC::WriteAddress, &m_state.crtc);
-        this->SetSIO((uint16_t)(0xfe00 + i + 1), &CRTC::ReadData, &m_state.crtc, &CRTC::WriteData, &m_state.crtc);
-    }
-
-    // I/O: Video ULA
-    m_state.video_ula.nula = !!(m_state.init_flags & BBCMicroInitFlag_VideoNuLA);
-    {
-        uint8_t video_ula_region_size;
-        switch (m_state.type->type_id) {
-        default:
-            ASSERT(false);
-            [[fallthrough]];
-        case BBCMicroTypeID_B:
-        case BBCMicroTypeID_BPlus:
-            video_ula_region_size = 16;
-            break;
-
-        case BBCMicroTypeID_Master:
-        case BBCMicroTypeID_MasterCompact:
-            video_ula_region_size = 4;
-            break;
         }
 
-        for (uint8_t i = 0; i < video_ula_region_size; ++i) {
-            uint16_t addr = 0xfe20 + i;
+        // I/O: 6845
+        for (int i = 0; i < 8; i += 2) {
+            this->SetSIO((uint16_t)(0xfe00 + i + 0), &CRTC::ReadAddress, &m_state.crtc, &CRTC::WriteAddress, &m_state.crtc);
+            this->SetSIO((uint16_t)(0xfe00 + i + 1), &CRTC::ReadData, &m_state.crtc, &CRTC::WriteData, &m_state.crtc);
+        }
 
-            if ((i & 2) != 0 && (m_state.init_flags & BBCMicroInitFlag_VideoNuLA)) {
-                this->SetSIO(addr, nullptr, nullptr, i & 1 ? &VideoULA::WriteNuLAPalette : &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
-            } else {
-                this->SetSIO(addr, nullptr, nullptr, i & 1 ? &VideoULA::WritePalette : &VideoULA::WriteControlRegister, &m_state.video_ula);
+        // I/O: Video ULA
+        m_state.video_ula.nula = !!(m_state.init_flags & BBCMicroInitFlag_VideoNuLA);
+        {
+            uint8_t video_ula_region_size;
+            switch (m_state.type->type_id) {
+            default:
+                ASSERT(false);
+                [[fallthrough]];
+            case BBCMicroTypeID_B:
+            case BBCMicroTypeID_BPlus:
+                video_ula_region_size = 16;
+                break;
+
+            case BBCMicroTypeID_Master:
+            case BBCMicroTypeID_MasterCompact:
+                video_ula_region_size = 4;
+                break;
+            }
+
+            for (uint8_t i = 0; i < video_ula_region_size; ++i) {
+                uint16_t addr = 0xfe20 + i;
+
+                if ((i & 2) != 0 && (m_state.init_flags & BBCMicroInitFlag_VideoNuLA)) {
+                    this->SetSIO(addr, nullptr, nullptr, i & 1 ? &VideoULA::WriteNuLAPalette : &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
+                } else {
+                    this->SetSIO(addr, nullptr, nullptr, i & 1 ? &VideoULA::WritePalette : &VideoULA::WriteControlRegister, &m_state.video_ula);
+                }
             }
         }
+
+        // I/O: Serial
+        if (m_state.HasSerial()) {
+            // I/O: ULA/SERPROC
+            for (int i = 0; i < 8; ++i) {
+                uint16_t addr = (uint16_t)(0xfe10 + i);
+                this->SetSIO(addr, &ReadSERPROC, this, &SERPROC::Write, &m_state.serproc);
+#if BBCMICRO_DEBUGGER
+                this->SetDebugSIO(addr, nullptr, nullptr);
+#endif
+            }
+
+            // I/O: ACIA
+            for (int i = 0; i < 8; i += 2) {
+                uint16_t addr = (uint16_t)(0xfe08 + i);
+                this->SetSIO(addr + 0, &MC6850::ReadStatusRegister, &m_state.acia, &MC6850::WriteControlRegister, &m_state.acia);
+                this->SetSIO(addr + 1, &MC6850::ReadDataRegister, &m_state.acia, &MC6850::WriteDataRegister, &m_state.acia);
+#if BBCMICRO_DEBUGGER
+                this->SetDebugSIO(addr + 0, &MC6850::DebugReadStatusRegister, &GetDebugMMIOReadACIAContext);
+                this->SetDebugSIO(addr + 0, &MC6850::DebugReadDataRegister, &GetDebugMMIOReadACIAContext);
+#endif
+            }
+
+            m_state.serproc.Link(&m_state.acia);
+        }
+
+        m_state.video_ula.InitStuff();
+
+        m_state.system_via.SetID(BBCMicroVIAID_SystemVIA, "SystemVIA");
+        m_state.user_via.SetID(BBCMicroVIAID_UserVIA, "UserVIA");
+
+        m_state.old_system_via_pb.value = m_state.system_via.b.p;
+
+        if (CanDisplayTeletextAt3C00(m_state.type->type_id)) {
+            m_teletext_bases[0] = 0x3c00;
+            m_teletext_bases[1] = 0x7c00;
+        } else {
+            m_teletext_bases[0] = 0x7c00;
+            m_teletext_bases[1] = 0x7c00;
+        }
     }
+
+#if ENABLE_ELECTRON
+    if (IsElectron(m_state.type->type_id)) {
+        for (int i = 0; i < 256; i += 8) {
+            this->SetSIO((uint16_t)(0xfe00 + i + 0), &ReadElectronULA0, this, &WriteElectronULA0, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 1), &ReadElectronULA1, this, &WriteElectronULA1, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 2), &ReadElectronULA2, this, &WriteElectronULA2, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 3), &ReadElectronULA3, this, &WriteElectronULA3, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 4), &ReadElectronULA4, this, &WriteElectronULA4, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 5), &ReadElectronULA5, this, &WriteElectronULA5, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 6), &ReadElectronULA6, this, &WriteElectronULA6, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 7), &ReadElectronULA7, this, &WriteElectronULA7, this);
+        }
+    }
+#endif
 
     // I/O: disc interface
     if (m_state.disc_interface) {
@@ -2987,38 +3196,6 @@ void BBCMicro::InitStuff() {
         m_state.fdc.SetHandler(nullptr);
     }
 
-    // I/O: Serial
-    if (m_state.HasSerial()) {
-        // I/O: ULA/SERPROC
-        for (int i = 0; i < 8; ++i) {
-            uint16_t addr = (uint16_t)(0xfe10 + i);
-            this->SetSIO(addr, &ReadSERPROC, this, &SERPROC::Write, &m_state.serproc);
-#if BBCMICRO_DEBUGGER
-            this->SetDebugSIO(addr, nullptr, nullptr);
-#endif
-        }
-
-        // I/O: ACIA
-        for (int i = 0; i < 8; i += 2) {
-            uint16_t addr = (uint16_t)(0xfe08 + i);
-            this->SetSIO(addr + 0, &MC6850::ReadStatusRegister, &m_state.acia, &MC6850::WriteControlRegister, &m_state.acia);
-            this->SetSIO(addr + 1, &MC6850::ReadDataRegister, &m_state.acia, &MC6850::WriteDataRegister, &m_state.acia);
-#if BBCMICRO_DEBUGGER
-            this->SetDebugSIO(addr + 0, &MC6850::DebugReadStatusRegister, &GetDebugMMIOReadACIAContext);
-            this->SetDebugSIO(addr + 0, &MC6850::DebugReadDataRegister, &GetDebugMMIOReadACIAContext);
-#endif
-        }
-
-        m_state.serproc.Link(&m_state.acia);
-    }
-
-    m_state.video_ula.InitStuff();
-
-    m_state.system_via.SetID(BBCMicroVIAID_SystemVIA, "SystemVIA");
-    m_state.user_via.SetID(BBCMicroVIAID_UserVIA, "UserVIA");
-
-    m_state.old_system_via_pb.value = m_state.system_via.b.p;
-
     if (m_beeblink_handler) {
         m_beeblink = std::make_unique<BeebLink>(m_beeblink_handler);
 
@@ -3027,14 +3204,6 @@ void BBCMicro::InitStuff() {
     }
 
     this->UpdateCPUDataBusFn();
-
-    if (CanDisplayTeletextAt3C00(m_state.type->type_id)) {
-        m_teletext_bases[0] = 0x3c00;
-        m_teletext_bases[1] = 0x7c00;
-    } else {
-        m_teletext_bases[0] = 0x7c00;
-        m_teletext_bases[1] = 0x7c00;
-    }
 
     switch (m_state.type->type_id) {
     case BBCMicroTypeID_B:

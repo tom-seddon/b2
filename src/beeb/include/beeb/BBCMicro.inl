@@ -153,6 +153,9 @@ EPN(PALTED)
 EPN(ABEP_OR_ABE)
 EPN(Trilogy)
 EPN(MO2)
+#if ENABLE_ELECTRON
+EPN(ElectronKeyboard)
+#endif
 
 // Must be last.
 EPN(Count)
@@ -256,6 +259,8 @@ EPNV(Serial, 1 << 14)
 
 EEND()
 #undef ENAME
+
+static_assert((uint8_t)BBCMicroUpdateROMType_Count <= (uint32_t)BBCMicroUpdateFlag_UpdateROMTypeMask);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

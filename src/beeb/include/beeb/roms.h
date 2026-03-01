@@ -15,7 +15,7 @@
 
 struct ROMTypeMetadata {
     ROMType type;
-    const char *description = nullptr; //shown in UI
+    const char *description = nullptr; //shown in UI if non-NULL
     size_t num_bytes = 0;
 };
 
