@@ -961,6 +961,10 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
                 for (int i = 0; i < ROMType_Count; ++i) {
                     const ROMTypeMetadata *metadata = GetROMTypeMetadata((ROMType)i);
+                    if (metadata->num_bytes == 0) {
+                        continue;
+                    }
+
                     bool selected = *type == i;
                     if (ImGui::MenuItem(metadata->description, nullptr, &selected)) {
                         *type = (ROMType)i;
