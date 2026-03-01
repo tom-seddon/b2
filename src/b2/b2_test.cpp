@@ -1067,6 +1067,11 @@ class TestNVRAMUpdate : public DearImGuiTest {
         std::string hardware_config_path = "Hardware/###" + std::to_string(config_index);
         ctx->MenuClick(hardware_config_path.c_str());
 
+        // TODO: the stuff that's being done via the beeb thread might not be
+        // feeding back in time to the UI for the test engine to deal with it?
+        // This yield is not a good solution
+        yielder.Yield();
+
         std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
 
         std::string old_status_output = GetSTATUSOutput(ctx, beeb_window, this);
