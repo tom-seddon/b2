@@ -80,6 +80,11 @@ static std::shared_ptr<std::vector<uint8_t>> LoadSidewaysROM(const BeebConfig::S
                                                              Messages *msg) {
     const ROMTypeMetadata *metadata = GetROMTypeMetadata(rom.GetROMType());
 
+    if (metadata->num_bytes == 0) {
+        msg->e.f("ROM type not loadable from file: %s\n", metadata->description);
+        return nullptr;
+    }
+
     std::vector<uint8_t> data;
     if (!LoadROM2(&data, rom, metadata->num_bytes, msg)) {
         return nullptr;
