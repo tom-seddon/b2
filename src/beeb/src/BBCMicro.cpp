@@ -511,15 +511,15 @@ void BBCMicro::UpdatePaging() {
 
     if (host_io_flags & HostIOFlag_TST) {
         m_read_mmios = m_read_mmios_rom.data();
-        m_read_mmios_stretch = m_mmios_stretch_rom.data();
+        m_read_mmios_new_run_state = m_mmios_new_run_state_rom.data();
     } else {
         m_read_mmios = m_read_mmios_hw[host_io_flags].data();
-        m_read_mmios_stretch = m_mmios_stretch_hw[host_io_flags].data();
+        m_read_mmios_new_run_state = m_mmios_new_run_state_hw[host_io_flags].data();
     }
 
     uint32_t write_table_index = host_io_flags & (HostIOFlag_ITU | HostIOFlag_IFJ);
     m_write_mmios = m_write_mmios_hw[write_table_index].data();
-    m_write_mmios_stretch = m_mmios_stretch_hw[write_table_index].data();
+    m_write_mmios_new_run_state = m_mmios_new_run_state_hw[write_table_index].data();
 
     // The per-type ACCCON mask ensures that ITU will remain clear on B/B+.
     m_state.parasite_accessible = m_state.paging.acccon.m128_bits.itu == m_state.parasite_itu;
@@ -609,6 +609,13 @@ void BBCMicro::GetBigPageProperties(const uint8_t **read_ptr,
             size_t offset = (big_page_index.i - PARASITE_ROM_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
             *read_ptr = &state->parasite_rom_buffer->at(offset);
         }
+#if ENABLE_ELECTRON
+    } else if (big_page_index.i >= ELECTRON_KEYBOARD_BIG_PAGE_INDEX.i &&
+               big_page_index.i < ELECTRON_KEYBOARD_BIG_PAGE_INDEX.i + NUM_ELECTRON_KEYBOARD_BIG_PAGES) {
+        // An annoying special case, that has some special handling elsewhere.
+        *read_ptr = nullptr;
+        *writeable_ptr = false;
+#endif
     } else {
         ASSERT(false);
     }
@@ -732,6 +739,14 @@ void BBCMicro::InitPaging() {
             update_rom_type = BBCMicroUpdateROMType_MO2;
             break;
         }
+
+#if ENABLE_ELECTRON
+        if (IsElectron(m_state.type->type_id)) {
+            if (bank == ElectronULA::KEYBOARD_ROM_BANK_BASE + 0 || bank == ElectronULA::KEYBOARD_ROM_BANK_BASE + 1) {
+                update_rom_type = BBCMicroUpdateROMType_ElectronKeyboard;
+            }
+        }
+#endif
 
         m_state.update_rom_types[bank] = update_rom_type;
     }
@@ -1043,7 +1058,15 @@ uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA0(void *m_, M6502Word a) {
-    ASSERT(false);
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    ElectronIRQ irq = m->m_state.electron_ula.irq;
+
+    m->m_state.electron_ula.irq.bits.power_on = 0;
+
+    irq.bits.master = !!(m->m_state.electron_ula.irq.flag_bits.flags & m->m_state.electron_ula.irq_mask.flag_bits.flags);
+
     return 0xff;
 }
 #endif
@@ -1053,7 +1076,7 @@ uint8_t BBCMicro::ReadElectronULA0(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA1(void *m_, M6502Word a) {
-    ASSERT(false);
+    (void)m_, (void)a;
     return 0xff;
 }
 #endif
@@ -1063,7 +1086,7 @@ uint8_t BBCMicro::ReadElectronULA1(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA2(void *m_, M6502Word a) {
-    ASSERT(false);
+    (void)m_, (void)a;
     return 0xff;
 }
 #endif
@@ -1073,7 +1096,7 @@ uint8_t BBCMicro::ReadElectronULA2(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA3(void *m_, M6502Word a) {
-    ASSERT(false);
+    (void)m_, (void)a;
     return 0xff;
 }
 #endif
@@ -1083,7 +1106,12 @@ uint8_t BBCMicro::ReadElectronULA3(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA4(void *m_, M6502Word a) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.irq.bits.rx_data_full = 0;
     ASSERT(false);
+
     return 0xff;
 }
 #endif
@@ -1093,7 +1121,7 @@ uint8_t BBCMicro::ReadElectronULA4(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA5(void *m_, M6502Word a) {
-    ASSERT(false);
+    (void)m_, (void)a;
     return 0xff;
 }
 #endif
@@ -1103,7 +1131,7 @@ uint8_t BBCMicro::ReadElectronULA5(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA6(void *m_, M6502Word a) {
-    ASSERT(false);
+    (void)m_, (void)a;
     return 0xff;
 }
 #endif
@@ -1113,7 +1141,87 @@ uint8_t BBCMicro::ReadElectronULA6(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 uint8_t BBCMicro::ReadElectronULA7(void *m_, M6502Word a) {
-    ASSERT(false);
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA8(void *m_, M6502Word a) {
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULA9(void *m_, M6502Word a) {
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULAA(void *m_, M6502Word a) {
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULAB(void *m_, M6502Word a) {
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULAC(void *m_, M6502Word a) {
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULAD(void *m_, M6502Word a) {
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULAE(void *m_, M6502Word a) {
+    (void)m_, (void)a;
+    return 0xff;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+uint8_t BBCMicro::ReadElectronULAF(void *m_, M6502Word a) {
+    (void)m_, (void)a;
     return 0xff;
 }
 #endif
@@ -1123,7 +1231,10 @@ uint8_t BBCMicro::ReadElectronULA7(void *m_, M6502Word a) {
 
 #if ENABLE_ELECTRON
 void BBCMicro::WriteElectronULA0(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.irq_mask.value = value;
 }
 #endif
 
@@ -1132,7 +1243,9 @@ void BBCMicro::WriteElectronULA0(void *m_, M6502Word a, uint8_t value) {
 
 #if ENABLE_ELECTRON
 void BBCMicro::WriteElectronULA1(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)m_, (void)a, (void)value;
+
+    // This location doesn't do anything.
 }
 #endif
 
@@ -1141,7 +1254,11 @@ void BBCMicro::WriteElectronULA1(void *m_, M6502Word a, uint8_t value) {
 
 #if ENABLE_ELECTRON
 void BBCMicro::WriteElectronULA2(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.display_start_address &= ~0x1ffu;
+    m->m_state.electron_ula.display_start_address |= (value & 0b11100000) << 1;
 }
 #endif
 
@@ -1150,7 +1267,11 @@ void BBCMicro::WriteElectronULA2(void *m_, M6502Word a, uint8_t value) {
 
 #if ENABLE_ELECTRON
 void BBCMicro::WriteElectronULA3(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.display_start_address &= ~(0x3f << 9);
+    m->m_state.electron_ula.display_start_address |= (value & 0x3f) << 9;
 }
 #endif
 
@@ -1159,7 +1280,12 @@ void BBCMicro::WriteElectronULA3(void *m_, M6502Word a, uint8_t value) {
 
 #if ENABLE_ELECTRON
 void BBCMicro::WriteElectronULA4(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)a, (void)value;
+    auto m = (BBCMicro *)m_;
+
+    //ASSERT(false);
+
+    m->m_state.electron_ula.irq.bits.tx_data_empty = 0;
 }
 #endif
 
@@ -1167,8 +1293,34 @@ void BBCMicro::WriteElectronULA4(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 #if ENABLE_ELECTRON
+
+// Relevant discussion: https://stardot.org.uk/forums/viewtopic.php?t=27791
 void BBCMicro::WriteElectronULA5(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)a, (void)value;
+    auto m = (BBCMicro *)m_;
+
+    ElectronPaging paging;
+    paging.value = value;
+
+    // TODO: could do with something better here, but this register is just a
+    // bit weird.
+    m->m_state.electron_ula.romsel = value & 0xf;
+
+    if (paging.bits.clear_display_end) {
+        m->m_state.electron_ula.irq.bits.display_end = 0;
+    }
+
+    if (paging.bits.clear_rtc) {
+        m->m_state.electron_ula.irq.bits.rtc = 0;
+    }
+
+    if (paging.bits.clear_high_tone) {
+        m->m_state.electron_ula.irq.bits.high_tone = 0;
+    }
+
+    if (paging.bits.clear_nmi) {
+        m->m_state.electron_ula.nmi = false;
+    }
 }
 #endif
 
@@ -1177,7 +1329,18 @@ void BBCMicro::WriteElectronULA5(void *m_, M6502Word a, uint8_t value) {
 
 #if ENABLE_ELECTRON
 void BBCMicro::WriteElectronULA6(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    switch (m->m_state.electron_ula.misc.bits.mode) {
+    case ElectronULAMiscMode_SoundGeneration:
+        m->m_state.electron_ula.sound_frequency = value;
+        break;
+
+    default:
+        //ASSERT(false);
+        break;
+    }
 }
 #endif
 
@@ -1186,7 +1349,146 @@ void BBCMicro::WriteElectronULA6(void *m_, M6502Word a, uint8_t value) {
 
 #if ENABLE_ELECTRON
 void BBCMicro::WriteElectronULA7(void *m_, M6502Word a, uint8_t value) {
-    ASSERT(false);
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.misc.value = value;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA8(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0x8].bits.g = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xa].bits.g = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x0].bits.b = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x2].bits.b = !(value & 0b00100000);
+    m->m_state.electron_ula.palette[0x8].bits.b = !(value & 0b01000000);
+    m->m_state.electron_ula.palette[0xa].bits.b = !(value & 0b10000000);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULA9(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0x0].bits.r = !(value & 0b00000001);
+    m->m_state.electron_ula.palette[0x2].bits.r = !(value & 0b00000010);
+    m->m_state.electron_ula.palette[0x8].bits.r = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xa].bits.r = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x0].bits.g = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x2].bits.g = !(value & 0b00100000);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULAA(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0xc].bits.g = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xe].bits.g = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x4].bits.b = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x6].bits.b = !(value & 0b00100000);
+    m->m_state.electron_ula.palette[0xc].bits.b = !(value & 0b01000000);
+    m->m_state.electron_ula.palette[0xe].bits.b = !(value & 0b10000000);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULAB(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0x4].bits.r = !(value & 0b00000001);
+    m->m_state.electron_ula.palette[0x6].bits.r = !(value & 0b00000010);
+    m->m_state.electron_ula.palette[0xc].bits.r = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xe].bits.r = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x4].bits.g = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x6].bits.g = !(value & 0b00100000);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULAC(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0xd].bits.g = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xf].bits.g = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x5].bits.b = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x7].bits.b = !(value & 0b00100000);
+    m->m_state.electron_ula.palette[0xd].bits.b = !(value & 0b01000000);
+    m->m_state.electron_ula.palette[0xf].bits.b = !(value & 0b10000000);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULAD(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0x5].bits.r = !(value & 0b00000001);
+    m->m_state.electron_ula.palette[0x7].bits.r = !(value & 0b00000010);
+    m->m_state.electron_ula.palette[0xd].bits.r = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xf].bits.r = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x5].bits.g = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x7].bits.g = !(value & 0b00100000);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULAE(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0x9].bits.g = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xb].bits.g = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x1].bits.b = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x3].bits.b = !(value & 0b00100000);
+    m->m_state.electron_ula.palette[0x9].bits.b = !(value & 0b01000000);
+    m->m_state.electron_ula.palette[0xb].bits.b = !(value & 0b10000000);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+void BBCMicro::WriteElectronULAF(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.electron_ula.palette[0x1].bits.r = !(value & 0b00000001);
+    m->m_state.electron_ula.palette[0x3].bits.r = !(value & 0b00000010);
+    m->m_state.electron_ula.palette[0x9].bits.r = !(value & 0b00000100);
+    m->m_state.electron_ula.palette[0xb].bits.r = !(value & 0b00001000);
+    m->m_state.electron_ula.palette[0x1].bits.g = !(value & 0b00010000);
+    m->m_state.electron_ula.palette[0x3].bits.g = !(value & 0b00100000);
 }
 #endif
 
@@ -1403,16 +1705,25 @@ void BBCMicro::SetDiscDriveSound(DiscDriveType type, DiscDriveSound sound, std::
 uint32_t BBCMicro::GetLEDs() {
     uint32_t leds = 0;
 
-    if (!(m_state.addressable_latch.bits.caps_lock_led)) {
-        leds |= BBCMicroLEDFlag_CapsLock;
-    }
+#if ENABLE_ELECTRON
+    if (IsElectron(m_state.type->type_id)) {
+        if (m_state.electron_ula.misc.bits.caps_lock) {
+            leds |= BBCMicroLEDFlag_CapsLock;
+        }
+    } else //<--note
+#endif     //<--note
+    {
+        if (!(m_state.addressable_latch.bits.caps_lock_led)) {
+            leds |= BBCMicroLEDFlag_CapsLock;
+        }
 
-    if (!(m_state.addressable_latch.bits.shift_lock_led)) {
-        leds |= BBCMicroLEDFlag_ShiftLock;
-    }
+        if (!(m_state.addressable_latch.bits.shift_lock_led)) {
+            leds |= BBCMicroLEDFlag_ShiftLock;
+        }
 
-    if (m_state.serproc.IsMotorOn()) {
-        leds |= BBCMicroLEDFlag_TapeMotor;
+        if (m_state.serproc.IsMotorOn()) {
+            leds |= BBCMicroLEDFlag_TapeMotor;
+        }
     }
 
     for (int i = 0; i < NUM_DRIVES; ++i) {
@@ -2368,8 +2679,9 @@ void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
 std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
     std::string expr;
 
-    // ROMType is dealt with separately.
-    uint32_t flags = flags_ & ~(BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift);
+    // ROMType and SystemType are dealt with separately.
+    uint32_t flags = flags_ & ~((BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift) |
+                                (BBCMicroUpdateFlag_UpdateSystemTypeMask << BBCMicroUpdateFlag_UpdateSystemTypeShift));
     uint32_t mask = 1;
     while (flags != 0) {
         if (flags & mask) {
@@ -2390,20 +2702,31 @@ std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
         mask <<= 1;
     }
 
-    ROMType type = (ROMType)(flags_ >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
-    if (type != ROMType_16KB) {
-        if (!expr.empty()) {
-            expr += "|";
-        }
-
-        const char *type_name = GetBBCMicroUpdateROMTypeEnumName(type);
-        if (type_name[0] == '?') {
-            expr += "(BBCMicroUpdateROMType)" + std::to_string((int)type);
-        } else {
-            expr += type_name;
-        }
-        expr += "<<UpdateROMTypeShift";
+    auto rom_type = (BBCMicroUpdateROMType)(flags_ >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
+    if (!expr.empty()) {
+        expr += "|";
     }
+
+    const char *rom_type_name = GetBBCMicroUpdateROMTypeEnumName(rom_type);
+    if (rom_type_name[0] == '?') {
+        expr += "(BBCMicroUpdateROMType)" + std::to_string((int)rom_type);
+    } else {
+        expr += rom_type_name;
+    }
+    expr += "<<UpdateROMTypeShift";
+
+    auto system_type = (BBCMicroUpdateSystemType)(flags_ >> BBCMicroUpdateFlag_UpdateSystemTypeShift & BBCMicroUpdateFlag_UpdateSystemTypeMask);
+    if (!expr.empty()) {
+        expr += "|";
+    }
+
+    const char *system_type_name = GetBBCMicroUpdateSystemTypeEnumName(system_type);
+    if (system_type_name[0] == '?') {
+        expr += "(BBCMicroUpdateSystemType)" + std::to_string((int)system_type);
+    } else {
+        expr += system_type_name;
+    }
+    expr += "<<UpdateSystemTypeShift";
 
     if (expr.empty()) {
         expr = "0";
@@ -3024,7 +3347,7 @@ void BBCMicro::InitStuff() {
     for (int i = 0; i < 4; ++i) {
         m_read_mmios_hw[i] = std::vector<ReadMMIO>(768);
         m_write_mmios_hw[i] = std::vector<WriteMMIO>(768);
-        m_mmios_stretch_hw[i] = std::vector<uint8_t>(768);
+        m_mmios_new_run_state_hw[i] = std::vector<BBCMicroCPURunState>(768, BBCMicroCPURunState_Running);
 
 #if BBCMICRO_DEBUGGER
         m_debug_read_mmio_data->debug_read_mmios[i] = std::vector<DebugReadMMIO>(768);
@@ -3145,15 +3468,23 @@ void BBCMicro::InitStuff() {
 
 #if ENABLE_ELECTRON
     if (IsElectron(m_state.type->type_id)) {
-        for (int i = 0; i < 256; i += 8) {
-            this->SetSIO((uint16_t)(0xfe00 + i + 0), &ReadElectronULA0, this, &WriteElectronULA0, this);
-            this->SetSIO((uint16_t)(0xfe00 + i + 1), &ReadElectronULA1, this, &WriteElectronULA1, this);
-            this->SetSIO((uint16_t)(0xfe00 + i + 2), &ReadElectronULA2, this, &WriteElectronULA2, this);
-            this->SetSIO((uint16_t)(0xfe00 + i + 3), &ReadElectronULA3, this, &WriteElectronULA3, this);
-            this->SetSIO((uint16_t)(0xfe00 + i + 4), &ReadElectronULA4, this, &WriteElectronULA4, this);
-            this->SetSIO((uint16_t)(0xfe00 + i + 5), &ReadElectronULA5, this, &WriteElectronULA5, this);
-            this->SetSIO((uint16_t)(0xfe00 + i + 6), &ReadElectronULA6, this, &WriteElectronULA6, this);
-            this->SetSIO((uint16_t)(0xfe00 + i + 7), &ReadElectronULA7, this, &WriteElectronULA7, this);
+        for (int i = 0; i < 256; i += 16) {
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x0), &ReadElectronULA0, this, &WriteElectronULA0, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x1), &ReadElectronULA1, this, &WriteElectronULA1, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x2), &ReadElectronULA2, this, &WriteElectronULA2, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x3), &ReadElectronULA3, this, &WriteElectronULA3, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x4), &ReadElectronULA4, this, &WriteElectronULA4, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x5), &ReadElectronULA5, this, &WriteElectronULA5, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x6), &ReadElectronULA6, this, &WriteElectronULA6, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x7), &ReadElectronULA7, this, &WriteElectronULA7, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x8), &ReadElectronULA8, this, &WriteElectronULA8, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0x9), &ReadElectronULA9, this, &WriteElectronULA9, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0xa), &ReadElectronULAA, this, &WriteElectronULAA, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0xb), &ReadElectronULAB, this, &WriteElectronULAB, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0xc), &ReadElectronULAC, this, &WriteElectronULAC, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0xd), &ReadElectronULAD, this, &WriteElectronULAD, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0xe), &ReadElectronULAE, this, &WriteElectronULAE, this);
+            this->SetSIO((uint16_t)(0xfe00 + i + 0xf), &ReadElectronULAF, this, &WriteElectronULAF, this);
         }
     }
 #endif
@@ -3314,31 +3645,31 @@ void BBCMicro::InitStuff() {
 
     // Set up TST=1 tables.
     m_read_mmios_rom = std::vector<ReadMMIO>(768, {&ReadROMMMIO, this});
-    m_mmios_stretch_rom = std::vector<uint8_t>(768, 0x00);
+    m_mmios_new_run_state_rom = std::vector<BBCMicroCPURunState>(768, BBCMicroCPURunState_Running);
 
     // Set up TST=0/write tables.
     for (uint8_t flags = 0; flags < 4; ++flags) {
-        uint8_t xfj_stretched = flags & HostIOFlag_IFJ ? 0x00 : 0xff;
+        BBCMicroCPURunState xfj_new_run_state = flags & HostIOFlag_IFJ ? BBCMicroCPURunState_Running : BBCMicroCPURunState_1MHzAccess;
 
         // FRED = external stretched, internal not
         for (size_t i = 0; i < 0x100; ++i) {
-            m_mmios_stretch_hw[flags][i] = xfj_stretched;
+            m_mmios_new_run_state_hw[flags][i] = xfj_new_run_state;
         }
 
         // JIM = external stretched, internal not
         for (size_t i = 0x100; i < 0x200; ++i) {
-            m_mmios_stretch_hw[flags][i] = xfj_stretched;
+            m_mmios_new_run_state_hw[flags][i] = xfj_new_run_state;
         }
 
         // SHEILA = part stretched (IFJ/XFJ irrelevant)
         for (size_t i = 0x200; i < 0x300; ++i) {
-            m_mmios_stretch_hw[flags][i] = 0x00;
+            m_mmios_new_run_state_hw[flags][i] = BBCMicroCPURunState_Running;
         }
 
         for (const BBCMicroType::SHEILACycleStretchRegion &region : m_state.type->sheila_cycle_stretch_regions) {
             ASSERT(region.first < region.last);
             for (uint8_t i = region.first; i <= region.last; ++i) {
-                m_mmios_stretch_hw[flags][0x200u + i] = 0xff;
+                m_mmios_new_run_state_hw[flags][0x200u + i] = BBCMicroCPURunState_1MHzAccess;
             }
         }
     }

@@ -16,6 +16,7 @@
 #include "discs.h"
 #include <shared/path.h>
 #include <shared/file_io.h>
+#include <beeb/ElectronULA.h>
 
 #include <shared/enum_decl.h>
 #include "ConfigsUI_private.inl"
@@ -325,9 +326,9 @@ void ConfigsUI::DoEditConfigGui() {
 
 #if ENABLE_ELECTRON
     if (IsElectron(config->type_id)) {
-        bank_fixed_flags[8] = ROMEditFlag_NotAvailable;
-        bank_fixed_flags[9] = ROMEditFlag_NotAvailable;
-        bank_fixed_flags[10] = ROMEditFlag_NotAvailable;
+        bank_fixed_flags[ElectronULA::KEYBOARD_ROM_BANK_BASE + 0] = ROMEditFlag_NotAvailable;
+        bank_fixed_flags[ElectronULA::KEYBOARD_ROM_BANK_BASE + 1] = ROMEditFlag_NotAvailable;
+        bank_fixed_flags[ElectronULA::BASIC_ROM_BANK_BASE + 0] = ROMEditFlag_NotAvailable;
     } else //<--note
 #endif     //<--note
     {

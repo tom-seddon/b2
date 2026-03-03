@@ -7,6 +7,7 @@
 #include <string.h>
 #include <map>
 #include <inttypes.h>
+#include <beeb/ElectronULA.h>
 
 #include <shared/enum_def.h>
 #include <beeb/type.inl>
@@ -15,13 +16,14 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Total max addressable memory in the emulated system is 2,194K:
+// Total max addressable memory in the emulated system comes from:
 //
 // - 64K RAM (main+shadow+ANDY+HAZEL)
 // - 16 * 128K ROM
 // - 16K MOS
 // - 64K parasite RAM
 // - 2K parasite ROM
+// - 16K Electron keyboard
 //
 // The paging generally operates at a 4K resolution, so this can be divided into
 // 549 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The
@@ -39,6 +41,7 @@
 // 4    MOS
 // 16   parasite RAM
 // 1    parasite ROM
+// 4    Electron keyboard
 // </pre>
 //
 // Each big page can be set up once, when the BBCMicro is first created,
@@ -89,6 +92,11 @@
 //
 // The Electron was not quite an afterthought, but I didn't plan for it very
 // carefully. It's so different in many respects anyway.
+//
+// The keyboard gets its own big page entries (big page entries for banks 8+9
+// are just inaccessible on the Electron), but not its own address suffix. For
+// debugging purposes, the keyboard state appears in ROM banks 8+9, just as it
+// would for the CPU.
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -213,6 +221,7 @@ static bool IsB(BBCMicroTypeID type_id) {
 
 #if BBCMICRO_DEBUGGER
 static void ApplyROMDSO(PagingState *paging, uint32_t dso) {
+
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
         paging->romsel.b_bits.pr = dso & BBCMicroDebugStateOverride_ROM;
     }
@@ -393,6 +402,10 @@ size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t
 }
 
 static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom_types, uint8_t host_io_flags_mask) {
+#if !ENABLE_ELECTRON
+    (void)is_electron;
+#endif
+
     std::vector<BigPageMetadata> big_pages;
     big_pages.resize(NUM_BIG_PAGES);
 
@@ -419,7 +432,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
             snprintf(rom_and_region_desc, sizeof rom_and_region_desc, "ROM %c (Region %c)", bank_code, region_code);
 
             BigPageIndex::Type base_big_page_index = (BigPageIndex::Type)(ROM0_BIG_PAGE_INDEX.i + (size_t)bank * NUM_ROM_BIG_PAGES + region * 4);
-
             switch (rom_types[bank]) {
             default:
                 ASSERT(false);
@@ -683,11 +695,21 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB(const ROMType *rom_type
 //////////////////////////////////////////////////////////////////////////
 
 #if ENABLE_ELECTRON
+static inline uint8_t GetPhysicalElectronROMBank(uint8_t bank) {
+    if (bank == ElectronULA::KEYBOARD_ROM_BANK_BASE + 1) {
+        return ElectronULA::KEYBOARD_ROM_BANK_BASE + 0;
+    } else if (bank == ElectronULA::BASIC_ROM_BANK_BASE + 0) {
+        return ElectronULA::BASIC_ROM_BANK_BASE + 1;
+    } else {
+        return bank;
+    }
+}
+#endif
+
+#if ENABLE_ELECTRON
 static void GetMemBigPageTablesElectron(MemoryBigPageTables *tables,
                                         uint32_t *paging_flags,
                                         const PagingState &paging) {
-    ASSERT(false); //TODO...
-
     tables->mem_big_pages[0][0].i = MAIN_BIG_PAGE_INDEX.i + 0;
     tables->mem_big_pages[0][1].i = MAIN_BIG_PAGE_INDEX.i + 1;
     tables->mem_big_pages[0][2].i = MAIN_BIG_PAGE_INDEX.i + 2;
@@ -697,8 +719,13 @@ static void GetMemBigPageTablesElectron(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][6].i = MAIN_BIG_PAGE_INDEX.i + 6;
     tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
 
-    uint8_t pr = paging.romsel.b_bits.pr;
-    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + pr * NUM_ROM_BIG_PAGES + paging.rom_regions[pr] * 4;
+    uint8_t pr = GetPhysicalElectronROMBank(paging.romsel.b_bits.pr);
+    BigPageIndex::Type rom;
+    if (pr == ElectronULA::KEYBOARD_ROM_BANK_BASE + 0) {
+        rom = ELECTRON_KEYBOARD_BIG_PAGE_INDEX.i;
+    } else {
+        rom = ROM0_BIG_PAGE_INDEX.i + pr * NUM_ROM_BIG_PAGES + paging.rom_regions[pr] * 4;
+    }
     tables->mem_big_pages[0][0x8].i = rom + 0;
     tables->mem_big_pages[0][0x9].i = rom + 1;
     tables->mem_big_pages[0][0xa].i = rom + 2;
@@ -720,6 +747,8 @@ static void GetMemBigPageTablesElectron(MemoryBigPageTables *tables,
 #if BBCMICRO_DEBUGGER
 static void ApplyDSOElectron(PagingState *paging, uint32_t dso) {
     ApplyROMDSO(paging, dso);
+
+    paging->romsel.b_bits.pr = GetPhysicalElectronROMBank(paging->romsel.b_bits.pr);
 }
 #endif
 #endif
@@ -731,6 +760,9 @@ static uint32_t GetDSOElectron(const PagingState &paging) {
 
     dso |= GetROMDSO(paging);
 
+    // TODO: is there a need to do the inverse of ApplyDSOElectron?? I can't
+    // remember...
+
     return dso;
 }
 #endif
@@ -739,6 +771,22 @@ static uint32_t GetDSOElectron(const PagingState &paging) {
 #if ENABLE_ELECTRON
 static std::vector<BigPageMetadata> GetBigPagesMetadataElectron(const ROMType *rom_types) {
     std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types, 0);
+
+    // See comment in ElectronULA.h regarding the keyboard's official bank. The
+    // aliasing has to be dealt with elsewhere.
+    char code[3];
+    snprintf(code, sizeof code, "%x", ElectronULA::KEYBOARD_ROM_BANK_BASE);
+
+    InitBigPagesMetadata(&big_pages,
+                         ELECTRON_KEYBOARD_BIG_PAGE_INDEX,
+                         4,
+                         code[0], code[1],
+                         "Electron keyboard",
+#if BBCMICRO_DEBUGGER
+                         BBCMicroDebugStateOverride_ROM,
+                         BBCMicroDebugStateOverride_OverrideROM | ElectronULA::KEYBOARD_ROM_BANK_BASE,
+#endif
+                         0x8000);
 
     return big_pages;
 }
@@ -1325,7 +1373,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
             {0x28, 0x2b},
             {0x40, 0x9f},
         };
-    } else {
+    } else if (IsBBCMicro(type->type_id)) {
         type->sheila_cycle_stretch_regions = {
             {0x00, 0x1f},
             {0x40, 0x7f},
@@ -1462,15 +1510,6 @@ bool IsMasterSeries(BBCMicroTypeID type_id) {
 bool CanHaveVideoNuLA(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus || type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if ENABLE_ELECTRON
-bool IsElectron(BBCMicroTypeID type_id) {
-    return type_id == BBCMicroTypeID_Electron;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

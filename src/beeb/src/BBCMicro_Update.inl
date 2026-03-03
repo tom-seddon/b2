@@ -49,6 +49,23 @@ uint64_t Get3MHzCycleCount(CycleCount n) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_ELECTRON
+static constexpr bool IsElectronUpdate(uint32_t update_flags) {
+    return GetBBCMicroUpdateFlagsUpdateSystemType(update_flags) == BBCMicroUpdateSystemType_Electron;
+}
+#endif
+
+static constexpr bool IsBBCMicroUpdate(uint32_t update_flags) {
+#if ENABLE_ELECTRON
+    return !IsElectronUpdate(update_flags);
+#else
+    return true;
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Timing diagram:
 //
 // see https://stardot.org.uk/forums/viewtopic.php?f=3&t=17896#p248051
@@ -294,25 +311,190 @@ parasite_update_done:
 #endif
 
         // Update CPU.
-        if (m_state.stretch) {
-            if (phi2_1MHz_trailing_edge) {
-                m_state.stretch = false;
-            }
-        } else {
-            result |= BBCMicroUpdateResultFlag_Host;
-            (*m_state.cpu.tfn)(&m_state.cpu);
+#if ENABLE_ELECTRON
+        if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
+            if (m_state.cpu_run_state == BBCMicroCPURunState_Running) {
+                result |= BBCMicroUpdateResultFlag_Host;
+                (*m_state.cpu.tfn)(&m_state.cpu);
 
-            M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
-            if (mmio_addr.b.h < 3) {
-                if (m_state.cpu.read) {
-                    m_state.stretch = m_read_mmios_stretch[mmio_addr.w];
+                if (m_state.cpu.abus.w < 0x8000) {
+                    // RAM access. ULA mediates.
+                    m_state.cpu_run_state = BBCMicroCPURunState_RAMAccess;
                 } else {
-                    m_state.stretch = m_write_mmios_stretch[mmio_addr.w];
+                    // possibly select 1MHzAccess state.
+                    M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
+                    if (mmio_addr.b.h < 3) {
+                        if (m_state.cpu.read) {
+                            m_state.cpu_run_state = m_read_mmios_new_run_state[mmio_addr.w];
+                        } else {
+                            m_state.cpu_run_state = m_write_mmios_new_run_state[mmio_addr.w];
+                        }
+                    }
+                }
+            }
+        } else //<--note
+#endif         //<--note
+        {
+            if (m_state.cpu_run_state != BBCMicroCPURunState_Running) {
+                // The only non-Running state is the 1 MHz cycle stretch case.
+                if (phi2_1MHz_trailing_edge) {
+                    m_state.cpu_run_state = BBCMicroCPURunState_Running;
+                }
+            } else {
+                result |= BBCMicroUpdateResultFlag_Host;
+                (*m_state.cpu.tfn)(&m_state.cpu);
+
+                M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
+                if (mmio_addr.b.h < 3) {
+                    if (m_state.cpu.read) {
+                        m_state.cpu_run_state = m_read_mmios_new_run_state[mmio_addr.w];
+                    } else {
+                        m_state.cpu_run_state = m_write_mmios_new_run_state[mmio_addr.w];
+                    }
                 }
             }
         }
 
-        if (!m_state.stretch) {
+#if ENABLE_ELECTRON
+        if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
+            uint8_t ula_used_cycle = phi2_1MHz_trailing_edge;
+
+            // TODO: not sure any of this is the right logic?
+
+            if (m_state.electron_ula.rtc_interrupt_timer > 0) {
+                --m_state.electron_ula.rtc_interrupt_timer;
+                if (m_state.electron_ula.rtc_interrupt_timer == 0) {
+                    m_state.electron_ula.irq.bits.rtc = 1;
+                }
+            }
+
+            if (m_state.electron_ula.display_column < ElectronULA::NUM_HSYNC_COLUMNS) {
+                // Horizontal sync
+                video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_HSync;
+                video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0;
+            } else if (m_state.electron_ula.display_column < ElectronULA::NUM_HSYNC_COLUMNS + ElectronULA::NUM_BACK_PORCH_COLUMNS) {
+                // Back porch
+                video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0;
+            } else if (m_state.electron_ula.display_column < ElectronULA::NUM_HSYNC_COLUMNS + ElectronULA::NUM_BACK_PORCH_COLUMNS + ElectronULA::NUM_DISPLAY_COLUMNS) {
+                // Display area
+                if (m_state.electron_ula.display_state == ElectronULADisplayState_Display && m_state.electron_ula.display_raster < 8) {
+                    // Display data from RAM.
+                    if (m_state.electron_ula.misc.bits.display_mode <= 3 || ula_used_cycle) {
+                        m_state.electron_ula.display_byte = m_ram[m_state.electron_ula.display_fetch_address];
+                        m_state.electron_ula.display_fetch_address += 8;
+                        if (m_state.electron_ula.display_fetch_address >= 0x8000) {
+                            m_state.electron_ula.display_fetch_address -= ElectronULA::DISPLAY_WRAPAROUND_SIZES[m_state.electron_ula.misc.bits.display_mode];
+                        }
+
+                        // the ULA steals every cycle in the mode 0-3 case.
+                        ula_used_cycle = true;
+                    }
+
+                    (*ElectronULA::EMIT_PIXELS_FNS[m_state.electron_ula.misc.bits.display_mode])(video_unit, &m_state.electron_ula);
+                } else {
+                    // Display nothing.
+                    //
+                    // In a text mode, there are always 2 non-display
+                    // scanlines at the end of the display area. They count
+                    // as display too.
+                    video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0;
+                }
+            } else {
+                // Front porch
+                video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0;
+            }
+
+            result |= BBCMicroUpdateResultFlag_VideoUnit;
+
+            ++m_state.electron_ula.display_column;
+            if (m_state.electron_ula.display_column == 128) {
+                // handle raster/row counters in the visible region.
+                if (m_state.electron_ula.display_state == ElectronULADisplayState_Display) {
+                    ++m_state.electron_ula.display_scanline;
+                    ++m_state.electron_ula.display_raster;
+
+                    bool is_graphics = ElectronULA::IS_GRAPHICS_MODE[m_state.electron_ula.misc.bits.display_mode];
+
+                    if (m_state.electron_ula.display_raster >= ElectronULA::NUM_RASTERS[is_graphics]) {
+                        m_state.electron_ula.display_raster = 0;
+                        ++m_state.electron_ula.display_row;
+                        m_state.electron_ula.display_row_address += ElectronULA::DISPLAY_ROW_STRIDES[m_state.electron_ula.misc.bits.display_mode];
+
+                        if (m_state.electron_ula.display_row >= ElectronULA::NUM_ROWS[is_graphics]) {
+                            m_state.electron_ula.display_state = ElectronULADisplayState_BeforeVSync;
+
+                            // do the display end interrupt.
+                            m_state.electron_ula.irq.bits.display_end = 1;
+
+                            // queue up the vsync.
+                            m_state.electron_ula.display_vsync_counter = (ElectronULA::VSYNC_SCANLINE - m_state.electron_ula.display_scanline) * 128;
+                            if (m_state.electron_ula.display_even_field) {
+                                m_state.electron_ula.display_vsync_counter += 64;
+                            }
+
+                            m_state.electron_ula.display_state = ElectronULADisplayState_BeforeVSync;
+                        }
+                    }
+
+                    m_state.electron_ula.display_fetch_address = m_state.electron_ula.display_row_address + m_state.electron_ula.display_raster;
+                }
+            }
+
+            if (m_state.electron_ula.display_vsync_counter > 0) {
+                if (m_state.electron_ula.display_state == ElectronULADisplayState_VSync) {
+                    video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_VSync;
+                }
+
+                --m_state.electron_ula.display_vsync_counter;
+                if (m_state.electron_ula.display_vsync_counter == 0) {
+                    switch (m_state.electron_ula.display_state) {
+                    case ElectronULADisplayState_BeforeVSync:
+                        m_state.electron_ula.display_state = ElectronULADisplayState_VSync;
+                        m_state.electron_ula.display_vsync_counter = 2 * 160;
+                        break;
+
+                    case ElectronULADisplayState_VSync:
+                        m_state.electron_ula.display_state = ElectronULADisplayState_AfterVSync;
+                        m_state.electron_ula.rtc_interrupt_timer = 2 * 8192;
+                        m_state.electron_ula.display_vsync_counter = (312 - (ElectronULA::VSYNC_SCANLINE + 2)) * 128;
+                        if (!m_state.electron_ula.display_even_field) {
+                            m_state.electron_ula.display_vsync_counter -= 64;
+                        }
+                        break;
+
+                    case ElectronULADisplayState_AfterVSync:
+                        m_state.electron_ula.display_even_field = !m_state.electron_ula.display_even_field;
+                        m_state.electron_ula.display_column = 0;
+                        m_state.electron_ula.display_row = 0;
+                        m_state.electron_ula.display_raster = 0;
+                        m_state.electron_ula.display_state = ElectronULADisplayState_Display;
+                        m_state.electron_ula.display_row_address = m_state.electron_ula.display_start_address;
+                        m_state.electron_ula.display_fetch_address = m_state.electron_ula.display_row_address;
+                        break;
+                    }
+                }
+            }
+
+            M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_ElectronULA, m_state.electron_ula.irq.flag_bits.flags & m_state.electron_ula.irq_mask.flag_bits.flags);
+
+            // Unblock the CPU when possible.
+            //
+            // TODO: this is probably not the right logic...
+            if (!ula_used_cycle) {
+                if (m_state.cpu_run_state == BBCMicroCPURunState_RAMAccess) {
+                    m_state.cpu_run_state = BBCMicroCPURunState_Running;
+                }
+            }
+
+            if (phi2_1MHz_trailing_edge) {
+                if (m_state.cpu_run_state == BBCMicroCPURunState_1MHzAccess) {
+                    m_state.cpu_run_state = BBCMicroCPURunState_Running;
+                }
+            }
+        }
+#endif
+
+        if (m_state.cpu_run_state == BBCMicroCPURunState_Running) {
             // Update CPU data bus.
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_NonFastPath) != 0) {
                 if (m_state.cpu.read == 0) {
@@ -745,350 +927,360 @@ parasite_update_done:
             }
         }
 
-        // Update video hardware.
-        if (m_state.video_ula.control.bits.fast_6845 | phi2_1MHz_trailing_edge) {
-            const CRTC::Output output = m_state.crtc.Update(m_state.system_via.b.c2);
+#if ENABLE_ELECTRON
+        //if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
+        //    ASSERT(false);
+        //}
+#endif
 
-            uint16_t addr = (uint16_t)output.address;
+        if constexpr (IsBBCMicroUpdate(UPDATE_FLAGS)) {
+            // Update video hardware.
+            if (m_state.video_ula.control.bits.fast_6845 | phi2_1MHz_trailing_edge) {
+                const CRTC::Output output = m_state.crtc.Update(m_state.system_via.b.c2);
 
-            if (addr & 0x2000) {
-                addr = (addr & 0x3ff) | m_teletext_bases[addr >> 11 & 1];
-            } else {
-                if (addr & 0x1000) {
-                    addr -= SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
-                    addr &= ~0x1000u;
-                }
+                uint16_t addr = (uint16_t)output.address;
 
-                addr <<= 3;
-
-                // When output.raster>=8, this address is bogus. There's a
-                // check later.
-                addr |= output.raster & 7;
-            }
-
-            ASSERTF(addr < 32768, "output: hsync=%u vsync=%u display=%u address=0x%x raster=%u; addr=0x%x; latch screen_base=%u\n",
-                    output.hsync, output.vsync, output.display, output.address, output.raster,
-                    addr,
-                    m_state.addressable_latch.bits.screen_base);
-            addr |= m_state.shadow_select_mask;
-
-            // Teletext update.
-            if (phi2_1MHz_trailing_edge) {
-                if (output.vsync) {
-                    if (!m_state.crtc_last_output.vsync) {
-                        m_state.last_frame_cycle_count.n = m_state.cycle_count.n - m_state.last_vsync_cycle_count.n;
-                        m_state.last_vsync_cycle_count = m_state.cycle_count;
-
-                        m_state.saa5050.VSync();
+                if (addr & 0x2000) {
+                    addr = (addr & 0x3ff) | m_teletext_bases[addr >> 11 & 1];
+                } else {
+                    if (addr & 0x1000) {
+                        addr -= SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
+                        addr &= ~0x1000u;
                     }
+
+                    addr <<= 3;
+
+                    // When output.raster>=8, this address is bogus. There's a
+                    // check later.
+                    addr |= output.raster & 7;
                 }
 
-                if (m_state.video_ula.control.bits.teletext) {
-                    // Teletext line boundary stuff.
-                    //
-                    // The hsync output is linked up to the SAA505's GLR
-                    // ("General line reset") pin, which sounds like it should
-                    // do line stuff. The data sheet is a bit vague, though:
-                    // "required for internal synchronization of remote control
-                    // data signals"...??
-                    //
-                    // https://github.com/mist-devel/mist-board/blob/f6cc6ff597c22bdd8b002c04c331619a9767eae0/cores/bbc/rtl/saa5050/saa5050.v
-                    // seems to ignore it completely, and does everything based
-                    // on the LOSE pin, connected to 6845 DISPEN/DISPTMSG. So
-                    // that's what this does...
-                    //
-                    // (Evidence in favour of this: normally, R5 doesn't affect
-                    // the teletext chars, even though it must vary the number
-                    // of hsyncs between vsync and the first visible scanline.
-                    // But after setting R6=255, changing R5 does have an
-                    // affect, suggesting that DISPTMSG transitions are being
-                    // counted and hsyncs aren't.)
-                    if (output.display) {
-                        if (!m_state.crtc_last_output.display) {
-                            m_state.saa5050.StartOfLine();
+                ASSERTF(addr < 32768, "output: hsync=%u vsync=%u display=%u address=0x%x raster=%u; addr=0x%x; latch screen_base=%u\n",
+                        output.hsync, output.vsync, output.display, output.address, output.raster,
+                        addr,
+                        m_state.addressable_latch.bits.screen_base);
+                addr |= m_state.shadow_select_mask;
+
+                // Teletext update.
+                if (phi2_1MHz_trailing_edge) {
+                    if (output.vsync) {
+                        if (!m_state.crtc_last_output.vsync) {
+                            m_state.last_frame_cycle_count.n = m_state.cycle_count.n - m_state.last_vsync_cycle_count.n;
+                            m_state.last_vsync_cycle_count = m_state.cycle_count;
+
+                            m_state.saa5050.VSync();
+                        }
+                    }
+
+                    if (m_state.video_ula.control.bits.teletext) {
+                        // Teletext line boundary stuff.
+                        //
+                        // The hsync output is linked up to the SAA505's GLR
+                        // ("General line reset") pin, which sounds like it should
+                        // do line stuff. The data sheet is a bit vague, though:
+                        // "required for internal synchronization of remote control
+                        // data signals"...??
+                        //
+                        // https://github.com/mist-devel/mist-board/blob/f6cc6ff597c22bdd8b002c04c331619a9767eae0/cores/bbc/rtl/saa5050/saa5050.v
+                        // seems to ignore it completely, and does everything based
+                        // on the LOSE pin, connected to 6845 DISPEN/DISPTMSG. So
+                        // that's what this does...
+                        //
+                        // (Evidence in favour of this: normally, R5 doesn't affect
+                        // the teletext chars, even though it must vary the number
+                        // of hsyncs between vsync and the first visible scanline.
+                        // But after setting R6=255, changing R5 does have an
+                        // affect, suggesting that DISPTMSG transitions are being
+                        // counted and hsyncs aren't.)
+                        if (output.display) {
+                            if (!m_state.crtc_last_output.display) {
+                                m_state.saa5050.StartOfLine();
+                            }
+                        } else {
+                            m_state.ic15_byte |= 0x40;
+
+                            if (m_state.crtc_last_output.display) {
+                                m_state.saa5050.EndOfLine();
+                            }
+                        }
+                    }
+
+                    m_state.saa5050.Byte(m_state.ic15_byte, output.display);
+
+                    if (output.address & 0x2000) {
+                        m_state.ic15_byte = m_ram[addr];
+                        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+#if BBCMICRO_DEBUGGER
+                            m_state.ic15_byte = (m_state.ic15_byte & m_state.ram_and) | m_state.ram_or;
+#endif
                         }
                     } else {
-                        m_state.ic15_byte |= 0x40;
-
-                        if (m_state.crtc_last_output.display) {
-                            m_state.saa5050.EndOfLine();
-                        }
+                        m_state.ic15_byte = 0;
                     }
+
+#if VIDEO_TRACK_METADATA
+                    video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
+                    video_unit->metadata.value = m_state.ic15_byte;
+#endif
                 }
 
-                m_state.saa5050.Byte(m_state.ic15_byte, output.display);
-
-                if (output.address & 0x2000) {
-                    m_state.ic15_byte = m_ram[addr];
-                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
+                uint8_t value = m_ram[addr];
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
-                        m_state.ic15_byte = (m_state.ic15_byte & m_state.ram_and) | m_state.ram_or;
+                    value = (value & m_state.ram_and) | m_state.ram_or;
 #endif
+                }
+
+                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128 ||
+                              GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
+                    m_state.last_fetched_video_byte = value;
+                }
+
+                if (!m_state.video_ula.control.bits.teletext) {
+                    if (!m_state.crtc_last_output.display) {
+                        m_state.video_ula.DisplayEnabled();
                     }
-                } else {
-                    m_state.ic15_byte = 0;
+
+#if VIDEO_TRACK_METADATA
+                    video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
+                    video_unit->metadata.value = value;
+#endif
                 }
 
-#if VIDEO_TRACK_METADATA
-                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
-                video_unit->metadata.value = m_state.ic15_byte;
-#endif
-            }
-
-            uint8_t value = m_ram[addr];
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
-#if BBCMICRO_DEBUGGER
-                value = (value & m_state.ram_and) | m_state.ram_or;
-#endif
-            }
-
-            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128 ||
-                          GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
-                m_state.last_fetched_video_byte = value;
-            }
-
-            if (!m_state.video_ula.control.bits.teletext) {
-                if (!m_state.crtc_last_output.display) {
-                    m_state.video_ula.DisplayEnabled();
-                }
+                // Do this even in teletext mode - the cursor flag then sets up the
+                // new cursor state. The byte value only sets some state, so no harm
+                // in doing it.
+                m_state.video_ula.Byte(value, output.cudisp & m_cursor_mask);
 
 #if VIDEO_TRACK_METADATA
-                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
-                video_unit->metadata.value = value;
+                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress;
+                video_unit->metadata.address = addr;
+                video_unit->metadata.crtc_address = output.address;
 #endif
+
+                m_state.crtc_last_output = output;
             }
 
-            // Do this even in teletext mode - the cursor flag then sets up the
-            // new cursor state. The byte value only sets some state, so no harm
-            // in doing it.
-            m_state.video_ula.Byte(value, output.cudisp & m_cursor_mask);
-
-#if VIDEO_TRACK_METADATA
-            video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress;
-            video_unit->metadata.address = addr;
-            video_unit->metadata.crtc_address = output.address;
-#endif
-
-            m_state.crtc_last_output = output;
-        }
-
-// Update display output.
+            // Update display output.
 //if(m_state.crtc_last_output.display) {
 #if VIDEO_TRACK_METADATA
-        if (m_state.crtc_last_output.raster == 0) {
-            video_unit->metadata.flags |= VideoDataUnitMetadataFlag_6845Raster0;
-        }
+            if (m_state.crtc_last_output.raster == 0) {
+                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_6845Raster0;
+            }
 
-        if (m_state.crtc_last_output.display) {
-            video_unit->metadata.flags |= VideoDataUnitMetadataFlag_6845DISPEN;
-        }
+            if (m_state.crtc_last_output.display) {
+                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_6845DISPEN;
+            }
 
-        if (m_state.crtc_last_output.cudisp) {
-            video_unit->metadata.flags |= VideoDataUnitMetadataFlag_6845CUDISP;
-        }
+            if (m_state.crtc_last_output.cudisp) {
+                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_6845CUDISP;
+            }
 #endif
 
-        if (m_state.video_ula.control.bits.teletext) {
-            m_state.saa5050.EmitPixels(&video_unit->pixels, m_state.video_ula.output_palette);
+            if (m_state.video_ula.control.bits.teletext) {
+                m_state.saa5050.EmitPixels(&video_unit->pixels, m_state.video_ula.output_palette);
 
-            if (m_state.video_ula.cursor_pattern & 1) {
-                video_unit->pixels.pixels[0].all ^= 0x0fff;
-                video_unit->pixels.pixels[1].all ^= 0x0fff;
-            }
+                if (m_state.video_ula.cursor_pattern & 1) {
+                    video_unit->pixels.pixels[0].all ^= 0x0fff;
+                    video_unit->pixels.pixels[1].all ^= 0x0fff;
+                }
 
-            m_state.video_ula.cursor_pattern >>= 1;
-        } else {
-            if (m_state.crtc_last_output.display && m_state.crtc_last_output.raster < 8) {
-                m_state.video_ula.EmitPixels(&video_unit->pixels);
+                m_state.video_ula.cursor_pattern >>= 1;
             } else {
-                m_state.video_ula.EmitBlank(&video_unit->pixels);
+                if (m_state.crtc_last_output.display && m_state.crtc_last_output.raster < 8) {
+                    m_state.video_ula.EmitPixels(&video_unit->pixels);
+                } else {
+                    m_state.video_ula.EmitBlank(&video_unit->pixels);
+                }
             }
+
+            video_unit->pixels.pixels[1].bits.x = 0;
+
+            if (m_state.crtc_last_output.hsync) {
+                video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_HSync;
+            }
+
+            if (m_state.crtc_last_output.vsync) {
+                video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_VSync;
+            }
+
+            result |= BBCMicroUpdateResultFlag_VideoUnit;
         }
 
-        video_unit->pixels.pixels[1].bits.x = 0;
-
-        if (m_state.crtc_last_output.hsync) {
-            video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_HSync;
-        }
-
-        if (m_state.crtc_last_output.vsync) {
-            video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_VSync;
-        }
-
-        result |= BBCMicroUpdateResultFlag_VideoUnit;
-
-        // Update VIAs and slow data bus.
-        if (phi2_1MHz_trailing_edge) {
-            // Update vsync.
-            if (!m_state.crtc_last_output.vsync) {
-                m_state.system_via.a.c1 = 0;
-            }
-
-            // Update IRQs.
-            m_state.system_via_irq_pending |= m_state.system_via.UpdatePhi2TrailingEdge();
-            m_state.user_via_irq_pending |= m_state.user_via.UpdatePhi2TrailingEdge();
-
-            if (m_state.system_via_irq_pending) {
-                M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_SystemVIA, 1);
-            } else {
-                M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_SystemVIA, 0);
-            }
-
-            if (m_state.user_via_irq_pending) {
-                M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_UserVIA, 1);
-            } else {
-                M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_UserVIA, 0);
-            }
-
-            // Update keyboard.
-            if (m_state.addressable_latch.bits.not_kb_write) {
-                if (!(m_state.key_columns[m_state.key_scan_column] & 0xfe)) {
-                    m_state.system_via.a.c2 = 0;
+        if constexpr (IsBBCMicroUpdate(UPDATE_FLAGS)) {
+            // Update VIAs and slow data bus.
+            if (phi2_1MHz_trailing_edge) {
+                // Update vsync.
+                if (!m_state.crtc_last_output.vsync) {
+                    m_state.system_via.a.c1 = 0;
                 }
 
-                ++m_state.key_scan_column;
-                m_state.key_scan_column &= 0x0f;
-            } else {
-                // manual scan
-                BeebKey key = (BeebKey)(m_state.system_via.a.p & 0x7f);
-                uint8_t kcol = key & 0x0f;
-                uint8_t krow = (uint8_t)(key >> 4);
+                // Update IRQs.
+                m_state.system_via_irq_pending |= m_state.system_via.UpdatePhi2TrailingEdge();
+                m_state.user_via_irq_pending |= m_state.user_via.UpdatePhi2TrailingEdge();
 
-                uint8_t *column = &m_state.key_columns[kcol];
-
-                // row 0 doesn't cause an interrupt
-                if (!(*column & 0xfe)) {
-                    m_state.system_via.a.c2 = 0;
+                if (m_state.system_via_irq_pending) {
+                    M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_SystemVIA, 1);
+                } else {
+                    M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_SystemVIA, 0);
                 }
 
-                if (!(*column & 1 << krow)) {
-                    m_state.system_via.a.p &= 0x7f;
+                if (m_state.user_via_irq_pending) {
+                    M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_UserVIA, 1);
+                } else {
+                    M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_UserVIA, 0);
                 }
 
-                //if(key==m_state.auto_reset_key) {
-                //    //*column&=~(1<<krow);
-                //    m_state.auto_reset_key=BeebKey_None;
-                //}
-            }
+                // Update keyboard.
+                if (m_state.addressable_latch.bits.not_kb_write) {
+                    if (!(m_state.key_columns[m_state.key_scan_column] & 0xfe)) {
+                        m_state.system_via.a.c2 = 0;
+                    }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) != 0) {
-                m_state.user_via.b.p = m_state.mouse_data.value;
-                m_state.user_via.b.c1 = m_state.mouse_signal_x;
-                m_state.user_via.b.c2 = m_state.mouse_signal_y;
-            }
+                    ++m_state.key_scan_column;
+                    m_state.key_scan_column &= 0x0f;
+                } else {
+                    // manual scan
+                    BeebKey key = (BeebKey)(m_state.system_via.a.p & 0x7f);
+                    uint8_t kcol = key & 0x0f;
+                    uint8_t krow = (uint8_t)(key >> 4);
 
-            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact &&
-                          (UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) == 0) {
-                // <pre>
-                //  PB4 PB3 PB2 PB1 PB0
-                // +---+---+---+---+---+
-                // | R | U | D | L | F |
-                // +---+---+---+---+---+
-                // </pre>
-                //
-                // Annoyingly, this is completely different from the First Byte layout.
-                m_state.user_via.b.p = (uint8_t)(m_state.user_via.b.p & ~0x1f) |
-                                       (0x1f ^ ((m_state.digital_joystick_state.bits.right << 4) |
-                                                (m_state.digital_joystick_state.bits.up << 3) |
-                                                (m_state.digital_joystick_state.bits.down << 2) |
-                                                (m_state.digital_joystick_state.bits.left << 1) |
-                                                (uint8_t)m_state.digital_joystick_state.bits.fire1 | (uint8_t)m_state.digital_joystick_state.bits.fire0));
-            }
+                    uint8_t *column = &m_state.key_columns[kcol];
 
-            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_BBCMicro ||
-                          GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
-                // Update analogue joystick buttons.
-                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
-            }
+                    // row 0 doesn't cause an interrupt
+                    if (!(*column & 0xfe)) {
+                        m_state.system_via.a.c2 = 0;
+                    }
 
-            // Update addressable latch and RTC.
-            const BBCMicroState::SystemVIAPB pb = {m_state.system_via.b.p};
+                    if (!(*column & 1 << krow)) {
+                        m_state.system_via.a.p &= 0x7f;
+                    }
 
-            if (m_state.old_system_via_pb.value != pb.value) {
-                uint8_t mask = 1 << pb.bits.latch_index;
-
-                m_state.addressable_latch.value &= ~mask;
-                if (pb.bits.latch_value) {
-                    m_state.addressable_latch.value |= mask;
+                    //if(key==m_state.auto_reset_key) {
+                    //    //*column&=~(1<<krow);
+                    //    m_state.auto_reset_key=BeebKey_None;
+                    //}
                 }
+
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) != 0) {
+                    m_state.user_via.b.p = m_state.mouse_data.value;
+                    m_state.user_via.b.c1 = m_state.mouse_signal_x;
+                    m_state.user_via.b.c2 = m_state.mouse_signal_y;
+                }
+
+                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact &&
+                              (UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) == 0) {
+                    // <pre>
+                    //  PB4 PB3 PB2 PB1 PB0
+                    // +---+---+---+---+---+
+                    // | R | U | D | L | F |
+                    // +---+---+---+---+---+
+                    // </pre>
+                    //
+                    // Annoyingly, this is completely different from the First Byte layout.
+                    m_state.user_via.b.p = (uint8_t)(m_state.user_via.b.p & ~0x1f) |
+                                           (0x1f ^ ((m_state.digital_joystick_state.bits.right << 4) |
+                                                    (m_state.digital_joystick_state.bits.up << 3) |
+                                                    (m_state.digital_joystick_state.bits.down << 2) |
+                                                    (m_state.digital_joystick_state.bits.left << 1) |
+                                                    (uint8_t)m_state.digital_joystick_state.bits.fire1 | (uint8_t)m_state.digital_joystick_state.bits.fire0));
+                }
+
+                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_BBCMicro ||
+                              GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
+                    // Update analogue joystick buttons.
+                    m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
+                }
+
+                // Update addressable latch and RTC.
+                const BBCMicroState::SystemVIAPB pb = {m_state.system_via.b.p};
+
+                if (m_state.old_system_via_pb.value != pb.value) {
+                    uint8_t mask = 1 << pb.bits.latch_index;
+
+                    m_state.addressable_latch.value &= ~mask;
+                    if (pb.bits.latch_value) {
+                        m_state.addressable_latch.value |= mask;
+                    }
 
 #if BBCMICRO_TRACE
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
-                    if (m_trace) {
-                        if (m_trace_flags & BBCMicroTraceFlag_SystemVIA) {
-                            TracePortB(pb);
+                    if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
+                        if (m_trace) {
+                            if (m_trace_flags & BBCMicroTraceFlag_SystemVIA) {
+                                TracePortB(pb);
+                            }
                         }
                     }
-                }
 #endif
+
+                    if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
+                        if (pb.m128_bits.rtc_chip_select &&
+                            m_state.old_system_via_pb.m128_bits.rtc_address_strobe &&
+                            !pb.m128_bits.rtc_address_strobe) {
+                            // Latch address on AS 1->0 transition.
+                            m_state.rtc.SetAddress(m_state.system_via.a.p);
+                        }
+                    } else if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
+                        UpdatePCD8572(&m_state.eeprom, pb.mcompact_bits.clk, pb.mcompact_bits.data);
+                    }
+
+                    m_state.old_system_via_pb = pb;
+                }
+
+                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
+                    // Update EEPROM data output bit.
+                    m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT)) | (uint8_t)(m_state.eeprom.data_output << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT);
+                }
 
                 if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
                     if (pb.m128_bits.rtc_chip_select &&
-                        m_state.old_system_via_pb.m128_bits.rtc_address_strobe &&
                         !pb.m128_bits.rtc_address_strobe) {
-                        // Latch address on AS 1->0 transition.
-                        m_state.rtc.SetAddress(m_state.system_via.a.p);
+                        // AS=0
+                        if (m_state.addressable_latch.m128_bits.rtc_read) {
+                            // RTC read mode
+                            m_state.system_via.a.p &= m_state.rtc.Read();
+                        } else {
+                            // RTC write mode
+                            if (m_state.old_addressable_latch.m128_bits.rtc_data_strobe &&
+                                !m_state.addressable_latch.m128_bits.rtc_data_strobe) {
+                                // DS=1 -> DS=0
+                                m_state.rtc.SetData(m_state.system_via.a.p);
+                            }
+                        }
                     }
-                } else if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
-                    UpdatePCD8572(&m_state.eeprom, pb.mcompact_bits.clk, pb.mcompact_bits.data);
+
+                    m_state.rtc.Update();
                 }
 
-                m_state.old_system_via_pb = pb;
-            }
-
-            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
-                // Update EEPROM data output bit.
-                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT)) | (uint8_t)(m_state.eeprom.data_output << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT);
-            }
-
-            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_Master128) {
-                if (pb.m128_bits.rtc_chip_select &&
-                    !pb.m128_bits.rtc_address_strobe) {
-                    // AS=0
-                    if (m_state.addressable_latch.m128_bits.rtc_read) {
-                        // RTC read mode
-                        m_state.system_via.a.p &= m_state.rtc.Read();
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParallelPrinter) != 0) {
+                    m_state.user_via.a.c1 = m_state.printer_busy_counter != 1;
+                    if (m_state.printer_busy_counter > 0) {
+                        --m_state.printer_busy_counter;
                     } else {
-                        // RTC write mode
-                        if (m_state.old_addressable_latch.m128_bits.rtc_data_strobe &&
-                            !m_state.addressable_latch.m128_bits.rtc_data_strobe) {
-                            // DS=1 -> DS=0
-                            m_state.rtc.SetData(m_state.system_via.a.p);
+                        if (!m_state.user_via.a.c2) {
+                            if (m_printer_buffer) {
+                                m_printer_buffer->AddByte(m_state.user_via.a.p);
+                            }
+                            //uint8_t printer_byte = m_state.user_via.a.p;
+                            //printf("Printer byte: %03d 0x%02x ", printer_byte, printer_byte);
+                            //if (printer_byte >= 32 && printer_byte < 127) {
+                            //    printf(" '%c'", printer_byte);
+                            //}
+                            //printf("\n");
+                            m_state.printer_busy_counter = 10;
                         }
                     }
                 }
 
-                m_state.rtc.Update();
-            }
+                m_state.old_addressable_latch = m_state.addressable_latch;
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParallelPrinter) != 0) {
-                m_state.user_via.a.c1 = m_state.printer_busy_counter != 1;
-                if (m_state.printer_busy_counter > 0) {
-                    --m_state.printer_busy_counter;
-                } else {
-                    if (!m_state.user_via.a.c2) {
-                        if (m_printer_buffer) {
-                            m_printer_buffer->AddByte(m_state.user_via.a.p);
-                        }
-                        //uint8_t printer_byte = m_state.user_via.a.p;
-                        //printf("Printer byte: %03d 0x%02x ", printer_byte, printer_byte);
-                        //if (printer_byte >= 32 && printer_byte < 127) {
-                        //    printf(" '%c'", printer_byte);
-                        //}
-                        //printf("\n");
-                        m_state.printer_busy_counter = 10;
-                    }
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Serial) != 0) {
+                    M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_ACIA, m_state.acia.irq.value);
                 }
+            } else {
+                m_state.system_via_irq_pending = m_state.system_via.UpdatePhi2LeadingEdge();
+                m_state.user_via_irq_pending = m_state.user_via.UpdatePhi2LeadingEdge();
             }
-
-            m_state.old_addressable_latch = m_state.addressable_latch;
-
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Serial) != 0) {
-                M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_ACIA, m_state.acia.irq.value);
-            }
-        } else {
-            m_state.system_via_irq_pending = m_state.system_via.UpdatePhi2LeadingEdge();
-            m_state.user_via_irq_pending = m_state.user_via.UpdatePhi2LeadingEdge();
         }
 
         if (phi2_1MHz_trailing_edge) {
@@ -1102,64 +1294,77 @@ parasite_update_done:
             }
         }
 
-        // Update sound.
-        if ((m_state.cycle_count.n & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
-            sound_unit->sn_output = m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
-                                                           m_state.system_via.a.p);
+        if constexpr (IsBBCMicroUpdate(UPDATE_FLAGS)) {
+            // Update sound.
+            if ((m_state.cycle_count.n & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
+                sound_unit->sn_output = m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
+                                                               m_state.system_via.a.p);
 
-            sound_unit->disc_drive_sound = this->UpdateDiscDriveSound(&m_state.drives[0]);
-            sound_unit->disc_drive_sound += this->UpdateDiscDriveSound(&m_state.drives[1]);
-            result |= BBCMicroUpdateResultFlag_AudioUnit;
+                sound_unit->disc_drive_sound = this->UpdateDiscDriveSound(&m_state.drives[0]);
+                sound_unit->disc_drive_sound += this->UpdateDiscDriveSound(&m_state.drives[1]);
+                result |= BBCMicroUpdateResultFlag_AudioUnit;
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) != 0) {
-                static_assert(LSHIFT_MOUSE_CLOCK_TO_CYCLE_COUNT > LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT);
-                if ((m_state.cycle_count.n & ((1 << LSHIFT_MOUSE_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
-                    if (m_state.mouse_dx != 0) {
-                        m_state.mouse_signal_x ^= 1;
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Mouse) != 0) {
+                    static_assert(LSHIFT_MOUSE_CLOCK_TO_CYCLE_COUNT > LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT);
+                    if ((m_state.cycle_count.n & ((1 << LSHIFT_MOUSE_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
+                        if (m_state.mouse_dx != 0) {
+                            m_state.mouse_signal_x ^= 1;
 
-                        if (m_state.mouse_dx > 0) {
-                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
-                                m_state.mouse_data.compact_bits.x = !m_state.mouse_signal_x;
+                            if (m_state.mouse_dx > 0) {
+                                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
+                                    m_state.mouse_data.compact_bits.x = !m_state.mouse_signal_x;
+                                } else {
+                                    m_state.mouse_data.amx_bits.x = !m_state.mouse_signal_x;
+                                }
+
+                                --m_state.mouse_dx;
                             } else {
-                                m_state.mouse_data.amx_bits.x = !m_state.mouse_signal_x;
-                            }
+                                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
+                                    m_state.mouse_data.compact_bits.x = m_state.mouse_signal_x;
+                                } else {
+                                    m_state.mouse_data.amx_bits.x = m_state.mouse_signal_x;
+                                }
 
-                            --m_state.mouse_dx;
-                        } else {
-                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
-                                m_state.mouse_data.compact_bits.x = m_state.mouse_signal_x;
-                            } else {
-                                m_state.mouse_data.amx_bits.x = m_state.mouse_signal_x;
+                                ++m_state.mouse_dx;
                             }
-
-                            ++m_state.mouse_dx;
                         }
-                    }
 
-                    if (m_state.mouse_dy != 0) {
-                        m_state.mouse_signal_y ^= 1;
+                        if (m_state.mouse_dy != 0) {
+                            m_state.mouse_signal_y ^= 1;
 
-                        if (m_state.mouse_dy > 0) {
-                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
-                                m_state.mouse_data.compact_bits.y = m_state.mouse_signal_y;
+                            if (m_state.mouse_dy > 0) {
+                                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
+                                    m_state.mouse_data.compact_bits.y = m_state.mouse_signal_y;
+                                } else {
+                                    m_state.mouse_data.amx_bits.y = m_state.mouse_signal_y;
+                                }
+
+                                --m_state.mouse_dy;
                             } else {
-                                m_state.mouse_data.amx_bits.y = m_state.mouse_signal_y;
-                            }
+                                if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
+                                    m_state.mouse_data.compact_bits.y = !m_state.mouse_signal_y;
+                                } else {
+                                    m_state.mouse_data.amx_bits.y = !m_state.mouse_signal_y;
+                                }
 
-                            --m_state.mouse_dy;
-                        } else {
-                            if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_MasterCompact) {
-                                m_state.mouse_data.compact_bits.y = !m_state.mouse_signal_y;
-                            } else {
-                                m_state.mouse_data.amx_bits.y = !m_state.mouse_signal_y;
+                                ++m_state.mouse_dy;
                             }
-
-                            ++m_state.mouse_dy;
                         }
                     }
                 }
             }
         }
+
+#if ENABLE_ELECTRON
+        if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
+            if ((m_state.cycle_count.n & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
+                // For now, completely silent. Also, the update rate is bogus.
+
+                *sound_unit = {};
+                result |= BBCMicroUpdateResultFlag_AudioUnit;
+            }
+        }
+#endif
     }
 
     ++m_state.cycle_count.n;

@@ -1140,7 +1140,9 @@ class SystemDebugWindow : public DebugUI {
         {
             uint32_t flags = m_beeb_thread->GetUpdateFlags();
             auto update_rom_type = (BBCMicroUpdateROMType)(flags >> BBCMicroUpdateFlag_UpdateROMTypeShift & BBCMicroUpdateFlag_UpdateROMTypeMask);
-            flags &= ~(BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift);
+            auto update_system_type = (BBCMicroUpdateSystemType)(flags >> BBCMicroUpdateFlag_UpdateSystemTypeShift & BBCMicroUpdateFlag_UpdateSystemTypeMask);
+            flags &= ~((BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift) |
+                       (BBCMicroUpdateFlag_UpdateSystemTypeMask << BBCMicroUpdateFlag_UpdateSystemTypeShift));
             for (uint32_t mask = 1; mask != 0; mask <<= 1) {
                 if (flags & mask) {
                     const char *flag = GetBBCMicroUpdateFlagEnumName(mask);
@@ -1148,6 +1150,7 @@ class SystemDebugWindow : public DebugUI {
                 }
             }
             ImGui::BulletText("ROM Type: %s", GetBBCMicroUpdateROMTypeEnumName(update_rom_type));
+            ImGui::BulletText("System Type: %s", GetBBCMicroUpdateSystemTypeEnumName(update_system_type));
         }
 
         ImGuiHeader("Other Internal State");
@@ -1211,6 +1214,13 @@ class M6502DebugWindow : public DebugUI {
                 m->DebugToggleResetRelativeCycleBaseOnBreakpoint(dso);
             }));
         }
+
+        BBCMicroCPURunState cpu_run_state;
+        bool resetting;
+        m_beeb_state->DebugGetCPURunState(&cpu_run_state, &resetting);
+
+        ImGui::Text("Run state: %s", GetBBCMicroCPURunStateEnumName(cpu_run_state));
+        ImGui::Text("Resetting: %s", BOOL_STR(resetting));
 
         const M6502 *cpu = m_beeb_state->DebugGetM6502(m_dso);
 

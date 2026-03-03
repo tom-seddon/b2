@@ -7845,6 +7845,24 @@ Total time: 134.3 seconds
 
 * Electron
 
+Stardot discussion of the ROM paging behaviour: https://stardot.org.uk/forums/viewtopic.php?t=27791
+
+Some ULA notes: https://acorn.huininga.nl/pub/docs/txtfiles/The%20Acorn%20Electron%20ULA.txt
+
+** Hoglet's FPGA ULA: https://github.com/hoglet67/ElectronFpga/tree/master
+
+https://github.com/hoglet67/ElectronFpga/blob/db0971434123bd77c71af6ca0575c36b63510b39/src/common/ElectronULA.vhd#L416
+
+#+begin_quote
+Note: The real ULA uses line 281->283/4 for VSYNC, but on both my TVs
+this loses part of the top line. So here we move the screen down by 7
+rows. This should be transparent to software, as it doesn't affect the
+timing of the display or RTC interrupts. I'm happy to rever this is
+anyone complains!
+#+end_quote
+
+
+
 ** ROM banks
 
 | Bank | x |    % | What     |

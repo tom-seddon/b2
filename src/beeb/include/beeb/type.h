@@ -48,22 +48,22 @@ struct BigPageIndex {
 };
 
 static constexpr BigPageIndex MAIN_BIG_PAGE_INDEX = {0};
-static constexpr BigPageIndex::Type NUM_MAIN_BIG_PAGES = {32 / 4};
+static constexpr BigPageIndex::Type NUM_MAIN_BIG_PAGES = 32 / 4;
 
 static constexpr BigPageIndex ANDY_BIG_PAGE_INDEX = {MAIN_BIG_PAGE_INDEX.i + NUM_MAIN_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_ANDY_BIG_PAGES = {4 / 4};
+static constexpr BigPageIndex::Type NUM_ANDY_BIG_PAGES = 4 / 4;
 
 static constexpr BigPageIndex HAZEL_BIG_PAGE_INDEX = {ANDY_BIG_PAGE_INDEX.i + NUM_ANDY_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_HAZEL_BIG_PAGES = {8 / 4};
+static constexpr BigPageIndex::Type NUM_HAZEL_BIG_PAGES = 8 / 4;
 
 static constexpr BigPageIndex BPLUS_RAM_BIG_PAGE_INDEX = {ANDY_BIG_PAGE_INDEX.i};
-static constexpr BigPageIndex::Type NUM_BPLUS_RAM_BIG_PAGES = {12 / 4};
+static constexpr BigPageIndex::Type NUM_BPLUS_RAM_BIG_PAGES = 12 / 4;
 
 static constexpr BigPageIndex SHADOW_BIG_PAGE_INDEX = {HAZEL_BIG_PAGE_INDEX.i + NUM_HAZEL_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_SHADOW_BIG_PAGES = {20 / 4};
+static constexpr BigPageIndex::Type NUM_SHADOW_BIG_PAGES = 20 / 4;
 
 static constexpr BigPageIndex ROM0_BIG_PAGE_INDEX = {SHADOW_BIG_PAGE_INDEX.i + NUM_SHADOW_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {NUM_MAPPER_REGIONS * 16 / 4};
+static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = NUM_MAPPER_REGIONS * 16 / 4;
 
 // There are only 3 MOS big pages. The 4th is covered by one of the I/O area options.
 static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
@@ -78,10 +78,10 @@ static constexpr BigPageIndex FIRST_IO_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + 
 static constexpr BigPageIndex::Type NUM_IO_BIG_PAGES = 8;
 
 static constexpr BigPageIndex PARASITE_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_IO_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_PARASITE_BIG_PAGES = {64 / 4};
+static constexpr BigPageIndex::Type NUM_PARASITE_BIG_PAGES = 64 / 4;
 
 static constexpr BigPageIndex PARASITE_ROM_BIG_PAGE_INDEX = {PARASITE_BIG_PAGE_INDEX.i + NUM_PARASITE_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_PARASITE_ROM_BIG_PAGES = {1};
+static constexpr BigPageIndex::Type NUM_PARASITE_ROM_BIG_PAGES = 1;
 
 //static constexpr uint8_t SECOND_PARASITE_BIG_PAGE_INDEX = {PARASITE_ROM_BIG_PAGE_INDEX.i + NUM_PARASITE_ROM_BIG_PAGES.i};
 //static constexpr uint8_t NUM_SECOND_PARASITE_BIG_PAGES = {64 / 4};
@@ -89,7 +89,10 @@ static constexpr BigPageIndex::Type NUM_PARASITE_ROM_BIG_PAGES = {1};
 //static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = {SECOND_PARASITE_BIG_PAGE_INDEX.i + NUM_SECOND_PARASITE_BIG_PAGES.i};
 //static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = {1};
 
-static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_IO_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
+static constexpr BigPageIndex ELECTRON_KEYBOARD_BIG_PAGE_INDEX = {PARASITE_ROM_BIG_PAGE_INDEX.i + NUM_PARASITE_ROM_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_ELECTRON_KEYBOARD_BIG_PAGES = 4;
+
+static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_IO_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES + NUM_ELECTRON_KEYBOARD_BIG_PAGES;
 
 // A few big page indexes from NUM_BIG_PAGES onwards will never be valid, so
 // they can be used for other purposes.
@@ -149,7 +152,7 @@ union ACCCON {
 //////////////////////////////////////////////////////////////////////////
 
 struct PagingState {
-    // Value of ROMSEL.
+    // Value of ROMSEL. (The Electron uses the BROMSELBits for its index.)
     ROMSEL romsel = {};
 
     // Value of ACCCON.
@@ -302,7 +305,9 @@ size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t
 
 std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types, uint32_t flags);
 
-// a few per-type ID fixed properties.
+// A few per-type ID fixed properties.
+//
+// TODO: could/should probably make these table-driven?
 bool HasNVRAM(BBCMicroTypeID type_id);
 bool CanDisplayTeletextAt3C00(BBCMicroTypeID type_id);
 bool HasNumericKeypad(BBCMicroTypeID type_id);
@@ -319,8 +324,11 @@ bool HasSerial(BBCMicroTypeID type_id);
 bool IsBBCMicro(BBCMicroTypeID type_id); //B/B+/IsMasterSeries
 bool IsMasterSeries(BBCMicroTypeID type_id);
 bool CanHaveVideoNuLA(BBCMicroTypeID type_id);
+
 #if ENABLE_ELECTRON
-bool IsElectron(BBCMicroTypeID type_id);
+inline bool IsElectron(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_Electron;
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////////

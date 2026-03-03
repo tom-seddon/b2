@@ -19,6 +19,21 @@ static constexpr unsigned SOUND_CLOCK_HZ = CYCLES_PER_SECOND >> RSHIFT_CYCLE_COU
 
 #define SOUND_CLOCKS_FROM_MS(N) (SOUND_CLOCK_HZ * (N) / 1000)
 
+//#if ENABLE_ELECTRON
+
+// TODO: the Electron case needs more thought! The disk drive sounds are a
+// factor too
+
+//// 31,250 Hz
+//static constexpr uint64_t SHIFT_CONSTANTS(2MHZ, ELECTRON_SOUND_CLOCK, 11);
+//static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, ELECTRON_SOUND_CLOCK, LSHIFT_ELECTRON_SOUND_CLOCK_TO_2MHZ + LSHIFT_2MHZ_TO_CYCLE_COUNT);
+//
+//static constexpr unsigned ELECTRON_SOUND_CLOCK_HZ = CYCLES_PER_SECOND >> RSHIFT_CYCLE_COUNT_TO_ELECTRON_SOUND_CLOCK;
+//
+//static_assert(
+//
+//#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

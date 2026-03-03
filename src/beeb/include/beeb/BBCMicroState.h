@@ -29,6 +29,7 @@ class Log;
 #include "scsi.h"
 #include "serproc.h"
 #include "MC6850.h"
+#include "ElectronULA.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicroState.inl"
@@ -215,6 +216,7 @@ class BBCMicroState {
 #endif
     bool DebugGetSerial(const SERPROC **serproc_ptr, const MC6850 **mc6850_ptr) const;
     void DebugGetMemoryFaultMasks(uint8_t *ram_and_ptr, uint8_t *ram_or_ptr) const;
+    void DebugGetCPURunState(BBCMicroCPURunState *cpu_run_state_ptr, bool *resetting_ptr) const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -266,7 +268,7 @@ class BBCMicroState {
     M6502 cpu = {};
 
   protected:
-    uint8_t stretch = 0;
+    BBCMicroCPURunState cpu_run_state = BBCMicroCPURunState_Running;
     bool resetting = false;
 
   public:
@@ -401,6 +403,11 @@ class BBCMicroState {
     SERPROC serproc;
     MC6850 acia;
     uint8_t serproc_update_counter;
+
+  public:
+#if ENABLE_ELECTRON
+    ElectronULA electron_ula;
+#endif
 
   protected:
     // Disallow values of base type. Disallow delete of pointer to base type.

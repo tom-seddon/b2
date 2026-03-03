@@ -771,20 +771,20 @@ class BBCMicro : private WD1770Handler {
     // Each points to 768 entries, one per byte. [0x000...0x0ff] is for page FC,
     // [0x100...0x1ff] for FD and [0x200...0x2ff] for FE.
     const ReadMMIO *m_read_mmios = nullptr;
-    const uint8_t *m_read_mmios_stretch = nullptr;
+    const BBCMicroCPURunState *m_read_mmios_new_run_state = nullptr;
     const WriteMMIO *m_write_mmios = nullptr;
-    const uint8_t *m_write_mmios_stretch = nullptr;
+    const BBCMicroCPURunState *m_write_mmios_new_run_state = nullptr;
 
     // Tables for pages FC/FD/FE that access the hardware. Indexed by
     // a combination of HostIOFlag IFJ and ITU.
     std::vector<ReadMMIO> m_read_mmios_hw[4];
     std::vector<WriteMMIO> m_write_mmios_hw[4];
-    std::vector<uint8_t> m_mmios_stretch_hw[4];
+    std::vector<BBCMicroCPURunState> m_mmios_new_run_state_hw[4];
 
     // Tables for pages FC/FD/FE that access the ROM - reads on M128 when ACCCON
     // TST=1.
     std::vector<ReadMMIO> m_read_mmios_rom;
-    std::vector<uint8_t> m_mmios_stretch_rom;
+    std::vector<BBCMicroCPURunState> m_mmios_new_run_state_rom;
 
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<DebugReadMMIOData> m_debug_read_mmio_data;
@@ -910,6 +910,7 @@ class BBCMicro : private WD1770Handler {
     static uint8_t ReadSERPROC(void *m_, M6502Word a);
 
 #if ENABLE_ELECTRON
+    // TODO: ideally, these will end up in ElectronULA.cpp in the long run
     static uint8_t ReadElectronULA0(void *m_, M6502Word a);
     static uint8_t ReadElectronULA1(void *m_, M6502Word a);
     static uint8_t ReadElectronULA2(void *m_, M6502Word a);
@@ -918,6 +919,14 @@ class BBCMicro : private WD1770Handler {
     static uint8_t ReadElectronULA5(void *m_, M6502Word a);
     static uint8_t ReadElectronULA6(void *m_, M6502Word a);
     static uint8_t ReadElectronULA7(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA8(void *m_, M6502Word a);
+    static uint8_t ReadElectronULA9(void *m_, M6502Word a);
+    static uint8_t ReadElectronULAA(void *m_, M6502Word a);
+    static uint8_t ReadElectronULAB(void *m_, M6502Word a);
+    static uint8_t ReadElectronULAC(void *m_, M6502Word a);
+    static uint8_t ReadElectronULAD(void *m_, M6502Word a);
+    static uint8_t ReadElectronULAE(void *m_, M6502Word a);
+    static uint8_t ReadElectronULAF(void *m_, M6502Word a);
     static void WriteElectronULA0(void *m_, M6502Word a, uint8_t value);
     static void WriteElectronULA1(void *m_, M6502Word a, uint8_t value);
     static void WriteElectronULA2(void *m_, M6502Word a, uint8_t value);
@@ -926,6 +935,14 @@ class BBCMicro : private WD1770Handler {
     static void WriteElectronULA5(void *m_, M6502Word a, uint8_t value);
     static void WriteElectronULA6(void *m_, M6502Word a, uint8_t value);
     static void WriteElectronULA7(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA8(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULA9(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULAA(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULAB(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULAC(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULAD(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULAE(void *m_, M6502Word a, uint8_t value);
+    static void WriteElectronULAF(void *m_, M6502Word a, uint8_t value);
 #endif
 
     uint8_t GetStaleDatabusByte() const;

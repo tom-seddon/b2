@@ -113,3 +113,18 @@ EEND()
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#define ENAME BBCMicroCPURunState
+EBEGIN_DERIVED(uint8_t)
+// CPU is running.
+EPN(Running)
+
+// CPU is (briefly) waiting to sync up to the 1 MHz clock.
+EPN(1MHzAccess)
+
+#if ENABLE_ELECTRON
+// CPU is waiting for the ULA to read from RAM.
+EPN(RAMAccess)
+#endif
+EEND()
+#undef ENAME

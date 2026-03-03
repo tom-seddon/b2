@@ -333,6 +333,16 @@ void BBCMicroState::DebugGetMemoryFaultMasks(uint8_t *ram_and_ptr, uint8_t *ram_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void BBCMicroState::DebugGetCPURunState(BBCMicroCPURunState *cpu_run_state_ptr, bool *resetting_ptr) const {
+    *cpu_run_state_ptr = this->cpu_run_state;
+    *resetting_ptr = this->resetting;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::shared_ptr<const DiscImage> BBCMicroState::GetDiscImage(int drive) const {
     if (drive >= 0 && drive < NUM_DRIVES) {
         return this->drives[drive].disc_image;
