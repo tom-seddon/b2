@@ -84,6 +84,7 @@ EPN(SymbolGroupManagement)
 EPN(PagingBrowserDebugger)
 EPN(SymbolGroupBrowser)
 EPN(MutexStats)
+EPN(ElectronULADebug)
 
 // must be last
 EQPN(MaxValue)

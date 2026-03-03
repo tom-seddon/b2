@@ -402,10 +402,6 @@ size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t
 }
 
 static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom_types, uint8_t host_io_flags_mask) {
-#if !ENABLE_ELECTRON
-    (void)is_electron;
-#endif
-
     std::vector<BigPageMetadata> big_pages;
     big_pages.resize(NUM_BIG_PAGES);
 

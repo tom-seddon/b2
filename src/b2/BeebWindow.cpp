@@ -268,6 +268,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupManagement, "toggle_symbol_group_management", "Symbols", &CreateSymbolGroupManagementWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupBrowser, "toggle_symbol_browser_debug", "Browse Symbols", &CreateSymbolBrowserWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MutexStats, "toggle_mutex_stats", "Mutex Stats", &CreateMutexStatsUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ElectronULADebug, "toggle_electron_ula_debug", "Electron ULA", &CreateElectronULADebugWindow);
     return true;
 }
 
@@ -2580,6 +2581,7 @@ void BeebWindow::DoDebugMenu() {
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingDebugger].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingBrowserDebugger].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_BreakpointsDebugger].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ElectronULADebug].command);
             ImGui::EndMenu();
         }
 

@@ -167,7 +167,17 @@ static constexpr double CORRECT_ASPECT_RATIO_X_SCALE = (double)CORRECT_ASPECT_RA
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Work in progress.
+// Works in progress.
+//
+// Defines in this section exists so that WIP code can be merged into some other
+// branch, when that'd be easier than cherry-picking the exact fixes of
+// interest, and the WIP code still excluded.
+//
+// But the intent is always that any defines in this section will ultimately end
+// up always defined to 1. And at that point - or, failing that, at some point
+// thereafter... - the define will be removed and affected code fixed up
+// accordingly.
+
 #define ENABLE_SCSI 1
 
 #define ENABLE_ELECTRON 1

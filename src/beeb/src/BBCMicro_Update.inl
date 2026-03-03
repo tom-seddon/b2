@@ -321,6 +321,8 @@ parasite_update_done:
                     // RAM access. ULA mediates.
                     m_state.cpu_run_state = BBCMicroCPURunState_RAMAccess;
                 } else {
+                    // TODO: keyboard ROM bank access needs to induce the right state
+
                     // possibly select 1MHzAccess state.
                     M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
                     if (mmio_addr.b.h < 3) {
@@ -689,6 +691,9 @@ parasite_update_done:
             if (const uint8_t read = m_state.cpu.read) {
                 (void)read;
                 if (mmio_addr.b.h < 3) {
+                    //
+                    // Handle reads from the memory-mapped I/O region.
+                    //
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
                     m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
 
@@ -702,9 +707,19 @@ parasite_update_done:
                     }
 #endif
                 } else {
+                    //
+                    // Handle reads from other regions.
+                    //
                     if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_EmptySocket) {
+                        //
+                        // Handle read from memory when there might be unmapped
+                        // regions.
+                        //
                         const uint8_t *r = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p];
                         if (r) {
+                            //
+                            // Handle read from readable region.
+                            //
                             m_state.cpu.dbus = r[m_state.cpu.abus.p.o];
 
                             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
@@ -722,7 +737,11 @@ parasite_update_done:
 #endif
                             }
                         } else {
-                            // see corresponding logic in BBCMicro::GetStaleDatabusByte.
+                            //
+                            // Handle read from unreadable region.
+                            //
+
+                            // (see corresponding logic in BBCMicro::GetStaleDatabusByte.)
                             if constexpr (GetBBCMicroUpdateFlagsUpdateSystemType(UPDATE_FLAGS) == BBCMicroUpdateSystemType_BBCMicro) {
                                 // For B/B+, leave the previous value in place.
                                 // The CPU data bus is buffered so it'll read
@@ -735,18 +754,33 @@ parasite_update_done:
                                 m_state.cpu.dbus = m_state.last_fetched_video_byte;
                             }
                         }
-                    } //<--note
-#if ENABLE_ELECTRON //<--note
-                    else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ElectronKeyboard) {
-                        // Handle the Electron's slightly inconsistent
-                        // memory-mapped keyboard.
-                        if (m_state.cpu.abus.b.h >= 0x80 && m_state.cpu.abus.b.h < 0xc0) {
-                            m_state.cpu.dbus = 0xf; //TODO: keyboard
+                    } else {
+                        //
+                        // Handle read from memory when there are no unmapped
+                        // regions, but (Electron only) the Electron keyboard
+                        // bank could be mapped in.
+                        //
+#if ENABLE_ELECTRON
+                        if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ElectronKeyboard) {
+                            if (m_state.cpu.abus.b.h >= 0x80 && m_state.cpu.abus.b.h < 0xc0) {
+                                //
+                                // Handle read from keyboard ROM.
+                                //
+                                m_state.cpu.dbus = 0xf0; //TODO: keyboard
+                            } else {
+                                //
+                                // Handle ordinary memory read.
+                                //
+                                m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
+                            }
+                        } else //<--note
+#endif                         //<--note
+                        {
+                            //
+                            // Handle ordinary memory read.
+                            //
+                            m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
                         }
-                    } //<--note
-#endif //<--note
-                    else {
-                        m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
 
                         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
@@ -783,6 +817,9 @@ parasite_update_done:
 #endif
             } else {
                 if (mmio_addr.b.h < 3) {
+                    //
+                    // Handle writes to the memory-mapped I/O region.
+                    //
                     const WriteMMIO *write_mmio = &m_write_mmios[mmio_addr.w];
                     (*write_mmio->fn)(write_mmio->context, m_state.cpu.abus, m_state.cpu.dbus);
 #if BBCMICRO_DEBUGGER
@@ -795,6 +832,9 @@ parasite_update_done:
                     }
 #endif
                 } else {
+                    //
+                    // Handle writes to other regions.
+                    //
                     m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
 
 #if BBCMICRO_DEBUGGER

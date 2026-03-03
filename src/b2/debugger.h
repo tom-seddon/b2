@@ -52,6 +52,7 @@ std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSerialDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -343,6 +343,21 @@ void BBCMicroState::DebugGetCPURunState(BBCMicroCPURunState *cpu_run_state_ptr, 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+#if ENABLE_ELECTRON
+const ElectronULA *BBCMicroState::DebugGetElectronULA() const {
+    if (IsElectron(this->type->type_id)) {
+        return &this->electron_ula;
+    } else {
+        return nullptr;
+    }
+}
+#endif
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::shared_ptr<const DiscImage> BBCMicroState::GetDiscImage(int drive) const {
     if (drive >= 0 && drive < NUM_DRIVES) {
         return this->drives[drive].disc_image;

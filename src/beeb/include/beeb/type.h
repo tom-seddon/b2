@@ -152,7 +152,7 @@ union ACCCON {
 //////////////////////////////////////////////////////////////////////////
 
 struct PagingState {
-    // Value of ROMSEL. (The Electron uses the BROMSELBits for its index.)
+    // Value of ROMSEL. (The Electron sets the BBC B data.)
     ROMSEL romsel = {};
 
     // Value of ACCCON.

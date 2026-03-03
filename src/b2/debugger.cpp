@@ -5205,6 +5205,59 @@ std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_ELECTRON
+class ElectronULADebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        const ElectronULA *ula = m_beeb_state->DebugGetElectronULA();
+        if (!ula) {
+            ImGui::TextUnformatted("No Electron ULA");
+            return;
+        }
+
+        ImGuiHeader("Display");
+        ImGui::BulletText("Display Start: %s%04x", g_hex, ula->display_start_address);
+
+        ImGuiHeader("Misc");
+        ImGui::BulletText("Mode: %d (%s)", ula->misc.bits.mode, GetElectronULAMiscModeEnumName(ula->misc.bits.mode));
+        ImGui::BulletText("Display Mode: %d", ula->misc.bits.display_mode);
+        ImGui::BulletText("Motor: %s", BOOL_STR_ON_OFF(ula->misc.bits.motor));
+        ImGui::BulletText("Caps Lock: %s", BOOL_STR_ON_OFF(ula->misc.bits.caps_lock));
+
+        ImGuiHeader("Paging");
+        ImGui::BulletText("Bank: %d (%s%x)", ula->romsel, g_hex, ula->romsel);
+
+        ImGuiHeader("IRQ Flags");
+        ImGui::BulletText("Power On: %s", BOOL_STR(ula->irq.bits.power_on));
+        this->IRQFlags(ula->irq);
+
+        ImGuiHeader("IRQ Mask");
+        this->IRQFlags(ula->irq_mask);
+    }
+
+  protected:
+  private:
+    void IRQFlags(ElectronIRQ irq) {
+        ImGui::BulletText("Display End: %s", BOOL_STR(irq.bits.display_end));
+        ImGui::BulletText("RTC: %s", BOOL_STR(irq.bits.rtc));
+        ImGui::BulletText("Rx Data Full: %s", BOOL_STR(irq.bits.rx_data_full));
+        ImGui::BulletText("Tx Data Empty: %s", BOOL_STR(irq.bits.tx_data_empty));
+        ImGui::BulletText("High Tone: %s", BOOL_STR(irq.bits.high_tone));
+    }
+};
+#endif
+
+std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window) {
+#if ENABLE_ELECTRON
+    return CreateDebugUI<ElectronULADebugWindow>(beeb_window);
+#else
+    return nullptr;
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -5332,6 +5385,10 @@ std::unique_ptr<SettingsUI> CreateSymbolGroupManagementWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window) {
     return nullptr;
 }
 

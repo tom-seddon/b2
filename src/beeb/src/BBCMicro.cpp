@@ -103,10 +103,22 @@ class BBCMicroReadOnlyStateWithDebugMMIO : public BBCMicroReadOnlyState {
 
     uint8_t DebugGetStaleDataBusByte() const override {
         BBCMicroTypeID type_id = this->type->type_id;
-        if (type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact) {
-            return this->last_fetched_video_byte;
-        } else {
+        switch (type_id) {
+        default:
+            ASSERT(false);
+            [[fallthrough]];
+        case BBCMicroTypeID_B:
+        case BBCMicroTypeID_BPlus:
             return this->cpu.dbus;
+
+        case BBCMicroTypeID_Master:
+        case BBCMicroTypeID_MasterCompact:
+            return this->last_fetched_video_byte;
+
+#if ENABLE_ELECTRON
+        case BBCMicroTypeID_Electron:
+            return 0xff;
+#endif
         }
     }
 
@@ -1321,6 +1333,19 @@ void BBCMicro::WriteElectronULA5(void *m_, M6502Word a, uint8_t value) {
     if (paging.bits.clear_nmi) {
         m->m_state.electron_ula.nmi = false;
     }
+
+    if (m->m_state.electron_ula.romsel != m->m_state.paging.romsel.b_bits.pr) {
+        m->m_state.paging.romsel.b_bits.pr = value & 0xf;
+
+        m->UpdatePaging();
+        m->UpdateCPUDataBusFn();
+
+#if BBCMICRO_TRACE
+        if (m->m_trace) {
+            m->m_trace->AllocWriteROMSELEvent(m->m_state.paging.romsel);
+        }
+#endif
+    }
 }
 #endif
 
@@ -1496,10 +1521,21 @@ void BBCMicro::WriteElectronULAF(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t BBCMicro::GetStaleDatabusByte() const {
-    if (GetBBCMicroUpdateFlagsUpdateSystemType(m_update_flags) == BBCMicroUpdateSystemType_BBCMicro) {
+    switch (GetBBCMicroUpdateFlagsUpdateSystemType(m_update_flags)) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroUpdateSystemType_BBCMicro:
         return m_state.cpu.dbus;
-    } else {
+
+    case BBCMicroUpdateSystemType_Master128:
+    case BBCMicroUpdateSystemType_MasterCompact:
         return m_state.last_fetched_video_byte;
+
+#if ENABLE_ELECTRON
+    case BBCMicroUpdateSystemType_Electron:
+        return 0xff;
+#endif
     }
 }
 
