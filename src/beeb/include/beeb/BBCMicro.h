@@ -983,6 +983,7 @@ class BBCMicro : private WD1770Handler {
     void StepSound(BBCMicroState::DiscDrive *dd, int step_rate_ms);
     float UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd);
     void UpdateCPUDataBusFn();
+    void GetKeyColumnAndMask(BeebKey beeb_key, uint8_t **column_ptr, uint8_t *mask_ptr);
 
     // If read_fn is null or never explicitly set, the location will read as the
     // stale CPU data bus value.

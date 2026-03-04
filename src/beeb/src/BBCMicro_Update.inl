@@ -792,7 +792,15 @@ parasite_update_done:
                                 //
                                 // Handle read from keyboard ROM.
                                 //
-                                m_state.cpu.dbus = 0xf0; //TODO: keyboard
+                                uint8_t value = 0;
+
+                                for (uint16_t column = 0; column < 14; ++column) {
+                                    if (!(m_state.cpu.abus.w & 1 << column)) {
+                                        value |= m_state.key_columns[column];
+                                    }
+                                }
+
+                                m_state.cpu.dbus = 0xf0 | (value & 0xf);
                             } else {
                                 //
                                 // Handle ordinary memory read.

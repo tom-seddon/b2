@@ -1,3 +1,6 @@
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // All BeebKey values fit into a int8_t.
 //
 // Valid values are between 0 and 127, with bits 0-3 being the column
@@ -6,12 +9,8 @@
 // Columns 0-9 are shared between BBC and Master. Columns 10-14 are
 // the Master keypad. Column 15 - never used on the original hardware
 // - is used to encode special keys, which so far means Break.
-//
-//
-//
-// Rows 10-14 are
 #define ENAME BeebKey
-EBEGIN()
+EBEGIN_DERIVED(int8_t)
 // Main keys.
 EPNV(Space, 0x62)
 EPNV(Comma, 0x66)
@@ -116,3 +115,75 @@ EPNV(Break, 0x7f)
 EPNV(None, -1)
 EEND()
 #undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_ELECTRON
+
+// Note that all the UI goes by BeebKey, translated as required into
+// ElectronKey.
+//
+// Valid values are between 0 and 127, with bits 0-3 being the column and bits
+// 4-5 the row. Invalid values are <0.
+
+#define ENAME ElectronKey
+EBEGIN_DERIVED(int8_t)
+EPNV(Right, 0x00)
+EPNV(Copy, 0x10)
+EPNV(Space, 0x30)
+EPNV(Left, 0x01)
+EPNV(Down, 0x11)
+EPNV(Return, 0x21)
+EPNV(Delete, 0x31)
+EPNV(Minus, 0x02)
+EPNV(Up, 0x12)
+EPNV(Colon, 0x22)
+EPNV(0, 0x03)
+EPNV(P, 0x13)
+EPNV(Semicolon, 0x23)
+EPNV(Slash, 0x33)
+EPNV(9, 0x04)
+EPNV(O, 0x14)
+EPNV(L, 0x24)
+EPNV(Stop, 0x34)
+EPNV(8, 0x05)
+EPNV(I, 0x15)
+EPNV(K, 0x25)
+EPNV(Comma, 0x35)
+EPNV(7, 0x06)
+EPNV(U, 0x16)
+EPNV(J, 0x26)
+EPNV(M, 0x36)
+EPNV(6, 0x07)
+EPNV(Y, 0x17)
+EPNV(H, 0x27)
+EPNV(N, 0x37)
+EPNV(5, 0x08)
+EPNV(T, 0x18)
+EPNV(G, 0x28)
+EPNV(B, 0x38)
+EPNV(4, 0x09)
+EPNV(R, 0x19)
+EPNV(F, 0x29)
+EPNV(V, 0x39)
+EPNV(3, 0x0a)
+EPNV(E, 0x1a)
+EPNV(D, 0x2a)
+EPNV(C, 0x3a)
+EPNV(2, 0x0b)
+EPNV(W, 0x1b)
+EPNV(S, 0x2b)
+EPNV(X, 0x3b)
+EPNV(1, 0x0c)
+EPNV(Q, 0x1c)
+EPNV(A, 0x2c)
+EPNV(Z, 0x3c)
+EPNV(Escape, 0x0d)
+EPNV(CapsLock, 0x1d)
+EPNV(Ctrl, 0x2d)
+EPNV(Shift, 0x3d)
+EPNV(None, -1)
+EEND()
+#undef ENAME
+#endif

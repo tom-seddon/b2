@@ -1578,12 +1578,13 @@ const CycleCount *BBCMicro::GetCycleCountPtr() const {
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t BBCMicro::GetKeyState(BeebKey key) {
-    ASSERT(key >= 0 && (int)key < 128);
-
-    uint8_t *column = &m_state.key_columns[key & 0x0f];
-    uint8_t mask = 1 << (key >> 4);
-
-    return !!(*column & mask);
+    uint8_t *column, mask;
+    this->GetKeyColumnAndMask(key, &column, &mask);
+    if (column) {
+        return !!(*column & mask);
+    } else {
+        return false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1613,9 +1614,11 @@ const uint8_t *BBCMicro::GetRAM() const {
 bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
     ASSERT(key >= 0 && (int)key < 128);
 
-    uint8_t *column = &m_state.key_columns[key & 0x0f];
-    uint8_t mask = 1 << (key >> 4);
-    bool old_state = (*column & mask) != 0;
+    //bool old_state;
+
+    //uint8_t *column = &m_state.key_columns[key & 0x0f];
+    //uint8_t mask = 1 << (key >> 4);
+    //bool old_state = (*column & mask) != 0;
 
     if (key == BeebKey_Break) {
         if (new_state != m_state.resetting) {
@@ -1636,16 +1639,32 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
             return true;
         }
     } else {
+        uint8_t *column, mask;
+        this->GetKeyColumnAndMask(key, &column, &mask);
+
+        bool old_state;
+        if (column) {
+            old_state = !!(*column & mask);
+        } else {
+            old_state = false;
+        }
+
         if (!old_state && new_state) {
             ASSERT(m_state.num_keys_down < 256);
             ++m_state.num_keys_down;
-            *column |= mask;
+
+            if (column) {
+                *column |= mask;
+            }
 
             return true;
         } else if (old_state && !new_state) {
             ASSERT(m_state.num_keys_down > 0);
             --m_state.num_keys_down;
-            *column &= ~mask;
+
+            if (column) {
+                *column &= ~mask;
+            }
 
             return true;
         }
@@ -4196,6 +4215,29 @@ void BBCMicro::UpdateCPUDataBusFn() {
     m_update_flags = update_flags;
     m_update_mfn = ms_update_mfns[update_flags];
     ASSERT(m_update_mfn);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::GetKeyColumnAndMask(BeebKey key, uint8_t **column_ptr, uint8_t *mask_ptr) {
+    ASSERT(key >= 0 && key < 128);
+
+    int8_t code = (int8_t)key;
+
+#if ENABLE_ELECTRON
+    if (IsElectron(m_state.type->type_id)) {
+        code = GetElectronKeyFromBeebKey(key);
+        if (code < 0) {
+            *column_ptr = nullptr;
+            *mask_ptr = 0;
+            return;
+        }
+    }
+#endif
+
+    *column_ptr = &m_state.key_columns[code & 0xf];
+    *mask_ptr = 1 << (code >> 4);
 }
 
 //////////////////////////////////////////////////////////////////////////
