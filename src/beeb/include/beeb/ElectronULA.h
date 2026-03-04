@@ -140,8 +140,15 @@ struct ElectronULA {
     //
     ElectronULADisplayState display_state = ElectronULADisplayState_Display;
 
-    // Last byte fetch from RAM for upcoming display output purposes.
+    // Storage for last byte fetch from RAM for upcoming display output
+    // purposes. Potentially modified while pixels are being emitted.
     uint8_t display_byte = 0;
+
+#if VIDEO_TRACK_METADATA
+    // Video metadata stuff. Only modified when byte is fetched from RAM.
+    uint8_t display_fetched_byte = 0;
+    uint16_t display_byte_address = 0;
+#endif
 
     //
     uint16_t display_row_address = 0;

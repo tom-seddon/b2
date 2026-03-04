@@ -1077,9 +1077,10 @@ uint8_t BBCMicro::ReadElectronULA0(void *m_, M6502Word a) {
 
     m->m_state.electron_ula.irq.bits.power_on = 0;
 
+    irq.bits.nc = 1;
     irq.bits.master = !!(m->m_state.electron_ula.irq.flag_bits.flags & m->m_state.electron_ula.irq_mask.flag_bits.flags);
 
-    return 0xff;
+    return irq.value;
 }
 #endif
 
@@ -1314,23 +1315,29 @@ void BBCMicro::WriteElectronULA5(void *m_, M6502Word a, uint8_t value) {
     ElectronPaging paging;
     paging.value = value;
 
+    TRACEF(m->m_trace, "Write Electron ULA R5 - $%02x", value);
+
     // TODO: could do with something better here, but this register is just a
     // bit weird.
     m->m_state.electron_ula.romsel = value & 0xf;
 
     if (paging.bits.clear_display_end) {
+        TRACEF(m->m_trace, "Write Electron ULA R5 - clear Display End IRQ");
         m->m_state.electron_ula.irq.bits.display_end = 0;
     }
 
     if (paging.bits.clear_rtc) {
+        TRACEF(m->m_trace, "Write Electron ULA R5 - clear RTC IRQ");
         m->m_state.electron_ula.irq.bits.rtc = 0;
     }
 
     if (paging.bits.clear_high_tone) {
+        TRACEF(m->m_trace, "Write Electron ULA R5 - clear High Tone IRQ");
         m->m_state.electron_ula.irq.bits.high_tone = 0;
     }
 
     if (paging.bits.clear_nmi) {
+        TRACEF(m->m_trace, "Write Electron ULA R5 - clear NMI state");
         m->m_state.electron_ula.nmi = false;
     }
 

@@ -367,13 +367,15 @@ parasite_update_done:
                 --m_state.electron_ula.rtc_interrupt_timer;
                 if (m_state.electron_ula.rtc_interrupt_timer == 0) {
                     m_state.electron_ula.irq.bits.rtc = 1;
+
+                    TRACEF(m_trace, "Electron ULA - RTC");
                 }
             }
 
             if (m_state.electron_ula.display_column < ElectronULA::NUM_HSYNC_COLUMNS) {
                 // Horizontal sync
-                video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_HSync;
                 video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0;
+                video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_HSync;
             } else if (m_state.electron_ula.display_column < ElectronULA::NUM_HSYNC_COLUMNS + ElectronULA::NUM_BACK_PORCH_COLUMNS) {
                 // Back porch
                 video_unit->pixels.values[1] = video_unit->pixels.values[0] = 0;
@@ -383,6 +385,11 @@ parasite_update_done:
                     // Display data from RAM.
                     if (m_state.electron_ula.misc.bits.display_mode <= 3 || ula_used_cycle) {
                         m_state.electron_ula.display_byte = m_ram[m_state.electron_ula.display_fetch_address];
+#if VIDEO_TRACK_METADATA
+                        m_state.electron_ula.display_fetched_byte = m_state.electron_ula.display_byte;
+                        m_state.electron_ula.display_byte_address = m_state.electron_ula.display_fetch_address;
+
+#endif
                         m_state.electron_ula.display_fetch_address += 8;
                         if (m_state.electron_ula.display_fetch_address >= 0x8000) {
                             m_state.electron_ula.display_fetch_address -= ElectronULA::DISPLAY_WRAPAROUND_SIZES[m_state.electron_ula.misc.bits.display_mode];
@@ -393,6 +400,12 @@ parasite_update_done:
                     }
 
                     (*ElectronULA::EMIT_PIXELS_FNS[m_state.electron_ula.misc.bits.display_mode])(video_unit, &m_state.electron_ula);
+
+#if VIDEO_TRACK_METADATA
+                    video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress | VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_6845DISPEN;
+                    video_unit->metadata.address = m_state.electron_ula.display_byte_address;
+                    video_unit->metadata.value = m_state.electron_ula.display_fetched_byte;
+#endif
                 } else {
                     // Display nothing.
                     //
@@ -410,7 +423,8 @@ parasite_update_done:
 
             ++m_state.electron_ula.display_column;
             if (m_state.electron_ula.display_column == 128) {
-                // handle raster/row counters in the visible region.
+                // handle vertical counters in the visible region only. The
+                // non-visible parts are dealt with by timers.
                 if (m_state.electron_ula.display_state == ElectronULADisplayState_Display) {
                     ++m_state.electron_ula.display_scanline;
                     ++m_state.electron_ula.display_raster;
@@ -428,11 +442,17 @@ parasite_update_done:
                             // do the display end interrupt.
                             m_state.electron_ula.irq.bits.display_end = 1;
 
-                            // queue up the vsync.
-                            m_state.electron_ula.display_vsync_counter = (ElectronULA::VSYNC_SCANLINE - m_state.electron_ula.display_scanline) * 128;
-                            if (m_state.electron_ula.display_even_field) {
-                                m_state.electron_ula.display_vsync_counter += 64;
-                            }
+                            TRACEF(m_trace, "Electron ULA - Display End");
+
+                            // Queue up the vsync.
+                            //
+                            // Add 1 to the count, because the vsync counter
+                            // handling is the next step, so the counter will
+                            // get immediately decremented.
+                            m_state.electron_ula.display_vsync_counter = (ElectronULA::VSYNC_SCANLINE - m_state.electron_ula.display_scanline) * 128 + 1;
+                            //if (m_state.electron_ula.display_even_field) {
+                            //m_state.electron_ula.display_vsync_counter += 64;
+                            //}
 
                             m_state.electron_ula.display_state = ElectronULADisplayState_BeforeVSync;
                         }
@@ -440,6 +460,9 @@ parasite_update_done:
 
                     m_state.electron_ula.display_fetch_address = m_state.electron_ula.display_row_address + m_state.electron_ula.display_raster;
                 }
+
+                // Always keep on top of the horizontal counter.
+                m_state.electron_ula.display_column = 0;
             }
 
             if (m_state.electron_ula.display_vsync_counter > 0) {
@@ -450,6 +473,10 @@ parasite_update_done:
                 --m_state.electron_ula.display_vsync_counter;
                 if (m_state.electron_ula.display_vsync_counter == 0) {
                     switch (m_state.electron_ula.display_state) {
+                    default:
+                        ASSERT(false);
+                        break;
+
                     case ElectronULADisplayState_BeforeVSync:
                         m_state.electron_ula.display_state = ElectronULADisplayState_VSync;
                         m_state.electron_ula.display_vsync_counter = 2 * 160;
@@ -459,13 +486,12 @@ parasite_update_done:
                         m_state.electron_ula.display_state = ElectronULADisplayState_AfterVSync;
                         m_state.electron_ula.rtc_interrupt_timer = 2 * 8192;
                         m_state.electron_ula.display_vsync_counter = (312 - (ElectronULA::VSYNC_SCANLINE + 2)) * 128;
-                        if (!m_state.electron_ula.display_even_field) {
-                            m_state.electron_ula.display_vsync_counter -= 64;
-                        }
+                        //m_state.electron_ula.display_vsync_counter += 64;
                         break;
 
                     case ElectronULADisplayState_AfterVSync:
                         m_state.electron_ula.display_even_field = !m_state.electron_ula.display_even_field;
+                        m_state.electron_ula.display_scanline = 0;
                         m_state.electron_ula.display_column = 0;
                         m_state.electron_ula.display_row = 0;
                         m_state.electron_ula.display_raster = 0;
