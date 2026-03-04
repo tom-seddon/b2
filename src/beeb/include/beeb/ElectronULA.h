@@ -134,7 +134,7 @@ struct ElectronULA {
     ElectronULAMisc misc = {};
     uint8_t sound_frequency = 0;
 
-    // 2-colour modes use entries 0/2; 4-colour modes use entries 0/2/8/10.
+    // 2-colour modes use entries 0/8; 4-colour modes use entries 0/2/8/10.
     ElectronPaletteEntry palette[16] = {};
 
     //

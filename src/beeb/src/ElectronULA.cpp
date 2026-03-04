@@ -35,19 +35,19 @@ ElectronULA::ElectronULA() {
 //////////////////////////////////////////////////////////////////////////
 
 // 0 = 0b0000
-// 1 = 0b0010
+// 1 = 0b1000
 
 static void Emit2MHz1bpp(VideoDataUnit *unit, ElectronULA *ula) {
     uint8_t byte = ula->display_byte;
 
-    unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[byte >> 6 & 2].value];
-    unit->pixels.pixels[1].bits = PALETTE_PIXELS[ula->palette[byte >> 5 & 2].value];
-    unit->pixels.pixels[2].bits = PALETTE_PIXELS[ula->palette[byte >> 4 & 2].value];
-    unit->pixels.pixels[3].bits = PALETTE_PIXELS[ula->palette[byte >> 3 & 2].value];
-    unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[byte >> 2 & 2].value];
-    unit->pixels.pixels[5].bits = PALETTE_PIXELS[ula->palette[byte >> 1 & 2].value];
-    unit->pixels.pixels[6].bits = PALETTE_PIXELS[ula->palette[byte >> 0 & 2].value];
-    unit->pixels.pixels[7].bits = PALETTE_PIXELS[ula->palette[byte << 1 & 2].value];
+    unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[byte >> 4 & 8].value];
+    unit->pixels.pixels[1].bits = PALETTE_PIXELS[ula->palette[byte >> 3 & 8].value];
+    unit->pixels.pixels[2].bits = PALETTE_PIXELS[ula->palette[byte >> 2 & 8].value];
+    unit->pixels.pixels[3].bits = PALETTE_PIXELS[ula->palette[byte >> 1 & 8].value];
+    unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[byte >> 0 & 8].value];
+    unit->pixels.pixels[5].bits = PALETTE_PIXELS[ula->palette[byte << 1 & 8].value];
+    unit->pixels.pixels[6].bits = PALETTE_PIXELS[ula->palette[byte << 2 & 8].value];
+    unit->pixels.pixels[7].bits = PALETTE_PIXELS[ula->palette[byte << 3 & 8].value];
 }
 
 static void Emit1MHz1bpp(VideoDataUnit *unit, ElectronULA *ula) {
@@ -55,10 +55,10 @@ static void Emit1MHz1bpp(VideoDataUnit *unit, ElectronULA *ula) {
 
     ula->display_byte <<= 4;
 
-    unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[byte >> 6 & 2].value];
-    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = PALETTE_PIXELS[ula->palette[byte >> 5 & 2].value];
-    unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[byte >> 4 & 2].value];
-    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = PALETTE_PIXELS[ula->palette[byte >> 3 & 2].value];
+    unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[byte >> 4 & 8].value];
+    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = PALETTE_PIXELS[ula->palette[byte >> 3 & 8].value];
+    unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[byte >> 2 & 8].value];
+    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = PALETTE_PIXELS[ula->palette[byte >> 1 & 8].value];
 }
 
 //////////////////////////////////////////////////////////////////////////
