@@ -86,12 +86,33 @@ std::string GetKeymapUIName(const BeebKeymap &keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 struct Keycap {
-    BeebKey key;
-    BeebKeySym unshifted_sym, shifted_sym;
-    //const char *unshifted,*shifted;
-    int width_in_halves;
-    KeyColour colour;
+    BeebKey key = BeebKey_None;
+    BeebKeySym unshifted_sym = BeebKeySym_None;
+    BeebKeySym shifted_sym = BeebKeySym_None;
+    int width_in_halves = -1;
+    KeyColour colour = KeyColour_Default;
+    BeebKeySym ctrled_sym = BeebKeySym_None; //only applicable to Electron
+
+    Keycap() = default;
+    Keycap(int width_in_halves, BeebKey key, BeebKeySym unshifted_sym = BeebKeySym_None, BeebKeySym shifted_sym = BeebKeySym_None, BeebKeySym ctrled_sym = BeebKeySym_None);
+    Keycap WithColour(KeyColour colour) const;
 };
+
+Keycap::Keycap(int width_in_halves_, BeebKey key_, BeebKeySym unshifted_sym_, BeebKeySym shifted_sym_, BeebKeySym ctrled_sym_)
+    : width_in_halves(width_in_halves_)
+    , key(key_)
+    , unshifted_sym(unshifted_sym_)
+    , shifted_sym(shifted_sym_)
+    , ctrled_sym(ctrled_sym_) {
+}
+
+Keycap Keycap::WithColour(KeyColour colour_) const {
+    Keycap keycap = *this;
+
+    keycap.colour = colour_;
+
+    return keycap;
+}
 
 // When drawing the keysym map, keys with shifted and unshifted parts
 // want to be drawn as two half-height buttons. The ideal thing is to
@@ -304,162 +325,229 @@ void KeymapsUI::DoImGui() {
 //#define E(N,C) {BeebKey_##N,C,nullptr,2,KeyColour_Khaki}
 //#define LETTER(L) {BeebKey_##L,#L}
 //#define EDITKEY(N) N,0,2,2,
-#define END \
-    {BeebKey_None, BeebKeySym_None, BeebKeySym_None, -1}
+//#define END \
+//    {BeebKey_None, BeebKeySym_None, BeebKeySym_None, -1}
 
 // BBC keyboard caps
 static const Keycap g_keyboard_line1[] = {
-    {BeebKey_None, BeebKeySym_None, BeebKeySym_None, 5},
-    {BeebKey_f0, BeebKeySym_f0, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f1, BeebKeySym_f1, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f2, BeebKeySym_f2, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f3, BeebKeySym_f3, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f4, BeebKeySym_f4, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f5, BeebKeySym_f5, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f6, BeebKeySym_f6, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f7, BeebKeySym_f7, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f8, BeebKeySym_f8, BeebKeySym_None, 2, KeyColour_Red},
-    {BeebKey_f9, BeebKeySym_f9, BeebKeySym_None, 2, KeyColour_Red},
-    {
-        BeebKey_Break,
-        BeebKeySym_Break,
-        BeebKeySym_None,
-    },
-    END,
+    Keycap(5, BeebKey_None, BeebKeySym_None, BeebKeySym_None),
+    Keycap(2, BeebKey_f0, BeebKeySym_f0, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f1, BeebKeySym_f1, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f2, BeebKeySym_f2, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f3, BeebKeySym_f3, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f4, BeebKeySym_f4, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f5, BeebKeySym_f5, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f6, BeebKeySym_f6, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f7, BeebKeySym_f7, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f8, BeebKeySym_f8, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f9, BeebKeySym_f9, BeebKeySym_None).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_Break, BeebKeySym_Break, BeebKeySym_None),
+    {},
 };
 
 static const Keycap g_keyboard_line2[] = {
-    {
-        BeebKey_Escape,
-        BeebKeySym_Escape,
-        BeebKeySym_None,
-    },
-    {BeebKey_1, BeebKeySym_1, BeebKeySym_ExclamationMark},
-    {BeebKey_2, BeebKeySym_2, BeebKeySym_Quotes},
-    {BeebKey_3, BeebKeySym_3, BeebKeySym_Hash},
-    {BeebKey_4, BeebKeySym_4, BeebKeySym_Dollar},
-    {BeebKey_5, BeebKeySym_5, BeebKeySym_Percent},
-    {BeebKey_6, BeebKeySym_6, BeebKeySym_Ampersand},
-    {BeebKey_7, BeebKeySym_7, BeebKeySym_Apostrophe},
-    {BeebKey_8, BeebKeySym_8, BeebKeySym_LeftBracket},
-    {BeebKey_9, BeebKeySym_9, BeebKeySym_RightBracket},
-    {BeebKey_0, BeebKeySym_0, BeebKeySym_None},
-    {BeebKey_Minus, BeebKeySym_Minus, BeebKeySym_Equals},
-    {BeebKey_Caret, BeebKeySym_Caret, BeebKeySym_Tilde},
-    {BeebKey_Backslash, BeebKeySym_Backslash, BeebKeySym_Pipe},
-    {BeebKey_Left, BeebKeySym_Left, BeebKeySym_None, 2, KeyColour_Khaki},
-    {BeebKey_Right, BeebKeySym_Right, BeebKeySym_None, 2, KeyColour_Khaki},
-    END,
+    Keycap(2, BeebKey_Escape, BeebKeySym_Escape, BeebKeySym_None),
+    Keycap(2, BeebKey_1, BeebKeySym_1, BeebKeySym_ExclamationMark),
+    Keycap(2, BeebKey_2, BeebKeySym_2, BeebKeySym_Quotes),
+    Keycap(2, BeebKey_3, BeebKeySym_3, BeebKeySym_Hash),
+    Keycap(2, BeebKey_4, BeebKeySym_4, BeebKeySym_Dollar),
+    Keycap(2, BeebKey_5, BeebKeySym_5, BeebKeySym_Percent),
+    Keycap(2, BeebKey_6, BeebKeySym_6, BeebKeySym_Ampersand),
+    Keycap(2, BeebKey_7, BeebKeySym_7, BeebKeySym_Apostrophe),
+    Keycap(2, BeebKey_8, BeebKeySym_8, BeebKeySym_LeftBracket),
+    Keycap(2, BeebKey_9, BeebKeySym_9, BeebKeySym_RightBracket),
+    Keycap(2, BeebKey_0, BeebKeySym_0, BeebKeySym_None),
+    Keycap(2, BeebKey_Minus, BeebKeySym_Minus, BeebKeySym_Equals),
+    Keycap(2, BeebKey_Caret, BeebKeySym_Caret, BeebKeySym_Tilde),
+    Keycap(2, BeebKey_Backslash, BeebKeySym_Backslash, BeebKeySym_Pipe),
+    Keycap(2, BeebKey_Left, BeebKeySym_Left, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    Keycap(2, BeebKey_Right, BeebKeySym_Right, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    {},
 };
 
 static const Keycap g_keyboard_line3[] = {
-    {BeebKey_Tab, BeebKeySym_Tab, BeebKeySym_None, 3},
-    {BeebKey_Q, BeebKeySym_Q, BeebKeySym_None, 2},
-    {BeebKey_W, BeebKeySym_W, BeebKeySym_None, 2},
-    {BeebKey_E, BeebKeySym_E, BeebKeySym_None, 2},
-    {BeebKey_R, BeebKeySym_R, BeebKeySym_None, 2},
-    {BeebKey_T, BeebKeySym_T, BeebKeySym_None, 2},
-    {BeebKey_Y, BeebKeySym_Y, BeebKeySym_None, 2},
-    {BeebKey_U, BeebKeySym_U, BeebKeySym_None, 2},
-    {BeebKey_I, BeebKeySym_I, BeebKeySym_None, 2},
-    {BeebKey_O, BeebKeySym_O, BeebKeySym_None, 2},
-    {BeebKey_P, BeebKeySym_P, BeebKeySym_None, 2},
-    {BeebKey_At, BeebKeySym_At, BeebKeySym_None, 2},
-    {BeebKey_LeftSquareBracket, BeebKeySym_LeftSquareBracket, BeebKeySym_LeftCurlyBracket},
-    {BeebKey_Underline, BeebKeySym_Underline, BeebKeySym_Pound},
-    {BeebKey_Up, BeebKeySym_Up, BeebKeySym_None, 2, KeyColour_Khaki},
-    {BeebKey_Down, BeebKeySym_Down, BeebKeySym_None, 2, KeyColour_Khaki},
-    END,
+    Keycap(3, BeebKey_Tab, BeebKeySym_Tab, BeebKeySym_None),
+    Keycap(2, BeebKey_Q, BeebKeySym_Q, BeebKeySym_None),
+    Keycap(2, BeebKey_W, BeebKeySym_W, BeebKeySym_None),
+    Keycap(2, BeebKey_E, BeebKeySym_E, BeebKeySym_None),
+    Keycap(2, BeebKey_R, BeebKeySym_R, BeebKeySym_None),
+    Keycap(2, BeebKey_T, BeebKeySym_T, BeebKeySym_None),
+    Keycap(2, BeebKey_Y, BeebKeySym_Y, BeebKeySym_None),
+    Keycap(2, BeebKey_U, BeebKeySym_U, BeebKeySym_None),
+    Keycap(2, BeebKey_I, BeebKeySym_I, BeebKeySym_None),
+    Keycap(2, BeebKey_O, BeebKeySym_O, BeebKeySym_None),
+    Keycap(2, BeebKey_P, BeebKeySym_P, BeebKeySym_None),
+    Keycap(2, BeebKey_At, BeebKeySym_At, BeebKeySym_None),
+    Keycap(2, BeebKey_LeftSquareBracket, BeebKeySym_LeftSquareBracket, BeebKeySym_LeftCurlyBracket),
+    Keycap(2, BeebKey_Underline, BeebKeySym_Underline, BeebKeySym_Pound),
+    Keycap(2, BeebKey_Up, BeebKeySym_Up, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    Keycap(2, BeebKey_Down, BeebKeySym_Down, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    {},
 };
 
 static const Keycap g_keyboard_line4[] = {
-    {BeebKey_CapsLock, BeebKeySym_CapsLock, BeebKeySym_None},
-    {BeebKey_Ctrl, BeebKeySym_Ctrl, BeebKeySym_None},
-    {BeebKey_A, BeebKeySym_A, BeebKeySym_None, 2},
-    {BeebKey_S, BeebKeySym_S, BeebKeySym_None, 2},
-    {BeebKey_D, BeebKeySym_D, BeebKeySym_None, 2},
-    {BeebKey_F, BeebKeySym_F, BeebKeySym_None, 2},
-    {BeebKey_G, BeebKeySym_G, BeebKeySym_None, 2},
-    {BeebKey_H, BeebKeySym_H, BeebKeySym_None, 2},
-    {BeebKey_J, BeebKeySym_J, BeebKeySym_None, 2},
-    {BeebKey_K, BeebKeySym_K, BeebKeySym_None, 2},
-    {BeebKey_L, BeebKeySym_L, BeebKeySym_None, 2},
-    {BeebKey_Semicolon, BeebKeySym_Semicolon, BeebKeySym_Plus},
-    {BeebKey_Colon, BeebKeySym_Colon, BeebKeySym_Star},
-    {BeebKey_RightSquareBracket, BeebKeySym_RightSquareBracket, BeebKeySym_RightCurlyBracket},
-    {BeebKey_Return, BeebKeySym_Return, BeebKeySym_None, 4},
-    END,
+    Keycap(2, BeebKey_CapsLock, BeebKeySym_CapsLock, BeebKeySym_None),
+    Keycap(2, BeebKey_Ctrl, BeebKeySym_Ctrl, BeebKeySym_None),
+    Keycap(2, BeebKey_A, BeebKeySym_A, BeebKeySym_None),
+    Keycap(2, BeebKey_S, BeebKeySym_S, BeebKeySym_None),
+    Keycap(2, BeebKey_D, BeebKeySym_D, BeebKeySym_None),
+    Keycap(2, BeebKey_F, BeebKeySym_F, BeebKeySym_None),
+    Keycap(2, BeebKey_G, BeebKeySym_G, BeebKeySym_None),
+    Keycap(2, BeebKey_H, BeebKeySym_H, BeebKeySym_None),
+    Keycap(2, BeebKey_J, BeebKeySym_J, BeebKeySym_None),
+    Keycap(2, BeebKey_K, BeebKeySym_K, BeebKeySym_None),
+    Keycap(2, BeebKey_L, BeebKeySym_L, BeebKeySym_None),
+    Keycap(2, BeebKey_Semicolon, BeebKeySym_Semicolon, BeebKeySym_Plus),
+    Keycap(2, BeebKey_Colon, BeebKeySym_Colon, BeebKeySym_Star),
+    Keycap(2, BeebKey_RightSquareBracket, BeebKeySym_RightSquareBracket, BeebKeySym_RightCurlyBracket),
+    Keycap(4, BeebKey_Return, BeebKeySym_Return, BeebKeySym_None),
+    {},
 };
 
 static const Keycap g_keyboard_line5[] = {
-    {BeebKey_ShiftLock, BeebKeySym_ShiftLock, BeebKeySym_None},
-    {BeebKey_Shift, BeebKeySym_Shift, BeebKeySym_None, 3},
-    {BeebKey_Z, BeebKeySym_Z, BeebKeySym_None, 2},
-    {BeebKey_X, BeebKeySym_X, BeebKeySym_None, 2},
-    {BeebKey_C, BeebKeySym_C, BeebKeySym_None, 2},
-    {BeebKey_V, BeebKeySym_V, BeebKeySym_None, 2},
-    {BeebKey_B, BeebKeySym_B, BeebKeySym_None, 2},
-    {BeebKey_N, BeebKeySym_N, BeebKeySym_None, 2},
-    {BeebKey_M, BeebKeySym_M, BeebKeySym_None, 2},
-    {BeebKey_Comma, BeebKeySym_Comma, BeebKeySym_LessThan},
-    {BeebKey_Stop, BeebKeySym_Stop, BeebKeySym_GreaterThan},
-    {
-        BeebKey_Slash,
-        BeebKeySym_Slash,
-        BeebKeySym_QuestionMarke,
-    },
-    {BeebKey_Shift, BeebKeySym_Shift, BeebKeySym_None, 3},
-    {BeebKey_Delete, BeebKeySym_Delete, BeebKeySym_None},
-    {BeebKey_Copy, BeebKeySym_Copy, BeebKeySym_None, 2, KeyColour_Khaki},
-    END,
+    Keycap(2, BeebKey_ShiftLock, BeebKeySym_ShiftLock, BeebKeySym_None),
+    Keycap(3, BeebKey_Shift, BeebKeySym_Shift, BeebKeySym_None),
+    Keycap(2, BeebKey_Z, BeebKeySym_Z, BeebKeySym_None),
+    Keycap(2, BeebKey_X, BeebKeySym_X, BeebKeySym_None),
+    Keycap(2, BeebKey_C, BeebKeySym_C, BeebKeySym_None),
+    Keycap(2, BeebKey_V, BeebKeySym_V, BeebKeySym_None),
+    Keycap(2, BeebKey_B, BeebKeySym_B, BeebKeySym_None),
+    Keycap(2, BeebKey_N, BeebKeySym_N, BeebKeySym_None),
+    Keycap(2, BeebKey_M, BeebKeySym_M, BeebKeySym_None),
+    Keycap(2, BeebKey_Comma, BeebKeySym_Comma, BeebKeySym_LessThan),
+    Keycap(2, BeebKey_Stop, BeebKeySym_Stop, BeebKeySym_GreaterThan),
+    Keycap(2, BeebKey_Slash, BeebKeySym_Slash, BeebKeySym_QuestionMarke),
+    Keycap(3, BeebKey_Shift, BeebKeySym_Shift, BeebKeySym_None),
+    Keycap(2, BeebKey_Delete, BeebKeySym_Delete, BeebKeySym_None),
+    Keycap(2, BeebKey_Copy, BeebKeySym_Copy, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    {},
 };
 
 static const Keycap g_keyboard_line6[] = {
-    {BeebKey_None, BeebKeySym_None, BeebKeySym_None, 8},
-    {BeebKey_Space, BeebKeySym_Space, BeebKeySym_None, 19},
-    END,
+    Keycap(8, BeebKey_None, BeebKeySym_None, BeebKeySym_None),
+    Keycap(19, BeebKey_Space, BeebKeySym_Space, BeebKeySym_None),
+    {},
 };
 
 static const Keycap g_m128_line1[] = {
-    {BeebKey_KeypadPlus, BeebKeySym_KeypadPlus, BeebKeySym_None, 2},
-    {BeebKey_KeypadMinus, BeebKeySym_KeypadMinus, BeebKeySym_None, 2},
-    {BeebKey_KeypadSlash, BeebKeySym_KeypadSlash, BeebKeySym_None, 2},
-    {BeebKey_KeypadStar, BeebKeySym_KeypadStar, BeebKeySym_None, 2},
-    END};
+    Keycap(2, BeebKey_KeypadPlus, BeebKeySym_KeypadPlus, BeebKeySym_None),
+    Keycap(2, BeebKey_KeypadMinus, BeebKeySym_KeypadMinus, BeebKeySym_None),
+    Keycap(2, BeebKey_KeypadSlash, BeebKeySym_KeypadSlash, BeebKeySym_None),
+    Keycap(2, BeebKey_KeypadStar, BeebKeySym_KeypadStar, BeebKeySym_None),
+    {},
+};
 
 static const Keycap g_m128_line2[] = {
-    {BeebKey_Keypad7, BeebKeySym_Keypad7, BeebKeySym_None, 2},
-    {BeebKey_Keypad8, BeebKeySym_Keypad8, BeebKeySym_None, 2},
-    {BeebKey_Keypad9, BeebKeySym_Keypad9, BeebKeySym_None, 2},
-    {BeebKey_KeypadHash, BeebKeySym_KeypadHash, BeebKeySym_None, 2},
-    END};
+    Keycap(2, BeebKey_Keypad7, BeebKeySym_Keypad7, BeebKeySym_None),
+    Keycap(2, BeebKey_Keypad8, BeebKeySym_Keypad8, BeebKeySym_None),
+    Keycap(2, BeebKey_Keypad9, BeebKeySym_Keypad9, BeebKeySym_None),
+    Keycap(2, BeebKey_KeypadHash, BeebKeySym_KeypadHash, BeebKeySym_None),
+    {},
+};
 
 static const Keycap g_m128_line3[] = {
-    {BeebKey_Keypad4, BeebKeySym_Keypad4, BeebKeySym_None, 2},
-    {BeebKey_Keypad5, BeebKeySym_Keypad5, BeebKeySym_None, 2},
-    {BeebKey_Keypad6, BeebKeySym_Keypad6, BeebKeySym_None, 2},
-    {BeebKey_KeypadDelete, BeebKeySym_KeypadDelete, BeebKeySym_None, 2},
-    END};
+    Keycap(2, BeebKey_Keypad4, BeebKeySym_Keypad4, BeebKeySym_None),
+    Keycap(2, BeebKey_Keypad5, BeebKeySym_Keypad5, BeebKeySym_None),
+    Keycap(2, BeebKey_Keypad6, BeebKeySym_Keypad6, BeebKeySym_None),
+    Keycap(2, BeebKey_KeypadDelete, BeebKeySym_KeypadDelete, BeebKeySym_None),
+    {},
+};
 
 static const Keycap g_m128_line4[] = {
-    {BeebKey_Keypad1, BeebKeySym_Keypad1, BeebKeySym_None, 2},
-    {BeebKey_Keypad2, BeebKeySym_Keypad2, BeebKeySym_None, 2},
-    {BeebKey_Keypad3, BeebKeySym_Keypad3, BeebKeySym_None, 2},
-    {BeebKey_KeypadStop, BeebKeySym_KeypadStop, BeebKeySym_None, 2},
-    END};
+    Keycap(2, BeebKey_Keypad1, BeebKeySym_Keypad1, BeebKeySym_None),
+    Keycap(2, BeebKey_Keypad2, BeebKeySym_Keypad2, BeebKeySym_None),
+    Keycap(2, BeebKey_Keypad3, BeebKeySym_Keypad3, BeebKeySym_None),
+    Keycap(2, BeebKey_KeypadStop, BeebKeySym_KeypadStop, BeebKeySym_None),
+    {},
+};
 
 static const Keycap g_m128_line5[] = {
-    {BeebKey_Keypad0, BeebKeySym_Keypad0, BeebKeySym_None, 2},
-    {BeebKey_KeypadComma, BeebKeySym_KeypadComma, BeebKeySym_None, 2},
-    {
-        BeebKey_KeypadReturn,
-        BeebKeySym_KeypadReturn,
-        BeebKeySym_None,
-        4,
-    },
-    END};
+    Keycap(2, BeebKey_Keypad0, BeebKeySym_Keypad0, BeebKeySym_None),
+    Keycap(2, BeebKey_KeypadComma, BeebKeySym_KeypadComma, BeebKeySym_None),
+    Keycap(4, BeebKey_KeypadReturn, BeebKeySym_KeypadReturn, BeebKeySym_None),
+    {},
+};
 
 #undef END
+
+#if ENABLE_ELECTRON
+static const Keycap g_electron_line1[] = {
+    Keycap(2, BeebKey_Escape, BeebKeySym_Escape),
+    Keycap(2, BeebKey_1),
+    Keycap(2, BeebKey_2),
+    Keycap(2, BeebKey_3),
+    Keycap(2, BeebKey_4),
+    Keycap(2, BeebKey_5),
+    Keycap(2, BeebKey_6),
+    Keycap(2, BeebKey_7),
+    Keycap(2, BeebKey_8),
+    Keycap(2, BeebKey_9),
+    Keycap(2, BeebKey_0),
+    Keycap(2, BeebKey_Minus),
+    Keycap(2, BeebKey_Left),
+    Keycap(2, BeebKey_Right),
+    Keycap(2, BeebKey_Break),
+    {},
+};
+
+static const Keycap g_electron_line2[] = {
+    Keycap(2, BeebKey_CapsLock),
+    Keycap(2, BeebKey_Q),
+    Keycap(2, BeebKey_W),
+    Keycap(2, BeebKey_E),
+    Keycap(2, BeebKey_R),
+    Keycap(2, BeebKey_T),
+    Keycap(2, BeebKey_Y),
+    Keycap(2, BeebKey_U),
+    Keycap(2, BeebKey_I),
+    Keycap(2, BeebKey_O),
+    Keycap(2, BeebKey_P),
+    Keycap(2, BeebKey_Up),
+    Keycap(2, BeebKey_Down),
+    Keycap(2, BeebKey_Copy),
+    {},
+};
+
+static const Keycap g_electron_line3[] = {
+    Keycap(2, BeebKey_Ctrl),
+    Keycap(2, BeebKey_A),
+    Keycap(2, BeebKey_S),
+    Keycap(2, BeebKey_D),
+    Keycap(2, BeebKey_F),
+    Keycap(2, BeebKey_G),
+    Keycap(2, BeebKey_H),
+    Keycap(2, BeebKey_J),
+    Keycap(2, BeebKey_K),
+    Keycap(2, BeebKey_L),
+    Keycap(2, BeebKey_Semicolon),
+    Keycap(2, BeebKey_Colon),
+    Keycap(2, BeebKey_Return),
+    {},
+};
+
+static const Keycap g_electron_line4[] = {
+    Keycap(2, BeebKey_Shift),
+    Keycap(2, BeebKey_Z),
+    Keycap(2, BeebKey_X),
+    Keycap(2, BeebKey_C),
+    Keycap(2, BeebKey_V),
+    Keycap(2, BeebKey_B),
+    Keycap(2, BeebKey_N),
+    Keycap(2, BeebKey_M),
+    Keycap(2, BeebKey_Comma),
+    Keycap(2, BeebKey_Stop),
+    Keycap(2, BeebKey_Slash),
+    Keycap(2, BeebKey_Shift),
+    Keycap(2, BeebKey_Delete),
+    {},
+};
+
+static const Keycap g_electron_line5[] = {
+    Keycap(2, BeebKey_Space),
+    {},
+};
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -612,7 +700,11 @@ static const ButtonColours KEY_COLOURS[] = {
         ImColor::HSV(0.f, 1.f, 1.f),
         ImColor(0.f, 1.f, .9f),
     },
-    {ImColor::HSV(.136f, .6f, .2f), ImColor::HSV(.136f, .6f, .45f), ImColor::HSV(.136f, .6f, .425f)},
+    {
+        ImColor::HSV(.136f, .6f, .2f),
+        ImColor::HSV(.136f, .6f, .45f),
+        ImColor::HSV(.136f, .6f, .425f),
+    },
 };
 
 static const ImColor PRESSED_KEY_BUTTON_COLOUR = ImColor::HSV(1 / 7.f, .6f, .6f);

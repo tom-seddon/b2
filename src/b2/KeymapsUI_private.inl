@@ -1,6 +1,6 @@
 #define ENAME KeyColour
 EBEGIN()
-EPN(Black)
+EPN(Default)
 EPN(Red)
 EPN(Khaki)
 EEND()
