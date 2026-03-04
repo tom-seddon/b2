@@ -212,18 +212,6 @@
 // - the Tn_ prefix bears no relation at all to the Tn state names in
 //   Visual6502. This is a bad naming convention and it needs to change
 
-#if M6502_DBUS_OFFSET
-
-#define SET_DBUS(F) (s->dbus_offset = offsetof(M6502, F), (void)0)
-#define DBUS_IS(F) (s->dbus_offset == offsetof(M6502, F))
-
-#else
-
-#define SET_DBUS(F) (s->dbus = &s->F, (void)0)
-#define DBUS_IS(F) (s->dbus == &s->F)
-
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
