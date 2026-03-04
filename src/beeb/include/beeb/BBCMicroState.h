@@ -220,6 +220,11 @@ class BBCMicroState {
 #if ENABLE_ELECTRON
     const ElectronULA *DebugGetElectronULA() const;
 #endif
+    const VideoULA *DebugGetVideoULA() const;
+    const CRTC *DebugGetCRTC() const;
+    const R6522 *DebugGetSystemVIA() const;
+    const R6522 *DebugGetUserVIA() const;
+    const SN76489 *DebugGetSN76489() const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -230,16 +235,16 @@ class BBCMicroState {
 
     const BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
+  protected:
     // 6845
     CRTC crtc;
 
-  protected:
     CRTC::Output crtc_last_output = {};
 
-  public:
     // Video output
     VideoULA video_ula;
 
+  public:
     SAA5050 saa5050;
 
   protected:
@@ -253,9 +258,9 @@ class BBCMicroState {
     // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
     uint16_t shadow_select_mask = 0x0000;
 
-  public:
     SN76489 sn76489;
 
+  public:
     // Number of emulated system cycles elapsed. Used to regulate sound
     // output and measure (for informational purposes) time between vsyncs.
     CycleCount cycle_count = {0};
@@ -274,17 +279,13 @@ class BBCMicroState {
     BBCMicroCPURunState cpu_run_state = BBCMicroCPURunState_Running;
     bool resetting = false;
 
-  public:
     R6522 system_via;
 
-  protected:
     SystemVIAPB old_system_via_pb;
     uint8_t system_via_irq_pending = 0;
 
-  public:
     R6522 user_via;
 
-  protected:
     uint8_t user_via_irq_pending = 0;
 
   public:

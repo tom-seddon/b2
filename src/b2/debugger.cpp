@@ -81,6 +81,32 @@ const Guid SAVE_MEMORY_SELECTOR_GUID{0x43, 0xB8, 0xD1, 0x9F, 0x52, 0x13, 0x42, 0
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The tables apply to both BBC and Electron.
+static const char *const COLOUR_NAMES[] = {
+    "Black",
+    "Red",
+    "Green",
+    "Yellow",
+    "Blue",
+    "Magenta",
+    "Cyan",
+    "White",
+};
+
+static const ImVec4 COLOUR_COLOURS[] = {
+    {0.f, 0.f, 0.f, 1.f},
+    {1.f, 0.f, 0.f, 1.f},
+    {0.f, 1.f, 0.f, 1.f},
+    {1.f, 1.f, 0.f, 1.f},
+    {0.f, 0.f, 1.f, 1.f},
+    {1.f, 0.f, 1.f, 1.f},
+    {0.f, 1.f, 1.f, 1.f},
+    {1.f, 1.f, 1.f, 1.f},
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const char *g_hex;
 static const char *g_bin;
 
@@ -2474,7 +2500,11 @@ class CRTCDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        const CRTC *c = &m_beeb_state->crtc;
+        const CRTC *c = m_beeb_state->DebugGetCRTC();
+        if (!c) {
+            ImGui::TextUnformatted("No CRTC");
+            return;
+        }
 
         uint16_t cursor_address = this->GetBeebAddressFromCRTCAddress(c->m_registers.bits.cursorh, c->m_registers.bits.cursorl);
         uint16_t display_address = this->GetBeebAddressFromCRTCAddress(c->m_registers.bits.addrh, c->m_registers.bits.addrl);
@@ -2600,7 +2630,11 @@ class VideoULADebugWindow : public DebugUI {
         //    nula = u->nula;
         //}
 
-        const VideoULA *u = &m_beeb_state->video_ula;
+        const VideoULA *u = m_beeb_state->DebugGetVideoULA();
+        if (!u) {
+            ImGui::TextUnformatted("No video ULA");
+            return;
+        }
 
         if (ImGui::CollapsingHeader("Register Values")) {
             ImGui::Text("Control = %s%02x %03u %s%s", g_hex, u->control.value, u->control.value, g_bin, BINARY_BYTE_STRINGS[u->control.value]);
@@ -2702,31 +2736,7 @@ class VideoULADebugWindow : public DebugUI {
     }
 
   private:
-    static const char *const COLOUR_NAMES[];
-    static const ImVec4 COLOUR_COLOURS[];
     static const char *const CURSOR_SHAPES[];
-};
-
-const char *const VideoULADebugWindow::COLOUR_NAMES[] = {
-    "Black",
-    "Red",
-    "Green",
-    "Yellow",
-    "Blue",
-    "Magenta",
-    "Cyan",
-    "White",
-};
-
-const ImVec4 VideoULADebugWindow::COLOUR_COLOURS[] = {
-    {0.f, 0.f, 0.f, 1.f},
-    {1.f, 0.f, 0.f, 1.f},
-    {0.f, 1.f, 0.f, 1.f},
-    {1.f, 1.f, 0.f, 1.f},
-    {0.f, 0.f, 1.f, 1.f},
-    {1.f, 0.f, 1.f, 1.f},
-    {0.f, 1.f, 1.f, 1.f},
-    {1.f, 1.f, 1.f, 1.f},
 };
 
 const char *const VideoULADebugWindow::CURSOR_SHAPES[] = {
@@ -2860,15 +2870,21 @@ class SystemVIADebugWindow : public R6522DebugWindow {
   public:
   protected:
     void DoImGui2() override {
+        const R6522 *system_via = m_beeb_state->DebugGetUserVIA();
+        if (!system_via) {
+            ImGui::TextUnformatted("No system VIA");
+            return;
+        }
+
         const MC146818 *rtc = m_beeb_state->DebugGetRTC();
         const PCD8572 *eeprom = m_beeb_state->DebugGetEEPROM();
 
-        this->DoRegisterValuesGui(m_beeb_state->system_via, m_beeb_debug_state, &BBCMicroHardwareDebugState::system_via_irq_breakpoints);
+        this->DoRegisterValuesGui(*system_via, m_beeb_debug_state, &BBCMicroHardwareDebugState::system_via_irq_breakpoints);
 
         ImGui::Separator();
 
         BBCMicroState::SystemVIAPB pb;
-        pb.value = m_beeb_state->system_via.b.p;
+        pb.value = system_via->b.p;
 
         ImGui::Text("Port B inputs:");
 
@@ -2930,7 +2946,13 @@ class UserVIADebugWindow : public R6522DebugWindow {
   public:
   protected:
     void DoImGui2() override {
-        this->DoRegisterValuesGui(m_beeb_state->user_via, m_beeb_debug_state, &BBCMicroHardwareDebugState::user_via_irq_breakpoints);
+        const R6522 *user_via = m_beeb_state->DebugGetUserVIA();
+        if (!user_via) {
+            ImGui::TextUnformatted("No user VIA");
+            return;
+        }
+
+        this->DoRegisterValuesGui(*user_via, m_beeb_debug_state, &BBCMicroHardwareDebugState::user_via_irq_breakpoints);
     }
 
   private:
@@ -2952,7 +2974,7 @@ class NVRAMDebugWindow : public DebugUI {
         } else if (const PCD8572 *eeprom = m_beeb_state->DebugGetEEPROM()) {
             this->DoNVRAMUI(eeprom->ram, sizeof eeprom->ram);
         } else {
-            ImGui::Text("This computer has no non-volatile RAM.");
+            ImGui::Text("No non-volatile RAM");
         }
     }
 
@@ -3028,14 +3050,15 @@ std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class SN76489DebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        const SN76489 *sn = &m_beeb_state->sn76489;
+        const SN76489 *sn = m_beeb_state->DebugGetSN76489();
+        if (!sn) {
+            ImGui::TextUnformatted("No SN76489");
+            return;
+        };
 
         ImGui::Text("Write Enable: %s", BOOL_STR(!m_beeb_state->addressable_latch.bits.not_sound_write));
 
@@ -5233,6 +5256,18 @@ class ElectronULADebugWindow : public DebugUI {
 
         ImGuiHeader("IRQ Mask");
         this->IRQFlags(ula->irq_mask);
+
+        ImGuiHeader("Palette");
+        for (uint16_t i = 0; i < 16; ++i) {
+            ImGuiIDPusher pusher(i);
+            ElectronPaletteEntry entry = ula->palette[i];
+
+            ImGui::Text("%u. ", i);
+            ImGui::SameLine();
+            ImGui::ColorButton("", COLOUR_COLOURS[entry.value & 7]);
+            ImGui::SameLine();
+            ImGui::TextUnformatted(COLOUR_NAMES[entry.value & 7]);
+        }
     }
 
   protected:
