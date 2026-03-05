@@ -3590,7 +3590,10 @@ class PixelMetadataUI : public DebugUI {
 
                 const char *address_suffix = GetMinimalAddressSuffixForOffset(metadata, cpu_addr);
                 ImGui::Text("Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
-                ImGui::Text("CRTC Address: %s%04x", g_hex, unit->metadata.crtc_address);
+
+                if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
+                    ImGui::Text("CRTC Address: %s%04x", g_hex, unit->metadata.crtc_address);
+                }
 
                 const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);
                 this->DoBytePopupGui(cpu_dbp, cpu_addr);

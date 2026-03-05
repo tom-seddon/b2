@@ -45,6 +45,9 @@ EPNV(HasValue, 1 << 2)
 EPNV(6845Raster0, 1 << 3)
 EPNV(6845DISPEN, 1 << 4)
 EPNV(6845CUDISP, 1 << 5)
+
+// If the HasAddress flag isn't set, the HasCRTCAddress flag is ignored.
+EPNV(HasCRTCAddress, 1 << 6)
 EEND()
 #undef ENAME
 #endif

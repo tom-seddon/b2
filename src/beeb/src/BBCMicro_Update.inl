@@ -1127,7 +1127,7 @@ parasite_update_done:
                 m_state.video_ula.Byte(value, output.cudisp & m_cursor_mask);
 
 #if VIDEO_TRACK_METADATA
-                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress;
+                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress | VideoDataUnitMetadataFlag_HasCRTCAddress;
                 video_unit->metadata.address = addr;
                 video_unit->metadata.crtc_address = output.address;
 #endif
