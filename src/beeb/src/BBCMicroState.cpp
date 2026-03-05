@@ -358,6 +358,7 @@ const ElectronULA *BBCMicroState::DebugGetElectronULA() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const VideoULA *BBCMicroState::DebugGetVideoULA() const {
     if (IsBBCMicro(this->type->type_id)) {
         return &this->video_ula;
@@ -365,10 +366,12 @@ const VideoULA *BBCMicroState::DebugGetVideoULA() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const CRTC *BBCMicroState::DebugGetCRTC() const {
     if (IsBBCMicro(this->type->type_id)) {
         return &this->crtc;
@@ -376,10 +379,12 @@ const CRTC *BBCMicroState::DebugGetCRTC() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const R6522 *BBCMicroState::DebugGetSystemVIA() const {
     if (IsBBCMicro(this->type->type_id)) {
         return &this->system_via;
@@ -387,10 +392,12 @@ const R6522 *BBCMicroState::DebugGetSystemVIA() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const R6522 *BBCMicroState::DebugGetUserVIA() const {
     if (IsBBCMicro(this->type->type_id)) {
         return &this->user_via;
@@ -398,10 +405,12 @@ const R6522 *BBCMicroState::DebugGetUserVIA() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const SN76489 *BBCMicroState::DebugGetSN76489() const {
     if (IsBBCMicro(this->type->type_id)) {
         return &this->sn76489;
@@ -409,6 +418,7 @@ const SN76489 *BBCMicroState::DebugGetSN76489() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

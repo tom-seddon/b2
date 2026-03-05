@@ -5423,7 +5423,7 @@ std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *) {
     return nullptr;
 }
 
-std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *) {
     return nullptr;
 }
 
