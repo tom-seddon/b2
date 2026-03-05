@@ -21,8 +21,7 @@ struct VideoDataUnit;
 //////////////////////////////////////////////////////////////////////////
 
 struct ElectronPagingBits {
-    uint8_t rom : 3;
-    uint8_t rom_enable : 1;
+    uint8_t rom : 4;
     uint8_t clear_display_end : 1;
     uint8_t clear_rtc : 1;
     uint8_t clear_high_tone : 1;

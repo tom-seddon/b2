@@ -1319,7 +1319,13 @@ void BBCMicro::WriteElectronULA5(void *m_, M6502Word a, uint8_t value) {
 
     // TODO: could do with something better here, but this register is just a
     // bit weird.
-    m->m_state.electron_ula.romsel = value & 0xf;
+    if ((m->m_state.electron_ula.romsel & 0b1100) == 0b1000) {
+        if (paging.bits.rom >= 8) {
+            m->m_state.electron_ula.romsel = paging.bits.rom;
+        }
+    } else {
+        m->m_state.electron_ula.romsel = paging.bits.rom;
+    }
 
     if (paging.bits.clear_display_end) {
         TRACEF(m->m_trace, "Write Electron ULA R5 - clear Display End IRQ");
