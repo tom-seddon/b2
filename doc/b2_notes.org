@@ -7849,6 +7849,18 @@ Stardot discussion of the ROM paging behaviour: https://stardot.org.uk/forums/vi
 
 Some ULA notes: https://acorn.huininga.nl/pub/docs/txtfiles/The%20Acorn%20Electron%20ULA.txt
 
+PAL timing: https://martin.hinner.info/vga/pal.html
+
+** mups.co.uk posts
+
+- Non-Interlaced PAL Video :: https://web.archive.org/web/20231206164507/https://www.mups.co.uk/post/2017/07/non-interlaced-pal-video/
+- Memory, Pixel Clocks and Snow :: https://web.archive.org/web/20231206172719/https://www.mups.co.uk/post/2017/08/memory-pixel-clocks-and-snow/
+- Acorn Electron Gremlins :: https://web.archive.org/web/20231206170902/https://www.mups.co.uk/post/2017/08/acorn-electron-gremlins/
+- Acorn Electron Mode 6 :: https://web.archive.org/web/20231206184327/https://www.mups.co.uk/post/2017/09/acorn-electron-mode-6/
+- Keyboard and CPU Clock Transitions :: https://web.archive.org/web/20231206172102/https://www.mups.co.uk/post/2017/09/keyboard-and-cpu-clock-transitions/
+- Electron PAL Video Revisited :: https://web.archive.org/web/20231206172519/https://www.mups.co.uk/post/2018/01/electron-pal-video-revisited/
+- Pixels and Palettes :: https://web.archive.org/web/20231206181722/https://www.mups.co.uk/post/2017/10/pixels-and-palettes/
+
 ** Hoglet's FPGA ULA: https://github.com/hoglet67/ElectronFpga/tree/master
 
 https://github.com/hoglet67/ElectronFpga/blob/db0971434123bd77c71af6ca0575c36b63510b39/src/common/ElectronULA.vhd#L416
@@ -7888,5 +7900,18 @@ anyone complains!
 |    0 | 0 | 0000 |          |
 
 
+
+** TODOs for GitHub
+
+*** TODO Too many update fns
+
+: ms_update_mfns0: 664/2048 unique BBCMicro::UpdateTemplated instantiations (1.06x ideal)
+
+*** TODO Vsync output timing is bogus
+
+Looks like I must have overfitted TVOutput to whatever mess I clearly
+made of the 6845 output :(
+
+Would be nice if the short sync/long sync could be dealt with?
 
 * eof.
