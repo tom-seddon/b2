@@ -51,6 +51,7 @@ add_library(b2_lib STATIC
   joysticks.cpp joysticks.h
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
   json.h json.cpp
+  miniz.cpp
   )
 
 if(OSX)
@@ -461,6 +462,9 @@ add_executable(b2_test
 target_compile_definitions(b2_test PRIVATE ASSETS_FOLDER="$<TARGET_FILE_DIR:b2>")
 # Stick config stuff in some transient place.
 target_compile_definitions(b2_test PRIVATE TRANSIENT_DATA_FOLDER="${CMAKE_BINARY_DIR}/b2_test_data.$<CONFIG>")
+# Also have b2_SOURCE_DIR, same as test_beeb.
+target_compile_definitions(b2_test PRIVATE b2_SOURCE_DIR="${b2_SOURCE_DIR}")
+
 b2_target_boilerplate(b2_test SANITIZERS)
 target_link_libraries(b2_test PRIVATE b2_lib)
 
@@ -476,6 +480,8 @@ add_b2_test_literal_category(misc.utf8)
 add_b2_test_literal_category(b2.JobQueue)
 add_b2_test_literal_category(b2.SymbolTable)
 add_b2_test_literal_category(misc.stb_image_utf8)
+add_b2_test_literal_category(misc.LoadPossiblyGzippedFile)
+
 foreach(DRIVE 0 1)
   foreach(MEM 0 1)
     foreach(DISK 80.ssd 80.dsd ads.ads adm.adm adl.adl Welcome.ssd MasterWelcome.adl CompactWelcome.adl PC128SWelcome.adl)

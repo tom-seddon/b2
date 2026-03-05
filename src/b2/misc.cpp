@@ -13,6 +13,9 @@
 #include <unordered_map>
 #include <shared/strings.h>
 #include <limits>
+#include <shared/file_io.h>
+#include <miniz.h>
+#include <miniz_tinfl.h>
 
 #include <shared/enum_def.h>
 #include "misc.inl"
@@ -878,3 +881,189 @@ void FixBBCASCIINewlines(std::string *str) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static bool IsGzipData(const std::vector<uint8_t> &data, size_t index) {
+    if (index + 10 <= data.size()) {
+        if (data[index + 0] == 0x1f && data[index + 1] == 0x8b && data[index + 2] == 8) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool Decompress(std::vector<uint8_t> *data, const std::string &path, const LogSet *logs) {
+    static const size_t MAX_UNCOMPRESSED_SIZE = 3u * 1024u * 1024u * 1024u;
+    static const size_t DEST_DATA_SIZE_DELTA = 1048576;
+
+    std::vector<uint8_t> dest_data;
+    size_t dest_index = 0;
+
+    size_t src_index = 0;
+    while (src_index < data->size()) {
+        if (!IsGzipData(*data, src_index)) {
+            if (src_index == 0) {
+                // The entire input data is presumably uncompressed, so this is fine.
+                return true;
+            } else {
+                if (logs) {
+                    logs->e.f("%s: contains trailing uncompressed data\n", path.c_str());
+                }
+                return false;
+            }
+        }
+
+        // Read FLG from the header.
+        uint8_t flg = (*data)[src_index + 3];
+
+        // Skip the header.
+        src_index += 10;
+
+        if (flg & 1 << 2) {
+            // FEXTRA.
+            if (src_index + 2 > data->size()) {
+                if (logs) {
+                    logs->e.f("%s: FEXTRA header overran\n", path.c_str());
+                }
+                return false;
+            }
+
+            uint16_t xlen = (*data)[src_index + 0] | (*data)[src_index + 1] << 8;
+            src_index += 2;
+            if (src_index + xlen > data->size()) {
+                if (logs) {
+                    logs->e.f("%s: FEXTRA data overran\n", path.c_str());
+                }
+                return false;
+            }
+
+            src_index += xlen;
+        }
+
+        if (flg & 1 << 3) {
+            // FNAME.
+            while (src_index < data->size() && (*data)[src_index] != 0) {
+                ++src_index;
+            }
+
+            if (src_index == data->size()) {
+                if (logs) {
+                    logs->e.f("%s: FNAME data overran\n", path.c_str());
+                }
+                return false;
+            }
+
+            ++src_index; //and skip the 0 too.
+        }
+
+        if (flg & 1 << 4) {
+            // FCOMMENT.
+            while (src_index < data->size() && (*data)[src_index] != 0) {
+                ++src_index;
+            }
+
+            if (src_index == data->size()) {
+                if (logs) {
+                    logs->e.f("%s: FCOMMENT data overran\n", path.c_str());
+                }
+                return false;
+            }
+
+            ++src_index; //and skip the 0 too.
+        }
+
+        if (flg & 1 << 1) {
+            src_index += 2;
+
+            if (src_index >= data->size()) {
+                if (logs) {
+                    logs->e.f("%s: FHCRC data overran\n", path.c_str());
+                }
+                return false;
+            }
+        }
+
+        if (src_index == data->size()) {
+            if (logs) {
+                logs->e.f("%s: compressed data missing\n", path.c_str());
+            }
+            return false;
+        }
+
+        tinfl_decompressor *decompressor = tinfl_decompressor_alloc();
+        if (!decompressor) {
+            if (logs) {
+                logs->e.f("%s: failed to allocate decompressor\n");
+            }
+            return false;
+        }
+
+        for (;;) {
+            const mz_uint8 *src = data->data() + src_index;
+            size_t src_size = data->size() - src_index;
+
+            mz_uint8 *dest = dest_data.data() + dest_index;
+            size_t dest_size = dest_data.size() - dest_index;
+
+            tinfl_status status = tinfl_decompress(decompressor,
+                                                   src,
+                                                   &src_size,
+                                                   dest_data.data(),
+                                                   dest,
+                                                   &dest_size,
+                                                   TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
+            src_index += src_size;
+            dest_index += dest_size;
+
+            switch (status) {
+            case TINFL_STATUS_DONE:
+                dest_data.resize(dest_index);
+                goto done;
+
+            case TINFL_STATUS_HAS_MORE_OUTPUT:
+                // 3 GB should be enough for anyone
+                if (dest_data.size() > MAX_UNCOMPRESSED_SIZE) {
+                    if (logs) {
+                        logs->e.f("%s: uncompressed data too large\n", path.c_str());
+                        return false;
+                    }
+                }
+
+                dest_data.resize(dest_data.size() + DEST_DATA_SIZE_DELTA);
+                break;
+
+            default:
+                if (logs) {
+                    logs->e.f("%s: decompressor failed: %d\n", path.c_str(), status);
+                }
+                return false;
+            }
+        }
+    done:
+
+        tinfl_decompressor_free(decompressor), decompressor = nullptr;
+
+        // Skip CRC32 and ISIZE.
+        src_index += 8;
+    }
+
+    data->swap(dest_data);
+
+    return true;
+}
+
+bool DecompressGzip(std::vector<uint8_t> *data) {
+    return Decompress(data, "", nullptr);
+}
+
+bool LoadPossiblyGzippedFile(std::vector<uint8_t> *data, const std::string &path, const LogSet *logs, uint32_t flags) {
+    if (!LoadFile(data, path, logs, flags)) {
+        return false;
+    }
+
+    if (!Decompress(data, path, logs)) {
+        return false;
+    }
+
+    return true;
+}

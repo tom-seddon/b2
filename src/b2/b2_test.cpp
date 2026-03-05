@@ -801,6 +801,52 @@ class TestStbImageUTF8 : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestLoadPossiblyGzippedFile : public Test {
+  public:
+    std::string GetFullName() const override {
+        return "misc.LoadPossiblyGzippedFile";
+    }
+
+    void Run() override {
+        std::string names[] = {
+            "Acornsoft Desk Diary (198x)(Acornsoft)",
+            "Acornsoft Forth (1983)(Acornsoft)",
+            "Acornsoft Forth (1983)(Acornsoft)[a]",
+            "Acornsoft Zeichenbrett (198x)(Acornsoft)",
+        };
+
+        std::vector<uint8_t> wanted_concatenated_data;
+
+        std::vector<uint8_t> got_concatenated_data;
+
+        for (const std::string &name : names) {
+            std::string stem = PathJoined(b2_SOURCE_DIR, "etc/tests/uef/" + name);
+
+            std::vector<uint8_t> wanted_data;
+            TEST_TRUE(LoadFile(&wanted_data, stem + ".uncompressed.uef", nullptr));
+            wanted_concatenated_data.insert(wanted_concatenated_data.end(), wanted_data.begin(), wanted_data.end());
+
+            std::vector<uint8_t> got_data;
+            TEST_TRUE(LoadPossiblyGzippedFile(&got_data, stem + ".uef", nullptr));
+            got_concatenated_data.insert(got_concatenated_data.end(), got_data.begin(), got_data.end());
+
+            TEST_EQ_UU(got_data.size(), wanted_data.size());
+            TEST_EQ_AA(got_data.data(), wanted_data.data(), got_data.size());
+        }
+
+        TEST_TRUE(DecompressGzip(&got_concatenated_data));
+
+        TEST_EQ_UU(got_concatenated_data.size(), wanted_concatenated_data.size());
+        TEST_EQ_AA(got_concatenated_data.data(), wanted_concatenated_data.data(), got_concatenated_data.size());
+    }
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TestCopyOfDisk : public DearImGuiTest {
   public:
     TestCopyOfDisk(const Disc *disk, int drive, bool in_memory)
@@ -1265,6 +1311,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestJobQueue>());
     all_tests.push_back(std::make_unique<TestFileExit>());
     all_tests.push_back(std::make_unique<TestStbImageUTF8>());
+    all_tests.push_back(std::make_unique<TestLoadPossiblyGzippedFile>());
 
     // the callback handling is model-dependent, so not much point checking the whole lineup.
     all_tests.push_back(std::make_unique<TestNVRAMUpdate>("master", "Master 128 (MOS 3.20)"));

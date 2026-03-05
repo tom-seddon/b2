@@ -17,6 +17,7 @@ class BBCMicro;
 struct ROM;
 class Messages;
 class Log;
+struct LogSet;
 
 #include "conf.h"
 #include <vector>
@@ -205,6 +206,14 @@ void FixBBCASCIINewlines(std::string *str);
 #define MICROSECONDS_UTF8 "\xc2\xb5s"
 
 #define POUND_SIGN_UTF8 "\xc2\xa3"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool DecompressGzip(std::vector<uint8_t> *data);
+
+// For the benefit of the UEF support.
+bool LoadPossiblyGzippedFile(std::vector<uint8_t> *data, const std::string &path, const LogSet *logs, uint32_t flags = 0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
