@@ -86,12 +86,12 @@ std::string GetKeymapUIName(const BeebKeymap &keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 struct Keycap {
+    int width_in_halves = -1;
     BeebKey key = BeebKey_None;
     BeebKeySym unshifted_sym = BeebKeySym_None;
     BeebKeySym shifted_sym = BeebKeySym_None;
-    int width_in_halves = -1;
-    KeyColour colour = KeyColour_Default;
     BeebKeySym ctrled_sym = BeebKeySym_None; //only applicable to Electron
+    KeyColour colour = KeyColour_Default;
 
     Keycap() = default;
     Keycap(int width_in_halves, BeebKey key, BeebKeySym unshifted_sym = BeebKeySym_None, BeebKeySym shifted_sym = BeebKeySym_None, BeebKeySym ctrled_sym = BeebKeySym_None);
@@ -319,14 +319,6 @@ void KeymapsUI::DoImGui() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-//#define K(KEY,...) {BeebKey_##KEY,__VA_ARGS__,)
-//#define F(N) {BeebKey_F##N,"f" #N,0,2,KeyColour_Red}
-//#define E(N,C) {BeebKey_##N,C,nullptr,2,KeyColour_Khaki}
-//#define LETTER(L) {BeebKey_##L,#L}
-//#define EDITKEY(N) N,0,2,2,
-//#define END \
-//    {BeebKey_None, BeebKeySym_None, BeebKeySym_None, -1}
 
 // BBC keyboard caps
 static const Keycap g_keyboard_line1[] = {

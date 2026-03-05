@@ -72,10 +72,10 @@ static void Emit1MHz1bpp(VideoDataUnit *unit, ElectronULA *ula) {
 static void Emit2MHz2bpp(VideoDataUnit *unit, ElectronULA *ula) {
     uint8_t byte = ula->display_byte;
 
-    unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[byte >> 4 & 8 | byte >> 2 & 2].value];
-    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = PALETTE_PIXELS[ula->palette[byte >> 3 & 8 | byte >> 1 & 2].value];
-    unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[byte >> 2 & 8 | byte & 2].value];
-    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = PALETTE_PIXELS[ula->palette[byte >> 1 & 8 | byte << 1 & 2].value];
+    unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[(byte >> 4 & 8) | (byte >> 2 & 2)].value];
+    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = PALETTE_PIXELS[ula->palette[(byte >> 3 & 8) | (byte >> 1 & 2)].value];
+    unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[(byte >> 2 & 8) | (byte & 2)].value];
+    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = PALETTE_PIXELS[ula->palette[(byte >> 1 & 8) | (byte << 1 & 2)].value];
 }
 
 static void Emit1MHz2bpp(VideoDataUnit *unit, ElectronULA *ula) {
@@ -83,8 +83,8 @@ static void Emit1MHz2bpp(VideoDataUnit *unit, ElectronULA *ula) {
 
     ula->display_byte <<= 2;
 
-    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[byte >> 4 & 8 | byte >> 2 & 2].value];
-    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[byte >> 3 & 8 | byte >> 1 & 2].value];
+    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[(byte >> 4 & 8) | (byte >> 2 & 2)].value];
+    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[(byte >> 3 & 8) | (byte >> 1 & 2)].value];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,8 +93,8 @@ static void Emit1MHz2bpp(VideoDataUnit *unit, ElectronULA *ula) {
 static void Emit2MHz4bpp(VideoDataUnit *unit, ElectronULA *ula) {
     uint8_t byte = ula->display_byte;
 
-    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[byte >> 4 & 8 | byte >> 3 & 4 | byte >> 2 & 2 | byte >> 1 & 1].value];
-    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[byte >> 3 & 8 | byte >> 2 & 4 | byte >> 1 & 2 | byte & 1].value];
+    unit->pixels.pixels[3].bits = unit->pixels.pixels[2].bits = unit->pixels.pixels[1].bits = unit->pixels.pixels[0].bits = PALETTE_PIXELS[ula->palette[(byte >> 4 & 8) | (byte >> 3 & 4) | (byte >> 2 & 2) | (byte >> 1 & 1)].value];
+    unit->pixels.pixels[7].bits = unit->pixels.pixels[6].bits = unit->pixels.pixels[5].bits = unit->pixels.pixels[4].bits = PALETTE_PIXELS[ula->palette[(byte >> 3 & 8) | (byte >> 2 & 4) | (byte >> 1 & 2) | (byte & 1)].value];
 }
 
 //////////////////////////////////////////////////////////////////////////

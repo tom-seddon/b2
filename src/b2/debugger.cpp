@@ -4117,7 +4117,8 @@ class KeyboardDebugWindow : public DebugUI {
             for (uint8_t col = 0; col < 16; ++col) {
                 if (m_beeb_state->key_columns[col] & 1 << row) {
                     uint8_t code = row << 4 | col;
-                    ImGui::BulletText("%s%02x: %s", g_hex, code, GetBeebKeyEnumName(code));
+                    ASSERT(!(code & 0x80));
+                    ImGui::BulletText("%s%02x: %s", g_hex, code, GetBeebKeyEnumName((int8_t)code));
                     any = true;
                 }
             }

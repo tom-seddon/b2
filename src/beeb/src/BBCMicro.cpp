@@ -1283,8 +1283,8 @@ void BBCMicro::WriteElectronULA3(void *m_, M6502Word a, uint8_t value) {
     (void)a;
     auto m = (BBCMicro *)m_;
 
-    m->m_state.electron_ula.display_start_address &= ~(0x3f << 9);
-    m->m_state.electron_ula.display_start_address |= (value & 0x3f) << 9;
+    m->m_state.electron_ula.display_start_address &= ~(0x3fu << 9u);
+    m->m_state.electron_ula.display_start_address |= (value & 0x3fu) << 9u;
 }
 #endif
 
@@ -3599,6 +3599,14 @@ void BBCMicro::InitStuff() {
     this->UpdateCPUDataBusFn();
 
     switch (m_state.type->type_id) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+        break;
+#endif
+
     case BBCMicroTypeID_B:
         // The non-zero ROMSEL OR_VALUE will end up reflected in any reads, but:
         // no problem. You can't read ROMSEL on the B.
@@ -4221,7 +4229,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::GetKeyColumnAndMask(BeebKey key, uint8_t **column_ptr, uint8_t *mask_ptr) {
-    ASSERT(key >= 0 && key < 128);
+    ASSERT(key >= 0);
 
     int8_t code = (int8_t)key;
 

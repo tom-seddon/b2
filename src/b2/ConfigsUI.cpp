@@ -351,7 +351,7 @@ void ConfigsUI::DoEditConfigGui() {
         for (int8_t bank = 15; bank >= 0; --bank) {
             bank_up[bank] = last_normal_bank;
             if (bank_fixed_flags[bank] == 0) {
-                last_normal_bank = bank;
+                last_normal_bank = (uint8_t)bank;
             }
         }
     }
@@ -1021,7 +1021,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "PC 128 S OS ROM", MOSI510C_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.11i OS ROM", MOS511i_MOS_ROMS);
 #if ENABLE_ELECTRON
-        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ElectronSidewaysROMs, "Electron Sideways ROM", ELECTRON_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ElectronSidewaysROMs, "Electron Sideways ROM", ELECTRON_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ElectronOSROMs, "Electron OS", ELECTRON_MOS_ROMS);
 #endif
 
