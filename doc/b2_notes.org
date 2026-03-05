@@ -7914,4 +7914,8 @@ made of the 6845 output :(
 
 Would be nice if the short sync/long sync could be dealt with?
 
+*** TODO KeyboardDebugWindow doesn't translate BeebKey
+
+More bookkeeping required
+
 * eof.
