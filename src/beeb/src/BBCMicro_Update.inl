@@ -384,6 +384,10 @@ parasite_update_done:
                 if (m_state.electron_ula.display_state == ElectronULADisplayState_Display && m_state.electron_ula.display_raster < 8) {
                     // Display data from RAM.
                     if (m_state.electron_ula.misc.bits.display_mode <= 3 || ula_used_cycle) {
+                        if (m_state.electron_ula.display_fetch_address >= 0x8000) {
+                            m_state.electron_ula.display_fetch_address -= ElectronULA::DISPLAY_WRAPAROUND_SIZES[m_state.electron_ula.misc.bits.display_mode];
+                        }
+
                         m_state.electron_ula.display_byte = m_ram[m_state.electron_ula.display_fetch_address];
 #if VIDEO_TRACK_METADATA
                         m_state.electron_ula.display_fetched_byte = m_state.electron_ula.display_byte;
@@ -391,9 +395,6 @@ parasite_update_done:
 
 #endif
                         m_state.electron_ula.display_fetch_address += 8;
-                        if (m_state.electron_ula.display_fetch_address >= 0x8000) {
-                            m_state.electron_ula.display_fetch_address -= ElectronULA::DISPLAY_WRAPAROUND_SIZES[m_state.electron_ula.misc.bits.display_mode];
-                        }
 
                         // the ULA steals every cycle in the mode 0-3 case.
                         ula_used_cycle = true;
