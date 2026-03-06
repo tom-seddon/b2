@@ -359,7 +359,7 @@ parasite_update_done:
 
 #if ENABLE_ELECTRON
         if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
-            uint8_t ula_used_cycle = phi2_1MHz_trailing_edge;
+            uint8_t ula_used_cycle = !phi2_1MHz_trailing_edge;
 
             // TODO: not sure any of this is the right logic?
 
@@ -429,6 +429,8 @@ parasite_update_done:
                 if (m_state.electron_ula.display_state == ElectronULADisplayState_Display) {
                     ++m_state.electron_ula.display_scanline;
                     ++m_state.electron_ula.display_raster;
+
+                    //m_state.electron_ula.display_fetched_byte = 0;
 
                     bool is_graphics = ElectronULA::IS_GRAPHICS_MODE[m_state.electron_ula.misc.bits.display_mode];
 
