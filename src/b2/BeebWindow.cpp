@@ -52,6 +52,7 @@
 #include "SymbolTable.h"
 #include <shared/strings.h>
 #include <shared/metrics.h>
+#include <beeb/uef.h>
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 #ifdef KeyPress
@@ -151,6 +152,8 @@ static Command2 g_reload_all_symbols_command = Command2(&g_beeb_window_command_t
 //static Command2 g_load_project_command = Command2(&g_beeb_window_command_table, "load_project", "Load project...").VisibleIf(BBCMICRO_DEBUGGER);
 //static Command2 g_save_project_command = Command2(&g_beeb_window_command_table, "save_project", "Save project").VisibleIf(BBCMICRO_DEBUGGER);
 //static Command2 g_save_project_as_command = Command2(&g_beeb_window_command_table, "save_project_as", "Save project as...").VisibleIf(BBCMICRO_DEBUGGER);
+static Command2 g_eject_tape_command = Command2(&g_beeb_window_command_table, "eject_tape", "Eject tape");
+static Command2 g_load_tape_command = Command2(&g_beeb_window_command_table, "load_tape", "Load tape");
 
 struct PopupMetadata {
     Command2 command;
@@ -268,7 +271,8 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupManagement, "toggle_symbol_group_management", "Symbols", &CreateSymbolGroupManagementWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_SymbolGroupBrowser, "toggle_symbol_browser_debug", "Browse Symbols", &CreateSymbolBrowserWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MutexStats, "toggle_mutex_stats", "Mutex Stats", &CreateMutexStatsUI);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_ElectronULADebug, "toggle_electron_ula_debug", "Electron ULA", &CreateElectronULADebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ElectronULADebug, "toggle_electron_ula_debug", "Electron ULA Debug", &CreateElectronULADebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_TapeDebug, "toggle_tape_debug", "Tape Debug", &CreateTapeDebugWindow);
     return true;
 }
 
@@ -314,6 +318,13 @@ const Guid NEW_DISK_IMAGE_SELECTOR_GUID{0x72, 0x23, 0xE7, 0xC3, 0x78, 0xA0, 0x41
 static RecentPaths g_disk_image_recent_paths("disc_image");
 const Guid OPEN_DISK_IMAGE_SELECTOR_GUID{0x4c, 0xed, 0x04, 0x1d, 0x00, 0xf1, 0x46, 0x2f, 0x88, 0x0e, 0xc2, 0x39, 0x95, 0xd0, 0x38, 0xde};
 const Guid SAVE_DISK_IMAGE_COPY_SELECTOR_GUID{0x3e, 0x34, 0x69, 0xad, 0xf8, 0xc6, 0x44, 0x79, 0xbe, 0x5c, 0x7d, 0x2a, 0xa3, 0x6a, 0xce, 0x64};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static RecentPaths g_tape_recent_paths("tape");
+const Guid OPEN_TAPE_FILE_SELECTOR_GUID{0x52, 0xf5, 0x5e, 0x8f, 0xad, 0xf9, 0x4f, 0x33, 0xa7, 0xa4, 0xb1, 0xba, 0x28, 0xfb, 0x35, 0x95};
+const FileDialog::Filter TAPE_FILE_FILTER{"UEF File", {".uef"}};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1721,6 +1732,25 @@ void BeebWindow::DoCommands(bool *close_window) {
             this->SaveWindowLayout(path);
         }
     }
+
+#if ENABLE_TAPE
+    m_cst.SetEnabled(g_eject_tape_command, !!m_beeb_thread->GetTape());
+    if (m_cst.WasActioned(g_eject_tape_command)) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::EjectTapeMessage>());
+    }
+
+    if (m_cst.WasActioned(g_load_tape_command)) {
+        OpenFileDialog fd(OPEN_TAPE_FILE_SELECTOR_GUID, m_init_arguments.app_handler);
+        fd.AddFilter(TAPE_FILE_FILTER);
+
+        std::string path;
+        if (fd.Open(m_window, &path)) {
+            fd.AddLastPathToRecentPaths(&g_tape_recent_paths);
+
+            this->LoadTape(path);
+        }
+    }
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2097,6 +2127,42 @@ void BeebWindow::DoFileMenu() {
         }
 
         ImGui::Separator();
+
+#if ENABLE_TAPE
+        if (ImGui::BeginMenu("Tape##tape")) {
+            std::shared_ptr<const UEFReader> tape = m_beeb_thread->GetTape();
+
+            if (!!tape) {
+                const std::string &name = tape->GetName();
+                if (!name.empty()) {
+                    if (ImGui::BeginMenu("Full path")) {
+                        ImGui::MenuItem(name.c_str(), nullptr, false, false);
+
+                        if (ImGui::MenuItem("Copy path to clipboard")) {
+                            SDL_SetClipboardText(name.c_str());
+                        }
+
+                        ImGui::EndMenu();
+                    }
+                }
+
+                m_cst.DoMenuItem(g_eject_tape_command);
+            } else {
+                ImGui::MenuItem("(no tape selected)", nullptr, false, false);
+            }
+
+            ImGui::Separator();
+
+            m_cst.DoMenuItem(g_load_tape_command);
+
+            std::string path;
+            if (ImGuiRecentMenu(&path, "Recent tape", &g_tape_recent_paths)) {
+                this->LoadTape(path);
+            }
+
+            ImGui::EndMenu();
+        }
+#endif
 
         for (int drive = 0; drive < NUM_DRIVES; ++drive) {
             char title[100];
@@ -2624,6 +2690,7 @@ void BeebWindow::DoDebugMenu() {
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_HardDiskDebug].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TapeDebug].command);
             if (ImGui::BeginMenu("External Memory Debug")) {
                 m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command);
                 m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command);
@@ -4472,6 +4539,21 @@ bool BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
     bool good = this->HardReset(config, arguments, BeebThreadHardResetFlag_Run);
     return good;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+void BeebWindow::LoadTape(std::string path) {
+    std::vector<uint8_t> uef_data;
+    if (LoadPossiblyGzippedFile(&uef_data, path, &m_msg, 0)) {
+        auto uef = std::make_shared<UEFReader>();
+        if (uef->Load(std::move(uef_data), std::move(path), &m_msg)) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::LoadTapeMessage>(std::move(uef)));
+        }
+    }
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

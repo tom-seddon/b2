@@ -14,7 +14,7 @@ struct LogSet;
 struct UEFChunk {
     uint16_t id = 0;
     uint32_t size = 0;
-    const void *data = nullptr;
+    const uint8_t *data = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -22,9 +22,12 @@ struct UEFChunk {
 
 class UEFReader {
   public:
-    explicit UEFReader(const LogSet *logs);
+    UEFReader() = default;
 
-    bool Load(std::vector<uint8_t> data);
+    // The name is provided for reference only.
+    bool Load(std::vector<uint8_t> data, std::string name, const LogSet *logs = nullptr);
+
+    const std::string &GetName() const;
 
     size_t GetNumChunks() const;
     UEFChunk GetChunkByIndex(size_t index) const;
@@ -37,10 +40,10 @@ class UEFReader {
         size_t data_index = 0;
     };
 
-    const LogSet *m_logs = nullptr;
     uint8_t m_minor_version = 0, m_major_version = 0;
     std::vector<uint8_t> m_data;
     std::vector<Chunk> m_chunks;
+    std::string m_name;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -59,6 +62,11 @@ class UEFWriter {
     const LogSet *m_logs = nullptr;
     std::vector<uint8_t> m_data;
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const char *GetUEFChunkDescription(uint16_t id);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

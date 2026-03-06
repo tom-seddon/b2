@@ -593,6 +593,11 @@ class BBCMicro : private WD1770Handler {
     std::shared_ptr<DiscImage> TakeDiscImage(int drive);
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
 
+#if ENABLE_TAPE
+    std::shared_ptr<const UEFReader> GetTape() const;
+    void SetTape(std::shared_ptr<const UEFReader> tape);
+#endif
+
     // Setting the disk image makes the drive non write-protected.
     void SetDiscImage(int drive,
                       std::shared_ptr<DiscImage> disc_image);

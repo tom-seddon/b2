@@ -209,6 +209,7 @@ EPNV(Mouse, 1 << 0)
 
 // Some non-fast path cases:
 //
+// - Cassette motor on
 // - OSRDCH Paste
 // - Instruction functions
 //   - copy OSWRCH

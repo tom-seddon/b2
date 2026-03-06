@@ -481,6 +481,7 @@ add_b2_test_literal_category(b2.JobQueue)
 add_b2_test_literal_category(b2.SymbolTable)
 add_b2_test_literal_category(misc.stb_image_utf8)
 add_b2_test_literal_category(misc.LoadPossiblyGzippedFile)
+add_b2_test_literal_category(b2.LoadUEF)
 
 foreach(DRIVE 0 1)
   foreach(MEM 0 1)

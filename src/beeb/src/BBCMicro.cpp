@@ -1379,6 +1379,8 @@ void BBCMicro::WriteElectronULA6(void *m_, M6502Word a, uint8_t value) {
         //ASSERT(false);
         break;
     }
+
+    m->UpdateCPUDataBusFn();
 }
 #endif
 
@@ -2083,6 +2085,24 @@ std::shared_ptr<const DiscImage> BBCMicro::GetDiscImage(int drive) const {
         return nullptr;
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+std::shared_ptr<const UEFReader> BBCMicro::GetTape() const {
+    return m_state.tape;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+void BBCMicro::SetTape(std::shared_ptr<const UEFReader> tape) {
+    m_state.tape = std::move(tape);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -4122,6 +4142,7 @@ float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: the name for this is now completely bogus.
 void BBCMicro::UpdateCPUDataBusFn() {
     uint32_t update_flags = 0;
 
@@ -4184,6 +4205,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
 #if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
         update_flags |= BBCMicroUpdateSystemType_Electron << BBCMicroUpdateFlag_UpdateSystemTypeShift;
+
+        if (m_state.electron_ula.misc.bits.motor) {
+            update_flags |= BBCMicroUpdateFlag_NonFastPath;
+        }
         break;
 #endif
     }

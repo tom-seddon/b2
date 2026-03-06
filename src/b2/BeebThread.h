@@ -401,6 +401,34 @@ class BeebThread {
         const int m_drive = -1;
     };
 
+#if ENABLE_TAPE
+    class LoadTapeMessage : public Message {
+      public:
+        LoadTapeMessage(std::shared_ptr<const UEFReader> tape);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+        void ThreadHandle(ThreadState *ts) const override;
+
+      protected:
+      private:
+        std::shared_ptr<const UEFReader> m_tape;
+    };
+#endif
+
+#if ENABLE_TAPE
+    class EjectTapeMessage : public Message {
+      public:
+        EjectTapeMessage() = default;
+
+        void ThreadHandle(ThreadState *ts) const override;
+
+      protected:
+      private:
+    };
+#endif
+
     class SetDriveWriteProtectedMessage : public Message {
       public:
         explicit SetDriveWriteProtectedMessage(int drive, bool is_write_protected);
@@ -990,6 +1018,8 @@ class BeebThread {
     // Get the speed scale.
     float GetSpeedScale() const;
 
+    std::shared_ptr<const UEFReader> GetTape() const;
+
     // Get the disc image pointer for the given drive, using the given
     // lock object to take a lock on the disc access mutex.
     std::shared_ptr<const DiscImage> GetDiscImage(UniqueLock<Mutex> *lock, int drive) const;
@@ -1204,7 +1234,8 @@ class BeebThread {
     TraceStats m_trace_stats;
 #endif
 
-    // Shadow copy of last known disc drive pointers.
+    // Shadow copies of disks and tapes.
+    std::shared_ptr<const UEFReader> m_tape;
     std::shared_ptr<const DiscImage> m_disc_images[NUM_DRIVES];
 
     // The thread.
@@ -1243,6 +1274,9 @@ class BeebThread {
     void ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state);
     void ThreadSetBootState(ThreadState *ts, bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
+#if ENABLE_TAPE
+    void ThreadSetTape(ThreadState *ts, std::shared_ptr<const UEFReader> tape);
+#endif
     void ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts, std::string text);
     void ThreadStopCopy(ThreadState *ts);

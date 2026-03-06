@@ -32,6 +32,7 @@
 #include "BeebWindows.h"
 #include "BeebThread.h"
 #include <inttypes.h>
+#include <beeb/uef.h>
 
 // the b2 code includes the stb_image_write implementation.
 #include <stb_image_write.h>
@@ -40,6 +41,14 @@
 #ifndef TRANSIENT_DATA_FOLDER
 #error
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//LOG_DEFINE(stdout, "", &g_log_printer_stdout);
+//LOG_DEFINE(stderr, "", &g_log_printer_stderr);
+//
+//static const LogSet g_stdio_logs(LOG(stdout), LOG(stderr), LOG(stderr));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -847,6 +856,37 @@ class TestLoadPossiblyGzippedFile : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// This test doesn't currently do anything particularly useful, but it does at
+// least exercise some code, so it's not hidden.
+class TestLoadUEF : public Test {
+  public:
+    std::string GetFullName() const override {
+        return "b2.LoadUEF";
+    }
+
+    void Run() override {
+        std::string path = PathJoined(b2_SOURCE_DIR, "etc/tests/uef/Acornsoft Desk Diary (198x)(Acornsoft).uef");
+
+        std::vector<uint8_t> data;
+        TEST_TRUE(LoadPossiblyGzippedFile(&data, path, nullptr));
+
+        UEFReader uef_reader;
+
+        TEST_TRUE(uef_reader.Load(data, path));
+
+        std::set<uint16_t> chunk_ids;
+        for (size_t i = 0; i < uef_reader.GetNumChunks(); ++i) {
+            chunk_ids.insert(uef_reader.GetChunkByIndex(i).id);
+        }
+    }
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TestCopyOfDisk : public DearImGuiTest {
   public:
     TestCopyOfDisk(const Disc *disk, int drive, bool in_memory)
@@ -1312,6 +1352,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestFileExit>());
     all_tests.push_back(std::make_unique<TestStbImageUTF8>());
     all_tests.push_back(std::make_unique<TestLoadPossiblyGzippedFile>());
+    all_tests.push_back(std::make_unique<TestLoadUEF>());
 
     // the callback handling is model-dependent, so not much point checking the whole lineup.
     all_tests.push_back(std::make_unique<TestNVRAMUpdate>("master", "Master 128 (MOS 3.20)"));

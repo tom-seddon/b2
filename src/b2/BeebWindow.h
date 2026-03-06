@@ -662,6 +662,10 @@ class BeebWindow {
     bool HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags);
     bool HardResetWithMultiOSBank(int multi_os_bank);
 
+#if ENABLE_TAPE
+    void LoadTape(std::string path);
+#endif
+
     //#ifdef IMGUI_ENABLE_TEST_ENGINE
     //    static void InitDearImGuiTests(BeebWindow *beeb_window,
     //                                   ImGuiTestEngine *test_engine,

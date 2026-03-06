@@ -37,6 +37,7 @@ class Log;
 
 class DiscImage;
 enum BBCMicroUpdateROMType : uint8_t;
+class UEFReader;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -225,6 +226,9 @@ class BBCMicroState {
     const R6522 *DebugGetSystemVIA() const;
     const R6522 *DebugGetUserVIA() const;
     const SN76489 *DebugGetSN76489() const;
+#if ENABLE_TAPE
+    std::shared_ptr<const UEFReader> DebugGetTape() const;
+#endif
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -411,6 +415,10 @@ class BBCMicroState {
   public:
 #if ENABLE_ELECTRON
     ElectronULA electron_ula;
+#endif
+
+#if ENABLE_TAPE
+    std::shared_ptr<const UEFReader> tape;
 #endif
 
   protected:

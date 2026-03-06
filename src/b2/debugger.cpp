@@ -46,6 +46,7 @@ static Command2 g_toggle_reset_relative_cycles_on_breakpoint_command = Command2(
 #include "load_save.h"
 #include <algorithm>
 #include <bitset>
+#include <beeb/uef.h>
 
 // Ugh, ugh, ugh.
 #ifdef __GNUC__
@@ -5297,6 +5298,110 @@ std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_TAPE
+// TODO: maybe this will end up a generic UEF debug window, but, for now, it is
+// like this.
+class TapeDebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        std::shared_ptr<const UEFReader> tape = m_beeb_state->DebugGetTape();
+        if (!tape) {
+            ImGui::TextUnformatted("No tape selected");
+            return;
+        }
+
+        size_t num_chunks = tape->GetNumChunks();
+        ImGui::Text("%zu chunks", num_chunks);
+
+        for (size_t chunk_index = 0; chunk_index < num_chunks; ++chunk_index) {
+            UEFChunk chunk = tape->GetChunkByIndex(chunk_index);
+
+            char label[100];
+            if (const char *description = GetUEFChunkDescription(chunk.id)) {
+                snprintf(label, sizeof label, "%zu. 0x%04" PRIx16 ": %s", chunk_index, chunk.id, description);
+            } else {
+                snprintf(label, sizeof label, "%zu. 0x%04" PRIx16, chunk_index, chunk.id);
+            }
+
+            if (ImGui::CollapsingHeader(label)) {
+                switch (chunk.id) {
+                default:
+                    {
+                        uint32_t row_width = 16;
+                        ImGui::Text("Size: 0x%" PRIx32 " (%" PRIu32 ")", chunk.size, chunk.size);
+
+                        for (uint32_t row_offset = 0; row_offset < chunk.size; row_offset += row_width) {
+                            char row[1000], *dest = row;
+                            size_t i = 0;
+                            int n;
+
+                            n = snprintf(row, sizeof row - i, "%08" PRIx32 ":", row_offset);
+                            dest += n >= 0 ? (size_t)n : 0;
+
+                            for (uint32_t column_offset = 0; column_offset < row_width; ++column_offset) {
+                                uint32_t offset = row_offset + column_offset;
+                                if (offset < chunk.size) {
+                                    uint8_t byte = chunk.data[offset];
+
+                                    *dest++ = ' ';
+                                    *dest++ = HEX_CHARS_UC[byte >> 4];
+                                    *dest++ = HEX_CHARS_UC[byte & 0xf];
+                                } else {
+                                    *dest++ = ' ';
+                                    *dest++ = ' ';
+                                    *dest++ = ' ';
+                                }
+                            }
+
+                            *dest++ = ' ';
+                            *dest++ = ' ';
+
+                            for (uint32_t column_offset = 0; column_offset < row_width; ++column_offset) {
+                                uint32_t offset = row_offset + column_offset;
+
+                                if (offset < chunk.size) {
+                                    uint8_t byte = chunk.data[offset];
+                                    if (byte >= 32 && byte < 127) {
+                                        *dest++ = (char)byte;
+                                    } else {
+                                        *dest++ = '.';
+                                    }
+                                } else {
+                                    *dest++ = ' ';
+                                }
+                            }
+
+                            *dest++ = '\n';
+                            *dest++ = 0;
+
+                            ASSERT(dest <= row + sizeof row);
+
+                            ImGui::TextUnformatted(row);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+  protected:
+  private:
+};
+#endif
+
+std::unique_ptr<SettingsUI> CreateTapeDebugWindow(BeebWindow *beeb_window) {
+#if ENABLE_TAPE
+    return CreateDebugUI<TapeDebugWindow>(beeb_window);
+#else
+    (void)beeb_window;
+    return nullptr;
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -5428,6 +5533,10 @@ std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateTapeDebugWindow(BeebWindow *) {
     return nullptr;
 }
 

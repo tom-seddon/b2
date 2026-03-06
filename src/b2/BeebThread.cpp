@@ -885,8 +885,7 @@ bool BeebThread::LoadDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::LoadDiscMessage::ThreadHandle(
-    ThreadState *ts) const {
+void BeebThread::LoadDiscMessage::ThreadHandle(ThreadState *ts) const {
     ASSERT(m_disc_image->CanClone());
     ts->beeb_thread->ThreadSetDiscImage(ts, m_drive, m_disc_image->Clone());
 }
@@ -905,6 +904,48 @@ void BeebThread::EjectDiscMessage::ThreadHandle(
     ThreadState *ts) const {
     ts->beeb_thread->ThreadSetDiscImage(ts, m_drive, nullptr);
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+BeebThread::LoadTapeMessage::LoadTapeMessage(std::shared_ptr<const UEFReader> tape)
+    : m_tape(std::move(tape)) {
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+bool BeebThread::LoadTapeMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                CompletionFun *completion_fun,
+                                                ThreadState *ts) {
+    if (!PrepareUnlessReplayingOrHalted(ptr, completion_fun, ts)) {
+        return false;
+    }
+
+    return true;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+void BeebThread::LoadTapeMessage::ThreadHandle(ThreadState *ts) const {
+    ts->beeb_thread->ThreadSetTape(ts, m_tape);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+void BeebThread::EjectTapeMessage::ThreadHandle(ThreadState *ts) const {
+    ts->beeb_thread->ThreadSetTape(ts, nullptr);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2095,6 +2136,15 @@ float BeebThread::GetSpeedScale() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::shared_ptr<const UEFReader> BeebThread::GetTape() const {
+    LockGuard<Mutex> lock(m_mutex);
+
+    return m_tape;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::shared_ptr<const DiscImage> BeebThread::GetDiscImage(UniqueLock<Mutex> *lock, int drive) const {
     ASSERT(drive >= 0 && drive < NUM_DRIVES);
 
@@ -2778,6 +2828,9 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     ASSERT(!!beeb);
 
     std::shared_ptr<DiscImage> old_disc_images[NUM_DRIVES];
+#if ENABLE_TAPE
+    std::shared_ptr<const UEFReader> old_tape;
+#endif
     {
 #if BBCMICRO_DEBUGGER
         std::shared_ptr<BBCMicroDebugState> debug_state;
@@ -2793,6 +2846,10 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
                 for (int i = 0; i < NUM_DRIVES; ++i) {
                     old_disc_images[i] = ts->beeb->TakeDiscImage(i);
                 }
+
+#if ENABLE_TAPE
+                old_tape = ts->beeb->GetTape();
+#endif
             }
 
             delete ts->beeb;
@@ -2859,10 +2916,18 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         for (int i = 0; i < NUM_DRIVES; ++i) {
             this->ThreadSetDiscImage(ts, i, std::move(old_disc_images[i]));
         }
+
+#if ENABLE_TAPE
+        this->ThreadSetTape(ts, old_tape);
+#endif
     } else {
         for (int i = 0; i < NUM_DRIVES; ++i) {
             m_disc_images[i] = ts->beeb->GetDiscImage(i);
         }
+
+#if ENABLE_TAPE
+        m_tape = ts->beeb->GetTape();
+#endif
     }
 
 #if BBCMICRO_TRACE
@@ -3093,6 +3158,17 @@ void BeebThread::ThreadSetBootState(ThreadState *ts, bool state) {
 void BeebThread::ThreadUpdateShiftKeyState(ThreadState *ts) {
     this->ThreadSetKeyState(ts, BeebKey_Shift, m_real_key_states.GetState(BeebKey_Shift));
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_TAPE
+void BeebThread::ThreadSetTape(ThreadState *ts, std::shared_ptr<const UEFReader> tape) {
+    ts->beeb->SetTape(tape);
+
+    m_tape = std::move(tape);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
