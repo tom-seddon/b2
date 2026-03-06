@@ -586,54 +586,47 @@ void ConfigsUI::DoEditConfigGui() {
     }
 #endif
 
-    // MMFS - Memory-Mapped Filing System (additional hardware)
-    // MMFS uses memory-mapped I/O (hardcoded in the ROM at compile time):
-    //   BBC B: 0xFE1C, Master: 0xFEDC (both in S_IO range 0xFE00-0xFEFF)
-    // The emulator automatically selects the correct address based on machine type.
-    // The S_IO range is accessed via the 1MHz bus, not available on Master Compact.
-    if (Has1MHzBus(config->type_id)) {
-        ImGui::Separator();
+    ImGui::Separator();
 
-        ImGuiHeader("MMFS##header");
+    ImGuiHeader("MMFS##header");
 
-        if (ImGui::Checkbox("MMFS", &config->mmfs_enabled)) {
+    if (ImGui::Checkbox("MMFS", &config->mmfs_enabled)) {
+        edited = true;
+    }
+
+    if (config->mmfs_enabled) {
+        if (ImGuiInputText(&config->mmfs_config.image_path,
+                           "Image Path",
+                           config->mmfs_config.image_path)) {
+            edited = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("...##mmfs")) {
+            ImGui::OpenPopup(MMFS_POPUP);
+        }
+
+        if (ImGui::BeginPopup(MMFS_POPUP)) {
+            if (ImGui::MenuItem("File...")) {
+                if (m_mmfs_image_ofd.Open(m_beeb_window->GetSDLWindow(), &config->mmfs_config.image_path)) {
+                    m_mmfs_image_ofd.AddLastPathToRecentPaths(&g_mmfs_images_recent_paths);
+                    edited = true;
+                }
+            }
+
+            if (ImGuiRecentMenu(&config->mmfs_config.image_path, "Recent file", &g_mmfs_images_recent_paths)) {
+                edited = true;
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::Checkbox("Enable debug logging", &config->mmfs_config.debug)) {
             edited = true;
         }
 
-        if (config->mmfs_enabled) {
-            if (ImGuiInputText(&config->mmfs_config.image_path,
-                               "Image Path",
-                               config->mmfs_config.image_path)) {
-                edited = true;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("...##mmfs")) {
-                ImGui::OpenPopup(MMFS_POPUP);
-            }
-
-            if (ImGui::BeginPopup(MMFS_POPUP)) {
-                if (ImGui::MenuItem("File...")) {
-                    if (m_mmfs_image_ofd.Open(m_beeb_window->GetSDLWindow(), &config->mmfs_config.image_path)) {
-                        m_mmfs_image_ofd.AddLastPathToRecentPaths(&g_mmfs_images_recent_paths);
-                        edited = true;
-                    }
-                }
-
-                if (ImGuiRecentMenu(&config->mmfs_config.image_path, "Recent file", &g_mmfs_images_recent_paths)) {
-                    edited = true;
-                }
-
-                ImGui::EndPopup();
-            }
-
-            if (ImGui::Checkbox("Enable debug logging", &config->mmfs_config.debug)) {
-                edited = true;
-            }
-
-            ImGuiStyleColourPusher pusher;
-            pusher.PushDefault(ImGuiCol_Text);
-            ImGui::TextWrapped("MMB files (MMFS v1) or FAT32 disk images (MMFS v2)");
-        }
+        ImGuiStyleColourPusher pusher;
+        pusher.PushDefault(ImGuiCol_Text);
+        ImGui::TextWrapped("MMB files (MMFS v1) or FAT32 disk images (MMFS v2)");
     }
 
     if (edited) {

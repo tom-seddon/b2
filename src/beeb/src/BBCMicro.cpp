@@ -3720,10 +3720,21 @@ void BBCMicro::InitStuff() {
 
     if (m_state.init_flags & BBCMicroInitFlag_MMFS) {
         ASSERT(!!m_state.mmfs);
-        // MMFS uses different addresses depending on the machine type
-        // (hardcoded in the ROM at compile time)
-        uint16_t mmfs_addr = IsMasterSeries(m_state.type->type_id) ? 0xfedc : 0xfe1c;
-        this->SetSIO(mmfs_addr, &MMFS::ReadMMFS, m_state.mmfs.get(), &MMFS::WriteMMFS, m_state.mmfs.get());
+        if (IsBBCMicro(m_state.type->type_id)) {
+            uint16_t addr;
+            if (IsMasterSeries(m_state.type->type_id)) {
+                addr = 0xfedc;
+            } else {
+                addr = 0xfe1c;
+            }
+            this->SetSIO(addr, &MMFS::ReadMMFS, m_state.mmfs.get(), &MMFS::WriteMMFS, m_state.mmfs.get());
+        }
+
+#if ENABLE_ELECTRON
+        if (IsElectron(m_state.type->type_id)) {
+            this->SetXFJIO(0xfc8c, &MMFS::ReadMMFS, m_state.mmfs.get(), &MMFS::WriteMMFS, m_state.mmfs.get());
+        }
+#endif
     }
 
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
