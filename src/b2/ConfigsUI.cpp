@@ -440,10 +440,8 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (HasUserPort(config->type_id)) {
-        if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
-            edited = true;
-        }
+    if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
+        edited = true;
     }
 
     if (CanHaveVideoNuLA(config->type_id)) {

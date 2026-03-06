@@ -3618,8 +3618,17 @@ void BBCMicro::InitStuff() {
     if (m_beeblink_handler) {
         m_beeblink = std::make_unique<BeebLink>(m_beeblink_handler);
 
-        this->SetSIO(0xfe9e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
-        this->SetSIO(0xfe9f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
+        if (IsBBCMicro(m_state.type->type_id)) {
+            this->SetSIO(0xfe9e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
+            this->SetSIO(0xfe9f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
+        }
+
+#if ENABLE_ELECTRON
+        if (IsElectron(m_state.type->type_id)) {
+            this->SetXFJIO(0xfc8e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
+            this->SetXFJIO(0xfc8f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
+        }
+#endif
     }
 
     this->UpdateCPUDataBusFn();

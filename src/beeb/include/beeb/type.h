@@ -321,11 +321,12 @@ bool HasIndependentMOSView(BBCMicroTypeID type_id);
 const char *GetModelName(BBCMicroTypeID type_id);
 bool Has4ROMSlots(BBCMicroTypeID type_id);
 bool HasSerial(BBCMicroTypeID type_id);
-bool IsBBCMicro(BBCMicroTypeID type_id); //B/B+/IsMasterSeries
+bool IsBBCMicro(BBCMicroTypeID type_id); //B/B+/IsMasterSeries - implies !IsElectron
 bool IsMasterSeries(BBCMicroTypeID type_id);
 bool CanHaveVideoNuLA(BBCMicroTypeID type_id);
 
 #if ENABLE_ELECTRON
+// IsElectron implies !IsBBCMicro
 inline bool IsElectron(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_Electron;
 }
