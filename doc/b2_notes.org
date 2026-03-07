@@ -7940,4 +7940,3067 @@ type.
 
 See :8.$.ACCESS
 
+*** TODO software sideways RAM lock/unlock
+
+Not really a thing on the Beeb but all the Electron addons seem to do
+it...
+
+*** TODO Some command key stuff
+
+The Electron doesn't have function keys. Very convenient for the
+debugger keys!
+
+Check that command keys that aren't mapped to a BBC key are always
+doing the command. Hopefully already the case.
+
+Update code so if a command key is mapped to a BBC key, but that BBC
+key has no corresponding key in the emulated system, it's treated as
+if unmapped. So that even when prioritize command keys is unticked on
+Electron, you can still use the default debugger keys.
+
+Keycap keymaps (once they actually work when emulating Electron...)
+will interfere with this, but that's as expected..
+
+*** TODO Keycap keymaps on Electron
+
+Can of worms.
+
+** Updated Plus 1 ROMs
+
+Source from JGH's site, detokenized.
+
+*** https://mdfs.net/Software/BBC/SROM/Plus1/AP1v131.src
+
+Plus1 Support v1.31
+
+#+begin_src text
+     10REM > AP1v131/src
+     20REM Source for Electron Plus 1 Support
+     30:
+     40ON ERROR REPORT:PRINT" at line ";ERL:END
+     50IF PAGE>&8000:LOADATN "OS_GetEnv"TOA$:IFLEFT$(A$,5)<>"B6502":OSCLI"B6502"+MID$(A$,INSTR(A$," "))
+     60DEFFNif(A%):IFA%:z%=-1:=opt% ELSE z%=P%:=opt%
+     70DEFFNendif:IFz%=-1:=opt% ELSE z%=P%-z%:P%=P%-z%:O%=O%-z%:=opt%
+     80DEFFNelse:IFz%=-1:z%=P%:=opt% ELSE z%=P%-z%:P%=P%-z%:O%=O%-z%:z%=-1:=opt%
+     90:
+    100name$="AP1"
+    110DIM mcode% &1000,L% -1:load%=&8000
+    120OS_CLI=&FFF7:OSBYTE=&FFF4:OSWORD=&FFF1:OSWRCH=&FFEE
+    130OSWRCR=&FFEC:OSNEWL=&FFE7:OSASCI=&FFE3:OSRDCH=&FFE0
+    140OSFILE=&FFDD:OSARGS=&FFDA:OSBGET=&FFD7:OSBPUT=&FFD4
+    150OSGBPB=&FFD1:OSFIND=&FFCE:GSINIT=&FFC2:GSREAD=&FFC5
+    160:
+    170TARGET%=-1:REM Build for 6502Em with no FDC hardware, no real ADFS
+    180TARGET%=5 :REM Build for Compact
+    190TARGET%=0 :REM Build for Electron
+    200:
+    210:
+    220REM v1.30 22-Jan-2016: Date of whole ROM build
+    230REM       28-Feb-2016: Serial IRQ mask ignores IRQs if no 6281 present
+    240REM       01-Mar-2016: Fixed wrong destination in serial-absence test
+    250REM                    IRQ handler checks ignore-all before RxRDY/TxRDY
+    260:
+    270verROM$="1.31" :dateROM$="22 Jun 2018":REM Date of whole ROM build
+    280ver$   ="1.31" :date$   ="22 Jun 2018":REM Date of AP1 Support
+    290REM 28-Jun-2018: Ensures LANG only used b7-b6,b3-b0 of L0D6D
+    300:
+    310verROM$="1.33" :dateROM$="22 May 2020":REM Date of whole ROM build
+    320ver$   ="1.31" :date$   ="22 Jun 2018":REM Date of AP1 Support
+    330:
+    340verROM$="1.34" :dateROM$="22 Jun 2018":REM Date of whole ROM build
+    350ver$   ="1.311":date$   ="22 Jun 2018":REM Date of AP1 Support
+    360REM 28-Dec-2020: Claims BRKV on startup to catch startup errors
+    370REM              Removed pre-v1.311 code
+    380:
+    390:
+    400REM Base addresses
+    410REM --------------
+    420IF TARGET%<1 :ROMtable=&2A0:REM Electron
+    430IF TARGET%>0 :ROMtable=&2A1:REM BBC, Master
+    440:
+    450:
+    460REM Workspace
+    470REM ---------
+    480L0D70=&0D70  :REM Saved file vectors
+    490L0D6C=&0D6C  :REM Saved ROM semaphore when disabled
+    500L0D6D=&0D6D  :REM Default language ROM
+    510:
+    520:
+    530REM Saved file vectors
+    540REM ------------------
+    550L0D70=L0D70+&0:L0D72=L0D70+&2:L0D74=L0D70+&4:L0D76=L0D70+&6
+    560L0D78=L0D70+&8:L0D7A=L0D70+&A:L0D7C=L0D70+&C
+    570:
+    580:
+    590REM Workspace
+    600REM ---------
+    610REM &0D68-&0D6C Plus 1 Support
+    620REM &0D6D-&0D6F ROM Manager Support
+    630REM &0D70-&0D7F ROM/TAPE intercept
+    640REM
+    650REM &0D68 flags
+    660REM  &Fx = 100Hz poll enabled
+    670REM  &80 = Plus 1 100Hz handlers disabled
+    680REM  &40 = printer buffer active
+    690REM  &20 = ADC active
+    700REM  &10 = serial active
+    710REM  &08 = temporarily disabled for TAPE/ROM access
+    720REM  &04 = ROM table has been moved during Reset
+    730REM  &02 = ignore serial interupts
+    740REM  &01 = Plus 1 disabled
+    750REM &0D69 Serial speed control register (&FC61) RAM copy
+    760REM &0D6A Serial interupt mask (&FC65)
+    770REM  &80 = input port change (incoming RTS)
+    780REM  &01 = serial output buffer active
+    790REM  &02 = serial input buffer active
+    800REM &0D6B ROMSTROBE (&FC73) RAM copy
+    810REM &0D6C Saved ROM paging semaphore when temporarily disabled
+    820REM &0D6D If b7=0 - default language ROM in b3-b0
+    830REM       If b6=1 - reserved for NoRelocate
+    840REM       If b5=1 - Tube disabled
+    850REM       If b4=1 - spare
+    860REM       b3-b0   - language ROM
+    870REM &0D6E INSERT/UNPLUG bitmap 0-7, b7=7, 0=inserted, 1=unplugged
+    880REM &0D6F INSERT/UNPLUG bitmap 8-15, b7=15, 0=inserted, 1=unplugged
+    890REM
+    900REM &0D70 Old FILEV when TAPE/ROM selected
+    910REM &0D72 Old ARGSV when TAPE/ROM selected
+    920REM &0D74 Old BGETV when TAPE/ROM selected
+    930REM &0D76 Old BPUTV when TAPE/ROM selected
+    940REM &0D78 Old GBPBV when TAPE/ROM selected
+    950REM &0D7A Old FINDV when TAPE/ROM selected
+    960REM &0D7C Old FSCV  when TAPE/ROM selected
+    970REM &0D7E (no longer used)
+    980REM
+    990REM &0DF0,X b7=disabled, b6-b0=unused
+   1000:
+   1010REM I/O addresses
+   1020REM -------------
+   1030REM &FC60-6F  Electron 2681 serial controller
+   1040REM  &FC60 Control
+   1050REM  &FC61 Serial speed control register
+   1060REM         b7-b4=tranmit, b3-b0-receive
+   1070REM  &FC62 Serial command register
+   1080REM  &FC63 Transmit/Receive Data Register
+   1090REM  &FC64 Aux Control/Input Changed
+   1100REM  &FC65 Serial interupt mask - RAM copy in &0D6A
+   1110REM  &FC6D Output config/Input port
+   1120REM   Read CTS in bit 2
+   1130REM  &FC6E Serial set output bits
+   1140REM   Write &01 to clear RTS
+   1150REM  &FC6F Serial clear output bits
+   1160REM   Write &01 to set RTS
+   1170REM
+   1180REM &FC70-73  Electron expansion
+   1190REM  &FC70 AtoD convertor
+   1200REM         Read: data value, Write: control
+   1210REM  &FC71 Centronics port
+   1220REM         Write: write to port
+   1230REM  &FC72 Electron expansion status
+   1240REM         Read: b7=BUSY, b6=ADC, b5=Fire1, b4=Fire2
+   1250REM  &FC73 Electron
+   1260REM         Write: ROMSTROBE
+   1270REM
+   1280REM &FCC0-08 Floppy disk controller
+   1290REM  &FCC0 Drive select register
+   1300REM  &FCC4 FDC command/status
+   1310REM  &FCC7 FDC data
+   1320REM
+   1330REM &FCD8/&FCD9 lock/unlock register bank 5/6
+   1340REM &FCDA/&FCDB lock/unlock register bank 13/15
+   1350REM &FCDC/&FCDD lock/unlock register bank 0/2
+   1360REM &FCDE/&FCDF lock/unlock register bank 1/3
+   1370REM
+   1380REM &FCFC AQR paging register
+   1390REM &FCFD unlock AQR
+   1400REM &FCFE lock AQR
+   1410:
+   1420:
+   1430file$=name$+"v"+LEFT$(ver$,1)+MID$(ver$,3,2)
+   1440FOR P=0 TO 1:opt%=P*2+4
+   1450P%=load%:O%=mcode%
+   1460[OPT opt%
+   1470.exec%
+   1480.L8000:JMP L8021                         :\ Language entry
+   1490.L8003:JMP PlusOne                       :\ Service entry
+   1500.L8006:EQUB &C0                          :\ ROM type=Serv+Lang+6502 BASIC
+   1510.L8007:EQUB L8019-L8000-1                :\ Copyright offset
+   1520.L8008:EQUB EVAL("&"+MID$(verROM$,3,2))  :\ ROM version byte
+   1530.L8009
+   1540OPT FNif(TARGET%<>0)
+   1550EQUS MID$("6502EmBBC B+MasterCompact",((TARGET%+1)AND-2)*3+1,6+3*(TARGET%=1)-(TARGET%=5))+" "
+   1560OPT FNendif
+   1570\EQUS "RH Plus 1/AP6":\EQUB 0            :\ ROM title
+   1580EQUS "RH Plus 1":EQUB 0                  :\ ROM title
+   1590EQUS LEFT$(verROM$,4)+LEFT$(CHR$(96+VALRIGHT$(verROM$,1)),LENverROM$-4) :\ Version string
+   1600EQUS " ("+dateROM$+")":EQUB 0            :\ Version date
+   1610.L8019
+   1620EQUS "(C)J.G.Harston":EQUB 0             :\ Copyright string
+   1630.NULL
+   1640RTS
+   1660.PlusOne
+   1670JSR NULL:JMP L8067
+   1680EQUB &82:EQUB PlusCopy-PlusOne-1:EQUB EVAL("&"+MID$(ver$,3,2))
+   1690EQUS "Plus 1 Support":EQUB 0
+   1700EQUS LEFT$(ver$,4)+" ("+date$+")":EQUB 0 :\ Version string
+   1710.PlusCopy
+   1720EQUS "(C)JGH & Acorn":EQUB 0
+   1750\ LANGUAGE HANDLER
+   1760\ ================
+   1770\ Languages higher than me are disabled, so I am entered by default.
+   1780\ Restore ROM table then try to enter default language. If no default look
+   1790\ for a default language lower than me, then above me.
+   1800\ Results in my ROM name being displayed then new default ROM name displayed.
+   1810\
+   1820.L8021
+   1830LDA #&A3:LDX #&80        :\ OSBYTE &A3,&80,&04
+   1840LDY #&04:JSR OSBYTE      :\ Restore ROM table, find default language
+   1850.L803B
+   1860TXA:BMI Prompt           :\ No language, or entering me as a language
+   1870LDA #142:JMP OSBYTE      :\ Enter as a language
+   1880:
+   1890\ No-Language Environment
+   1900\ -----------------------
+   1910.Report
+   1920JSR OSNEWL:LDY #1
+   1930.ReportLp
+   1940LDA (&FD),Y:BEQ ReportDone
+   1950JSR OSWRCH:INY:BNE ReportLp
+   1960.ReportDone
+   1970JSR OSNEWL
+   1980.Prompt
+   1990LDX #&FF:TXS:CLI
+   2000JSR ClaimBRKV
+   2010LDA #ASC"*":JSR OSWRCH
+   2020LDX #Osword0 AND 255
+   2030LDY #Osword0 DIV 256
+   2040LDA #0:JSR OSWORD:BCS PromptEsc
+   2050LDX #0:LDY #7:JSR OS_CLI
+   2060JMP Prompt
+   2070.PromptEsc
+   2080LDA #126:JSR OSBYTE
+   2090BRK:EQUB 17:EQUS "Escape":BRK
+   2100.Osword0
+   2110EQUW &0700:EQUB 255:EQUB 32:EQUB 255
+   2130.Serv10
+   2140LDA &203:CMP #&C0
+   2150PLA:BCC ClaimBRKexit   :\ Only claim if MOS has BRKV
+   2160.ClaimBRKV
+   2170LDX #&03:STX &202
+   2180LDX #&FF:STX &203
+   2190LDX #Report AND 255:STX &DA2
+   2200LDX #Report DIV 256:STX &DA3
+   2210LDX &F4:STX &DA4
+   2220.ClaimBRKexit
+   2230RTS
+   2260\ SERVICE HANDLER
+   2270\ ===============
+   2280.L8067
+   2290PHA
+   2300LDA &0DF0,X:BMI L80CD:\ If b7=1, disabled, ignore service call
+   2330\ Dispatch service call
+   2340\ ---------------------
+   2350.L808E
+   2360PLA:PHA:TAX          :\ Get service call back
+   2370CPX #&16:BCS L80CC   :\ Unsupported, exit
+   2380ASL A:TAX            :\ Index into dispatch table
+   2390LDA L80A0+1,X:PHA    :\ Stack high byte of address
+   2400LDA L80A0+0,X:PHA    :\ Stack low byte of address
+   2410RTS                  :\ Return to jump to routine
+   2430\ Service call dispatch table
+   2440\ ---------------------------
+   2450.L80A0
+   2460EQUW L80CC-1 :\ &00 - Null
+   2470EQUW L815E-1 :\ &01 - Private workspace
+   2480EQUW L80CC-1 :\ &02 - Null
+   2490EQUW L80CC-1 :\ &03 - Null
+   2500EQUW L80CC-1 :\ &04 - Null
+   2510EQUW L81A6-1 :\ &05 - Interupt
+   2520EQUW L8617-1 :\ &06 - Error
+   2530EQUW L83BA-1 :\ &07 - OSBYTE
+   2540EQUW L80CC-1 :\ &08 - Null
+   2550EQUW L80CC-1 :\ &09 - Null
+   2560EQUW L80CC-1 :\ &0A - Null
+   2570EQUW L80CC-1 :\ &0B - Null
+   2580EQUW L80CC-1 :\ &0C - Null
+   2590EQUW L80CC-1 :\ &0D - Null
+   2600EQUW L80CC-1 :\ &0E - Null
+   2610EQUW L8690-1 :\ &0F - Vectors changed
+   2620EQUW Serv10-1:\ &10 - Close Spool/Exec
+   2630EQUW L80CC-1 :\ &11 - Null
+   2640EQUW L80CC-1 :\ &12 - Null
+   2650EQUW L8258-1 :\ &13 - Character in serial buffer
+   2660EQUW L8261-1 :\ &14 - Character in printer buffer
+   2670EQUW L8232-1 :\ &15 - 100Hz poll
+   2690.L80CC:LDX &F4          :\ Restore registers and return
+   2700.L80CD:PLA:RTS          :\ Restore A and return
+   2710.L80D0:STA &F0          :\ Pass A to returned X
+   2720.L80D1:LDX &F4          :\ Restore ROM to X
+   2730PLA:LDA #&00:RTS        :\ Claim call and return
+   2760\ SERVICE 1 - Shared workspace
+   2770\ ============================
+   2780\ Set up Plus 1 support
+   2790.L815E
+   2800TYA:PHA                    :\ Save workspace pointer
+   2810OPT FNif(TARGET%<1)
+   2820  LDA &FFB2
+   2830  CMP #&40:BEQ L8160       :\ Running on Electron?
+   2840  LDX &F4:LDA &0DF0,X
+   2850  ORA #&80:STA &0DF0,X     :\ Not Electron, disable myself
+   2860  .L8160
+   2870OPT FNendif
+   2880LDA #0:STA &0D68           :\ No 100Hz calls enabled, ROM table not moved, nothing disabled
+   2890STA &0D6B:STA &FC73        :\ Set ROMSTROBE and copy to &00
+   2900OPT FNif(TARGET%<1)
+   2910  LDA &28D                 :\ Check Break type
+   2920OPT FNendif
+   2930BEQ L8182                  :\ Soft Break (or not Electron), don't move ROM table
+   2940LDX &F4:BPL L816E          :\ Jump to start at the ROM above me
+   2950.L8163
+   2960LDA ROMtable,X:STA &0380,X :\ Copy ROM table to &0380-&038F
+   2970AND #&BF:STA ROMtable,X    :\ Remove language bit from ROM byte
+   2980.L816E
+   2990INX:CPX #&10:BCC L8163
+   3000LDA #4:STA &0D68           :\ Set 'ROM table moved'
+   3010.L8182
+   3020LDX #&04:JSR L8388         :\ Set maximum ADC channel to 4
+   3030LDA &028D:CLC:BEQ L8192    :\ Soft Break, don't set defaults
+   3040.L818C
+   3050OPT FNif(FALSE)
+   3060  LDA &28F:AND #&CF:STA &28F :\ Reset disk access speed
+   3070OPT FNendif
+   3080LDX #&01:STX &285          :\ Set Printer Type to 1 (parallel)
+   3090SEC                        :\ SEC=use default serial speed
+   3100.L8192
+   3110JSR L8567                  :\ Initialise serial interface
+   3120PLA:TAY:JMP L80CC
+   3150\ SERVICE 5 - Interrupt
+   3160\ =====================
+   3170.L81A6
+   3180LDA #&02
+   3190BIT &0D68:BNE L81BB     :\ If IRQ Ignore, exit
+   3200LDA &0D6A:BPL L81BB     :\ Serial Mask b7=0, ignore all IRQs
+   3210AND &FC65:BMI L81BE     :\ Mask with 6281 IRQ, b7=input port changed (RTS)
+   3220LSR A:BCS L81CB         :\ b0 set -> TxRDY
+   3230LSR A:BCS L8206         :\ b1 set -> RxRDY
+   3240.L81BB
+   3250JMP L80CC               :\ Restore all and return unclaimed
+   3270.L81BE
+   3280LDA #&04                :\ Test bit 2
+   3290BIT &FC64:BNE L81C8     :\ Input bit 2 not changes
+   3300JSR L85AA               :\
+   3310.L81C8
+   3320JMP L80D1               :\ Claim call and return
+   3340.L81CB
+   3350LDA #&04                :\ Test CTS in bit 2
+   3360BIT &FC6D:BNE L8200     :\ Not CTS, skip to set serial inactive
+   3370JSR L85CD               :\ Get byte from SerOut buffer
+   3380BCC L81EA               :\ If not empty, write it to SerTx
+   3390LDX &0285               :\ Get Printer Type
+   3400CPX #&02:BNE L81F2      :\ Not 2=Serial
+   3410JSR L85D3               :\ Get byte from Printer Buffer
+   3420PHA:PHP
+   3430JSR L87AB               :\ Set/Clear printer Buffer Busy flag
+   3440PLP:PLA
+   3450BCS L81F2               :\ Printer Buffer was empty, skip past
+   3460.L81EA
+   3470STA &FC63               :\ Write byte to DataTx
+   3480LDX #&00:JMP L81FA      :\ Set SerialFlag to 0 and return
+   3500.L81F2
+   3510JSR L85B9           :\ Set serial inactive
+   3520JSR L82EB           :\ Set/Clear CTS from buffer space
+   3530LDX #&FF            :\ Set SerialFlag to &FF and return
+   3540.L81FA
+   3550STX &024F           :\ Serial Use Flag
+   3560JMP L80D1           :\ Claim call and return
+   3580.L8200
+   3590JSR L85B9           :\ Set serial inactive
+   3600JMP L80D1           :\ Claim call and return
+   3620.L8206
+   3630LDX &FC63           :\ Read from 2681 Data Register
+   3640LDA &FC61           :\ Read from 2681 Status Register
+   3650AND #&F0:BNE L8221  :\ If any error bit set, skip to generate event
+   3660TXA:JSR L85C8       :\ Insert into serial input buffer
+   3670JSR L85D9:BCS L821E :\ At least 8 bytes left, exit
+   3680LDA #&01:STA &FC6F  :\ Raise RTS to stop other end sending
+   3690.L821E
+   3700JMP L80D1           :\ Claim and return
+   3720.L8221
+   3730TXA:PHA             :\ Save byte read
+   3740LDX &FC61           :\ Read from 2681 Status again
+   3750JSR L85A0           :\ Reset 6281 Error Status
+   3760PLA                 :\ Get byte back
+   3770LDY #&07:JSR &FFBF  :\ Generate Event 7 - Serial Error
+   3780JMP L80D1           :\ Claim and return
+   3810\ SERVICE &15 - 100Hz Poll
+   3820\ ========================
+   3830.L8232
+   3840DEY:TYA:PHA         :\ Decrement semaphore
+   3850LDA #&40:BIT &0D68  :\ Check printer buffer active
+   3860BEQ L823F:JSR L827D :\ If active, try to send character to printer
+   3870.L823F
+   3880LDA #&20:BIT &0D68  :\ Check if ADC active
+   3890BEQ L8249:JSR L82A1 :\ If active, check for ADC conversion
+   3900.L8249
+   3910LDA #&10:BIT &0D68  :\ Check if serial active
+   3920BEQ L8253:JSR L82EB
+   3930.L8253
+   3940PLA:TAY             :\ Restore semaphore
+   3950JMP L80CC           :\ Return unclaimed
+   3970\ Character entering serial output buffer
+   3980\ =======================================
+   3990.L8258
+   4000JSR L85AA           :\ Write something to serial port
+   4010JSR L82F2           :\ Set/Clear CTS if input buffer almost full
+   4020JMP L80D1           :\ Claim call and return
+   4040\ Character entering printer output buffer
+   4050\ ========================================
+   4060.L8261
+   4070TYA:PHA             :\ Preserve Y
+   4080JSR L826B           :\ Process output character
+   4090PLA:TAY:JMP L80D1   :\ Restore, claim call and return
+   4110.L826B
+   4120LDX &0285           :\ Get printer destination
+   4130CPX #&01:BEQ L827D  :\ Parallel printer
+   4140CPX #&02:BNE L827C  :\ Not serial printer
+   4160\ Output to serial printer
+   4170\ ------------------------
+   4180JSR L85AA           :\ Write something to serial port
+   4190JSR L82F2           :\ Set/Clear CTS if input buffer almost full
+   4200.L827C
+   4210RTS
+   4230\ Output to parallel printer
+   4240\ --------------------------
+   4250.L827D
+   4260BIT &FC72:BMI L829C :\ If printer busy, turn 100Hz poll on and return
+   4270JSR L85D3           :\ Get character from printer buffer
+   4280BCS L8293           :\ If buffer empty, turn off 100Hz poll
+   4290STA &FC71           :\ Send to printer port
+   4300LDA #&40:JSR L85EA  :\ Set b6 of &0D68, turn on 100Hz poll
+   4310CLC:JMP L8299       :\ Clear Printer Buffer Busy flag and return
+   4330\ Printer buffer empty
+   4340\ --------------------
+   4350.L8293
+   4360LDA #&40:JSR L85FD  :\ Clear b6 of &0D68, turn off 100Hz poll
+   4370SEC                 :\ Set b7 of &02C6 and return
+   4380                    :\ Set Serial Error event flag
+   4390.L8299
+   4400JMP L87AB           :\ Set/Clear Printer Buffer Busy flag
+   4420\ Printer busy
+   4430\ ------------
+   4440.L829C
+   4450LDA #&40:JMP L85EA  :\ Set b6 of &0D68, turn on 100Hz poll
+   4480\ Check for ADC conversion
+   4490\ ========================
+   4500.L82A1
+   4510BIT &FC72:BVS L82FC   :\ If no ADC ready, return
+   4520LDX &024C             :\ Get current ADC channel
+   4530TXA:BEQ L82FC         :\ No ADC channel, return
+   4540LDA #&00:STA &02F7,X  :\ Set low byte to zero
+   4550LDA &FC70:STA &02FB,X :\ Set high byte from ADC
+   4560STX &02F7             :\ Store as last channel converted
+   4570LDY #&03:JSR &FFBF    :\ Event 3 - ADC complete
+   4580LDX &02F7             :\ Get last channel converted
+   4590DEX                   :\ Step down to next channel
+   4600BNE L82D0             :\ If nonzero, start this channel
+   4610LDX &024D             :\ Get maximum ADC channel
+   4620TXA:BNE L82D0         :\ If nonzero, start this channel
+   4630LDA #&20:JMP L85FD    :\ Clear b5 of &0D68, turn off 100Hz poll
+   4640.L82D0
+   4650.L82D3
+   4660CPX #&05:BCC L82D9    :\ If channel<5, use it
+   4670LDX #&04              :\ Channel>4, force to channel 4
+   4680.L82D9
+   4690TXA:STX &024C         :\ Store as current channel
+   4700TAX:BEQ L82E6         :\ If channel zero, exit
+   4710LDA L82E7-1,X         :\ Get control value for this channel
+   4720STA &FC70             :\ Write to ADC control
+   4730.L82E6
+   4740RTS
+   4760\ ADC control values
+   4770\ ------------------
+   4780.L82E7
+   4790EQUB &04:EQUB &05
+   4800EQUB &06:EQUB &07
+   4820\ Set CTS according to input buffer state
+   4830\ ---------------------------------------
+   4840.L82EB
+   4850LDA &0D6A
+   4860AND #&02:BEQ L82F7  :\ Serial input buffer inactive, raise CTS
+   4880\ Set/Clear CTS if serial input buffer nearly full
+   4890\ ------------------------------------------------
+   4900.L82F2
+   4910JSR L85D9           :\ Count space in serial input buffer
+   4920BCS L82FD           :\ Still space left in input buffer
+   4930.L82F7
+   4940LDA #&01:STA &FC6F  :\ Raise RTS to pause sender
+   4950.L82FC
+   4960RTS
+   4980.L82FD
+   4990LDA #&01:STA &FC6E  :\ Lower RTS to unpause sender
+   5000RTS
+   5020\ OSBYTE &A3 - Application call
+   5030\ =============================
+   5040.L8303
+   5050LDA &F0
+   5060CMP #&80:BNE L8319     :\ Not reason &80, exit
+   5070LDX &F1:CPX #4
+   5080BEQ L831C              :\ Subcall &04 - restore ROM table
+   5090BCS L8319              :\ Subcall >&04 - exit
+   5100TXA:ROR A              :\ Cy=b0 of subcall, enable/disable flag
+   5110LDA &0D68:PHA          :\ Save old setting
+   5120BCC AppEnable          :\ b0=0, enable setting
+   5130ORA AppMask,X          :\ Set a bit in flags
+   5140BCS AppReturn
+   5150.AppEnable
+   5160AND AppMask,X:INX      :\ Clear bit in flags, point to set bit
+   5170.AppReturn
+   5180STA &0D68              :\ Store new setting
+   5190PLA:AND AppMask,X:PHA  :\ Get old setting
+   5200TXA:EOR #1:BNE AppDone :\ Subcall 2,3 just return
+   5210BCS AppDisable         :\ Subcall 1, disable Plus 1 functions
+   5220JSR L8671              :\ Enable Plus 1 functions
+   5230JMP AppDone
+   5240.AppDisable
+   5250JSR L8641              :\ Disable Plus 1 functions
+   5260.AppDone
+   5270PLA:JMP L80D0          :\ Jump to return old flags
+   5280.AppMask
+   5290EQUB &FE:EQUB &01
+   5300EQUB &FD:EQUB &02
+   5310.L8319
+   5320JMP L80CC
+   5340\ OSBYTE &A3,&80,4 - Restore ROM table
+   5350\ ------------------------------------
+   5360.L831C
+   5370LDA &0D68                  :\ Check system flags
+   5380AND #4:BEQ L832A           :\ ROM table not moved
+   5390LDX &F4:BPL L8325          :\ Start at the ROM above me
+   5400.L831F
+   5410LDA &0380,X:STA ROMtable,X :\ Copy &0380-&038F back to ROM table
+   5420.L8325
+   5430INX:CPX #&10:BCC L831F
+   5440LDA &0D68:AND #&FB:STA &0D68 :\ Set 'ROM table not moved'
+   5450.L832A
+   5460LDY #1                       :\ On first pass, start at Plus 1 ROM
+   5470LDA L0D6D:AND #&8F           :\ Get default LANG ROM number
+   5480TAX:BPL TryThisROM           :\ b7=0, default ROM
+   5490.LookForROMlp
+   5500DEY:BNE P%+4:LDX &F4         :\ Start at Plus 1 ROM
+   5510DEX:BPL P%+4:LDX #15         :\ Step down, looping around
+   5520CPX &F4:BEQ NoLanguage       :\ If looped back to Plus 1, no more left
+   5530.TryThisROM
+   5540LDA ROMtable,X               :\ Get ROM byte
+   5550ASL A:BPL LookForROMlp       :\ No language, try next one down
+   5560.NoLanguage
+   5570TXA
+   5580CMP &F4:BNE P%+4:ORA #&80    :\ If no language found, return &80+Plus1
+   5590JMP L80D0                    :\ Jump to return A as returned X
+   5620\ OSBYTE &80 - ADVAL
+   5630\ ==================
+   5640\ ADVAL 1-4 are performed by MOS
+   5650.L8366
+   5660LDA &F0:BNE L8319   :\ Not ADVAL(0), exit
+   5670LDA &FC72:PHA       :\ Read Plus 1 status
+   5680BPL L8373:JSR L826B :\ If printer not busy, try to send a character
+   5690.L8373
+   5700PLA:LSR A:LSR A     :\ Move fire buttons into b0-b1
+   5710LSR A:LSR A
+   5720AND #&03:EOR #&03   :\ Keep and toggle b0-b1
+   5730JMP L80D0           :\ Return fire buttons
+   5760\ OSBYTE &10 - Maximum ADC channel
+   5770\ ================================
+   5780.L837F
+   5790LDX &F0:JSR L8388   :\ Set maximum ADC channel
+   5800JMP L80D0           :\ Return maximum actually set
+   5810.L8388
+   5820TXA:BEQ L8395       :\ Zero channels, set and return
+   5830JSR L82D3:TXA       :\ Check within range and initialise ADC
+   5840PHA
+   5850LDA #&20:JSR L85EA  :\ Enable 100Hz poll for ADC
+   5860PLA
+   5870.L8395
+   5880STA &024D:RTS       :\ Store maximum ADC channel
+   5900\ OSBYTE &11 - Start ADC conversion
+   5910\ =================================
+   5920.L839A
+   5930LDA #&00:STA &02F7     :\ Clear 'last channel'
+   5940LDX &F0:JSR L82D3:TXA  :\ Start conversion on channel X
+   5950PHA:LDA #&20:JSR L85EA :\ Enable 100Hz poll for ADC
+   5960PLA:JMP L80D0          :\ Return X=channel actually started
+   5990\ OSBYTE &6E - Write to ROMSTROBE
+   6000\ ===============================
+   6010\ Writes X to ROMSTROBE at &FC73 and RAM copy at &0D6B
+   6020\ Returns old ROMSTROBE from RAM copy
+   6030\
+   6040.L83AC
+   6050LDX &F0             :\ Get new ROMSTROBE from X parameter
+   6060LDA &0D6B           :\ Get old ROMSTROBE
+   6070STX &0D6B:STX &FC73 :\ Store new ROMSTROBE and output it
+   6080JMP L80D0           :\ Return old ROMSTROBE as X
+   6110\ SERVICE 7 - OSBYTE
+   6120\ ==================
+   6130.L83BA
+   6140LDA &EF             :\ Get OSBYTE number
+   6150CMP #&80:BEQ L8366  :\  &80   - ADVAL
+   6160CMP #&10:BEQ L837F  :\ *FX16  - Maximum ADC channel
+   6170CMP #&11:BEQ L839A  :\ *FX17  - Start ADC conversion
+   6180CMP #&07:BEQ L83E6  :\ *FX7   - serial receive speed
+   6190CMP #&08:BEQ L83EC  :\ *FX8   - serial transmit speed
+   6200CMP #&9C:BEQ L8436  :\  &9C   - serial control
+   6210CMP #&02:BEQ L840F  :\ *FX2   - input stream
+   6220CMP #&6E:BEQ L83AC  :\ *FX110 - write to ROMSTROBE
+   6230CMP #&A3:BNE L83E3
+   6240JMP L8303           :\  &A3   - application call
+   6250.L83E3
+   6260JMP L80CC
+   6280\ OSBYTE 7 and 8 - set serial speed
+   6290\ =================================
+   6300\ On entry, X=baud rate setting (0=default)
+   6310\ On exit   X=control register setting that wasn't changed
+   6330\ OSBYTE &07 - Serial receive speed
+   6340\ ----------------------------------
+   6350.L83E6
+   6360LDA #&F0:STA &F1    :\ Set &F1 to &F0 for 'receive'
+   6370BNE L83F0
+   6390\ OSBYTE &08 - Serial transmit speed
+   6400\ ----------------------------------
+   6410.L83EC
+   6420LDA #&0F:STA &F1    :\ Set &F1 to &0F for 'transmit'
+   6440\ Set serial speed, &F1=control mask
+   6450\ ----------------------------------
+   6460.L83F0
+   6470LDX &F0             :\ Get OSBYTE X value
+   6480CPX #&0C:BCS L840C  :\ If speed>11, exit unchanged
+   6490LDA &F1:EOR #&FF    :\ Get mask and toggle it
+   6500AND &0D69           :\ Mask with current baud register copy
+   6510STA &F0             :\ Keep the bits we aren't going to change
+   6520LDA L84B2,X         :\ Translate X to baud rate control value
+   6530AND &F1             :\ Mask to keep the half we are going to change
+   6540ORA &F0             :\ Merge with current setting
+   6550STA &0D69           :\ Update the baud register RAM copy
+   6560STA &FC61           :\ Store in baud register
+   6570.L840C
+   6580JMP L80D1           :\ Claim call and return
+   6600\ OSBYTE &02 - select input stream
+   6610\ ================================
+   6620.L840F
+   6630LDA &F0:PHA         :\ Save OSBYTE X value, input source
+   6640AND #&01:TAX        :\ Keep bit 0, keyboard/serial select
+   6650STA &0241           :\ Store selected source
+   6660PLA:BEQ L8471       :\ Get original selection, exit if X=0, serial disabled
+   6670LDA #&01:STA &FC62  :\ Enable serial input
+   6680LDA &0D6A:ORA #&02  :\ Enable receive interupts
+   6690STA &0D6A:STA &FC65 :\ Write to IRQ mask and 6281 IRQ register
+   6700JSR L82EB           :\ Set/Clear CTS
+   6710LDA #&10:JSR L85EA  :\ Increment ROM polling register if needed
+   6720JMP L80D1           :\ Claim call and return
+   6740\ OSBYTE &9C - serial control
+   6750\ ===========================
+   6760\ On entry, Y=action, X=parameters, in 6850 format
+   6770.L8436
+   6780LDA #&E3            :\ *FX156,x,227 to set word format
+   6790CMP &F1:BNE L8492   :\ Not Y=227
+   6810\ Y=227, set serial word format
+   6820\ -----------------------------
+   6830BIT &F0:BNE L846E   :\ X must be %000xxx00
+   6840LDA &F0             :\ Get X parameter
+   6850LSR A:LSR A:NOP:TAX :\ Move up two bits
+   6860JSR L85A4           :\ Select control register &10
+   6870LDA &FC60           :\ Read from control register &10
+   6880AND #&E0:STA &F1    :\ Save temporarily
+   6900\ Manipulate stuff to set serial word size
+   6910JSR L85A4           :\ Select control register &10
+   6920LDA L84BE,X         :\
+   6930AND #&1F            :\
+   6940ORA &F1             :\
+   6950STA &FC60           :\ Write to control register
+   6960LDA &FC60           :\ Read from control register
+   6970AND #&F0            :\ Keep b7-b4
+   6980LDY L84BE,X
+   6990BMI L8469           :\ If b7 set, skip
+   7000ORA #&0F            :\ If b7 clear, set b3-b0
+   7010.L8469
+   7020ORA #&07            :\ Set to %xxxxx111
+   7030STA &FC60           :\ Write to control register
+   7040.L846E
+   7050JMP L80D1           :\ Claim call and return
+   7070\ Turn off serial input
+   7080\ ---------------------
+   7090.L8471
+   7100LDA #&02:STA &FC62  :\ Disable receiver
+   7110JSR L8598           :\ Reset reciever
+   7120JSR L85A0           :\ Reset error status
+   7130LDA &0D6A:AND #&FD  :\ Reset serial input IRQ
+   7140STA &0D6A:STA &FC65 :\ Write to IRQ mask and serial port IRQ register
+   7150JSR L82EB           :\ Set/Clear CTS
+   7160LDA #&10:JSR L85FD  :\ Clear b4 of flags, turn off polling
+   7170JMP L80D1           :\ Claim call and return
+   7190.L8492
+   7200LDA #&9F            :\ *FX156,x,159 for a serial break
+   7210CMP &F1:BNE L846E   :\ Not Y=159, exit
+   7230\ Y=159, start/stop a serial break
+   7240\ --------------------------------
+   7250BIT &F0:BNE L846E   :\ X must be %0xx00000
+   7260LDA &F0             :\ Get X parameter
+   7270CMP #&60:BEQ L84AA  :\ *FX156,96,159 - start a break
+   7280LDA #&70:STA &FC62  :\ Else, stop transmitting a break
+   7290JMP L846E           :\ Claim call and return
+   7310.L84AA
+   7320LDA #&64:STA &FC62  :\ Start transmitting a break
+   7330JMP L846E           :\ Claim call and return
+   7350\ Baud rate look-up table
+   7360\ -----------------------
+   7370.L84B2
+   7380EQUB &BB:EQUB &00:EQUB &33  :\ 0=9600, 1=75,   2=150
+   7390EQUB &44:EQUB &66:EQUB &88  :\ 3=300,  4=1200, 5=2400
+   7400EQUB &99:EQUB &BB:EQUB &CC  :\ 6=4800, 7=9600, 8=19200
+   7410EQUB &11:EQUB &55:EQUB &AA  :\ 9=110,  10=600, 11=1800
+   7430\ Serial control look-up table
+   7440\ ----------------------------
+   7450.L84BE
+   7460EQUB &02:EQUB &06:EQUB &82:EQUB &86
+   7470EQUB &13:EQUB &93:EQUB &83:EQUB &87
+   7490\ Initialise serial interface
+   7500\ ---------------------------
+   7510\ CC=use current settings, CS=use default settings
+   7520.L8567
+   7530LDA #0:STA &0D6A      :\ DMB, ignore serial interupts
+   7540JSR L85A4             :\ Reset MC6281 MR pointer
+   7550LDA #&93:STA &FC60    :\ First write, RTS=enabled, NoParity, 8bit
+   7560LDA #&07:STA &FC60    :\ Second write, StopBit=1 bit length
+   7570EOR &FC60:BNE L8597   :\ DMB, read back, if hardware absent, exit
+   7580LDA #&8F:STA &FC64    :\ Set AuxControl to Baud Rate 2, IRQs on
+   7590LDA &0D69:BCC L8580   :\ Get current baud setting
+   7600LDA #&BB              :\ Default baud rate=9600
+   7610.L8580
+   7620STA &0D69:STA &FC61   :\ Set baud register and RAM copy
+   7630JSR L8598             :\ Reset 6821 receiver
+   7640JSR L859C             :\ Reset 6821 transmitter
+   7650JSR L85A0             :\ Reset 6821 error status
+   7660LDA #&80:STA &0D6A    :\ Set IRQ mask to allow serial interupts
+   7670STA &FC65             :\ Enable 6821 interupts
+   7680.L8597
+   7690RTS
+   7710.L8598
+   7720LDA #&20:BNE L85A6  :\ &20=Reset Receiver
+   7730.L859C
+   7740LDA #&30:BNE L85A6  :\ &30=Reset Transmitter
+   7750.L85A0
+   7760LDA #&40:BNE L85A6  :\ &40=Reset Error Status
+   7770.L85A4
+   7780LDA #&10            :\ &10=Reset MR pointer
+   7790.L85A6
+   7800STA &FC62:RTS       :\ Write to command register
+   7820.L85AA
+   7830LDA &0D6A:ORA #&01  :\ Set serial buffer active
+   7840STA &0D6A:STA &FC65 :\ Write to IRQ mask and serial port IRQ register
+   7850LDA #&04:BNE L85A6  :\ Write &04=Transmitter Enabled to command register
+   7870.L85B9
+   7880LDA &0D6A:AND #&FE  :\ Set serial buffer inactive
+   7890STA &0D6A:STA &FC65 :\ Write to IRQ mask and serial port IRQ register
+   7900LDA #&08:BNE L85A6  :\ Write &08=Transmitter Disabled to command register
+   7920.L85C8
+   7930LDX #&01            :\ X=1 - serial input buffer
+   7940JMP (&022A)         :\ Jump to INSV
+   7960.L85CD
+   7970CLV                 :\ CLV=remove character
+   7980LDX #&02            :\ X=2 - serial output buffer
+   7990JMP (&022C)         :\ Jump to REMV
+   8010.L85D3
+   8020CLV                 :\ CLV=remove character
+   8030LDX #&03            :\ X=3 - printer buffer
+   8040JMP (&022C)         :\ Jump to REMV
+   8060\ Count space left in serial input buffer
+   8070\ ---------------------------------------
+   8080\ Returns CS=more than 8 bytes left
+   8090\         CC=less than 8 bytes left
+   8100.L85D9
+   8110JSR L85E3           :\ Count space in serial input buffer
+   8120CPY #&01:BCS L85E2  :\ If >&00FF, return CS
+   8130CPX #&09            :\ If >&0008, return CS
+   8140.L85E2
+   8150RTS
+   8170.L85E3
+   8180SEC                 :\ SEC=count space left
+   8190CLV                 :\ CLV=count buffer
+   8200LDX #&01            :\ X=1 - serial input buffer
+   8210JMP (&022E)         :\ Jump to CNPV
+   8230.L85EA
+   8240ORA &0D68           :\ Merge into current flags
+   8250LDX &0D68           :\ Get old value of flags to X
+   8260STA &0D68           :\ Store updated flags
+   8270TXA                 :\ Get old flags into A
+   8280AND #&F0:BNE L85E2  :\ If old flags had polling enabled, exit
+   8290:                   :\ We've changed to needing polling, increment semaphore
+   8300.L85F8
+   8310LDA #&16:JMP OSBYTE :\ Inc. ROM polling semaphore
+   8330.L85FD
+   8340TAX                 :\ Save mask in X
+   8350LDA #&F0:BIT &0D68  :\ Check current polling flags
+   8360BEQ L85E2           :\ No flags have polling enabled, exit
+   8370TXA:EOR #&FF        :\ Get mask back and toggle it
+   8380AND &0D68:STA &0D68 :\ Remove the bit and update flags
+   8390AND #&F0:BNE L85E2  :\ If any polling enabled, exit
+   8400:                   :\ Nothing left needing polling, decrement semaphor
+   8410.L8612
+   8420LDA #&17:JMP OSBYTE :\ Dec. ROM polling semaphore
+   8450\ SERVICE 6 - Error
+   8460\ =================
+   8470.L8617
+   8480LDA #&08:BIT &0D68:BEQ L8622  :\ Not temporarily disabled, skip
+   8490LDA L0D6C:STA &0249           :\ Restore ROM paging semaphore
+   8500.L8622
+   8510LDA #&01:BIT &0D68:BNE L863E  :\ Plus 1 disabled, ignore error
+   8520LDA &EF:PHA
+   8530LDA &F0:PHA:LDA &F1:PHA       :\ Save OSBYTE/OSWORD parameters
+   8540JSR L8671
+   8550PLA:STA &F1:PLA:STA &F0
+   8560PLA:STA &EF
+   8570.L863E
+   8580JMP L80CC                     :\ Restore and return unclaimed
+   8610\ Disable Plus 1 functions
+   8620\ ========================
+   8630.L8641
+   8640PHA:TXA:PHA:TYA:PHA
+   8650LDA &0D68:BMI L865C :\ Bit 7 set, already disabled
+   8660PHA
+   8670ORA #&80:STA &0D68  :\ Set bit 7 of flags
+   8680PLA:BEQ L865C       :\ No handlers to disable
+   8690JSR L8612           :\ Decrement ROM polling semaphore
+   8700LDA #&01:STA &FC6F  :\ Raise 'RTS', stop serial sender
+   8710.L865C
+   8720PLA:TAY:PLA:TAX:PLA
+   8730RTS
+   8760\ Enable Plus 1 functions
+   8770\ =======================
+   8780\ Called after calling filing vector, so all four registers need to be saved
+   8790.L8662
+   8800PHP:PHA
+   8810LDA L0D6C:STA &0249 :\ Restore ROM paging semaphore
+   8820LDA &0D68:AND #&F7
+   8830STA &0D68           :\ Clear 'disabled' flag
+   8840PLA:PLP
+   8850.L8671
+   8860PHP:PHA:TXA:PHA:TYA:PHA
+   8870LDA &0D68:BPL L8689 :\ Bit 7 clear, already enabled
+   8880AND #&7F:STA &0D68  :\ Clear bit 7 of flags
+   8890BEQ L8689           :\ No handlers to enable
+   8900JSR L85F8           :\ Increment ROM polling semaphore
+   8910JSR L82EB           :\ Restore CTS state
+   8920.L8689
+   8930PLA:TAY:PLA:TAX:PLA:PLP
+   8940RTS
+   8970\ SERVICE &0F - Vectors changed
+   8980\ =============================
+   8990.L8690
+   9000LDX &0213:INX:BEQ L86A3   :\ FILEV not pointing to MOS, exit
+   9010LDA #&00:TAY:JSR OSARGS   :\ Read current filing system
+   9020CMP #&03:BCS L86A3        :\ Not TAPE/ROM, exit
+   9030CMP #&00:BNE L86B4
+   9040.L86A3
+   9050JMP L80CC
+   9070\ Filing system vectors
+   9080\ ---------------------
+   9090.L86A6
+   9100EQUW L8736 :\ FILEV
+   9110EQUW L875F :\ ARGSV
+   9120EQUW L8709 :\ BGETV
+   9130EQUW L8712 :\ BPUTV
+   9140EQUW L871F :\ GBPBV
+   9150EQUW L873F :\ FINDV
+   9160EQUW L874C :\ FSCV
+   9180\ Vectors changed, now using TAPE/ROM
+   9190\ -----------------------------------
+   9200.L86B4
+   9210PHP:SEI                      :\ Disable IRQs while changing vectors
+   9220LDY #&1B:LDX #&12
+   9230.X86D1
+   9240LDA &0200,X:STA L0D70-&12,X  :\ Copy filing system vectors
+   9250TYA:STA &0200,X              :\ to L0D70-L0D7D and redirect them
+   9260LDA &0201,X:STA L0D70-&11,X  :\ to extended vectors
+   9270LDA #&FF:STA &0201,X
+   9280LDA L86A6-&12,X:STA &0D9F,Y  :\ Claim extended filing system vectors
+   9290INX:INY
+   9300LDA L86A6-&12,X:STA &0D9F,Y
+   9310INX:INY
+   9320LDA &F4:STA &0D9F,Y
+   9330INY:CPX #&20:BNE X86D1
+   9340PLP
+   9350.L8706
+   9360JMP L80CC
+   9380\ Redirected BGETV
+   9390\ ----------------
+   9400.L8709
+   9410JSR L877E:JSR L879C:JMP L8662 :\ Disable Plus 1, call BGET, enable Plus 1
+   9430\ Redirected BPUTV
+   9440\ ----------------
+   9450.L8712
+   9460JSR L877E:JSR L879F:JMP L8662 :\ Disable Plus 1, call BPUT, enable Plus 1
+   9480\ Pass OSGBPB 5-7, 9+ on without disabling Plus 1
+   9490\ -----------------------------------------------
+   9500.L871B
+   9510PLP:JMP L87A2
+   9530\ Redirected GBPBV
+   9540\ ----------------
+   9550.L871F
+   9560PHP
+   9570CMP #&08:BEQ L872C  :\ Pass OSGBPB 8 on via veneer
+   9580CMP #&05:BCS L871B  :\ Pass OSGBPB 5-7, 9+ on directly
+   9590CMP #&01:BCC L871B  :\ Pass OSGBPB 0 on directly
+   9600.L872C
+   9610PLP
+   9620JSR L877E:JSR L87A2:JMP L8662 :\ Disable Plus 1, call GBPB, enable Plus 1
+   9640\ Redirected FILEV
+   9650\ ----------------
+   9660.L8736
+   9670JSR L877E:JSR L8796:JMP L8662 :\ Disable Plus 1, call FILE, enable Plus 1
+   9690\ Redirected FINDV
+   9700\ ----------------
+   9710.L873F
+   9720JSR L877E:JSR L87A5:JMP L8662 :\ Disable Plus 1, call FIND, enable Plus 1
+   9740\ Pass FSCV on without disabling Plus 1
+   9750\ -------------------------------------
+   9760.L8748
+   9770PLP:JMP L87A8
+   9790\ Redirected FSCV
+   9800\ ---------------
+   9810.L874C
+   9820PHP
+   9830CMP #&02:BCC L8748  :\ Pass <2 on without disabling
+   9840CMP #&06:BCS L8748  :\ Pass 6+ on without disabling
+   9850PLP                 :\ Pass 2-5 via veneer
+   9860JSR L877E:JSR L87A8:JMP L8662 :\ Disable Plus 1, call FSCV, enable Plus 1
+   9880\ Redirected ARGSV
+   9890\ ----------------
+   9900.L875F
+   9910PHP
+   9920CMP #&FF:BEQ L8774  :\ Ensure buffers - pass via veneer
+   9930CPY #&00:BEQ L8770  :\ Read filing info - pass on directly
+   9940CMP #&01:BEQ L8774  :\ PTR= - pass on via veneer
+   9950CMP #&03:BEQ L8774  :\ EXT= - pass on via veneer
+   9960.L8770
+   9970PLP:JMP L8799       :\ Pass on directly
+   9990.L8774
+  10000PLP
+  10010JSR L877E:JSR L8799:JMP L8662 :\ Disable Plus 1, call ARGSV, enable Plus 1
+  10040\ Temporarily disable Plus 1
+  10050\ ==========================
+  10060.L877E
+  10070PHP:PHA
+  10080JSR L8641           :\ Disable Plus 1
+  10090LDA &0249:STA L0D6C :\ Save ROM semaphore
+  10100LDA #&00:STA &0249  :\ Clear ROM semaphore
+  10110LDA &0D68:ORA #&08
+  10120STA &0D68           :\ Set 'disabled' flag
+  10130PLA:PLP:RTS
+  10150.L8796:JMP (L0D70)  :\ Old FILEV
+  10160.L8799:JMP (L0D72)  :\ Old ARGSV
+  10170.L879C:JMP (L0D74)  :\ Old BGETV
+  10180.L879F:JMP (L0D76)  :\ Old BPUTV
+  10190.L87A2:JMP (L0D78)  :\ Old GBPBV
+  10200.L87A5:JMP (L0D7A)  :\ Old FINDV
+  10210.L87A8:JMP (L0D7C)  :\ Old FSCV
+  10230\ Set/Clear buffer 3 busy flag
+  10240\ ----------------------------
+  10250.L87AB
+  10260ROR &02C6:RTS
+  10270:
+  10280]:IF O%>L%:PRINT"Code overrun":END
+  10290NEXT
+  10300OSCLI"Save "+file$+" "+STR$~mcode%+" "+STR$~O%+" 0 FFFBBC00"
+  10310OSCLI"Stamp "+file$
+  10320ON ERROR ON ERROR OFF:END
+  10330*Quit
+#+end_src
+
+*** https://mdfs.net/Software/BBC/SROM/Plus1/AP6v134.src
+
+AP6 ROM Manager & Utils v1.34
+
+#+begin_src text
+     10REM > AP6v134/src
+     20REM Source for Updated PRES AP6 ROM Manager and Utilities
+     30REM Can test on Master, but ROM Manager workspace clashes
+     40:
+     50REM Boilerplate
+     60ON ERROR REPORT:PRINT" at line ";ERL:END
+     70IF PAGE>&8000:LOADATN "OS_GetEnv"TOA$:IFLEFT$(A$,5)<>"B6502":OSCLI"B6502"+MID$(A$,INSTR(A$," "))
+     80A$=MID$(A$,1+INSTR(A$," ",1+INSTR(A$," ",1+INSTR(A$," "))))
+     90TARGET$="":IFLEFT$(A$,7)="TARGET=":TARGET$=MID$(A$,8)
+    100DEFFNif(A%):IFA%:z%=0:=opt% ELSE z%=P%:=opt%AND-2
+    110DEFFNendif:IFz%:z%=P%-z%:P%=P%-z%:O%=O%-z%:=opt% ELSE =opt%
+    120DEFFNelse:IFz%:z%=P%-z%:P%=P%-z%:O%=O%-z%:z%=0:=opt% ELSE z%=P%:=opt%AND-2
+    130:
+    140name$="AP6"
+    150DIM mcode% &3000,L% -1:load%=&8000
+    160OS_CLI=&FFF7:OSBYTE=&FFF4:OSWORD=&FFF1:OSWRCH=&FFEE
+    170OSWRCR=&FFEC:OSNEWL=&FFE7:OSASCI=&FFE3:OSRDCH=&FFE0
+    180OSFILE=&FFDD:OSARGS=&FFDA:OSBGET=&FFD7:OSBPUT=&FFD4
+    190OSGBPB=&FFD1:OSFIND=&FFCE:GSINIT=&FFC2:GSREAD=&FFC5
+    200FSCV=&21E:WHATOS=0
+    210:
+    220TARGET%=-1:REM Build for 6502Em with no FDC hardware, no real ADFS
+    230TARGET%=1 :REM Build for BBC B/B+
+    240TARGET%=3 :REM Build for Master
+    250TARGET%=5 :REM Build for Compact
+    260TARGET%=0 :REM Build for Electron
+    270IF TARGET$<>"":TARGET%=VALTARGET$
+    280:
+    290ver$="1.34":date$="04 Jan 2021"
+    300REM              Removed pre-v1.337 code
+    310:
+    320REM Thoughts: *INSERT/*UNPLUG/*LANG/*TUBE call OSBYTE 162
+    330REM OSBYTE 161/162 pass on to any Configure Module before implementing manually
+    340REM eg set/reset &DF0,X.b6 to pass on
+    350:
+    360:
+    370REM Base addresses
+    380REM --------------
+    390IF TARGET%<1              :FDCbase=&FCC4:fdcRES=&20:fdcSIDE=&04:ROMSEL=&FE05:TUBEIO=&FCE0:ROMTABLE=&2A0:FILEBLK=&2E2:REM Electron
+    400IF TARGET%=1 OR TARGET%=2 :FDCbase=&FE84:fdcRES=&20:fdcSIDE=&04:ROMSEL=&FE30:TUBEIO=&FEE0:ROMTABLE=&2A1:FILEBLK=&2EE:REM BBC
+    410IF TARGET%>2 AND TARGET%<6:FDCbase=&FE28:fdcRES=&04:fdcSIDE=&10:ROMSEL=&FE30:TUBEIO=&FEE0:ROMTABLE=&2A1:FILEBLK=&2ED:REM Master
+    420IF TARGET%=0:name$="AP6" ELSE name$="SRAM"
+    430:
+    440REM Workspace
+    450REM ---------
+    460LAC=&AC:LAE=&AC:NUM=&AC         :REM Command workspace
+    470L0D70=&0D70                     :REM Saved file vectors
+    480L0930=&0930                     :REM Base of *FORMAT workspace
+    490L09D0=FILEBLK+1:L09EC=FILEBLK+12:REM Base of *VERIFY workspace
+    500L0D6C=&0D6C:L0D6D=&0D6D         :REM ROM manager settings
+    510L0D6E=&0D6E:L0D6F=&0D6F         :REM UNPLUG bitmap
+    520:
+    530REM *FORMAT workspace
+    540REM -----------------
+    550L093B=FILEBLK+0:L0935=FILEBLK+16:L0936=FILEBLK+17
+    560L0938=FILEBLK+1:L093C=FILEBLK+2:L093F=FILEBLK+3:L093E=FILEBLK+4
+    570L0930=FILEBLK+5:L0932=FILEBLK+6:L0931=FILEBLK+7:L0933=&AB
+    580L0939=&AE:L093A=&AF
+    590:
+    600REM *VERIFY workspace
+    610REM -----------------
+    620L09ED=L09EC+1:L09EE=L09EC+2:L09EF=L09EC+3
+    630L09D1=L09D0+1:L09D2=L09D0+2:L09D3=L09D0+3:L09D4=L09D0+4:L09D5=L09D0+5
+    640L09D6=L09D0+6:L09D7=L09D0+7:L09D8=L09D0+8:L09D9=L09D0+9:L09DA=L09D0+&A
+    650:
+    660REM Workspace
+    670REM ---------
+    680REM &A8-&AF *commands
+    690REM  &AB  =previous NMI owner
+    700REM  &AC/D=>formatting data
+    710REM  &AE/F=>main memory workspace, verify buffer
+    720REM
+    730REM &0D68-&0D6C Plus 1 Support
+    740REM &0D6D-&0D6F ROM Manager Support
+    750REM &0D70-&0D7F ROM/TAPE intercept
+    760REM
+    770REM &0D6D If b7=0 - default language ROM in b7-b6,b3-b0, b5=TubeDisable, b4=spare
+    780REM &0D6E INSERT/UNPLUG bitmap 0-7, b7=7, 0=inserted, 1=unplugged
+    790REM &0D6F INSERT/UNPLUG bitmap 8-15, b7=15, 0=inserted, 1=unplugged
+    800:
+    810:
+    820REM I/O addresses
+    830REM -------------
+    840FDCstatus =FDCbase+0
+    850FDCcommand=FDCbase+0
+    860FDCtrack  =FDCbase+1
+    870FDCsector =FDCbase+2
+    880FDCdata   =FDCbase+3
+    890FDCdrive  =FDCbase-4
+    900:
+    910REM &FCC0-08 Floppy disk controller
+    920REM  &FCC0 Drive select register
+    930REM  &FCC4 FDC command/status
+    940REM  &FCC7 FDC data
+    950REM
+    960REM &FCD8/&FCD9 lock/unlock register bank 5/6
+    970REM &FCDA/&FCDB lock/unlock register bank 13/15
+    980REM &FCDC/&FCDD lock/unlock register bank 0/2
+    990REM &FCDE/&FCDF lock/unlock register bank 1/3
+   1000REM
+   1010REM &FCFC AQR paging register
+   1020REM &FCFD unlock AQR
+   1030REM &FCFE lock AQR
+   1040:
+   1050:
+   1060file$=name$+"v"+LEFT$(ver$,1)+MID$(ver$,3,2)+MID$(" BBMEC",TARGET%+1,1)
+   1070FOR pass%=0 TO 3
+   1080opt%=FNsm_pass(pass%)
+   1090[OPT opt%
+   1100\ ********************************
+   1110\ Updated ROM Management Functions
+   1120\ ********************************
+   1140.ROMStart
+   1150EQUB &00:EQUW RelocTable
+   1160JMP ROMMgrServ
+   1170EQUB &82:EQUB ROMMgrCopy-ROMStart-1
+   1180EQUB EVAL("&"+MID$(ver$,3,2))
+   1190EQUS "ROM Manager & Utils":EQUB 0
+   1200EQUS LEFT$(ver$,4)+" ("+date$+")":EQUB 0
+   1210.ROMMgrCopy
+   1220EQUS "(C)J.G.Harston":EQUB 0
+   1230.ROMMgrServ
+   1240PHA
+   1250LDA &0DF0,X:BMI ROMMgrExit :\ Disabled, ignore call
+   1260PLA:PHA
+   1270CMP #1:BNE P%+5:JMP Serv1
+   1280CMP #4:BNE P%+5:JMP Serv4
+   1290CMP #7:BNE P%+5:JMP Serv7
+   1300CMP #9:BNE P%+5:JMP Serv9
+   1310CMP #&10:BNE P%+5:JMP Serv10
+   1320.ROMMgrExit
+   1330PLA:RTS
+   1360\ Generate inline error
+   1370\ =====================
+   1380.MkError
+   1390PLA:STA &FD:PLA:STA &FE
+   1400LDY #0
+   1410.MkErrorLp
+   1420INY:LDA (&FD),Y:STA &100,Y
+   1430BNE MkErrorLp
+   1440STA &100:JMP &100
+   1470\ Print inline text
+   1480\ =================
+   1490\ Corrupts A,X,Y
+   1500\
+   1510.PrText
+   1520PLA:STA &F6:PLA:STA &F7:LDY #1
+   1530.PrTextLp
+   1540LDA (&F6),Y:BEQ PrTextEnd
+   1550JSR OSASCI:INY:BNE PrTextLp
+   1560.PrTextEnd
+   1570CLC:TYA:ADC &F6:TAY
+   1580LDA #0:ADC &F7:PHA
+   1590TYA:PHA:RTS
+   1610\ Print character in Y if MI set, else space
+   1620\ ------------------------------------------
+   1630.PrCharY
+   1640BPL PrSpace               :\ MI not set, print a space
+   1650TYA:JMP OSWRCH            :\ MI set, print the character
+   1670\ Print spaces
+   1680\ ============
+   1690.Pr2Spaces
+   1700JSR PrSpace
+   1710.PrSpace
+   1720LDA #ASC" ":JMP OSASCI
+   1740\ Print line number in &A8/9
+   1750\ ==========================
+   1760.PrLineNumSpc
+   1770JSR PrLineNum:BCC PrSpace
+   1780.PrLineNum
+   1790SED:CLC
+   1800LDA &A8:ADC #&01:STA &A8  :\ Increment &A8/A9 in decimal mode
+   1810.LBFE4
+   1820LDA &A9:ADC #&00:STA &A9
+   1830CLD:JSR PrHex             :\ Print high byte
+   1840LDA &A8                   :\ Print low byte
+   1850:
+   1860\ Print hex number in A
+   1870\ =====================
+   1880.PrHex
+   1890PHA:LSR A:LSR A:LSR A
+   1900LSR A:JSR PrNybble:PLA
+   1910.PrNybble
+   1920AND #&0F:CMP #&0A
+   1930BCC PrDigit:ADC #&06
+   1940.PrDigit
+   1950ADC #&30:JMP OSWRCH
+   1970\ Print validated character
+   1980\ =========================
+   1990.PrChar
+   2000AND #&7F
+   2010CMP #&20:BCC X8C71
+   2020CMP #&7F:BCC X8C73
+   2030.X8C71
+   2040LDA #ASC"."
+   2050.X8C73
+   2060JMP OSWRCH
+   2090\ Skip spaces
+   2100\ ===========
+   2110\ Returns A=non-space character
+   2120\         CS=more parameters
+   2130\         CC=no parameters, at <cr>
+   2140.SkipSpaces1
+   2150INY
+   2160.SkipSpaces
+   2170LDA (&F2),Y:CMP #ASC" "
+   2180BEQ SkipSpaces1:RTS
+   2210\ Parse number
+   2220\ ============
+   2230\ Parse "" * or <rom>
+   2240\ -------------------
+   2250.L8CA0
+   2260LDA (&F2),Y
+   2270CMP #ASC"*":BEQ ChkDigitCC      :\ EQ+CC='*'
+   2280:
+   2290\ Parse "" or <rom>
+   2300\ -------------------
+   2310.L8CA5
+   2320LDA (&F2),Y
+   2330CMP #13:BEQ ChkDigitCS          :\ EQ+CS=<cr>
+   2340:
+   2350\ Parse 4-bit <rom> hex 0-F or dec 0-15
+   2360\ -------------------------------------
+   2370.ScanDec4
+   2380JSR ScanDec8
+   2390CMP #&10:BCS errBadNumber       :\ Too big
+   2400RTS                             :\ NE+CC=<num>
+   2410:
+   2420\ Parse 8-bit <num>
+   2430\ -----------------
+   2440.ScanDec8
+   2450JSR CheckDigit:BCS errBadNumber
+   2460STA NUM                         :\ Store as current number
+   2470CMP #10:BCS ScanDecDone         :\ Hex number, exit
+   2480.ScanDecLp
+   2490JSR ScanDigit:BCS ScanDecDone   :\ No more digits
+   2500PHA                             :\ Save digit
+   2510LDA NUM:CMP #26:BCS errBadNumber:\ num>25, num*25>255
+   2520ASL A:ASL A:ADC NUM:ASL A       :\ num=num*10
+   2530STA NUM:PLA:ADC NUM:STA NUM     :\ num=num*10+digit
+   2540BCC ScanDecLp                   :\ Loop for next digit
+   2550.errBadNumber
+   2560JSR MkError:EQUB 252:EQUS "Bad number":BRK
+   2570.ScanDecDone
+   2580LDA (&F2),Y
+   2590CMP #ASC"!":BCS errBadNumber    :\ Badly terminated number
+   2600LDA NUM
+   2610.ChkDigitCS
+   2620SEC:RTS                         :\ Return A=number, CS
+   2630:
+   2640.CheckDigit
+   2650LDA (&F2),Y
+   2660CMP #ASC"A":BCC ScanDigit2      :\ Decimal digit
+   2670AND #&DF
+   2680CMP #ASC"F"+1:BCS ChkDigitCS    :\ >'F'
+   2690SBC #6:BNE ScanDigit3           :\ Convert 'A'-'F'
+   2700.ScanDigit
+   2710LDA (&F2),Y
+   2720.ScanDigit2
+   2730CMP #ASC"0":BCC ChkDigitCS      :\ <'0'
+   2740CMP #ASC"9"+1:BCS ChkDigitCS    :\ >'9'
+   2750.ScanDigit3
+   2760INY:AND #&0F
+   2770.ChkDigitCC
+   2780CLC:RTS                         :\ Return A=digit, CC
+   2810\ SERVICE 1 - Do Reset processing
+   2820\ ===============================
+   2830.Serv1
+   2840TYA:PHA                    :\ Save current workspace address
+   2850OPT FNif(TARGET%<3)
+   2860  LDA L0D6D:ASL A:ASL A    :\ Get Tube Enable from bit 5
+   2870  BPL Serv1a               :\ bit 5 = 0, not disabled
+   2880  LDA #0:STA &027A         :\ Disable Tube
+   2890  LDA &FFB7:STA &A8        :\ Point to default vectors
+   2900  LDA &FFB8:STA &A9        :\ Reset EVENTV and BRKV
+   2910  LDY #&21                 :\ Point to EVENTV
+   2920  .Serv1lp
+   2930  LDA (&A8),Y:STA &200,Y
+   2940  CPY #&20:BNE P%+4:LDY #4 :\ EVENTV done, point to BRKV+1
+   2950  DEY:CPY #1:BNE Serv1lp
+   2960OPT FNendif
+   2970.Serv1a
+   2980LDA &028D
+   2990CMP #&01:BNE Serv1Done   :\ Check last Break type
+   3000LDY #1:JSR LockUnlockAll :\ If Power on, lock (write protect) all ROMs
+   3010.Serv1Done
+   3020PLA:TAY
+   3030.Serv1Exit
+   3040PLA:RTS
+   3070\ SERVICE 7 - Read/Write configuration settings
+   3080\ =============================================
+   3090.Serv7
+   3100LDA &EF
+   3110CMP #&A1:BEQ Serv7go     :\ OSBYTE &A1 - Read settings
+   3120CMP #&A2:BNE Serv1Exit   :\ OSBYTE &A2 - Write settings
+   3130.Serv7go
+   3140LDX &F0
+   3150CPX #15:BEQ Serv7Tube    :\ Location 15, Tube On/Off
+   3160CPX #5:BCC Serv1Exit
+   3170CPX #8:BCS Serv1Exit
+   3180\  5 = b4-b7=LANG
+   3190\  6 = b0-b7=unplug bitmap 0-7
+   3200\  7 = b0-b7=unplug bitmap 8-15
+   3210\ 15 = b0, 0=NoTube, 1=Tube
+   3220LSR A:BCC Serv7Write
+   3230LDA L0D6D-5,X            :\ Read configuration setting
+   3240CPX #5:BNE Serv7RdOk     :\ Return unplug bitmap
+   3250ASL A:ASL A:ASL A:ASL A  :\ Move LANG to b4-b7
+   3260EOR #&FF
+   3270.Serv7RdOk
+   3280EOR #&FF:TAY             :\ Return in Y
+   3290.Serv7Done
+   3300PLA:LDA #0:RTS           :\ Claim and return
+   3310.Serv7Write
+   3320TYA:EOR #&FF             :\ Toggle unplug bitmap
+   3330CPX #5:BNE Serv7WrOk
+   3340LSR A:LSR A:LSR A:LSR A  :\ A=0000llll
+   3350EOR L0D6D                :\ A=xxTxWWWW
+   3360AND #&0F                 :\ A=0000WWWW
+   3370EOR L0D6D                :\ A=xxTxllll
+   3380EOR #&0F                 :\ A=xxTxLLLL
+   3390.Serv7WrOk
+   3400STA L0D6D-5,X:JMP Serv7Done
+   3410.Serv7Tube
+   3420LSR A:BCS Serv7TubeRd    :\ Jump with Read
+   3430.Serv7TubeWr
+   3440TYA:LSR A                :\ Cy=~T
+   3450LDA L0D6D                :\ A=xxTxLLLL
+   3460AND #&DF                 :\ A=xx0xLLLL
+   3470BCS Serv7WrOk            :\ Enable Tube
+   3480ORA #&20:BNE Serv7WrOk   :\ Disable Tube
+   3490.Serv7TubeRd
+   3500LDA L0D6D                :\ A=xxTxLLLL
+   3510AND #&20:CMP #&20        :\ A=00Tx0000
+   3520LDA #&FE:ADC #0          :\ A=1111111T
+   3530JMP Serv7RdOk            :\ EOR FF and return
+   3560\ SERVICE &10 - Spool/Exec closing
+   3570\ ================================
+   3580\ Insert/Unplug ROMs
+   3590\ Needs to be done before Serv1, on BBC/Elk Serv10 before Serv01
+   3600\ Ctrl-CAPS check needs to be done here to enable ROM before Serv01
+   3610\ Check Ctrl-* and jump to *-prompt
+   3620\
+   3630.Serv10
+   3640LDA &EF:ORA &F0
+   3650ORA &F1:BNE Serv10Exit   :\ Not BREAK, skip
+   3660LDA &028D
+   3670CMP #&01:BNE X813E       :\ Not Power-On, insert/unplug ROMs
+   3680OPT FNif(TARGET%<3)
+   3690  \ &024B=00xxrrrr - 6502 BASIC ROM
+   3700  \      =01xxrrrr - 6502 BASIC don't relocate
+   3710  \      =10xxrrrr - non-6502 BASIC ROM
+   3720  \      =11xxxxxx - no BASIC
+   3730  LDA &024B              :\ Get BASIC ROM number
+   3740  .Serv10SetLang
+   3750  EOR L0D6D:AND #&CF     :\ Clear and merge LANG bits
+   3760  EOR L0D6D:STA L0D6D    :\ Default language = BASIC
+   3770OPT FNendif
+   3780PLA:RTS
+   3790:
+   3800.X813E
+   3810LDX #15:LDA L0D6F        :\ Unplug bitmap for ROMs 8-15
+   3820.Serv10Lp1
+   3830CPX #7:BNE Serv10a
+   3840LDA L0D6E                :\ Unplug bitmap for ROMs 0-7
+   3850.Serv10a
+   3860ROL A:BCC Serv10Next           :\ Leave inserted
+   3870PHA:LDA #0:STA ROMTABLE,X:PLA  :\ Remove from ROM table
+   3880.Serv10Next
+   3890DEX:BPL Serv10Lp1        :\ Loop down to ROM 0
+   3900\.Serv10Done
+   3910LDA #&7A:JSR OSBYTE       :\ Check keys pressed
+   3920CPX #&48:BEQ Serv10Enable :\ *
+   3930CPX #&5B:BEQ Serv10Enable :\ K*
+   3940CPX #&40:BNE Serv10Exit   :\ CAPSLOCK
+   3950CLC                       :\ CLC=CAPSLOCK
+   3960.Serv10Enable
+   3970PHP:LDA #&78:JSR OSBYTE   :\ Clear keypressed info
+   3980LDA &8006
+   3990LDX &F4:STA ROMTABLE,X    :\ Re-enable myself
+   4000PLP:BCC Serv10Exit
+   4010JSR MkError:EQUB 249:EQUS "Supervisor":BRK
+   4020.Serv10Exit
+   4030PLA:RTS
+   4060\ SERVICE 4 - *command
+   4070\ ====================
+   4080\ Only ever passed commands starting with a letter
+   4090.Serv4
+   4100LDA (&F2),Y:AND #&DF
+   4110CMP #ASC"P":BNE Serv4Go     :\ Command prefixed by 'P'?
+   4120INY:JSR Serv4Prefix:DEY     :\ Check for prefixed command
+   4130TAX:BNE Serv10Exit          :\ Not recognised, return unclaimed
+   4140PLA:TXA:RTS                 :\ Recognised, claim and return
+   4150.Serv4Prefix
+   4160PHA
+   4170.Serv4Go
+   4180LDX #cmdFILE-cmdBase        :\ Point to command table
+   4190.Serv4a
+   4200TYA:PHA                     :\ Save start of command line
+   4210.CmdLookNext
+   4220PLA:PHA:TAY                 :\ Get text offset back
+   4230.CmdLookLp
+   4240LDA (&F2),Y:CMP #ASC".":BEQ CmdMatchDot
+   4250CMP cmdBase,X:BEQ CmdLook2
+   4260AND #&DF:CMP cmdBase,X:BNE CmdNoMatch
+   4270.CmdLook2
+   4280INX:INY                     :\ Step to next character
+   4290LDA cmdBase,X:BPL CmdLookLp :\ Not a full command
+   4300LDA (&F2),Y                 :\ Get following character
+   4310CMP #ASC"A":BCS CmdCheckNext:\ Ensure command ends with non-alpha
+   4320.CmdFoundSpc
+   4330JSR SkipSpaces              :\ Move past any spaces
+   4340LDA cmdBase,X:ASL A:TAX     :\ Get command byte, index into addresses
+   4350PLA:STA &F5:PLA             :\ Get saved Y and A
+   4360CMP #9:BEQ HelpDispatch     :\ Do *Help
+   4370JSR CmdDispatch:LDA #0:RTS  :\ Call command, claim call
+   4380.CmdDispatch
+   4390LDA cmdAddrs-2+1,X:PHA      :\ Get command address
+   4400LDA cmdAddrs-2+0,X:PHA
+   4410LDA #0:RTS                  :\ Jump to routine via stack
+   4420\ On entry to routines,
+   4430\  A=0, (&F2),Y=>command line, skipped past any spaces
+   4440:
+   4450.CmdMatchDot
+   4460LDA cmdBase,X               :\ Is there still more name to match?
+   4470BMI CmdCheckNext            :\ End of name, the dot is after end of command name
+   4480INY                         :\ Step past '.'
+   4490.CmdMatchDotLp
+   4500INX:LDA cmdBase,X
+   4510BPL CmdMatchDotLp           :\ Find end of table entry
+   4520BMI CmdFoundSpc             :\ Jump to enter command
+   4530:
+   4540.CmdNoMatch
+   4550INX:LDA cmdBase,X
+   4560BPL CmdNoMatch              :\ Find end of table entry
+   4570.CmdCheckNext
+   4580INX:LDA cmdBase,X
+   4590BPL CmdLookNext             :\ Loop until table terminator found
+   4600INX:ASL A:BPL CmdLookNext   :\ Not end of final table
+   4610JMP ServQuit
+   4640\ SERVICE 9 - *Help
+   4650\ =================
+   4660.Serv9
+   4670LDA (&F2),Y:CMP #13:BEQ HelpShort
+   4680CMP #ASC".":BEQ HelpLong
+   4690LDX #cmdHELP-cmdBase
+   4700JMP Serv4a
+   4710.HelpShort
+   4720TYA:PHA
+   4730SEC:JSR PrintHelpTitleLong
+   4740LDX #cmdHELP-cmdBase
+   4750LDY #hlpHELP-hlpBase
+   4760JSR HelpLp1
+   4770.ServQuit
+   4780PLA:TAY:LDX &F4:PLA:RTS
+   4790:
+   4800.HelpDispatch
+   4810PHA:LDA &F5:PHA          :\ Save Y and A again
+   4820LDY cmdAddrs-2+1,X       :\ Offset to help strings
+   4830LDA cmdAddrs-2+0,X:TAX   :\ Offset to command strings
+   4840BEQ HelpSpecial
+   4850JSR HelpPrint
+   4860JMP ServQuit
+   4870:
+   4880.HelpLong
+   4890TYA:PHA
+   4900LDX #cmdFILE-cmdBase:LDY #hlpFILE-hlpBase:JSR HelpPrint
+   4910LDX #cmdSRAM-cmdBase:LDY #hlpSRAM-hlpBase:JSR HelpPrint
+   4920JMP ServQuit
+   4930:
+   4940\ *Help +1
+   4950.HelpSpecial
+   4960SEC:JSR PrintHelpTitleLong
+   4970LDX #0
+   4980.HelpPlus1Lp
+   4990TXA:PHA
+   5000LDA idxPlus1+1,X:TAY
+   5010LDA idxPlus1+0,X:TAX
+   5020JSR HelpPrCmd
+   5030PLA:TAX:INX:INX
+   5040LDA idxPlus1,X
+   5050BNE HelpPlus1Lp
+   5060BEQ ServQuit
+   5070:
+   5080.HelpPrint
+   5090JSR PrintHelpTitle
+   5100JSR OSNEWL
+   5110.HelpLp1
+   5120JSR HelpPrCmd       :\ Print this command string
+   5130INX:LDA cmdBase,X   :\ Get first byte from next
+   5140BPL HelpLp1:RTS     :\ Loop if not terminator
+   5150:
+   5160.HelpPrCmd
+   5170JSR Pr2Spaces
+   5180.HelpPrLp1
+   5190LDA cmdBase,X:BMI HelpPrSyntax
+   5200JSR OSWRCH:INX:BNE HelpPrLp1
+   5210.HelpPrSyntax
+   5220.HelpPrLpSpc
+   5230JSR PrSpace
+   5240SEC:LDA &318:SBC &308:SBC #12
+   5250BCC HelpPrLpSpc
+   5260.HelpLp2
+   5270LDA hlpBase,Y:JSR OSASCI
+   5280INY:CMP #13:BNE HelpLp2
+   5290RTS
+   5300:
+   5310.PrintHelpTitle
+   5320CLC
+   5330.PrintHelpTitleLong
+   5340TYA:PHA:TXA:PHA
+   5350PHP:JSR PrText:EQUB 13
+   5360OPT FNif(TARGET%=0)
+   5370  EQUS "RetroHardware Plus 1 Support "+LEFT$(ver$,4)+LEFT$(CHR$(96+VALRIGHT$(ver$,1)),LENver$>4)
+   5380OPT FNelse
+   5390  EQUS "ROM Manager and Utilities "+LEFT$(ver$,4)+LEFT$(CHR$(96+VALRIGHT$(ver$,1)),LENver$>4)
+   5400OPT FNendif
+   5410EQUB 0
+   5420PLP:BCC PrHelpTitleDone
+   5430OPT FNif(TARGET%=0)
+   5440  LDA &30A:SBC &308:SBC #47:BCC PrHelpTitleDone1
+   5450  JSR PrText
+   5460  EQUS " (ADC/Printer/RS423)"
+   5470  EQUB 0
+   5480OPT FNendif
+   5490.PrHelpTitleDone1
+   5500JSR OSNEWL
+   5510.PrHelpTitleDone
+   5520PLA:TAX:PLA:TAY
+   5530RTS
+   5560\ Command tables
+   5570\ --------------
+   5580\ *Help lists until bit 7 set
+   5590\ *command lookup searches until &FF terminator
+   5600\ So, commands between &80 and &FF are executed but not listed
+   5610\
+   5620.cmdBase
+   5630.cmdHELP
+   5640EQUS "+1"   :EQUB &81
+   5650EQUS "SRAM" :EQUB &82
+   5660EQUS "UTILS":EQUB &83
+   5670EQUB &80
+   5680EQUS "SROM" :EQUB &82
+   5690EQUB &FF
+   5700:
+   5710.cmdFILE
+   5720.cmdBUILD   :EQUS "BUILD"   :EQUB &84
+   5730.cmdDUMP    :EQUS "DUMP"    :EQUB &85
+   5740.cmdFORMAT  :EQUS "FORMAT"  :EQUB &86
+   5750.cmdLIST    :EQUS "LIST"    :EQUB &87
+   5760.cmdTUBE    :EQUS "TUBE"    :EQUB &88
+   5770.cmdTYPE    :EQUS "TYPE"    :EQUB &89
+   5780.cmdVERIFY  :EQUS "VERIFY"  :EQUB &8A
+   5790EQUB &80
+   5800:
+   5810.cmdSRAM
+   5820.cmdAQRPAGE :EQUS "AQRPAGE" :EQUB &97
+   5830.cmdINSERT  :EQUS "INSERT"  :EQUB &8B
+   5840.cmdLANG    :EQUS "LANG"    :EQUB &8C
+   5850.cmdLROMS   :EQUS "LROMS"   :EQUB &8D
+   5860.cmdROMS    :EQUS "ROMS"    :EQUB &8E
+   5870.cmdSRLOAD  :EQUS "SRLOAD"  :EQUB &90
+   5880.cmdSRLOCK  :EQUS "SRLOCK"  :EQUB &91
+   5890.cmdSRPAGE  :EQUS "SRPAGE"  :EQUB &8F
+   5900.cmdSRSAVE  :EQUS "SRSAVE"  :EQUB &92
+   5910.cmdSRUNLOCK:EQUS "SRUNLOCK":EQUB &93
+   5920.cmdSRWIPE  :EQUS "SRWIPE"  :EQUB &94
+   5930.cmdUNPLUG  :EQUS "UNPLUG"  :EQUB &95
+   5940.cmdUROMS   :EQUS "UROMS"   :EQUB &96
+   5950EQUB &80
+   5960:
+   5970.cmdPlus1
+   5980.cmdLOADROM :EQUS "LOADROM":EQUB &90
+   5990.cmdLOCK    :EQUS "LOCK"   :EQUB &91
+   6000.cmdRLOAD   :EQUS "RLOAD"  :EQUB &90
+   6010.cmdRSAVE   :EQUS "RSAVE"  :EQUB &92
+   6020.cmdSAVEROM :EQUS "SAVEROM":EQUB &92
+   6030.cmdUNLOCK  :EQUS "UNLOCK" :EQUB &93
+   6040.cmdZERO    :EQUS "ZERO"   :EQUB &94
+   6050EQUB &FF
+   6060]:A%=P%-cmdBase:IF A%>255:IF (pass%AND3)=0:PRINT"WARNING: Command table ";A%-255;" bytes too long"
+   6070[OPT opt%
+   6080:
+   6090\ Command help strings
+   6100\ --------------------
+   6110.hlpBase
+   6120.hlpFILE
+   6130.hlpBUILD   :EQUS "<file>":EQUB 13
+   6140.hlpDUMP    :EQUS "<file>":EQUB 13
+   6150.hlpFORMAT  :EQUS "<drive> <S|M|L> (Y)":EQUB 13
+   6160.hlpLIST    :EQUS "<file>":EQUB 13
+   6170.hlpTUBE    :EQUS "ON|OFF|<num>":EQUB 13
+   6180.hlpTYPE    :EQUS "<file>":EQUB 13
+   6190.hlpVERIFY  :EQUS "<drive>":EQUB 13
+   6200:
+   6210.hlpSRAM
+   6220.hlpAQRPAGE :EQUS "<page>":EQUB 13
+   6230.hlpINSERT  :EQUS "(<rom> (I))":EQUB 13
+   6240.hlpLANG    :EQUS "(<rom>)":EQUB 13
+   6250.hlpLROMS   :EQUS "":EQUB 13
+   6260.hlpROMS    :EQUS "":EQUB 13
+   6270.hlpSRLOAD  :EQUS "<file> <rom> (U)(L)(I)":EQUB 13
+   6280.hlpSRLOCK  :EQUS "(<rom>)":EQUB 13
+   6290.hlpSRPAGE  :EQUS "<rom> <page> (I)":EQUB 13
+   6300.hlpSRSAVE  :EQUS "<file> <rom>":EQUB 13
+   6310.hlpSRUNLOCK:EQUS "(<rom>)":EQUB 13
+   6320.hlpSRWIPE  :EQUS "<rom> (U)(L)":EQUB 13
+   6330.hlpUNPLUG  :EQUS "(<rom> (U))":EQUB 13
+   6340.hlpUROMS   :EQUS "":EQUB 13
+   6350.hlpHELP    :EQUB 13:EQUB 13:EQUB 13
+   6360]:A%=P%-hlpBase:IF A%>255:IF (pass%AND3)=0:PRINT"WARNING: Help table ";A%-255;" bytes too long"
+   6370[OPT opt%
+   6380:
+   6390\ Command dispatch addresses
+   6400\ --------------------------
+   6410.cmdAddrs
+   6420EQUW 0                                    :\ +1    &81
+   6430EQUB cmdSRAM-cmdBase:EQUB hlpSRAM-hlpBase :\ SRAM  &82
+   6440EQUB cmdFILE-cmdBase:EQUB hlpFILE-hlpBase :\ UTILS &83
+   6450EQUW BUILD-1    :\ &84
+   6460EQUW DUMP-1     :\ &85
+   6470EQUW AFORMAT-1  :\ &86
+   6480EQUW FLIST-1    :\ &87
+   6490EQUW TUBE-1     :\ &88
+   6500EQUW TYPE-1     :\ &89
+   6510EQUW VERIFY-1   :\ &8A
+   6520EQUW INSERT-1   :\ &8B
+   6530EQUW LANG-1     :\ &8C
+   6540EQUW LROMS-1    :\ &8D
+   6550EQUW ROMS-1     :\ &8E
+   6560EQUW SRPAGE-1   :\ &8F
+   6570EQUW SRLOAD-1   :\ &90
+   6580EQUW SRLOCK-1   :\ &91
+   6590EQUW SRSAVE-1   :\ &92
+   6600EQUW SRUNLOCK-1 :\ &93
+   6610EQUW SRWIPE-1   :\ &94
+   6620EQUW UNPLUG-1   :\ &95
+   6630EQUW UROMS-1    :\ &96
+   6640EQUW AQRPAGE-1  :\ &97
+   6650:
+   6660\ *Help +1 offsets
+   6670\ ----------------
+   6680.idxPlus1
+   6690EQUB cmdAQRPAGE-cmdBase:EQUB hlpAQRPAGE -hlpBase
+   6700EQUB cmdBUILD  -cmdBase:EQUB hlpBUILD   -hlpBase
+   6710EQUB cmdDUMP   -cmdBase:EQUB hlpDUMP    -hlpBase
+   6720EQUB cmdFORMAT -cmdBase:EQUB hlpFORMAT  -hlpBase
+   6730EQUB cmdINSERT -cmdBase:EQUB hlpINSERT  -hlpBase
+   6740EQUB cmdLANG   -cmdBase:EQUB hlpLANG    -hlpBase
+   6750EQUB cmdLIST   -cmdBase:EQUB hlpLIST    -hlpBase
+   6760EQUB cmdLOADROM-cmdBase:EQUB hlpSRLOAD  -hlpBase
+   6770EQUB cmdLOCK   -cmdBase:EQUB hlpSRLOCK  -hlpBase
+   6780EQUB cmdLROMS  -cmdBase:EQUB hlpLROMS   -hlpBase
+   6790EQUB cmdRLOAD  -cmdBase:EQUB hlpSRLOAD  -hlpBase
+   6800EQUB cmdRSAVE  -cmdBase:EQUB hlpSRSAVE  -hlpBase
+   6810EQUB cmdROMS   -cmdBase:EQUB hlpROMS    -hlpBase
+   6820EQUB cmdSAVEROM-cmdBase:EQUB hlpSRSAVE  -hlpBase
+   6830EQUB cmdSRPAGE -cmdBase:EQUB hlpSRPAGE  -hlpBase
+   6840EQUB cmdTUBE   -cmdBase:EQUB hlpTUBE    -hlpBase
+   6850EQUB cmdTYPE   -cmdBase:EQUB hlpTYPE    -hlpBase
+   6860EQUB cmdUNLOCK -cmdBase:EQUB hlpSRUNLOCK-hlpBase
+   6870EQUB cmdUNPLUG -cmdBase:EQUB hlpUNPLUG  -hlpBase
+   6880EQUB cmdUROMS  -cmdBase:EQUB hlpUROMS   -hlpBase
+   6890EQUB cmdVERIFY -cmdBase:EQUB hlpVERIFY  -hlpBase
+   6900EQUB cmdZERO   -cmdBase:EQUB hlpSRWIPE  -hlpBase
+   6910EQUB &00
+   6940\ *************
+   6950\ FILE COMMANDS
+   6960\ *************
+   6980\ Workspace for UTILS commands
+   6990\  &A8-&AF = 'MOUNT x'<cr> command
+   7000\  &A8/9=line number
+   7010\  &AA  =CR/LF flag, BUILD handle
+   7020\  &AB  =type/list flag, dump EOF,   OSWORD 0 addr.lo
+   7030\  &AC  =                dump count, OSWORD 0 addr.hi
+   7040\  &AD                   dump width, OSWORD 0 length
+   7050\  &AE                               OSWORD 0 min
+   7060\  &AF                               OSWORD 0 max
+   7070\
+   7080\ *DELETEABS <file>
+   7090\ ============
+   7100.FLIST
+   7110LDA #&FF                   :\ &FF=DELETEABS
+   7130\ *TYPE <file>
+   7140\ ============
+   7150.TYPE                      :\ Entered with &00=TYPE
+   7160STA &AB:JSR OpeninFile     :\ Save list type, open file
+   7170LDX #0:BEQ type7           :\ Jump into loop
+   7180:
+   7190\ Type/List characters from file
+   7200\ ------------------------------
+   7210.type1
+   7220CLC:PHP:TAX:JSR OSWRCH:PLP
+   7230.type2
+   7240PHP:JSR OSBGET:BCS typeEOF :\ End of file
+   7250BIT &FF:BMI LBEED          :\ Escape pressed
+   7260PLP:BCC type3
+   7270PHA:JSR PrLineNumSpc:PLA
+   7280.type3
+   7290CMP #10:BEQ type4:CMP #13:BNE type1
+   7300.type4
+   7310CPX #10:BEQ type5:CPX #13:BNE type6
+   7320.type5
+   7330STX &AA:CMP &AA:CLC:BNE type2
+   7340.type6
+   7350TAX:JSR OSNEWL
+   7360.type7
+   7370LDA &AB:LSR A:BPL type2
+   7380.typeEOF
+   7390LDA &318:BEQ type10:JSR OSNEWL
+   7400.type10
+   7410PLP
+   7420.LBEDA
+   7430LDA #&00:JMP OSFIND
+   7460\ *DUMP <filename>
+   7470\ ================
+   7480.DUMP
+   7490JSR OpeninFile
+   7500LDA &30A:SBC &308        :\ Text window width
+   7510SBC #4:LSR A:LSR A:AND #&1C
+   7520CMP #4:BCS P%+4:LDA #3
+   7530STA &AD
+   7540:
+   7550\ Dump a line from file
+   7560\ ---------------------
+   7570.LBEED
+   7580BIT &FF:BMI LBF56        :\ Escape pressed, tidy up and quit
+   7590CLC:JSR LBFE4            :\ Print file offset
+   7600JSR PrSpace              :\ Print space
+   7610TSX:TXA:SEC:SBC &AD:TAX:TXS :\ Claim bytes on stack
+   7620LDA &AD:STA &AC             :\ Number of bytes to dump
+   7630:
+   7640\ Dump 8 bytes as hex
+   7650\ -------------------
+   7660.LBF04
+   7670JSR OSBGET:BCS LBF16
+   7680STA &101,X
+   7690JSR PrHex:JSR PrSpace    :\ Print hex, space
+   7700INX:DEC &AC:BNE LBF04
+   7710CLC:BEQ LBF2C
+   7720:
+   7730\ EOF met, pad with '**'
+   7740\ ----------------------
+   7750.LBF16
+   7760LDA #ASC"*":JSR OSWRCH
+   7770JSR OSWRCH:JSR PrSpace
+   7780LDA #&00:STA &101,X
+   7790INX:DEC &AC:BNE LBF16
+   7800SEC
+   7810:
+   7820\ Dump as characters
+   7830\ ------------------
+   7840.LBF2C
+   7850ROR &AB                :\ Save EOF flag in bit 7
+   7860LDX &AD:TXA            :\ Number of bytes to display
+   7870CLC:ADC &A8:STA &A8    :\ Update offset
+   7880BCC LBF30:INC &A9
+   7890.LBF30
+   7900PLA:JSR PrChar         :\ Print printable character
+   7910DEX:BNE LBF30
+   7920JSR OSNEWL
+   7930ROL &AB                :\ Check EOF flag
+   7940.DumpEOF
+   7950BCS LBEDA              :\ Close and finish
+   7960TYA:PHA:TAX            :\ Save handle, X=handle
+   7970LDA #127:JSR OSBYTE    :\ Read EOF
+   7980PLA:TAY                :\ Get handle back
+   7990CPX #1:BCC LBEED       :\ Not at EOF, loop for more
+   8000BCS DumpEOF            :\ At EOF, close and finish
+   8010:
+   8020\ Escape pressed
+   8030\ --------------
+   8040.LBF56
+   8050JSR LBEDA       :\ Close file
+   8060.errEscape
+   8070JSR L97B2       :\ Acknowledge Escape
+   8080JSR MkError:EQUB 17:EQUS "Escape":BRK
+   8110\ *BUILD <file>
+   8120\ =============
+   8130.BUILD
+   8140LDA #&80:JSR OpenFile  :\ Open file for output
+   8150STA &AA
+   8160:
+   8170\ Get a line of input
+   8180\ -------------------
+   8190.LBF69
+   8200JSR PrLineNumSpc
+   8210LDA #ASC" ":STA &AE
+   8220TSX:TXA:SBC #&40:STA &AD
+   8230LDY #&FF:STY &AF
+   8240INY:STY &AB
+   8250INY:STY &AC
+   8260DEY:TYA:LDX #&AB
+   8270JSR OSWORD:BCS LBF56
+   8280LDX #0:LDY &AA
+   8290.LBF8E
+   8300LDA &100,X:JSR OSBPUT
+   8310INX:CMP #13:BNE LBF8E
+   8320BEQ LBF69
+   8330:
+   8340.OpeninFile
+   8350LDA #&40                 :\ &40=OPENIN
+   8360.OpenFile
+   8370PHA
+   8380LDA #&00:STA &A8:STA &A9 :\ Line number=0
+   8390TYA:CLC:ADC &F2:TAX      :\ Convert (&F2),Y to XY
+   8400LDA &F3:ADC #&00:TAY
+   8410PLA:JSR OSFIND           :\ Open file
+   8420TAY:BNE OpenFileOk       :\ File found
+   8430.errFileNotFound
+   8440JSR MkError:EQUB 214:EQUS "File not found":BRK
+   8470\ *TUBE ON|OFF|<num>
+   8480\ ==================
+   8490.TUBE
+   8500LDA (&F2),Y:AND #&DF     :\ Get first character
+   8510CMP #ASC"O":BNE TubeNum  :\ Not *TUBE O, try for number
+   8520INY
+   8530LDA (&F2),Y:AND #&DF     :\ Get upper case
+   8540CMP #ASC"N":BEQ TubeOn   :\ *TUBE ON
+   8550CMP #ASC"F":BEQ TubeOff  :\ *TUBE OFF
+   8560DEY                      :\ Step back to error with non-number
+   8570.TubeNum
+   8580JSR ScanDec8             :\ Scan for number
+   8590OPT FNif(TARGET%<3)
+   8600  STA TUBEIO+6                    :\ Select Tube CPU on Electron or BBC
+   8610OPT FNendif
+   8620OPT FNif(TARGET%>2)
+   8630  TAX:PHP:SEI:LDA &FE34           :\ Disable IRQs, get current Tube
+   8640  EOR #&10:STA &FE34:STX TUBEIO+6 :\ Swap Tube, select Tube CPU
+   8650  EOR #&10:STA &FE34:STX TUBEIO+6 :\ Swap Tube back, select Tube CPU
+   8660  PLP                             :\ Restore IRQs
+   8670OPT FNendif
+   8680RTS
+   8690.TubeOn
+   8700.TubeOff
+   8710EOR #8:AND #8:ASL A:ASL A :\ Move ON/OFF to bit 5
+   8720EOR L0D6D:AND #&20        :\ Clear and merge TUBE bit
+   8730EOR L0D6D:STA L0D6D       :\ Should only do on non-Master
+   8740RTS
+   8770\ ********************
+   8780\ ROM Manager Commands
+   8790\ ********************
+   8810\ *LROMS (*)
+   8820\ ==========
+   8830.LROMS
+   8840LDA #1                :\ A=1 to lock
+   8850:
+   8860\ *UROMS (*)
+   8870\ ==========
+   8880.UROMS                :\ Entered with A=0 to unlock
+   8890TAX:TYA:PHA:TXA
+   8900TAY:JSR LockUnlockAll :\ Lock/unlock all ROMs
+   8910PLA:TAY               :\ Drop through to *ROMS
+   8920:
+   8930\ *ROMS (*)
+   8940\ =========
+   8950.ROMS
+   8960LDA (&F2),Y:CMP #ASC"*"
+   8970BEQ P%+3:CLC          :\ SEC=all ROMs
+   8980LDX #&0F:STX &F5      :\ Start at ROM 15
+   8990.L8C22
+   9000PHP
+   9010LDX &F5:JSR PrRomInfoAll :\ Display info for ROM X
+   9020BCS L8C2D             :\ Skip if nothing displayed
+   9030LDA #8:JSR OSWRCH     :\ Prevent line wrapping
+   9040JSR OSNEWL
+   9050.L8C2D
+   9060PLP:DEC &F5:BPL L8C22 :\ Loop for all ROMs
+   9070.OpenFileOk
+   9080RTS
+   9110\ *LANG (<rom>)
+   9120\ =============
+   9130\ Updates:
+   9140\ Doesn't enter selected language, just configures it.
+   9150\ If no <rom>, no default, allows MOS to select default
+   9160.LANG
+   9170JSR L8CA5              :\ Scan for ROM number
+   9180BCC P%+4:LDA #&FF      :\ If no <rom>, set no default
+   9190PHA:JMP Serv10SetLang  :\ Set as default language
+   9220\ Is ROM X unplugged?
+   9230\ -------------------
+   9240\ On exit, CC=ROM is inserted
+   9250\          CS=ROM is unplugged
+   9260.L8D07
+   9270JSR XtoBitmap:BCS L8D1A :\ Jump for ROM 8-15
+   9280AND L0D6E:BCC L8D1D     :\ Mask with bitmap for 0-7
+   9290.L8D1A
+   9300AND L0D6F               :\ Mask with bitmap for 8-15
+   9310.L8D1D
+   9320CMP #1:RTS              :\ CC=inserted, CS=unplugged
+   9330.XtoBitmap
+   9340TXA:CMP #8:AND #7:TAX
+   9350LDA Bitmap,X:RTS
+   9360.Bitmap
+   9370EQUB &01:EQUB &02:EQUB &04:EQUB &08
+   9380EQUB &10:EQUB &20:EQUB &40:EQUB &80
+   9410\ *SRPAGE <rom> <page> (I)(U)(L)
+   9420\ ==============================
+   9430\ Lock/Unlock doesn't make sense, as <rom> must be ROM anyway
+   9440\
+   9450.SRPAGE
+   9460JSR ScanDec4:STA &F5   :\ Scan for a short hex number
+   9470JSR SkipSpaces
+   9480JSR ScanDec4:PHA       :\ Scan for another short hex number
+   9490JSR srOptionsSpc:PHA   :\ Scan for options, returns %ULIQxxxX, corrupts X
+   9500\ AND #&80 BEQ skip JSR unlock
+   9510JSR RomTest            :\ Y=&00 for ROM, 'R' for RAM, 'E' for EEPROM
+   9520TYA:BEQ srPage1
+   9530.errBankWritable
+   9540JSR MkError:EQUB 138:EQUS "Bank is not ROM":BRK
+   9550.srPage1
+   9560LDX &F5:LDA #0
+   9570STA ROMTABLE,X         :\ Remove from ROM table
+   9580PLA:TAY                :\ Y='I' option
+   9590PLA:CLC:ADC #&96:TAX   :\ X=sub-bank select value - confirmed &96 not 96
+   9600PHP:SEI                :\ Stop IRQs while rebuilding ROM table
+   9610OPT FNif(TARGET%>2)
+   9620  LDA &FE34:PHA        :\ Get current 1MHz bus selection
+   9630OPT FNendif
+   9640TYA:PHA                :\ Save options
+   9650JSR RomPage            :\ Select sub-bank via stack
+   9660PLA                    :\ Get stacked options back
+   9670\ AND #&40 BEQ skip JSR lock
+   9680AND #&20               :\ Check 'I' option
+   9690BNE RebuildROMs        :\ Rebuild ROM table
+   9700BEQ AQRdone
+   9730\ *AQRPAGE <page>
+   9740\ ===============
+   9750.AQRPAGE
+   9760JSR ScanDec4:TAX     :\ Scan for a short hex number
+   9770PHP:SEI              :\ Stop IRQs while rebuilding ROM table
+   9780OPT FNif(TARGET%>2)
+   9790  LDA &FE34:PHA      :\ Get current 1MHz bus selection
+   9800  ORA #&20:STA &FE34 :\ Select cartridge bus
+   9810OPT FNendif
+   9820STX &FCFC            :\ Set paging register
+   9830.RebuildROMs
+   9840LDX #&0F             :\ Rebuild ROM table
+   9850.AQRlp
+   9860STX &F5:JSR L8D07    :\ Is it unplugged?
+   9870.AQRunplugged
+   9880LDA #0:BCS AQRstore  :\ Clear ROM table byte
+   9890LDX &F5
+   9900JSR ChkRomHeader     :\ Is there a ROM in the bank in &F5?
+   9910BCS AQRunplugged     :\ No header, clear ROM table byte
+   9920.AQRstore
+   9930LDX &F5:STA ROMTABLE,X :\ Store in ROM table
+   9940DEX:BPL AQRlp          :\ Step through all ROMs
+   9950.AQRdone
+   9960OPT FNif(TARGET%>2)
+   9970  PLA:STA &FE34        :\ Restore 1MHz bus selection
+   9980OPT FNendif
+   9990PLP:RTS                :\ Restore IRQs and return
+  10020\ *INSERT (*)(<rom>) (I)
+  10030\ *UNPLUG (*)(<rom>) (U)
+  10040\ ======================
+  10050\ Updates:
+  10060\ It is not an error to INSERT an inserted ROM.
+  10070\ Only inserts into ROM table if has a ROM header and (I) option.
+  10080\ Action is silent, no 'Press BREAK' message displayed.
+  10090\
+  10100\ On entry, A=0, (F2),Y=>parameters
+  10110\
+  10120.UNPLUG
+  10130LDA #&FF                 :\ A=&FF - UNPLUG
+  10140.INSERT
+  10150PHA                      :\ Save <ins/unp>
+  10160JSR L8CA0:PHP            :\ Scan for <rom>, save <rom>/<all> flag
+  10170STA &F5                  :\ Save <rom>
+  10180JSR srOptionsSpc:AND #&A0:\ Look for any options, %UxIxxxxx (corrupts X)
+  10190PLP:BEQ L8D94            :\ No <rom> or *, insert/unplug all ROMs
+  10200TAX:PLA:TAY:TXA:PHA      :\ Y=<ins/unp>, SP=>options
+  10210LDX &F5:JSR InsertUnplugX:\ Insert or Unplug this ROM
+  10220PLA                      :\ Get option %ULIQxxxx
+  10230.InsertOption
+  10240EOR #&20:BEQ InsertMe    :\ %xxIxxxxx - Insert
+  10250EOR #&A0:BNE InsertDone  :\ %Uxxxxxxx - Unplug
+  10260BEQ UnplugMe             :\ Remove me from ROM table
+  10270.InsertMe
+  10280JSR ChkRomHeader         :\ Check ROM header and get ROMTYPE
+  10290.UnplugMe
+  10300LDX &F5:STA ROMTABLE,X   :\ Insert or remove from ROM table
+  10310.InsertDone
+  10320RTS
+  10330:
+  10340\ Insert or unplug ROMs
+  10350\ --------------------------------
+  10360.L8D94
+  10370\ On entry, CC=*    - silent
+  10380\           CS=<cr> - prompt
+  10390\           A=options
+  10400\           SP=>ins/unp
+  10410TAX:PLA:TAY:TXA:PHA      :\ X=options, Y=ins/unp, SP=>options
+  10420LDX #&0F                 :\ Start at ROM 15
+  10430.InsUnpLoop
+  10440PHP:TYA:PHA              :\ Save silent flag, ins/unp
+  10450BCC InsUnpSilent         :\ Skip prompt if *INSERT/UNPLUG *
+  10460JSR L9030                :\ Print ROM info and prompt 'Y/N' (A,Y corrupted)
+  10470BCS InsUnpSkip           :\ Skip if 'N'
+  10480.InsUnpSilent
+  10490PLA:TAY:PHA              :\ Y=Insert/Unplug
+  10500STX &F5:JSR InsertUnplugX:\ Insert or Unplug this ROM, corrupts A,X,Y
+  10510TSX:LDA &103,X           :\ A=options
+  10520LDX &F5:JSR InsertOption :\ Deal with (I)(U) options
+  10530.InsUnpSkip
+  10540PLA:TAY:PLP              :\ Get ins/unp and silent flag back
+  10550DEX:BPL InsUnpLoop       :\ Loop down from 15 to 0
+  10560PLA                      :\ Drop options
+  10570RTS
+  10580:
+  10590\ Insert or Unplug a ROM
+  10600\ ----------------------
+  10610\ A=ROM, Y=&FF, unplug ROM
+  10620\ A=ROM, Y=&00, insert ROM
+  10630\
+  10640\ Update, do via OSBYTE 162
+  10650\
+  10660.InsertUnplug
+  10670TAX
+  10680.InsertUnplugX
+  10690JSR XtoBitmap            :\ A=2^X, CC=0-7, CS=8-15
+  10700INY:BNE InsertThisRom    :\ Y was &00, jump to insert
+  10710BCC P%+3:INY
+  10720ORA L0D6E,Y:STA L0D6E,Y  :\ Store into bitmap
+  10730RTS
+  10740.InsertThisRom
+  10750EOR #&FF:BCS P%+3:DEY
+  10760AND L0D6E,Y:STA L0D6E,Y  :\ Store into bitmap
+  10770RTS
+  10800\ *SRLOCK (<rom>)
+  10810\ ===============
+  10820.SRLOCK
+  10830LDA #1              :\ A=1 to lock
+  10840:
+  10850\ *SRUNLOCK (<rom>)
+  10860\ =================
+  10870.SRUNLOCK           :\ Entered with A=0 to unlock
+  10880PHA:JSR L8CA0       :\ Save lock/unlock flag, scan <rom> to A
+  10890BNE P%+3:SEC        :\ No <rom> given, lock/unlock all ROMs
+  10900TAX:PLA:TAY         :\ X=<rom>, Y=lock/unlock flag
+  10910BCC LockUnlockROM   :\ <rom> given, lock/unlock that ROM
+  10920                    :\ No <rom> given, drop into lock/unlocal all
+  10930:
+  10940\ Lock/Unlock all ROMs, Y=lock/unlock
+  10950\ -----------------------------------
+  10960.LockUnlockAll
+  10970LDX #15
+  10980.LockUnlockLp
+  10990TXA:PHA:JSR LockUnlockROM
+  11000PLA:TAX:DEX:BPL LockUnlockLp
+  11010RTS
+  11030\ Lock/Unlock ROM X, Y=0 unlock, Y=1 lock
+  11040\ ---------------------------------------
+  11050.LockUnlockROM
+  11060TYA
+  11070.LockUnlockROM1
+  11080EOR LockAddrs,X      :\ Get lock address for this ROM
+  11090BPL LockUnlockDone   :\ <&80=no lock register
+  11100TAX                  :\ X=offset to lock register
+  11110OPT FNif(TARGET%>2)
+  11120  LDA &FE34:PHA      :\ Get current 1MHz bus selection
+  11130  ORA #&20:STA &FE34 :\ Select cartridge bus
+  11140OPT FNendif
+  11150STA &FC00,X          :\ write to lock register
+  11160OPT FNif(TARGET%>2)
+  11170  PLA:STA &FE34      :\ Restore 1MHz bus selection
+  11180OPT FNendif
+  11190.LockUnlockDone
+  11200RTS
+  11210.LockAddrs
+  11220EQUB &DC:EQUB &DE:EQUB &DC:EQUB &DE   :\ 0,1,2,3
+  11230EQUB &00:EQUB &D8:EQUB &D8:EQUB &00   :\ 4,5,6,7
+  11240EQUB &00:EQUB &00:EQUB &00:EQUB &00   :\ 8,9,10,11
+  11250EQUB &00:EQUB &DA:EQUB &00:EQUB &DA   :\ 12,13,14,15
+  11280\ Print character in A in inverted colours
+  11290\ ----------------------------------------
+  11300.L9002
+  11310PHA
+  11320LDA #&00:JSR L9018  :\ COLOUR 0
+  11330LDA #&87:JSR L9018  :\ COLOUR 128+7
+  11340PLA:JSR OSWRCH
+  11350LDA #&07:JSR L9018  :\ COLOUR 7
+  11360LDA #&80            :\ COLOUR 128+0
+  11370.L9018
+  11380PHA
+  11390LDA #&11:JSR OSWRCH :\ VDU 17 - COLOUR
+  11400PLA:JMP OSWRCH      :\ Colour number
+  11420\ Display ROM info and Prompt Y/N
+  11430\ -------------------------------
+  11440\ On entry, X=ROM
+  11450\ On exit, CS='N', CC='Y'
+  11460\          A,Y corrupted
+  11470\          X preserved
+  11480.L9030
+  11490TXA:PHA:JSR PrRomInfo :\ Print information on ROM X
+  11500BCS L9062             :\ ROM is empty
+  11510LDA #8:JSR OSWRCH
+  11520PLA:TAX
+  11530:
+  11540\ Prompt Y/N
+  11550\ ----------
+  11560.L9035
+  11570TXA:PHA
+  11580JSR PrText:EQUS "? Y/N":EQUB 0
+  11590.L903F
+  11600JSR OSRDCH:BCS X9027  :\ Escape
+  11610AND #&DF
+  11620CMP #ASC"Y":BEQ L9056
+  11630CMP #ASC"N":BNE L903F
+  11640.L9056
+  11650PHA:JSR PrText:EQUB 127:EQUB 127:EQUB 127:EQUB 0
+  11660PLA:PHA
+  11670JSR OSWRCH:JSR OSNEWL
+  11680PLA:EOR #1:LSR A      :\ CS='N', CC='Y'
+  11690.L9062
+  11700PLA:TAX:RTS
+  11710.X9027
+  11720JMP errEscape         :\ Jump to Escape error
+  11750\ Print ROM X information
+  11760\ =======================
+  11770\ Updates:
+  11780\ Doesn't try to display information on empty ROMs
+  11790\ Displays unplugged ROMs so *INSERT<cr> gets all ROMs
+  11800\
+  11810\ On exit, CS=nothing displayed, ROM empty, not RAM, not EEPROM
+  11820\          CC=something displayed, occupied, or RAM, or EEPROM
+  11830.PrRomInfo
+  11840CLC
+  11850.PrRomInfoAll
+  11860PHP:STX &F5:JSR ChkRomHeader  :\ CLC=Ok, A=type; SEC=empty
+  11870PHA:PHP                       :\ stack => romtype, header
+  11880OPT FNif(TARGET%=0)
+  11890  CMP #&60:BNE RomInfo0        :\ ROM is not BASIC
+  11900  LDX &F5:CPX #10:BNE RomInfo0 :\ Not ROM 10 is not BASIC
+  11910  PLP:BCC RomInfoDup:PHP       :\ ROM 10 is BASIC, duplicate of ROM 11
+  11920  .RomInfo0
+  11930OPT FNendif
+  11940JSR RomTest               :\ Y=&00 for ROM, 'R' for RAM, 'E' for EEPROM
+  11950PLP:BCC PrRomInfo1        :\ CLC, ROM header exists
+  11960TYA:BNE PrRomInfo1        :\ Y<>0, SRAM or EEPROM
+  11970.RomInfoDup
+  11980PLA:TAX:PLP:BCS RomInfo2  :\ List all ROMs
+  11990SEC:RTS                   :\ No ROM header, no SRAM/EEPROM
+  12010\ stack=> romtype, Cy=ROM header, Y=SRAM
+  12020.PrRomInfo1
+  12030PLA:TAX                   :\ X=romtype, Cy=header, Y=sram
+  12040PLA                       :\ Drop 'all ROMs' flag
+  12050.RomInfo2
+  12060PHP                       :\ stack => header
+  12070TYA:PHA                   :\ stack => sram, header
+  12080TXA:PHA                   :\ stack => romtype, sram, header
+  12090:
+  12100JSR PrText:EQUS "ROM ":EQUB 0
+  12110LDX &F5:TXA:JSR PrNybble
+  12120JSR PrSpace
+  12130LDA L0D6D:AND #&8F
+  12140CMP &F5:BNE RomInfo3      :\ Not default language
+  12150LDA #ASC"*":JSR L9002     :\ Print inverted '*'
+  12160BNE RomInfo4
+  12170.RomInfo3
+  12180LDA #ASC":":JSR OSWRCH
+  12190.RomInfo4
+  12200JSR PrText:EQUS " (":EQUB 0
+  12210JSR L8D07:BCC RomInfo5      :\ Not unplugged
+  12220PLA:LDA #ASC"U":JSR L9002   :\ Print inverted 'U'
+  12230JSR PrSpace:BNE RomInfo6
+  12240.RomInfo5
+  12250LDY #ASC"S":PLA:PHA:JSR PrCharY
+  12260LDY #ASC"L":PLA:ASL A:JSR PrCharY
+  12270.RomInfo6
+  12280PLA:BEQ RomInfo7            :\ ROM
+  12290JSR L9002:BNE RomInfo8      :\ Print inverted 'R' or 'E'
+  12300.RomInfo7
+  12310JSR PrSpace
+  12320.RomInfo8
+  12330JSR PrText:EQUS ") ":EQUB 0
+  12340PLP:BCS L917C               :\ No ROM header present
+  12350:
+  12360LDA #&08:STA &F6       :\ Point to before ROM title at &8009
+  12370LDA #&80:STA &F7
+  12380.L914A
+  12390JSR RdRomNext          :\ Read next byte from ROM
+  12400CMP #&00
+  12410BNE P%+4:LDA #ASC" "   :\ Convert &00 to space
+  12420CMP #ASC" ":BCC L914A  :\ Control code - skip
+  12430CMP #ASC"(":BEQ L917C  :\ End display at (C) string
+  12440.L915C
+  12450LDY &0318:BEQ L917C    :\ X position=0, finish
+  12460.L916D
+  12470JSR OSWRCH             :\ Print character
+  12480.L9170
+  12490JMP L914A
+  12500.L917C
+  12510CLC:RTS                :\ CLC=occupied or empty+sram/eeprom
+  12530.ChkRomHeader
+  12540LDA #&05:STA &F6       :\ Point to before ROM type byte &8006
+  12550JSR RdRom80:PHA        :\ Save ROM type byte
+  12560JSR RdRomNext          :\ Get copyright offset from &8007
+  12570STA &F6:JSR RdRom
+  12580CMP #&00:BNE ChkRomHdrDone
+  12590JSR RdRomNext
+  12600CMP #ASC"(":BNE ChkRomHdrDone
+  12610JSR RdRomNext
+  12620CMP #ASC"C":BNE ChkRomHdrDone
+  12630JSR RdRomNext
+  12640CMP #ASC")":BNE ChkRomHdrDone
+  12650PLA:CLC:RTS            :\ CLC=ok, A=ROM type
+  12660.ChkRomHdrDone
+  12670PLA:LDA #0             :\ Fake ROM type to be &00
+  12680SEC:RTS                :\ SEC=no header
+  12690.RdRom80
+  12700LDA #&80:STA &F7
+  12710.RdRomNext
+  12720INC &F6
+  12730.RdRom
+  12740LDY &F5:JMP &FFB9
+  12770\ ***************************
+  12780\ ROM load/save/wipe commands
+  12790\ ***************************
+  12810\ *DELETEBGETROM <afsp> <rom>
+  12820\ *RSAVE   <afsp> <rom>
+  12830\ *SRSAVE  <afsp> <start> <end> <rom>
+  12840\ *RLOAD   <afsp> <rom> (I) (L) (P) (Q) (R) (U)
+  12850\ *DELETEACSROM <afsp> <rom> (I) (L) (P) (Q) (R) (U)
+  12860\ *SRLOAD  <afsp> <start> <rom> (I) (L) (P) (Q) (R) (U)
+  12870\ *ZERO    <rom>  (I) (L) (P) (Q) (R) (U)
+  12880\ *SRWIPE  <rom>  (I) (L) (P) (Q) (R) (U)
+  12890\ ===========================================
+  12900\ <addr> <end> parameters not implemented
+  12910\
+  12920\ *SRWIPE <rom> (U) (L)
+  12930\ =====================
+  12940.SRWIPE
+  12950LDA #&40:PHA          :\ Stack <wipe>
+  12960JSR ScanDec4          :\ Scan <rom>
+  12970CLC:BCC srWipeRom     :\ CLC=write zeros
+  12990.srSyntax
+  13000JSR MkError:EQUB 204:EQUS "Bad filename":BRK
+  13010.errRomLocked
+  13020JSR MkError:EQUB 135:EQUS "Bank not writable":BRK
+  13040.SRLOAD
+  13050LDA #&FF              :\ &FF=load
+  13060.SRSAVE               :\ Enters with &00=save
+  13070PHA:TYA:CLC           :\ Save load/save flag
+  13080ADC &F2:STA FILEBLK+0 :\ Point to filename
+  13090LDA #0
+  13100ADC &F3:STA FILEBLK+1
+  13110CLC:JSR GSINIT        :\ Use GSREAD to step past filename
+  13120BEQ srSyntax          :\ No parameters
+  13130.srskip
+  13140JSR GSREAD:BCC srskip :\ Step past filename and trailing spaces
+  13150.srgetnum
+  13160TYA:PHA:DEY           :\ Save current parameter
+  13170.srgetlp1
+  13180INY
+  13190.srgetlp2
+  13200JSR CheckDigit:BCC srgetlp2 :\ Step past digits
+  13210JSR SkipSpaces
+  13220CMP #ASC"+":BEQ srgetlp1    :\ Step past '+' as well
+  13230JSR CheckDigit:BCS srgetok  :\ Found the <rom>
+  13240PLA:DEY:BCC srgetnum        :\ Loop to next param
+  13250.srgetok
+  13260PLA:TAY:JSR ScanDec4        :\ Get the <rom>
+  13270.srWipeRom
+  13280PHA:PHA             :\ Stack padding for <options>, stack <rom>
+  13290:
+  13300\ Now pointing to any trailing options or <cr>
+  13310JSR srOptionsSpc    :\ Scan trailing options
+  13320TSX:STA &102,X      :\ Save options on stack
+  13330\
+  13340\ Stack holds  <rom>, <options>, <&FF=load/&00=save/&40=wipe>
+  13350\
+  13360\ Check if <rom> is writable before we change MODE or attempt to load file
+  13370ASL A               :\ Move (U)nlock option to Carry
+  13380LDA &103,X          :\ Get action
+  13390BEQ srPrecheck3     :\ &00=save, don't check if writable
+  13400PLA:PHA:STA &F5     :\ Get <rom>, set &F5=<rom>
+  13410EOR &F4             :\ Compare to myself (preserve Cy)
+  13420BEQ errRomLocked    :\ Can't write to myself
+  13430PHP:BCC srPrecheck1 :\ No (U)nlock option
+  13440LDX &F5:LDY #0      :\ X=<rom>, Y=unlock
+  13450JSR LockUnlockROM   :\ Unlock this ROM
+  13460.srPrecheck1
+  13470JSR RomTest         :\ Check ROM type in bank &F5
+  13480DEY:BMI errRomLocked:\ Not SRAM or EEPROM
+  13490PLP:BCC srPrecheck2 :\ Wasn't (U)nlocked, so don't relock
+  13500LDX &F5:LDA #1      :\ X=<rom>, A=lock
+  13510JSR LockUnlockROM1  :\ Relock this ROM
+  13520.srPrecheck2
+  13530TSX
+  13540:
+  13550LDA &103,X             :\ Get load/save/wipe action
+  13560.srPrecheck3
+  13570PHA:CMP #&40:BEQ P%+5  :\ Skip if *Wipe
+  13580JSR CheckMode6         :\ Force to MODE 6
+  13590:
+  13600LDX #&80:LDY #&20      :\ Prepare for copy &8000->&2000
+  13610PLA:SEC:BEQ srCopyData :\ Jump forward with &00=save
+  13620CLC:BPL srWriteRom     :\ Jump forward with <&80=wipe
+  13630JSR srFile:SEC         :\ Load <file>, SEC=Copy data
+  13640\ Note, assume we lose &F5 through external call to OSFILE
+  13650\
+  13660.srWriteRom
+  13670PLA:TAX:STX &F5        :\ X=ROM, also save in &F5
+  13680LDA #0:STA ROMTABLE,X  :\ Remove from ROM table before overwriting
+  13690TAY:PLA:PHA            :\ Y=0, check options
+  13700BPL srWriteNoUnlock    :\ b7=0, don't unlock
+  13710PHP:JSR LockUnlockROM:PLP :\ Unlock this ROM, preserving Carry
+  13720.srWriteNoUnlock
+  13730LDX #&20:LDY #&80      :\ Prepare for copy &2000->&8000
+  13740LDA &F5:PHA            :\ Get ROM number back
+  13750.srCopyData
+  13760PLA:JSR RomCopy        :\ Copy data to/from selected <rom>
+  13770\
+  13780\ Stack now holds <options>, <load/save>
+  13790\
+  13800PLA:ASL A:PHA:BPL srNoLock :\ b6=0, don't lock
+  13810LDX &F5:LDA #1
+  13820JSR LockUnlockROM1         :\ Lock this ROM
+  13830.srNoLock
+  13840PLA:ASL A:BPL srNoInsert   :\ b5=0, don't insert
+  13850JSR ChkRomHeader:BCS srNoInsert
+  13860LDX &F5:STA ROMTABLE,X     :\ Store ROM type if valid header
+  13870.srNoInsert
+  13880PLA:BEQ srFile             :\ A=<load/save>, if &00, save copied ROM data
+  13890.srDone
+  13900RTS
+  13910:
+  13920.srFile
+  13930PHA:LDX #15
+  13940.srFileLp
+  13950LDA srBlock,X:STA FILEBLK+2,X
+  13960DEX:BPL srFileLp
+  13970PLA:PHA:BMI srFileGo   :\ Jump to do Load
+  13980LDA #&80:STA FILEBLK+3 :\ Load address=&FFFF8000
+  13990LDA &2006              :\ Get ROM type byte
+  14000ASL A:BPL srFileNoLang :\ No language
+  14010SEC:LDY #2             :\ Prepare for no reloc address
+  14020AND #&40:BEQ srsavelp2 :\ No relocation address, use &00008000
+  14030LDX &2007              :\ Offset to (C)
+  14040.srsavelp1
+  14050INX:LDA &2000,X:BNE srsavelp1   :\ Step past (C) message
+  14060CLC:LDY #0
+  14070.srsavelp2
+  14080BCS P%+5:LDA &2001,X            :\ Get Tube address
+  14090STA FILEBLK+2,Y:STA FILEBLK+6,Y :\ Copy to control block
+  14100INX:INY:TYA:AND #4:BEQ srsavelp2
+  14110.srFileNoLang
+  14120.srFileGo
+  14130LDX #FILEBLK AND 255
+  14140LDY #FILEBLK DIV 256
+  14150PLA:JMP OSFILE
+  14160.srBlock
+  14170EQUD &FFFF2000
+  14180EQUD &FFFF8000        :\ Low byte=&00 for load to address
+  14190EQUD &FFFF2000
+  14200EQUD &FFFF6000
+  14210:
+  14220\ Scan SRAM command options
+  14230\ -------------------------
+  14240\ (F2),Y=>any trailing options or <cr>
+  14250\ On return, b7 downwards -> ULIQxxxX
+  14260.srOptionsSpc
+  14270JSR SkipSpaces
+  14280.srOptions
+  14290LDA #0:PHA            :\ Stack 'no options'
+  14300LDA (&F2),Y           :\ Get first option
+  14310.OptionLp1            :\ <cr> will fall through and set b0
+  14320AND #&DF:LDX #7
+  14330.OptionLp2
+  14340CMP Options,X:BEQ OptionMatch
+  14350DEX:BNE OptionLp2
+  14360.OptionMatch
+  14370PLA:ORA Bitmap,X:PHA
+  14380JSR SkipSpaces1
+  14390CMP #13:BNE OptionLp1
+  14400PLA:RTS               :\ Return A=<options>
+  14410.Options
+  14420EQUS "....QILU"       :\ b0...b7, b0=no options at all
+  14430:
+  14440\ Select sub-bank in ROM in &F5, X=page select
+  14450\ --------------------------------------------
+  14460.RomPage
+  14470LDA #RomPageEnd-RomPageStart            :\ Length of stacked code
+  14480LDY #(RomPageEnd-RomCopyStart-1)AND255  :\ Offset to end of stacked code
+  14490BNE StackCopySetupY                     :\ Jump to stack it and call it
+  14500:
+  14510\ Test if ROM in &F5 is SRAM
+  14520\ --------------------------
+  14530.RomTest
+  14540LDA #RomTestEnd-RomTestStart            :\ Length of stacked code
+  14550LDY #(RomTestEnd-RomCopyStart-1)AND255  :\ Offset to end of stacked code
+  14560BNE StackCopySetup                      :\ Jump to stack it and call it
+  14570:
+  14580\ Copy between main RAM and SROM/SRAM
+  14590\ -----------------------------------
+  14600.RomCopy
+  14610\ CC=zero data, CS=copy data
+  14620\ X=source page, Y=dest page, A=rom
+  14630STA &F5                 :\ ROM to copy to/from
+  14640STX &A9:STY &AB         :\ Set source and dest
+  14650LDA #&40:STA &AC        :\ Number of pages to copy
+  14660LDA #RomCopyEnd-RomCopyStart           :\ Length of stacked code
+  14670LDY #(RomCopyEnd-RomCopyStart-1)AND255 :\ Offset to end of stacked code
+  14680.StackCopySetup
+  14690LDX #0
+  14700.StackCopySetupY
+  14710STX &AD                      :\ Entry value for Y
+  14720TSX:STX &AA                  :\ Save old stack pointer
+  14730TAX                          :\ X=length of code to stack
+  14740PHP:SEC:SBC #9:STA &A8:PLP   :\ Save offset to RomSelect code
+  14750.StackCopyLp
+  14760LDA RomCopyStart,Y:PHA       :\ Copy code to stack
+  14770DEY:DEX:BNE StackCopyLp
+  14780LDA &AA:PHA                  :\ Stack old stack pointer
+  14790TSX                          :\ X=>entry address on stack
+  14800PHP:TXA:CLC:ADC &A8:PLP      :\ Calculate address of RomSelect code
+  14810STA &104,X                   :\ Adjust JSR destination
+  14820PHP:SEI                      :\ Stop IRQs from calling while we fiddle with ROMs
+  14830INX:JSR RomStackDispatch     :\ Call the code on the stack
+  14840PLP:PLA:TAX:TXS              :\ Restore IRQs, restore stack
+  14850RTS
+  14860:
+  14870\.RomCopyDispatch
+  14880.RomStackDispatch
+  14890LDA #&01:PHA            :\ Push stack address to jump to
+  14900TXA:PHA
+  14910LDY &AD:STY &A8:STY &AA :\ Set up entry values
+  14920LDX &F5:LDA &F4
+  14930RTS                     :\ Jump to code on stack
+  14950\ Routine copied to stack to copy data
+  14960\ ------------------------------------
+  14970\ CC=zero data, CS=copy data
+  14980\ A=old ROM, X=ROM to select, Y=0, (&A8)=src, (&AA)=dest, (&AC)=page count
+  14990.RomStackStart
+  15000.RomCopyStart
+  15010PHA:JSR &100          :\ Select SRAM/SROM bank
+  15020TYA                   :\ Prepare A=0 for wipe
+  15030.RomCopyLp1
+  15040LDX #&40              :\ Write 64 bytes at a time for EEPROM
+  15050.RomCopyLp2
+  15060BCC P%+4:LDA (&A8),Y  :\ CC=use zero, CS=fetch byte
+  15070STA (&AA),Y           :\ Store byte
+  15080INY:DEX:BNE RomCopyLp2
+  15090DEY:PHP               :\ Save Carry
+  15100.RomCopyCheck
+  15110CMP (&AA),Y           :\ Check last byte written
+  15120\ to do, this needs to explicitly check if bit 6 is toggling, not check for equality
+  15130\ a locked EEPROM will toggle, but then return original data, resulting in a fixed loop
+  15140\ Can return to caller Y=0 for Ok, or Y=63 for failed
+  15150BNE RomCopyCheck      :\ Wait for data to settle
+  15160PLP                   :\ Restore Carry
+  15170INY:BNE RomCopyLp1    :\ Loop for 256 bytes
+  15180INC &A9:INC &AB       :\ Increment addresses
+  15190DEC &AC:BNE RomCopyLp1:\ Loop until all done
+  15200PLA:TAX               :\ First 4 bytes and last 13 bytes
+  15210.RomCopySelect        :\  are the same in both routines
+  15220STX &F4
+  15230LDA #&0C:STA ROMSEL
+  15240STX ROMSEL:RTS        :\ 49 bytes
+  15250.RomCopyEnd
+  15270\ Routine copied to stack to test for sideways RAM
+  15280\ ------------------------------------------------
+  15290\ A=old ROM, X=ROM to select
+  15300\ Returns Y=&00, 'R', 'E'
+  15310.RomTestStart
+  15320PHA:JSR &100                 :\ Select SRAM/SROM bank
+  15330LDA &8008:EOR #&AA:STA &8008 :\ Modify version byte
+  15340CMP &AAA2                    :\ Wait for floating bus to settle
+  15350CMP &8008:PHP                :\ EQ=RAM, NE=ROM/EEPROM/empty
+  15360EOR #&AA:STA &8008           :\ Restore byte
+  15370.RomTestLp
+  15380LDA &8008:EOR &8008:BEQ RomTestOk :\ Bytes match
+  15390\ If empty socket, Cx EOR Cx -> 0x  %00xxxxxx
+  15400\ If EEPROM      , Cx EOR 8x -> 4x  %x1xxxxxx
+  15410ASL A:BPL RomTestOk          :\ Empty socket, bit 6 not toggling
+  15420LDY #ASC"E":BNE RomTestLp    :\ Toggling, must be EEPROM/empty
+  15430.RomTestOk
+  15440PLP:BNE RomTestNotRam        :\ NE from earlier, ROM or EEPROM or empty
+  15450LDY #ASC"R"                  :\ EQ from earlier, must be RAM
+  15460.RomTestNotRam
+  15470PLA:TAX
+  15480.RomTestSelect
+  15490STX &F4
+  15500LDA #&0C:STA ROMSEL
+  15510STX ROMSEL:RTS               :\ 52 bytes
+  15520.RomTestEnd
+  15540\ Routine copied to stack to select sub-banks
+  15550\ -------------------------------------------
+  15560\ A=old ROM, X=ROM to select, Y=paging value
+  15570.RomPageStart
+  15580PHA:JSR &100                 :\ Select SRAM/SROM bank
+  15590STY &AFFF:STY &AFFF:STY &AFFF:\ Select sub-bank
+  15600PLA:TAX
+  15610.RomPageSelect
+  15620STX &F4:LDA #12:STA ROMSEL
+  15630STX ROMSEL:RTS               :\ 26 bytes
+  15640.RomPageEnd
+  15670\ *************
+  15680\ Disk Commands
+  15690\ *************
+  15710\ *FORMAT <drv> <S|M|L> (Y)
+  15720\ =========================
+  15730.AFORMAT
+  15740JSR L97E9:PHA           :\ Check ADFS, get drive number, A=0/1, X=0-F drive number
+  15750JSR SkipSpaces:AND #&DF :\ Look for disk size
+  15760CMP #ASC"S":BEQ Format2
+  15770CMP #ASC"M":BEQ Format2
+  15780CMP #ASC"L":BEQ Format2
+  15790JSR MkError:EQUB 148:EQUS "Bad size":BRK
+  15800:
+  15810.Format2
+  15820PHA:TXA:PHA            :\ stack => physical drive, size, logical drive
+  15830JSR SkipSpaces1        :\ Look for final optional 'Y'
+  15840AND #&DF:CMP #ASC"Y"
+  15850PHP:BEQ Format3        :\ If 'Y', don't prompt for confirmation
+  15860JSR PrText
+  15870EQUS "Format drive ":EQUB 0
+  15880TXA:JSR PrNybble
+  15890JSR CheckEnabled
+  15900:
+  15910.Format3
+  15920\ X=physical drive, stack => (Y), physical drive, size, logical drive
+  15930JSR NMIClaim           :\ *FX143,12,255 - claim NMIs
+  15940LDA #&00:STA FDCdrive  :\ Write &00 RESET to drive control register
+  15950TAY:TAX
+  15960.X9A96
+  15970DEY:BNE X9A96          :\ Delay for while FDC resets
+  15980DEX:BNE X9A96
+  15990TSX:LDA &104,X         :\ Get drive number
+  16000LDX #&00:JSR X93D1     :\ Write to drive register, noRES+SIDE0+DRIVE
+  16010LDA #&07:JSR X93E0     :\ FDC command 'Restore', seek to Track 0
+  16020PLP:BEQ Format11       :\ 'Y' option given, don't prompt to overwrite
+  16030AND #&10:BNE Format11  :\ Sector Not Found - disk is unformatted
+  16040JSR NMIRelease         :\ Release NMIs
+  16050JSR PrText
+  16060EQUS "Already formatted. Format":EQUB 0
+  16070JSR CheckEnabled
+  16080JSR NMIClaim           :\ *FX143,12,255 - claim NMIs
+  16090LDA #&07:JSR X93E0     :\ Spin the disk up again
+  16100:
+  16110\ *FORMAT enabled, format existing disk enabled, NMI claimed, all ready to go
+  16120\ stack => physical drive, size, logical drive
+  16130.Format11
+  16140PLA:STA L0935                :\ Store physical drive number
+  16150LDX #80:LDY #1               :\ 80 tracks, 1+1 sides
+  16160PLA:CMP #ASC"L":BEQ Format12 :\ Large =80x2
+  16170DEY:CMP #ASC"M":BEQ Format12 :\ Medium=80x1
+  16180LDX #40                      :\ Small =40x1
+  16190.Format12
+  16200STX L0932:STY L0931          :\ &932=tracks, &931=sides-1
+  16210PLA:STA L0930                :\ &930=logical drive number 0/1
+  16220LDA #&00:STA L0938           :\ Set to side 0
+  16230:
+  16240\ Now moved to FILEBLK
+  16250\ &930=logical drive number
+  16260\ &931=sides-1
+  16270\ &932=tracks
+  16280\ &933=old NMI owner
+  16290\ &934=
+  16300\ &935=physical drive number
+  16310\ &936=physical drive number as ASCII for *MOUNT, etc
+  16320\ &937=
+  16330\ &938=current side
+  16340\ &939=bottom of memory low byte
+  16350\ &93A=bottom of memory high byte
+  16360\ &93B=current track
+  16370\ &93C=logical sector number
+  16380\ &93D=
+  16390\ &93E=modified track number, track+8 if odd track
+  16400\ &93F=physical sector number
+  16410:
+  16420JSR CheckMode
+  16430JSR L97B4:STX L0939          :\ OSBYTE &83 - read top of user memory
+  16440TYA:SEC:SBC #&1A:STA L093A   :\ Use 6.5K of memory below screen
+  16450:
+  16460.Format13
+  16470JSR PrText
+  16480EQUS "Formatting ":EQUB 0
+  16490JSR PrPreTrack               :\ Print drive,track
+  16500:
+  16510.L9338
+  16520LDA FDCstatus         :\ Read FDC status
+  16530ROR A:BCS L9338       :\ Loop until FDC not BUSY
+  16540\
+  16550\ Note, FDCstatus in A register is now rotated right
+  16560\ So, must test for status DIV 2
+  16570\
+  16580AND #&20:BEQ L935C    :\ Not WriteProtected
+  16590OPT FNif(TARGET%<0)
+  16600  BNE L935C           :\ Ignore WriteProtected
+  16610OPT FNendif
+  16620JSR NMIRelease
+  16630JSR MkError:EQUB 201:EQUS "Disk read only":BRK
+  16640.FormatEscape
+  16650JSR NMIRelease
+  16660JMP errEscape
+  16680\ FDC ready, writable, and disk spinning
+  16690\ --------------------------------------
+  16700.L935C
+  16710LDA #&00:STA L093B    :\ current track=0
+  16720.L9360
+  16730BIT &FF:BMI FormatEscape  :\ Escape pressed
+  16740JSR X9567             :\ Print track number, build image, write to disk
+  16750INC L093B:LDA L093B   :\ Increment track
+  16760CMP L0932:BNE L9389   :\ Compare with number of tracks, jump if not done
+  16770DEC L0931:BMI L939A   :\ Decrement number of sides, jump if all done
+  16780LDA #&00:JSR X93E0    :\ Clear FDC command register
+  16790INC L0938             :\ Increment side number
+  16800JSR X93D0             :\ Write to drive control register, select side 1
+  16810JMP L9338             :\ Jump back to format from track 0
+  16830\ Prepare to do next track
+  16840\ ------------------------
+  16850.L9389
+  16860LDA FDCstatus         :\ Read FDC status
+  16870ROR A:BCS L9389       :\ Loop until not BUSY
+  16880LDA #&53              :\ &53=StepToNext, u=update, h=no spin, v=no verify, speed=3
+  16890JSR X93E0             :\ Step to next track
+  16900JMP L9360             :\ Jump back to write next track
+  16920\ All done
+  16930\ --------
+  16940.L939A
+  16950JSR OSNEWL
+  16960.L93A8
+  16970LDA FDCstatus         :\ Read FDC status
+  16980ROR A:BCS L93A8       :\ Loop until not BUSY
+  16990LDA #&00:JSR X93E0    :\ Clear FDC command register
+  17000JSR NMIRelease        :\ Release NMIs
+  17010:
+  17020\ Write padding file if early ADFS version
+  17030\ ----------------------------------------
+  17040LDA L0936:ORA #ASC"4":PHA :\ Save ASCII floppy drive number for later
+  17050LDA #&08:STA &F6      :\ Point to version number
+  17060LDA #&80:STA &F7
+  17070LDY &0DBC:JSR &FFB9   :\ Read from current filing system ROM
+  17080CMP #0:BNE X9A34      :\ Not &00, no need for padding file
+  17090:
+  17100JSR PrText
+  17110EQUS "Writing ADFS 1.00 ZYSysHelp":EQUB 0
+  17120]:cmdLen=1:cmdBuf=&B00:IF(opt%AND2):cmdLen=X9A59-X9A39:cmdBuf=&B00-cmdLen
+  17130[OPT opt%
+  17140LDX #cmdLen-1
+  17150.X9A0F
+  17160LDA X9A39,X:STA cmdBuf,X :\ Copy commands to top of page A
+  17170DEX:BPL X9A0F
+  17180PLA:PHA                  :\ Get ASCII drive number
+  17190STA cmdBuf+&05           :\ Store in '*DIR'
+  17200STA cmdBuf+&0D           :\ Store in '*DELETEBGET'
+  17210STA cmdBuf+&28           :\ Store in '*ACCESS'
+  17220LDX #(cmdBuf AND 255)+0
+  17230JSR X9980                :\ Do '*DIR'
+  17240LDX #(cmdBuf AND 255)+7
+  17250JSR X9980                :\ Do '*DELETEBGET'
+  17260LDX #(cmdBuf AND 255)+&20
+  17270JSR X9980                :\ Do '*ACCESS'
+  17280JSR OSNEWL
+  17290.X9A34
+  17300PLA                      :\ Mount the drive and finish
+  17310\ Could finish by verifying the drive
+  17320:
+  17330\ Mount drive in A
+  17340\ ----------------
+  17350.X9975
+  17360TAY:LDX #7
+  17370.X9978
+  17380LDA X9A59,X:STA &00A8,X    :\ Copy command to &A8-&AF
+  17390DEX:BPL X9978
+  17400STY &AE                    :\ Store ASCII drive number
+  17410LDX #&A8:LDY #0            :\ Do '*MOUNT'
+  17420LDA #3:JMP (FSCV)          :\ Pass '*MOUNT' to filing system
+  17430.X9980
+  17440LDY #&0A:JMP OS_CLI        :\ Do command in page &A
+  17460.X9A39
+  17470EQUS "DIR :x":EQUB 13
+  17480EQUS "SAVE :x.ZYSysHelp 0+38F0":EQUB 13
+  17490EQUS "ACCESS :x.ZYSysHelp L":EQUB 13
+  17500.X9A59
+  17510EQUS "MOUNT x":EQUB 13
+  17520.X9A69
+  17540\ Create image of track data in memory, then write to disk
+  17550\ --------------------------------------------------------
+  17560.X9567
+  17570LDA L0939:STA LAE+0    :\ LAE/F=>bottom of data buffer
+  17580LDA L093A:STA LAE+1
+  17590LDA #&08
+  17600JSR OSWRCH:JSR OSWRCH  :\ Print two backspaces
+  17610LDA L0938:LSR A        :\ Side
+  17620LDA L093B              :\ Track
+  17630BCC P%+4:ADC #79       :\ Add 80 for side 1
+  17640JSR PrHex              :\ Print track number
+  17650JSR L9433              :\ Create track image in memory
+  17660.X9585
+  17670LDA FDCstatus          :\ Read FDC status
+  17680ROR A:BCS X9585        :\ Loop until FDC not busy
+  17690LDA L0939:STA LAC+0    :\ LAC/1=>bottom of memory
+  17700LDA L093A:STA LAC+1
+  17710:
+  17720\ Write track data
+  17730\ ----------------
+  17740.X99A7
+  17750OPT FNif(TARGET%>-1)
+  17760  SEI:LDY #&00
+  17770  .X99AE
+  17780  LDA FDCstatus:AND #&21  :\ Read FDC Spin+Busy status
+  17790  CMP #&20:BNE X99AE      :\ Not spun up, loop until spinning
+  17800  LDA #&F4:STA FDCcommand :\ Write FDC command &F4=Write track, h=spin, e=no delay
+  17810  LDY #&9
+  17820  .X99EF
+  17830  DEY:BNE X99EF           :\ Delay
+  17840  .X99C6
+  17850  LDA (LAC),Y             :\ Get byte from track data
+  17860  CMP #&FF:BEQ X99EC      :\ &FF=end of data
+  17870  TAX                     :\ X=data to write
+  17880  .X99CD
+  17890  LDA FDCstatus
+  17900  AND #&02:BEQ X99CD      :\ Loop until DataRequest
+  17910  STX FDCdata             :\ Write data
+  17920  INY:BNE X99C6           :\ Loop for 256 bytes
+  17930  INC LAC+1:BNE X99C6     :\ Loop for next 256 bytes
+  17940  .X99EC
+  17950  CLI
+  17960OPT FNendif
+  17970:
+  17980.X959A
+  17990LDA FDCstatus          :\ Read FDC status
+  18000ROR A:BCS X959A        :\ Loop until FDC not busy
+  18010ROL A:RTS              :\ Return result in A
+  18030\ Write command A to FDC, return result in A
+  18040\ ------------------------------------------
+  18050.X93E0
+  18060SEI:STA FDCcommand  :\ Write to FDC command register
+  18070LDY #&09
+  18080.X93EB
+  18090DEY:BNE X93EB       :\ Delay for 9 loops
+  18100CLI:BEQ X959A
+  18120\ Select drive and side
+  18130\ ---------------------
+  18140.X93D0
+  18150LDA L0930             :\ Get current drive
+  18160LDX L0938             :\ Get current side
+  18170.X93D1
+  18180BEQ P%+4:ORA #fdcSIDE :\ If side 1, OR with SIDE
+  18190CLC:ADC #1            :\ Convert to drive select bitmap
+  18200ORA #fdcRES           :\ OR with noRESET
+  18210STA FDCdrive:RTS
+  18230\ Create a track in memory
+  18240\ ------------------------
+  18250.L9433
+  18260LDA #&4E:LDX #&3C:JSR X95AF  :\ Fill &3C x &4E byte
+  18270LDX #&00                     :\ Start at physical sector 0
+  18280.L943C
+  18290STX L093F:JSR L9459          :\ Create sector X
+  18300LDX L093F:INX                :\ Increment sector
+  18310CPX #&10:BNE L943C           :\ Loop for 16 sectors
+  18320LDA #&FF                     :\ Write terminating &FF byte
+  18340\ Fill memory with track data
+  18350\ ---------------------------
+  18360.X95AD
+  18370LDX #&01            :\ Fill one byte of memory
+  18380.X95AF
+  18390LDY #&00
+  18400STX L093E           :\ Number of bytes to store
+  18410LDX #&00
+  18420.X95B6
+  18430STA (LAE),Y:INC LAE+0
+  18440BNE X95BE:INC LAE+1
+  18450.X95BE
+  18460INX:CPX L093E:BNE X95B6
+  18470RTS
+  18490\ Fill a sector with fill byte
+  18500\ ----------------------------
+  18510JSR L9452
+  18520.L9452
+  18530LDA #&4E                     :\ Fill byte &4E
+  18540.L9454
+  18550LDX #&00:BEQ X95AF           :\ Fill with 256 bytes
+  18570\ Create a single sector image
+  18580\ ----------------------------
+  18590.L9459
+  18600LDA #&00:LDX #&0C:JSR X95AF  :\ 12 bytes of &00
+  18610LDA #&F5:LDX #&03:JSR X95AF  :\  3 bytes of &F5
+  18620LDA #&FE:JSR X95AD           :\  1 bytes of &FE - ID start flag
+  18630LDA L093B:JSR X95AD          :\ current track
+  18640LDA L0938:JSR X95AD          :\ current side
+  18650LDA L093B:ROR A:PHP          :\ current track
+  18660ROL A:PLP:BCC L9483:ADC #&07 :\ track+8 for odd tracks
+  18670.L9483
+  18680STA L093E
+  18690CLC:LDA L093F:ADC L093E      :\ Physical sector+track offset
+  18700AND #&0F:STA L093C           :\ Logical sector number
+  18710JSR X95AD                    :\ logical sector
+  18720LDA #&01:JSR X95AD           :\ &01 = sector size=256
+  18730LDA #&F7:JSR X95AD           :\ &F7 - tell FDC to generate a CRC
+  18740LDA #&4E:LDX #&16:JSR X95AF  :\ 22 bytes of &4E
+  18750LDA #&00:LDX #&0C:JSR X95AF  :\ 12 bytes of &00
+  18760LDA #&F5:LDX #&03:JSR X95AF  :\  3 bytes of &F5
+  18770LDA #&FB:JSR X95AD           :\  1 byte of &FB - data start flag
+  18780:
+  18790LDA L0938:ORA L093B          :\ Check track and side
+  18800BEQ L94C4                    :\ If track 0, side 0, fill with root data
+  18810.L94C1
+  18820JMP L9556                    :\ Jump to fill with empty sector
+  18840\ Fill sectors on track 0 with root data
+  18850\ --------------------------------------
+  18860.L94C4
+  18870LDA L093C                    :\ Logical sector number
+  18880CMP #&07:BCS L94C1           :\ End of track 0, normal blank sector
+  18890PHA:LDA #&00:JSR L9454       :\ Fill sector with &00
+  18900DEC LAE+1                    :\ Step back to start of sector
+  18910PLA     :BEQ L950F           :\ Sector 0 - FSM starts
+  18920CMP #&02:BCC L9523           :\ Sector 1 - FSM lengths
+  18930         BEQ L9547           :\ Sector 2 - start of '$'
+  18940CMP #&06:BCS X94E7           :\ Sector 6 - end of '$'
+  18950         JMP X9732           :\ Sector 3-5 - middle of '$'
+  18970\ Sector 0 - Free Space Map starts
+  18980\ --------------------------------
+  18990.L950F
+  19000LDY #&00
+  19010LDA #&07:STA (LAE),Y         :\ Free space starts at &000007
+  19020JSR X9712                    :\ Get disk size in sectors to &XXAA
+  19030LDY #&FC:STA (LAE),Y         :\ Store total number of sectors
+  19040TXA:INY:STA (LAE),Y
+  19050BNE X9727                    :\ Jump forward to calculate checksum
+  19070\ Sector 1 - Free Space Map lengths
+  19080\ ---------------------------------
+  19090.L9523
+  19100JSR X9712:LDY #0             :\ Get disk size in sectors to &XXAA
+  19110SEC:SBC #&07:STA (LAE),Y     :\ Free space length = size-7
+  19120TXA:SBC #&00
+  19130INY:STA (LAE),Y:LDY #&FB
+  19140LDA &240                     :\ Get random-ish value from countdown timer
+  19150STA (LAE),Y:INY              :\ &FB=DiskID
+  19160LDA &295                     :\ Get random-ish value from TIME
+  19170STA (LAE),Y                  :\ &FC=DiskID
+  19180LDA #&03:INY:INY:STA (LAE),Y :\ End of FSM list
+  19190BNE X9727                    :\ Jump forward to calculate checksum
+  19210\ Sector 2 - start of '$' directory
+  19220\ ---------------------------------
+  19230.L9547
+  19240LDY #0
+  19250.X9549
+  19260LDA Hugo,Y:INY:STA (LAE),Y   :\ Copy 'Hugo' to start of directory
+  19270CPY #&04:BNE X9549
+  19280BEQ X9732
+  19300\ Sector 6 - end of '$' directory
+  19310\ -------------------------------
+  19320.X94E7
+  19330LDA #ASC"$"
+  19340LDY #&CC:STA (LAE),Y  :\ Directory name
+  19350LDY #&D9:STA (LAE),Y  :\ Directory title
+  19360LDA #&0D
+  19370INY:STA (LAE),Y       :\ Terminate with <cr>
+  19380LDY #&CD:STA (LAE),Y  :\ Terminate with <cr>
+  19390LDY #&D6
+  19400LDA #&02:STA (LAE),Y  :\ Parent directory
+  19410LDY #&FB
+  19420.X9502
+  19430LDA Hugo-&FB,Y:STA (LAE),Y :\ Copy 'Hugo' to end of directory
+  19440INY:CPY #&FF:BNE X9502
+  19450BEQ X9732
+  19470\ Calculate FSM checksum
+  19480\ ----------------------
+  19490.X9727
+  19500LDA #&FF:LDY #&FE:CLC
+  19510.X9999
+  19520ADC (LAE),Y:DEY:BNE X9999    :\ Add up 254 down to 1
+  19530ADC (LAE),Y                  :\ Add byte 0
+  19540DEY:STA (LAE),Y              :\ Store at offset 255
+  19550:
+  19560.X9732
+  19570INC LAE+1                    :\ Point back to end of sector data
+  19580BNE L955B                    :\ Jump to add sector footer
+  19600.L9556
+  19610LDA #&6C:JSR L9454           :\ 256 bytes of &6C
+  19620.L955B
+  19630LDA #&F7:JSR X95AD           :\ &F7 - tell FDC to generate a CRC
+  19640LDA #&4E:LDX #&2C:JMP X95AF  :\ 44 bytes of &4E
+  19660\ Work out disk size in sectors
+  19670\ -----------------------------
+  19680.X9712
+  19690LDX #&0A
+  19700LDA L0931:BNE X970D :\ If two sides, return X=&0A, A=&00
+  19710LDX #&05
+  19720LDA L0932           :\ Tracks
+  19730CMP #80:BEQ X970D   :\ If 80 tracks, return X=&05, A=&00
+  19740LDX #&02:LDA #&80   :\ Otherwise, 40 tracks, return X=&02, A=&80
+  19750RTS
+  19760.X970D
+  19770LDA #0:RTS
+  19790.CheckMode
+  19800JSR L97A6            :\ Read current screen mode
+  19810INY:INY:BNE ChkModeChk
+  19820.CheckMode6
+  19830JSR L97A6            :\ Read current screen mode
+  19840.ChkModeChk
+  19850CPY #6:BCS ChkModeOk :\ MODE>6 or MODE>4, don't change MODE
+  19860LDA #22:JSR OSWRCH   :\ Need more memory, change to MODE 7 (drops to MODE 6)
+  19870LDA #7:JMP OSWRCH
+  19880.ChkModeOk
+  19890RTS
+  19910.PrVerifyTrack
+  19920JSR PrText
+  19930EQUS "Verifying ":EQUB 0
+  19940.PrPreTrack
+  19950LDA L0935:JSR PrNybble
+  19960STA L0936           :\ Store ASCII drive number
+  19970LDA #ASC":":JSR OSWRCH
+  19980LDA #0:JMP PrHex
+  20010\ *VERIFY <drv>
+  20020\ =============
+  20030.VERIFY
+  20040JSR L97E9:PHA         :\ Check ADFS, get drive number
+  20050JSR X9975             :\ *MOUNT the drive
+  20060LDA #0:STA L093B      :\ Start with track 0
+  20070STA L09D8:STA L09D7   :\ Sector=0
+  20080PLA:STA L0935         :\ Store logical drive number
+  20090ASL A:ASL A:ASL A     :\ drive*32
+  20100ASL A:ASL A:STA L09D6 :\ Sector=drive*32+000000
+  20110LDA #&10:STA L09EF    :\ 16 sectors per call
+  20120JSR CheckMode
+  20130JSR L97B4:STX LAE+0          :\ OSBYTE &83 - read top of user memory
+  20140TYA:SEC:SBC #&12:STA LAE+1   :\ Use 5K of memory below screen
+  20150:
+  20160\ FBLK+0  &93B=current track
+  20170\         OSWORD &72 control block
+  20180\ FBLK+1  &9D0=result
+  20190\ FBLK+2  &9D1=    \
+  20200\ FBLK+3  &9D2=     \ address
+  20210\ FBLK+4  &9D3=&FF  /
+  20220\ FBLK+5  &9D4=&FF /
+  20230\ FBLK+6  &9D5=command
+  20240\ FBLK+7  &9D6=drive*32+sector
+  20250\ FBLK+8  &9D7=sector
+  20260\ FBLK+9  &9D8=sector
+  20270\ FBLK+10 &9D9=count
+  20280\ FBLK+11 &9DA=0
+  20290\ FBLK+12 &9EF=sectors to do per call
+  20300\ FBLK+13 &9EC\
+  20310\ FBLK+14 &9ED } disk size
+  20320\ FBLK+15 &9EE/
+  20330\ FBLK+16 &935=physical drive number
+  20340\ FBLK+17 &936=ASCII drive number for *MOUNT
+  20360\ Verify loop
+  20370\ -----------
+  20380.Verify10
+  20390LDA #&86:JSR OSBYTE
+  20400TXA:BNE Verify11
+  20410JSR PrVerifyTrack      :\ Print 'Verifying...'
+  20420.Verify11
+  20430BIT &FF:BMI VerifyEscape
+  20440LDA #&08
+  20450JSR OSWRCH:JSR OSWRCH  :\ Print two backspaces
+  20460LDA L093B:JSR PrHex    :\ Print track number
+  20470:
+  20480LDX #0:STX L09D0       :\ Result
+  20490STX L09DA              :\ Byte 10
+  20500LDA LAE+0:STA L09D1
+  20510LDA LAE+1:STA L09D2
+  20520DEX
+  20530STX L09D3:STX L09D4    :\ Address high word
+  20540LDA #8:STA L09D5       :\ Command
+  20550LDA L09EF:STA L09D9    :\ Count
+  20560LDX #L09D0 AND 255     :\ Point to control block
+  20570LDY #L09D0 DIV 256
+  20580LDA #&72:JSR OSWORD    :\ Read sectors
+  20590LDX L09D0:BNE Verify12 :\ Report disk error
+  20600:
+  20610LDA L093B:BNE Verify13 :\ Not track 0, step to next track
+  20620LDY #&FC               :\ Point to disk size
+  20630.X9664
+  20640LDA (LAE),Y            :\ Get disk size
+  20650STA L09EC-&FC,Y        :\ Copy disk size to &9EC/D/E
+  20660INY:CPY #&FF:BNE X9664
+  20670:
+  20680OPT FNif(TARGET%<0)
+  20690  LDA #&0A:STA L09ED
+  20700  LDA #0:STA L09EC:STA L09EE
+  20710OPT FNendif
+  20720BEQ Verify13           :\ Step to next track
+  20730.VerifyEscape
+  20740JMP errEscape
+  20760.Verify12
+  20770JSR PrText             :\ Report disk error
+  20780EQUS " disc error ":EQUB 0
+  20790TXA:JSR PrHex:JSR OSNEWL
+  20800:
+  20810.Verify13
+  20820CLC:LDA L09EF          :\ Get sectors/track
+  20830ADC L09D8:STA L09D8    :\ Update sector number low
+  20840BCC Verify14:INC L09D7 :\ Update sector number mid
+  20850BNE Verify14:INC L09D6 :\ Update sector number high
+  20860.Verify14
+  20870SEC
+  20880LDA L09EC:SBC L09EF:STA L09EC  :\ Decrement number to do
+  20890LDA L09ED:SBC #0:STA L09ED
+  20900LDA L09EE:SBC #0:STA L09EE
+  20910ORA L09ED:BNE Verify15         :\ >256 to do, loop back
+  20920LDA L09EC:BEQ VerifyDone       :\ Nothing left
+  20930CMP #&10:BCS Verify15          :\ >15 to do, loop back
+  20940STA L09EF                      :\ <16 to do, do remaining amount
+  20950.Verify15
+  20960INC L093B                      :\ Increment track number
+  20970JMP Verify10                   :\ Loop back for next track
+  20980.VerifyDone
+  20990LDA L0936:JSR X9975 :\ *MOUNT the drive
+  21000JMP OSNEWL          :\ Done
+  21020.NMIClaim
+  21030LDX #&0C:LDY #&FF
+  21040JSR X97BB           :\ *FX143,12,255 - claim NMIs
+  21050LDA #&40:STA &D00   :\ Null NMI routine
+  21060STY L0933:RTS       :\ Save old NMI owner
+  21080.NMIRelease
+  21090LDX #&0B:LDY L0933    :\ *FX143,11,<num> - release NMIs
+  21100.X97BB
+  21110LDA #&8F:BNE L97B8    :\ Service call
+  21120.L97A6
+  21130LDA #&87:BNE L97B8    :\ Read screen mode
+  21140.L97B2
+  21150LDA #&7C:BNE L97B8    :\ Acknowledge Escape
+  21160.L97B4
+  21170LDA #&84              :\ Top of user memory
+  21180.L97B8
+  21190JMP OSBYTE
+  21220\ Check FS and parse drive number if ADFS
+  21230\ =======================================
+  21240.L97E9
+  21250TYA:PHA
+  21260LDA #0:TAY:JSR OSARGS
+  21270CMP #8:BEQ L97EC  :\ Filing system is ADFS
+  21280OPT FNif(TARGET%<0)
+  21290  BNE L97EC       :\ Ignore current filing system
+  21300OPT FNendif
+  21310PLA               :\ Drop Y
+  21320PLA:PLA           :\ Drop return address to command
+  21330PLA:PLA           :\ Drop return address to command dispatcher
+  21340LDY &F5:LDX &F4   :\ Restore to return to MOS
+  21350LDA #4
+  21360.L97EB
+  21370RTS
+  21380.L97EC
+  21390PLA:TAY           :\ Get command pointer back
+  21400                  :\ Check for valid drive number
+  21410                  :\ 0,1,4,5,A,B,E,F
+  21420                  :\ Should also allow leading <colon>
+  21430LDA (&F2),Y       :\ Get drive character
+  21440JSR CheckDigit    :\ Check if valid character, INY if valid
+  21450BCS errBadDrive
+  21460TAX:CMP #8        :\ Keep original drive number in X
+  21470BCC P%+4:SBC #2   :\ Convert to logical drive number
+  21480AND #3:CMP #2:BCC L97EB
+  21490.errBadDrive
+  21500JSR MkError:EQUB 205:EQUS "Bad drive":BRK
+  21510:
+  21520.CheckEnabled
+  21530JSR L9035:BCC L97EB     :\ Prompt Y/N?
+  21540JSR MkError:EQUB 146:EQUS "Aborted":BRK
+  21550:
+  21560.Hugo
+  21570EQUS "Hugo"
+  21580:
+  21590.RelocTable
+  21600]NEXT:PROCsm_table
+  21610OSCLI "*Save "+file$+" "+STR$~(mcode%+mclen%)+" "+STR$~O%+" FFFF0000 FFFBBC00"
+  21620OSCLI "Stamp "+file$
+  21630END
+  21640:
+  21650DEFFNsm_pass(pass%)
+  21660IFpass%=0:mclen%=0
+  21670IFpass%=1:mclen%=O%-mcode%
+  21680P%=&8100-128*(pass%AND2)
+  21690O%=mcode%+mclen%*(pass%AND2)DIV2
+  21700IFpass%=1:IF O%+mclen%*2.125>L%:PRINT"Code overrun":END
+  21710=VALMID$("4646",pass%+1,1)
+  21720:
+  21730DEFPROCsm_table
+  21740base80%=mcode%+mclen%:base81%=mcode%:byte%=0:count%=0:off%=0:REPEAT
+  21750byte80%=base80%?off%:byte81%=base81%?off%:IFoff%>=mclen%:byte80%=&80:byte81%=&80
+  21760IF((byte81%-byte80%) AND &FE)<>0:PRINT "ERROR: Offset by more than one page at &";~&8000+off%
+  21770IF(byte80% AND &C0)=&80:byte%=byte%DIV2+128*(byte81%-byte80%):count%=count%+1
+  21780IFcount%=8:?O%=byte%:O%=O%+1:byte%=0:count%=0
+  21790off%=off%+1:UNTILoff%>=mclen% AND count%=0
+  21800ENDPROC
+#+end_src
+
 * eof.
