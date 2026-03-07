@@ -653,6 +653,7 @@ void *Trace::Alloc(CycleCount time, size_t n) {
     uint8_t *p = (uint8_t *)(m_tail + 1) + m_tail->size;
 
     m_tail->size += n;
+    ASSERT(m_tail->size <= m_tail->capacity);
     m_stats.num_used_bytes += n;
 
     ++m_tail->num_events;
