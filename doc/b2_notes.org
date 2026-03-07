@@ -7918,5 +7918,26 @@ Would be nice if the short sync/long sync could be dealt with?
 
 More bookkeeping required
 
+*** TODO Fix display mode 7
+
+https://pastraiser.com/computers/acornelectron/acornelectron.html
+
+#+begin_quote
+When I tried to enter non existing mode 7 there, Electron issue 6
+switched to mode 4, but when counter reached 8000H it was reset to
+3000H (as in mode 0) and not to 5800H as one would expect for mode 4
+#+end_quote
+
+*** TODO Cartridge port FRED/JIM is XFJ on Electron
+
+Appears to be accessed at 1 MHz?
+
+Maybe the IFJ concept needs to be an internal thing only, and
+cartridgo FJ I/O gets mapped to the right place according to system
+type.
+
+*** TODO CPU timing is bogus
+
+See :8.$.ACCESS
 
 * eof.

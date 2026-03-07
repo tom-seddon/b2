@@ -2043,7 +2043,7 @@ void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, W
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::SetDebugXFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
-    ASSERT(addr >= S_IO_BEGIN_ADDRESS.w && addr <= S_IO_END_ADDRESS.w);
+    ASSERT(addr >= FJ_IO_BEGIN_ADDRESS.w && addr <= FJ_IO_END_ADDRESS.w);
     this->SetDebugMMIOFnsInternal(addr, debug_read_fn, debug_get_context_fn, GetFJScopeFlags(true, false));
 }
 #endif
@@ -3702,9 +3702,24 @@ void BBCMicro::InitStuff() {
 
     if (m_state.init_flags & BBCMicroInitFlag_ADJI) {
         uint8_t adji_addr = m_state.init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
-        this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
+
+        // Sigh... looks like the cartridge port is XFJ on Electron. Can I do
+        // anything useful about this??
+
+        if (IsMasterSeries(m_state.type->type_id)) {
+            this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
 #if BBCMICRO_DEBUGGER
-        this->SetDebugIFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
+            this->SetDebugIFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
+#endif
+        }
+
+#if ENABLE_ELECTRON
+        if (IsElectron(m_state.type->type_id)) {
+            this->SetXFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugXFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
+#endif
+        }
 #endif
     }
 
