@@ -1511,6 +1511,27 @@ Test::~Test() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class NullTest : public Test {
+  public:
+    NullTest(std::string full_name)
+        : m_full_name(std::move(full_name)) {
+    }
+
+    std::string GetFullName() const {
+        return m_full_name;
+    }
+
+    void Run() override {
+    }
+
+  protected:
+  private:
+    std::string m_full_name;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class StandardTest : public Test {
   public:
     StandardTest(const std::string &name, const TestBBCType type, const char *drive = "0")
@@ -2599,7 +2620,13 @@ class MMFSDiskAccessTest : public DiskAccessTest {
         std::string rom_name;
         if (IsMasterSeries(GetBBCMicroTypeID(m_type))) {
             rom_name = "MAMMFS.rom";
-        } else {
+        } //<--note
+#if ENABLE_ELECTRON //<--note
+        else if (IsElectron(GetBBCMicroTypeID(m_type))) {
+            rom_name = "EMMFS.rom";
+        } //<--note
+#endif //<--note
+        else {
             rom_name = "MMFS.rom";
         }
 
@@ -2953,7 +2980,9 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos510", GetMasterCompactMOS510Type()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", GetMasterCompactMOS511iType()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", GetMasterCompactMOSI510CType()));
+#if ENABLE_ELECTRON
     all_tests.push_back(std::make_unique<PrinterTest>("printer.electron", GetElectronWithPlus1Type()));
+#endif
 
     all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.acorndfs", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770), FSType_DFS, "80.dsd"));
     all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "80.dsd"));
@@ -2995,6 +3024,11 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mosI510C", io_flags), GetMasterCompactMOSI510CType(), io_flags));
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos511i", io_flags), GetMasterCompactMOS511iType(), io_flags));
     }
+#if ENABLE_ELECTRON
+    all_tests.push_back(std::make_unique<MMFSDiskAccessTest>("disk.mmfs.electron", GetElectronWithPlus1Type()));
+#else
+    all_tests.push_back(std::make_unique<NullTest>("disk.mmfs.electron"));
+#endif
 
     std::set<std::string> names;
     for (const std::unique_ptr<Test> &test : all_tests) {
