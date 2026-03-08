@@ -506,6 +506,8 @@ parasite_update_done:
                 }
             }
 
+            m_state.plus1.Update(m_printer_buffer);
+
             M6502_SetDeviceIRQ(&m_state.cpu, BBCMicroIRQDevice_ElectronULA, m_state.electron_ula.irq.flag_bits.flags & m_state.electron_ula.irq_mask.flag_bits.flags);
 
             // Unblock the CPU when possible.
@@ -1330,7 +1332,7 @@ parasite_update_done:
                 }
 
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParallelPrinter) != 0) {
-                    m_state.user_via.a.c1 = m_state.printer_busy_counter != 1;
+                    m_state.user_via.a.c1 = m_state.printer_busy_counter != 1; // TODO: should this be >=1??
                     if (m_state.printer_busy_counter > 0) {
                         --m_state.printer_busy_counter;
                     } else {
@@ -1372,7 +1374,7 @@ parasite_update_done:
         }
 
         if constexpr (IsBBCMicroUpdate(UPDATE_FLAGS)) {
-            // Update sound.
+            // Update sound and mouse. Both require low-frequency updates.
             if ((m_state.cycle_count.n & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
                 sound_unit->sn_output = m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
                                                                m_state.system_via.a.p);
@@ -1434,6 +1436,7 @@ parasite_update_done:
 
 #if ENABLE_ELECTRON
         if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
+            // Update sound.
             if ((m_state.cycle_count.n & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
                 // For now, completely silent. Also, the update rate is bogus.
 

@@ -30,6 +30,7 @@ class Log;
 #include "serproc.h"
 #include "MC6850.h"
 #include "ElectronULA.h"
+#include "Plus1.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicroState.inl"
@@ -220,6 +221,7 @@ class BBCMicroState {
     void DebugGetCPURunState(BBCMicroCPURunState *cpu_run_state_ptr, bool *resetting_ptr) const;
 #if ENABLE_ELECTRON
     const ElectronULA *DebugGetElectronULA() const;
+    const Plus1 *DebugGetPlus1() const;
 #endif
     const VideoULA *DebugGetVideoULA() const;
     const CRTC *DebugGetCRTC() const;
@@ -415,6 +417,7 @@ class BBCMicroState {
   public:
 #if ENABLE_ELECTRON
     ElectronULA electron_ula;
+    Plus1 plus1;
 #endif
 
 #if ENABLE_TAPE

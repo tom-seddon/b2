@@ -3639,6 +3639,15 @@ void BBCMicro::InitStuff() {
         [[fallthrough]];
 #if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
+        // Plus 1 stuff.
+        this->SetXFJIO(0xfc70, &Plus1::Read0, &m_state.plus1, &Plus1::Write0, &m_state.plus1);
+        this->SetXFJIO(0xfc71, nullptr, nullptr, &Plus1::Write1, &m_state.plus1);
+        this->SetXFJIO(0xfc72, &Plus1::Read2, &m_state.plus1, nullptr, nullptr);
+        this->SetXFJIO(0xfc71, nullptr, nullptr, &Plus1::Write3, &m_state.plus1);
+#if BBCMICRO_DEBUGGER
+        this->SetDebugXFJIO(0xfc70, &Plus1::DebugRead0, &GetDebugMMIOReadPlus1Context);
+        this->SetDebugXFJIO(0xfc72, &Plus1::DebugRead2, &GetDebugMMIOReadPlus1Context);
+#endif
         break;
 #endif
 
@@ -4670,6 +4679,17 @@ const void *BBCMicro::GetDebugMMIOReadACIAContext(const BBCMicroReadOnlyState *s
 const void *BBCMicro::GetDebugMMIOReadADJIContext(const BBCMicroReadOnlyState *state) {
     return &state->digital_joystick_state;
 }
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+#if ENABLE_ELECTRON
+const void *BBCMicro::GetDebugMMIOReadPlus1Context(const BBCMicroReadOnlyState *state) {
+    return &state->plus1;
+}
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////

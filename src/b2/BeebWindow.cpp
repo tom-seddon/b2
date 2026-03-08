@@ -273,6 +273,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_MutexStats, "toggle_mutex_stats", "Mutex Stats", &CreateMutexStatsUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_ElectronULADebug, "toggle_electron_ula_debug", "Electron ULA Debug", &CreateElectronULADebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_TapeDebug, "toggle_tape_debug", "Tape Debug", &CreateTapeDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Plus1Debug, "toggle_plus1_debug", "Plus 1 Debug", &CreatePlus1DebugWindow);
     return true;
 }
 
@@ -2691,6 +2692,7 @@ void BeebWindow::DoDebugMenu() {
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SCSIDebug].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TapeDebug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Plus1Debug].command);
             if (ImGui::BeginMenu("External Memory Debug")) {
                 m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command);
                 m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command);

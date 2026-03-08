@@ -1043,6 +1043,9 @@ class BBCMicro : private WD1770Handler {
     static const void *GetDebugMMIOReadADCContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadACIAContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadADJIContext(const BBCMicroReadOnlyState *state);
+#if ENABLE_ELECTRON
+    static const void *GetDebugMMIOReadPlus1Context(const BBCMicroReadOnlyState *state);
+#endif
 #endif
 
 #if BBCMICRO_DEBUGGER

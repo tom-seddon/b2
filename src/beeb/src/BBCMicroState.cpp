@@ -359,6 +359,21 @@ const ElectronULA *BBCMicroState::DebugGetElectronULA() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+#if ENABLE_ELECTRON
+const Plus1 *BBCMicroState::DebugGetPlus1() const {
+    if (IsElectron(this->type->type_id)) {
+        return &this->plus1;
+    } else {
+        return nullptr;
+    }
+}
+#endif
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 const VideoULA *BBCMicroState::DebugGetVideoULA() const {
     if (IsBBCMicro(this->type->type_id)) {
         return &this->video_ula;

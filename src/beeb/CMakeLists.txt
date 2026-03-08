@@ -39,6 +39,7 @@ set(SRCS
   ${S}/MC6850.cpp ${I}/MC6850.h ${I}/MC6850.inl
   ${S}/serproc.cpp ${I}/serproc.h ${I}/serproc.inl
   ${S}/ElectronULA.cpp ${I}/ElectronULA.h ${I}/ElectronULA.inl
+  ${S}/Plus1.cpp ${I}/Plus1.h ${I}/Plus1.inl
 )
 
 if(MSVC)
@@ -49,8 +50,8 @@ set(SRCS ${SRCS}
   generated/BBCMicro.groups.generated.h
   generated/BBCMicro.groups.generated.inl)
 
-# These files are automatically generated, so the set won't change
-# from run to run.
+# These files are automatically generated as a manual step, so the set
+# won't change from run to run.
 #
 # The tool that creates them touches this file, so cmake will re-run
 # as required.

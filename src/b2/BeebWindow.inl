@@ -86,6 +86,7 @@ EPN(SymbolGroupBrowser)
 EPN(MutexStats)
 EPN(ElectronULADebug)
 EPN(TapeDebug)
+EPN(Plus1Debug)
 
 // must be last
 EQPN(MaxValue)

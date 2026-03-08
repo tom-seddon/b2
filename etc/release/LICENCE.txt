@@ -54,6 +54,9 @@ Additional credits:
 * MMFS support by Mark Fisher (https://github.com/markjfisher), based
   on code by Martin Mathers (see https://github.com/mmbeeb/MMBeebXL)
 
+* Retro Hardware Advanced Plus 1/Plus 6 ROM by J G Harston
+  (https://mdfs.net/Software/BBC/SROM/Plus1/)
+
 b2 makes use of a number of open source libraries, licences for which
 are also included in this file.
 

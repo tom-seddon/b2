@@ -89,7 +89,7 @@ const BeebROM BEEB_ROM_MOS511i_INTERNATIONAL = {"mcompact/5.11i/international.ro
 
 #if ENABLE_ELECTRON
 const BeebROM BEEB_ROM_ELECTRON_MOS = {"ElectronMOS.rom", "Electron MOS", StandardROM_Electron_MOS};
-// (and the BASIC is just BASIC 2, same as the BBC)
+const BeebROM BEEB_ROM_PLUS1 = {"AP6v134.rom", "Advanced Plus 1/Plus 6 ROM", StandardROM_Plus1};
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -151,6 +151,7 @@ const BeebROM *const BEEB_ROMS[] = {
 
 #if ENABLE_ELECTRON
     &BEEB_ROM_ELECTRON_MOS,
+    &BEEB_ROM_PLUS1,
 #endif
 
     nullptr,

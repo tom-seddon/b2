@@ -5402,6 +5402,33 @@ std::unique_ptr<SettingsUI> CreateTapeDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_ELECTRON
+class Plus1DebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        const Plus1 *plus1 = m_beeb_state->DebugGetPlus1();
+        if (!plus1) {
+            ImGui::TextUnformatted("No Plus 1");
+            return;
+        }
+    }
+
+  protected:
+  private:
+};
+#endif
+
+std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *beeb_window) {
+#if ENABLE_ELECTRON
+    return CreateDebugUI<Plus1DebugWindow>(beeb_window);
+#else
+    return nullptr;
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -5537,6 +5564,10 @@ std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateTapeDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *) {
     return nullptr;
 }
 
