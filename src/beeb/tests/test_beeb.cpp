@@ -1517,7 +1517,7 @@ class NullTest : public Test {
         : m_full_name(std::move(full_name)) {
     }
 
-    std::string GetFullName() const {
+    std::string GetFullName() const override {
         return m_full_name;
     }
 
