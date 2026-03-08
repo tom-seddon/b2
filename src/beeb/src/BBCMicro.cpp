@@ -3852,7 +3852,9 @@ void BBCMicro::InitStuff() {
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
     m_state.adc.SetHandler(&ReadAnalogueChannel, this);
+#if ENABLE_ELECTRON
     m_state.plus1.SetADCHandler(&ReadAnalogueChannel, this);
+#endif
 
     // Page in current ROM bank and sort out ACCCON.
     this->InitPaging();

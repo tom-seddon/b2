@@ -5312,6 +5312,7 @@ std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window
 #if ENABLE_ELECTRON
     return CreateDebugUI<ElectronULADebugWindow>(beeb_window);
 #else
+    (void)beeb_window;
     return nullptr;
 #endif
 }
@@ -5452,6 +5453,7 @@ std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *beeb_window) {
 #if ENABLE_ELECTRON
     return CreateDebugUI<Plus1DebugWindow>(beeb_window);
 #else
+    (void)beeb_window;
     return nullptr;
 #endif
 }

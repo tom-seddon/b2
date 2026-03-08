@@ -1,5 +1,8 @@
 #include <shared/system.h>
 #include <beeb/Plus1.h>
+
+#if ENABLE_ELECTRON
+
 #include <6502/6502.h>
 #include <shared/debug.h>
 #include <beeb/BBCMicro.h>
@@ -28,7 +31,7 @@ void Plus1::Write0(void *plus1_, M6502Word addr, uint8_t value) {
     uint8_t adc_value;
     if (plus1->m_adc_handler_fn) {
         uint16_t full_adc_value = (*plus1->m_adc_handler_fn)(plus1->m_adc_channel, plus1->m_adc_handler_context);
-        adc_value = full_adc_value >> 2; //ADC values are 10 bits
+        adc_value = (uint8_t)(full_adc_value >> 2); //ADC values are 10 bits
     } else {
         adc_value = ADCChannel::DEFAULT_VALUE;
     }
@@ -154,3 +157,5 @@ Plus1Status Plus1::GetStatus() const {
 
     return status;
 }
+
+#endif

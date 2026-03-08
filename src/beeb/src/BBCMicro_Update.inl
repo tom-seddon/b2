@@ -59,6 +59,7 @@ static constexpr bool IsBBCMicroUpdate(uint32_t update_flags) {
 #if ENABLE_ELECTRON
     return !IsElectronUpdate(update_flags);
 #else
+    (void)update_flags;
     return true;
 #endif
 }
