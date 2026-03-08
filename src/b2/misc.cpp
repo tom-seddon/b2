@@ -993,7 +993,7 @@ static bool Decompress(std::vector<uint8_t> *data, const std::string &path, cons
         tinfl_decompressor *decompressor = tinfl_decompressor_alloc();
         if (!decompressor) {
             if (logs) {
-                logs->e.f("%s: failed to allocate decompressor\n");
+                logs->e.f("%s: failed to allocate decompressor\n", path.c_str());
             }
             return false;
         }

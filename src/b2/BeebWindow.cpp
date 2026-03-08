@@ -324,7 +324,9 @@ const Guid SAVE_DISK_IMAGE_COPY_SELECTOR_GUID{0x3e, 0x34, 0x69, 0xad, 0xf8, 0xc6
 //////////////////////////////////////////////////////////////////////////
 
 static RecentPaths g_tape_recent_paths("tape");
+#if ENABLE_TAPE
 const Guid OPEN_TAPE_FILE_SELECTOR_GUID{0x52, 0xf5, 0x5e, 0x8f, 0xad, 0xf9, 0x4f, 0x33, 0xa7, 0xa4, 0xb1, 0xba, 0x28, 0xfb, 0x35, 0x95};
+#endif
 const FileDialog::Filter TAPE_FILE_FILTER{"UEF File", {".uef"}};
 
 //////////////////////////////////////////////////////////////////////////
