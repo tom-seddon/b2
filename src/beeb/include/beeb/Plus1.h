@@ -17,6 +17,7 @@
 
 union M6502Word;
 class PrinterBuffer;
+class Trace;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -30,7 +31,7 @@ struct Plus1StatusBits {
     uint8_t _ : 4;
     uint8_t fire2 : 1;
     uint8_t fire1 : 1;
-    uint8_t adc_eoc : 1;
+    uint8_t adc_busy : 1;
     uint8_t printer_busy : 1;
 };
 
@@ -52,7 +53,7 @@ class Plus1 {
     // ADC0844 is 8-bit though so the bottom 8 bits of the result are ignored.
     typedef uint16_t (*ADCHandlerFn)(uint8_t channel, void *context);
 
-    void SetADCHandlerFn(ADCHandlerFn fn, void *context);
+    void SetADCHandler(ADCHandlerFn fn, void *context);
 
     static void Write0(void *plus1, M6502Word addr, uint8_t value);
     static void Write1(void *plus1, M6502Word addr, uint8_t value);
@@ -66,12 +67,16 @@ class Plus1 {
     static uint8_t DebugRead2(const void *plus1, M6502Word addr);
 #endif
 
+#if BBCMICRO_TRACE
+    void SetTrace(Trace *t);
+#endif
+
     void Update(PrinterBuffer *printer_buffer);
 
   protected:
   private:
     struct ADCChannel {
-        static constexpr uint8_t DEFAULT_VALUE = 0x7c;
+        static constexpr uint8_t DEFAULT_VALUE = 0;
 
         uint8_t value = DEFAULT_VALUE;
         CycleCount start_time = {};
@@ -88,9 +93,14 @@ class Plus1 {
     bool m_printer_byte_written = false;
     uint8_t m_printer_byte = 0;
 
+#if BBCMICRO_TRACE
+    Trace *m_trace = nullptr;
+#endif
+
     Plus1Status GetStatus() const;
 
 #if BBCMICRO_DEBUGGER
+    friend class ADCDebugWindow;
     friend class Plus1DebugWindow;
 #endif
 };

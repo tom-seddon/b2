@@ -1,0 +1,372 @@
+Including file DEVICE.asm
+Processed file 'DEVICE.asm' ok
+Including file bootstrap.asm
+Including file SYSVARS.asm
+Processed file 'SYSVARS.asm' ok
+.cpsrc
+     00A0   00 00
+.cpdst
+     00A2   00 00
+.cplen
+     00A4   00
+.ourrom
+     00A5   00
+.dstrom
+     00A6   00
+.start
+     8000   4D 52 42 
+     8003   4C 4C 80   JMP &804C
+     8006   82
+     8007   1B
+     8008   01
+     8009   4D 4D 46 ...
+     8017   00
+     8018   31 2E 31 
+.copyr
+     801B   00
+     801C   28 43 29 ...
+     804B   00
+.serv
+     804C   C9 01      CMP #&01
+     804E   F0 01      BEQ &8051
+     8050   60         RTS
+.absws
+     8051   98         TYA
+     8052   48         PHA
+     8053   A9 FD      LDA #&FD
+     8055   A2 00      LDX #&00
+     8057   A0 FF      LDY #&FF
+     8059   20 F4 FF   JSR &FFF4
+     805C   E0 00      CPX #&00
+     805E   F0 0E      BEQ &806E
+.docopy
+     8060   A9 00      LDA #&00
+     8062   85 A0      STA &A0
+     8064   A9 82      LDA #&82
+     8066   85 A1      STA &A1
+     8068   A9 CB      LDA #&CB
+     806A   85 A4      STA &A4
+     806C   D0 0C      BNE &807A
+.docmp
+     806E   A9 00      LDA #&00
+     8070   85 A0      STA &A0
+     8072   A9 83      LDA #&83
+     8074   85 A1      STA &A1
+     8076   A9 CE      LDA #&CE
+     8078   85 A4      STA &A4
+.common
+     807A   A0 00      LDY #&00
+.loop1
+     807C   B1 A0      LDA (&A0),Y
+     807E   99 00 09   STA &0900,Y
+     8081   C8         INY
+     8082   C4 A4      CPY &A4
+     8084   D0 F6      BNE &807C
+     8086   A5 F4      LDA &F4
+     8088   85 A5      STA &A5
+     808A   4C 00 09   JMP &0900
+.romfai
+     808D   A2 00      LDX #&00
+     808F   AD C4 80   LDA &80C4
+.failp
+     8092   20 EE FF   JSR &FFEE
+     8095   E8         INX
+     8096   BD C4 80   LDA &80C4,X
+     8099   D0 F7      BNE &8092
+     809B   A5 A3      LDA &A3
+     809D   20 AE 80   JSR &80AE
+     80A0   A5 A2      LDA &A2
+     80A2   20 AE 80   JSR &80AE
+     80A5   20 E7 FF   JSR &FFE7
+     80A8   20 E7 FF   JSR &FFE7
+     80AB   4C 60 80   JMP &8060
+.hexbyt
+     80AE   48         PHA
+     80AF   4A         LSR A
+     80B0   4A         LSR A
+     80B1   4A         LSR A
+     80B2   4A         LSR A
+     80B3   20 B7 80   JSR &80B7
+     80B6   68         PLA
+.hexnyb
+     80B7   29 0F      AND #&0F
+     80B9   C9 0A      CMP #&0A
+     80BB   90 02      BCC &80BF
+     80BD   69 06      ADC #&06
+.lten
+     80BF   69 30      ADC #&30
+     80C1   4C EE FF   JMP &FFEE
+.faimsg
+     80C4   4D 4D 46 ...
+     80E6   00
+.noram
+     80E7   A2 00      LDX #&00
+     80E9   AD FC 80   LDA &80FC
+.norlp
+     80EC   20 EE FF   JSR &FFEE
+     80EF   E8         INX
+     80F0   BD FC 80   LDA &80FC,X
+     80F3   D0 F7      BNE &80EC
+     80F5   68         PLA
+     80F6   A8         TAY
+     80F7   A9 01      LDA #&01
+     80F9   A6 A5      LDX &A5
+     80FB   60         RTS
+.normsg
+     80FC   4E 6F 20 ...
+     811A   0D
+     811B   0A
+     811C   00
+.copyst
+Macro csetup:
+.base
+     8200   A2 0F      LDX #&0F
+.romlp
+     8202   E4 A5      CPX &A5
+     8204   F0 44      BEQ &824A
+Macro page_rom_x:
+     8206   86 F4      STX &F4
+     8208   8E 30 FE   STX &FE30
+End macro page_rom_x
+     820B   AC 07 80   LDY &8007
+     820E   B9 00 80   LDA &8000,Y
+     8211   D0 23      BNE &8236
+     8213   B9 01 80   LDA &8001,Y
+     8216   C9 28      CMP #&28
+     8218   D0 1C      BNE &8236
+     821A   B9 02 80   LDA &8002,Y
+     821D   C9 43      CMP #&43
+     821F   D0 15      BNE &8236
+     8221   B9 03 80   LDA &8003,Y
+     8224   C9 29      CMP #&29
+     8226   D0 0E      BNE &8236
+     8228   AD FE B6   LDA &B6FE
+     822B   C9 19      CMP #&19
+     822D   D0 1B      BNE &824A
+     822F   AD FF B6   LDA &B6FF
+     8232   C9 67      CMP #&67
+     8234   D0 14      BNE &824A
+.testram
+     8236   AD 06 80   LDA &8006
+     8239   49 FF      EOR #&FF
+     823B   8D 06 80   STA &8006
+     823E   CD 06 80   CMP &8006
+     8241   08         PHP
+     8242   49 FF      EOR #&FF
+     8244   8D 06 80   STA &8006
+     8247   28         PLP
+     8248   F0 03      BEQ &824D
+.romnxt
+     824A   CA         DEX
+     824B   10 B5      BPL &8202
+.testdone
+     824D   86 A6      STX &A6
+     824F   A6 A5      LDX &A5
+Macro page_rom_x:
+     8251   86 F4      STX &F4
+     8253   8E 30 FE   STX &FE30
+End macro page_rom_x
+.wait
+     8256   AD 00 80   LDA &8000
+     8259   C9 4D      CMP #&4D
+     825B   D0 F9      BNE &8256
+     825D   AD 01 80   LDA &8001
+     8260   C9 52      CMP #&52
+     8262   D0 F2      BNE &8256
+     8264   AD 02 80   LDA &8002
+     8267   C9 42      CMP #&42
+     8269   D0 EB      BNE &8256
+     826B   A6 A6      LDX &A6
+     826D   10 03      BPL &8272
+     826F   4C E7 80   JMP &80E7
+.gotram
+     8272   A9 84      LDA #&84
+     8274   8D 87 09   STA &0987
+     8277   A9 80      LDA #&80
+     8279   8D 9A 09   STA &099A
+.cploop
+     827C   A6 A5      LDX &A5
+Macro page_rom_x_fast:
+Macro page_rom_x:
+     827E   86 F4      STX &F4
+     8280   8E 30 FE   STX &FE30
+End macro page_rom_x
+End macro page_rom_x_fast
+     8283   A0 00      LDY #&00
+.cploop1
+.patch1
+     8285   B9 00 84   LDA &8400,Y
+     8288   99 00 0A   STA &0A00,Y
+     828B   C8         INY
+     828C   D0 F7      BNE &8285
+     828E   A6 A6      LDX &A6
+Macro page_rom_x_fast:
+Macro page_rom_x:
+     8290   86 F4      STX &F4
+     8292   8E 30 FE   STX &FE30
+End macro page_rom_x
+End macro page_rom_x_fast
+.cploop2
+     8295   B9 00 0A   LDA &0A00,Y
+.patch2
+     8298   99 00 80   STA &8000,Y
+     829B   C8         INY
+     829C   D0 F7      BNE &8295
+     829E   EE 87 09   INC &0987
+     82A1   EE 9A 09   INC &099A
+     82A4   AD 9A 09   LDA &099A
+     82A7   C9 B7      CMP #&B7
+     82A9   D0 D1      BNE &827C
+.exit
+End macro csetup
+     82AB   A9 AA      LDA #&AA
+     82AD   A2 00      LDX #&00
+     82AF   A0 FF      LDY #&FF
+     82B1   20 F4 FF   JSR &FFF4
+     82B4   86 A2      STX &A2
+     82B6   84 A3      STY &A3
+     82B8   AD 06 80   LDA &8006
+     82BB   A4 A6      LDY &A6
+     82BD   91 A2      STA (&A2),Y
+     82BF   68         PLA
+     82C0   A8         TAY
+     82C1   A9 01      LDA #&01
+     82C3   A6 A5      LDX &A5
+Macro page_rom_x:
+     82C5   86 F4      STX &F4
+     82C7   8E 30 FE   STX &FE30
+End macro page_rom_x
+     82CA   60         RTS
+.copyen
+.cmpst
+Macro csetup:
+.base
+     8300   A2 0F      LDX #&0F
+.romlp
+     8302   E4 A5      CPX &A5
+     8304   F0 44      BEQ &834A
+Macro page_rom_x:
+     8306   86 F4      STX &F4
+     8308   8E 30 FE   STX &FE30
+End macro page_rom_x
+     830B   AC 07 80   LDY &8007
+     830E   B9 00 80   LDA &8000,Y
+     8311   D0 23      BNE &8336
+     8313   B9 01 80   LDA &8001,Y
+     8316   C9 28      CMP #&28
+     8318   D0 1C      BNE &8336
+     831A   B9 02 80   LDA &8002,Y
+     831D   C9 43      CMP #&43
+     831F   D0 15      BNE &8336
+     8321   B9 03 80   LDA &8003,Y
+     8324   C9 29      CMP #&29
+     8326   D0 0E      BNE &8336
+     8328   AD FE B6   LDA &B6FE
+     832B   C9 19      CMP #&19
+     832D   D0 1B      BNE &834A
+     832F   AD FF B6   LDA &B6FF
+     8332   C9 67      CMP #&67
+     8334   D0 14      BNE &834A
+.testram
+     8336   AD 06 80   LDA &8006
+     8339   49 FF      EOR #&FF
+     833B   8D 06 80   STA &8006
+     833E   CD 06 80   CMP &8006
+     8341   08         PHP
+     8342   49 FF      EOR #&FF
+     8344   8D 06 80   STA &8006
+     8347   28         PLP
+     8348   F0 03      BEQ &834D
+.romnxt
+     834A   CA         DEX
+     834B   10 B5      BPL &8302
+.testdone
+     834D   86 A6      STX &A6
+     834F   A6 A5      LDX &A5
+Macro page_rom_x:
+     8351   86 F4      STX &F4
+     8353   8E 30 FE   STX &FE30
+End macro page_rom_x
+.wait
+     8356   AD 00 80   LDA &8000
+     8359   C9 4D      CMP #&4D
+     835B   D0 F9      BNE &8356
+     835D   AD 01 80   LDA &8001
+     8360   C9 52      CMP #&52
+     8362   D0 F2      BNE &8356
+     8364   AD 02 80   LDA &8002
+     8367   C9 42      CMP #&42
+     8369   D0 EB      BNE &8356
+     836B   A6 A6      LDX &A6
+     836D   10 03      BPL &8372
+     836F   4C E7 80   JMP &80E7
+.gotram
+     8372   A9 84      LDA #&84
+     8374   8D 87 09   STA &0987
+     8377   A9 80      LDA #&80
+     8379   8D 9A 09   STA &099A
+.cploop
+     837C   A6 A5      LDX &A5
+Macro page_rom_x_fast:
+Macro page_rom_x:
+     837E   86 F4      STX &F4
+     8380   8E 30 FE   STX &FE30
+End macro page_rom_x
+End macro page_rom_x_fast
+     8383   A0 00      LDY #&00
+.cploop1
+.patch1
+     8385   B9 00 84   LDA &8400,Y
+     8388   99 00 0A   STA &0A00,Y
+     838B   C8         INY
+     838C   D0 F7      BNE &8385
+     838E   A6 A6      LDX &A6
+Macro page_rom_x_fast:
+Macro page_rom_x:
+     8390   86 F4      STX &F4
+     8392   8E 30 FE   STX &FE30
+End macro page_rom_x
+End macro page_rom_x_fast
+.cploop2
+     8395   B9 00 0A   LDA &0A00,Y
+.patch2
+     8398   D9 00 80   CMP &8000,Y
+     839B   D0 12      BNE &83AF
+     839D   C8         INY
+     839E   D0 F5      BNE &8395
+     83A0   EE 87 09   INC &0987
+     83A3   EE 9A 09   INC &099A
+     83A6   AD 9A 09   LDA &099A
+     83A9   C9 B7      CMP #&B7
+     83AB   D0 CF      BNE &837C
+     83AD   F0 07      BEQ &83B6
+.fail
+     83AF   84 A2      STY &A2
+     83B1   AD 9A 09   LDA &099A
+     83B4   85 A3      STA &A3
+.exit
+End macro csetup
+     83B6   D0 0C      BNE &83C4
+     83B8   68         PLA
+     83B9   A8         TAY
+     83BA   A9 01      LDA #&01
+     83BC   A6 A5      LDX &A5
+Macro page_rom_x:
+     83BE   86 F4      STX &F4
+     83C0   8E 30 FE   STX &FE30
+End macro page_rom_x
+     83C3   60         RTS
+.cmpfai
+     83C4   A6 A5      LDX &A5
+Macro page_rom_x:
+     83C6   86 F4      STX &F4
+     83C8   8E 30 FE   STX &FE30
+End macro page_rom_x
+     83CB   4C 8D 80   JMP &808D
+.cmpen
+Processed file 'bootstrap.asm' ok
+.romst
+     8400   00 00 00 ... INCBIN "build/T3/SWMMFS.rom"
+.end
+Saving file 'build/T3/ZMMFS'
+Processed file 'top_ZMMFS.asm' ok

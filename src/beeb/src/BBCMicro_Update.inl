@@ -51,7 +51,7 @@ uint64_t Get3MHzCycleCount(CycleCount n) {
 
 #if ENABLE_ELECTRON
 static constexpr bool IsElectronUpdate(uint32_t update_flags) {
-    return GetBBCMicroUpdateFlagsUpdateSystemType(update_flags) == BBCMicroUpdateSystemType_Electron;
+    return GetBBCMicroUpdateFlagsUpdateSystemType(update_flags) == BBCMicroUpdateSystemType_ElectronWithPlus1;
 }
 #endif
 
@@ -59,6 +59,7 @@ static constexpr bool IsBBCMicroUpdate(uint32_t update_flags) {
 #if ENABLE_ELECTRON
     return !IsElectronUpdate(update_flags);
 #else
+    (void)update_flags;
     return true;
 #endif
 }
@@ -1496,10 +1497,9 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         break;
 
 #if ENABLE_ELECTRON
-    case BBCMicroUpdateSystemType_Electron:
+    case BBCMicroUpdateSystemType_ElectronWithPlus1:
         flags &= ~BBCMicroUpdateFlag_Parasite;
         flags &= ~BBCMicroUpdateFlag_Mouse;
-        flags &= ~BBCMicroUpdateFlag_ParallelPrinter;
         flags &= ~BBCMicroUpdateFlag_Serial;
         break;
 #endif
@@ -1517,7 +1517,7 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
     }
 
 #if ENABLE_ELECTRON
-    if (update_rom_type == BBCMicroUpdateROMType_ElectronKeyboard && GetBBCMicroUpdateFlagsUpdateSystemType(flags) != BBCMicroUpdateSystemType_Electron) {
+    if (update_rom_type == BBCMicroUpdateROMType_ElectronKeyboard && GetBBCMicroUpdateFlagsUpdateSystemType(flags) != BBCMicroUpdateSystemType_ElectronWithPlus1) {
         // Invalid combination. Treat as 16 KB.
         update_rom_type = BBCMicroUpdateROMType_16KB;
     }

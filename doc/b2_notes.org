@@ -7965,6 +7965,18 @@ will interfere with this, but that's as expected..
 
 Can of worms.
 
+*** TODO Unavailable ROM slots in ConfigsUI
+
+They have enabled up/down buttons, which is silly, especially as it
+messes stuff up if you click them.
+
+*** TODO Analogue handling is a bit ugly
+
+The values are 10 bit right from the source, as per the Beeb's ADC -
+isn't that something that should be done further down the pipeline?
+
+See also https://github.com/tom-seddon/b2/issues/286
+
 ** Updated Plus 1 ROMs
 
 Source from JGH's site, detokenized.

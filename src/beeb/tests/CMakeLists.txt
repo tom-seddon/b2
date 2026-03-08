@@ -126,6 +126,7 @@ add_test_beeb_literal_category(disk.floppy.bplus)
 
 add_test_beeb_literal_category(disk.mmfs.b)
 add_test_beeb_literal_category(disk.mmfs.bplus)
+add_test_beeb_literal_category(disk.mmfs.electron)
 
 foreach(ACCCON RANGE 3)
   foreach(MOS mos320 mos350)

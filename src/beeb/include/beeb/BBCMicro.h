@@ -711,8 +711,6 @@ class BBCMicro : private WD1770Handler {
     // Overly simplistic mechanism?
     void SetPrinterBuffer(PrinterBuffer *printer_buffer);
 
-    bool HasADC() const;
-
     uint32_t GetUpdateFlags() const;
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<const UpdateMFnData> GetUpdateMFnData() const;

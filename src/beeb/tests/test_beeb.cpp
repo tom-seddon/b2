@@ -168,6 +168,13 @@ static std::string GetPathForStandardROM(StandardROM rom) {
         return "MCompact/5.11i/arabic.rom";
     case StandardROM_MOS511i_INTERNATIONAL:
         return "MCompact/5.11i/international.rom";
+
+#if ENABLE_ELECTRON
+    case StandardROM_Electron_MOS:
+        return "ElectronMOS.rom";
+    case StandardROM_Plus1:
+        return "AP6v134.rom";
+#endif
     }
 }
 
@@ -379,6 +386,21 @@ static TestBBCType GetMasterCompactMOS511iType() {
     return type;
 }
 
+#if ENABLE_ELECTRON
+static TestBBCType GetElectronWithPlus1Type() {
+    TestBBCType type;
+
+    type.disc_interface = nullptr;
+
+    InitROMs(&type, StandardROM_Electron_MOS);
+
+    InitROM(&type, 12, StandardROM_Plus1);
+    InitROM(&type, 11, StandardROM_BASIC2);
+
+    return type;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -403,6 +425,11 @@ static BBCMicroTypeID GetBBCMicroTypeID(const TestBBCType &type) {
     case StandardROM_MOSI510C_MOS:
     case StandardROM_MOS511i_MOS:
         return BBCMicroTypeID_MasterCompact;
+
+#if ENABLE_ELECTRON
+    case StandardROM_Electron_MOS:
+        return BBCMicroTypeID_Electron;
+#endif
     }
 }
 
@@ -440,7 +467,11 @@ static std::vector<uint8_t> GetNVRAMContents(const TestBBCType &type) {
     switch (type_id) {
     default:
         TEST_FAIL("%s: unknown BBCMicroTypeID: %d (%s)", __func__, type_id, GetBBCMicroTypeIDEnumName(type_id));
-        // fall through
+        [[fallthrough]];
+#if ENABLE_ELECTRON
+    case BBCMicroTypeID_Electron:
+        [[fallthrough]];
+#endif
     case BBCMicroTypeID_B:
         [[fallthrough]];
     case BBCMicroTypeID_BPlus:
@@ -1480,6 +1511,27 @@ Test::~Test() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class NullTest : public Test {
+  public:
+    NullTest(std::string full_name)
+        : m_full_name(std::move(full_name)) {
+    }
+
+    std::string GetFullName() const {
+        return m_full_name;
+    }
+
+    void Run() override {
+    }
+
+  protected:
+  private:
+    std::string m_full_name;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class StandardTest : public Test {
   public:
     StandardTest(const std::string &name, const TestBBCType type, const char *drive = "0")
@@ -2297,8 +2349,15 @@ class PrinterTest : public Test {
         bbc.SetPrinterEnabled(true);
         bbc.SetPrinterBuffer(&printer_buffer);
 
-        bbc.Paste("*FX6\rVDU 2:PRINT \"PRINTER TEST\":VDU 3\r");
+        bbc.Paste("*FX6\r");
+        bbc.RunUntilOSWORD0(10.0);
 
+        // Maddeningly, output buffers are counted in terms of free space. So,
+        // firstly, query the free space.
+        bbc.Paste("N%=ADVAL(252)\r");
+        bbc.RunUntilOSWORD0(10.0);
+
+        bbc.Paste("VDU 2:PRINT \"PRINTER TEST\":VDU 3:REPEAT:UNTILADVAL(252)=N%\r");
         bbc.RunUntilOSWORD0(10.0);
 
         TEST_EQ_SS(GetPrinterBufferDataString(printer_buffer), "PRINTER TEST\n\r");
@@ -2340,36 +2399,36 @@ class DiskAccessTest : public Test {
         }
 
         {
-            TestBBCMicro bbc(m_type, this->GetHardDiskImageSet(), this->GetMMFSImagePath());
+            auto &&bbc = std::make_unique<TestBBCMicro>(m_type, this->GetHardDiskImageSet(), this->GetMMFSImagePath());
 
             TestFailFnAdder fn_adder;
             if (m_verbose) {
-                bbc.StartCaptureOSWRCH();
+                bbc->StartCaptureOSWRCH();
 
                 fn_adder.Add([&bbc](const TestFailArgs *) {
                     PrintCapturedOutput(bbc, "failed save");
                 });
             }
 
-            bbc.SetDiscImage(0, this->GetFloppyDiskImage());
-            //bbc.LoadDiskImage(0, PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name));
-            bbc.RunUntilOSWORD0(10.0);
+            bbc->SetDiscImage(0, this->GetFloppyDiskImage());
+            //bbc->LoadDiskImage(0, PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name));
+            bbc->RunUntilOSWORD0(10.0);
 
-            this->Start(&bbc);
+            this->Start(bbc);
 
-            bbc.SetBytes(ADDRESS, random_data[0]);
-            bbc.Paste(strprintf("*SAVE TEST %04X+%04zX\r", ADDRESS.w, random_data[0].size()));
-            bbc.RunUntilOSWORD0(10.0);
+            bbc->SetBytes(ADDRESS, random_data[0]);
+            bbc->Paste(strprintf("*SAVE TEST %04X+%04zX\r", ADDRESS.w, random_data[0].size()));
+            bbc->RunUntilOSWORD0(10.0);
 
             if (m_fs_type == FSType_DFS) {
-                bbc.SetBytes(ADDRESS, random_data[1]);
-                bbc.Paste(strprintf("*SAVE :2.TEST2 %04X+%04zX\r", ADDRESS.w, random_data[1].size()));
-                bbc.RunUntilOSWORD0(10.0);
+                bbc->SetBytes(ADDRESS, random_data[1]);
+                bbc->Paste(strprintf("*SAVE :2.TEST2 %04X+%04zX\r", ADDRESS.w, random_data[1].size()));
+                bbc->RunUntilOSWORD0(10.0);
             }
 
             if (m_fs_type == FSType_ADFS) {
-                bbc.Paste("*DISMOUNT\r");
-                bbc.RunUntilOSWORD0(10.0);
+                bbc->Paste("*DISMOUNT\r");
+                bbc->RunUntilOSWORD0(10.0);
             }
 
             if (m_verbose) {
@@ -2416,14 +2475,14 @@ class DiskAccessTest : public Test {
         return set;
     }
 
-    static void PrintCapturedOutput(const TestBBCMicro &bbc, const char *step) {
+    static void PrintCapturedOutput(const std::unique_ptr<TestBBCMicro> &bbc, const char *step) {
         LOGF(BBC_OUTPUT, "All %s output: ", step);
         LOGI(BBC_OUTPUT);
-        LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
+        LOG_STR(BBC_OUTPUT, GetPrintable(bbc->oswrch_output).c_str());
         LOG(BBC_OUTPUT).EnsureBOL();
     }
 
-    void Start(TestBBCMicro *bbc) {
+    void Start(const std::unique_ptr<TestBBCMicro> &bbc) {
         std::string stuff;
 
         stuff += "MODE 7\r"; //make room for test data
@@ -2463,26 +2522,26 @@ class DiskAccessTest : public Test {
     }
 
     void TestLoad(const std::string &file_name, const std::vector<uint8_t> &random_data) {
-        TestBBCMicro bbc(m_type, this->GetHardDiskImageSet(), this->GetMMFSImagePath());
+        auto &&bbc = std::make_unique<TestBBCMicro>(m_type, this->GetHardDiskImageSet(), this->GetMMFSImagePath());
 
         TestFailFnAdder fn_adder;
         if (m_verbose) {
-            bbc.StartCaptureOSWRCH();
+            bbc->StartCaptureOSWRCH();
 
             fn_adder.Add([&bbc, name = this->GetFullName()](const TestFailArgs *) {
-                //bbc.SaveTestTrace(name);
+                //bbc->SaveTestTrace(name);
                 PrintCapturedOutput(bbc, "failed load");
             });
         }
 
-        ////bbc.SetPrinterBuffer(&printer_buffer);
-        ////bbc.SetPrinterEnabled(true);
+        ////bbc->SetPrinterBuffer(&printer_buffer);
+        ////bbc->SetPrinterEnabled(true);
         //TEST_NON_NULL(disc_image);
-        bbc.SetDiscImage(0, this->GetFloppyDiskImage());
+        bbc->SetDiscImage(0, this->GetFloppyDiskImage());
 
-        bbc.RunUntilOSWORD0(10.0);
+        bbc->RunUntilOSWORD0(10.0);
 
-        this->Start(&bbc);
+        this->Start(bbc);
 
         size_t extra_size = 100;
 
@@ -2493,18 +2552,18 @@ class DiskAccessTest : public Test {
         for (size_t i = 0; i < random_data.size(); ++i) {
             clear_data[i] = 0xff;
         }
-        bbc.SetBytes(ADDRESS, clear_data);
+        bbc->SetBytes(ADDRESS, clear_data);
 
-        bbc.Paste("*LOAD " + file_name + "\r");
+        bbc->Paste("*LOAD " + file_name + "\r");
 
-        //bbc.StartTrace(BBCMicroTraceFlag_1770, 1024 * 1024 * 1024);
+        //bbc->StartTrace(BBCMicroTraceFlag_1770, 1024 * 1024 * 1024);
 
-        bbc.RunUntilOSWORD0(10.0);
+        bbc->RunUntilOSWORD0(10.0);
 
         std::vector<uint8_t> wanted_data = random_data;
         wanted_data.resize(wanted_data.size() + extra_size);
 
-        std::vector<uint8_t> got_data = bbc.GetBytes(ADDRESS, wanted_data.size());
+        std::vector<uint8_t> got_data = bbc->GetBytes(ADDRESS, wanted_data.size());
 
         TEST_EQ_AA(got_data.data(), wanted_data.data(), wanted_data.size());
 
@@ -2561,12 +2620,18 @@ class MMFSDiskAccessTest : public DiskAccessTest {
         std::string rom_name;
         if (IsMasterSeries(GetBBCMicroTypeID(m_type))) {
             rom_name = "MAMMFS.rom";
-        } else {
+        } //<--note
+#if ENABLE_ELECTRON //<--note
+        else if (IsElectron(GetBBCMicroTypeID(m_type))) {
+            rom_name = "EMMFS.rom";
+        } //<--note
+#endif //<--note
+        else {
             rom_name = "MMFS.rom";
         }
 
         // ROM path is relative to etc/roms... bit of a bodge needed here.
-        m_type.rom_paths[0] = PathJoined("../mmfs_1_59_20250720_1149/MMFS/M/", rom_name);
+        m_type.rom_paths[0] = PathJoined("../mmfs_1_60_20251201_1642/MMFS/M/", rom_name);
     }
 
   protected:
@@ -2663,6 +2728,7 @@ struct Options {
     bool infer_wanted_images = false;
     bool wip = false;
     bool reverse = false;
+    bool wait_for_debugger = false;
 };
 
 static Options GetOptions(int argc, char *argv[]) {
@@ -2686,6 +2752,7 @@ static Options GetOptions(int argc, char *argv[]) {
     // intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
     p.AddOption(0, "reverse").SetIfPresent(&options.reverse).Help("work through the test list in reverse order");
+    p.AddOption(0, "wait-for-debugger").SetIfPresent(&options.wait_for_debugger).Help("wait for debugger attach on startup");
 
     if (!p.Parse(argc, argv)) {
         exit(1);
@@ -2736,6 +2803,24 @@ int main(int argc, char *argv[]) {
     setbuf(stderr, nullptr);
 
     Options options = GetOptions(argc, argv);
+
+    if (options.wait_for_debugger) {
+        printf("Waiting for debugger...");
+        fflush(stdout);
+
+        uint32_t n = 0;
+        while (!IsDebuggerAttached()) {
+            SleepMS(100);
+
+            n++;
+            if (n % 16 == 0) {
+                printf(".");
+                fflush(stdout);
+            }
+        }
+
+        printf("\n");
+    }
 
     std::vector<std::unique_ptr<Test>> all_tests;
     all_tests.push_back(std::make_unique<StandardTest>("VTIMERS", GetBTapeType()));
@@ -2895,6 +2980,9 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos510", GetMasterCompactMOS510Type()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", GetMasterCompactMOS511iType()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", GetMasterCompactMOSI510CType()));
+#if ENABLE_ELECTRON
+    all_tests.push_back(std::make_unique<PrinterTest>("printer.electron", GetElectronWithPlus1Type()));
+#endif
 
     all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.acorndfs", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770), FSType_DFS, "80.dsd"));
     all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "80.dsd"));
@@ -2936,6 +3024,11 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mosI510C", io_flags), GetMasterCompactMOSI510CType(), io_flags));
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos511i", io_flags), GetMasterCompactMOS511iType(), io_flags));
     }
+#if ENABLE_ELECTRON
+    all_tests.push_back(std::make_unique<MMFSDiskAccessTest>("disk.mmfs.electron", GetElectronWithPlus1Type()));
+#else
+    all_tests.push_back(std::make_unique<NullTest>("disk.mmfs.electron"));
+#endif
 
     std::set<std::string> names;
     for (const std::unique_ptr<Test> &test : all_tests) {
