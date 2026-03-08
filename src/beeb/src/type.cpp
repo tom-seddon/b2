@@ -1462,6 +1462,13 @@ bool Has1MHzBus(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 bool HasADC(BBCMicroTypeID type_id) {
+#if ENABLE_ELECTRON
+    if (IsElectron(type_id)) {
+        // For now, the Electron always has a Plus 1.
+        return true;
+    }
+#endif
+
     return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
 

@@ -448,7 +448,7 @@ bool BeebThread::JoystickButtonMessage::ThreadPrepare(std::shared_ptr<Message> *
         return false;
     }
 
-    if (!ts->beeb->HasADC()) {
+    if (!HasADC(ts->beeb->GetTypeID())) {
         // just ignore if this system has no ADC.
         ptr->reset();
         return true;
@@ -483,7 +483,7 @@ bool BeebThread::AnalogueChannelMessage::ThreadPrepare(std::shared_ptr<Message> 
         return false;
     }
 
-    if (!ts->beeb->HasADC()) {
+    if (!HasADC(ts->beeb->GetTypeID())) {
         // just ignore if this system has no ADC.
         ptr->reset();
         return true;

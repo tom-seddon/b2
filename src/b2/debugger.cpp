@@ -4003,34 +4003,55 @@ std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void DoBeebStateAnalogueValuesGui(const std::shared_ptr<const BBCMicroReadOnlyState> &beeb_state) {
+    ImGuiHeader("\"Analogue\" values");
+    for (int ch = 0; ch < 4; ++ch) {
+        uint16_t avalue = beeb_state->analogue_channel_values[ch];
+        ImGui::BulletText("%d: %-4u %s%03x %.5f", ch, avalue, g_hex, avalue, avalue / 65535.);
+    }
+}
+
 class ADCDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
         const ADC *adc = m_beeb_state->DebugGetADC();
-        if (!adc) {
-            ImGui::Text("No ADC");
+#if ENABLE_ELECTRON
+        const Plus1 *plus1 = m_beeb_state->DebugGetPlus1();
+#else
+        void *plus1 = nullptr;
+#endif
+        if (!adc && !plus1) {
+            ImGui::Text("No ADC ");
             return;
         }
 
-        ImGui::Text("ADC address: %s%04x", g_hex, m_beeb_state->type->adc_addr);
-
-        ImGuiHeader("\"Analogue\" values");
-        for (int ch = 0; ch < 4; ++ch) {
-            uint16_t avalue = m_beeb_state->analogue_channel_values[ch];
-            ImGui::BulletText("%d: %-4u %s%03x %.5f", ch, avalue, g_hex, avalue, avalue / 65535.);
+        if (adc) {
+            ImGui::Text("ADC address: %s%04x", g_hex, m_beeb_state->type->adc_addr);
         }
 
-        ImGuiHeader("Status");
-        ImGui::Text("Status: %3u %s%02x %s%s", adc->m_status.value, g_hex, adc->m_status.value, g_bin, BINARY_BYTE_STRINGS[adc->m_status.value]);
-        ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, adc->m_timer);
-        ImGui::BulletText("Sampled value: %u", adc->m_avalue);
-        ImGui::BulletText("Channel: %u", adc->m_status.bits.channel);
-        ImGui::BulletText("Flag: %u", adc->m_status.bits.flag);
-        ImGui::BulletText("Precision: %d bits", adc->m_status.bits.prec_10_bit ? 10 : 8);
-        ImGui::BulletText("MSB: %u", adc->m_status.bits.msb);
-        ImGui::BulletText("Busy: %s", BOOL_STR(!adc->m_status.bits.not_busy));
-        ImGui::BulletText("EOC: %s", BOOL_STR(!adc->m_status.bits.not_eoc));
+        DoBeebStateAnalogueValuesGui(m_beeb_state);
+
+        if (adc) {
+            ImGuiHeader("Status");
+            ImGui::Text("Status: %3u %s%02x %s%s", adc->m_status.value, g_hex, adc->m_status.value, g_bin, BINARY_BYTE_STRINGS[adc->m_status.value]);
+            ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, adc->m_timer);
+            ImGui::BulletText("Sampled value: %u", adc->m_avalue);
+            ImGui::BulletText("Channel: %u", adc->m_status.bits.channel);
+            ImGui::BulletText("Flag: %u", adc->m_status.bits.flag);
+            ImGui::BulletText("Precision: %d bits", adc->m_status.bits.prec_10_bit ? 10 : 8);
+            ImGui::BulletText("MSB: %u", adc->m_status.bits.msb);
+            ImGui::BulletText("Busy: %s", BOOL_STR(!adc->m_status.bits.not_busy));
+            ImGui::BulletText("EOC: %s", BOOL_STR(!adc->m_status.bits.not_eoc));
+        }
+
+#if ENABLE_ELECTRON
+        if (plus1) {
+            ImGuiHeader("Status");
+            Plus1Status status = plus1->GetStatus();
+            ImGui::BulletText("Busy: %s", BOOL_STR(status.bits.adc_busy));
+        }
+#endif
     }
 
   private:
@@ -5411,6 +5432,15 @@ class Plus1DebugWindow : public DebugUI {
             ImGui::TextUnformatted("No Plus 1");
             return;
         }
+
+        DoBeebStateAnalogueValuesGui(m_beeb_state);
+
+        ImGuiHeader("Status");
+        Plus1Status status = plus1->GetStatus();
+        ImGui::BulletText("Printer Busy: %s", BOOL_STR(status.bits.printer_busy));
+        ImGui::BulletText("ADC Busy: %s", BOOL_STR(status.bits.adc_busy));
+        ImGui::BulletText("Fire 1: %s", BOOL_STR(status.bits.fire1));
+        ImGui::BulletText("Fire 2: %s", BOOL_STR(status.bits.fire2));
     }
 
   protected:

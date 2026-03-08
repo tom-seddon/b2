@@ -470,6 +470,10 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
     m_state.serproc.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr);
     m_state.acia.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr, !!(m_trace_flags & BBCMicroTraceFlag_SerialExtra));
 
+#if ENABLE_ELECTRON
+    m_state.plus1.SetTrace(m_trace_flags & BBCMicroTraceFlag_Plus1 ? m_trace : nullptr);
+#endif
+
     this->UpdateCPUDataBusFn();
 }
 #endif
@@ -1548,7 +1552,7 @@ uint8_t BBCMicro::GetStaleDatabusByte() const {
         return m_state.last_fetched_video_byte;
 
 #if ENABLE_ELECTRON
-    case BBCMicroUpdateSystemType_Electron:
+    case BBCMicroUpdateSystemType_ElectronWithPlus1:
         return 0xff;
 #endif
     }
@@ -2968,13 +2972,6 @@ void BBCMicro::SetPrinterBuffer(PrinterBuffer *buffer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::HasADC() const {
-    return m_state.type->adc_addr != 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 uint32_t BBCMicro::GetUpdateFlags() const {
     return m_update_flags;
 }
@@ -3643,7 +3640,7 @@ void BBCMicro::InitStuff() {
         this->SetXFJIO(0xfc70, &Plus1::Read0, &m_state.plus1, &Plus1::Write0, &m_state.plus1);
         this->SetXFJIO(0xfc71, nullptr, nullptr, &Plus1::Write1, &m_state.plus1);
         this->SetXFJIO(0xfc72, &Plus1::Read2, &m_state.plus1, nullptr, nullptr);
-        this->SetXFJIO(0xfc71, nullptr, nullptr, &Plus1::Write3, &m_state.plus1);
+        this->SetXFJIO(0xfc73, nullptr, nullptr, &Plus1::Write3, &m_state.plus1);
 #if BBCMICRO_DEBUGGER
         this->SetDebugXFJIO(0xfc70, &Plus1::DebugRead0, &GetDebugMMIOReadPlus1Context);
         this->SetDebugXFJIO(0xfc72, &Plus1::DebugRead2, &GetDebugMMIOReadPlus1Context);
@@ -3855,6 +3852,7 @@ void BBCMicro::InitStuff() {
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
     m_state.adc.SetHandler(&ReadAnalogueChannel, this);
+    m_state.plus1.SetADCHandler(&ReadAnalogueChannel, this);
 
     // Page in current ROM bank and sort out ACCCON.
     this->InitPaging();
@@ -4248,7 +4246,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
 #if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
-        update_flags |= BBCMicroUpdateSystemType_Electron << BBCMicroUpdateFlag_UpdateSystemTypeShift;
+        update_flags |= BBCMicroUpdateSystemType_ElectronWithPlus1 << BBCMicroUpdateFlag_UpdateSystemTypeShift;
 
         if (m_state.electron_ula.misc.bits.motor) {
             update_flags |= BBCMicroUpdateFlag_NonFastPath;

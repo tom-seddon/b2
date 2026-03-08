@@ -465,7 +465,7 @@ void InitDefaultBeebConfigs() {
     {
         BeebConfig config;
 
-        config.name = "Electron";
+        config.name = "Electron/Plus 1";
         config.disc_interface = nullptr;
         config.type_id = BBCMicroTypeID_Electron;
         config.os.standard_rom = &BEEB_ROM_ELECTRON_MOS;

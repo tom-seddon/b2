@@ -46,6 +46,9 @@ EPNV(Serial, 1 << 17)
 EPNV(SerialExtra, 1 << 18)
 EPNV(6845Rows, 1 << 19)
 EPNV(6845Columns, 1 << 20)
+#if ENABLE_ELECTRON
+EPNV(Plus1, 1 << 21)
+#endif
 EEND_SERIALIZABLE()
 #undef ENAME
 
@@ -181,7 +184,7 @@ EPNV(BBCMicro, 0)
 EPNV(Master128, 1)
 EPNV(MasterCompact, 2)
 #if ENABLE_ELECTRON
-EPNV(Electron, 3)
+EPNV(ElectronWithPlus1, 3)
 #endif
 EEND()
 #undef ENAME

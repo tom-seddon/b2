@@ -11,7 +11,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Plus1::SetADCHandlerFn(ADCHandlerFn fn, void *context) {
+void Plus1::SetADCHandler(ADCHandlerFn fn, void *context) {
     m_adc_handler_fn = fn;
     m_adc_handler_context = context;
 }
@@ -28,7 +28,7 @@ void Plus1::Write0(void *plus1_, M6502Word addr, uint8_t value) {
     uint8_t adc_value;
     if (plus1->m_adc_handler_fn) {
         uint16_t full_adc_value = (*plus1->m_adc_handler_fn)(plus1->m_adc_channel, plus1->m_adc_handler_context);
-        adc_value = full_adc_value >> 8;
+        adc_value = full_adc_value >> 2; //ADC values are 10 bits
     } else {
         adc_value = ADCChannel::DEFAULT_VALUE;
     }
@@ -108,6 +108,15 @@ uint8_t Plus1::DebugRead2(const void *plus1_, M6502Word addr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_TRACE
+void Plus1::SetTrace(Trace *t) {
+    m_trace = t;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void Plus1::Update(PrinterBuffer *printer_buffer) {
     if (m_printer_byte_written) {
         if (printer_buffer) {
@@ -137,7 +146,7 @@ Plus1Status Plus1::GetStatus() const {
     status.bits.printer_busy = m_printer_busy_timer > 0;
 
     // ADC conversion time is 50 microsec.
-    status.bits.adc_eoc = m_adc_conversion_timer == 0;
+    status.bits.adc_busy = m_adc_conversion_timer > 0;
 
     // Joystick fire buttons.
     status.bits.fire2 = this->fire2;
