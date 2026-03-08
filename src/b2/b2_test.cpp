@@ -755,7 +755,7 @@ class TestFileExit : public DearImGuiTest {
         (void)beeb_window;
 
         ctx->SetRef("##MainMenuBar");
-        ctx->MenuClick("File/Exit/Confirm");
+        ctx->MenuClick("###file/###exit/###confirm");
     }
 
     void Run() override {
