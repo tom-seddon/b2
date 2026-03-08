@@ -2604,7 +2604,7 @@ class MMFSDiskAccessTest : public DiskAccessTest {
         }
 
         // ROM path is relative to etc/roms... bit of a bodge needed here.
-        m_type.rom_paths[0] = PathJoined("../mmfs_1_59_20250720_1149/MMFS/M/", rom_name);
+        m_type.rom_paths[0] = PathJoined("../mmfs_1_60_20251201_1642/MMFS/M/", rom_name);
     }
 
   protected:
