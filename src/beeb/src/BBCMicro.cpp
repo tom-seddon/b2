@@ -3574,6 +3574,31 @@ void BBCMicro::InitStuff() {
     }
 #endif
 
+    // Initialise ADJI first, so if there's a conflict, the disk interface gets
+    // priority.
+    if (m_state.init_flags & BBCMicroInitFlag_ADJI) {
+        uint8_t adji_addr = m_state.init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
+
+        // Sigh... looks like the cartridge port is XFJ on Electron. Can I do
+        // anything useful about this??
+
+        if (IsMasterSeries(m_state.type->type_id)) {
+            this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugIFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
+#endif
+        }
+
+#if ENABLE_ELECTRON
+        if (IsElectron(m_state.type->type_id)) {
+            this->SetXFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
+#if BBCMICRO_DEBUGGER
+            this->SetDebugXFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
+#endif
+        }
+#endif
+    }
+
     // I/O: disc interface
     if (m_state.disc_interface) {
         m_state.fdc.SetHandler(this);
@@ -3581,13 +3606,14 @@ void BBCMicro::InitStuff() {
         m_state.fdc.Set1772(!!(m_state.disc_interface->flags & DiscInterfaceFlag_1772));
 
         // Slightly ugly code that goes straight to the internal function. The
-        // Challenger FDC is in the XFJ area, so that has to be catered for.
+        // Challenger FDC and Plus 3 are in the XFJ area, so that has to be
+        // catered for.
         //
         // The scope is always XTU+ITU+XFJ. If there are any IFJ-based disk
         // interfaces - which I don't think there are? - b2 doesn't support them
         // anyway.
         uint8_t fdc_scope = BBCMicroMMIOScopeFlag_XFJ | BBCMicroMMIOScopeFlag_XTU | BBCMicroMMIOScopeFlag_ITU;
-        for (int i = 0; i < 4; ++i) {
+        for (uint16_t i = 0; i < m_state.disc_interface->fdc_num_addrs; ++i) {
             uint16_t addr = (uint16_t)(m_state.disc_interface->fdc_addr + i);
 
             this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], &m_state.fdc, g_WD1770_write_fns[i], &m_state.fdc, fdc_scope);
@@ -3596,16 +3622,19 @@ void BBCMicro::InitStuff() {
 #endif
         }
 
-        this->SetMMIOFnsInternal(m_state.disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, fdc_scope);
+        if (m_state.disc_interface->control_addr != 0) {
+            this->SetMMIOFnsInternal(m_state.disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, fdc_scope);
+
 #if BBCMICRO_DEBUGGER
-        // TODO: should really handle the read only case in a similar way with
-        // the ordinary I/O functions too.
-        if (m_state.disc_interface->flags & DiscInterfaceFlag_ControlIsReadOnly) {
-            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, nullptr, nullptr, fdc_scope);
-        } else {
-            this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, &DebugRead1770ControlRegister, &GetDebugMMIORead1770ControlRegisterContext, fdc_scope);
-        }
+            // TODO: should really handle the read only case in a similar way with
+            // the ordinary I/O functions too.
+            if (m_state.disc_interface->flags & DiscInterfaceFlag_ControlIsReadOnly) {
+                this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, nullptr, nullptr, fdc_scope);
+            } else {
+                this->SetDebugMMIOFnsInternal(m_state.disc_interface->control_addr, &DebugRead1770ControlRegister, &GetDebugMMIORead1770ControlRegisterContext, fdc_scope);
+            }
 #endif
+        }
 
         m_state.disc_interface->InstallExtraHardware(this, m_state.disc_interface_extra_hardware);
     } else {
@@ -3704,29 +3733,6 @@ void BBCMicro::InitStuff() {
             this->SetDebugSIO(addr + 3u, &ADC::DebugRead3, &GetDebugMMIOReadADCContext);
 #endif
         }
-    }
-
-    if (m_state.init_flags & BBCMicroInitFlag_ADJI) {
-        uint8_t adji_addr = m_state.init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
-
-        // Sigh... looks like the cartridge port is XFJ on Electron. Can I do
-        // anything useful about this??
-
-        if (IsMasterSeries(m_state.type->type_id)) {
-            this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
-#if BBCMICRO_DEBUGGER
-            this->SetDebugIFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
-#endif
-        }
-
-#if ENABLE_ELECTRON
-        if (IsElectron(m_state.type->type_id)) {
-            this->SetXFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
-#if BBCMICRO_DEBUGGER
-            this->SetDebugXFJIO(ADJI_ADDRESSES[adji_addr], &DebugReadADJI, &GetDebugMMIOReadADJIContext);
-#endif
-        }
-#endif
     }
 
 #if ENABLE_SCSI

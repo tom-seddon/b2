@@ -464,6 +464,14 @@ void ConfigsUI::DoEditConfigGui() {
                 config->adji_dip_switches = adji_dip_switches & 3;
                 edited = true;
             }
+
+            if (config->disc_interface) {
+                uint16_t adji_addr = BBCMicro::ADJI_ADDRESSES[config->adji_dip_switches];
+                if (config->disc_interface->control_addr == adji_addr ||
+                    adji_addr >= config->disc_interface->fdc_addr && adji_addr < config->disc_interface->fdc_addr + config->disc_interface->fdc_num_addrs) {
+                    ImGui::TextWrapped("This ADJI setting conflicts with the disc interface. The disc will take priority.");
+                }
+            }
         }
     }
 
@@ -583,6 +591,19 @@ void ConfigsUI::DoEditConfigGui() {
 
                     ImGui::EndPopup();
                 }
+            }
+        }
+    }
+#endif
+
+#if ENABLE_ELECTRON
+    if (IsElectron(config->type_id)) {
+        bool plus_3 = config->disc_interface == &DISC_INTERFACE_PLUS_3;
+        if (ImGui::Checkbox("Plus 3", &plus_3)) {
+            if (plus_3) {
+                config->disc_interface = &DISC_INTERFACE_PLUS_3;
+            } else {
+                config->disc_interface = nullptr;
             }
         }
     }
@@ -814,7 +835,8 @@ static const BeebROM *const MOS511i_SIDEWAYS_ROMS[] = {
 #if ENABLE_ELECTRON
 static const BeebROM *const ELECTRON_SIDEWAYS_ROMS[] = {
     &BEEB_ROM_BASIC2,
-    &BEEB_ROM_PLUS1,
+    &BEEB_ROM_PLUS_1,
+    &BEEB_ROM_PLUS_3_ADFS,
     nullptr,
 };
 #endif

@@ -79,8 +79,8 @@ extern const BeebROM BEEB_ROM_MOSI510C_MOS_ROM;
 
 #if ENABLE_ELECTRON
 extern const BeebROM BEEB_ROM_ELECTRON_MOS;
-extern const BeebROM BEEB_ROM_PLUS1;
-
+extern const BeebROM BEEB_ROM_PLUS_1;
+extern const BeebROM BEEB_ROM_PLUS_3_ADFS;
 #endif
 
 // all ROMs, one after the other, terminated by nullptr.

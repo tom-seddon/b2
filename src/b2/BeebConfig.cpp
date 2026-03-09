@@ -469,7 +469,22 @@ void InitDefaultBeebConfigs() {
         config.disc_interface = nullptr;
         config.type_id = BBCMicroTypeID_Electron;
         config.os.standard_rom = &BEEB_ROM_ELECTRON_MOS;
-        config.roms[12].standard_rom = &BEEB_ROM_PLUS1;
+        config.roms[12].standard_rom = &BEEB_ROM_PLUS_1;
+        config.roms[11].standard_rom = &BEEB_ROM_BASIC2;
+        config.feature_flags = BeebConfigFeatureFlag_Electron;
+
+        g_default_configs.push_back(config);
+    }
+
+    {
+        BeebConfig config;
+
+        config.name = "Electron/Plus 1/Plus 3";
+        config.disc_interface = &DISC_INTERFACE_PLUS_3;
+        config.type_id = BBCMicroTypeID_Electron;
+        config.os.standard_rom = &BEEB_ROM_ELECTRON_MOS;
+        config.roms[13].standard_rom = &BEEB_ROM_PLUS_3_ADFS;
+        config.roms[12].standard_rom = &BEEB_ROM_PLUS_1;
         config.roms[11].standard_rom = &BEEB_ROM_BASIC2;
         config.feature_flags = BeebConfigFeatureFlag_Electron;
 

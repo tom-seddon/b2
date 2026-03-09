@@ -7,6 +7,7 @@
 class BBCMicro;
 class DiscInterface;
 
+#include "conf.h"
 #include "roms.h"
 #include <string>
 #include <memory>
@@ -63,10 +64,11 @@ class DiscInterface {
     const std::string display_name;
     const StandardROM fs_rom;
     const uint16_t fdc_addr = 0;
+    const uint16_t fdc_num_addrs = 0;
     const uint16_t control_addr = 0;
     const uint32_t flags = 0;
 
-    DiscInterface(std::string config_name, std::string display_name, StandardROM fs_rom, uint16_t fdc_addr, uint16_t control_addr, uint32_t flags);
+    DiscInterface(std::string config_name, std::string display_name, StandardROM fs_rom, uint16_t fdc_addr, uint16_t fdc_num_addrs, uint16_t control_addr, uint32_t flags);
     virtual ~DiscInterface() = 0;
 
     //virtual DiscInterface *Clone() const = 0;
@@ -109,6 +111,11 @@ extern const DiscInterface &DISC_INTERFACE_WATFORD_DDB3;
 extern const DiscInterface &DISC_INTERFACE_OPUS;
 extern const DiscInterface &DISC_INTERFACE_CHALLENGER_256K;
 extern const DiscInterface &DISC_INTERFACE_CHALLENGER_512K;
+
+#if ENABLE_ELECTRON
+// This disc interface is used for the Electron.
+extern const DiscInterface &DISC_INTERFACE_PLUS_3;
+#endif
 
 // The list of disc interfaces that can be used with a model B. Array
 // ends with NULL.

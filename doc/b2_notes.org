@@ -7850,6 +7850,7 @@ Total time: 134.3 seconds
 - PAL timing :: https://martin.hinner.info/vga/pal.html
 - ULA schematics :: https://stardot.org.uk/forums/viewtopic.php?t=13818
 - Games that do stuff :: https://stardot.org.uk/forums/viewtopic.php?t=9940
+- ADFS disassembly :: https://github.com/hoglet67/ADFS130/
 
 ** mups.co.uk posts
 

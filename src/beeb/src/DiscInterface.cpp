@@ -44,13 +44,15 @@ DiscInterfaceExtraHardwareState ::~DiscInterfaceExtraHardwareState() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-DiscInterface::DiscInterface(std::string config_name_, std::string display_name_, StandardROM fs_rom_, uint16_t fdc_addr_, uint16_t control_addr_, uint32_t flags_)
+DiscInterface::DiscInterface(std::string config_name_, std::string display_name_, StandardROM fs_rom_, uint16_t fdc_addr_, uint16_t fdc_num_addrs_, uint16_t control_addr_, uint32_t flags_)
     : config_name(std::move(config_name_))
     , display_name(std::move(display_name_))
     , fs_rom(fs_rom_)
     , fdc_addr(fdc_addr_)
+    , fdc_num_addrs(fdc_num_addrs_)
     , control_addr(control_addr_)
     , flags(flags_) {
+    ASSERT(this->fdc_num_addrs % 4 == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -91,7 +93,7 @@ static const char ACORN_1770_CONFIG_NAME[] = "Acorn 1770";
 class DiscInterfaceAcorn1770 : public DiscInterface {
   public:
     DiscInterfaceAcorn1770()
-        : DiscInterface(ACORN_1770_CONFIG_NAME, "Acorn 1770", StandardROM_Acorn1770DFS, 0xfe84, 0xfe80, DiscInterfaceFlag_ControlIsReadOnly) {
+        : DiscInterface(ACORN_1770_CONFIG_NAME, "Acorn 1770", StandardROM_Acorn1770DFS, 0xfe84, 4, 0xfe80, DiscInterfaceFlag_ControlIsReadOnly) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -169,7 +171,7 @@ static const char WATFORD_1770_DDB2_CONFIG_NAME[] = "Watford 1770 (DDB2)";
 class DiscInterfaceWatford1770DDB2 : public DiscInterface {
   public:
     DiscInterfaceWatford1770DDB2()
-        : DiscInterface(WATFORD_1770_DDB2_CONFIG_NAME, "Watford 1770 (DDB2)", StandardROM_WatfordDDFS_DDB2, 0xfe84, 0xfe80, 0) {
+        : DiscInterface(WATFORD_1770_DDB2_CONFIG_NAME, "Watford 1770 (DDB2)", StandardROM_WatfordDDFS_DDB2, 0xfe84, 4, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -218,7 +220,7 @@ static const char WATFORD_1770_DDB3_CONFIG_NAME[] = "Watford 1770 (DDB3)";
 class DiscInterfaceWatford1770DDB3 : public DiscInterface {
   public:
     DiscInterfaceWatford1770DDB3()
-        : DiscInterface(WATFORD_1770_DDB3_CONFIG_NAME, "Watford 1770 (DDB3)", StandardROM_WatfordDDFS_DDB3, 0xfe84, 0xfe80, 0) {
+        : DiscInterface(WATFORD_1770_DDB3_CONFIG_NAME, "Watford 1770 (DDB3)", StandardROM_WatfordDDFS_DDB3, 0xfe84, 4, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -273,7 +275,7 @@ static const char OPUS_1770_CONFIG_NAME[] = "Opus 1770";
 class DiscInterfaceOpus1770 : public DiscInterface {
   public:
     DiscInterfaceOpus1770()
-        : DiscInterface(OPUS_1770_CONFIG_NAME, "Opus 1770", StandardROM_OpusDDOS, 0xfe80, 0xfe84, 0) {
+        : DiscInterface(OPUS_1770_CONFIG_NAME, "Opus 1770", StandardROM_OpusDDOS, 0xfe80, 4, 0xfe84, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -497,7 +499,7 @@ class DiscInterfaceChallenger : public DiscInterface {
 
   public:
     DiscInterfaceChallenger(std::string config_name, std::string display_name, size_t ram_size)
-        : DiscInterface(std::move(config_name), std::move(display_name), StandardROM_OpusChallenger, 0xfcf8, 0xfcfc, DiscInterfaceFlag_NoINTRQ | DiscInterfaceFlag_Uses1MHzBus) {
+        : DiscInterface(std::move(config_name), std::move(display_name), StandardROM_OpusChallenger, 0xfcf8, 4, 0xfcfc, DiscInterfaceFlag_NoINTRQ | DiscInterfaceFlag_Uses1MHzBus) {
         ASSERT(ram_size % CHALLENGER_CHUNK_SIZE == 0);
         m_num_state_chunks = ram_size / CHALLENGER_CHUNK_SIZE;
     }
@@ -588,7 +590,7 @@ static const char MASTER_128_CONFIG_NAME[] = "Master 128";
 class DiscInterfaceMaster128 : public DiscInterface {
   public:
     DiscInterfaceMaster128()
-        : DiscInterface(MASTER_128_CONFIG_NAME, "Master 128", StandardROM_None, 0xfe28, 0xfe24, DiscInterfaceFlag_ControlIsReadOnly) {
+        : DiscInterface(MASTER_128_CONFIG_NAME, "Master 128", StandardROM_None, 0xfe28, 4, 0xfe24, DiscInterfaceFlag_ControlIsReadOnly) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -640,6 +642,46 @@ const DiscInterface &DISC_INTERFACE_MASTER128 = DISC_INTERFACE_MASTER128_VALUE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_ELECTRON
+
+static const char PLUS_3_CONFIG_NAME[] = "Plus 3";
+
+class DiscInterfacePlus3 : public DiscInterface {
+  public:
+    DiscInterfacePlus3()
+        : DiscInterface(PLUS_3_CONFIG_NAME, "Plus 3", StandardROM_Plus3ADFS, 0xfcc4, 4, 0xfcc0, DiscInterfaceFlag_ControlIsReadOnly) {
+    }
+
+    DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
+        // https://github.com/stardot/elkulator/blob/6cab45aba68fc3d3bdaea4c28b5de4de0307e00e/src/1770.c#L84
+
+        DiscInterfaceControl control = {};
+
+        control.drive = value & 2 ? 1 : 0;
+        control.side = value & 4 ? 1 : 0;
+        control.dden = (value & 8) == 0;
+
+        return control;
+    }
+
+    uint8_t GetByteFromControl(DiscInterfaceControl control) const override {
+        (void)control;
+
+        return 0;
+    }
+
+  protected:
+  private:
+};
+
+static const DiscInterfacePlus3 DISC_INTERFACE_PLUS_3_VALUE;
+const DiscInterface &DISC_INTERFACE_PLUS_3 = DISC_INTERFACE_PLUS_3_VALUE;
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const DiscInterface *const MODEL_B_DISC_INTERFACES[] = {
     &DISC_INTERFACE_ACORN_1770,
     &DISC_INTERFACE_WATFORD_DDB2,
@@ -657,14 +699,20 @@ const DiscInterface *FindDiscInterfaceByConfigName(const char *config_name) {
     for (const DiscInterface *const *di_ptr = MODEL_B_DISC_INTERFACES; *di_ptr != NULL; ++di_ptr) {
         const DiscInterface *di = *di_ptr;
 
-        if (di->config_name == config_name) {
+        if (config_name == di->config_name) {
             return di;
         }
     }
 
-    if (DISC_INTERFACE_MASTER128.config_name == config_name) {
+    if (config_name == DISC_INTERFACE_MASTER128.config_name) {
         return &DISC_INTERFACE_MASTER128;
     }
+
+#if ENABLE_ELECTRON
+    if (config_name == DISC_INTERFACE_PLUS_3.config_name) {
+        return &DISC_INTERFACE_PLUS_3;
+    }
+#endif
 
     return nullptr;
 }
