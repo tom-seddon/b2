@@ -3773,16 +3773,34 @@ void BBCMicro::InitStuff() {
             }
         }
 
-        for (uint16_t a = 0xfee0; a < 0xff00; a += 8) {
-            this->SetSIO(a + 0, &ReadHostTube0, &m_state.parasite_tube, &WriteHostTube0Wrapper, this, !m_state.parasite_itu, !!m_state.parasite_itu);
-            for (uint16_t i = 0; i < 7; ++i) {
-                this->SetSIO(a + 1 + i, g_tube_host_read_fns[i], &m_state.parasite_tube, g_tube_host_write_fns[i], &m_state.parasite_tube, !m_state.parasite_itu, !!m_state.parasite_itu);
-            }
+#if ENABLE_ELECTRON
+        if (IsElectron(m_state.type->type_id)) {
+            for (uint16_t a = 0xfce0; a < 0xfcf0; a += 8) {
+                this->SetXFJIO(a + 0, &ReadHostTube0, &m_state.parasite_tube, &WriteHostTube0Wrapper, this);
+                for (uint16_t i = 0; i < 7; ++i) {
+                    this->SetXFJIO(a + 1 + i, g_tube_host_read_fns[i], &m_state.parasite_tube, g_tube_host_write_fns[i], &m_state.parasite_tube);
+                }
 #if BBCMICRO_DEBUGGER
-            for (uint16_t i = 0; i < 8; ++i) {
-                this->SetDebugSIO(a + i, g_tube_host_debug_read_fns[i], &GetDebugMMIOReadTubeContext, !m_state.parasite_itu, !!m_state.parasite_itu);
-            }
+                for (uint16_t i = 0; i < 8; ++i) {
+                    this->SetDebugXFJIO(a + i, g_tube_host_debug_read_fns[i], &GetDebugMMIOReadTubeContext);
+                }
 #endif
+            }
+        }
+#endif
+
+        if (IsBBCMicro(m_state.type->type_id)) {
+            for (uint16_t a = 0xfee0; a < 0xff00; a += 8) {
+                this->SetSIO(a + 0, &ReadHostTube0, &m_state.parasite_tube, &WriteHostTube0Wrapper, this, !m_state.parasite_itu, !!m_state.parasite_itu);
+                for (uint16_t i = 0; i < 7; ++i) {
+                    this->SetSIO(a + 1 + i, g_tube_host_read_fns[i], &m_state.parasite_tube, g_tube_host_write_fns[i], &m_state.parasite_tube, !m_state.parasite_itu, !!m_state.parasite_itu);
+                }
+#if BBCMICRO_DEBUGGER
+                for (uint16_t i = 0; i < 8; ++i) {
+                    this->SetDebugSIO(a + i, g_tube_host_debug_read_fns[i], &GetDebugMMIOReadTubeContext, !m_state.parasite_itu, !!m_state.parasite_itu);
+                }
+#endif
+            }
         }
     }
 

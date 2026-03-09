@@ -1498,7 +1498,6 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 
 #if ENABLE_ELECTRON
     case BBCMicroUpdateSystemType_ElectronWithPlus1:
-        flags &= ~BBCMicroUpdateFlag_Parasite;
         flags &= ~BBCMicroUpdateFlag_Mouse;
         flags &= ~BBCMicroUpdateFlag_Serial;
         break;

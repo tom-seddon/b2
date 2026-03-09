@@ -1424,6 +1424,12 @@ bool HasSpeech(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 bool HasTube(BBCMicroTypeID type_id) {
+#if ENABLE_ELECTRON
+    if (IsElectron(type_id)) {
+        return true;
+    }
+#endif
+
     return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
 
