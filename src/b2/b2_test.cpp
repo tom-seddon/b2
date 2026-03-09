@@ -895,6 +895,16 @@ class TestCopyOfDisk : public DearImGuiTest {
         , m_in_memory(in_memory) {
     }
 
+    bool IsHidden() const override {
+#if ENABLE_ELECTRON
+        if (m_disk->name == "Plus 3 Welcome Disc") {
+            return true;
+        }
+#endif
+
+        return false;
+    }
+
     std::string GetFullName() const override {
         std::string name = "b2ui.copy_of_disk." + std::to_string(m_drive) + "." + std::to_string(m_in_memory) + "." + PathGetName(m_disk->path);
         return name;
