@@ -125,6 +125,7 @@ void ConfigsUI::DoImGui() {
     if (ImGui::Button("Duplicate")) {
         if (m_config_index < BeebWindows::GetNumConfigs()) {
             Duplicate(&m_config_index);
+            m_edited = true;
         }
     }
 
@@ -133,6 +134,7 @@ void ConfigsUI::DoImGui() {
     if (ImGuiConfirmButton("Delete")) {
         if (m_config_index < BeebWindows::GetNumConfigs()) {
             BeebWindows::RemoveConfigByIndex(m_config_index);
+            m_edited = true;
             if (m_config_index >= BeebWindows::GetNumConfigs()) {
                 m_config_index = BeebWindows::GetNumConfigs() - 1;
             }
@@ -145,12 +147,14 @@ void ConfigsUI::DoImGui() {
 
     if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
         m_config_index = BeebWindows::MoveConfigUp(m_config_index);
+        m_edited = true;
     }
 
     ImGui::SameLine();
 
     if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
         m_config_index = BeebWindows::MoveConfigDown(m_config_index);
+        m_edited = true;
     }
 
     {
@@ -183,11 +187,13 @@ void ConfigsUI::DoImGui() {
         if (ImGui::BeginPopup(CONFIG_CONTEXT_POPUP)) {
             if (ImGui::MenuItem("Duplicate")) {
                 Duplicate(&m_config_index);
+                m_edited = true;
             }
 
             if (ImGui::BeginMenu("Delete")) {
                 if (ImGui::MenuItem("Confirm")) {
                     BeebWindows::RemoveConfigByIndex(m_config_index);
+                    m_edited = true;
                 }
                 ImGui::EndMenu();
             }
@@ -210,6 +216,7 @@ void ConfigsUI::DoImGui() {
             const BeebConfig *config = GetDefaultBeebConfigByIndex(i);
             if (ImGui::MenuItem(config->name.c_str())) {
                 BeebWindows::AddConfig(*config);
+                m_edited = true;
             }
         }
         ImGui::EndPopup();
