@@ -324,6 +324,7 @@ bool HasSerial(BBCMicroTypeID type_id);
 bool IsBBCMicro(BBCMicroTypeID type_id); //B/B+/IsMasterSeries - implies !IsElectron
 bool IsMasterSeries(BBCMicroTypeID type_id);
 bool CanHaveVideoNuLA(BBCMicroTypeID type_id);
+bool CanHaveSCSI(BBCMicroTypeID type_id);
 inline bool IsElectron(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_Electron;
 }

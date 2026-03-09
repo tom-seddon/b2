@@ -493,6 +493,17 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
+    if (IsElectron(config->type_id)) {
+        bool plus_3 = config->disc_interface == &DISC_INTERFACE_PLUS_3;
+        if (ImGui::Checkbox("Plus 3", &plus_3)) {
+            if (plus_3) {
+                config->disc_interface = &DISC_INTERFACE_PLUS_3;
+            } else {
+                config->disc_interface = nullptr;
+            }
+        }
+    }
+
     if (HasTube(config->type_id)) {
         ImGui::Separator();
 
@@ -536,7 +547,7 @@ void ConfigsUI::DoEditConfigGui() {
     }
 
 #if ENABLE_SCSI
-    if (Has1MHzBus(config->type_id)) {
+    if (CanHaveSCSI(config->type_id)) {
         ImGui::Separator();
 
         ImGuiHeader("SCSI##header");
@@ -597,17 +608,6 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 #endif
-
-    if (IsElectron(config->type_id)) {
-        bool plus_3 = config->disc_interface == &DISC_INTERFACE_PLUS_3;
-        if (ImGui::Checkbox("Plus 3", &plus_3)) {
-            if (plus_3) {
-                config->disc_interface = &DISC_INTERFACE_PLUS_3;
-            } else {
-                config->disc_interface = nullptr;
-            }
-        }
-    }
 
     ImGui::Separator();
 
