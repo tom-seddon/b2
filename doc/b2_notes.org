@@ -7965,7 +7965,8 @@ will interfere with this, but that's as expected..
 
 Can of worms.
 
-*** TODO Unavailable ROM slots in ConfigsUI
+*** DONE Unavailable ROM slots in ConfigsUI
+CLOSED: [2026-03-09 Mon 14:13]
 
 They have enabled up/down buttons, which is silly, especially as it
 messes stuff up if you click them.

@@ -380,12 +380,14 @@ void ConfigsUI::DoEditConfigGui() {
 
             uint32_t rom_edit_flags = rom_edit_sideways_rom_flags | bank_fixed_flags[bank];
 
-            if (bank_up[bank] < 16) {
-                rom_edit_flags |= ROMEditFlag_CanMoveUp;
-            }
+            if (!(rom_edit_flags & (ROMEditFlag_NotAccessibleWithoutROMBoard | ROMEditFlag_NotAvailable))) {
+                if (bank_up[bank] < 16) {
+                    rom_edit_flags |= ROMEditFlag_CanMoveUp;
+                }
 
-            if (bank_down[bank] < 16) {
-                rom_edit_flags |= ROMEditFlag_CanMoveDown;
+                if (bank_down[bank] < 16) {
+                    rom_edit_flags |= ROMEditFlag_CanMoveDown;
+                }
             }
 
             char caption[10];
