@@ -28,8 +28,6 @@ int IsNumericKeypadKey(BeebKey beeb_key) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_ELECTRON
-
 #define ELECTRON_KEYS(KEY) \
     KEY(Right)             \
     KEY(Copy)              \
@@ -120,5 +118,3 @@ BeebKey GetBeebKeyFromElectronKey(ElectronKey electron_key) {
         ELECTRON_KEYS(BEEB_KEY_FROM_ELECTRON_KEY)
     }
 }
-
-#endif

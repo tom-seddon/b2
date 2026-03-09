@@ -169,12 +169,10 @@ static std::string GetPathForStandardROM(StandardROM rom) {
     case StandardROM_MOS511i_INTERNATIONAL:
         return "MCompact/5.11i/international.rom";
 
-#if ENABLE_ELECTRON
     case StandardROM_Electron_MOS:
         return "ElectronMOS.rom";
     case StandardROM_Plus1:
         return "AP6v134.rom";
-#endif
     }
 }
 
@@ -386,7 +384,6 @@ static TestBBCType GetMasterCompactMOS511iType() {
     return type;
 }
 
-#if ENABLE_ELECTRON
 static TestBBCType GetElectronWithPlus1Type() {
     TestBBCType type;
 
@@ -399,7 +396,6 @@ static TestBBCType GetElectronWithPlus1Type() {
 
     return type;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -426,10 +422,8 @@ static BBCMicroTypeID GetBBCMicroTypeID(const TestBBCType &type) {
     case StandardROM_MOS511i_MOS:
         return BBCMicroTypeID_MasterCompact;
 
-#if ENABLE_ELECTRON
     case StandardROM_Electron_MOS:
         return BBCMicroTypeID_Electron;
-#endif
     }
 }
 
@@ -468,10 +462,8 @@ static std::vector<uint8_t> GetNVRAMContents(const TestBBCType &type) {
     default:
         TEST_FAIL("%s: unknown BBCMicroTypeID: %d (%s)", __func__, type_id, GetBBCMicroTypeIDEnumName(type_id));
         [[fallthrough]];
-#if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
         [[fallthrough]];
-#endif
     case BBCMicroTypeID_B:
         [[fallthrough]];
     case BBCMicroTypeID_BPlus:
@@ -2620,13 +2612,9 @@ class MMFSDiskAccessTest : public DiskAccessTest {
         std::string rom_name;
         if (IsMasterSeries(GetBBCMicroTypeID(m_type))) {
             rom_name = "MAMMFS.rom";
-        } //<--note
-#if ENABLE_ELECTRON //<--note
-        else if (IsElectron(GetBBCMicroTypeID(m_type))) {
+        } else if (IsElectron(GetBBCMicroTypeID(m_type))) {
             rom_name = "EMMFS.rom";
-        } //<--note
-#endif //<--note
-        else {
+        } else {
             rom_name = "MMFS.rom";
         }
 
@@ -2980,9 +2968,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos510", GetMasterCompactMOS510Type()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mos511i", GetMasterCompactMOS511iType()));
     all_tests.push_back(std::make_unique<PrinterTest>("printer.mosI510c", GetMasterCompactMOSI510CType()));
-#if ENABLE_ELECTRON
     all_tests.push_back(std::make_unique<PrinterTest>("printer.electron", GetElectronWithPlus1Type()));
-#endif
 
     all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.acorndfs", GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770), FSType_DFS, "80.dsd"));
     all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.b.sd.watford.ddb2", GetBBCBDiskType(&DISC_INTERFACE_WATFORD_DDB2), FSType_DFS, "80.dsd"));
@@ -3024,11 +3010,7 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mosI510C", io_flags), GetMasterCompactMOSI510CType(), io_flags));
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos511i", io_flags), GetMasterCompactMOS511iType(), io_flags));
     }
-#if ENABLE_ELECTRON
     all_tests.push_back(std::make_unique<MMFSDiskAccessTest>("disk.mmfs.electron", GetElectronWithPlus1Type()));
-#else
-    all_tests.push_back(std::make_unique<NullTest>("disk.mmfs.electron"));
-#endif
 
     std::set<std::string> names;
     for (const std::unique_ptr<Test> &test : all_tests) {

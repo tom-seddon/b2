@@ -4016,11 +4016,7 @@ class ADCDebugWindow : public DebugUI {
   protected:
     void DoImGui2() override {
         const ADC *adc = m_beeb_state->DebugGetADC();
-#if ENABLE_ELECTRON
         const Plus1 *plus1 = m_beeb_state->DebugGetPlus1();
-#else
-        void *plus1 = nullptr;
-#endif
         if (!adc && !plus1) {
             ImGui::Text("No ADC ");
             return;
@@ -4045,13 +4041,11 @@ class ADCDebugWindow : public DebugUI {
             ImGui::BulletText("EOC: %s", BOOL_STR(!adc->m_status.bits.not_eoc));
         }
 
-#if ENABLE_ELECTRON
         if (plus1) {
             ImGuiHeader("Status");
             Plus1Status status = plus1->GetStatus();
             ImGui::BulletText("Busy: %s", BOOL_STR(status.bits.adc_busy));
         }
-#endif
     }
 
   private:
@@ -5254,7 +5248,6 @@ std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_ELECTRON
 class ElectronULADebugWindow : public DebugUI {
   public:
     void DoImGui2() override {
@@ -5306,15 +5299,9 @@ class ElectronULADebugWindow : public DebugUI {
         ImGui::BulletText("High Tone: %s", BOOL_STR(irq.bits.high_tone));
     }
 };
-#endif
 
 std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window) {
-#if ENABLE_ELECTRON
     return CreateDebugUI<ElectronULADebugWindow>(beeb_window);
-#else
-    (void)beeb_window;
-    return nullptr;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -5424,7 +5411,6 @@ std::unique_ptr<SettingsUI> CreateTapeDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_ELECTRON
 class Plus1DebugWindow : public DebugUI {
   public:
     void DoImGui2() override {
@@ -5447,15 +5433,9 @@ class Plus1DebugWindow : public DebugUI {
   protected:
   private:
 };
-#endif
 
 std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *beeb_window) {
-#if ENABLE_ELECTRON
     return CreateDebugUI<Plus1DebugWindow>(beeb_window);
-#else
-    (void)beeb_window;
-    return nullptr;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -112,10 +112,8 @@ extern const DiscInterface &DISC_INTERFACE_OPUS;
 extern const DiscInterface &DISC_INTERFACE_CHALLENGER_256K;
 extern const DiscInterface &DISC_INTERFACE_CHALLENGER_512K;
 
-#if ENABLE_ELECTRON
 // This disc interface is used for the Electron.
 extern const DiscInterface &DISC_INTERFACE_PLUS_3;
-#endif
 
 // The list of disc interfaces that can be used with a model B. Array
 // ends with NULL.

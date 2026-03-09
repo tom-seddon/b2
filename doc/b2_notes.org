@@ -7981,6 +7981,26 @@ See also https://github.com/tom-seddon/b2/issues/286
 
 Alluded to here: https://pastraiser.com/computers/acornelectron/acornelectron.html
 
+*** DONE Notes regarding removing ENABLE_ELECTRON
+CLOSED: [2026-03-09 Mon 22:52]
+
+- Fix up TestCopyOfDisk::IsHidden
+
+*** TODO Add Plus 3 disk tests
+
+Should just be a question of adding more ADFS-style ones?
+
+*** TODO Move BBCMicro::ReadElectronULAn (etc.) to ElectronULA.cpp
+
+*** TODO Electron Stale data bus byte is wrong
+
+$FF is for reading the ULA.
+
+For reading page $FD/$FC, it's $FD/$FC. So presumably same case as the
+BBC B.
+
+See also: https://stardot.org.uk/forums/viewtopic.php?t=11615
+
 ** Updated Plus 1 ROMs
 
 Source from JGH's site, detokenized.

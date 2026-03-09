@@ -912,7 +912,6 @@ class BBCMicro : private WD1770Handler {
 #endif
     static uint8_t ReadSERPROC(void *m_, M6502Word a);
 
-#if ENABLE_ELECTRON
     // TODO: ideally, these will end up in ElectronULA.cpp in the long run
     static uint8_t ReadElectronULA0(void *m_, M6502Word a);
     static uint8_t ReadElectronULA1(void *m_, M6502Word a);
@@ -946,7 +945,6 @@ class BBCMicro : private WD1770Handler {
     static void WriteElectronULAD(void *m_, M6502Word a, uint8_t value);
     static void WriteElectronULAE(void *m_, M6502Word a, uint8_t value);
     static void WriteElectronULAF(void *m_, M6502Word a, uint8_t value);
-#endif
 
     uint8_t GetStaleDatabusByte() const;
 #if BBCMICRO_DEBUGGER
@@ -1041,9 +1039,7 @@ class BBCMicro : private WD1770Handler {
     static const void *GetDebugMMIOReadADCContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadACIAContext(const BBCMicroReadOnlyState *state);
     static const void *GetDebugMMIOReadADJIContext(const BBCMicroReadOnlyState *state);
-#if ENABLE_ELECTRON
     static const void *GetDebugMMIOReadPlus1Context(const BBCMicroReadOnlyState *state);
-#endif
 #endif
 
 #if BBCMICRO_DEBUGGER

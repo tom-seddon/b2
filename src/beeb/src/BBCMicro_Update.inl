@@ -49,19 +49,12 @@ uint64_t Get3MHzCycleCount(CycleCount n) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_ELECTRON
 static constexpr bool IsElectronUpdate(uint32_t update_flags) {
     return GetBBCMicroUpdateFlagsUpdateSystemType(update_flags) == BBCMicroUpdateSystemType_ElectronWithPlus1;
 }
-#endif
 
 static constexpr bool IsBBCMicroUpdate(uint32_t update_flags) {
-#if ENABLE_ELECTRON
     return !IsElectronUpdate(update_flags);
-#else
-    (void)update_flags;
-    return true;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -312,7 +305,6 @@ parasite_update_done:
 #endif
 
         // Update CPU.
-#if ENABLE_ELECTRON
         if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
             if (m_state.cpu_run_state == BBCMicroCPURunState_Running) {
                 result |= BBCMicroUpdateResultFlag_Host;
@@ -335,9 +327,7 @@ parasite_update_done:
                     }
                 }
             }
-        } else //<--note
-#endif         //<--note
-        {
+        } else {
             if (m_state.cpu_run_state != BBCMicroCPURunState_Running) {
                 // The only non-Running state is the 1 MHz cycle stretch case.
                 if (phi2_1MHz_trailing_edge) {
@@ -358,7 +348,6 @@ parasite_update_done:
             }
         }
 
-#if ENABLE_ELECTRON
         if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
             uint8_t ula_used_cycle = !phi2_1MHz_trailing_edge;
 
@@ -526,7 +515,6 @@ parasite_update_done:
                 }
             }
         }
-#endif
 
         if (m_state.cpu_run_state == BBCMicroCPURunState_Running) {
             // Update CPU data bus.
@@ -708,13 +696,9 @@ parasite_update_done:
                 if ((m_state.cpu.abus.w & 0xfff0) == 0xa000) {
                     this->UpdateMapperRegion(m_state.cpu.abus.w & 0xf);
                 }
-            } //<--note
-#if ENABLE_ELECTRON //<--note
-            else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ElectronKeyboard) {
+            } else if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ElectronKeyboard) {
                 // nothing to do at this point, but at least cover the case.
-            }
-#endif             //<--note
-            else { //<--note
+            } else {
                 static_assert(AlwaysFalseUInt<UPDATE_FLAGS>::value);
             }
 
@@ -792,7 +776,6 @@ parasite_update_done:
                         // regions, but (Electron only) the Electron keyboard
                         // bank could be mapped in.
                         //
-#if ENABLE_ELECTRON
                         if constexpr (GetBBCMicroUpdateFlagsUpdateROMType(UPDATE_FLAGS) == BBCMicroUpdateROMType_ElectronKeyboard) {
                             if (m_state.cpu.abus.b.h >= 0x80 && m_state.cpu.abus.b.h < 0xc0) {
                                 //
@@ -813,9 +796,7 @@ parasite_update_done:
                                 //
                                 m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
                             }
-                        } else //<--note
-#endif                         //<--note
-                        {
+                        } else {
                             //
                             // Handle ordinary memory read.
                             //
@@ -1006,12 +987,6 @@ parasite_update_done:
 #endif
             }
         }
-
-#if ENABLE_ELECTRON
-        //if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
-        //    ASSERT(false);
-        //}
-#endif
 
         if constexpr (IsBBCMicroUpdate(UPDATE_FLAGS)) {
             // Update video hardware.
@@ -1435,7 +1410,6 @@ parasite_update_done:
             }
         }
 
-#if ENABLE_ELECTRON
         if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
             // Update sound.
             if ((m_state.cycle_count.n & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
@@ -1445,7 +1419,6 @@ parasite_update_done:
                 result |= BBCMicroUpdateResultFlag_AudioUnit;
             }
         }
-#endif
     }
 
     ++m_state.cycle_count.n;
@@ -1496,12 +1469,10 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         flags &= ~BBCMicroUpdateFlag_Parasite;
         break;
 
-#if ENABLE_ELECTRON
     case BBCMicroUpdateSystemType_ElectronWithPlus1:
         flags &= ~BBCMicroUpdateFlag_Mouse;
         flags &= ~BBCMicroUpdateFlag_Serial;
         break;
-#endif
     }
 
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
@@ -1515,12 +1486,10 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         update_rom_type = (BBCMicroUpdateROMType)0;
     }
 
-#if ENABLE_ELECTRON
     if (update_rom_type == BBCMicroUpdateROMType_ElectronKeyboard && GetBBCMicroUpdateFlagsUpdateSystemType(flags) != BBCMicroUpdateSystemType_ElectronWithPlus1) {
         // Invalid combination. Treat as 16 KB.
         update_rom_type = BBCMicroUpdateROMType_16KB;
     }
-#endif
 
     flags = (flags & ~(BBCMicroUpdateFlag_UpdateROMTypeMask << BBCMicroUpdateFlag_UpdateROMTypeShift)) | (uint32_t)update_rom_type << BBCMicroUpdateFlag_UpdateROMTypeShift;
 

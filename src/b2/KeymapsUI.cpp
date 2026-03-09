@@ -462,7 +462,6 @@ static const Keycap g_m128_line5[] = {
 
 #undef END
 
-#if ENABLE_ELECTRON
 static const Keycap g_electron_line1[] = {
     Keycap(2, BeebKey_Escape, BeebKeySym_Escape),
     Keycap(2, BeebKey_1),
@@ -538,8 +537,6 @@ static const Keycap g_electron_line5[] = {
     Keycap(2, BeebKey_Space),
     {},
 };
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

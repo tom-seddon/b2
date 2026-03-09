@@ -11,9 +11,7 @@ EPNV(HostTube, 1 << 2)
 EPNV(ParasiteTube, 1 << 3)
 EPNV(SCSI, 1 << 4)
 EPNV(ACIA, 1 << 5)
-#if ENABLE_ELECTRON
 EPNV(ElectronULA, 1 << 6)
-#endif
 EEND()
 #undef ENAME
 

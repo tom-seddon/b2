@@ -268,12 +268,10 @@ void ConfigsUI::DoEditConfigGui() {
         rom_edit_os_rom_flags = ROMEditFlag_MasterCompactOSROMs;
         break;
 
-#if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
         rom_edit_sideways_rom_flags = ROMEditFlag_ElectronSidewaysROMs;
         rom_edit_os_rom_flags = ROMEditFlag_ElectronOSROMs;
         break;
-#endif
     }
 
     // set to true if *config was edited - as well as
@@ -331,14 +329,11 @@ void ConfigsUI::DoEditConfigGui() {
     uint8_t action_bank = 0;
     ROMEditFlag bank_fixed_flags[16] = {};
 
-#if ENABLE_ELECTRON
     if (IsElectron(config->type_id)) {
         bank_fixed_flags[ElectronULA::KEYBOARD_ROM_BANK_BASE + 0] = ROMEditFlag_NotAvailable;
         bank_fixed_flags[ElectronULA::KEYBOARD_ROM_BANK_BASE + 1] = ROMEditFlag_NotAvailable;
         bank_fixed_flags[ElectronULA::BASIC_ROM_BANK_BASE + 0] = ROMEditFlag_NotAvailable;
-    } else //<--note
-#endif     //<--note
-    {
+    } else {
         uint8_t sideways_roms_end = 16 - GetNumNonOSSidewaysROMs(config->os_rom_type);
         for (uint8_t i = sideways_roms_end; i < 16; ++i) {
             bank_fixed_flags[i] = ROMEditFlag_ContainedInOSROM;
@@ -603,7 +598,6 @@ void ConfigsUI::DoEditConfigGui() {
     }
 #endif
 
-#if ENABLE_ELECTRON
     if (IsElectron(config->type_id)) {
         bool plus_3 = config->disc_interface == &DISC_INTERFACE_PLUS_3;
         if (ImGui::Checkbox("Plus 3", &plus_3)) {
@@ -614,7 +608,6 @@ void ConfigsUI::DoEditConfigGui() {
             }
         }
     }
-#endif
 
     ImGui::Separator();
 
@@ -839,21 +832,17 @@ static const BeebROM *const MOS511i_SIDEWAYS_ROMS[] = {
     nullptr,
 };
 
-#if ENABLE_ELECTRON
 static const BeebROM *const ELECTRON_SIDEWAYS_ROMS[] = {
     &BEEB_ROM_BASIC2,
     &BEEB_ROM_PLUS_1,
     &BEEB_ROM_PLUS_3_ADFS,
     nullptr,
 };
-#endif
 
-#if ENABLE_ELECTRON
 static const BeebROM *const ELECTRON_MOS_ROMS[] = {
     &BEEB_ROM_ELECTRON_MOS,
     nullptr,
 };
-#endif
 
 static bool ImGuiROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
     for (size_t i = 0; b_roms[i]; ++i) {
@@ -1043,10 +1032,8 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.10 OS ROM", MOS510_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "PC 128 S OS ROM", MOSI510C_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.11i OS ROM", MOS511i_MOS_ROMS);
-#if ENABLE_ELECTRON
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ElectronSidewaysROMs, "Electron Sideways ROM", ELECTRON_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ElectronOSROMs, "Electron OS", ELECTRON_MOS_ROMS);
-#endif
 
         ImGui::EndPopup();
     }

@@ -690,7 +690,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB(const ROMType *rom_type
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_ELECTRON
 static inline uint8_t GetPhysicalElectronROMBank(uint8_t bank) {
     if (bank == ElectronULA::KEYBOARD_ROM_BANK_BASE + 1) {
         return ElectronULA::KEYBOARD_ROM_BANK_BASE + 0;
@@ -700,9 +699,7 @@ static inline uint8_t GetPhysicalElectronROMBank(uint8_t bank) {
         return bank;
     }
 }
-#endif
 
-#if ENABLE_ELECTRON
 static void GetMemBigPageTablesElectron(MemoryBigPageTables *tables,
                                         uint32_t *paging_flags,
                                         const PagingState &paging) {
@@ -737,9 +734,6 @@ static void GetMemBigPageTablesElectron(MemoryBigPageTables *tables,
     *paging_flags = 0;
 }
 
-#endif
-
-#if ENABLE_ELECTRON
 #if BBCMICRO_DEBUGGER
 static void ApplyDSOElectron(PagingState *paging, uint32_t dso) {
     ApplyROMDSO(paging, dso);
@@ -747,9 +741,7 @@ static void ApplyDSOElectron(PagingState *paging, uint32_t dso) {
     paging->romsel.b_bits.pr = GetPhysicalElectronROMBank(paging->romsel.b_bits.pr);
 }
 #endif
-#endif
 
-#if ENABLE_ELECTRON
 #if BBCMICRO_DEBUGGER
 static uint32_t GetDSOElectron(const PagingState &paging) {
     uint32_t dso = 0;
@@ -762,9 +754,7 @@ static uint32_t GetDSOElectron(const PagingState &paging) {
     return dso;
 }
 #endif
-#endif
 
-#if ENABLE_ELECTRON
 static std::vector<BigPageMetadata> GetBigPagesMetadataElectron(const ROMType *rom_types) {
     std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types, 0);
 
@@ -786,7 +776,6 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataElectron(const ROMType *r
 
     return big_pages;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1200,9 +1189,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
 
     switch (type->type_id) {
     case BBCMicroTypeID_B:
-#if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
-#endif
         type->ram_buffer_size = 32768;
         break;
 
@@ -1213,9 +1200,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
 
     switch (type->type_id) {
     case BBCMicroTypeID_MasterCompact:
-#if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
-#endif
         type->default_disc_drive_type = DiscDriveType_90mm;
         break;
 
@@ -1251,13 +1236,11 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         type->host_io_flags_mask = HostIOFlag_IFJ | HostIOFlag_ITU | HostIOFlag_TST;
         break;
 
-#if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
         type->big_pages_metadata = GetBigPagesMetadataElectron(type->rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPageTablesElectron;
         type->host_io_flags_mask = 0;
         break;
-#endif
     }
 
 #if BBCMICRO_DEBUGGER
@@ -1313,15 +1296,12 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         type->get_dso_fn = &GetDSOB;
         break;
 
-#if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
         type->dso_mask = (BBCMicroDebugStateOverride_OverrideROM |
                           BBCMicroDebugStateOverride_ROM);
         type->apply_dso_fn = &ApplyDSOElectron;
         type->get_dso_fn = &GetDSOElectron;
         break;
-
-#endif
 
     case BBCMicroTypeID_BPlus:
         type->dso_mask = (BBCMicroDebugStateOverride_ROM |
@@ -1424,13 +1404,7 @@ bool HasSpeech(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 bool HasTube(BBCMicroTypeID type_id) {
-#if ENABLE_ELECTRON
-    if (IsElectron(type_id)) {
-        return true;
-    }
-#endif
-
-    return IsB(type_id) || type_id == BBCMicroTypeID_Master;
+    return IsB(type_id) || type_id == BBCMicroTypeID_Master || IsElectron(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1441,11 +1415,9 @@ bool HasCartridges(BBCMicroTypeID type_id) {
         return true;
     }
 
-#if ENABLE_ELECTRON
     if (type_id == BBCMicroTypeID_Electron) {
         return true;
     }
-#endif
 
     return false;
 }
@@ -1468,12 +1440,10 @@ bool Has1MHzBus(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 bool HasADC(BBCMicroTypeID type_id) {
-#if ENABLE_ELECTRON
     if (IsElectron(type_id)) {
         // For now, the Electron always has a Plus 1.
         return true;
     }
-#endif
 
     return IsB(type_id) || type_id == BBCMicroTypeID_Master;
 }
@@ -1540,10 +1510,8 @@ const char *GetModelName(BBCMicroTypeID type_id) {
     case BBCMicroTypeID_MasterCompact:
         return "Master Compact";
 
-#if ENABLE_ELECTRON
     case BBCMicroTypeID_Electron:
         return "Electron";
-#endif
     }
 }
 

@@ -181,9 +181,6 @@ static constexpr double CORRECT_ASPECT_RATIO_X_SCALE = (double)CORRECT_ASPECT_RA
 // SCSI is good.
 #define ENABLE_SCSI 1
 
-// Electron is WIP.
-#define ENABLE_ELECTRON 1
-
 // Tape is super WIP, and non-functional.
 #define ENABLE_TAPE 0
 

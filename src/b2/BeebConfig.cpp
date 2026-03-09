@@ -121,9 +121,7 @@ void BeebConfig::ResetNVRAM() {
             [[fallthrough]];
         case BBCMicroTypeID_B:
         case BBCMicroTypeID_BPlus:
-#if ENABLE_ELECTRON
         case BBCMicroTypeID_Electron:
-#endif
             goto BeebConfigNVRAMType_None;
 
         case BBCMicroTypeID_Master:
@@ -461,7 +459,6 @@ void InitDefaultBeebConfigs() {
         g_default_configs.push_back(config);
     }
 
-#if ENABLE_ELECTRON
     {
         BeebConfig config;
 
@@ -490,7 +487,6 @@ void InitDefaultBeebConfigs() {
 
         g_default_configs.push_back(config);
     }
-#endif
 
     for (BeebConfig &config : g_default_configs) {
         config.ResetNVRAM();

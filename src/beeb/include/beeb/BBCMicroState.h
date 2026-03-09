@@ -219,10 +219,8 @@ class BBCMicroState {
     bool DebugGetSerial(const SERPROC **serproc_ptr, const MC6850 **mc6850_ptr) const;
     void DebugGetMemoryFaultMasks(uint8_t *ram_and_ptr, uint8_t *ram_or_ptr) const;
     void DebugGetCPURunState(BBCMicroCPURunState *cpu_run_state_ptr, bool *resetting_ptr) const;
-#if ENABLE_ELECTRON
     const ElectronULA *DebugGetElectronULA() const;
     const Plus1 *DebugGetPlus1() const;
-#endif
     const VideoULA *DebugGetVideoULA() const;
     const CRTC *DebugGetCRTC() const;
     const R6522 *DebugGetSystemVIA() const;
@@ -415,10 +413,8 @@ class BBCMicroState {
     uint8_t serproc_update_counter;
 
   public:
-#if ENABLE_ELECTRON
     ElectronULA electron_ula;
     Plus1 plus1;
-#endif
 
 #if ENABLE_TAPE
     std::shared_ptr<const UEFReader> tape;

@@ -344,7 +344,6 @@ void BBCMicroState::DebugGetCPURunState(BBCMicroCPURunState *cpu_run_state_ptr, 
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-#if ENABLE_ELECTRON
 const ElectronULA *BBCMicroState::DebugGetElectronULA() const {
     if (IsElectron(this->type->type_id)) {
         return &this->electron_ula;
@@ -353,13 +352,11 @@ const ElectronULA *BBCMicroState::DebugGetElectronULA() const {
     }
 }
 #endif
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-#if ENABLE_ELECTRON
 const Plus1 *BBCMicroState::DebugGetPlus1() const {
     if (IsElectron(this->type->type_id)) {
         return &this->plus1;
@@ -367,7 +364,6 @@ const Plus1 *BBCMicroState::DebugGetPlus1() const {
         return nullptr;
     }
 }
-#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////

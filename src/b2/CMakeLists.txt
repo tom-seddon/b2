@@ -485,7 +485,7 @@ add_b2_test_literal_category(b2.LoadUEF)
 
 foreach(DRIVE 0 1)
   foreach(MEM 0 1)
-    foreach(DISK 80.ssd 80.dsd ads.ads adm.adm adl.adl Welcome.ssd MasterWelcome.adl CompactWelcome.adl PC128SWelcome.adl)
+    foreach(DISK 80.ssd 80.dsd ads.ads adm.adm adl.adl Welcome.ssd MasterWelcome.adl CompactWelcome.adl PC128SWelcome.adl Plus3Welcome.adm)
       add_b2_test_literal_category(b2ui.copy_of_disk.${DRIVE}.${MEM}.${DISK})
     endforeach()
   endforeach()

@@ -1,8 +1,6 @@
 #include <shared/system.h>
 #include <beeb/Plus1.h>
 
-#if ENABLE_ELECTRON
-
 #include <6502/6502.h>
 #include <shared/debug.h>
 #include <beeb/BBCMicro.h>
@@ -158,4 +156,5 @@ Plus1Status Plus1::GetStatus() const {
     return status;
 }
 
-#endif
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

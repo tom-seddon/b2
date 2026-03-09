@@ -4,8 +4,6 @@
 #include <beeb/video.h>
 #include <shared/debug.h>
 
-#if ENABLE_ELECTRON
-
 #include <shared/enum_def.h>
 #include <beeb/ElectronULA.inl>
 #include <shared/enum_end.h>
@@ -167,5 +165,3 @@ const uint8_t ElectronULA::NUM_ROWS[2] = {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#endif

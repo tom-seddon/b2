@@ -642,8 +642,6 @@ const DiscInterface &DISC_INTERFACE_MASTER128 = DISC_INTERFACE_MASTER128_VALUE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_ELECTRON
-
 static const char PLUS_3_CONFIG_NAME[] = "Plus 3";
 
 class DiscInterfacePlus3 : public DiscInterface {
@@ -677,8 +675,6 @@ class DiscInterfacePlus3 : public DiscInterface {
 static const DiscInterfacePlus3 DISC_INTERFACE_PLUS_3_VALUE;
 const DiscInterface &DISC_INTERFACE_PLUS_3 = DISC_INTERFACE_PLUS_3_VALUE;
 
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -708,11 +704,9 @@ const DiscInterface *FindDiscInterfaceByConfigName(const char *config_name) {
         return &DISC_INTERFACE_MASTER128;
     }
 
-#if ENABLE_ELECTRON
     if (config_name == DISC_INTERFACE_PLUS_3.config_name) {
         return &DISC_INTERFACE_PLUS_3;
     }
-#endif
 
     return nullptr;
 }

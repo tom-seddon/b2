@@ -89,12 +89,8 @@ static constexpr BigPageIndex::Type NUM_PARASITE_ROM_BIG_PAGES = 1;
 //static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = {SECOND_PARASITE_BIG_PAGE_INDEX.i + NUM_SECOND_PARASITE_BIG_PAGES.i};
 //static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = {1};
 
-#if ENABLE_ELECTRON
 static constexpr BigPageIndex ELECTRON_KEYBOARD_BIG_PAGE_INDEX = {PARASITE_ROM_BIG_PAGE_INDEX.i + NUM_PARASITE_ROM_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_ELECTRON_KEYBOARD_BIG_PAGES = 4;
-#else
-static constexpr BigPageIndex::Type NUM_ELECTRON_KEYBOARD_BIG_PAGES = 0;
-#endif
 
 static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_IO_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES + NUM_ELECTRON_KEYBOARD_BIG_PAGES;
 
@@ -328,13 +324,9 @@ bool HasSerial(BBCMicroTypeID type_id);
 bool IsBBCMicro(BBCMicroTypeID type_id); //B/B+/IsMasterSeries - implies !IsElectron
 bool IsMasterSeries(BBCMicroTypeID type_id);
 bool CanHaveVideoNuLA(BBCMicroTypeID type_id);
-
-#if ENABLE_ELECTRON
-// IsElectron implies !IsBBCMicro
 inline bool IsElectron(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_Electron;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

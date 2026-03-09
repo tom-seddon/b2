@@ -63,9 +63,7 @@ extern const Disc WELCOME_DISKS[] = {
     {"Master 128 Welcome Disc", "MasterWelcome.adl", &ADL_GEOMETRY, false},
     {"Master Compact Welcome Disc", "CompactWelcome.adl", &ADL_GEOMETRY, false},
     {"Olivetti PC 128 S Welcome Disc", "PC128SWelcome.adl", &ADL_GEOMETRY, false},
-#if ENABLE_ELECTRON
     {"Plus 3 Welcome Disc", "Plus3Welcome.adm", &ADM_GEOMETRY, false},
-#endif
 };
 extern const size_t NUM_WELCOME_DISKS = sizeof WELCOME_DISKS / sizeof WELCOME_DISKS[0];
 
