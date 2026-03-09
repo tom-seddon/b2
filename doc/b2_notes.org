@@ -7845,11 +7845,11 @@ Total time: 134.3 seconds
 
 * Electron
 
-Stardot discussion of the ROM paging behaviour: https://stardot.org.uk/forums/viewtopic.php?t=27791
-
-Some ULA notes: https://acorn.huininga.nl/pub/docs/txtfiles/The%20Acorn%20Electron%20ULA.txt
-
-PAL timing: https://martin.hinner.info/vga/pal.html
+- Stardot discussion of the ROM paging behaviour :: https://stardot.org.uk/forums/viewtopic.php?t=27791
+- Some ULA notes :: https://acorn.huininga.nl/pub/docs/txtfiles/The%20Acorn%20Electron%20ULA.txt
+- PAL timing :: https://martin.hinner.info/vga/pal.html
+- ULA schematics :: https://stardot.org.uk/forums/viewtopic.php?t=13818
+- Games that do stuff :: https://stardot.org.uk/forums/viewtopic.php?t=9940
 
 ** mups.co.uk posts
 
@@ -7872,7 +7872,6 @@ rows. This should be transparent to software, as it doesn't affect the
 timing of the display or RTC interrupts. I'm happy to rever this is
 anyone complains!
 #+end_quote
-
 
 
 ** ROM banks
@@ -7898,7 +7897,6 @@ anyone complains!
 |    2 | 2 | 0010 |          |
 |    1 | 1 | 0001 |          |
 |    0 | 0 | 0000 |          |
-
 
 
 ** TODOs for GitHub
@@ -7977,6 +7975,10 @@ The values are 10 bit right from the source, as per the Beeb's ADC -
 isn't that something that should be done further down the pipeline?
 
 See also https://github.com/tom-seddon/b2/issues/286
+
+*** TODO Fix screen display address handling
+
+Alluded to here: https://pastraiser.com/computers/acornelectron/acornelectron.html
 
 ** Updated Plus 1 ROMs
 
