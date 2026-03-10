@@ -7966,6 +7966,9 @@ will interfere with this, but that's as expected..
 
 Can of worms.
 
+Evidence that https://github.com/tom-seddon/b2/issues/330 is worth
+prioritizing?
+
 *** DONE Unavailable ROM slots in ConfigsUI
 CLOSED: [2026-03-09 Mon 14:13]
 
@@ -8006,6 +8009,7 @@ See also: https://stardot.org.uk/forums/viewtopic.php?t=11615
 *** TODO NMI support
 
 Ask Dave H about the new disk interface that supports this.
+
 
 ** Updated Plus 1 ROMs
 
