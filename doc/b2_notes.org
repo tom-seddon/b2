@@ -7902,7 +7902,8 @@ anyone complains!
 
 ** TODOs for GitHub
 
-*** TODO Too many update fns
+*** DONE Too many update fns
+CLOSED: [2026-03-10 Tue 01:06]
 
 : ms_update_mfns0: 664/2048 unique BBCMicro::UpdateTemplated instantiations (1.06x ideal)
 

@@ -201,8 +201,8 @@ EEND()
 
 #define ENAME BBCMicroUpdateFlag
 EBEGIN_DERIVED(uint32_t)
-// Mouse connected.
-EPNV(Mouse, 1 << 0)
+// If set, check for breakpoints wwhile running.
+EPNV(Debug, 1 << 0)
 
 // Some non-fast path cases:
 //
@@ -221,8 +221,8 @@ EPNV(ParallelPrinter, 1 << 2)
 // Tracing active.
 EPNV(Trace, 1 << 3)
 
-// 6502 2nd processor connected.
-EPNV(Parasite, 1 << 4)
+// Mouse connected.
+EPNV(Mouse, 1 << 4)
 
 // Additional rarer non-fast path cases:
 //
@@ -245,8 +245,8 @@ EQPNV(UpdateSystemTypeMask, 3)
 // out of every 4.
 EPNV(Parasite3MHzExternal, 1 << 8)
 
-// If set, check for breakpoints wwhile running.
-EPNV(Debug, 1 << 9)
+// 6502 2nd processor connected.
+EPNV(Parasite, 1 << 9)
 
 EQPNV(UpdateROMTypeShift, 10)
 EQPNV(UpdateROMTypeMask, 15)
