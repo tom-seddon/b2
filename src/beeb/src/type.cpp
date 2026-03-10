@@ -8,6 +8,7 @@
 #include <map>
 #include <inttypes.h>
 #include <beeb/ElectronULA.h>
+#include <beeb/keys.h>
 
 #include <shared/enum_def.h>
 #include <beeb/type.inl>
@@ -1185,6 +1186,15 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         type->m6502_config = &M6502_cmos6502_config;
     } else {
         type->m6502_config = &M6502_nmos6502_config;
+    }
+
+    if (IsElectron(type->type_id)) {
+        type->num_keyboard_rows = 4;
+        type->get_key_name_fn = &GetElectronKeyEnumName;
+
+    } else {
+        type->num_keyboard_rows = 8;
+        type->get_key_name_fn = &GetBeebKeyEnumName;
     }
 
     switch (type->type_id) {

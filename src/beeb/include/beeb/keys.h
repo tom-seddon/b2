@@ -20,6 +20,13 @@
 
 int IsNumericKeypadKey(BeebKey beeb_key);
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// There's deliberately 2 ways of dealing with Electron keys: treat them as
+// their own thing (e.g., as the debugger does, when using the type-specific key
+// name fn), or treat them as a subset of the Beeb keys (e.g., as the Dear ImGui
+// UI does) - as would be convenient.
 ElectronKey GetElectronKeyFromBeebKey(BeebKey beeb_key);
 BeebKey GetBeebKeyFromElectronKey(ElectronKey electron_key);
 

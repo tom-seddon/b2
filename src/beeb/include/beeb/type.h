@@ -294,7 +294,13 @@ struct BBCMicroType {
 
     ROMType rom_types[16] = {};
 
-    uint8_t host_io_flags_mask;
+    uint8_t host_io_flags_mask = 0;
+
+    uint8_t num_keyboard_rows = 0;
+
+    // value is column|row<<4.
+    typedef const char *(*GetKeyNameFn)(int8_t value);
+    GetKeyNameFn get_key_name_fn = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -307,7 +313,8 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
 
 // A few per-type ID fixed properties.
 //
-// TODO: could/should probably make these table-driven?
+// TODO: could/should probably make these table-driven? But I've just let this
+// stuff build up, as it should be an easy fix.
 bool HasNVRAM(BBCMicroTypeID type_id);
 bool CanDisplayTeletextAt3C00(BBCMicroTypeID type_id);
 bool HasNumericKeypad(BBCMicroTypeID type_id);

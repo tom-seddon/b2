@@ -7913,7 +7913,8 @@ made of the 6845 output :(
 
 Would be nice if the short sync/long sync could be dealt with?
 
-*** TODO KeyboardDebugWindow doesn't translate BeebKey
+*** DONE KeyboardDebugWindow doesn't translate BeebKey
+CLOSED: [2026-03-10 Tue 00:21]
 
 More bookkeeping required
 
@@ -8000,6 +8001,10 @@ For reading page $FD/$FC, it's $FD/$FC. So presumably same case as the
 BBC B.
 
 See also: https://stardot.org.uk/forums/viewtopic.php?t=11615
+
+*** TODO NMI support
+
+Ask Dave H about the new disk interface that supports this.
 
 ** Updated Plus 1 ROMs
 

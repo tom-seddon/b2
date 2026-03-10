@@ -4103,16 +4103,19 @@ class KeyboardDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        ImGuiHeader("Keyboard State");
-        ImGui::Text("Auto scan: %s", BOOL_STR(m_beeb_state->addressable_latch.bits.not_kb_write));
-        ImGui::Text("Auto scan column: %u (0x%x)", m_beeb_state->key_scan_column, m_beeb_state->key_scan_column);
+        if (IsBBCMicro(m_beeb_state->type->type_id)) {
+            ImGuiHeader("Keyboard State");
+            ImGui::Text("Auto scan: %s", BOOL_STR(m_beeb_state->addressable_latch.bits.not_kb_write));
+            ImGui::Text("Auto scan column: %u (0x%x)", m_beeb_state->key_scan_column, m_beeb_state->key_scan_column);
+        }
+
         ImGuiHeader("Keyboard Matrix");
 
         ImGui::TextUnformatted("   | 0 1 2 3 4 5 6 7 8 9 A B C D E F");
         ImGui::TextUnformatted("---+--------------------------------");
 
         char text[100];
-        for (uint8_t row = 0; row < 8; ++row) {
+        for (uint8_t row = 0, num_rows = m_beeb_state->type->num_keyboard_rows; row < num_rows; ++row) {
             char *p = text;
             *p++ = (char)('0' + row);
             *p++ = '_';
@@ -4128,13 +4131,14 @@ class KeyboardDebugWindow : public DebugUI {
         }
 
         ImGuiHeader("Keys Pressed");
+        BBCMicroType::GetKeyNameFn get_key_name_fn = m_beeb_state->type->get_key_name_fn;
         bool any = false;
         for (uint8_t row = 1; row < 8; ++row) {
             for (uint8_t col = 0; col < 16; ++col) {
                 if (m_beeb_state->key_columns[col] & 1 << row) {
                     uint8_t code = row << 4 | col;
                     ASSERT(!(code & 0x80));
-                    ImGui::BulletText("%s%02x: %s", g_hex, code, GetBeebKeyEnumName((int8_t)code));
+                    ImGui::BulletText("%s%02x: %s", g_hex, code, (*get_key_name_fn)((int8_t)code));
                     any = true;
                 }
             }
