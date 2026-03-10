@@ -470,7 +470,8 @@ void ConfigsUI::DoEditConfigGui() {
             if (config->disc_interface) {
                 uint16_t adji_addr = BBCMicro::ADJI_ADDRESSES[config->adji_dip_switches];
                 if (config->disc_interface->control_addr == adji_addr ||
-                    adji_addr >= config->disc_interface->fdc_addr && adji_addr < config->disc_interface->fdc_addr + config->disc_interface->fdc_num_addrs) {
+                    (adji_addr >= config->disc_interface->fdc_addr &&
+                     adji_addr < config->disc_interface->fdc_addr + config->disc_interface->fdc_num_addrs)) {
                     ImGui::TextWrapped("This ADJI setting conflicts with the disc interface. The disc will take priority.");
                 }
             }
