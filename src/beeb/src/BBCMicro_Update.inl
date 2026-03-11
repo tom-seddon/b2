@@ -522,7 +522,7 @@ parasite_update_done:
             if (phi2_1MHz_trailing_edge) {
                 if (m_state.cpu_run_state == BBCMicroCPURunState_1MHzAccess) {
                     m_state.cpu_run_state = BBCMicroCPURunState_Electron1MHzAccess2;
-                }else if(m_state.cpu_run_state == BBCMicroCPURunState_Electron1MHzAccess2) {
+                } else if (m_state.cpu_run_state == BBCMicroCPURunState_Electron1MHzAccess2) {
                     m_state.cpu_run_state = BBCMicroCPURunState_Running;
                 }
             }
