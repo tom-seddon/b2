@@ -313,7 +313,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
 
 // A few per-type ID fixed properties.
 //
-// TODO: could/should probably make these table-driven? But I've just let this
+// TODO: could/should probably make these table-driven? I've just let this
 // stuff build up, as it should be an easy fix.
 bool HasNVRAM(BBCMicroTypeID type_id);
 bool CanDisplayTeletextAt3C00(BBCMicroTypeID type_id);
@@ -328,6 +328,7 @@ bool HasIndependentMOSView(BBCMicroTypeID type_id);
 const char *GetModelName(BBCMicroTypeID type_id);
 bool Has4ROMSlots(BBCMicroTypeID type_id);
 bool HasSerial(BBCMicroTypeID type_id);
+bool CanHaveSerial(BBCMicroTypeID type_id);
 bool IsBBCMicro(BBCMicroTypeID type_id); //B/B+/IsMasterSeries - implies !IsElectron
 bool IsMasterSeries(BBCMicroTypeID type_id);
 bool CanHaveVideoNuLA(BBCMicroTypeID type_id);

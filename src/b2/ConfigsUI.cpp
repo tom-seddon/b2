@@ -478,8 +478,10 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (ImGui::Checkbox("Mouse", &config->mouse)) {
-        edited = true;
+    if (HasUserPort(config->type_id)) {
+        if (ImGui::Checkbox("Mouse", &config->mouse)) {
+            edited = true;
+        }
     }
 
     if (Has4ROMSlots(config->type_id)) {
@@ -488,9 +490,11 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (!HasSerial(config->type_id)) {
-        if (ImGui::Checkbox("Serial", &config->serial)) {
-            m_edited = true;
+    if (CanHaveSerial(config->type_id)) {
+        if (!HasSerial(config->type_id)) {
+            if (ImGui::Checkbox("Serial", &config->serial)) {
+                m_edited = true;
+            }
         }
     }
 
