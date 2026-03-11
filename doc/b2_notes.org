@@ -7937,7 +7937,8 @@ Maybe the IFJ concept needs to be an internal thing only, and
 cartridgo FJ I/O gets mapped to the right place according to system
 type.
 
-*** TODO CPU timing is bogus
+*** DONE CPU timing is bogus
+CLOSED: [2026-03-11 Wed 01:50]
 
 See :8.$.ACCESS
 
@@ -8010,6 +8011,30 @@ See also: https://stardot.org.uk/forums/viewtopic.php?t=11615
 
 Ask Dave H about the new disk interface that supports this.
 
+*** TODO Add ACCESS test
+
+This can't be a simple text output comparison, as the output is a bit
+noisy.
+
+Probably easiest test a bunch of addresses in each category (RAM, 1
+MHz, 2 MHz), compare the results with a tolerance, and print yes/no
+(at some granularity).
+
+Then have a separate mode for digging into the results if they don't
+match.
+
+*** TODO Test Firetrack
+
+It looks like it does some wacky stuff...
+
+*** TODO Test Southern Belle
+
+It uses the tape output IRQ, or whatever it is.
+
+*** TODO Test Joe Blade
+
+See the thread above. It sounds like it arranges for itself to receive
+a tape input IRQ by sending tape output? Something like that?
 
 ** Updated Plus 1 ROMs
 
