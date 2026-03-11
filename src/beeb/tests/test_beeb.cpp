@@ -65,6 +65,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// All paths relative to etc/roms in the b2 working copy.
+
 static std::string GetPathForStandardROM(StandardROM rom) {
     switch (rom) {
     default:
@@ -173,7 +175,49 @@ static std::string GetPathForStandardROM(StandardROM rom) {
         return "ElectronMOS.rom";
     case StandardROM_Plus1:
         return "AP6v134.rom";
+    case StandardROM_Plus3ADFS:
+        return "acorn/Plus3ADFS.rom";
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const uint8_t DEFAULT_DISPLAY_MODE = 7;
+
+static const uint8_t INTERESTING_ELECTRON_DISPLAY_MODES[] = {
+    0, // 2 MHz
+    3, // 2 MHz with 1 MHz gaps
+    6, // 1 MHz, with most free RAM
+};
+
+// reflects the default sizes for the standard modes in the host processor.
+
+struct DisplayModeInfo {
+    int width, height;
+    uint16_t himem;
+};
+
+static const DisplayModeInfo g_display_mode_infos[8] = {
+    {80, 32, 0x3000},
+    {40, 32, 0x3000},
+    {20, 32, 0x3000},
+    {80, 25, 0x4000},
+    {40, 32, 0x5800},
+    {20, 32, 0x5800},
+    {40, 25, 0x6000},
+    {40, 25, 0x7c00},
+};
+
+static const DisplayModeInfo *GetDisplayModeInfo(uint8_t mode, const BBCMicro &bbc) {
+    if (IsElectron(bbc.GetTypeID())) {
+        if (mode == 7) {
+            mode = 6;
+        }
+    }
+
+    TEST_TRUE(mode <= 7);
+    return &g_display_mode_infos[mode];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -391,6 +435,20 @@ static TestBBCType GetElectronWithPlus1Type() {
 
     InitROMs(&type, StandardROM_Electron_MOS);
 
+    InitROM(&type, 12, StandardROM_Plus1);
+    InitROM(&type, 11, StandardROM_BASIC2);
+
+    return type;
+}
+
+static TestBBCType GetElectronWithPlus1AndPlus3Type() {
+    TestBBCType type;
+
+    type.disc_interface = &DISC_INTERFACE_PLUS_3;
+
+    InitROMs(&type, StandardROM_Electron_MOS);
+
+    InitROM(&type, 14, StandardROM_Plus3ADFS);
     InitROM(&type, 12, StandardROM_Plus1);
     InitROM(&type, 11, StandardROM_BASIC2);
 
@@ -2366,11 +2424,12 @@ class PrinterTest : public Test {
 
 class DiskAccessTest : public Test {
   public:
-    DiskAccessTest(std::string name, TestBBCType type, FSType fs_type, int master_acccon_io_flags = -1)
+    DiskAccessTest(std::string name, TestBBCType type, FSType fs_type, int master_acccon_io_flags = -1, uint8_t display_mode = DEFAULT_DISPLAY_MODE)
         : m_name(std::move(name))
         , m_type(std::move(type))
         , m_fs_type(fs_type)
-        , m_master_acccon_io_flags(master_acccon_io_flags) {
+        , m_master_acccon_io_flags(master_acccon_io_flags)
+        , m_display_mode(display_mode) {
         if (m_master_acccon_io_flags >= 0) {
             TEST_EQ_UU((unsigned)m_master_acccon_io_flags & ~3u, 0u);
         }
@@ -2406,7 +2465,8 @@ class DiskAccessTest : public Test {
             //bbc->LoadDiskImage(0, PathJoined(b2_SOURCE_DIR, "etc/discs", m_blank_disk_image_name));
             bbc->RunUntilOSWORD0(10.0);
 
-            this->Start(bbc);
+            ASSERT(random_data[0].size() == random_data[1].size());
+            this->Start(bbc, random_data[0].size());
 
             bbc->SetBytes(ADDRESS, random_data[0]);
             bbc->Paste(strprintf("*SAVE TEST %04X+%04zX\r", ADDRESS.w, random_data[0].size()));
@@ -2442,6 +2502,7 @@ class DiskAccessTest : public Test {
     TestBBCType m_type;
     const FSType m_fs_type;
     int m_master_acccon_io_flags = -1;
+    uint8_t m_display_mode = DEFAULT_DISPLAY_MODE;
     bool m_verbose = true;
 
     virtual void InitDiskImage() = 0;
@@ -2474,10 +2535,21 @@ class DiskAccessTest : public Test {
         LOG(BBC_OUTPUT).EnsureBOL();
     }
 
-    void Start(const std::unique_ptr<TestBBCMicro> &bbc) {
+    void Start(const std::unique_ptr<TestBBCMicro> &bbc, size_t test_data_size) {
         std::string stuff;
 
-        stuff += "MODE 7\r"; //make room for test data
+        const DisplayModeInfo *dmi = GetDisplayModeInfo(m_display_mode, *bbc);
+
+        stuff += "MODE " + std::to_string(m_display_mode) + "\r";
+
+        // this simplifies things, as it means it's always safe to set the
+        // display window to the bottom half (start Y rounded down) of the
+        // display.
+        TEST_LT_UU(ADDRESS.w + test_data_size, 0x5800);
+
+        if (dmi->himem < ADDRESS.w + test_data_size) {
+            stuff += "VDU28,0," + std::to_string(dmi->height - 1) + "," + std::to_string(dmi->width - 1) + "," + std::to_string(dmi->height / 2) + "\r";
+        }
 
         // There's no check that the setting makes sense. The caller just has to
         // supply -1 when inappropriate.
@@ -2533,7 +2605,7 @@ class DiskAccessTest : public Test {
 
         bbc->RunUntilOSWORD0(10.0);
 
-        this->Start(bbc);
+        this->Start(bbc, random_data.size());
 
         size_t extra_size = 100;
 
@@ -2572,8 +2644,8 @@ class DiskAccessTest : public Test {
 
 class FloppyDiskAccessTest : public DiskAccessTest {
   public:
-    FloppyDiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name, int master_acccon_io_flags = -1)
-        : DiskAccessTest(std::move(name), std::move(type), fs_type, master_acccon_io_flags)
+    FloppyDiskAccessTest(std::string name, TestBBCType type, FSType fs_type, std::string blank_disk_image_name, int master_acccon_io_flags = -1, uint8_t display_mode = DEFAULT_DISPLAY_MODE)
+        : DiskAccessTest(std::move(name), std::move(type), fs_type, master_acccon_io_flags, display_mode)
         , m_blank_disk_image_name(std::move(blank_disk_image_name)) {
     }
 
@@ -2641,8 +2713,8 @@ class MMFSDiskAccessTest : public DiskAccessTest {
 
 class HardDiskAccessTest : public DiskAccessTest {
   public:
-    HardDiskAccessTest(std::string name, TestBBCType type, int master_acccon_io_flags)
-        : DiskAccessTest(std::move(name), std::move(type), FSType_ADFS, master_acccon_io_flags) {
+    HardDiskAccessTest(std::string name, TestBBCType type, int master_acccon_io_flags, uint8_t display_mode = DEFAULT_DISPLAY_MODE)
+        : DiskAccessTest(std::move(name), std::move(type), FSType_ADFS, master_acccon_io_flags, display_mode) {
         m_type.scsi = true;
     }
 
@@ -2983,6 +3055,15 @@ int main(int argc, char *argv[]) {
 
     all_tests.push_back(std::make_unique<FloppyDiskAccessTest>("disk.floppy.bplus", GetBPlusType(), FSType_DFS, "80.dsd"));
 
+    for (uint8_t display_mode : INTERESTING_ELECTRON_DISPLAY_MODES) {
+        all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.electron.adfs.%u", display_mode),
+                                                                   GetElectronWithPlus1AndPlus3Type(),
+                                                                   FSType_ADFS,
+                                                                   "adl.adl",
+                                                                   -1,
+                                                                   display_mode));
+    }
+
     for (int io_flags = 0; io_flags < 4; ++io_flags) {
         all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.master.%d.mos320.dfs", io_flags), GetMasterMOS320Type(), FSType_DFS, "80.dsd", io_flags));
         all_tests.push_back(std::make_unique<FloppyDiskAccessTest>(strprintf("disk.floppy.master.%d.mos320.adfs", io_flags), GetMasterMOS320Type(), FSType_ADFS, "adl.adl", io_flags));
@@ -2998,6 +3079,10 @@ int main(int argc, char *argv[]) {
     for (uint8_t io_flags : std::vector<uint8_t>{0, HostIOFlag_ITU}) {
         all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.master.%d.mos320.adfs", io_flags), GetMasterMOS320Type(), io_flags));
         all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.master.%d.mos350.adfs", io_flags), GetMasterMOS350Type(), io_flags));
+    }
+
+    for (uint8_t display_mode : INTERESTING_ELECTRON_DISPLAY_MODES) {
+        all_tests.push_back(std::make_unique<HardDiskAccessTest>(strprintf("disk.hard.electron.%u", display_mode), GetElectronWithPlus1AndPlus3Type(), -1, display_mode));
     }
 
     all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.b"), GetBTapeType()));

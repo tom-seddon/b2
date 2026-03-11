@@ -7992,7 +7992,8 @@ CLOSED: [2026-03-09 Mon 22:52]
 
 - Fix up TestCopyOfDisk::IsHidden
 
-*** TODO Add Plus 3 disk tests
+*** DONE Add Plus 3 disk tests
+CLOSED: [2026-03-11 Wed 15:59]
 
 Should just be a question of adding more ADFS-style ones?
 

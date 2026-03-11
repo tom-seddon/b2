@@ -143,3 +143,8 @@ foreach(ACCCON RANGE 3)
 endforeach()
 
 add_test_beeb_wildcard_category(disk.hard.master)
+
+foreach(MODE 0 3 6)
+  add_test_beeb_literal_category(disk.floppy.electron.adfs.${MODE})
+  add_test_beeb_literal_category(disk.hard.electron.${MODE})
+endforeach()
