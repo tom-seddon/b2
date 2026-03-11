@@ -7998,7 +7998,10 @@ Should just be a question of adding more ADFS-style ones?
 
 *** TODO Move BBCMicro::ReadElectronULAn (etc.) to ElectronULA.cpp
 
-*** TODO Electron Stale data bus byte is wrong
+Though might be safest to wait until tape support is a bit further
+along?
+
+*** TODO Electron stale data bus byte is wrong
 
 $FF is for reading the ULA.
 
@@ -8011,7 +8014,7 @@ See also: https://stardot.org.uk/forums/viewtopic.php?t=11615
 
 Ask Dave H about the new disk interface that supports this.
 
-*** TODO Add ACCESS test
+f*** TODO Add ACCESS test
 
 This can't be a simple text output comparison, as the output is a bit
 noisy.
@@ -8035,6 +8038,10 @@ It uses the tape output IRQ, or whatever it is.
 
 See the thread above. It sounds like it arranges for itself to receive
 a tape input IRQ by sending tape output? Something like that?
+
+*** TODO Sound
+
+So far completely unsupported.
 
 ** Updated Plus 1 ROMs
 
