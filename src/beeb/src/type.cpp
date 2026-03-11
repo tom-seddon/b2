@@ -1365,6 +1365,12 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
             {0x40, 0x7f},
             {0xc0, 0xdf},
         };
+    } else if(IsElectron(type->type_id)){
+        type->sheila_cycle_stretch_regions={
+            {0x00,0xff},
+        };
+    }else{
+        ASSERT(false);
     }
 
     if (HasADC(type->type_id)) {

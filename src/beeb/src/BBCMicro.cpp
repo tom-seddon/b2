@@ -3731,7 +3731,7 @@ void BBCMicro::InitStuff() {
 
         for (const BBCMicroType::SHEILACycleStretchRegion &region : m_state.type->sheila_cycle_stretch_regions) {
             ASSERT(region.first < region.last);
-            for (uint8_t i = region.first; i <= region.last; ++i) {
+            for (unsigned i = region.first; i <= region.last; ++i) {
                 m_mmios_new_run_state_hw[flags][0x200u + i] = BBCMicroCPURunState_1MHzAccess;
             }
         }

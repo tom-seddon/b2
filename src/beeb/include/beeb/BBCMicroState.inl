@@ -122,7 +122,13 @@ EPN(Running)
 // CPU is (briefly) waiting to sync up to the 1 MHz clock.
 EPN(1MHzAccess)
 
-// CPU is waiting for the ULA to read from RAM.
-EPN(RAMAccess)
+// Additional Electron-only state for the 1 MHz case. Things don't happen in quite the same order, so there's an additional delay needed.
+//
+// TODO: surely it must be possible to shuffle the update around so that this isn't necessary...
+EPN(Electron1MHzAccess2)
+
+// Electron CPU is waiting for the ULA to read from RAM. There's 2 states, depending on how the clocks are aligned. The logic is not the same as the BBC B 1 MHz access case.
+EPN(ElectronRAMAccess1)
+EPN(ElectronRAMAccess2)
 EEND()
 #undef ENAME

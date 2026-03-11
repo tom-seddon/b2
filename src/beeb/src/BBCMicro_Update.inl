@@ -110,7 +110,10 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
     static_assert(CYCLES_PER_SECOND == 4000000, "BBCMicro::Update needs updating");
 
     uint8_t phi2_2MHz_trailing_edge = m_state.cycle_count.n & 1;
+
+    // TODO: significant misnomer! But as things are, it hangs together, as it's only tested when !phi2_2MHz_trailing_edge, so the name works out...
     uint8_t phi2_1MHz_trailing_edge = m_state.cycle_count.n & 2;
+
     uint32_t result = 0;
 
     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Parasite) != 0) {
@@ -312,7 +315,11 @@ parasite_update_done:
 
                 if (m_state.cpu.abus.w < 0x8000) {
                     // RAM access. ULA mediates.
-                    m_state.cpu_run_state = BBCMicroCPURunState_RAMAccess;
+                    if (phi2_1MHz_trailing_edge) {
+                        m_state.cpu_run_state = BBCMicroCPURunState_ElectronRAMAccess1;
+                    } else {
+                        m_state.cpu_run_state = BBCMicroCPURunState_ElectronRAMAccess2;
+                    }
                 } else {
                     // TODO: keyboard ROM bank access needs to induce the right state
 
@@ -349,6 +356,7 @@ parasite_update_done:
         }
 
         if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
+            // set when ULA is using RAM.
             uint8_t ula_used_cycle = !phi2_1MHz_trailing_edge;
 
             // TODO: not sure any of this is the right logic?
@@ -504,13 +512,17 @@ parasite_update_done:
             //
             // TODO: this is probably not the right logic...
             if (!ula_used_cycle) {
-                if (m_state.cpu_run_state == BBCMicroCPURunState_RAMAccess) {
+                if (m_state.cpu_run_state == BBCMicroCPURunState_ElectronRAMAccess1) {
+                    m_state.cpu_run_state = BBCMicroCPURunState_ElectronRAMAccess2;
+                } else if (m_state.cpu_run_state == BBCMicroCPURunState_ElectronRAMAccess2) {
                     m_state.cpu_run_state = BBCMicroCPURunState_Running;
                 }
             }
 
             if (phi2_1MHz_trailing_edge) {
                 if (m_state.cpu_run_state == BBCMicroCPURunState_1MHzAccess) {
+                    m_state.cpu_run_state = BBCMicroCPURunState_Electron1MHzAccess2;
+                }else if(m_state.cpu_run_state == BBCMicroCPURunState_Electron1MHzAccess2) {
                     m_state.cpu_run_state = BBCMicroCPURunState_Running;
                 }
             }
