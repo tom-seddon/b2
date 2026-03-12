@@ -8011,6 +8011,12 @@ BBC B.
 
 See also: https://stardot.org.uk/forums/viewtopic.php?t=11615
 
+EDIT: uhh, or maybe not??! $FFs from Electron+Plus 1+no cartridges.
+
+See :8.$.ROM1 for ROM bank contents.
+
+To be continued.
+
 *** TODO NMI support
 
 Ask Dave H about the new disk interface that supports this.
@@ -8027,22 +8033,76 @@ MHz, 2 MHz), compare the results with a tolerance, and print yes/no
 Then have a separate mode for digging into the results if they don't
 match.
 
-*** TODO Test Firetrack
-
-It looks like it does some wacky stuff...
-
-*** TODO Test Southern Belle
-
-It uses the tape output IRQ, or whatever it is.
-
-*** TODO Test Joe Blade
-
-See the thread above. It sounds like it arranges for itself to receive
-a tape input IRQ by sending tape output? Something like that?
-
 *** TODO Sound
 
 So far completely unsupported.
+
+*** TODO Game that does stuff: Firetrack
+
+Doesn't look outlandishly bad, but, equally, doesn't match real
+hardware...
+
+- scrappy scrolling off bottom
+- junk in top area
+- wrong colour in the blue line between top area and display
+- pressing =1= (to cycle the various display options - catering for
+  different ULA revisions/interlace phases/etc.?) doesn't look the
+  same as it does on a real Electron
+
+*** TODO Game that does stuff: Gauntlet
+
+Not obviously wrong?
+
+*** TODO Game that does stuff: Exploding Fist
+
+Looks like the palette split might be in the wrong place?
+
+Crashed during loading on real Electron.
+
+*** TODO Game that does stuff: Spy vs Spy
+
+Looks about right.
+
+1 scanline of junk on real Electron when pressing keys, not evident on
+b2.
+
+*** TODO Game that does stuff: Ransack
+
+Craps out during loading... same on real hardware?
+
+Tried without BeebLink ROM and it's the same.
+
+Tried without AP6 ROM and... it works???
+
+Tried with Acorn Plus 1 ROM and it works.
+
+(Regardless of whatever ROM nonsense: Looks like there's some
+timer-based IRQ for the display, and that aspect does look roughly the
+same. TBC.)
+
+*** TODO Game that does stuff: Impact
+
+Hits assert in BBCMicro::ReadElectronULA4. So it's doing some tape
+stuff.
+
+(Didn't try on real hardware.)
+
+*** TODO Game that does stuff: Spycat
+*** TODO Game that does stuff: Quest
+
+Doesn't look obviously different from real hardware?
+
+*** TODO Game that does stuff: Star Port
+
+Screen clearly in wrong place.
+
+*** TODO Game that does stuff: Southern Belle
+
+Just a blank screen.
+
+*** TODO Game that does stuff: Joe Blade
+
+Just a blank screen.
 
 ** Updated Plus 1 ROMs
 
