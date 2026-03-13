@@ -47,6 +47,9 @@ struct BigPageIndex {
     Type i;
 };
 
+// Display data can only come from the first 16 big pages: 0-7 (main RAM), and
+// 8-15 (shadow RAM). These big pages are arranged in display data address order
+// (as found in the video unit metadata).
 static constexpr BigPageIndex MAIN_BIG_PAGE_INDEX = {0};
 static constexpr BigPageIndex::Type NUM_MAIN_BIG_PAGES = 32 / 4;
 

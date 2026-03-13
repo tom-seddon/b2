@@ -65,6 +65,7 @@ struct VideoDataUnitMetadata {
     uint8_t value = 0;
     uint16_t address = {};
     uint16_t crtc_address = {};
+    // (and still space for 2 more bytes here)
 };
 #endif
 

@@ -382,10 +382,11 @@ parasite_update_done:
                 if (m_state.electron_ula.display_state == ElectronULADisplayState_Display && m_state.electron_ula.display_raster < 8) {
                     // Display data from RAM.
                     if (m_state.electron_ula.misc.bits.display_mode <= 3 || ula_used_cycle) {
-                        if (m_state.electron_ula.display_fetch_address >= 0x8000) {
-                            m_state.electron_ula.display_fetch_address -= ElectronULA::DISPLAY_WRAPAROUND_SIZES[m_state.electron_ula.misc.bits.display_mode];
+                        if ((m_state.electron_ula.display_fetch_address & 0xf << 11) == 0) {
+                            m_state.electron_ula.display_fetch_address |= ElectronULA::DISPLAY_START_VALUES[m_state.electron_ula.misc.bits.display_mode];
                         }
 
+                        m_state.electron_ula.display_fetch_address &= 0x7fff;
                         m_state.electron_ula.display_byte = m_ram[m_state.electron_ula.display_fetch_address];
 #if VIDEO_TRACK_METADATA
                         m_state.electron_ula.display_fetched_byte = m_state.electron_ula.display_byte;
@@ -435,7 +436,12 @@ parasite_update_done:
                     if (m_state.electron_ula.display_raster >= ElectronULA::NUM_RASTERS[is_graphics]) {
                         m_state.electron_ula.display_raster = 0;
                         ++m_state.electron_ula.display_row;
+
                         m_state.electron_ula.display_row_address += ElectronULA::DISPLAY_ROW_STRIDES[m_state.electron_ula.misc.bits.display_mode];
+
+                        if ((m_state.electron_ula.display_row_address & 0xf << 11) == 0) {
+                            m_state.electron_ula.display_row_address |= ElectronULA::DISPLAY_START_VALUES[m_state.electron_ula.misc.bits.display_mode];
+                        }
 
                         if (m_state.electron_ula.display_row >= ElectronULA::NUM_ROWS[is_graphics]) {
                             m_state.electron_ula.display_state = ElectronULADisplayState_BeforeVSync;

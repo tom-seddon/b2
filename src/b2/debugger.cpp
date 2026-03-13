@@ -3580,17 +3580,26 @@ class PixelMetadataUI : public DebugUI {
                 // The debug stuff is oriented around the CPU's view of memory,
                 // but the video unit's address is from the CRTC's perspective.
 
-                M6502Word crtc_addr = {unit->metadata.address};
+                ImGui::Text("Display Address: %s%04x", g_hex, unit->metadata.address);
 
-                const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[crtc_addr.p.p];
+                // Find big page for the display fetch. The first 16 big pages
+                // are deliberately in the right order.
+                M6502Word display_addr{unit->metadata.address};
+                const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[display_addr.p.p];
+
+                // Form the appropriate CPU address.
+                M6502Word cpu_addr{(uint16_t)(metadata->addr + display_addr.p.o)};
+
+                //M6502Word crtc_addr = {unit->metadata.address};
+                //const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[crtc_addr.p.p];
 
                 m_dso &= metadata->dso_mask;
                 m_dso |= metadata->dso_value;
 
-                M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
+                //M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
 
                 const char *address_suffix = GetMinimalAddressSuffixForOffset(metadata, cpu_addr);
-                ImGui::Text("Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
+                ImGui::Text("CPU Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
 
                 if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
                     ImGui::Text("CRTC Address: %s%04x", g_hex, unit->metadata.crtc_address);

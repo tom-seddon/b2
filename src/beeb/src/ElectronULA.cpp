@@ -120,15 +120,16 @@ const bool ElectronULA::IS_GRAPHICS_MODE[8] = {
     true,  //Mode 7
 };
 
-const uint16_t ElectronULA::DISPLAY_WRAPAROUND_SIZES[8] = {
-    20 * 1024, //Mode 0
-    20 * 1024, //Mode 1
-    20 * 1024, //Mode 2
-    16 * 1024, //Mode 3
-    10 * 1024, //Mode 4
-    10 * 1024, //Mode 5
-    8 * 1024,  //Mode 6
-    10 * 1024, //Mode 7
+const uint16_t ElectronULA::DISPLAY_START_VALUES[8] = {
+    0x3000, //Mode 0
+    0x3000, //Mode 1
+    0x3000, //Mode 2
+    0x4000, //Mode 3
+    0x5800, //Mode 4
+    0x5800, //Mode 5
+    0x6000, //Mode 6
+    0x3000, //Mode 7
+
 };
 
 const uint16_t ElectronULA::DISPLAY_ROW_STRIDES[8] = {
@@ -141,17 +142,6 @@ const uint16_t ElectronULA::DISPLAY_ROW_STRIDES[8] = {
     320, //Mode 6
     320, //Mode 7
 };
-
-//const uint8_t ElectronULA::NUM_DISPLAY_ROWS[8] = {
-//    32, //Mode 0
-//    32, //Mode 1
-//    32, //Mode 2
-//    25, //Mode 3
-//    32, //Mode 4
-//    32, //Mode 5
-//    25, //Mode 6
-//    32, //Mode 7
-//};
 
 const uint8_t ElectronULA::NUM_RASTERS[2] = {
     10, //text

@@ -180,8 +180,8 @@ struct ElectronULA {
     // Display-related tables, indexed by display mode.
     static const EmitPixelsFn EMIT_PIXELS_FNS[8];
     static const bool IS_GRAPHICS_MODE[8];
-    static const uint16_t DISPLAY_WRAPAROUND_SIZES[8];
     static const uint16_t DISPLAY_ROW_STRIDES[8];
+    static const uint16_t DISPLAY_START_VALUES[8];
 
     // Display-related tables, indexed by graphics mode flag.
     static const uint8_t NUM_RASTERS[2];
