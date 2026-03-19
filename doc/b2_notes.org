@@ -7907,7 +7907,8 @@ CLOSED: [2026-03-10 Tue 01:06]
 
 : ms_update_mfns0: 664/2048 unique BBCMicro::UpdateTemplated instantiations (1.06x ideal)
 
-*** TODO Vsync output timing is bogus
+*** DONE Vsync output timing is bogus
+CLOSED: [2026-03-19 Thu 22:42]
 
 Looks like I must have overfitted TVOutput to whatever mess I clearly
 made of the 6845 output :(
@@ -7919,7 +7920,8 @@ CLOSED: [2026-03-10 Tue 00:21]
 
 More bookkeeping required
 
-*** TODO Fix display mode 7
+*** DONE Fix display mode 7
+CLOSED: [2026-03-19 Thu 22:42]
 
 https://pastraiser.com/computers/acornelectron/acornelectron.html
 
@@ -7929,7 +7931,8 @@ switched to mode 4, but when counter reached 8000H it was reset to
 3000H (as in mode 0) and not to 5800H as one would expect for mode 4
 #+end_quote
 
-*** TODO Cartridge port FRED/JIM is XFJ on Electron
+*** DONE [#B] Cartridge port FRED/JIM is XFJ on Electron
+CLOSED: [2026-03-19 Thu 22:38]
 
 Appears to be accessed at 1 MHz?
 
@@ -7942,12 +7945,14 @@ CLOSED: [2026-03-11 Wed 01:50]
 
 See :8.$.ACCESS
 
-*** TODO software sideways RAM lock/unlock
+*** DONE software sideways RAM lock/unlock
+CLOSED: [2026-03-19 Thu 22:43]
 
 Not really a thing on the Beeb but all the Electron addons seem to do
 it...
 
-*** TODO Some command key stuff
+*** DONE Some command key stuff
+CLOSED: [2026-03-19 Thu 22:45]
 
 The Electron doesn't have function keys. Very convenient for the
 debugger keys!
@@ -7963,7 +7968,8 @@ Electron, you can still use the default debugger keys.
 Keycap keymaps (once they actually work when emulating Electron...)
 will interfere with this, but that's as expected..
 
-*** TODO Keycap keymaps on Electron
+*** DONE Keycap keymaps on Electron
+CLOSED: [2026-03-19 Thu 22:45]
 
 Can of worms.
 
@@ -7976,14 +7982,16 @@ CLOSED: [2026-03-09 Mon 14:13]
 They have enabled up/down buttons, which is silly, especially as it
 messes stuff up if you click them.
 
-*** TODO Analogue handling is a bit ugly
+*** DONE Analogue handling is a bit ugly
+CLOSED: [2026-03-19 Thu 22:46]
 
 The values are 10 bit right from the source, as per the Beeb's ADC -
 isn't that something that should be done further down the pipeline?
 
 See also https://github.com/tom-seddon/b2/issues/286
 
-*** TODO Fix screen display address handling
+*** DONE Fix screen display address handling
+CLOSED: [2026-03-19 Thu 22:46]
 
 Alluded to here: https://pastraiser.com/computers/acornelectron/acornelectron.html
 
@@ -7997,12 +8005,14 @@ CLOSED: [2026-03-11 Wed 15:59]
 
 Should just be a question of adding more ADFS-style ones?
 
-*** TODO Move BBCMicro::ReadElectronULAn (etc.) to ElectronULA.cpp
+*** DONE Move BBCMicro::ReadElectronULAn (etc.) to ElectronULA.cpp
+CLOSED: [2026-03-19 Thu 22:37]
 
 Though might be safest to wait until tape support is a bit further
 along?
 
-*** TODO Electron stale data bus byte is wrong
+*** DONE Electron stale data bus byte is wrong
+CLOSED: [2026-03-19 Thu 22:47]
 
 $FF is for reading the ULA.
 
@@ -8017,11 +8027,13 @@ See :8.$.ROM1 for ROM bank contents.
 
 To be continued.
 
-*** TODO NMI support
+*** DONE NMI support
+CLOSED: [2026-03-19 Thu 22:49]
 
 Ask Dave H about the new disk interface that supports this.
 
-f*** TODO Add ACCESS test
+*** DONE Add ACCESS test
+CLOSED: [2026-03-19 Thu 22:48]
 
 This can't be a simple text output comparison, as the output is a bit
 noisy.
@@ -8033,11 +8045,13 @@ MHz, 2 MHz), compare the results with a tolerance, and print yes/no
 Then have a separate mode for digging into the results if they don't
 match.
 
-*** TODO Sound
+*** DONE Sound
+CLOSED: [2026-03-19 Thu 22:50]
 
 So far completely unsupported.
 
-*** TODO Game that does stuff: Firetrack
+*** DONE Game that does stuff: Firetrack
+CLOSED: [2026-03-19 Thu 22:51]
 
 Doesn't look outlandishly bad, but, equally, doesn't match real
 hardware...
@@ -8049,24 +8063,28 @@ hardware...
   different ULA revisions/interlace phases/etc.?) doesn't look the
   same as it does on a real Electron
 
-*** TODO Game that does stuff: Gauntlet
+*** DONE Game that does stuff: Gauntlet
+CLOSED: [2026-03-19 Thu 22:51]
 
 Not obviously wrong?
 
-*** TODO Game that does stuff: Exploding Fist
+*** DONE Game that does stuff: Exploding Fist
+CLOSED: [2026-03-19 Thu 22:52]
 
 Looks like the palette split might be in the wrong place?
 
 Crashed during loading on real Electron.
 
-*** TODO Game that does stuff: Spy vs Spy
+*** DONE Game that does stuff: Spy vs Spy
+CLOSED: [2026-03-19 Thu 22:53]
 
 Looks about right.
 
 1 scanline of junk on real Electron when pressing keys, not evident on
 b2.
 
-*** TODO Game that does stuff: Ransack
+*** DONE Game that does stuff: Ransack
+CLOSED: [2026-03-19 Thu 22:55]
 
 Craps out during loading... same on real hardware?
 
@@ -8080,27 +8098,33 @@ Tried with Acorn Plus 1 ROM and it works.
 timer-based IRQ for the display, and that aspect does look roughly the
 same. TBC.)
 
-*** TODO Game that does stuff: Impact
+*** DONE Game that does stuff: Impact
+CLOSED: [2026-03-19 Thu 22:56]
 
 Hits assert in BBCMicro::ReadElectronULA4. So it's doing some tape
 stuff.
 
 (Didn't try on real hardware.)
 
-*** TODO Game that does stuff: Spycat
-*** TODO Game that does stuff: Quest
+*** DONE Game that does stuff: Spycat
+CLOSED: [2026-03-19 Thu 22:56]
+*** DONE Game that does stuff: Quest
+CLOSED: [2026-03-19 Thu 22:57]
 
 Doesn't look obviously different from real hardware?
 
-*** TODO Game that does stuff: Star Port
+*** DONE Game that does stuff: Star Port
+CLOSED: [2026-03-19 Thu 22:58]
 
 Screen clearly in wrong place.
 
-*** TODO Game that does stuff: Southern Belle
+*** DONE Game that does stuff: Southern Belle
+CLOSED: [2026-03-19 Thu 22:59]
 
 Just a blank screen.
 
-*** TODO Game that does stuff: Joe Blade
+*** DONE Game that does stuff: Joe Blade
+CLOSED: [2026-03-19 Thu 22:59]
 
 Just a blank screen.
 
