@@ -198,6 +198,18 @@ uint8_t ReadParasiteTube4(void *tube, M6502Word a);
 uint8_t ReadParasiteTube5(void *tube, M6502Word a);
 uint8_t ReadParasiteTube6(void *tube, M6502Word a);
 uint8_t ReadParasiteTube7(void *tube, M6502Word a);
+
+// Side-effect-free reads for page-cross fixup cycles.
+// Return the register value without consuming latch data or updating
+// interrupt flags.
+uint8_t PeekParasiteTube0(void *tube, M6502Word a);
+uint8_t PeekParasiteTube1(void *tube, M6502Word a);
+uint8_t PeekParasiteTube2(void *tube, M6502Word a);
+uint8_t PeekParasiteTube3(void *tube, M6502Word a);
+uint8_t PeekParasiteTube4(void *tube, M6502Word a);
+uint8_t PeekParasiteTube5(void *tube, M6502Word a);
+uint8_t PeekParasiteTube6(void *tube, M6502Word a);
+uint8_t PeekParasiteTube7(void *tube, M6502Word a);
 void WriteParasiteTube1(void *tube, M6502Word a, uint8_t value);
 void WriteParasiteTube3(void *tube, M6502Word a, uint8_t value);
 void WriteParasiteTube5(void *tube, M6502Word a, uint8_t value);

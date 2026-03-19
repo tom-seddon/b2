@@ -1004,7 +1004,7 @@ class InstrGen {
 
         case Cycle::Type::ReadDataNoCarry:
             P("assert(s->acarry==0||s->acarry==1);\n");
-            P("s->read=M6502ReadType_Data+s->acarry;\n");
+            P("s->read=s->acarry?M6502ReadType_Uninteresting:M6502ReadType_Data;\n");
             break;
 
         case Cycle::Type::ReadInstruction:

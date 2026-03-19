@@ -592,6 +592,7 @@ class BBCMicro : private WD1770Handler {
 
     uint8_t *m_parasite_ram = nullptr;
     ReadMMIOFn m_parasite_read_mmio_fns[8] = {};
+    ReadMMIOFn m_parasite_peek_mmio_fns[8] = {};
     WriteMMIOFn m_parasite_write_mmio_fns[8] = {};
 
     const std::vector<float> *m_disc_drive_sounds[DiscDriveSound_EndValue];

@@ -592,3 +592,37 @@ void WriteTubeDummy(void *, M6502Word, uint8_t) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+// Side-effect-free peek functions for page-cross fixup cycles.
+// Return the same value as the corresponding Read function but without
+// consuming latch data or updating interrupt flags.
+
+// Status registers are already side-effect-free.
+uint8_t PeekParasiteTube0(void *tube_, M6502Word a) { return ReadParasiteTube0(tube_, a); }
+uint8_t PeekParasiteTube2(void *tube_, M6502Word a) { return ReadParasiteTube2(tube_, a); }
+uint8_t PeekParasiteTube4(void *tube_, M6502Word a) { return ReadParasiteTube4(tube_, a); }
+uint8_t PeekParasiteTube6(void *tube_, M6502Word a) { return ReadParasiteTube6(tube_, a); }
+
+// Data registers: return the value without clearing available flags.
+uint8_t PeekParasiteTube1(void *tube_, M6502Word) {
+    auto t = (Tube *)tube_;
+    return t->h2p1;
+}
+
+uint8_t PeekParasiteTube3(void *tube_, M6502Word) {
+    auto t = (Tube *)tube_;
+    return t->h2p2;
+}
+
+uint8_t PeekParasiteTube5(void *tube_, M6502Word) {
+    auto t = (Tube *)tube_;
+    return t->h2p3[0];
+}
+
+uint8_t PeekParasiteTube7(void *tube_, M6502Word) {
+    auto t = (Tube *)tube_;
+    return t->h2p4;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

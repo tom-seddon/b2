@@ -140,7 +140,11 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
 
         if (m_state.parasite_cpu.read) {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
-                m_state.parasite_cpu.dbus = (*m_parasite_read_mmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus);
+                if (m_state.parasite_cpu.read == M6502ReadType_Uninteresting) {
+                    m_state.parasite_cpu.dbus = (*m_parasite_peek_mmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus);
+                } else {
+                    m_state.parasite_cpu.dbus = (*m_parasite_read_mmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus);
+                }
 
                 // This bit is a bit careless about checking for the `Trace`
                 // flag, but that's only an efficiency issue, not important for

@@ -2486,6 +2486,15 @@ void BBCMicro::InitStuff() {
         m_parasite_read_mmio_fns[6] = &ReadParasiteTube6;
         m_parasite_read_mmio_fns[7] = &ReadParasiteTube7;
 
+        m_parasite_peek_mmio_fns[0] = &PeekParasiteTube0;
+        m_parasite_peek_mmio_fns[1] = &PeekParasiteTube1;
+        m_parasite_peek_mmio_fns[2] = &PeekParasiteTube2;
+        m_parasite_peek_mmio_fns[3] = &PeekParasiteTube3;
+        m_parasite_peek_mmio_fns[4] = &PeekParasiteTube4;
+        m_parasite_peek_mmio_fns[5] = &PeekParasiteTube5;
+        m_parasite_peek_mmio_fns[6] = &PeekParasiteTube6;
+        m_parasite_peek_mmio_fns[7] = &PeekParasiteTube7;
+
         m_parasite_write_mmio_fns[0] = &WriteTubeDummy;
         m_parasite_write_mmio_fns[1] = &WriteParasiteTube1;
         m_parasite_write_mmio_fns[2] = &WriteTubeDummy;
