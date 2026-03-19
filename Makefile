@@ -108,7 +108,6 @@ set_submodule_upstreams:
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=Remotery UPSTREAM=https://github.com/Celtoys/Remotery
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=SDL_official UPSTREAM=https://github.com/libsdl-org/SDL
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=curl UPSTREAM=https://github.com/curl/curl
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=http-parser UPSTREAM=https://github.com/nodejs/http-parser
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui UPSTREAM=https://github.com/ocornut/imgui
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui_club UPSTREAM=https://github.com/ocornut/imgui_club
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=libuv UPSTREAM=https://github.com/libuv/libuv
