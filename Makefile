@@ -118,6 +118,8 @@ set_submodule_upstreams:
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=salieri UPSTREAM=https://github.com/nemequ/salieri
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=visual6502 UPSTREAM=https://github.com/trebonian/visual6502
 	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui_test_engine UPSTREAM=https://github.com/ocornut/imgui_test_engine
+	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=6502Timing UPSTREAM=https://github.com/dp111/6502Timing
+	@echo Completed successfully. Any error messages about missing upstream remotes can be ignored.
 
 .PHONY:_set_submodule_upstream
 _set_submodule_upstream: SUBMODULE=$(error must supply SUBMODULE)
