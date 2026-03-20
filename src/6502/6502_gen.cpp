@@ -374,8 +374,8 @@ class Instr {
                             // set differently.
                             *ifun += CMOS_FUNCTION_SUFFIX;
                         } else if ((type == InstrType_RMW) ||
-                                   (type == InstrType_W && (m == Mode_Abx || m == Mode_Aby)) ||
-                                   (type == InstrType_R && (m == Mode_Abx || m == Mode_Aby))) {
+                                   (type == InstrType_W && (m == Mode_Abx || m == Mode_Aby || m == Mode_Iny)) ||
+                                   (type == InstrType_R && (m == Mode_Abx || m == Mode_Aby || m == Mode_Iny || m == Mode_Zpx || m == Mode_Zpy || m == Mode_Inx))) {
                             *tfun = CMOS_FUNCTION_SUFFIX;
                         }
                     }
