@@ -1,4 +1,10 @@
 /.dir-locals.el
 /build/
+/etc/b2_tests/[Pp]/
+/etc/b2_tests/[Qq]/
+/etc/b2_tests/[Rr]/
+/etc/b2_tests/[Ss]/
+/etc/b2_tests/[Tt]/
+/etc/b2_tests/[Uu]/
 /etc/b2_tests/[Zz]/
 /dependencies/ProcessorTests/
