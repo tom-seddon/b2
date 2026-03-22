@@ -76,3 +76,6 @@
 [submodule "submodules/imgui_test_engine"]
 	path = submodules/imgui_test_engine
 	url = https://github.com/tom-seddon/imgui_test_engine
+[submodule "submodules/beeb_6502_timing_tests"]
+	path = submodules/beeb_6502_timing_tests
+	url = https://github.com/tom-seddon/beeb_6502_timing_tests
