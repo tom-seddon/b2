@@ -148,3 +148,7 @@ foreach(MODE 0 3 6)
   add_test_beeb_literal_category(disk.floppy.electron.adfs.${MODE})
   add_test_beeb_literal_category(disk.hard.electron.${MODE})
 endforeach()
+
+foreach(CPUTYPE nmos cmos)
+  add_test_beeb_literal_category(beeb_6502_timings.timings.${CPUTYPE})
+endforeach()

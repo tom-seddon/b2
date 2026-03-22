@@ -618,6 +618,7 @@ class TestBBCMicro : public BBCMicro {
     std::string oswrch_output;
     std::string spool_output;
     std::string spool_output_name;
+    bool ever_hit_brk = false;
 
 #if BBCMICRO_DEBUGGER
     class Writer {
@@ -1106,6 +1107,10 @@ uint32_t TestBBCMicro::Update1() {
         const M6502 *cpu = this->GetM6502();
 
         if (M6502_IsAboutToExecute(cpu)) {
+            if (cpu->dbus == 0x00) {
+                this->ever_hit_brk = true;
+            }
+
             const uint8_t *ram = this->GetRAM();
 
             if (cpu->abus.b.l == ram[WRCHV + 0] && cpu->abus.b.h == ram[WRCHV + 1]) {
@@ -1666,6 +1671,52 @@ class StandardTest : public Test {
     TestBBCType m_type;
     std::string m_drive;
     std::string m_name;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// run BASIC program that issues an error via BRK on failure.
+//
+// The test is run until control returns to the BASIC prompt (one way or another). The test succeeds if no BRK was ever executed.
+class BasicTest : public Test {
+  public:
+    BasicTest(std::string name, const TestBBCType type, std::string file_name)
+        : m_name(std::move(name))
+        , m_type(std::move(type))
+        , m_file_name(std::move(file_name)) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        TestBBCMicro bbc(m_type);
+
+        bbc.StartCaptureOSWRCH();
+        bbc.RunUntilOSWORD0(10.0);
+
+        // TODO: seems I can't make up my mind how I want to specify the file names
+        bbc.LoadFile(m_file_name, 0x1900);
+        bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
+        bbc.RunUntilOSWORD0(30.0);
+
+        {
+            LOGF(BBC_OUTPUT, "All Output: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT, GetPrintable(bbc.oswrch_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
+        }
+
+        TEST_FALSE(bbc.ever_hit_brk);
+    }
+
+  protected:
+  private:
+    std::string m_name;
+    TestBBCType m_type;
+    std::string m_file_name;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -3096,6 +3147,17 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos511i", io_flags), GetMasterCompactMOS511iType(), io_flags));
     }
     all_tests.push_back(std::make_unique<MMFSDiskAccessTest>("disk.mmfs.electron", GetElectronWithPlus1Type()));
+
+    {
+        std::string path = PathJoined(b2_SOURCE_DIR, "submodules/beeb_6502_timing_tests/beeb/beeb_6502_timing_tests/0/$.TIMINGS");
+
+        all_tests.push_back(std::make_unique<BasicTest>("beeb_6502_timings.timings.nmos", GetBTapeType(), path));
+        all_tests.push_back(std::make_unique<BasicTest>("beeb_6502_timings.timings.cmos", GetMasterMOS320Type(), path));
+    }
+
+    //
+    // all tests must be added by this point!
+    //
 
     std::set<std::string> names;
     for (const std::unique_ptr<Test> &test : all_tests) {

@@ -215,7 +215,7 @@ _github_ci_ubuntu_install_ffmpeg:
 
 .PHONY:_github_ci_ubuntu_release
 _github_ci_ubuntu_release:
-	$(PYTHON3) "./etc/release/release.py" --verbose $(SUFFIX1)$(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)	
+	$(PYTHON3) "./etc/release/release.py" --verbose --ctest-output-on-failure $(SUFFIX1)$(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
 
 ##########################################################################
 ##########################################################################

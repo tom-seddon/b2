@@ -1374,12 +1374,12 @@ static void Cycle5_RMW_ABX2_CMOS_AC0(M6502 *s) {
 }
 
 static void Cycle3_RMW_ABX2_CMOS_AC1(M6502 *s) {
+    s->abus.w = s->ad.w + s->x;
     s->read = M6502ReadType_Uninteresting;
     s->tfn = &Cycle4_RMW_ABX2_CMOS_AC1;
 }
 
 static void Cycle4_RMW_ABX2_CMOS_AC1(M6502 *s) {
-    s->abus.w = s->ad.w + s->x;
     s->read = M6502ReadType_Data;
     s->tfn = &Cycle5_RMW_ABX2_CMOS_AC1;
 }
@@ -2132,6 +2132,75 @@ static void Cycle5_R_ABY_BCD_CMOS_D1_AC1(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void Cycle1_R_INY_CMOS(M6502 *);
+static void Cycle2_R_INY_CMOS(M6502 *);
+static void Cycle3_R_INY_CMOS(M6502 *);
+static void Cycle4_R_INY_CMOS_AC0(M6502 *);
+static void Cycle4_R_INY_CMOS_AC1(M6502 *);
+static void Cycle5_R_INY_CMOS_AC1(M6502 *);
+
+static void Cycle0_R_INY_CMOS(M6502 *s) {
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_R_INY_CMOS;
+}
+
+static void Cycle1_R_INY_CMOS(M6502 *s) {
+    s->ia.b.l = s->dbus;
+    s->abus.w = s->ia.b.l;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle2_R_INY_CMOS;
+}
+
+static void Cycle2_R_INY_CMOS(M6502 *s) {
+    s->ad.b.l = s->dbus;
+    s->abus.w = (uint8_t)(s->ia.b.l + 1);
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle3_R_INY_CMOS;
+}
+
+static void Cycle3_R_INY_CMOS(M6502 *s) {
+    s->ad.b.h = s->dbus;
+    M6502Word ffa = {s->ad.w + s->y};
+    if (ffa.b.h != s->ad.b.h) {
+        s->read = M6502ReadType_Uninteresting;
+        s->tfn = &Cycle4_R_INY_CMOS_AC1;
+    } else {
+        CheckForInterrupts(s);
+        s->abus = ffa;
+        s->read = M6502ReadType_Data;
+        s->tfn = &Cycle4_R_INY_CMOS_AC0;
+    }
+}
+
+static void Cycle4_R_INY_CMOS_AC0(M6502 *s) {
+    s->data = s->dbus;
+    (*s->ifn)(s);
+#ifdef _DEBUG
+    s->ifn = NULL;
+#endif
+    M6502_NextInstruction(s);
+}
+
+static void Cycle4_R_INY_CMOS_AC1(M6502 *s) {
+    s->abus.w = s->ad.w + s->y;
+    CheckForInterrupts(s);
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle5_R_INY_CMOS_AC1;
+}
+
+static void Cycle5_R_INY_CMOS_AC1(M6502 *s) {
+    s->data = s->dbus;
+    (*s->ifn)(s);
+#ifdef _DEBUG
+    s->ifn = NULL;
+#endif
+    M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void Cycle1_R_INY_BCD_CMOS(M6502 *);
 static void Cycle2_R_INY_BCD_CMOS(M6502 *);
 static void Cycle3_R_INY_BCD_CMOS_D1(M6502 *);
@@ -2269,6 +2338,54 @@ static void Cycle6_R_INY_BCD_CMOS_D1_AC1(M6502 *s) {
     s->ifn = NULL;
 #endif
 
+    M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void Cycle1_W_INY_CMOS(M6502 *);
+static void Cycle2_W_INY_CMOS(M6502 *);
+static void Cycle3_W_INY_CMOS(M6502 *);
+static void Cycle4_W_INY_CMOS(M6502 *);
+static void Cycle5_W_INY_CMOS(M6502 *);
+
+static void Cycle0_W_INY_CMOS(M6502 *s) {
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_W_INY_CMOS;
+}
+
+static void Cycle1_W_INY_CMOS(M6502 *s) {
+    s->ia.b.l = s->dbus;
+    s->abus.w = s->ia.b.l;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle2_W_INY_CMOS;
+}
+
+static void Cycle2_W_INY_CMOS(M6502 *s) {
+    s->ad.b.l = s->dbus;
+    s->abus.w = (uint8_t)(s->ia.b.l + 1);
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle3_W_INY_CMOS;
+}
+
+static void Cycle3_W_INY_CMOS(M6502 *s) {
+    s->ad.b.h = s->dbus;
+    s->read = M6502ReadType_Uninteresting;
+    s->tfn = &Cycle4_W_INY_CMOS;
+}
+
+static void Cycle4_W_INY_CMOS(M6502 *s) {
+    s->abus.w = s->ad.w + s->y;
+    (*s->ifn)(s);
+    s->read = 0;
+    s->dbus = s->data;
+    s->tfn = &Cycle5_W_INY_CMOS;
+    CheckForInterrupts(s);
+}
+
+static void Cycle5_W_INY_CMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
 

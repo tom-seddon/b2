@@ -1739,9 +1739,11 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     }
 
 #if SYSTEM_LINUX
-    // Need to do this after SDL_Init. See, e.g.,
-    // https://discourse.libsdl.org/t/gtk2-sdl2-partial-fail/19274
-    gtk_init();
+    if (!app_handler->IsHeadless()) {
+        // Need to do this after SDL_Init. See, e.g.,
+        // https://discourse.libsdl.org/t/gtk2-sdl2-partial-fail/19274
+        gtk_init();
+    }
 #endif
 
 #if SYSTEM_WINDOWS
