@@ -1047,6 +1047,11 @@ class TestNVRAMUpdate : public DearImGuiTest {
         , m_config_name(std::move(config_name)) {
     }
 
+    bool IsHidden() const override {
+        // https://github.com/tom-seddon/b2/issues/564
+        return true;
+    }
+
     std::string GetFullName() const override {
         return "b2ui.nvram_update." + m_model_name;
     }
