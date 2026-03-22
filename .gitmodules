@@ -82,3 +82,6 @@
 [submodule "submodules/shared_lib"]
 	path = submodules/shared_lib
 	url = https://github.com/tom-seddon/shared_lib
+[submodule "submodules/beeb_6502_timing_tests"]
+	path = submodules/beeb_6502_timing_tests
+	url = https://github.com/tom-seddon/beeb_6502_timing_tests

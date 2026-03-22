@@ -142,3 +142,7 @@ foreach(ACCCON RANGE 3)
 endforeach()
 
 add_test_beeb_wildcard_category(disk.hard.master)
+
+foreach(CPUTYPE nmos cmos)
+  add_test_beeb_literal_category(beeb_6502_timings.timings.${CPUTYPE})
+endforeach()
