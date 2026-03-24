@@ -11177,9 +11177,11 @@ other. Solveable if you don't mind carefully putting the effort in to
 fix up each individual revision, no doubt. But I don't want to do
 that.
 
+Seems possibly feasible on Windows though? As it has an older cmake...
+
 #+begin_src python
   #!/usr/bin/python3
-  import sys,os,os.path,argparse,subprocess,contextlib,re
+  import sys,os,os.path,argparse,subprocess,contextlib,re,collections
 
   ##########################################################################
   ##########################################################################
@@ -11213,6 +11215,9 @@ that.
   ##########################################################################
   ##########################################################################
 
+  # ensure sorting goes numerically
+  Tag=collections.namedtuple('Tag','major minor patch name')
+
   def main2(options):
       sdl_path=os.path.join(options.b2_path,'submodules/SDL_official')
       if not os.path.isdir(sdl_path):
@@ -11228,26 +11233,59 @@ that.
       for tag in git_tag_list:
           m=sdl_tag_re.match(tag)
           if m is not None:
-              major=int(m.group('major'))
-              minor=int(m.group('minor'))
-              patch=int(m.group('patch'))
-              if major==2:
-                  if minor>0 or patch>=18: sdl_tags.append(tag)
+              sdl_tags.append(Tag(major=int(m.group('major')),
+                                  minor=int(m.group('minor')),
+                                  patch=int(m.group('patch')),
+                                  name=tag))
 
       sdl_tags.sort()
       print(sdl_tags)
 
       os.putenv('CMAKE_EXTRA_ARGS','-DCMAKE_POLICY_VERSION_MINIMUM=3.5')
 
+      # 2.0.12 was released in 2020 so minimal effort was expended on
+      # versions before that.
+      bad=[
+          # requires DXSDK_DIR
+          (2,0,0), (2,0,1), (2,0,2), (2,0,3),
+
+  # missing SDL_PixelFormatEnum. I have my sanity to consider...
+          (2,0,4), (2,0,5), (2,0,6),(2,0,7),(2,0,8),(2,0,9),
+      ]
+
+      # ropey workflow...
+      known_good=[]
+
+      good=[]
+
+      def fatal2(tag,message):
+          print('Succeeded: %s'%([t.name for t in good]))
+          fatal('%s: %s'%(message,tag.name))
+
       for sdl_tag in sdl_tags:
+          if sdl_tag.major!=2: continue
+          if (sdl_tag.major,sdl_tag.minor,sdl_tag.patch) in bad+known_good:
+              continue
+              
           with working_folder(sdl_path):
-              subprocess.run(['git','checkout',sdl_tag],check=True)
+              subprocess.run(['git','checkout',sdl_tag.name],check=True)
 
           with working_folder(options.b2_path):
-              print('Building: %s'%sdl_tag)
-              result=subprocess.run(['make','precommit','VERBOSE=1','REINIT=1'])
+              print('Building: %s'%sdl_tag.name)
+
+              result=subprocess.run(['make','init_vs2022'],shell=True)
               if result.returncode!=0:
-                  fatal('failed: %s'%sdl_tag)
+                  fatal2(sdl_tag,'init_vs2022 failed')
+
+              result=subprocess.run(['make','precommit_vs2022'],shell=True)
+              if result.returncode!=0:
+                  fatal2(sdl_tag,'precommit_vs2022 failed')
+
+          good.append(sdl_tag)
+              
+              # result=subprocess.run(['make','precommit','VERBOSE=1','REINIT=1'])
+              # if result.returncode!=0:
+              #     fatal('failed: %s'%sdl_tag)
 
   ##########################################################################
   ##########################################################################
