@@ -52,6 +52,7 @@
 
 struct SDL_Texture;
 struct SDL_Renderer;
+struct SDL_Window;
 struct SDL_Cursor;
 class Messages;
 class RecentPaths;
@@ -72,7 +73,7 @@ extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
 
 class ImGuiStuff {
   public:
-    explicit ImGuiStuff(SDL_Renderer *renderer);
+    explicit ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer);
     ~ImGuiStuff();
 
     ImGuiStuff(const ImGuiStuff &) = delete;
@@ -123,6 +124,7 @@ class ImGuiStuff {
         ConsumePressedKeycodeState_Consumed,
     };
 
+    SDL_Window *m_window = nullptr;
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
 

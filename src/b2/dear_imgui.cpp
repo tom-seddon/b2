@@ -95,8 +95,9 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer)
-    : m_renderer(renderer) {
+ImGuiStuff::ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer)
+    : m_window(window)
+    , m_renderer(renderer) {
     m_last_new_frame_ticks = GetCurrentTickCount();
 
     static_assert(sizeof m_imgui_key_from_sdl_scancode / sizeof m_imgui_key_from_sdl_scancode[0] == SDL_NUM_SCANCODES);
@@ -265,8 +266,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     // See ImGui_ImplSDL2_Init.
 
-    SDL_Window *window = SDL_RenderGetWindow(m_renderer);
-    uint32_t window_flags = SDL_GetWindowFlags(window);
+    uint32_t window_flags = SDL_GetWindowFlags(m_window);
 
     if (window_flags & SDL_WINDOW_ALLOW_HIGHDPI) {
 #if SYSTEM_WINDOWS
@@ -291,7 +291,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 #elif SYSTEM_OSX
 
         ImGuiViewport *main_vp = ImGui::GetMainViewport();
-        main_vp->PlatformHandle = window;
+        main_vp->PlatformHandle = m_window;
 
         platform_io.Platform_GetWindowDpiScale = &HandleGetWindowDpiScaleOSX;
 
@@ -301,7 +301,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
         // The correct initial scale factor does still need to be set.
         ImGuiStyle &style = ImGui::GetStyle();
-        style.FontScaleDpi = GetDpiScale(window);
+        style.FontScaleDpi = GetDpiScale(m_window);
 
 #elif SYSTEM_LINUX
 
@@ -454,10 +454,8 @@ void ImGuiStuff::NewFrame() {
     }
 
     {
-        SDL_Window *window = SDL_RenderGetWindow(m_renderer);
-
         int window_width, window_height;
-        SDL_GetWindowSize(window, &window_width, &window_height);
+        SDL_GetWindowSize(m_window, &window_width, &window_height);
 
         int output_width, output_height;
         SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);

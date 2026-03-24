@@ -3368,7 +3368,7 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    m_imgui_stuff = new ImGuiStuff(m_renderer);
+    m_imgui_stuff = new ImGuiStuff(m_window, m_renderer);
     if (!m_imgui_stuff->Init(ImGuiConfigFlags_DockingEnable)) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
