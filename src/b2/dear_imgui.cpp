@@ -273,7 +273,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
         SDL_SysWMinfo wm_info;
         SDL_VERSION(&wm_info.version);
-        SDL_GetWindowWMInfo(window, &wm_info);
+        SDL_GetWindowWMInfo(m_window, &wm_info);
 
         ImGuiViewport *main_vp = ImGui::GetMainViewport();
         main_vp->PlatformHandleRaw = wm_info.info.win.window;

@@ -910,7 +910,9 @@ static bool InitSystem(
 
     if (options.enable_high_dpi) {
 #if SYSTEM_WINDOWS
+#ifdef SDL_HINT_WINDOWS_DPI_AWARENESS
         SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+#endif
 #endif
     }
 
