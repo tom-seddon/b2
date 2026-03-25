@@ -30,20 +30,24 @@ import sys,argparse
 ##########################################################################
 ##########################################################################
 
-TEST_AVAILABLE_PREFIX='2fcf9707-9498-4a03-9b27-ef501fa2fbb6:'
-TEST_RUN_PREFIX='ea73a8dc-2d1a-43bc-ae41-078e441e53c5:'
+TEST_AVAILABLE_PREFIX="2fcf9707-9498-4a03-9b27-ef501fa2fbb6:"
+TEST_AVAILABLE_BUT_HIDDEN_PREFIX="1902bf7f-8607-4cd3-a6e1-abaf2ebe85c9:"
+TEST_RUN_PREFIX="ea73a8dc-2d1a-43bc-ae41-078e441e53c5:"
 
 ##########################################################################
 ##########################################################################
 
 def main2(options):
     tests_available=set()
+    tests_available_but_hidden=set()
     tests_run={}
 
     with open(options.input_path,'rt') as f:
         for line in f.readlines():
             if line.startswith(TEST_AVAILABLE_PREFIX):
                 tests_available.add(line[len(TEST_AVAILABLE_PREFIX):].strip())
+            elif line.startswith(TEST_AVAILABLE_BUT_HIDDEN_PREFIX):
+                tests_available_but_hidden.add(line[len(TEST_AVAILABLE_BUT_HIDDEN_PREFIX):].strip())
             elif line.startswith(TEST_RUN_PREFIX):
                 name=line[len(TEST_RUN_PREFIX):].strip()
                 tests_run[name]=tests_run.get(name,0)+1
@@ -53,11 +57,15 @@ def main2(options):
 
     good=True
     for name,count in tests_run.items():
-        if count!=1:
+        if name in tests_available_but_hidden: bad_count=count>1
+        else: bad_count=count!=1
+        
+        if bad_count:
             sys.stderr.write('FATAL: test ran %d times: %s\n'%(count,name))
             good=False
 
-        if name not in tests_available:
+        if name in tests_available_but_hidden: pass
+        elif name not in tests_available:
             sys.stderr.write('FATAL: unknown test ran %d times: %s\n'%(count,name))
             good=False
 

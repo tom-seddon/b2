@@ -493,9 +493,9 @@ endforeach()
 
 # https://github.com/tom-seddon/b2/issues/564
 
-# foreach(MODEL master compact)
-#   add_b2_test_literal_category(b2ui.nvram_update.${MODEL})
-# endforeach()
+foreach(MODEL master compact)
+  add_b2_test_literal_category(b2ui.nvram_update.${MODEL})
+endforeach()
 
 ##########################################################################
 ##########################################################################

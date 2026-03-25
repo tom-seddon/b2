@@ -1386,9 +1386,14 @@ int main(int argc, char *argv[]) {
 
     if (options.list_for_check_ctest_log) {
         for (auto &&name_and_test : tests_by_name) {
-            if (!name_and_test.second->IsHidden()) {
-                printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:b2_test: %s\n", name_and_test.first.c_str());
+            const char *prefix;
+            if (name_and_test.second->IsHidden()) {
+                prefix = "1902bf7f-8607-4cd3-a6e1-abaf2ebe85c9:";
+            } else {
+                prefix = "2fcf9707-9498-4a03-9b27-ef501fa2fbb6:";
             }
+
+            printf("%sb2_test: %s\n", prefix, name_and_test.first.c_str());
         }
 
         return 0;
