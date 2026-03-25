@@ -62,6 +62,8 @@ with:
 You're on your own here I'm afraid, but hopefully the APT package list
 will be enough to help figure out how to install the dependencies.
 
+You'll need SDL2 2.0.12 or later.
+
 The code is intended to be compatible with `sdl2-compat` (an SDL2
 compatibily layer for SDL3), as found on Arch Linux at least.
 

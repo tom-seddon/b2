@@ -78,6 +78,15 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SDL_VERSION_ATLEAST(2, 0, 16)
+#define HAVE_SDL_SOFTSTRETCHLINEAR 1
+#else
+#define HAVE_SDL_SOFTSTRETCHLINEAR 0
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //static TimerDef g_HandleVBlank_timer_def("BeebWindow::HandleVBlank");
 //static TimerDef g_HandleVBlank_end_of_frame_timer_def("BeebWindow::HandleVBlank end of frame",
 //                                                      &g_HandleVBlank_timer_def);
@@ -1173,8 +1182,7 @@ static bool IsProbablyInterestingTextInputEvent(const SDL_KeyboardEvent &event) 
 }
 
 bool BeebWindow::DoImGui(uint64_t ticks) {
-    int output_width, output_height;
-    SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
+    ImVec2 display_size = m_imgui_stuff->GetDisplaySize();
 
     SettingsUI *active_popup = nullptr;
 
@@ -1204,7 +1212,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
         beeb_got_imgui_focus = this->DoBeebDisplayUI();
 
-        this->DoPopupUI(ticks, output_width, output_height);
+        this->DoPopupUI(ticks, display_size);
     }
 
 #if ENABLE_IMGUI_DEMO
@@ -1857,9 +1865,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
-    (void)output_width;
-
+void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
     if (ValueChanged(&m_msg_last_num_messages_printed, m_message_list->GetNumMessagesPrinted())) {
         m_messages_popup_ui_active = true;
         m_messages_popup_ticks = now;
@@ -1944,7 +1950,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
                                   //ImGuiWindowFlags_ShowBorders|
                                   ImGuiWindowFlags_AlwaysAutoResize |
                                   ImGuiWindowFlags_NoFocusOnAppearing);
-        ImGui::SetNextWindowPos(ImVec2(10.f, output_height - m_leds_popup_height - 2));
+        ImGui::SetNextWindowPos(ImVec2(10.f, display_size.y - m_leds_popup_height - 2));
 
         ImGui::SetNextWindowBgAlpha(m_settings.leds_popup_alpha);
 
@@ -3672,7 +3678,7 @@ bool BeebWindow::InitInternal() {
 #else
     bool imgui_enable_test_engine = false;
 #endif
-    m_imgui_stuff = new ImGuiStuff(m_window, m_renderer, imgui_enable_test_engine, display_size_x, display_size_y);
+    m_imgui_stuff = new ImGuiStuff(m_window, m_renderer, imgui_enable_test_engine, {display_size_x, display_size_y});
     if (!m_imgui_stuff->Init(ImGuiConfigFlags_DockingEnable)) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;

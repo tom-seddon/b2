@@ -232,17 +232,6 @@ if(USE_SYSTEM_SDL)
   find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
   find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2main)
 
-  # Find out whether the version is new enough for
-  # SDL_SoftStretchLinear.
-  get_target_property(CMAKE_REQUIRED_INCLUDES SDL2::SDL2 INCLUDE_DIRECTORIES)
-  get_target_property(CMAKE_REQUIRED_DEFINITIONS SDL2::SDL2 COMPILE_DEFINITIONS)
-  set(CMAKE_REQUIRED_DEFINITIONS ${CMAKE_REQUIRED_DEFINITIONS} -DSDL_MAIN_HANDLED)
-  check_cxx_source_compiles("#include <SDL.h>
-typedef decltype(&SDL_SoftStretchLinear) T;int main(void){return 0;}" HAVE_SDL_SOFTSTRETCHLINEAR)
-  message(STATUS "SDL_SoftStretchLinear exists: ``${HAVE_SDL_SOFTSTRETCHLINEAR}''")
-  unset(CMAKE_REQUIRED_INCLUDES)
-  unset(CMAKE_REQUIRED_DEFINITIONS)
-
   set(SDL2_LIBRARY SDL2::SDL2 SDL2::SDL2main)
 
 else()
@@ -273,12 +262,9 @@ else()
     target_compile_options(SDL2-static PRIVATE "-Wno-shorten-64-to-32") #new with Xcode 26.0.1
   endif()
 
-  set(HAVE_SDL_SOFTSTRETCHLINEAR TRUE)
-
-  set(SDL2_LIBRARY SDL2::SDL2-static SDL2::SDL2main)
+  set(SDL2_LIBRARY SDL2-static SDL2main)
 
 endif()
-
 
 ##########################################################################
 ##########################################################################

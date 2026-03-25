@@ -100,11 +100,10 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiStuff::ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_test_engine, float default_display_size_x, float default_display_size_y)
+ImGuiStuff::ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_test_engine, const ImVec2 &default_display_size)
     : m_window(window)
     , m_renderer(renderer)
-    , m_default_display_size_x(default_display_size_x)
-    , m_default_display_size_y(default_display_size_y) {
+    , m_default_display_size(default_display_size) {
     m_last_new_frame_ticks = GetCurrentTickCount();
 
     static_assert(sizeof m_imgui_key_from_sdl_scancode / sizeof m_imgui_key_from_sdl_scancode[0] == SDL_NUM_SCANCODES);
@@ -473,6 +472,20 @@ void ImGuiStuff::SetPixelFont(bool pixel_font) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+ImVec2 ImGuiStuff::GetDisplaySize() const {
+    if (m_renderer) {
+        int output_width, output_height;
+        SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
+
+        return {(float)output_width, (float)output_height};
+    } else {
+        return m_default_display_size;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void ImGuiStuff::NewFrame() {
     ASSERT(!g_in_frame);
 
@@ -493,24 +506,17 @@ void ImGuiStuff::NewFrame() {
         }
     }
 
+    io.DisplaySize = this->GetDisplaySize();
+
     if (m_renderer) {
         int window_width, window_height;
         SDL_GetWindowSize(m_window, &window_width, &window_height);
 
-        int output_width, output_height;
-        SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
-
-        io.DisplaySize.x = (float)output_width;
-        io.DisplaySize.y = (float)output_height;
-
         // Always ends up as 1.0 on Windows. May end up as 2.0 on macOS with display scaling.
         //
         // TODO: there's probably somewhere better to get this value from... right?!
-        m_mouse_scale = (float)output_width / window_width;
+        m_mouse_scale = (float)io.DisplaySize.x / window_width;
     } else {
-        io.DisplaySize.x = m_default_display_size_x;
-        io.DisplaySize.y = m_default_display_size_y;
-
         m_mouse_scale = 1.f;
     }
 

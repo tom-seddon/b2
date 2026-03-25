@@ -39,6 +39,7 @@ class TimerDef;
 struct ImGuiTestEngine;
 #endif
 class AppHandler;
+struct ImVec2;
 
 #include "keys.h"
 #include <string>
@@ -607,7 +608,7 @@ class BeebWindow {
     void DoCopyModeCommands(BeebWindowSettings::CopySettings *settings, bool enabled, const Command2 &pass_through, const Command2 &only_gbp, const Command2 &SAA5050, const Command2 &toggle_handle_delete);
     void DoMenuUI();
     SettingsUI *DoSettingsUI();
-    void DoPopupUI(uint64_t now, int output_width, int output_height);
+    void DoPopupUI(uint64_t now, const ImVec2 &display_size);
     void DoFileMenu();
     void DoDiscDriveSubMenu(int drive, const std::shared_ptr<const DiscImage> &disc_image);
     bool DoNewCopyOfDiskMenu(std::string *path, const Disc *disks, size_t num_disks);
