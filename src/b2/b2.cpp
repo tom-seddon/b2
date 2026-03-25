@@ -1062,7 +1062,9 @@ static bool InitSystem(
 
     if (IsHighDPIEnabled(options, app_handler)) {
 #if SYSTEM_WINDOWS
+#ifdef SDL_HINT_WINDOWS_DPI_AWARENESS
         SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+#endif
 #endif
     }
 

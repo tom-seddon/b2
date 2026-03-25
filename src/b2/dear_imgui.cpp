@@ -100,8 +100,9 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer, bool enable_test_engine, float default_display_size_x, float default_display_size_y)
-    : m_renderer(renderer)
+ImGuiStuff::ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_test_engine, float default_display_size_x, float default_display_size_y)
+    : m_window(window)
+    , m_renderer(renderer)
     , m_default_display_size_x(default_display_size_x)
     , m_default_display_size_y(default_display_size_y) {
     m_last_new_frame_ticks = GetCurrentTickCount();
@@ -296,13 +297,10 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     // See ImGui_ImplSDL2_Init.
 
-    SDL_Window *window;
     uint32_t window_flags;
-    if (m_renderer) {
-        window = SDL_RenderGetWindow(m_renderer);
-        window_flags = SDL_GetWindowFlags(window);
+    if (m_window) {
+        window_flags = SDL_GetWindowFlags(m_window);
     } else {
-        window = nullptr;
         window_flags = 0;
     }
 
@@ -310,7 +308,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 #if SYSTEM_WINDOWS
         SDL_SysWMinfo wm_info;
         SDL_VERSION(&wm_info.version);
-        SDL_GetWindowWMInfo(window, &wm_info);
+        SDL_GetWindowWMInfo(m_window, &wm_info);
 
         ImGuiViewport *main_vp = ImGui::GetMainViewport();
         main_vp->PlatformHandleRaw = wm_info.info.win.window;
@@ -328,7 +326,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 #elif SYSTEM_OSX
 
         ImGuiViewport *main_vp = ImGui::GetMainViewport();
-        main_vp->PlatformHandle = window;
+        main_vp->PlatformHandle = m_window;
 
         platform_io.Platform_GetWindowDpiScale = &HandleGetWindowDpiScaleOSX;
 
@@ -338,7 +336,7 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
         // The correct initial scale factor does still need to be set.
         ImGuiStyle &style = ImGui::GetStyle();
-        style.FontScaleDpi = GetDpiScale(window);
+        style.FontScaleDpi = GetDpiScale(m_window);
 
 #elif SYSTEM_LINUX
 
@@ -496,10 +494,8 @@ void ImGuiStuff::NewFrame() {
     }
 
     if (m_renderer) {
-        SDL_Window *window = SDL_RenderGetWindow(m_renderer);
-
         int window_width, window_height;
-        SDL_GetWindowSize(window, &window_width, &window_height);
+        SDL_GetWindowSize(m_window, &window_width, &window_height);
 
         int output_width, output_height;
         SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
