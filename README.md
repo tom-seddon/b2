@@ -34,10 +34,13 @@ build from source.
 Follow the [building instructions](./doc/Building.md) to
 build from source.
 
-There is also a [b2 snap](https://snapcraft.io/b2), looked after by
-[Alan Pope](https://github.com/popey/b2-snap/) - this is something I
-approve of, but due to lack of Linux knowledge I can't provide any
-support for it myself)
+There are some additional options, though I can't provide any support
+for them myself:
+
+* [b2 snap](https://snapcraft.io/b2), looked after by
+[Alan Pope](https://github.com/popey/b2-snap/)
+* [SlackBuilds](https://slackbuilds.org/repository/15.0/system/b2/),
+  maintaned by Antonio Leal
 
 ## libretro/RetroArch
 
