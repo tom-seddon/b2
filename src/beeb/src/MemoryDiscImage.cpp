@@ -73,14 +73,6 @@ std::shared_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromBuffer(
         return nullptr;
     }
 
-    if (data_size % geometry.bytes_per_sector != 0) {
-        if (logs) {
-            logs->e.f("%s: not a multiple of sector size (%zu)\n",
-                      path.c_str(), geometry.bytes_per_sector);
-        }
-        return nullptr;
-    }
-
     return std::shared_ptr<MemoryDiscImage>(new MemoryDiscImage(std::move(path), std::move(load_method), data, data_size, geometry));
 }
 
@@ -102,6 +94,15 @@ MemoryDiscImage::MemoryDiscImage(std::string path,
     : m_data(new Data)
     , m_load_method(std::move(load_method)) {
     m_data->data.assign((const uint8_t *)data, (const uint8_t *)data + data_size);
+
+    // Round data size up to a sector boundary. Assume caller has checked for
+    // any problem cases.
+    //
+    // This loop is dumb, but it'll rarely run.
+    while (m_data->data.size() % geometry.bytes_per_sector != 0) {
+        m_data->data.push_back(0);
+    }
+
     m_data->geometry = geometry;
     this->SetName(std::move(path));
 }
