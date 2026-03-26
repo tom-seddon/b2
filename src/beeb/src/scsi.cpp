@@ -1,8 +1,5 @@
 #include <shared/system.h>
 #include <beeb/scsi.h>
-
-#if ENABLE_SCSI
-
 #include <beeb/Trace.h>
 #include <6502/6502.h>
 #include <shared/log.h>
@@ -785,5 +782,3 @@ bool SCSI::GetHardDiskImageForCurrentCommand(HardDiskImage **hd_ptr) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#endif

@@ -178,9 +178,6 @@ static constexpr double CORRECT_ASPECT_RATIO_X_SCALE = (double)CORRECT_ASPECT_RA
 // thereafter... - the define will be removed and affected code fixed up
 // accordingly.
 
-// SCSI is good.
-#define ENABLE_SCSI 1
-
 // Tape is super WIP, and non-functional.
 #define ENABLE_TAPE 0
 

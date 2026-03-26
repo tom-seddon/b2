@@ -70,10 +70,8 @@ EQPNV(ADJIDIPSwitchesShift, 5)
 // have the serial upgrade fitted.)
 EPNV(Serial, 1 << 7)
 
-#if ENABLE_SCSI
 // If set, has SCSI interface available via XFJ.
 EPNV(SCSI, 1 << 8)
-#endif
 
 // If set, has MMFS (Memory-Mapped Filing System) interface available via XFJ.
 EPNV(MMFS, 1 << 9)

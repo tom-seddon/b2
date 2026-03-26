@@ -212,10 +212,8 @@ class BBCMicroState {
     uint8_t DebugGetMouseButtons() const;
     bool DebugGetWD1770(const WD1770 **fdc_ptr, DiscInterfaceControl *disc_control_ptr) const;
     const DiscDrive *DebugGetDrive(int drive) const;
-#if ENABLE_SCSI
     const HardDiskImageSet *DebugGetHardDiskImageSet() const;
     const SCSI *DebugGetSCSI() const;
-#endif
     bool DebugGetSerial(const SERPROC **serproc_ptr, const MC6850 **mc6850_ptr) const;
     void DebugGetMemoryFaultMasks(uint8_t *ram_and_ptr, uint8_t *ram_or_ptr) const;
     void DebugGetCPURunState(BBCMicroCPURunState *cpu_run_state_ptr, bool *resetting_ptr) const;
@@ -402,9 +400,7 @@ class BBCMicroState {
 
     M6502 parasite_cpu = {};
 
-#if ENABLE_SCSI
     std::shared_ptr<SCSI> scsi;
-#endif
 
     std::shared_ptr<MMFS> mmfs;
 

@@ -551,7 +551,6 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-#if ENABLE_SCSI
     if (CanHaveSCSI(config->type_id)) {
         ImGui::Separator();
 
@@ -612,7 +611,6 @@ void ConfigsUI::DoEditConfigGui() {
             }
         }
     }
-#endif
 
     ImGui::Separator();
 

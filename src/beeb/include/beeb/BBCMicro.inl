@@ -39,9 +39,7 @@ EPNV(Tube, 1 << 12)
 EPNV(ADC, 1 << 13)
 EPNV(EEPROM, 1 << 14)
 EPNV(DiskDrive, 1 << 15)
-#if ENABLE_SCSI
 EPNV(SCSI, 1 << 16)
-#endif
 EPNV(Serial, 1 << 17)
 EPNV(SerialExtra, 1 << 18)
 EPNV(6845Rows, 1 << 19)

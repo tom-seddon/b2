@@ -4388,7 +4388,6 @@ std::unique_ptr<SettingsUI> CreateDiskDriveDebugWindow(BeebWindow *beeb_window) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_SCSI
 class HardDiskDebugWindow : public DebugUI {
   public:
     void DoImGui2() override {
@@ -4423,21 +4422,14 @@ class HardDiskDebugWindow : public DebugUI {
   protected:
   private:
 };
-#endif
 
 std::unique_ptr<SettingsUI> CreateHardDiskDebugWindow(BeebWindow *beeb_window) {
-#if ENABLE_SCSI
     return CreateDebugUI<HardDiskDebugWindow>(beeb_window, ImVec2(300, 300));
-#else
-    (void)beeb_window;
-    return nullptr;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_SCSI
 class SCSIDebugWindow : public DebugUI {
   public:
     void DoImGui2() override {
@@ -4470,15 +4462,9 @@ class SCSIDebugWindow : public DebugUI {
   protected:
   private:
 };
-#endif
 
 std::unique_ptr<SettingsUI> CreateSCSIDebugWindow(BeebWindow *beeb_window) {
-#if ENABLE_SCSI
     return CreateDebugUI<SCSIDebugWindow>(beeb_window, ImVec2(300, 300));
-#else
-    (void)beeb_window;
-    return nullptr;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

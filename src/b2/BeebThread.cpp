@@ -641,9 +641,7 @@ void BeebThread::HardResetMessage::HardReset(
     }
 
     if (ts->current_config.config.scsi) {
-#if ENABLE_SCSI
         init_flags |= BBCMicroInitFlag_SCSI;
-#endif
     }
 
     if (ts->current_config.config.mmfs_enabled) {

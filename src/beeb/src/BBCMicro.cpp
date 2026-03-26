@@ -388,13 +388,11 @@ uint32_t BBCMicro::GetCloneImpediments() const {
         }
     }
 
-#if ENABLE_SCSI
     for (int i = 0; i < NUM_HARD_DISKS; ++i) {
         if (!!m_state.scsi->hds.images[i]) {
             result |= (uint32_t)BBCMicroCloneImpediment_HardDisk0 << i;
         }
     }
-#endif
 
     if (!!m_beeblink_handler) {
         result |= BBCMicroCloneImpediment_BeebLink;
@@ -459,11 +457,9 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 
     m_disk_drive_trace = trace_flags & BBCMicroTraceFlag_DiskDrive ? m_trace : nullptr;
 
-#if ENABLE_SCSI
     if (!!m_state.scsi) {
         m_state.scsi->SetTrace(m_trace_flags & BBCMicroTraceFlag_SCSI ? m_trace : nullptr);
     }
-#endif
 
     m_state.serproc.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr);
     m_state.acia.SetTrace(m_trace_flags & BBCMicroTraceFlag_Serial ? m_trace : nullptr, !!(m_trace_flags & BBCMicroTraceFlag_SerialExtra));
@@ -1728,12 +1724,10 @@ uint32_t BBCMicro::GetLEDs() {
         }
     }
 
-#if ENABLE_SCSI
     if (!!m_state.scsi) {
         leds |= (uint32_t)(m_state.scsi->leds_ever_on | m_state.scsi->leds) << BBCMicroLEDFlag_HardDisk0Shift;
         m_state.scsi->leds_ever_on = 0;
     }
-#endif
 
     return leds;
 }
@@ -3645,7 +3639,6 @@ void BBCMicro::InitStuff() {
         }
     }
 
-#if ENABLE_SCSI
     if (m_state.init_flags & BBCMicroInitFlag_SCSI) {
         ASSERT(!!m_state.scsi);
         this->SetXFJIO(0xfc40, &SCSI::Read0, m_state.scsi.get(), &SCSI::Write0, m_state.scsi.get());
@@ -3653,7 +3646,6 @@ void BBCMicro::InitStuff() {
         this->SetXFJIO(0xfc42, nullptr, nullptr, &SCSI::Write2, m_state.scsi.get());
         this->SetXFJIO(0xfc43, nullptr, nullptr, &SCSI::Write3, m_state.scsi.get());
     }
-#endif
 
     if (m_state.init_flags & BBCMicroInitFlag_MMFS) {
         ASSERT(!!m_state.mmfs);
