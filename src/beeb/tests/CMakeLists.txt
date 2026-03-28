@@ -70,7 +70,11 @@ add_test_beeb_literal_category(kevin_edwards.Alien8)
 add_test_beeb_literal_category(kevin_edwards.Nightsh)
 add_test_beeb_literal_category(kevin_edwards.Jetman)
 
-add_test_beeb_wildcard_category(teletext)
+add_test_beeb_literal_category(teletext.ENGTEST)
+add_test_beeb_literal_category(teletext.RED)
+add_test_beeb_literal_category(teletext.TELETST)
+add_test_beeb_literal_category(teletext.TEST)
+add_test_beeb_literal_category(teletext.FLASH1)
 
 add_test_beeb_wildcard_category(dp111)
 

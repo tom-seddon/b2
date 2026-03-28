@@ -42,6 +42,9 @@ static uint16_t teletext_debug_font_bgmask[128][10];
 //[(bool)aa][(TeletextCharset)style][ch-32][row]
 static uint16_t teletext_font[2][3][96][20];
 
+static constexpr uint16_t DATA0_DIM_MASK = 0x5555;
+static constexpr uint16_t DATA1_DIM_MASK = 0xaaaa;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -260,6 +263,18 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
             data1 = m_last_graphics_data1;
         }
 
+        uint16_t data0_mask, data1_mask;
+        if (m_text_visible) {
+            data0_mask = 0xffff;
+            data1_mask = 0xffff;
+        } else if (this->dim_flash) {
+            data0_mask = DATA0_DIM_MASK;
+            data1_mask = DATA1_DIM_MASK;
+        } else {
+            data0_mask = 0x0000;
+            data1_mask = 0x0000;
+        }
+
         switch (value) {
         case 0x00:
             // NUL
@@ -288,6 +303,8 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
         case 0x09:
             //Steady
             m_text_visible = true;
+            data0_mask = 0xffff;
+            data1_mask = 0xffff;
             break;
 
         case 0x0a:
@@ -400,6 +417,9 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
             break;
         }
 
+        data0 &= data0_mask;
+        data1 &= data1_mask;
+
         if (!m_hold) {
             m_last_graphics_data0 = 0;
             m_last_graphics_data1 = 0;
@@ -411,16 +431,8 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
         uint8_t glyph_raster = (m_raster + m_raster_offset) >> m_raster_shift;
 
         if (glyph_raster < 20 && !m_conceal) {
-            if (m_text_visible) {
-                data0 = teletext_font[1][m_charset][value - 32][glyph_raster];
-                data1 = teletext_font[1][m_charset][value - 32][glyph_raster + (1 >> m_raster_shift)];
-            } else if (this->dim_flash) {
-                data0 = 0x5555 & teletext_font[1][m_charset][value - 32][glyph_raster];
-                data1 = 0xaaaa & teletext_font[1][m_charset][value - 32][glyph_raster + (1 >> m_raster_shift)];
-            } else {
-                data0 = 0;
-                data1 = 0;
-            }
+            data0 = teletext_font[1][m_charset][value - 32][glyph_raster];
+            data1 = teletext_font[1][m_charset][value - 32][glyph_raster + (1 >> m_raster_shift)];
         } else {
             data0 = 0;
             data1 = 0;
@@ -430,6 +442,16 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
             if (!m_conceal) {
                 m_last_graphics_data0 = data0;
                 m_last_graphics_data1 = data1;
+            }
+        }
+
+        if (!m_text_visible) {
+            if (this->dim_flash) {
+                data0 &= DATA0_DIM_MASK;
+                data1 &= DATA1_DIM_MASK;
+            } else {
+                data0 = 0;
+                data1 = 0;
             }
         }
     }
