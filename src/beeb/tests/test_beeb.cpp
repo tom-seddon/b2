@@ -1553,6 +1553,11 @@ class Test {
     virtual std::string GetFullName() const = 0;
     virtual void Run() = 0;
 
+    // Called after a successful run. Remove any large files that are only interesting after a failed run.
+    //
+    // Default impl does nothing.
+    virtual void TidyUp();
+
   protected:
   private:
 };
@@ -1561,6 +1566,12 @@ class Test {
 //////////////////////////////////////////////////////////////////////////
 
 Test::~Test() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Test::TidyUp() {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2747,6 +2758,10 @@ class MMFSDiskAccessTest : public DiskAccessTest {
         m_type.rom_paths[0] = PathJoined("../mmfs_1_60_20251201_1642/MMFS/M/", rom_name);
     }
 
+    void TidyUp() override {
+        PathDeleteFile(this->GetMMFSImagePath());
+    }
+
   protected:
     void InitDiskImage() override {
         std::string src_path = PathJoined(b2_SOURCE_DIR, "etc/discs", "mmfs_test.mmb");
@@ -3226,6 +3241,8 @@ int main(int argc, char *argv[]) {
 
         test->Run();
         ran_any_tests = true;
+
+        test->TidyUp();
 
         uint64_t end_ticks = GetCurrentTickCount();
 
