@@ -156,3 +156,7 @@ endforeach()
 foreach(CPUTYPE nmos cmos)
   add_test_beeb_literal_category(beeb_6502_timings.timings.${CPUTYPE})
 endforeach()
+
+foreach(GRAB RANGE 0 46)
+  add_test_beeb_literal_category(mode7dem.${GRAB})
+endforeach()

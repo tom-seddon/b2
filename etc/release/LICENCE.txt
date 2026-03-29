@@ -60,9 +60,11 @@ Additional credits:
 * 65c02 timing fixes thanks to Robert Smallshire
   (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=12110)
 
-* Mode 7 test program from avengahM
+* mode7dem test program from avengahM
   (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11450),
-  with pages from BBCSDL (https://github.com/rtrussell/BBCSDL)
+  with pages from BBCSDL (https://github.com/rtrussell/BBCSDL). Image
+  captures from real BBC thanks to Greg Cook
+  (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=378)
 
 b2 makes use of a number of open source libraries or assets, licences
 for which are also included in this file.

@@ -22,6 +22,7 @@
 #include <inttypes.h>
 #include <beeb/DiscGeometry.h>
 #include <beeb/HardDiskImage.h>
+#include <unordered_set>
 
 #include <shared/enum_decl.h>
 #include "test_beeb.inl"
@@ -619,6 +620,7 @@ class TestBBCMicro : public BBCMicro {
     std::string spool_output;
     std::string spool_output_name;
     bool ever_hit_brk = false;
+    bool unscaled_teletext = false;
 
 #if BBCMICRO_DEBUGGER
     class Writer {
@@ -674,6 +676,7 @@ class TestBBCMicro : public BBCMicro {
     uint8_t MustFindOpcode(const char *mnemonic) const;
     uint8_t MustFindOpcode(const char *mnemonic, M6502AddrMode mode) const;
 
+    void SetBytes(M6502Word addr, const void *data, size_t num_bytes);
     void SetBytes(M6502Word addr, const std::vector<uint8_t> &data);
     std::vector<uint8_t> GetBytes(M6502Word addr, size_t num_bytes) const;
 
@@ -1048,10 +1051,17 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
 
     while (num_frames_got < num_frames) {
         for (size_t i = 0; i < 1024; ++i) {
-            uint32_t update_result = this->Update(&video_data_units[video_data_unit_index],
+            VideoDataUnit *video_data_unit = &video_data_units[video_data_unit_index];
+            uint32_t update_result = this->Update(video_data_unit,
                                                   &temp_sound_data_unit);
 
             if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+                if (this->unscaled_teletext) {
+                    if (video_data_unit->pixels.pixels[0].bits.x == VideoDataType_Teletext) {
+                        video_data_unit->pixels.pixels[0].bits.x = VideoDataType_TeletextUnscaled;
+                    }
+                }
+
                 ++video_data_unit_index;
                 if (video_data_unit_index >= MAX_NUM_VIDEO_DATA_UNITS) {
                     tv.Update(video_data_units, video_data_unit_index);
@@ -1244,13 +1254,21 @@ uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic, M6502AddrMode mode) c
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestBBCMicro::SetBytes(M6502Word addr_, const std::vector<uint8_t> &bytes) {
+void TestBBCMicro::SetBytes(M6502Word addr_, const void *data_, size_t num_bytes) {
     M6502Word addr = addr_;
+    auto data = (const uint8_t *)data_;
 
-    for (uint8_t byte : bytes) {
+    for (size_t i = 0; i < num_bytes; ++i) {
         ASSERT(addr.w < 0x8000);
-        this->TestSetByte(addr.w++, byte);
+        this->TestSetByte(addr.w++, data[i]);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestBBCMicro::SetBytes(M6502Word addr, const std::vector<uint8_t> &bytes) {
+    this->SetBytes(addr, bytes.data(), bytes.size());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1451,8 +1469,24 @@ static bool g_infer_wanted_images = false;
 
 void RunImageTest(const std::string &wanted_png_src_path,
                   const std::string &png_name,
-                  TestBBCMicro *beeb) {
+                  TestBBCMicro *beeb,
+                  const std::set<std::pair<int, int>> *ignore_coordinates = nullptr) {
     std::vector<uint32_t> got_image = beeb->RunForNFrames(3);
+    TEST_EQ_UU(got_image.size(), TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+
+    bool check_ignore_indexes = false;
+    std::unordered_set<size_t> ignore_indexes;
+    if (ignore_coordinates) {
+        if (!ignore_coordinates->empty()) {
+            check_ignore_indexes = true;
+
+            for (const std::pair<int, int> &c : *ignore_coordinates) {
+                ASSERT(c.first >= 0 && c.first < TV_TEXTURE_WIDTH);
+                ASSERT(c.second >= 0 && c.second < TV_TEXTURE_HEIGHT);
+                ignore_indexes.insert(c.second * TV_TEXTURE_WIDTH + c.first);
+            }
+        }
+    }
 
     // The emulator doesn't bother to fill in the alpha channel. Also, all the
     // pixels are the wrong way round for stb_image, which wants
@@ -1504,6 +1538,7 @@ void RunImageTest(const std::string &wanted_png_src_path,
 
     bool any_differences = false;
     std::vector<uint32_t> differences;
+    differences.reserve(got_image.size());
     for (size_t i = 0; i < got_image.size(); ++i) {
         uint32_t pixel = 0xff000000u;
 
@@ -1514,10 +1549,29 @@ void RunImageTest(const std::string &wanted_png_src_path,
 
         if (got_rgb != wanted_rgb) {
             pixel |= got_rgb ^ wanted_rgb;
-            //pixel|=0x00ffffff;
-            any_differences = true;
+
+            if (check_ignore_indexes && ignore_indexes.contains(i)) {
+                // Ignore this difference.
+                __nop();
+            } else {
+                any_differences = true;
+            }
         } else {
-            pixel |= got_rgb >> 1 & 0x007f7f7f;
+            double a = (got_rgb >> 0 & 0xff) / 255.;
+            double b = (got_rgb >> 8 & 0xff) / 255.;
+            double c = (got_rgb >> 16 & 0xff) / 255.;
+
+            a /= 7.;
+            b /= 7.;
+            c /= 7.;
+
+            //c = b = a = 0.;
+
+            ASSERT(a >= 0. && a <= 1.);
+            ASSERT(b >= 0. && b <= 1.);
+            ASSERT(c >= 0 && c <= 1.);
+
+            pixel |= (uint32_t)(a * 255.) << 0 | (uint32_t)(b * 255.) << 8 | (uint32_t)(c * 255.) << 16;
         }
 
         differences.push_back(pixel);
@@ -2814,6 +2868,334 @@ class HardDiskAccessTest : public DiskAccessTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class Mode7demTest : public Test {
+  public:
+    Mode7demTest(unsigned grab_index, unsigned screen_index, bool screen_flash, bool screen_reveal)
+        : m_grab_index(grab_index)
+        , m_screen_index(screen_index)
+        , m_screen_flash(screen_flash)
+        , m_screen_reveal(screen_reveal) {
+    }
+
+    std::string GetFullName() const override {
+        return strprintf("mode7dem.%u", m_grab_index);
+    }
+
+    void Run() override {
+        TEST_NE_UU(m_screen_index, (unsigned)-1);
+
+        std::string path = PathJoined(b2_SOURCE_DIR, "etc/b2_tests");
+        std::string grab_png_path = PathJoined(path, "mode7dem", this->GetCaptureName() + ".png");
+        std::string dat_path = PathJoined(path, "A/C.MODE7");
+
+        // b2's images don't have the same origin as the grabs. This'd maybe
+        // turn out to be fixable at source (and maybe it indicates a b2
+        // bug...), but easiest just to fiddle with the original images to
+        // produce modified wanted images.
+        std::vector<uint8_t> wanted_data;
+        for (int y = 0; y < TV_TEXTURE_HEIGHT; ++y) {
+            for (int x = 0; x < TV_TEXTURE_WIDTH; ++x) {
+                wanted_data.push_back(0);
+                wanted_data.push_back(0);
+                wanted_data.push_back(0);
+                wanted_data.push_back(255);
+            }
+        }
+
+        {
+            int grab_width, grab_height;
+            unsigned char *grab_data = stbi_load(grab_png_path.c_str(),
+                                                 &grab_width,
+                                                 &grab_height,
+                                                 nullptr,
+                                                 4);
+
+            static constexpr int GRAB_WIDTH = 768;
+            static constexpr int GRAB_HEIGHT = 576;
+
+            TEST_EQ_II(grab_width, GRAB_WIDTH);
+            TEST_EQ_II(grab_height, GRAB_HEIGHT);
+
+            int grab_x = 168;
+            int grab_y = 40;
+
+            int got_x = 60;
+            int got_y = 44;
+
+            for (int y = 0; y < TV_TEXTURE_WIDTH; ++y) {
+                for (int x = 0; x < TV_TEXTURE_HEIGHT; ++x) {
+                    int src_x = x + (grab_x - got_x); //grab_x + x;
+                    int src_y = y + (grab_y - got_y); // + y;
+
+                    int dest_x = x;
+                    int dest_y = y;
+
+                    if (src_x >= 0 && src_x < grab_width &&
+                        src_y >= 0 && src_y < grab_height &&
+                        dest_x >= 0 && dest_x < TV_TEXTURE_WIDTH &&
+                        dest_y >= 0 && dest_y < TV_TEXTURE_HEIGHT) {
+                        int src_index = (src_y * grab_width + src_x) * 4;
+                        int dest_index = (dest_y * TV_TEXTURE_WIDTH + dest_x) * 4;
+                        for (int i = 0; i < 4; ++i) {
+                            wanted_data[dest_index + i] = grab_data[src_index + i];
+                        }
+                    }
+                }
+            }
+
+            free(grab_data), grab_data = nullptr;
+        }
+
+        TEST_EQ_UU(wanted_data.size(), TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT * 4);
+
+        std::string wanted_png_path = GetOutputFileName(this->GetCaptureName() + ".original.wanted.png");
+
+        TEST_TRUE(stbi_write_png(wanted_png_path.c_str(),
+                                 TV_TEXTURE_WIDTH,
+                                 TV_TEXTURE_HEIGHT,
+                                 4,
+                                 wanted_data.data(),
+                                 TV_TEXTURE_WIDTH * 4));
+
+        //
+        TestBBCMicro bbc(GetBTapeType());
+
+        bbc.unscaled_teletext = true;
+        bbc.SetTeletextDimFlash(false);
+        bbc.SetTeletextFlashVisibleOverride(&m_screen_flash);
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        std::vector<uint8_t> all_images;
+        TEST_TRUE(LoadFile(&all_images, dat_path, nullptr, 0));
+
+        // <pre>
+        //    1 *FX 4,1
+        //    2 OSCLI"KEY1"+CHR$145
+        //    3 OSCLI"KEY2"+CHR$146
+        //    4 OSCLI"KEY3"+CHR$133
+        //    5 A%=135
+        //   10 REM Program to demonstrate MODE 7 emulator
+        //   20 :
+        //   30 ON ERROR ON ERROR OFF:MODE 3:IF ERR=25 PRINT "Mode 7 emulator not loaded":END ELSE REPORT:PRINT" at line ";ERL:END
+        //   40 :
+        //   50 MODE 7
+        //   60 VDU 8:IF POS<>39 MODE 3:PRINT "Mode 7 emulator not loaded":END
+        //   70 FOR c%=0 TO 7:VDU 19,c%+128,-1,(c%AND1)<>0,(c%AND2)<>0,(c%AND4)<>0:NEXT
+        //   80 :
+        //   90 file% = OPENIN"C.MODE7"
+        //  100 IF file%=0 MODE 3:PRINT "File C.MODE7 not found":END
+        //  110 :
+        //  120 REPEAT
+        //  130   CLS : FOR N%=1 TO 960:VDU (128 OR BGET#file%):NEXT
+        //  140   IF EOF#file% THEN PTR#file%=0
+        //  150   PRINT TAB(0,24)" Press F1 to reveal, F2 to conceal "TAB(0,0);
+        //  160   REPEAT
+        //  170     C% = (&FF00 AND USR&FFF4) DIV 256
+        //  180     X%=POS:Y%=VPOS:PRINT TAB(37,24);RIGHT$("0"+STR$~C%,2);TAB(X%,Y%);
+        //  190     K%=INKEY(1000)
+        //  200     IF K%=145 PROCreveal ELSE IF K%=146 PROCconceal
+        //  210     IF K%=136 VDU8 ELSEIF K%=137 VDU9 ELSEIF K%=138 VDU10 ELSEIF K%=139 VDU11
+        //  220   UNTIL K%=133
+        //  230 UNTIL FALSE
+        //  240 ;
+        //  250 DEF PROCreveal:X%=POS:Y%=VPOS:VDU30:FOR N%=1 TO 24*40
+        //  260   IF (&FF00 AND USR&FFF4) DIV 256=&98 VDU &9B ELSE VDU 9
+        //  270 NEXT:PRINT TAB(X%,Y%);:ENDPROC
+        //  280 ;
+        //  290 DEF PROCconceal:X%=POS:Y%=VPOS:VDU30:FOR N%=1 TO 24*40
+        //  300   IF (&FF00 AND USR&FFF4) DIV 256=&9B VDU&98 ELSE VDU 9
+        //  310 NEXT:PRINT TAB(X%,Y%);:ENDPROC
+
+        static constexpr size_t SCREEN_SIZE = 960;
+        std::vector<uint8_t> image;
+        for (size_t i = 0; i < SCREEN_SIZE; ++i) {
+            size_t index = m_screen_index * SCREEN_SIZE + i;
+            TEST_LE_UU(index, all_images.size());
+
+            uint8_t c = all_images[index];
+            c |= 0x80;
+
+            if (m_screen_reveal) {
+                if (c == 0x98) {
+                    c = 0x9b;
+                }
+            } else {
+                if (c == 0x9b) {
+                    c = 0x98;
+                }
+            }
+
+            image.push_back(c);
+        }
+
+        bbc.SetBytes({0x7c00}, image);
+
+        // Reproduce the output from the driver program.
+        char last_row[] = " Press F1 to reveal, F2 to conceal";
+
+        bbc.SetBytes({0x7c00 + 24 * 40 + 0}, last_row, strlen(last_row));
+
+        std::vector<uint8_t> bytes = bbc.GetBytes({0x7c00}, 1);
+
+        bbc.SetBytes({0x7c00 + 24 * 40 + 37}, &HEX_CHARS_UC[bytes[0] >> 4 & 0xf], 1);
+        bbc.SetBytes({0x7c00 + 24 * 40 + 38}, &HEX_CHARS_UC[bytes[0] >> 0 & 0xf], 1);
+
+        if (m_grab_index == 46) {
+            bbc.SetBytes({0x7c00 + 10 * 40 + 2}, {(uint8_t)'A'});
+        }
+
+        // Add grab-specific bodges. This does mean the test is not as
+        // data-driven as perhaps it could be.
+
+        std::set<std::pair<int, int>> ignore_coordinates;
+        if (m_grab_index == 43) {
+            // Some noise around the fiddly parts of a capital K, a (probably
+            // not ideal) cyan on a red background.
+            ignore_coordinates.insert({
+                {89, 469},
+                {92, 469},
+                {88, 472},
+                {88, 473},
+                {89, 473},
+                {92, 473},
+            });
+        }
+
+        if (m_grab_index >= 0 && m_grab_index <= 16 || m_grab_index == 46) {
+            // The notch in the top right of the lower case m is missing in
+            // double height.
+            //
+            // This appears to be BBC dependent (but haven't investigated why
+            // exactly). It looks like this on my BBC B, but my B+128 shows the
+            // notch.
+            ignore_coordinates.insert({
+                // m in "emulation"
+                {244, 78},
+                {244, 79},
+
+                // m in "frame"
+                {388, 78},
+                {388, 79},
+            });
+        }
+
+        if (m_grab_index == 4) {
+            // Apparent noise around capital N, red on white background
+            ignore_coordinates.insert({
+                // upper N
+                {316, 370},
+                {316, 371},
+                {317, 371},
+                {320, 371},
+
+                // lower N
+                {316, 390},
+                {316, 391},
+                {317, 391},
+                {320, 391},
+            });
+        }
+
+        if (m_grab_index == 13) {
+            // Noise, red on white background
+            ignore_coordinates.insert({
+                // N
+                {353, 290},
+                {356, 290},
+
+                // m
+                {389, 290},
+                {392, 290},
+                {393, 290},
+            });
+        }
+
+        if (m_grab_index >= 17 && m_grab_index <= 20) {
+            // Black pixels in Ns that are otherwise yellow on blue background
+            ignore_coordinates.insert({
+                {232, 98},
+                {232, 99},
+
+                {268, 98},
+                {268, 99},
+
+                {328, 98},
+                {328, 99},
+            });
+        }
+
+        if (m_grab_index == 23) {
+            // N, blue on white
+            ignore_coordinates.insert({
+                {233, 470},
+                {236, 470},
+            });
+        } else if (m_grab_index == 24) {
+            // N, blue on white
+            ignore_coordinates.insert({
+                {232, 470},
+                {232, 471},
+                {233, 471},
+                {236, 471},
+            });
+        }
+
+        if (m_grab_index == 26) {
+            // Ns, blue on green
+            ignore_coordinates.insert({
+                {280, 490},
+                {280, 491},
+                {281, 491},
+                {284, 491},
+
+                {388, 490},
+                {388, 491},
+                {389, 491},
+                {392, 491},
+
+                {424, 490},
+                {424, 491},
+                {425, 491},
+                {428, 491},
+            });
+        }
+
+        if (m_grab_index == 27) {
+            // Ns, blue on green
+            ignore_coordinates.insert({
+                {281, 470},
+                {284, 470},
+
+                {389, 470},
+                {392, 470},
+
+                {425, 470},
+                {428, 470},
+            });
+        }
+
+        RunImageTest(wanted_png_path,
+                     this->GetFullName(),
+                     &bbc,
+                     &ignore_coordinates);
+    }
+
+  protected:
+  private:
+    unsigned m_grab_index = 0;
+    unsigned m_screen_index = 0;
+    bool m_screen_flash = false;
+    bool m_screen_reveal = false;
+
+    std::string GetCaptureName() const {
+        return strprintf("260326%02u", m_grab_index);
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 
 #define DEBUGGER_ONLY(T) T
@@ -3172,6 +3554,54 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<BasicTest>("beeb_6502_timings.timings.nmos", GetBTapeType(), path));
         all_tests.push_back(std::make_unique<BasicTest>("beeb_6502_timings.timings.cmos", GetMasterMOS320Type(), path));
     }
+
+    all_tests.push_back(std::make_unique<Mode7demTest>(0, 0, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(1, 1, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(2, 2, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(3, 3, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(4, 4, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(5, 5, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(6, 5, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(7, 6, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(8, 7, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(9, 7, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(10, 7, true, true));
+    all_tests.push_back(std::make_unique<Mode7demTest>(11, 7, false, true));
+    all_tests.push_back(std::make_unique<Mode7demTest>(12, 8, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(13, 9, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(14, 10, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(15, 11, true, true));
+    all_tests.push_back(std::make_unique<Mode7demTest>(16, 11, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(17, 12, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(18, 12, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(19, 12, true, true));
+    all_tests.push_back(std::make_unique<Mode7demTest>(20, 12, false, true));
+    all_tests.push_back(std::make_unique<Mode7demTest>(21, 13, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(22, 13, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(23, 14, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(24, 14, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(25, 15, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(26, 16, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(27, 17, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(28, 18, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(29, 19, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(30, 19, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(31, 20, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(32, 21, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(33, 21, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(34, 22, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(35, 22, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(36, 23, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(37, 24, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(38, 25, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(39, 25, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(40, 26, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(41, 26, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(42, 27, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(43, 28, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(44, 29, true, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(45, 29, false, false));
+    all_tests.push_back(std::make_unique<Mode7demTest>(46, 10, true, false));
 
     //
     // all tests must be added by this point!
