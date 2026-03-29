@@ -1656,6 +1656,18 @@ void BBCMicro::SetTeletextDimFlash(bool dim_flash) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::SetTeletextFlashVisibleOverride(const bool *overridden_state) {
+    if (overridden_state) {
+        m_state.saa5050.override_flash_visible = true;
+        m_state.saa5050.overridden_flash_visible = *overridden_state;
+    } else {
+        m_state.saa5050.override_flash_visible = false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::OptionalLowFrequencyUpdate() {
 #if BBCMICRO_DEBUGGER
     this->UpdateUpdateMFnData();

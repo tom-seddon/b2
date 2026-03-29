@@ -117,9 +117,9 @@ static constexpr char ADDRESS_SUFFIX_SEPARATOR = '`';
 // centre differently from in the emulator, so obviously something's
 // still wrong.)
 
-static const int TV_TEXTURE_WIDTH = 736;
+static constexpr int TV_TEXTURE_WIDTH = 736;
 
-static const int TV_TEXTURE_HEIGHT = 288 * 2;
+static constexpr int TV_TEXTURE_HEIGHT = 288 * 2;
 
 static_assert(TV_TEXTURE_WIDTH % 8 == 0, "");
 

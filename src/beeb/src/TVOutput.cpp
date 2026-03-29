@@ -263,6 +263,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             units1[7] = units1[6] = units1[5] = units1[4] = units1[3] = units1[2] = units1[1] = units1[0] = *unit;
 #endif
                         }
+                        m_x += 8;
                     }
                     break;
 
@@ -372,6 +373,30 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             units1[7] = units1[6] = units1[5] = units1[4] = units1[3] = units1[2] = units1[1] = units1[0] = *unit;
 #endif
                         }
+                        m_x += 8;
+                    }
+                    break;
+
+                case VideoDataType_TeletextUnscaled:
+                    // Only used for tests. Performance is not a goal.
+                    {
+                        if (m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
+                            pixels0 = m_pixels_line + m_x;
+                            pixels1 = pixels0 + TV_TEXTURE_WIDTH;
+
+                            for (int y = 0; y < 2; ++y) {
+                                uint8_t *dest = (uint8_t *)(m_pixels_line + y * TV_TEXTURE_WIDTH + m_x);
+                                uint16_t p_n = unit->pixels.pixels[2 + y].all;
+                                for (int x = 0; x < 6; ++x) {
+                                    const VideoDataPixel pnn = unit->pixels.pixels[p_n >> x & 1];
+                                    *dest++ = m_blend[pnn.bits.b][pnn.bits.b];
+                                    *dest++ = m_blend[pnn.bits.g][pnn.bits.g];
+                                    *dest++ = m_blend[pnn.bits.r][pnn.bits.r];
+                                    *dest++ = 255;
+                                }
+                            }
+                        }
+                        m_x += 6;
                     }
                     break;
 
@@ -421,11 +446,10 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             units1[7] = units1[6] = units1[5] = units1[4] = units1[3] = units1[2] = units1[1] = units1[0] = *unit;
 #endif
                         }
+                        m_x += 8;
                     }
                     break;
                 }
-
-                m_x += 8;
 
                 if (m_state_timer++ >= SCAN_OUT_CYCLES) {
                     m_state = TVOutputState_HorizontalRetrace;

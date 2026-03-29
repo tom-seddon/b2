@@ -562,9 +562,10 @@ void SAA5050::VSync() {
         m_frame_flash_visible = false;
     }
 
+    if (this->override_flash_visible) {
+        m_frame_flash_visible = this->overridden_flash_visible;
+    }
+
     m_any_double_height = false;
     m_raster_offset = 0;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////

@@ -24,9 +24,12 @@ class SAA5050 {
 #endif
 
     // Only exposed in the debug version UI, but the functionality has to be
-    // available in all bulids, as the tests (and therefore the reference
-    // iwages...) suse it.
+    // available in all bulids, as the tests use it.
     bool dim_flash = false;
+
+    // Used by the tests. Takes effect at start of next frame.
+    bool override_flash_visible = false;
+    bool overridden_flash_visible = false;
 
     SAA5050();
 

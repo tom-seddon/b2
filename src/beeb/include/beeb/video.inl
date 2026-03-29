@@ -14,6 +14,13 @@ EPN(Bitmap12MHz)
 // at the TVOutput end... maybe one day...)
 EPN(Teletext)
 
+// Same encoding as Teletext, but with no scaling. Used for matching output to
+// unscaled pixel perfect BBC Micro screen grabs.
+//
+// (The emulator never generates this. The automated tests replace Teletext
+// units with TeletextUnscaled units when appropriate.)
+EPN(TeletextUnscaled)
+
 EEND()
 #undef ENAME
 
