@@ -60,8 +60,12 @@ Additional credits:
 * 65c02 timing fixes thanks to Robert Smallshire
   (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=12110)
 
-b2 makes use of a number of open source libraries, licences for which
-are also included in this file.
+* Mode 7 test program from avengahM
+  (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11450),
+  with pages from BBCSDL (https://github.com/rtrussell/BBCSDL)
+
+b2 makes use of a number of open source libraries or assets, licences
+for which are also included in this file.
 
 ###########################################################################
 # b2 ######################################################################
@@ -1251,8 +1255,6 @@ Software, subject to the following conditions:
 TERMINATION
 This license becomes null and void if any of the above conditions are not met.
 
- 
-
 DISCLAIMER
 THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
@@ -1263,3 +1265,27 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER
 DEALINGS IN THE FONT SOFTWARE.
+
+###########################################################################
+# BBCSDL ##################################################################
+###########################################################################
+
+Copyright (c) 2021, Richard T. Russell, http://www.rtrussell.co.uk/
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software.  If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
