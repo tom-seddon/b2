@@ -1483,7 +1483,7 @@ void RunImageTest(const std::string &wanted_png_src_path,
             for (const std::pair<int, int> &c : *ignore_coordinates) {
                 ASSERT(c.first >= 0 && c.first < TV_TEXTURE_WIDTH);
                 ASSERT(c.second >= 0 && c.second < TV_TEXTURE_HEIGHT);
-                ignore_indexes.insert(c.second * TV_TEXTURE_WIDTH + c.first);
+                ignore_indexes.insert((size_t)(c.second * TV_TEXTURE_WIDTH + c.first));
             }
         }
     }
@@ -1552,7 +1552,6 @@ void RunImageTest(const std::string &wanted_png_src_path,
 
             if (check_ignore_indexes && ignore_indexes.contains(i)) {
                 // Ignore this difference.
-                __nop();
             } else {
                 any_differences = true;
             }
@@ -2916,11 +2915,11 @@ class Mode7demTest : public Test {
             TEST_EQ_II(grab_width, GRAB_WIDTH);
             TEST_EQ_II(grab_height, GRAB_HEIGHT);
 
-            int grab_x = 168;
-            int grab_y = 40;
+            static constexpr int grab_x = 168;
+            static constexpr int grab_y = 40;
 
-            int got_x = 60;
-            int got_y = 44;
+            static constexpr int got_x = 60;
+            static constexpr int got_y = 44;
 
             for (int y = 0; y < TV_TEXTURE_WIDTH; ++y) {
                 for (int x = 0; x < TV_TEXTURE_HEIGHT; ++x) {
@@ -2934,9 +2933,9 @@ class Mode7demTest : public Test {
                         src_y >= 0 && src_y < grab_height &&
                         dest_x >= 0 && dest_x < TV_TEXTURE_WIDTH &&
                         dest_y >= 0 && dest_y < TV_TEXTURE_HEIGHT) {
-                        int src_index = (src_y * grab_width + src_x) * 4;
-                        int dest_index = (dest_y * TV_TEXTURE_WIDTH + dest_x) * 4;
-                        for (int i = 0; i < 4; ++i) {
+                        size_t src_index = (size_t)(src_y * grab_width + src_x) * 4;
+                        size_t dest_index = (size_t)(dest_y * TV_TEXTURE_WIDTH + dest_x) * 4;
+                        for (size_t i = 0; i < 4; ++i) {
                             wanted_data[dest_index + i] = grab_data[src_index + i];
                         }
                     }
@@ -3062,7 +3061,7 @@ class Mode7demTest : public Test {
             });
         }
 
-        if (m_grab_index >= 0 && m_grab_index <= 16 || m_grab_index == 46) {
+        if ((m_grab_index >= 0 && m_grab_index <= 16) || m_grab_index == 46) {
             // The notch in the top right of the lower case m is missing in
             // double height.
             //
