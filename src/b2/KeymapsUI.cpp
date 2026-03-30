@@ -91,19 +91,21 @@ struct Keycap {
     BeebKeySym unshifted_sym = BeebKeySym_None;
     BeebKeySym shifted_sym = BeebKeySym_None;
     BeebKeySym ctrled_sym = BeebKeySym_None; //only applicable to Electron
+    BeebKeySym funced_sym = BeebKeySym_None; //only applicable to Electron
     KeyColour colour = KeyColour_Default;
 
     Keycap() = default;
-    Keycap(int width_in_halves, BeebKey key, BeebKeySym unshifted_sym, BeebKeySym shifted_sym = BeebKeySym_None, BeebKeySym ctrled_sym = BeebKeySym_None);
+    Keycap(int width_in_halves, BeebKey key, BeebKeySym unshifted_sym, BeebKeySym shifted_sym = BeebKeySym_None, BeebKeySym ctrled_sym = BeebKeySym_None, BeebKeySym funced_sym = BeebKeySym_None);
     Keycap WithColour(KeyColour colour) const;
 };
 
-Keycap::Keycap(int width_in_halves_, BeebKey key_, BeebKeySym unshifted_sym_, BeebKeySym shifted_sym_, BeebKeySym ctrled_sym_)
+Keycap::Keycap(int width_in_halves_, BeebKey key_, BeebKeySym unshifted_sym_, BeebKeySym shifted_sym_, BeebKeySym ctrled_sym_, BeebKeySym funced_sym_)
     : width_in_halves(width_in_halves_)
     , key(key_)
     , unshifted_sym(unshifted_sym_)
     , shifted_sym(shifted_sym_)
-    , ctrled_sym(ctrled_sym_) {
+    , ctrled_sym(ctrled_sym_)
+    , funced_sym(funced_sym_) {
 }
 
 Keycap Keycap::WithColour(KeyColour colour_) const {
@@ -135,7 +137,7 @@ struct BottomHalfKeycap {
 // Defaults assume 13px Proggy Clean font.
 struct Metrics {
     float key_height = 36.f;
-    float key_width = 32.f;
+    float key_width = 36.f;
     float keypad_x = 750.f;
 };
 
@@ -357,6 +359,26 @@ static const Keycap g_keyboard_line2[] = {
     {},
 };
 
+static const Keycap g_compact_line2[] = {
+    Keycap(2, BeebKey_Escape, BeebKeySym_Escape, BeebKeySym_None),
+    Keycap(2, BeebKey_1, BeebKeySym_1, BeebKeySym_ExclamationMark),
+    Keycap(2, BeebKey_2, BeebKeySym_2, BeebKeySym_Quotes),
+    Keycap(2, BeebKey_3, BeebKeySym_3, BeebKeySym_Hash),
+    Keycap(2, BeebKey_4, BeebKeySym_4, BeebKeySym_Dollar),
+    Keycap(2, BeebKey_5, BeebKeySym_5, BeebKeySym_Percent),
+    Keycap(2, BeebKey_6, BeebKeySym_6, BeebKeySym_Ampersand),
+    Keycap(2, BeebKey_7, BeebKeySym_7, BeebKeySym_Apostrophe),
+    Keycap(2, BeebKey_8, BeebKeySym_8, BeebKeySym_LeftBracket),
+    Keycap(2, BeebKey_9, BeebKeySym_9, BeebKeySym_RightBracket),
+    Keycap(2, BeebKey_0, BeebKeySym_0, BeebKeySym_At),
+    Keycap(2, BeebKey_Minus, BeebKeySym_Minus, BeebKeySym_Equals),
+    Keycap(2, BeebKey_Caret, BeebKeySym_Caret, BeebKeySym_Tilde),
+    Keycap(2, BeebKey_Backslash, BeebKeySym_Backslash, BeebKeySym_Pipe),
+    Keycap(2, BeebKey_Left, BeebKeySym_Left, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    Keycap(2, BeebKey_Right, BeebKeySym_Right, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    {},
+};
+
 static const Keycap g_keyboard_line3[] = {
     Keycap(3, BeebKey_Tab, BeebKeySym_Tab, BeebKeySym_None),
     Keycap(2, BeebKey_Q, BeebKeySym_Q),
@@ -370,6 +392,26 @@ static const Keycap g_keyboard_line3[] = {
     Keycap(2, BeebKey_O, BeebKeySym_O),
     Keycap(2, BeebKey_P, BeebKeySym_P),
     Keycap(2, BeebKey_At, BeebKeySym_At),
+    Keycap(2, BeebKey_LeftSquareBracket, BeebKeySym_LeftSquareBracket, BeebKeySym_LeftCurlyBracket),
+    Keycap(2, BeebKey_Underline, BeebKeySym_Underline, BeebKeySym_Pound),
+    Keycap(2, BeebKey_Up, BeebKeySym_Up, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    Keycap(2, BeebKey_Down, BeebKeySym_Down, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    {},
+};
+
+static const Keycap g_compact_line3[] = {
+    Keycap(3, BeebKey_Tab, BeebKeySym_Tab, BeebKeySym_None),
+    Keycap(2, BeebKey_Q, BeebKeySym_Q),
+    Keycap(2, BeebKey_W, BeebKeySym_W),
+    Keycap(2, BeebKey_E, BeebKeySym_E),
+    Keycap(2, BeebKey_R, BeebKeySym_R),
+    Keycap(2, BeebKey_T, BeebKeySym_T),
+    Keycap(2, BeebKey_Y, BeebKeySym_Y),
+    Keycap(2, BeebKey_U, BeebKeySym_U),
+    Keycap(2, BeebKey_I, BeebKeySym_I),
+    Keycap(2, BeebKey_O, BeebKeySym_O),
+    Keycap(2, BeebKey_P, BeebKeySym_P),
+    Keycap(2, BeebKey_At, BeebKeySym_CompactSpecialKey),
     Keycap(2, BeebKey_LeftSquareBracket, BeebKeySym_LeftSquareBracket, BeebKeySym_LeftCurlyBracket),
     Keycap(2, BeebKey_Underline, BeebKeySym_Underline, BeebKeySym_Pound),
     Keycap(2, BeebKey_Up, BeebKeySym_Up, BeebKeySym_None).WithColour(KeyColour_Khaki),
@@ -464,16 +506,16 @@ static const Keycap g_m128_line5[] = {
 
 static const Keycap g_electron_line1[] = {
     Keycap(2, BeebKey_Escape, BeebKeySym_Escape),
-    Keycap(2, BeebKey_1, BeebKeySym_1, BeebKeySym_ExclamationMark),
-    Keycap(2, BeebKey_2, BeebKeySym_2, BeebKeySym_Quotes),
-    Keycap(2, BeebKey_3, BeebKeySym_3, BeebKeySym_Hash),
-    Keycap(2, BeebKey_4, BeebKeySym_4, BeebKeySym_Dollar),
-    Keycap(2, BeebKey_5, BeebKeySym_5, BeebKeySym_Percent),
-    Keycap(2, BeebKey_6, BeebKeySym_6, BeebKeySym_Ampersand),
-    Keycap(2, BeebKey_7, BeebKeySym_7, BeebKeySym_Apostrophe),
-    Keycap(2, BeebKey_8, BeebKeySym_8, BeebKeySym_LeftBracket),
-    Keycap(2, BeebKey_9, BeebKeySym_9, BeebKeySym_RightBracket),
-    Keycap(2, BeebKey_0, BeebKeySym_0, BeebKeySym_At),
+    Keycap(2, BeebKey_1, BeebKeySym_1, BeebKeySym_ExclamationMark, BeebKeySym_None, BeebKeySym_f1),
+    Keycap(2, BeebKey_2, BeebKeySym_2, BeebKeySym_Quotes, BeebKeySym_None, BeebKeySym_f2),
+    Keycap(2, BeebKey_3, BeebKeySym_3, BeebKeySym_Hash, BeebKeySym_None, BeebKeySym_f3),
+    Keycap(2, BeebKey_4, BeebKeySym_4, BeebKeySym_Dollar, BeebKeySym_None, BeebKeySym_f4),
+    Keycap(2, BeebKey_5, BeebKeySym_5, BeebKeySym_Percent, BeebKeySym_None, BeebKeySym_f5),
+    Keycap(2, BeebKey_6, BeebKeySym_6, BeebKeySym_Ampersand, BeebKeySym_None, BeebKeySym_f6),
+    Keycap(2, BeebKey_7, BeebKeySym_7, BeebKeySym_Apostrophe, BeebKeySym_None, BeebKeySym_f7),
+    Keycap(2, BeebKey_8, BeebKeySym_8, BeebKeySym_LeftBracket, BeebKeySym_None, BeebKeySym_f8),
+    Keycap(2, BeebKey_9, BeebKeySym_9, BeebKeySym_RightBracket, BeebKeySym_None, BeebKeySym_f9),
+    Keycap(2, BeebKey_0, BeebKeySym_0, BeebKeySym_At, BeebKeySym_None, BeebKeySym_f0),
     Keycap(2, BeebKey_Minus, BeebKeySym_Minus, BeebKeySym_Equals),
     Keycap(2, BeebKey_Left, BeebKeySym_Left, BeebKeySym_Caret, BeebKeySym_Tilde),
     Keycap(2, BeebKey_Right, BeebKeySym_Right, BeebKeySym_Pipe, BeebKeySym_Backslash),
@@ -668,6 +710,7 @@ static const char *GetKeySymLabel(BeebKeySym sym) {
             L(BeebKeySym_KeypadStop, ".");
             L(BeebKeySym_KeypadReturn, "RETURN");
             L(BeebKeySym_Space, "");
+            L(BeebKeySym_CompactSpecialKey, ICON_FA_SQUARE);
 #undef L
         }
 
@@ -865,8 +908,12 @@ void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *lin
             const char *shifted = GetKeySymLabel(key->shifted_sym);
             const char *unshifted = GetKeySymLabel(key->unshifted_sym);
             const char *ctrled = GetKeySymLabel(key->ctrled_sym);
+            const char *funced = GetKeySymLabel(key->funced_sym);
 
-            if (shifted && unshifted && ctrled) {
+            // can only have 1 of FUNC or CTRL options per key.
+            ASSERT(!!ctrled + !!funced <= 1);
+
+            if (shifted && unshifted && (ctrled || funced)) {
                 // blegh.
                 const char *space;
                 if (key->key == BeebKey_Copy) {
@@ -875,7 +922,7 @@ void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *lin
                     space = " ";
                 }
 
-                snprintf(tmp, sizeof tmp, "%s %s\n%s%s", shifted, ctrled, space, unshifted);
+                snprintf(tmp, sizeof tmp, "%s %s\n%s%s", shifted, ctrled ? ctrled : funced, space, unshifted);
                 label = tmp;
             } else if (shifted && unshifted) {
                 snprintf(tmp, sizeof tmp, "%s\n%s", shifted, unshifted);
@@ -959,21 +1006,44 @@ void KeymapsUI::DoKeySymKeyboardLineTopHalves(BeebKeymap *keymap,
             ImGui::InvisibleButton("", size);
         } else {
             const char *shifted = GetKeySymLabel(keycap->shifted_sym);
+            const char *ctrled = GetKeySymLabel(keycap->ctrled_sym);
             const char *unshifted = GetKeySymLabel(keycap->unshifted_sym);
+            const char *funced = GetKeySymLabel(keycap->funced_sym);
 
-            if (shifted && unshifted) {
-                // Two half-height buttons.
+            if (keycap->shifted_sym != BeebKeySym_None && keycap->unshifted_sym != BeebKeySym_None) {
+                // Half-height buttons.
                 size.y *= .5f;
 
                 ASSERT(*num_bottom_halves < MAX_NUM_KEYCAPS);
                 bottom_halves[(*num_bottom_halves)++] = {ImGui::GetCursorPosX(), size, keycap};
 
-                ImGuiIDPusher id_pusher2(1);
-                this->DoKeySymButton(keymap, shifted, size, keycap->shifted_sym, keycap);
+                if (shifted && !(ctrled || funced)) {
+                    ImGuiIDPusher id_pusher2(1);
+                    this->DoKeySymButton(keymap, shifted, size, keycap->shifted_sym, keycap);
+                } else {
+                    size.x *= .5f;
+
+                    {
+                        ImGuiIDPusher id_pusher2(1);
+                        this->DoKeySymButton(keymap, shifted, size, keycap->shifted_sym, keycap);
+                    }
+
+                    ImGui::SameLine(0.f, 0.f);
+
+                    {
+                        ImGuiIDPusher id_pusher2(2);
+                        if (ctrled) {
+                            this->DoKeySymButton(keymap, ctrled, size, keycap->ctrled_sym, keycap);
+                        } else {
+                            this->DoKeySymButton(keymap, funced, size, keycap->funced_sym, keycap);
+                        }
+                    }
+                }
                 //ImGui::Button(shifted,size);
             } else {
                 // Full-height button.
                 ASSERT(!shifted);
+                ASSERT(!ctrled);
 
                 this->DoKeySymButton(keymap, unshifted, size, keycap->unshifted_sym, keycap);
             }
@@ -1048,7 +1118,7 @@ void KeymapsUI::DoEditKeymapGui() {
     // The factors here are all just arbitrary numbers that make things line
     // up roughly.
     m_metrics.key_height = ImGui::GetTextLineHeight() * 2.75f;
-    m_metrics.key_width = (ImGui::CalcTextSize("W").x + 1.f) * 4.f;
+    m_metrics.key_width = (ImGui::CalcTextSize("W").x + 5.f) * 4.f;
     m_metrics.keypad_x = m_metrics.key_width * 21;
 
     bool edited = false;
@@ -1073,20 +1143,37 @@ void KeymapsUI::DoEditKeymapGui() {
         }
     }
 
-    ImGuiHeader("BBC B/B+/Master layout");
+    ImGuiHeader("BBC B/B+/Master 128 layout");
 
-    this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
-    this->DoKeyboardLine(keymap, g_keyboard_line2, g_m128_line2);
-    this->DoKeyboardLine(keymap, g_keyboard_line3, g_m128_line3);
-    this->DoKeyboardLine(keymap, g_keyboard_line4, g_m128_line4);
-    this->DoKeyboardLine(keymap, g_keyboard_line5, g_m128_line5);
-    this->DoKeyboardLine(keymap, g_keyboard_line6, nullptr);
+    {
+        ImGuiIDPusher pusher("bbc");
+
+        this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
+        this->DoKeyboardLine(keymap, g_keyboard_line2, g_m128_line2);
+        this->DoKeyboardLine(keymap, g_keyboard_line3, g_m128_line3);
+        this->DoKeyboardLine(keymap, g_keyboard_line4, g_m128_line4);
+        this->DoKeyboardLine(keymap, g_keyboard_line5, g_m128_line5);
+        this->DoKeyboardLine(keymap, g_keyboard_line6, nullptr);
+    }
+
+    ImGuiHeader("Master Compact/PC 128 S layout");
+
+    {
+        ImGuiIDPusher pusher("compact");
+
+        this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
+        this->DoKeyboardLine(keymap, g_compact_line2, g_m128_line2);
+        this->DoKeyboardLine(keymap, g_compact_line3, g_m128_line3);
+        this->DoKeyboardLine(keymap, g_keyboard_line4, g_m128_line4);
+        this->DoKeyboardLine(keymap, g_keyboard_line5, g_m128_line5);
+        this->DoKeyboardLine(keymap, g_keyboard_line6, nullptr);
+    }
 
     ImGuiHeader("Electron layout");
 
-    if (keymap->IsKeySymMap()) {
-        ImGui::TextWrapped("Character-based keymaps are not currently compatible with the Electron emulation");
-    } else {
+    {
+        ImGuiIDPusher pusher("electron");
+
         this->DoKeyboardLine(keymap, g_electron_line1, nullptr);
         this->DoKeyboardLine(keymap, g_electron_line2, nullptr);
         this->DoKeyboardLine(keymap, g_electron_line3, nullptr);

@@ -307,6 +307,7 @@ class ImGuiStyleVarPusher {
     // returns *this.
     ImGuiStyleVarPusher &Push(ImGuiStyleVar idx, float val);
     ImGuiStyleVarPusher &Push(ImGuiStyleVar idx, const ImVec2 &val);
+    ImGuiStyleVarPusher &PushX(ImGuiStyleVar idx, float val);
 
     ImGuiStyleVarPusher(const ImGuiStyleVarPusher &) = delete;
     ImGuiStyleVarPusher &operator=(const ImGuiStyleVarPusher &) = delete;

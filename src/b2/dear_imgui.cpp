@@ -51,6 +51,7 @@ const ImGuiStyle IMGUI_DEFAULT_STYLE;
 //////////////////////////////////////////////////////////////////////////
 
 static const std::string FAS_FILE_NAME = "fonts/" FONT_ICON_FILE_NAME_FAS;
+static const std::string FAR_FILE_NAME = "fonts/" FONT_ICON_FILE_NAME_FAR;
 static const std::string DEFAULT_OUTLINE_FONT_FILE_NAME = "fonts/LiberationMono-Regular.ttf";
 static const ImWchar FA_ICONS_RANGES[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
 
@@ -1101,10 +1102,15 @@ void ImGuiStuff::EnsureFontsReady() {
         io.Fonts->AddFontFromFileTTF(GetAssetPath(DEFAULT_OUTLINE_FONT_FILE_NAME).c_str(), font_config.SizePixels, &font_config);
     }
 
-    ImFontConfig fa_config;
-    fa_config.MergeMode = true;
-    fa_config.PixelSnapH = true;
-    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), font_config.SizePixels, &fa_config, FA_ICONS_RANGES);
+    ImFontConfig far_config;
+    far_config.MergeMode = true;
+    far_config.PixelSnapH = true;
+    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAR_FILE_NAME).c_str(), font_config.SizePixels, &far_config, FA_ICONS_RANGES);
+
+    ImFontConfig fas_config;
+    fas_config.MergeMode = true;
+    fas_config.PixelSnapH = true;
+    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), font_config.SizePixels, &fas_config, FA_ICONS_RANGES);
 
     m_fonts_dirty = false;
     return;
@@ -1307,6 +1313,16 @@ ImGuiStyleVarPusher &ImGuiStyleVarPusher::Push(ImGuiStyleVar idx, float val) {
 
 ImGuiStyleVarPusher &ImGuiStyleVarPusher::Push(ImGuiStyleVar idx, const ImVec2 &val) {
     ImGui::PushStyleVar(idx, val);
+    ++m_num_pushes;
+
+    return *this;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+ImGuiStyleVarPusher &ImGuiStyleVarPusher::PushX(ImGuiStyleVar idx, float val) {
+    ImGui::PushStyleVarX(idx, val);
     ++m_num_pushes;
 
     return *this;

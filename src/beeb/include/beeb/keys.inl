@@ -29,7 +29,7 @@ EPNV(8, 0x15)
 EPNV(9, 0x26)
 EPNV(Colon, 0x48)
 EPNV(Semicolon, 0x57)
-EPNV(At, 0x47)
+EPNV(At, 0x47) //also the special key on the Compact
 EPNV(A, 0x41)
 EPNV(B, 0x64)
 EPNV(C, 0x52)
