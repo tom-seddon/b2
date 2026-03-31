@@ -141,6 +141,11 @@ struct Metrics {
     float keypad_x = 750.f;
 };
 
+struct KeymapsUIPersistentData {
+    float divider_position = FLT_MAX;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(KeymapsUIPersistentData, divider_position);
+
 class KeymapsUI : public SettingsUI {
   public:
     KeymapsUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
@@ -156,6 +161,8 @@ class KeymapsUI : public SettingsUI {
     int m_keymap_index = -1;
     Metrics m_metrics;
     ImGuiStuff *m_imgui_stuff = nullptr;
+    KeymapsUIPersistentData m_persistent;
+    bool m_first_update = true;
 
     void DoScancodesList(BeebKeymap *keymap, BeebKey beeb_key, bool editable);
     ImGuiStyleColourPusher GetColourPusherForKeycap(const BeebKeymap *keymap, int8_t keymap_key, const Keycap *keycap);
@@ -186,6 +193,7 @@ KeymapsUI::KeymapsUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff)
     : m_beeb_window(beeb_window)
     , m_imgui_stuff(imgui_stuff) {
     this->SetDefaultSize(ImVec2(650, 450));
+    this->SetPersistentData(&m_persistent);
 
     const BeebKeymap *keymap = m_beeb_window->GetCurrentKeymap();
 
@@ -255,6 +263,17 @@ void KeymapsUI::DoImGui() {
 
     ImGui::Columns(2, "keymaps");
 
+    // Ugh. But I couldn't get the layout to work properly with a table.
+    if (m_first_update) {
+        ImGui::SetColumnWidth(0, m_persistent.divider_position);
+    } else {
+        float divider_position = ImGui::GetColumnWidth(0);
+        if (divider_position != m_persistent.divider_position) {
+            m_persistent.divider_position = divider_position;
+            m_edited = true;
+        }
+    }
+
     if (ImGui::Button("New...")) {
         ImGui::OpenPopup(NEW_KEYMAP_POPUP);
     }
@@ -317,6 +336,8 @@ void KeymapsUI::DoImGui() {
                                                         &BeebWindows::GetBeebKeymapByIndex)) {
         BeebWindows::AddBeebKeymap(*keymap);
     }
+
+    m_first_update = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
