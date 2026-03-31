@@ -501,18 +501,21 @@ def main(options):
         # the output is a bit difficult to read, but by the time this
         # script is run there ought not to be any need to debug
         # things, hopefully.
-        extra_cmake_args=[
+        extra_make_args=[
             "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
              "RELEASE_MODE=1",
              "RELEASE_NAME=%s"%options.release_name
         ]
 
+        if options.no_ffmpeg:
+            extra_make_args.append('CMAKE_DEFINES=-DUSE_FFMPEG=OFF')
+
         if options.macos_deployment_target is not None:
-            extra_cmake_args.append('OSX_DEPLOYMENT_TARGET=%s'%options.macos_deployment_target)
+            extra_make_args.append('OSX_DEPLOYMENT_TARGET=%s'%options.macos_deployment_target)
         
         run([options.make,
              "-j%d"%options.make_jobs,
-             init_target]+extra_cmake_args)
+             init_target]+extra_make_args)
 
     ifolder=create_intermediate_folder()
 
@@ -545,6 +548,7 @@ if __name__=="__main__":
     parser.add_argument('--ctest-timeout',metavar='SECONDS',default=3*60.0,type=float,help='''test timeout in seconds. Default: %(default)f''')
     parser.add_argument('--ctest-output-on-failure',action='store_true',help='''output anything printed by the test program if the test fails''')
     parser.add_argument('--ctest-extra-verbose',action='store_true',help='''enable more verbose output from tests''')
+    parser.add_argument('--no-ffmpeg',action='store_true',help='''ignored''' if sys.platform=='win32' else '''build without looking for ffmpeg''')
 
     if sys.platform=='win32':
         parser.add_argument('-t','--toolchain',default='vs2022',help='''Specify toolchain: vs2019, or vs2022. Default: %(default)s''')
