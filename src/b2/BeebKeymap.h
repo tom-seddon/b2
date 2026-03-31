@@ -23,6 +23,11 @@ struct BeebKeymapTraits {
 
 class BeebKeymap : public Keymap<BeebKeymapTraits> {
   public:
+    // For the benefit of the UI.
+    bool show_bbc_keyboard_ui = true;
+    bool show_compact_keyboard_ui = true;
+    bool show_electron_keyboard_ui = true;
+
     BeebKeymap(std::string name,
                bool is_key_sym_map);
 

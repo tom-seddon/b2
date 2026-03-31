@@ -1164,9 +1164,9 @@ void KeymapsUI::DoEditKeymapGui() {
         }
     }
 
-    ImGuiHeader("BBC B/B+/Master 128 layout");
-
-    {
+    ImGui::SetNextItemOpen(keymap->show_bbc_keyboard_ui);
+    keymap->show_bbc_keyboard_ui = ImGui::CollapsingHeader("BBC B/B+/Master 128 layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    if (keymap->show_bbc_keyboard_ui) {
         ImGuiIDPusher pusher("bbc");
 
         this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
@@ -1177,9 +1177,9 @@ void KeymapsUI::DoEditKeymapGui() {
         this->DoKeyboardLine(keymap, g_keyboard_line6, nullptr);
     }
 
-    ImGuiHeader("Master Compact/PC 128 S layout");
-
-    {
+    ImGui::SetNextItemOpen(keymap->show_compact_keyboard_ui);
+    keymap->show_compact_keyboard_ui = ImGui::CollapsingHeader("Master Compact/PC 128 S layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    if (keymap->show_compact_keyboard_ui) {
         ImGuiIDPusher pusher("compact");
 
         this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
@@ -1190,9 +1190,9 @@ void KeymapsUI::DoEditKeymapGui() {
         this->DoKeyboardLine(keymap, g_keyboard_line6, nullptr);
     }
 
-    ImGuiHeader("Electron layout");
-
-    {
+    ImGui::SetNextItemOpen(keymap->show_electron_keyboard_ui);
+    keymap->show_electron_keyboard_ui = ImGui::CollapsingHeader("Electron layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    if (keymap->show_electron_keyboard_ui) {
         ImGuiIDPusher pusher("electron");
 
         this->DoKeyboardLine(keymap, g_electron_line1, nullptr);
