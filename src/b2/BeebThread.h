@@ -227,8 +227,7 @@ class BeebThread {
       protected:
       private:
         const bool m_state = false;
-        BeebKey m_key = BeebKey_None;
-        BeebShiftState m_shift_state = BeebShiftState_Any;
+        const KeySymKeyCombos *m_key_combos = nullptr;
     };
 
     class AllKeysUpMessage : public Message {
@@ -1271,7 +1270,7 @@ class BeebThread {
     void ThreadCancelTrace(ThreadState *ts);
 #endif
     void ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state);
-    void ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state);
+    void ThreadSetFakeShiftState(ThreadState *ts, BeebMetaKeyState state);
     void ThreadSetBootState(ThreadState *ts, bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
 #if ENABLE_TAPE

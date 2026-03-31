@@ -65,29 +65,15 @@ BeebKeySym GetBeebKeySymByName(const char *name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct KeyCombo {
-    BeebKey beeb_key;
-    BeebShiftState shift_state;
-};
-
-// indexed by BeebKeySym
-static KeyCombo g_key_combo_table[128];
+static KeySymKeyCombos g_key_sym_key_combos[128];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetBeebKeyComboForKeySym(BeebKey *beeb_key, BeebShiftState *shift_state, BeebKeySym beeb_sym) {
+const KeySymKeyCombos *GetKeySymKeyCombosForKeySym(BeebKeySym beeb_sym) {
     ASSERT(beeb_sym >= 0 && (int)beeb_sym < 128);
 
-    const KeyCombo *combo = &g_key_combo_table[beeb_sym];
-
-    if (combo->beeb_key < 0) {
-        return false;
-    }
-
-    *beeb_key = combo->beeb_key;
-    *shift_state = combo->shift_state;
-    return true;
+    return &g_key_sym_key_combos[beeb_sym];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -144,20 +130,16 @@ std::string GetKeycodeName(uint32_t keycode) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define K(NAME) (g_key_combo_table[BeebKeySym_##NAME] = {BeebKey_##NAME, BeebShiftState_Any})
-#define K2(NAME, SHIFTED)                                                              \
-    BEGIN_MACRO {                                                                      \
-        g_key_combo_table[BeebKeySym_##NAME] = {BeebKey_##NAME, BeebShiftState_Off};   \
-        g_key_combo_table[BeebKeySym_##SHIFTED] = {BeebKey_##NAME, BeebShiftState_On}; \
-    }                                                                                  \
+#define K(NAME) (g_key_sym_key_combos[BeebKeySym_##NAME].bbc = {BeebKey_##NAME, BeebMetaKeyState_Any})
+#define K2(NAME, SHIFTED)                                                                       \
+    BEGIN_MACRO {                                                                               \
+        g_key_sym_key_combos[BeebKeySym_##NAME].bbc = {BeebKey_##NAME, BeebMetaKeyState_Off};   \
+        g_key_sym_key_combos[BeebKeySym_##SHIFTED].bbc = {BeebKey_##NAME, BeebMetaKeyState_On}; \
+    }                                                                                           \
     END_MACRO
 
 struct KeyComboTableInitialiser {
     KeyComboTableInitialiser() {
-        for (size_t i = 0; i < 128; ++i) {
-            g_key_combo_table[i] = {BeebKey_None, BeebShiftState_Any};
-        }
-
         K(f0);
         K(f1);
         K(f2);

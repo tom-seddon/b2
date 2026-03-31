@@ -29,7 +29,29 @@ BeebKeySym GetBeebKeySymByName(const char *name);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetBeebKeyComboForKeySym(BeebKey *beeb_key, BeebShiftState *shift_state, BeebKeySym beeb_sym);
+struct KeyCombo {
+    BeebKey key = BeebKey_None;
+    BeebMetaKeyState shift_state = BeebMetaKeyState_Any;
+
+    // Only relevant for Electron.
+    BeebMetaKeyState ctrl_state = BeebMetaKeyState_Any;
+    BeebMetaKeyState func_state = BeebMetaKeyState_Any;
+};
+
+struct KeySymKeyCombos {
+    BeebKeySym key_sym = BeebKeySym_None;
+
+    // Applies to BBC B/B+/Master 128.
+    KeyCombo bbc;
+
+    // Applies to Master Compact/PC 128 S.
+    //KeyCombo compact;
+
+    // Applies to Electron.
+    //KeyCombo electron;
+};
+
+const KeySymKeyCombos *GetKeySymKeyCombosForKeySym(BeebKeySym beeb_sym);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

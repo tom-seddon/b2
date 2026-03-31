@@ -146,7 +146,7 @@ struct BeebThread::ThreadState {
     size_t trace_max_num_bytes = 0;
 #endif
     bool boot = false;
-    BeebShiftState fake_shift_state = BeebShiftState_Any;
+    BeebMetaKeyState fake_shift_state = BeebMetaKeyState_Any;
 
     BeebThreadTimelineMode timeline_mode = BeebThreadTimelineMode_None;
 
@@ -350,10 +350,8 @@ void BeebThread::KeyMessage::ThreadHandle(
 //////////////////////////////////////////////////////////////////////////
 
 BeebThread::KeySymMessage::KeySymMessage(BeebKeySym key_sym, bool state)
-    : m_state(state) {
-    if (!GetBeebKeyComboForKeySym(&m_key, &m_shift_state, key_sym)) {
-        m_key = BeebKey_None;
-    }
+    : m_state(state)
+    , m_key_combos(GetKeySymKeyCombosForKeySym(key_sym)) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -366,12 +364,13 @@ bool BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    if (m_key == BeebKey_None) {
+    const KeyCombo *combo = &m_key_combos->bbc;
+
+    if (combo->key == BeebKey_None) {
         return false;
     }
 
-    if (ts->beeb_thread->m_real_key_states.GetState(m_key) == m_state &&
-        ts->fake_shift_state == m_shift_state) {
+    if (ts->beeb_thread->m_real_key_states.GetState(combo->key) == m_state && ts->fake_shift_state == combo->shift_state) {
         // not an error - just don't duplicate events when the key is held.
         ptr->reset();
         return true;
@@ -385,8 +384,9 @@ bool BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
 void BeebThread::KeySymMessage::ThreadHandle(
     ThreadState *ts) const {
-    ts->beeb_thread->ThreadSetFakeShiftState(ts, m_shift_state);
-    ts->beeb_thread->ThreadSetKeyState(ts, m_key, m_state);
+    const KeyCombo *combo = &m_key_combos->bbc;
+    ts->beeb_thread->ThreadSetFakeShiftState(ts, combo->shift_state);
+    ts->beeb_thread->ThreadSetKeyState(ts, combo->key, m_state);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -401,7 +401,7 @@ bool BeebThread::AllKeysUpMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
     // If fake shift on, don't unpress shift, because that'll happen in due
     // course anyway.
-    m_shift_up = ts->fake_shift_state != BeebShiftState_On;
+    m_shift_up = ts->fake_shift_state != BeebMetaKeyState_On;
 
     return true;
 }
@@ -2895,7 +2895,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     // state and boot state first so that the Shift key status is set
     // properly.
     this->ThreadSetBootState(ts, false);
-    this->ThreadSetFakeShiftState(ts, BeebShiftState_Any);
+    this->ThreadSetFakeShiftState(ts, BeebMetaKeyState_Any);
 
     if (flags & BeebThreadReplaceFlag_ResetKeyState) {
         // Set BBC state from shadow state.
@@ -3086,9 +3086,9 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
         if (beeb_key == BeebKey_Shift) {
             if (ts->boot) {
                 state = true;
-            } else if (ts->fake_shift_state == BeebShiftState_On) {
+            } else if (ts->fake_shift_state == BeebMetaKeyState_On) {
                 state = true;
-            } else if (ts->fake_shift_state == BeebShiftState_Off) {
+            } else if (ts->fake_shift_state == BeebMetaKeyState_Off) {
                 state = false;
             }
         } else {
@@ -3135,7 +3135,7 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state) {
+void BeebThread::ThreadSetFakeShiftState(ThreadState *ts, BeebMetaKeyState state) {
     ts->fake_shift_state = state;
 
     this->ThreadUpdateShiftKeyState(ts);
