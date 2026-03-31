@@ -171,8 +171,8 @@ static void SetSinglePurposeKey(KeyCombo KeySymKeyCombos::*mptr, BeebKeySym sym,
 static void SetMultiPurposeKey(KeyCombo KeySymKeyCombos::*mptr, BeebKeySym unshifted_sym, BeebKeySym shifted_sym, BeebKeySym ctrled_sym, BeebKeySym funced_sym, BeebKey key) {
     ASSERT(unshifted_sym >= 0);
     ASSERT(shifted_sym >= 0 || ctrled_sym >= 0 || funced_sym >= 0);
-    SetKey(mptr, unshifted_sym, key, BeebMetaKeyState_Off, BeebMetaKeyState_Any, BeebMetaKeyState_Any);
-    SetKey(mptr, shifted_sym, key, BeebMetaKeyState_On, BeebMetaKeyState_Any, BeebMetaKeyState_Any);
+    SetKey(mptr, unshifted_sym, key, BeebMetaKeyState_Off, BeebMetaKeyState_Off, BeebMetaKeyState_Off);
+    SetKey(mptr, shifted_sym, key, BeebMetaKeyState_On, BeebMetaKeyState_Off, BeebMetaKeyState_Off);
 
     // CTRL+ and FUNC+ on Electron don't care about the Shift state.
     SetKey(mptr, ctrled_sym, key, BeebMetaKeyState_Any, BeebMetaKeyState_On, BeebMetaKeyState_Any);
