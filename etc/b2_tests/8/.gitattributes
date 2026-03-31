@@ -1,3 +1,4 @@
 $.ACCESS diff=bbcbasic
 $.ADVAL1 diff=bbcbasic
 $.ROM1 diff=bbcbasic
+$.TIMING1 diff=bbcbasic
