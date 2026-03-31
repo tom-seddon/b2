@@ -7,6 +7,7 @@
 class CommandStateTable;
 class CommandTable2;
 
+#include <shared/debug.h>
 #include "json.h"
 #include <string>
 #include "dear_imgui.h"
@@ -53,6 +54,9 @@ class SettingsUI {
 
     template <class PersistentDataType>
     void SetPersistentData(PersistentDataType *persistent_data) {
+        ASSERT(!m_load_persistent_data_fun);
+        ASSERT(!m_save_persistent_data_fun);
+
         m_load_persistent_data_fun = [persistent_data](const nlohmann::json &j) -> void {
             LoadJSON(persistent_data, j, nullptr);
         };
