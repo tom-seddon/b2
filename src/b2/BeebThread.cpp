@@ -148,6 +148,10 @@ struct BeebThread::ThreadState {
     bool boot = false;
     BeebMetaKeyState fake_shift_state = BeebMetaKeyState_Any;
 
+    // only applicable when Electron.
+    BeebMetaKeyState fake_ctrl_state = BeebMetaKeyState_Any;
+    BeebMetaKeyState fake_func_state = BeebMetaKeyState_Any;
+
     BeebThreadTimelineMode timeline_mode = BeebThreadTimelineMode_None;
 
     // The timeline end event's message pointer is always null.
@@ -364,7 +368,8 @@ bool BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    const KeyCombo *combo = &m_key_combos->bbc;
+    BBCMicroTypeID type_id = ts->beeb->GetTypeID();
+    const KeyCombo *combo = GetKeyComboForType(m_key_combos, type_id);
 
     if (combo->key == BeebKey_None) {
         return false;
@@ -382,10 +387,11 @@ bool BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::KeySymMessage::ThreadHandle(
-    ThreadState *ts) const {
-    const KeyCombo *combo = &m_key_combos->bbc;
-    ts->beeb_thread->ThreadSetFakeShiftState(ts, combo->shift_state);
+void BeebThread::KeySymMessage::ThreadHandle(ThreadState *ts) const {
+    BBCMicroTypeID type_id = ts->beeb->GetTypeID();
+    const KeyCombo *combo = GetKeyComboForType(m_key_combos, type_id);
+
+    ts->beeb_thread->ThreadSetFakeMetaKeyStates(ts, combo->shift_state, combo->ctrl_state, combo->func_state);
     ts->beeb_thread->ThreadSetKeyState(ts, combo->key, m_state);
 }
 
@@ -2895,7 +2901,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     // state and boot state first so that the Shift key status is set
     // properly.
     this->ThreadSetBootState(ts, false);
-    this->ThreadSetFakeShiftState(ts, BeebMetaKeyState_Any);
+    this->ThreadSetFakeMetaKeyStates(ts, BeebMetaKeyState_Any, BeebMetaKeyState_Any, BeebMetaKeyState_Any);
 
     if (flags & BeebThreadReplaceFlag_ResetKeyState) {
         // Set BBC state from shadow state.
@@ -3081,9 +3087,9 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
         // Always set the key flags as requested.
         m_real_key_states.SetState(beeb_key, state);
 
-        // If it's the shift key, override using fake shift flags or
-        // boot flag.
-        if (beeb_key == BeebKey_Shift) {
+        // Apply fake meta key flags.
+        switch (beeb_key) {
+        case BeebKey_Shift:
             if (ts->boot) {
                 state = true;
             } else if (ts->fake_shift_state == BeebMetaKeyState_On) {
@@ -3091,7 +3097,25 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
             } else if (ts->fake_shift_state == BeebMetaKeyState_Off) {
                 state = false;
             }
-        } else {
+            break;
+
+        case BeebKey_Ctrl:
+            if (ts->fake_ctrl_state == BeebMetaKeyState_On) {
+                state = true;
+            } else if (ts->fake_ctrl_state == BeebMetaKeyState_Off) {
+                state = false;
+            }
+            break;
+
+        case BeebKey_CapsLock:
+            if (ts->fake_func_state == BeebMetaKeyState_On) {
+                state = true;
+            } else if (ts->fake_func_state == BeebMetaKeyState_Off) {
+                state = false;
+            }
+            break;
+
+        default:
             if (ts->boot) {
                 // this is recursive, but it only calls
                 // ThreadSetKeyState for BeebKey_Shift, so it won't
@@ -3100,6 +3124,7 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
             } else {
                 // no harm in skipping it.
             }
+            break;
         }
 
         m_effective_key_states.SetState(beeb_key, state);
@@ -3135,10 +3160,12 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadSetFakeShiftState(ThreadState *ts, BeebMetaKeyState state) {
-    ts->fake_shift_state = state;
+void BeebThread::ThreadSetFakeMetaKeyStates(ThreadState *ts, BeebMetaKeyState shift_state, BeebMetaKeyState ctrl_state, BeebMetaKeyState func_state) {
+    ts->fake_shift_state = shift_state;
+    ts->fake_ctrl_state = ctrl_state;
+    ts->fake_func_state = func_state;
 
-    this->ThreadUpdateShiftKeyState(ts);
+    this->ThreadUpdateMetaKeyStates(ts);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3147,14 +3174,20 @@ void BeebThread::ThreadSetFakeShiftState(ThreadState *ts, BeebMetaKeyState state
 void BeebThread::ThreadSetBootState(ThreadState *ts, bool state) {
     ts->boot = state;
 
-    this->ThreadUpdateShiftKeyState(ts);
+    this->ThreadUpdateMetaKeyStates(ts);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadUpdateShiftKeyState(ThreadState *ts) {
+void BeebThread::ThreadUpdateMetaKeyStates(ThreadState *ts) {
     this->ThreadSetKeyState(ts, BeebKey_Shift, m_real_key_states.GetState(BeebKey_Shift));
+
+    // TODO: want this if? The relevant flags should always be Any when not Electron.
+    if (ts->beeb->GetTypeID() == BBCMicroTypeID_Electron) {
+        this->ThreadSetKeyState(ts, BeebKey_Ctrl, m_real_key_states.GetState(BeebKey_Ctrl));
+        this->ThreadSetKeyState(ts, BeebKey_CapsLock, m_real_key_states.GetState(BeebKey_CapsLock));
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

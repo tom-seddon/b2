@@ -7,6 +7,8 @@
 #include <beeb/keys.h>
 #include <string>
 
+enum BBCMicroTypeID : uint8_t;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -45,13 +47,14 @@ struct KeySymKeyCombos {
     KeyCombo bbc;
 
     // Applies to Master Compact/PC 128 S.
-    //KeyCombo compact;
+    KeyCombo compact;
 
     // Applies to Electron.
-    //KeyCombo electron;
+    KeyCombo electron;
 };
 
 const KeySymKeyCombos *GetKeySymKeyCombosForKeySym(BeebKeySym beeb_sym);
+const KeyCombo *GetKeyComboForType(const KeySymKeyCombos *combos, BBCMicroTypeID type_id);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

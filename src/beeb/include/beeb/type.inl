@@ -2,7 +2,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroTypeID
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 EPN(B)
 EPN(BPlus)
 EPN(Master) // this should be Master128, but it's saved into b2.json... oops

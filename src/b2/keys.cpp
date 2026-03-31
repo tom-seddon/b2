@@ -3,6 +3,7 @@
 #include <shared/debug.h>
 #include <string.h>
 #include <SDL.h>
+#include <beeb/type.h>
 
 #include <shared/enum_def.h>
 #include "keys.inl"
@@ -79,6 +80,27 @@ const KeySymKeyCombos *GetKeySymKeyCombosForKeySym(BeebKeySym beeb_sym) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const KeyCombo *GetKeyComboForType(const KeySymKeyCombos *combos, BBCMicroTypeID type_id) {
+    switch (type_id) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroTypeID_B:
+    case BBCMicroTypeID_BPlus:
+    case BBCMicroTypeID_Master:
+        return &combos->bbc;
+
+    case BBCMicroTypeID_MasterCompact:
+        return &combos->compact;
+
+    case BBCMicroTypeID_Electron:
+        return &combos->electron;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 uint32_t GetPCKeyModifiersFromSDLKeymod(uint16_t mod) {
     uint32_t modifiers = 0;
 
@@ -130,112 +152,206 @@ std::string GetKeycodeName(uint32_t keycode) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define K(NAME) (g_key_sym_key_combos[BeebKeySym_##NAME].bbc = {BeebKey_##NAME, BeebMetaKeyState_Any})
-#define K2(NAME, SHIFTED)                                                                       \
-    BEGIN_MACRO {                                                                               \
-        g_key_sym_key_combos[BeebKeySym_##NAME].bbc = {BeebKey_##NAME, BeebMetaKeyState_Off};   \
-        g_key_sym_key_combos[BeebKeySym_##SHIFTED].bbc = {BeebKey_##NAME, BeebMetaKeyState_On}; \
-    }                                                                                           \
-    END_MACRO
+static void SetKey(KeyCombo KeySymKeyCombos::*mptr, BeebKeySym sym, BeebKey key, BeebMetaKeyState shift_state, BeebMetaKeyState ctrl_state, BeebMetaKeyState func_state) {
+    if (sym >= 0) {
+        KeyCombo *c = &(g_key_sym_key_combos[sym].*mptr);
+
+        c->key = key;
+        c->shift_state = shift_state;
+        c->ctrl_state = ctrl_state;
+        c->func_state = func_state;
+    }
+}
+
+static void SetSinglePurposeKey(KeyCombo KeySymKeyCombos::*mptr, BeebKeySym sym, BeebKey key) {
+    ASSERT(sym >= 0);
+    SetKey(mptr, sym, key, BeebMetaKeyState_Any, BeebMetaKeyState_Any, BeebMetaKeyState_Any);
+}
+
+static void SetMultiPurposeKey(KeyCombo KeySymKeyCombos::*mptr, BeebKeySym unshifted_sym, BeebKeySym shifted_sym, BeebKeySym ctrled_sym, BeebKeySym funced_sym, BeebKey key) {
+    ASSERT(unshifted_sym >= 0);
+    ASSERT(shifted_sym >= 0 || ctrled_sym >= 0 || funced_sym >= 0);
+    SetKey(mptr, unshifted_sym, key, BeebMetaKeyState_Off, BeebMetaKeyState_Any, BeebMetaKeyState_Any);
+    SetKey(mptr, shifted_sym, key, BeebMetaKeyState_On, BeebMetaKeyState_Any, BeebMetaKeyState_Any);
+
+    // CTRL+ and FUNC+ on Electron don't care about the Shift state.
+    SetKey(mptr, ctrled_sym, key, BeebMetaKeyState_Any, BeebMetaKeyState_On, BeebMetaKeyState_Any);
+    SetKey(mptr, funced_sym, key, BeebMetaKeyState_Any, BeebMetaKeyState_Any, BeebMetaKeyState_On);
+}
+
+#define SET_ORDINARY_BBC_KEY(NAME) (SetSinglePurposeKey(&KeySymKeyCombos::bbc, BeebKeySym_##NAME, BeebKey_##NAME))
+#define SET_SHIFTABLE_BBC_KEY(NAME, SHIFTED) (SetMultiPurposeKey(&KeySymKeyCombos::bbc, BeebKeySym_##NAME, BeebKeySym_##SHIFTED, BeebKeySym_None, BeebKeySym_None, BeebKey_##NAME))
+
+#define SET_ORDINARY_ELECTRON_KEY(NAME) (SetSinglePurposeKey(&KeySymKeyCombos::electron, BeebKeySym_##NAME, BeebKey_##NAME))
+#define SET_SHIFTABLE_ELECTRON_KEY(NAME, SHIFTED) (SetMultiPurposeKey(&KeySymKeyCombos::electron, BeebKeySym_##NAME, BeebKeySym_##SHIFTED, BeebKeySym_None, BeebKeySym_None, BeebKey_##NAME))
+#define SET_SHIFTABLE_CTRLABLE_ELECTRON_KEY(NAME, SHIFTED, CTRLED) (SetMultiPurposeKey(&KeySymKeyCombos::electron, BeebKeySym_##NAME, BeebKeySym_##SHIFTED, BeebKeySym_##CTRLED, BeebKeySym_None, BeebKey_##NAME))
+#define SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(NAME, SHIFTED, FUNCED) (SetMultiPurposeKey(&KeySymKeyCombos::electron, BeebKeySym_##NAME, BeebKeySym_##SHIFTED, BeebKeySym_None, BeebKeySym_##FUNCED, BeebKey_##NAME))
 
 struct KeyComboTableInitialiser {
     KeyComboTableInitialiser() {
-        K(f0);
-        K(f1);
-        K(f2);
-        K(f3);
-        K(f4);
-        K(f5);
-        K(f6);
-        K(f7);
-        K(f8);
-        K(f9);
-        K(Escape);
-        K2(1, ExclamationMark);
-        K2(2, Quotes);
-        K2(3, Hash);
-        K2(4, Dollar);
-        K2(5, Percent);
-        K2(6, Ampersand);
-        K2(7, Apostrophe);
-        K2(8, LeftBracket);
-        K2(9, RightBracket);
-        K(0);
-        K2(Minus, Equals);
-        K2(Caret, Tilde);
-        K2(Backslash, Pipe);
-        K(Tab);
-        K(Q);
-        K(W);
-        K(E);
-        K(R);
-        K(T);
-        K(Y);
-        K(U);
-        K(I);
-        K(O);
-        K(P);
-        K(At);
-        K2(LeftSquareBracket, LeftCurlyBracket);
-        K2(Underline, Pound);
-        K(CapsLock);
-        K(Ctrl);
-        K(A);
-        K(S);
-        K(D);
-        K(F);
-        K(G);
-        K(H);
-        K(J);
-        K(K);
-        K(L);
-        K2(Semicolon, Plus);
-        K2(Colon, Star);
-        K2(RightSquareBracket, RightCurlyBracket);
-        K(Return);
-        K(ShiftLock);
-        K(Shift);
-        K(Z);
-        K(X);
-        K(C);
-        K(V);
-        K(B);
-        K(N);
-        K(M);
-        K2(Comma, LessThan);
-        K2(Stop, GreaterThan);
-        K2(Slash, QuestionMarke);
-        K(Delete);
-        K(Copy);
-        K(Up);
-        K(Down);
-        K(Left);
-        K(Right);
-        K(KeypadPlus);
-        K(KeypadMinus);
-        K(KeypadSlash);
-        K(KeypadStar);
-        K(Keypad7);
-        K(Keypad8);
-        K(Keypad9);
-        K(KeypadHash);
-        K(Keypad4);
-        K(Keypad5);
-        K(Keypad6);
-        K(KeypadDelete);
-        K(Keypad1);
-        K(Keypad2);
-        K(Keypad3);
-        K(KeypadComma);
-        K(Keypad0);
-        K(KeypadStop);
-        K(KeypadReturn);
-        K(Space);
-        K(Break);
+        SET_ORDINARY_BBC_KEY(f0);
+        SET_ORDINARY_BBC_KEY(f1);
+        SET_ORDINARY_BBC_KEY(f2);
+        SET_ORDINARY_BBC_KEY(f3);
+        SET_ORDINARY_BBC_KEY(f4);
+        SET_ORDINARY_BBC_KEY(f5);
+        SET_ORDINARY_BBC_KEY(f6);
+        SET_ORDINARY_BBC_KEY(f7);
+        SET_ORDINARY_BBC_KEY(f8);
+        SET_ORDINARY_BBC_KEY(f9);
+        SET_ORDINARY_BBC_KEY(Escape);
+        SET_SHIFTABLE_BBC_KEY(1, ExclamationMark);
+        SET_SHIFTABLE_BBC_KEY(2, Quotes);
+        SET_SHIFTABLE_BBC_KEY(3, Hash);
+        SET_SHIFTABLE_BBC_KEY(4, Dollar);
+        SET_SHIFTABLE_BBC_KEY(5, Percent);
+        SET_SHIFTABLE_BBC_KEY(6, Ampersand);
+        SET_SHIFTABLE_BBC_KEY(7, Apostrophe);
+        SET_SHIFTABLE_BBC_KEY(8, LeftBracket);
+        SET_SHIFTABLE_BBC_KEY(9, RightBracket);
+        SET_ORDINARY_BBC_KEY(0);
+        SET_SHIFTABLE_BBC_KEY(Minus, Equals);
+        SET_SHIFTABLE_BBC_KEY(Caret, Tilde);
+        SET_SHIFTABLE_BBC_KEY(Backslash, Pipe);
+        SET_ORDINARY_BBC_KEY(Tab);
+        SET_ORDINARY_BBC_KEY(Q);
+        SET_ORDINARY_BBC_KEY(W);
+        SET_ORDINARY_BBC_KEY(E);
+        SET_ORDINARY_BBC_KEY(R);
+        SET_ORDINARY_BBC_KEY(T);
+        SET_ORDINARY_BBC_KEY(Y);
+        SET_ORDINARY_BBC_KEY(U);
+        SET_ORDINARY_BBC_KEY(I);
+        SET_ORDINARY_BBC_KEY(O);
+        SET_ORDINARY_BBC_KEY(P);
+        SET_ORDINARY_BBC_KEY(At);
+        SET_SHIFTABLE_BBC_KEY(LeftSquareBracket, LeftCurlyBracket);
+        SET_SHIFTABLE_BBC_KEY(Underline, Pound);
+        SET_ORDINARY_BBC_KEY(CapsLock);
+        SET_ORDINARY_BBC_KEY(Ctrl);
+        SET_ORDINARY_BBC_KEY(A);
+        SET_ORDINARY_BBC_KEY(S);
+        SET_ORDINARY_BBC_KEY(D);
+        SET_ORDINARY_BBC_KEY(F);
+        SET_ORDINARY_BBC_KEY(G);
+        SET_ORDINARY_BBC_KEY(H);
+        SET_ORDINARY_BBC_KEY(J);
+        SET_ORDINARY_BBC_KEY(K);
+        SET_ORDINARY_BBC_KEY(L);
+        SET_SHIFTABLE_BBC_KEY(Semicolon, Plus);
+        SET_SHIFTABLE_BBC_KEY(Colon, Star);
+        SET_SHIFTABLE_BBC_KEY(RightSquareBracket, RightCurlyBracket);
+        SET_ORDINARY_BBC_KEY(Return);
+        SET_ORDINARY_BBC_KEY(ShiftLock);
+        SET_ORDINARY_BBC_KEY(Shift);
+        SET_ORDINARY_BBC_KEY(Z);
+        SET_ORDINARY_BBC_KEY(X);
+        SET_ORDINARY_BBC_KEY(C);
+        SET_ORDINARY_BBC_KEY(V);
+        SET_ORDINARY_BBC_KEY(B);
+        SET_ORDINARY_BBC_KEY(N);
+        SET_ORDINARY_BBC_KEY(M);
+        SET_SHIFTABLE_BBC_KEY(Comma, LessThan);
+        SET_SHIFTABLE_BBC_KEY(Stop, GreaterThan);
+        SET_SHIFTABLE_BBC_KEY(Slash, QuestionMarke);
+        SET_ORDINARY_BBC_KEY(Delete);
+        SET_ORDINARY_BBC_KEY(Copy);
+        SET_ORDINARY_BBC_KEY(Up);
+        SET_ORDINARY_BBC_KEY(Down);
+        SET_ORDINARY_BBC_KEY(Left);
+        SET_ORDINARY_BBC_KEY(Right);
+        SET_ORDINARY_BBC_KEY(KeypadPlus);
+        SET_ORDINARY_BBC_KEY(KeypadMinus);
+        SET_ORDINARY_BBC_KEY(KeypadSlash);
+        SET_ORDINARY_BBC_KEY(KeypadStar);
+        SET_ORDINARY_BBC_KEY(Keypad7);
+        SET_ORDINARY_BBC_KEY(Keypad8);
+        SET_ORDINARY_BBC_KEY(Keypad9);
+        SET_ORDINARY_BBC_KEY(KeypadHash);
+        SET_ORDINARY_BBC_KEY(Keypad4);
+        SET_ORDINARY_BBC_KEY(Keypad5);
+        SET_ORDINARY_BBC_KEY(Keypad6);
+        SET_ORDINARY_BBC_KEY(KeypadDelete);
+        SET_ORDINARY_BBC_KEY(Keypad1);
+        SET_ORDINARY_BBC_KEY(Keypad2);
+        SET_ORDINARY_BBC_KEY(Keypad3);
+        SET_ORDINARY_BBC_KEY(KeypadComma);
+        SET_ORDINARY_BBC_KEY(Keypad0);
+        SET_ORDINARY_BBC_KEY(KeypadStop);
+        SET_ORDINARY_BBC_KEY(KeypadReturn);
+        SET_ORDINARY_BBC_KEY(Space);
+        SET_ORDINARY_BBC_KEY(Break);
+
+        // The Master Compact is same as the Master 128, plus two spot hacks.
+        for (int i = 0; i < 128; ++i) {
+            g_key_sym_key_combos[i].compact = g_key_sym_key_combos[i].bbc;
+        }
+
+        SetSinglePurposeKey(&KeySymKeyCombos::compact, BeebKeySym_CompactSpecialKey, BeebKey_At);
+        SetMultiPurposeKey(&KeySymKeyCombos::compact, BeebKeySym_0, BeebKeySym_At, BeebKeySym_None, BeebKeySym_None, BeebKey_0);
+
+        // The Electron is its own special thing.
+        SET_ORDINARY_ELECTRON_KEY(Escape);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(1, ExclamationMark, 1);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(2, Quotes, 2);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(3, Hash, 3);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(4, Dollar, 4);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(5, Percent, 5);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(6, Ampersand, 6);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(7, Apostrophe, 7);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(8, LeftBracket, 8);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(9, RightBracket, 9);
+        SET_SHIFTABLE_FUNCABLE_ELECTRON_KEY(0, At, 0);
+        SET_SHIFTABLE_ELECTRON_KEY(Minus, Equals);
+        SET_SHIFTABLE_CTRLABLE_ELECTRON_KEY(Left, Caret, Tilde);
+        SET_SHIFTABLE_CTRLABLE_ELECTRON_KEY(Right, Pipe, Backslash);
+        SET_ORDINARY_ELECTRON_KEY(Break);
+
+        // Caps Lock is an oddity, as Func is not a keysym key.
+        SetKey(&KeySymKeyCombos::electron, BeebKeySym_CapsLock, BeebKey_CapsLock, BeebMetaKeyState_On, BeebMetaKeyState_Any, BeebMetaKeyState_Any);
+        SET_ORDINARY_ELECTRON_KEY(Q);
+        SET_ORDINARY_ELECTRON_KEY(W);
+        SET_ORDINARY_ELECTRON_KEY(E);
+        SET_ORDINARY_ELECTRON_KEY(R);
+        SET_ORDINARY_ELECTRON_KEY(T);
+        SET_ORDINARY_ELECTRON_KEY(Y);
+        SET_ORDINARY_ELECTRON_KEY(U);
+        SET_ORDINARY_ELECTRON_KEY(I);
+        SET_ORDINARY_ELECTRON_KEY(O);
+        SET_ORDINARY_ELECTRON_KEY(P);
+        SET_SHIFTABLE_CTRLABLE_ELECTRON_KEY(Up, Pound, LeftCurlyBracket);
+        SET_SHIFTABLE_CTRLABLE_ELECTRON_KEY(Down, Underline, RightCurlyBracket);
+        SET_SHIFTABLE_CTRLABLE_ELECTRON_KEY(Copy, LeftSquareBracket, RightSquareBracket);
+
+        SET_ORDINARY_ELECTRON_KEY(Ctrl);
+        SET_ORDINARY_ELECTRON_KEY(A);
+        SET_ORDINARY_ELECTRON_KEY(S);
+        SET_ORDINARY_ELECTRON_KEY(D);
+        SET_ORDINARY_ELECTRON_KEY(F);
+        SET_ORDINARY_ELECTRON_KEY(G);
+        SET_ORDINARY_ELECTRON_KEY(H);
+        SET_ORDINARY_ELECTRON_KEY(J);
+        SET_ORDINARY_ELECTRON_KEY(K);
+        SET_ORDINARY_ELECTRON_KEY(L);
+        SET_SHIFTABLE_ELECTRON_KEY(Semicolon, Plus);
+        SET_SHIFTABLE_ELECTRON_KEY(Colon, Star);
+        SET_ORDINARY_ELECTRON_KEY(Return);
+
+        SET_ORDINARY_ELECTRON_KEY(Shift);
+        SET_ORDINARY_ELECTRON_KEY(Z);
+        SET_ORDINARY_ELECTRON_KEY(X);
+        SET_ORDINARY_ELECTRON_KEY(C);
+        SET_ORDINARY_ELECTRON_KEY(V);
+        SET_ORDINARY_ELECTRON_KEY(B);
+        SET_ORDINARY_ELECTRON_KEY(N);
+        SET_ORDINARY_ELECTRON_KEY(M);
+        SET_SHIFTABLE_ELECTRON_KEY(Comma, LessThan);
+        SET_SHIFTABLE_ELECTRON_KEY(Stop, GreaterThan);
+        SET_SHIFTABLE_ELECTRON_KEY(Slash, QuestionMarke);
+        SET_ORDINARY_ELECTRON_KEY(Delete);
+
+        SET_ORDINARY_ELECTRON_KEY(Space);
     }
 };
-
-#undef K2
-#undef K
 
 static const KeyComboTableInitialiser g_key_combo_table_initialiser;

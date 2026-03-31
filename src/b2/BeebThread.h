@@ -1270,9 +1270,9 @@ class BeebThread {
     void ThreadCancelTrace(ThreadState *ts);
 #endif
     void ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state);
-    void ThreadSetFakeShiftState(ThreadState *ts, BeebMetaKeyState state);
+    void ThreadSetFakeMetaKeyStates(ThreadState *ts, BeebMetaKeyState shift_state, BeebMetaKeyState ctrl_state, BeebMetaKeyState func_state);
     void ThreadSetBootState(ThreadState *ts, bool state);
-    void ThreadUpdateShiftKeyState(ThreadState *ts);
+    void ThreadUpdateMetaKeyStates(ThreadState *ts);
 #if ENABLE_TAPE
     void ThreadSetTape(ThreadState *ts, std::shared_ptr<const UEFReader> tape);
 #endif
