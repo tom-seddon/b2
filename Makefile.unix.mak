@@ -8,14 +8,14 @@ CMAKE_TYPE?=Ninja
 .PHONY:init
 init:
 	$(MAKE) _unix SANITIZER= SUFFIX=
-	$(if $(RELEASE_MODE)$(NO_SANITIZERS),,$(MAKE) -j$(NPROC) _sanitizers)
+	$(if $(SANITIZERS),$(MAKE) -j$(NPROC) _sanitizers,)
 	@echo
 	@echo "make init has succeeded. (It's normal for CMake to print some warnings and error messages as it goes. If you can see this message, it finished successfully and nothing unexpected happened.)"
 	@echo
 
 .PHONY:init_parallel
 init_parallel:
-	$(MAKE) _unix $(if $(RELEASE_MODE)$(NO_SANITIZERS),,_sanitizers) -j $(NPROC)
+	$(MAKE) _unix $(if $(SANITIZERS),_sanitizers,) -j $(NPROC)
 
 .PHONY:_usan
 _usan:
@@ -77,7 +77,7 @@ precommit:
 
 .PHONY:precommit_body
 precommit_main:
-	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel NO_SANITIZERS=$(NO_SANITIZERS))
+	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel SANITIZERS=$(SANITIZERS))
 # TODO: is there a way to figure out which compiler cmake picked??
 	$(_V)$(TIME_JOBS) push Compiler Default
 # the init step can be rather slow on macOS, so it's worth having a
@@ -120,30 +120,6 @@ _precommit_test:
 	$(_V)cd "$(_FOLDER)" && ctest --progress -j $(NPROC)
 	$(_V)cd "$(_FOLDER)" && $(PYTHON3) "../../bin/check_ctest_log.py" "Testing/Temporary/LastTest.log"
 	$(_V)$(TIME_JOBS) pop
-
-##########################################################################
-##########################################################################
-
-# TODO: decide what to do about this.
-
-# .PHONY:buildall_no_sanitizers
-# buildall_with_sanitizers:
-# 	$(MAKE) buildall
-# 	$(MAKE) _buildall SANITIZER=u
-# 	$(MAKE) _buildall SANITIZER=a
-# 	$(MAKE) _buildall SANITIZER=t
-# 	$(MAKE) _buildall SANITIZER=m
-
-# .PHONY:_buildall
-# _buildall:
-# 	$(MAKE) _buildall2 FOLDER=d$(SANITIZER)
-# 	$(MAKE) _buildall2 FOLDER=r$(SANITIZER)
-# 	$(MAKE) _buildall2 FOLDER=f$(SANITIZER)
-
-# .PHONY:_buildall2
-# _buildall2: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
-# _buildall2:
-# 	test ! -d "$(_FOLDER)" || (cd $(_FOLDER) && ninja)
 
 ##########################################################################
 ##########################################################################
@@ -341,7 +317,7 @@ test_build_times:
 _test_build_times: TARGET=$(error must specify TARGET)
 _test_build_times:
 	$(_V)$(TIME_JOBS) push "Run" "$(RUN)"
-	$(_V)$(MAKE) $(TARGET)_main REINIT=1 NO_SANITIZERS=1 "EXTRA_MESSAGE=Run $(RUN)" "COMPILERS=$(if $(COMPILERS),$(COMPILERS),$(DEFAULT_COMPILERS))"
+	$(_V)$(MAKE) $(TARGET)_main REINIT=1 "EXTRA_MESSAGE=Run $(RUN)" "COMPILERS=$(if $(COMPILERS),$(COMPILERS),$(DEFAULT_COMPILERS))"
 	$(_V)$(TIME_JOBS) pop
 
 ##########################################################################

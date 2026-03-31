@@ -503,8 +503,7 @@ def main(options):
         # things, hopefully.
         extra_make_args=[
             "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
-             "RELEASE_MODE=1",
-             "RELEASE_NAME=%s"%options.release_name
+            "RELEASE_NAME=%s"%options.release_name,
         ]
 
         if options.no_ffmpeg:

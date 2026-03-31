@@ -286,7 +286,6 @@ if(APPLE)
 
   set_source_files_properties(b2.icns PROPERTIES
     MACOSX_PACKAGE_LOCATION Resources)
-
 endif()
 
 ##########################################################################
