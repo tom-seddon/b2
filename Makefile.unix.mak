@@ -3,61 +3,9 @@ ifndef OS
 $(error must specify OS on command line)
 endif
 
-CMAKE_TYPE?=Ninja
-
 .PHONY:init
 init:
-	$(MAKE) _unix SANITIZER= SUFFIX=
-	$(if $(SANITIZERS),$(MAKE) -j$(NPROC) _sanitizers,)
-	@echo
-	@echo "make init has succeeded. (It's normal for CMake to print some warnings and error messages as it goes. If you can see this message, it finished successfully and nothing unexpected happened.)"
-	@echo
-
-.PHONY:init_parallel
-init_parallel:
-	$(MAKE) _unix $(if $(SANITIZERS),_sanitizers,) -j $(NPROC)
-
-.PHONY:_usan
-_usan:
-	$(MAKE) _unix SANITIZER=UNDEFINED SUFFIX=u
-
-.PHONY:_tsan
-_tsan:
-	$(MAKE) _unix SANITIZER=THREAD SUFFIX=t
-
-.PHONY:_msan
-_msan:
-	$(MAKE) _unix SANITIZER=MEMORY SUFFIX=m
-
-.PHONY:_asan
-_asan:
-	$(MAKE) _unix SANITIZER=ADDRESS SUFFIX=a
-
-.PHONY:_sanitizers
-_sanitizers: _usan _tsan _msan _asan
-
-.PHONY:_unixd
-_unixd:
-	$(MAKE) _unix2 SANITIZER=$(SANITIZER) FOLDER=d$(SUFFIX) BUILD=Debug
-.PHONY:_unixr
-_unixr:
-	$(MAKE) _unix2 SANITIZER=$(SANITIZER) FOLDER=r$(SUFFIX) BUILD=RelWithDebInfo
-.PHONY:_unixf
-_unixf:
-	$(MAKE) _unix2 SANITIZER=$(SANITIZER) FOLDER=f$(SUFFIX) BUILD=Final
-
-.PHONY:_unix
-_unix: _unixd _unixr _unixf
-
-.PHONY:_unix2
-_unix2: _FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
-_unix2:
-	@echo ---------------------------------------------------------------------------
-	@echo ---------------------------------------------------------------------------
-	@echo ---------------------------------------------------------------------------
-	rm -Rf "$(_FOLDER)"
-	mkdir -p "$(_FOLDER)"
-	(cd "$(_FOLDER)" && cmake -G "$(CMAKE_TYPE)" $(CMAKE_DEFINES) -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) ../..) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)
+	$(_V)$(PYTHON3) "bin/b2build.py" --ignore-submake -j $(NPROC) $(if $(VERBOSE),--verbose,) init --unix $(if $(SANITIZERS),--enable-sanitizers,) $(if $(FOLDER_PREFIX),--prefix "$(FOLDER_PREFIX)",) $(if $(CC),--cc "$(CC)") $(if $(CXX),--cxx "$(CXX)")
 
 ##########################################################################
 ##########################################################################
@@ -77,7 +25,7 @@ precommit:
 
 .PHONY:precommit_body
 precommit_main:
-	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) init_parallel SANITIZERS=$(SANITIZERS))
+	$(_V)$(if $(REINIT),$(MAKE) -j $(NPROC) init SANITIZERS=$(SANITIZERS))
 # TODO: is there a way to figure out which compiler cmake picked??
 	$(_V)$(TIME_JOBS) push Compiler Default
 # the init step can be rather slow on macOS, so it's worth having a
@@ -246,9 +194,12 @@ ifdef COMPILERS
 
 define _precommit_tom2_stuff_template=
 # intended for running with -j
+#
+# if testing multiple compilers, jobserver warnings from GNU Make are
+# expected.
 .PHONY:_precommit_tom2_init_$(1)
 _precommit_tom2_init_$(1):
-	$$(_V)$$(MAKE) init_parallel FOLDER_PREFIX=precommit-$(1) CC=$(1) CXX=$(subst clang,clang++,$(subst gcc,g++,$(1)))
+	$$(_V)$$(MAKE) init FOLDER_PREFIX=precommit-$(1) CC=$(1) CXX=$(subst clang,clang++,$(subst gcc,g++,$(1)))
 
 .PHONY:_precommit_tom2_clean_and_build_$(1)
 _precommit_tom2_clean_and_build_$(1):

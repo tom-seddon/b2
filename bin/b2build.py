@@ -73,9 +73,12 @@ def get_copyable_argv(argv):
 
 def run_subprocess(argv,options,**other_popen_kwargs):
     if g_verbose:
-        print('%s'%get_copyable_argv(argv))
+        print('b2build (cwd: %s) running: %s'%(os.getcwd(),get_copyable_argv(argv)))
+                                               
 
-    return subprocess.run(argv,**other_popen_kwargs)
+    process=subprocess.Popen(argv,**other_popen_kwargs)
+    process.wait()
+    return process
 
 ##########################################################################
 ##########################################################################
@@ -87,12 +90,22 @@ def get_make_path(options):
 ##########################################################################
 ##########################################################################
 
-def get_build_folder_path(name,options):
-    if options.prefix is not None: name='%s.%s'%(options.prefix,name)
+def get_max_jobs_args_for_make(options):
+    if os.getenv('MAKEFLAGS') is not None:
+        if not options.g_ignore_submake:
+            # Probably running as part of a submake, so don't specify -j.
+            pv(f'''b2build: MAKEFLAGS detected. Assuming running from Make. Running make without -j {options.g_max_jobs}\n''')
+            return []
+        
+    return ['-j',str(options.g_max_jobs)]
 
+##########################################################################
+##########################################################################
+
+def get_build_folder_path(name,options):
     return os.path.join(options.g_working_copy_path,
                         'build',
-                        name)
+                        '%s%s'%(options.prefix or '',name))
 
 ##########################################################################
 ##########################################################################
@@ -146,16 +159,22 @@ def init_cmd(options):
     if options.vs2022 and not is_windows():
         fatal('''Can build with Visual Studio on Windows only''')
 
+    if (options.cc is not None)!=(options.cxx is not None):
+        fatal('must specify neither or both of C/C++ compilers')
+        
     build_folder=get_build_folder_path('',options)
 
+    makefile_basename='Makefile.init.mak'
+    
     makedirs(build_folder)
-    makefile_path=os.path.join(build_folder,'Makefile.init.mak')
+    makefile_path=os.path.join(build_folder,makefile_basename)
 
     def get_optional_option(option,value):
         if value is None: return ''
         else: return ' %s "%s"'%(option,value)
 
     global_options=''
+    global_options+=' $(if $(VERBOSE),--verbose,)'
     global_options+=' --working-copy "%s"'%(os.path.relpath(options.g_working_copy_path,build_folder))
 
     cmd_options=''
@@ -193,7 +212,7 @@ def init_cmd(options):
                         # non-sanitizer cases.
                         cmd_prefix='-'
 
-                    f.write(f'''\t$(_V){cmd_prefix}"$(PYTHON)" "{b2build_py_path}"{global_options} _init_unix{cmd_options} {get_optional_option('--sanitizer',sanitizer)} {build}\n''')
+                    f.write(f'''\t$(_V){cmd_prefix}"$(PYTHON)" "{b2build_py_path}"{global_options} _init_unix{cmd_options} {get_optional_option('--sanitizer',sanitizer)}{get_optional_option('--cc',options.cc)}{get_optional_option('--cxx',options.cxx)} {build}\n''')
 
                 write(None)
                 if options.enable_sanitizers:
@@ -208,11 +227,13 @@ def init_cmd(options):
         f.write(f'''all:{' '.join(targets)}\n''')
 
     with ChangeDirectory(build_folder):
-        argv=[get_make_path(options),
-              '-j',str(options.g_max_jobs),
-              '-f','Makefile.init.mak',
-              'all']
-        ret=run_subprocess(argv,options)
+        argv=[get_make_path(options)]
+        argv+=get_max_jobs_args_for_make(options)
+        argv+=['-f',makefile_basename]
+        argv+=['all']
+        if options.g_verbose: argv+=['VERBOSE=1']
+        
+        ret=run_subprocess(argv,options,close_fds=False)
         if ret.returncode!=0: fatal('make failed with exit code: %d'%ret.returncode)
 
     print('''Init completed successfully. (It's normal for some errors and warnings to be printed during the process. If you can see this message, it finished successfully and nothing unexpected happened.)''')
@@ -232,12 +253,15 @@ def _init_xcode_cmd(options):
         argv+=['-S',os.path.relpath(options.g_working_copy_path,
                                     xcode_folder)]
         argv+=['-B','.']
-        ret=run_subprocess(argv,options,check=True)
+        ret=run_subprocess(argv,options,check=True,close_fds=False)
 
 ##########################################################################
 ##########################################################################
 
 def _init_unix_cmd(options):
+    if (options.cc is not None)!=(options.cxx is not None):
+        fatal('must specify neither or both of C/C++ compilers')
+    
     cmake_build_type=CMAKE_BUILD_TYPES.get(options.build)
     if cmake_build_type is None:
         fatal('unknown build type: %s'%options.build)
@@ -261,19 +285,38 @@ def _init_unix_cmd(options):
     rmtree(unix_folder)
     makedirs(unix_folder)
 
+    # bit ugly, but all the process does is run cmake then quit, so
+    # it's not a massive problem having these settings lie around
+    # afterwards.
+    if options.cc is not None: os.putenv('CC',options.cc)
+    if options.cxx is not None: os.putenv('CXX',options.cxx)
+
     # TODO: might be nice to have the build system configurable?
     with ChangeDirectory(unix_folder):
         argv=['cmake','-G','Ninja']
         argv+=get_cmake_defines(options)
         if options.sanitizer is not None:
             argv+=['-DSANITIZE_%s=On'%sanitizer.cmake_name]
+        argv+=['-DCMAKE_BUILD_TYPE=%s'%cmake_build_type]
         argv+=['-S',os.path.relpath(options.g_working_copy_path,
                                     unix_folder)]
         argv+=['-B','.']
-        ret=run_subprocess(argv,options)
+        ret=run_subprocess(argv,options,close_fds=False)
         if ret.returncode!=0:
             rmtree(unix_folder)
             fatal('init failed')
+
+##########################################################################
+##########################################################################
+
+def print_build_suffix_cmd(options):
+    run_subprocess(['git','log','-1','--format=%cd-%h','--date=format:%Y%m%d-%H%M%S'],options,check=True)
+
+##########################################################################
+##########################################################################
+    
+def print_build_timestamp_cmd(options):
+    run_subprocess(['git','log','-1','--format=%cd','--date=format:%Y%m%d-%H%M%S'],options,check=True)
 
 ##########################################################################
 ##########################################################################
@@ -293,7 +336,8 @@ def main(argv):
     parser.add_argument('-v','--verbose',dest='g_verbose',action='store_true',help='''be more verbose''')
     parser.add_argument('-j',type=auto_int,metavar='N',dest='g_max_jobs',default=os.cpu_count(),help='''run up to %(metavar)s job(s) at once. Default: %(default)s''')
     parser.add_argument('-w','--working-copy',dest='g_working_copy_path',metavar='PATH',default='.',help='''specify root of b2 working copy. Default: %(default)s''')
-    parser.add_argument('--make',dest='g_make_path',default='make',metavar='PATH',help='''use %(default)s as path to GNU Make on Linux/macOS. (On Windows, the repo's copy is always used.) Default: %(default)s''')
+    parser.add_argument('--make',dest='g_make_path',default='make',metavar='PATH',help='''use %(metavar)s as path to GNU Make on Linux/macOS. (On Windows, the repo's copy is always used.) Default: %(default)s''')
+    parser.add_argument('--ignore-submake',dest='g_ignore_submake',action='store_true',help='''if run from GNU Make, don't do anything special. If running further copies of GNU Make, still pass them -j''')
 
     subparsers=parser.add_subparsers()
 
@@ -312,6 +356,8 @@ def main(argv):
     init_subparser.add_argument('--vs2022',action='store_true',help='''initialise VS2022 build''')
     init_subparser.add_argument('--xcode',action='store_true',help='''initialise Xcode build''')
     init_subparser.add_argument('--enable-sanitizers',action='store_true',help='''if building Unix-style, try to use any supported sanitizers''')
+    init_subparser.add_argument('--cc',metavar='NAME',help='''if building Unix-style, use %(metavar) as C compiler''')
+    init_subparser.add_argument('--cxx',metavar='NAME',help='''if building Unix-style, use %(metavar)s as C++ compiler''')
     add_common_init_options(init_subparser)
 
     _init_xcode_subparser=add_subparser('_init_xcode',_init_xcode_cmd,help='''initialise Xcode build''')
@@ -322,6 +368,12 @@ def main(argv):
     _init_unix_subparser.add_argument('--sanitizer',help='''specify sanitizer: '''+'; '.join(['%s (%s)'%(k,v.friendly_name) for k,v in UNIX_SANITIZER_TYPES.items()]))
     _init_unix_subparser.add_argument('build',help='''specify build configuration: '''+'; '.join(['%s (%s)'%(k,v) for k,v in CMAKE_BUILD_TYPES.items()]))
     _init_unix_subparser.add_argument('--keep',action='store_true',help='''don't delete build folder if init fails''')
+    _init_unix_subparser.add_argument('--cc',metavar='NAME',help='''use %(metavar) as C compiler''')
+    _init_unix_subparser.add_argument('--cxx',metavar='NAME',help='''use %(metavar)s as C++ compiler''')
+
+    print_build_suffix_subparser=add_subparser('print-build-suffix',print_build_suffix_cmd,help='''print build suffix: time, date and hash of head commit''')
+
+    print_build_timestamp_parser=add_subparser('print-build-timestamp',print_build_timestamp_cmd,help='''print build timestamp: time and date of head commit''')
 
     options=parser.parse_args(argv)
     if options.fun is None:
