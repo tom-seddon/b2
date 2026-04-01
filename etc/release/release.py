@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 import argparse,os,os.path,sys,stat,subprocess,shlex,time,shutil,multiprocessing,datetime,time
+import release_tools
+
+v=release_tools.v
+fatal=release_tools.fatal
 
 ##########################################################################
 ##########################################################################
@@ -28,90 +32,11 @@ PLATFORMS={
 ##########################################################################
 ##########################################################################
 
-g_verbose=False
-
-def v(str):
-    global g_verbose
-    
-    if g_verbose:
-        sys.stdout.write(str)
-        sys.stdout.flush()
-
-##########################################################################
-##########################################################################
-
-class ChangeDirectory:
-    def __init__(self,path):
-        self._oldcwd=os.getcwd()
-        self._newcwd=path
-
-    def __enter__(self): os.chdir(self._newcwd)
-
-    def __exit__(self,*args): os.chdir(self._oldcwd)
-
-##########################################################################
-##########################################################################
-
-def fatal(str):
-    sys.stderr.write("FATAL: %s"%str)
-    if str[-1]!='\n': sys.stderr.write("\n")
-
-    if os.getenv("EMACS") is not None: raise RuntimeError
-    else: sys.exit(1)
-
-##########################################################################
-##########################################################################
-
-def run(argv,ignore_errors=False,**other_popen_kwargs):
-    def quote(x):
-        if not x.startswith('"') and ' ' in x: return '"%s"'%x
-        else: return x
-
-    print(80*"-")
-    print(" ".join([quote(x) for x in argv]))
-    print(80*"-")
-
-    ret=subprocess.call(argv,**other_popen_kwargs)
-
-    if not ignore_errors:
-        if ret!=0: fatal("process failed: %s"%argv)
-
-def capture(argv):
-    v("Run: %s\n"%argv)
-    process=subprocess.Popen(args=argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    output=process.communicate()
-    if process.returncode!=0: fatal("process failed: %s"%argv)
-    return output[0].decode('utf8').splitlines()
-
 def bool_str(x): return "YES" if x else "NO"
-
-def makedirs(x):
-    if not os.path.isdir(x): os.makedirs(x)
 
 def rm(x):
     if os.path.isfile(x): os.unlink(x)
 
-def set_file_timestamps(options,fname):
-    if options.timestamp is None: return
-
-    if os.path.islink(fname):
-        # There's a link to /Applications in the dmg, and this is a
-        # lame way of avoiding touching it.
-        return
-
-    t=time.mktime(options.timestamp.timetuple())
-
-    try:
-        os.utime(fname,(t,t))
-    except:
-        print("WARNING: failed to set timestamps for: %s"%fname,file=sys.stderr)
-        pass
-
-def set_tree_timestamps(options,root):
-    for dirpath,dirnames,filenames in os.walk(root):
-        for f in dirnames+filenames:
-            set_file_timestamps(options,os.path.join(dirpath,f))
-        
 ##########################################################################
 ##########################################################################
     
@@ -122,7 +47,7 @@ def create_intermediate_folder():
 
     if os.path.isdir(ifolder): shutil.rmtree(ifolder)
 
-    makedirs(ifolder)
+    release_tools.makedirs(ifolder)
 
     return ifolder
 
@@ -137,8 +62,8 @@ def create_README(options,folder,rev_hash):
 
 def gh_release(release_files,options):
     # Is this really the best place for all these policies?
-    prerelease=capture(['git','branch','--show-current'])[0]!='master'
-    hash=capture(['git','rev-parse','HEAD'])[0]
+    prerelease=release_tools.capture(['git','branch','--show-current'])[0]!='master'
+    hash=release_tools.capture(['git','rev-parse','HEAD'])[0]
 
     release_name='b2-'+options.release_name
     if prerelease: release_name+='-prerelease'
@@ -149,9 +74,10 @@ def gh_release(release_files,options):
     # Assume any errors from the creation process are due to the
     # release already existing. Worst case, that's wrong - and gh
     # release will fail.
-    run(create_argv,ignore_errors=True)
+    release_tools.run(create_argv,ignore_errors=True)
     
-    for release_file in release_files: run(['gh','release','upload',release_name,release_file])
+    for release_file in release_files:
+        release_tools.run(['gh','release','upload',release_name,release_file])
 
 ##########################################################################
 ##########################################################################
@@ -203,8 +129,8 @@ def build_win32_config(timings,options,config,colour):
     folder=get_win32_build_folder(options)
     
     start_time=time.process_time()
-    run(["cmd","/c",
-         "color","%x"%colour],ignore_errors=True)
+    release_tools.run(["cmd","/c",
+                       "color","%x"%colour],ignore_errors=True)
     
     if not options.skip_compile:
         # env=os.environ is a workaround for the environment possibly
@@ -221,22 +147,22 @@ def build_win32_config(timings,options,config,colour):
         # os.environ only contains a value for PATH - but that makes
         # it perfect as the new environment to use for the subprocess.
 
-        run([get_win32_vstool_path(r'''MSBuild\Current\Bin\MSBuild.exe''',options),
-             "/maxcpucount",
-             "/property:MultiProcessorCompilation=true", # http://stackoverflow.com/a/17719445/1618406
-             "/property:Configuration=%s"%config,
-             "/verbosity:minimal",
-             os.path.join(folder,"b2.sln")],
-            env=os.environ)
+        release_tools.run([get_win32_vstool_path(r'''MSBuild\Current\Bin\MSBuild.exe''',options),
+                           "/maxcpucount",
+                           "/property:MultiProcessorCompilation=true", # http://stackoverflow.com/a/17719445/1618406
+                           "/property:Configuration=%s"%config,
+                           "/verbosity:minimal",
+                           os.path.join(folder,"b2.sln")],
+                          env=os.environ)
 
     if not options.skip_ctest:
-        with ChangeDirectory(folder):
-            run([get_win32_vstool_path(r'''Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe''',options)]+
-                get_ctest_args(options)+
-                ["-C",config])
+        with release_tools.ChangeDirectory(folder):
+            release_tools.run([get_win32_vstool_path(r'''Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe''',options)]+
+                              get_ctest_args(options)+
+                              ["-C",config])
             
-    run(["cmd","/c",
-         "color"],ignore_errors=True)
+    release_tools.run(["cmd","/c",
+                       "color"],ignore_errors=True)
 
     timings[config]=time.process_time()-start_time
 
@@ -246,7 +172,7 @@ def build_win32(options,ifolder,rev_hash):
 
     # path that the ZIP contents will be assembled into.
     zip_folder=os.path.join(ifolder,"b2")
-    makedirs(zip_folder)
+    release_tools.makedirs(zip_folder)
 
     if not options.skip_debug:
         build_win32_config(timings,options,"RelWithDebInfo",0xf0)
@@ -283,14 +209,14 @@ def build_win32(options,ifolder,rev_hash):
     zip_fname="b2-windows-%s.zip"%options.release_name
     zip_fname=os.path.join(ifolder,zip_fname)
 
-    set_tree_timestamps(options,ifolder)
+    release_tools.set_tree_timestamps(options.timestamp,ifolder)
 
     # The ZipFile module is a bit annoying to use.
-    with ChangeDirectory(ifolder):
-        run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
+    with release_tools.ChangeDirectory(ifolder):
+        release_tools.run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
         release_files.append(os.path.abspath(zip_fname))
 
-    set_file_timestamps(options,zip_fname)
+    release_tools.set_file_timestamps(options.timestamp,zip_fname)
 
     #
     # Symbols stuff.
@@ -303,9 +229,9 @@ def build_win32(options,ifolder,rev_hash):
                                  "src/b2/Final/b2.pdb"),
                     os.path.join(ifolder,
                                  "b2.pdb"))
-    with ChangeDirectory(ifolder):
+    with release_tools.ChangeDirectory(ifolder):
         zip_fname='symbols.b2-windows-%s.7z'%options.release_name
-        run(['7z.exe','a','-mx=9',zip_fname,'b2 Debug.pdb','b2.pdb'])
+        release_tools.run(['7z.exe','a','-mx=9',zip_fname,'b2 Debug.pdb','b2.pdb'])
         release_files.append(os.path.abspath(zip_fname))
 
     if options.gh_release: gh_release(release_files,options)
@@ -327,9 +253,9 @@ def build_darwin_config(options,
                         config,
                         bundle_identifier_suffix):
     path=get_darwin_build_path(config)
-    with ChangeDirectory(path):
+    with release_tools.ChangeDirectory(path):
         if not options.skip_compile:
-            run(["ninja"])
+            release_tools.run(["ninja"])
 
         # If changing bundle identifier, do it before the
         # dylib_bundler step. Might as well take advantage of
@@ -342,29 +268,30 @@ def build_darwin_config(options,
                                             info_plist_path],
                                            encoding='utf-8')
             identifier=output.splitlines()[0].strip()
-            run(['/usr/libexec/PlistBuddy',
-                 '-c',
-                 'set CFBundleIdentifier %s-debug'%identifier,
-                 info_plist_path])
+            release_tools.run(['/usr/libexec/PlistBuddy',
+                               '-c',
+                               'set CFBundleIdentifier %s-debug'%identifier,
+                               info_plist_path])
 
         if not options.skip_dylib_bundler:
-            run(['./submodules/macdylibbundler/dylibbundler',
+            release_tools.run(
+                ['./submodules/macdylibbundler/dylibbundler',
                  '--create-dir',
                  '--bundle-deps',
                  '--fix-file','./src/b2/b2.app/Contents/MacOS/b2',
                  '--dest-dir','./src/b2/b2.app/Contents/libs/'])
 
         if not options.skip_ctest:
-            run(["ctest"]+get_ctest_args(options))
+            release_tools.run(["ctest"]+get_ctest_args(options))
 
 def copy_darwin_app(config,mount,app_name):
     dest=os.path.join(mount,app_name)
-    run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
+    release_tools.run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
 
 def build_darwin(options,ifolder,rev_hash):
     release_files=[]
     
-    arch=capture(['uname','-m'])[0]
+    arch=release_tools.capture(['uname','-m'])[0]
     if arch=='x86_64': arch='intel'
     elif arch=='arm64': arch='applesilicon'
     else: fatal('unknown architecture from uname -m: %s'%arch)
@@ -391,10 +318,10 @@ def build_darwin(options,ifolder,rev_hash):
     shutil.copyfile("./etc/release/template.dmg",temp_dmg)
 
     # Resize temp DMG.
-    run(['hdiutil','resize','-size','500m',temp_dmg])
+    release_tools.run(['hdiutil','resize','-size','500m',temp_dmg])
 
     # Mount temp DMG.
-    run(["hdiutil","attach",temp_dmg,"-mountpoint",mount])
+    release_tools.run(["hdiutil","attach",temp_dmg,"-mountpoint",mount])
 
     try:
         # Copy text files to the DMG.
@@ -408,17 +335,17 @@ def build_darwin(options,ifolder,rev_hash):
         if not options.skip_debug:
             copy_darwin_app("r",mount,"b2 Debug.app")
 
-        set_tree_timestamps(options,mount)
+        release_tools.set_tree_timestamps(options.timestamp,mount)
         
         # Give the DMG a better volume name.
-        run(["diskutil","rename",mount,stem])
+        release_tools.run(["diskutil","rename",mount,stem])
     finally:
         # Unmount the DMG
-        run(["hdiutil","detach",mount])
+        release_tools.run(["hdiutil","detach",mount])
 
     # Convert temp DMG into final DMG.
-    run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
-    set_file_timestamps(options,final_dmg)
+    release_tools.run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
+    release_tools.set_file_timestamps(options.timestamp,final_dmg)
     release_files.append(os.path.abspath(final_dmg))
 
     # Delete temp DMG.
@@ -432,13 +359,13 @@ def build_darwin(options,ifolder,rev_hash):
     for config,dest in [('r','b2 Debug'),
                         ('f','b2')]:
         suffix='src/b2/b2.app/Contents/MacOS/b2'
-        run(['dsymutil',get_darwin_build_path(config,suffix)])
-        run(['ditto',
-             get_darwin_build_path(config,suffix+'.dSYM'),
-             os.path.join(ifolder,dest)])
+        release_tools.run(['dsymutil',get_darwin_build_path(config,suffix)])
+        release_tools.run(['ditto',
+                           get_darwin_build_path(config,suffix+'.dSYM'),
+                           os.path.join(ifolder,dest)])
 
-    with ChangeDirectory(ifolder):
-        run(['7z','a','-mx=9',symbols_zip,'b2','b2 Debug'])
+    with release_tools.ChangeDirectory(ifolder):
+        release_tools.run(['7z','a','-mx=9',symbols_zip,'b2','b2 Debug'])
         shutil.rmtree('b2',ignore_errors=True)
         shutil.rmtree('b2 Debug',ignore_errors=True)
         release_files.append(os.path.abspath(symbols_zip))
@@ -455,11 +382,11 @@ def get_linux_build_path(config):
                          PLATFORMS[sys.platform].name)
 
 def build_linux_config(options,config):
-    with ChangeDirectory(get_linux_build_path(config)):
-        if not options.skip_compile: run(['ninja'])
+    with release_tools.ChangeDirectory(get_linux_build_path(config)):
+        if not options.skip_compile: release_tools.run(['ninja'])
 
         if not options.skip_ctest:
-            run(['ctest']+get_ctest_args(options))
+            release_tools.run(['ctest']+get_ctest_args(options))
 
 def build_linux(options,ifolder,rev_hash):
     if not options.skip_debug: build_linux_config(options,'r')
@@ -469,8 +396,7 @@ def build_linux(options,ifolder,rev_hash):
 ##########################################################################
         
 def main(options):
-    global g_verbose
-    g_verbose=options.verbose
+    release_tools.set_verbose(options.verbose)
 
     if options.gh_release:
         try:
@@ -479,7 +405,7 @@ def main(options):
 
         if 'GH_TOKEN' not in os.environ: fatal('no GH_TOKEN for gh in environment')
 
-    rev_hash=capture(["git","rev-parse","HEAD"])[0]
+    rev_hash=release_tools.capture(["git","rev-parse","HEAD"])[0]
 
     # TODO: this is a bit ugly! But the options.toolchain dependency
     # makes it a bit fiddly to have it data-driven.
@@ -512,9 +438,9 @@ def main(options):
         if options.macos_deployment_target is not None:
             extra_make_args.append('OSX_DEPLOYMENT_TARGET=%s'%options.macos_deployment_target)
         
-        run([options.make,
-             "-j%d"%options.make_jobs,
-             init_target]+extra_make_args)
+        release_tools.run([options.make,
+                           "-j%d"%options.make_jobs,
+                           init_target]+extra_make_args)
 
     ifolder=create_intermediate_folder()
 
