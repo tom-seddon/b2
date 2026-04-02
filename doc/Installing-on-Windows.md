@@ -1,6 +1,6 @@
 # Install on Windows
 
-Requires a fast PC running Windows 7 or better.
+Requires a 64-bit PC running Windows 7 or better.
 
 Files for the latest release are here:
 https://github.com/tom-seddon/b2/releases/latest

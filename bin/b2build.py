@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys,os,os.path,argparse,subprocess,shutil,shlex,collections
+import sys,os,os.path,argparse,subprocess,shutil,shlex,collections,tempfile,glob
 
 ##########################################################################
 ##########################################################################
@@ -44,6 +44,37 @@ def makedirs(path):
 def rmtree(path):
     if os.path.isdir(path): shutil.rmtree(path)
 
+def rmfiles(pattern):
+    paths=glob.glob(pattern)
+    for path in paths: os.unlink(path)
+
+##########################################################################
+##########################################################################
+
+def set_file_timestamps(timestamp,fname):
+    if timestamp is None: return
+
+    if os.path.islink(fname):
+        # There's a link to /Applications in the dmg, and this is a
+        # lame way of avoiding touching it.
+        return
+
+    t=time.mktime(timestamp.timetuple())
+
+    try:
+        os.utime(fname,(t,t))
+    except:
+        print("WARNING: failed to set timestamps for: %s"%fname,file=sys.stderr)
+        pass
+
+##########################################################################
+##########################################################################
+    
+def set_tree_timestamps(timestamp,root):
+    for dirpath,dirnames,filenames in os.walk(root):
+        for f in dirnames+filenames: 
+            set_file_timestamps(timestamp,os.path.join(dirpath,f))
+
 ##########################################################################
 ##########################################################################
 
@@ -72,6 +103,8 @@ def get_copyable_argv(argv):
     return ' '.join([quote(arg) for arg in argv])
 
 def run_subprocess(argv,options,**other_popen_kwargs):
+    argv=[arg for arg in argv if arg is not None]
+    
     if g_verbose:
         suffix='(cwd: %s): %s'%(os.getcwd(),get_copyable_argv(argv))
         print(f'b2build running   {suffix}')
@@ -83,6 +116,12 @@ def run_subprocess(argv,options,**other_popen_kwargs):
         print(f'b2build completed {suffix} - exit code: {process.returncode}')
     
     return process
+
+def must_run_subprocess(argv,options,**other_popen_kwargs):
+    result=run_subprocess(argv,options,**other_popen_kwargs)
+
+    if result.returncode!=0:
+        fatal('failed with return code %d: %s'%(result.returncode,get_copyable_argv(argv)))
 
 ##########################################################################
 ##########################################################################
@@ -723,8 +762,127 @@ def set_submodule_upstreams_cmd(options):
 ##########################################################################
 ##########################################################################
 
+def release_source_linux_cmd(options):
+    if is_windows(): fatal('not supported on Windows')
+    
+    def run(temp):
+        # temp folder contents during process:
+        #
+        # _b2-_pass1.tar
+        # b2-<<name>>/
+        # _b2_test_install/
+        # <<output file basename>>
+        #
+        # You could name things just so, and make a mess - or not.
+        
+        # Prepare tar file with contents of interest.
+        pass1_tar_path=os.path.join(temp,'_b2-pass1.tar')
+        with ChangeDirectory(options.g_working_copy_path):
+            paths=glob.glob('*')
+
+            i=0
+            while i<len(paths):
+                if paths[i]=='build' and os.path.isdir(paths[i]): del paths[i]
+                else: i+=1
+
+            must_run_subprocess(['7z',
+                                 'a',
+                                 os.path.relpath(pass1_tar_path,
+                                                 options.g_working_copy_path)]+
+                                paths,options)
+
+        # Create work folder with appropriate name.
+        release_folder_name='b2-%s'%options.name
+        work_path=os.path.join(temp,release_folder_name)
+        makedirs(work_path)
+
+        # Extract contents of interest to work folder.
+        with ChangeDirectory(work_path):
+            must_run_subprocess(['7z','x',os.path.relpath(pass1_tar_path,
+                                                          work_path)],
+                                options)
+
+        # Fix stuff up in place.
+        with ChangeDirectory(work_path):
+            rmfiles('bin/*.exe')
+            rmfiles('bin/*.bat')
+            rmtree('etc/64tass-1.52.1237')
+            rmtree('etc/ImageMagick-7.0.5.4-portable-Q16-x64')
+            rmfiles('make.bat')
+            rmfiles('Makefile')
+            rmfiles('Makefile.osx.mak')
+            rmfiles('Makefile.unix.mak')
+            rmfiles('Makefile.windows.mak')
+            shutil.copyfile('etc/release/Makefile.release.mak','Makefile')
+            rmtree('submodules/curl') # only used on Windows
+            
+            if is_linux():
+                # Remove the dependencies that are intended to be
+                # supplied by the package manager. It all adds up!
+                #
+                # Don't do this on macOS, as these dependencies are
+                # built from source.
+                rmtree('submodules/libuv')
+                rmtree('submodules/SDL_official')
+
+        # Set timestamps.
+        if options.timestamp is not None:
+            with ChangeDirectory(work_path):
+                set_tree_timestamps(options.timestamp,'.')
+
+        # Create final tar file in the temp folder.
+        if options.output_path is not None:
+            with ChangeDirectory(temp):
+                must_run_subprocess(['7z',
+                                     'a',
+                                     '-mx=9',
+                                     os.path.basename(options.output_path),
+                                     release_folder_name],
+                                    options)
+
+        # Do any tests.
+        if options.build or options.test or options.install:
+            with ChangeDirectory(work_path):
+                if options.g_verbose: verbose_arg='VERBOSE=1'
+                else: verbose_arg=None
+                
+                # all imply configure.
+                must_run_subprocess(['make','configure',verbose_arg],
+                                    options)
+
+                # all imply build, possibly with test.
+                must_run_subprocess(['make',
+                                     'build',
+                                     verbose_arg,
+                                     'RUN_TESTS=1' if options.test else None],
+                                    options)
+
+                if options.install:
+                    must_run_subprocess(['make',
+                                         'install',
+                                         verbose_arg,
+                                         'PREFIX=../_b2_test_install'],
+                                        options)
+
+        # Copy the archive.
+        if options.output_path is not None:
+            shutil.copyfile(os.path.join(temp,
+                                         os.path.basename(options.output_path)),
+                            options.output_path)
+
+    if options.temp is None:
+        with tempfile.TemporaryDirectory() as temp: run(temp)
+    else:
+        rmtree(options.temp)
+        makedirs(options.temp)
+        run(options.temp)
+
+##########################################################################
+##########################################################################
+
 def main(argv):
     def auto_int(x): return int(x,0)
+    def timestamp(x): return datetime.datetime.strptime(x,"%Y%m%d-%H%M%S")
 
     default_osx_deployment_target=None
     if is_macos():
@@ -750,7 +908,6 @@ def main(argv):
 
     def add_common_init_options(subparser):
         subparser.add_argument('--osx-deployment-target',metavar='TARGET',default=default_osx_deployment_target,help='''specify macOS deployment target'''+('' if default_osx_deployment_target is None else ' Default: %s'%default_osx_deployment_target))
-        subparser.add_argument('--prefix',metavar='STRING',help='''prepend %(metavar)s to name of any build folder created''')
         subparser.add_argument('--name',metavar='STRING',help='''use %(metavar)s as the build name''')
 
     def add_common_target_options(subparser):
@@ -765,6 +922,7 @@ def main(argv):
     add_common_init_options(init_subparser)
     add_common_target_options(init_subparser)
     init_subparser.add_argument('--reinit',action='store_true',help='''reinit when output folder exists''')
+    init_subparser.add_argument('--prefix',metavar='STRING',help='''prepend %(metavar)s to name of any build folder created''')
 
     _init_xcode_subparser=add_subparser('_init_xcode',_init_xcode_cmd,help='''initialise Xcode build''')
     add_common_init_options(_init_xcode_subparser)
@@ -775,7 +933,7 @@ def main(argv):
     _init_unix_subparser.add_argument('--sanitizer',help='''specify sanitizer: '''+'; '.join(['%s (%s)'%(k,v.friendly_name) for k,v in UNIX_SANITIZER_TYPES.items()]))
     _init_unix_subparser.add_argument('build',help='''specify build configuration: '''+'; '.join(['%s (%s)'%(k,v) for k,v in CMAKE_CONFIGURATIONS.items()]))
     _init_unix_subparser.add_argument('--keep',action='store_true',help='''don't delete build folder if init fails''')
-    _init_unix_subparser.add_argument('--cc',metavar='NAME',help='''use %(metavar) as C compiler''')
+    _init_unix_subparser.add_argument('--cc',metavar='NAME',help='''use %(metavar)s as C compiler''')
     _init_unix_subparser.add_argument('--cxx',metavar='NAME',help='''use %(metavar)s as C++ compiler''')
     _init_unix_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
 
@@ -790,12 +948,25 @@ def main(argv):
     batch_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
     batch_subparser.add_argument('--no-clean',dest='clean',action='store_false',help='''don't clean before building''')
     batch_subparser.add_argument('--no-test',dest='test',action='store_false',help='''don't run tests after building''')
+    batch_subparser.add_argument('--prefix',metavar='STRING',help='''prepend %(metavar)s to name of any build folder created''')
 
     print_build_suffix_subparser=add_subparser('print-build-suffix',print_build_suffix_cmd,help='''print build suffix: time, date and hash of head commit''')
 
     print_build_timestamp_parser=add_subparser('print-build-timestamp',print_build_timestamp_cmd,help='''print build timestamp: time and date of head commit''')
 
     set_submodule_upstreams_parser=add_subparser('set-submodule-upstreams',set_submodule_upstreams_cmd,help='''set upstream remotes for b2 submodules''')
+
+    def add_common_release_options(subparser):
+        subparser.add_argument('--timestamp',metavar='TIMESTAMP',dest='timestamp',default=None,type=timestamp,help='''set files' atime/mtime to %(metavar)s. Format must be YYYYMMDD-HHMMSS''')
+        subparser.add_argument('--temp',metavar='PATH',default=None,help='''use %(metavar)s as temp folder. If specified, will recreate if required, then leave as-is at end of build; if not specified, will create a temp folder and delete at end of build.''')
+
+    release_source_linux_subparser=add_subparser('release-source-linux',release_source_linux_cmd,help='''make Linux source code release''',epilog='''Not functional on Windows. Unsupported on macOS''')
+    add_common_release_options(release_source_linux_subparser)
+    release_source_linux_subparser.add_argument('-o',metavar='FILE',dest='output_path',help='''write output file to %(metavar)s. Format can be anything 7z can create''')
+    release_source_linux_subparser.add_argument('name',help='''name for build''')
+    release_source_linux_subparser.add_argument('--build',action='store_true',help=''''do a test build (process will fail if build fails)''')
+    release_source_linux_subparser.add_argument('--test',action='store_true',help=''''run tests after creating the archive (implies --build) (process will fail if tests fail)''')
+    release_source_linux_subparser.add_argument('--install',action='store_true',help='''do a test install (implies --build) (process will fail if install fails)''')
 
     options=parser.parse_args(argv)
     if options.fun is None:

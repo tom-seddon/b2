@@ -13,9 +13,6 @@ You can set b2 to run when you double click a disk image in the
 Windows file explorer. See the
 [file assocation instructions](./doc/File-Association.md).
 
-You can also follow the [building instructions](./doc/Building.md) to
-build from source.
-
 ## macOS
 
 See the [macOS installation instructions](./doc/Installing-on-OSX.md).
@@ -26,13 +23,10 @@ You can set b2 to run when you double click a disk image in the
 Finder. See the
 [file assocation instructions](./doc/File-Association.md).
 
-You can also follow the [building instructions](./doc/Building.md) to
-build from source.
-
 ## Linux
 
-Follow the [building instructions](./doc/Building.md) to
-build from source.
+See the [Linux installation
+instructions](./doc/Installing-on-Linux.md).
 
 There are some additional options, though I can't provide any support
 for them myself:
@@ -77,6 +71,12 @@ time hobby project for me, so it can take a while before the right
 combination of appropriate block of time, motivation, equipment setup,
 etc., presents itself.)
 
+# Source code
+
+b2 is free and open source. Follow the [building
+instructions](./doc/Building.md) to get the code from the GitHub repo
+and build it yourself.
+
 # Licence
 
 ## `etc`, `submodules`
@@ -89,7 +89,7 @@ every dependency can be added as a git submodule.
 
 ## `experimental`, `src`
 
-Copyright (C) 2016-2025 by Tom Seddon
+Copyright (C) 2016-2026 by Tom Seddon
 
 Licence: GPL v3.
 

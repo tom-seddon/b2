@@ -113,25 +113,8 @@ text editor you use...
 
 # Installing on Linux
 
-From the working copy folder, run `make install DEST=<<FOLDER>>`,
-replacing `<<FOLDER>>` with the destination folder. For example:
-
-    make install DEST=/usr/local
-	
-This will compile (if required) and install `$DEST/bin/b2-debug` (a
-build of b2 with the debugger stuff included) and `$DEST/bin/b2` (a
-build of b2 with no debugger functionality). It will also copy the
-supporting files to `$DEST/share/b2`.
-
-(Note that `b2-debug` is an optimized build of b2 with the debugger
-included, not a debug build as produced by cmake.
-[This naming scheme is not very clever](https://github.com/tom-seddon/b2/issues/40),
-so it'll change at some point...)
-
-You can also install by hand. The supporting files are searched for
-relative to the EXE in `assets` and (if the EXE is in a folder called
-`bin`) `../share/b2`, then in `share/b2` in the standard
-`XDG_DATA_HOME` and `XDG_DATA_DIRS` folders.
+There's not really any support for doing this from the repo. It's
+intended to be run in situ.
 
 # Installing on macOS
 
