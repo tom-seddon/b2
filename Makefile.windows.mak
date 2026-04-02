@@ -15,7 +15,7 @@ init_vs2022:
 precommit_vs2022:
 	$(_V)echo clang-format...
 	$(_V)$(MAKE) clang-format QUIET=1
-	$(_V)$(PYTHON3) "bin/b2build.py" batch --prefix "precommit." $(if $(REINIT),,--no-init) $(if $(CLEAN),,--no-clean)
+	$(_V)$(PYTHON3) "bin/b2build.py" $(__VERBOSE) batch --prefix "precommit." $(if $(REINIT),,--no-init) $(if $(CLEAN),,--no-clean)
 
 ##########################################################################
 ##########################################################################

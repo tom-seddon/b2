@@ -73,10 +73,15 @@ def get_copyable_argv(argv):
 
 def run_subprocess(argv,options,**other_popen_kwargs):
     if g_verbose:
-        print('b2build (cwd: %s) running: %s'%(os.getcwd(),get_copyable_argv(argv)))
+        suffix='(cwd: %s): %s'%(os.getcwd(),get_copyable_argv(argv))
+        print(f'b2build running   {suffix}')
 
     process=subprocess.Popen(argv,**other_popen_kwargs)
     process.wait()
+
+    if g_verbose:
+        print(f'b2build completed {suffix} - exit code: {process.returncode}')
+    
     return process
 
 ##########################################################################
@@ -447,7 +452,7 @@ def create_build_makefile(matrix,
 
 def clean_output_paths(build_folder,build_types):
     with ChangeDirectory(build_folder):
-        for build_type in build_types: rmtree(build_type.output_folder)
+        for build_type in build_types: rmtree(build_type.output_path)
 
 ##########################################################################
 ##########################################################################
@@ -684,6 +689,40 @@ def batch_cmd(options):
 ##########################################################################
 ##########################################################################
 
+def set_submodule_upstreams_cmd(options):
+    def set_submodule_upstream(submodule,url):
+        path=os.path.join(options.g_working_copy_path,'submodules',submodule)
+        if not os.path.isdir(path): fatal('not found: %s'%path)
+        with ChangeDirectory(path):
+            argv=['git','remote','remove','upstream']
+            run_subprocess(argv,options,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+
+            argv=['git','remote','add','upstream',url]
+            ret=run_subprocess(argv,options)
+            if ret.returncode!=0: fatal('failed with exit code %d: %s'%(ret.returncode,get_copyable_argv(argv)))
+        
+    # submodules with upstreams on on GitHub
+    for submodule,owner,repo in [
+            ('Remotery','Celtoys','Remotery'),
+            ('SDL_official','libsdl-org','SDL'),
+            ('curl','curl','curl'),
+            ('imgui','ocornut','imgui'),
+            ('imgui_club','ocornut','imgui_club'),
+            ('libuv','libuv','libuv'),
+            ('macdylibbundler','auriamg','macdylibbundler'),
+            ('perfect6502','mist64','perfect6502'),
+            ('rapidjson','Tencent','rapidjson'),
+            ('relacy','dvyukov','relacy'),
+            ('salieri','nemequ','salieri'),
+            ('visual6502','trebonian','visual6502'),
+            ('imgui_test_engine','ocornut','imgui_test_engine'),
+            ('6502Timing','dp111','6502Timing')]:
+        set_submodule_upstream(submodule,
+                               f'https://github.com/{owner}/{repo}')
+
+##########################################################################
+##########################################################################
+
 def main(argv):
     def auto_int(x): return int(x,0)
 
@@ -755,6 +794,8 @@ def main(argv):
     print_build_suffix_subparser=add_subparser('print-build-suffix',print_build_suffix_cmd,help='''print build suffix: time, date and hash of head commit''')
 
     print_build_timestamp_parser=add_subparser('print-build-timestamp',print_build_timestamp_cmd,help='''print build timestamp: time and date of head commit''')
+
+    set_submodule_upstreams_parser=add_subparser('set-submodule-upstreams',set_submodule_upstreams_cmd,help='''set upstream remotes for b2 submodules''')
 
     options=parser.parse_args(argv)
     if options.fun is None:

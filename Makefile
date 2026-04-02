@@ -24,6 +24,9 @@ endif
 
 _V:=$(if $(VERBOSE),,@)
 
+# for supplying to anything that takes --verbose.
+__VERBOSE:=$(if $(VERBOSE),--verbose,)
+
 SHELLCMD:=$(PYTHON3) ./submodules/shellcmd.py/shellcmd.py
 
 NPROC:=$(shell $(SHELLCMD) nproc)
@@ -103,28 +106,7 @@ clang-format:
 
 .PHONY: set_submodule_upstreams
 set_submodule_upstreams:
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=Remotery UPSTREAM=https://github.com/Celtoys/Remotery
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=SDL_official UPSTREAM=https://github.com/libsdl-org/SDL
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=curl UPSTREAM=https://github.com/curl/curl
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui UPSTREAM=https://github.com/ocornut/imgui
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui_club UPSTREAM=https://github.com/ocornut/imgui_club
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=libuv UPSTREAM=https://github.com/libuv/libuv
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=macdylibbundler UPSTREAM=https://github.com/auriamg/macdylibbundler
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=perfect6502 UPSTREAM=https://github.com/mist64/perfect6502
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=rapidjson UPSTREAM=https://github.com/Tencent/rapidjson
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=relacy UPSTREAM=https://github.com/dvyukov/relacy
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=salieri UPSTREAM=https://github.com/nemequ/salieri
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=visual6502 UPSTREAM=https://github.com/trebonian/visual6502
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=imgui_test_engine UPSTREAM=https://github.com/ocornut/imgui_test_engine
-	$(_V)$(MAKE) _set_submodule_upstream SUBMODULE=6502Timing UPSTREAM=https://github.com/dp111/6502Timing
-	@echo Completed successfully. Any error messages about missing upstream remotes can be ignored.
-
-.PHONY:_set_submodule_upstream
-_set_submodule_upstream: SUBMODULE=$(error must supply SUBMODULE)
-_set_submodule_upstream: UPSTREAM=$(error must supply UPSTREAM)
-_set_submodule_upstream:
-	$(_V)-cd "submodules/$(SUBMODULE)" && git remote remove upstream
-	$(_V)cd "submodules/$(SUBMODULE)" && git remote add upstream "$(UPSTREAM)"
+	$(_V)$(PYTHON3) "bin/b2build.py" $(__VERBOSE) "set-submodule-upstreams"
 
 ##########################################################################
 ##########################################################################
@@ -217,3 +199,4 @@ update_mfns:
 
 ##########################################################################
 ##########################################################################
+-

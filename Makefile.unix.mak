@@ -5,7 +5,7 @@ endif
 
 .PHONY:init
 init:
-	$(_V)$(PYTHON3) "bin/b2build.py" -j $(NPROC) $(if $(VERBOSE),--verbose,) init --unix $(if $(SANITIZERS),--enable-sanitizers,) $(if $(FOLDER_PREFIX),--prefix "$(FOLDER_PREFIX)",) $(if $(CC),--cc "$(CC)") $(if $(CXX),--cxx "$(CXX)")
+	$(_V)$(PYTHON3) "bin/b2build.py" -j $(NPROC) $(__VERBOSE) init --unix $(if $(SANITIZERS),--enable-sanitizers,) $(if $(FOLDER_PREFIX),--prefix "$(FOLDER_PREFIX)",) $(if $(CC),--cc "$(CC)") $(if $(CXX),--cxx "$(CXX)")
 
 ##########################################################################
 ##########################################################################
@@ -14,7 +14,7 @@ init:
 precommit:
 	$(_V)echo clang-format...
 	$(_V)$(MAKE) clang-format VERBOSE=$(VERBOSE)
-	$(_V)$(PYTHON3) "bin/b2build.py" -j $(NPROC) $(if $(VERBOSE),--verbose,) batch --prefix precommit
+	$(_V)$(PYTHON3) "bin/b2build.py" -j $(NPROC) $(__VERBOSE) batch --prefix precommit
 
 ##########################################################################
 ##########################################################################
