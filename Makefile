@@ -15,11 +15,9 @@ BUILD_FOLDER:=build
 ifeq ($(OS),Windows_NT)
 # Windows
 PYTHON3:=py -3
-CAT:=cmd /c type
 else
 # Assume POSIX
 PYTHON3:=python3
-CAT:=cat
 endif
 
 _V:=$(if $(VERBOSE),,@)
@@ -44,7 +42,6 @@ UNAME:=$(shell uname -s)
 
 ifeq ($(UNAME),Darwin)
 OS:=osx
-NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
 
 # Target the installed macOS version if no explicit versions
@@ -65,7 +62,6 @@ endif
 
 ifeq ($(UNAME),Linux)
 OS:=linux
-NPROC:=$(shell nproc)
 INSTALLER:=1
 
 CLANG_FORMAT:=clang-format-19
@@ -74,20 +70,6 @@ include Makefile.unix.mak
 endif
 
 endif
-
-##########################################################################
-##########################################################################
-
-.PHONY:rel
-rel:
-	$(_V)$(PYTHON3) ./etc/release/release.py --make=$(MAKE)
-
-##########################################################################
-##########################################################################
-
-.PHONY:rel_tests
-rel_tests:
-	$(_V)$(PYTHON3) ./etc/b2_tests/rel_tests.py
 
 ##########################################################################
 ##########################################################################
@@ -199,4 +181,3 @@ update_mfns:
 
 ##########################################################################
 ##########################################################################
--
