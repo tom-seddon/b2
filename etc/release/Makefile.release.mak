@@ -117,6 +117,6 @@ install:
 	$(_V)test -f "$(BUILD)/r.linux/$(_B2_PATH)" && cp -v "$(BUILD)/r.linux/$(_B2_PATH)" "$(PREFIX)/bin/b2-debug" || true
 	$(_V)test -f "$(BUILD)/f.linux/$(_B2_PATH)" && cp -v "$(BUILD)/f.linux/$(_B2_PATH)" "$(PREFIX)/bin/b2" || true
 	$(_V)mkdir -p "$(PREFIX)/share/b2"
-	$(_V)cp -Rv "$(BUILD)/$(_AVAILABLE).linux/src/b2/assets/" "$(PREFIX)/share/b2/"
+	$(_V)cp -Rv "$(BUILD)/$(_AVAILABLE).linux/src/b2/assets/"* "$(PREFIX)/share/b2/"
 
 endif
