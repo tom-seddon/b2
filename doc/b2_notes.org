@@ -11192,4 +11192,10 @@ AP6 ROM Manager & Utils v1.34
 
 #+end_src
 
+* build spring clean notes
+
+** TODO on GitHub Actions, Linux build without FFmpeg can be achieved simply by not installing it
+** TODO macOS still needs specific no FFmpeg option...
+** TODO =gh_release= still needs bringing across
+** TODO copy =LICENCE.txt= into root of Linux source release
 * eof.
