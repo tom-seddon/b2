@@ -49,7 +49,7 @@ def rmtree(path):
 
 def is_macos(): return sys.platform=='darwin'
 
-def is_windows(): return sys.platform=='osx'
+def is_windows(): return sys.platform=='win32'
 
 def is_linux(): return sys.platform=='linux'
 
@@ -82,9 +82,11 @@ def run_subprocess(argv,options,**other_popen_kwargs):
 ##########################################################################
 ##########################################################################
 
-def get_make_path(options):
+def get_make_path(caller_path,options):
     if is_unix(): return options.g_make_path
-    else: return os.path.join(options.g_working_copy_path,'bin/snmake.exe')
+    else: return os.path.relpath(
+            os.path.join(options.g_working_copy_path,'bin/snmake.exe'),
+            caller_path)
 
 ##########################################################################
 ##########################################################################
@@ -148,16 +150,17 @@ UNIX_SANITIZER_TYPES={
 ##########################################################################
 
 class Target:
-    def __init__(self,name):
+    def __init__(self,name,phony=True):
         assert ' ' not in name,name
         self.name=name
         self.lines=[]
         self.dependencies=[]
+        self.phony=phony
 
     def add_dependency(self,dependency):
         assert isinstance(dependency,Target),type(dependency)
-        assert dependency not in self.dependencies
-        self.dependencies.append(dependency)
+        if dependency not in self.dependencies:
+            self.dependencies.append(dependency)
         
     def add_line(self,line):
         assert isinstance(line,str),type(line)
@@ -167,8 +170,8 @@ class Makefile:
     def __init__(self):
         self._targets=[]
 
-    def add_named_target(self,name):
-        target=Target(name)
+    def add_named_target(self,name,phony=True):
+        target=Target(name,phony)
         self._targets.append(target)
         return target
 
@@ -189,7 +192,7 @@ class Makefile:
         f.write(f'''\t$(error Must specify target)\n''')
 
         for target in self._targets:
-            f.write(f'''.PHONY:{target.name}\n''')
+            if target.phony: f.write(f'''.PHONY:{target.name}\n''')
             f.write(f'''{target.name}:{' '.join([dependency.name for dependency in target.dependencies])}\n''')
             for line in target.lines: f.write(f'''\t{line}\n''')
 
@@ -217,7 +220,56 @@ def get_optional_option(option,value):
 ##########################################################################
 ##########################################################################
 
-BuildType=collections.namedtuple('BuildType','configuration compiler sanitizer init_target clean_target build_target test_target')
+VSStuff=collections.namedtuple('VSStuff','year install_path devenv_path cmake_path ctest_path')
+
+def get_vs_stuff(version):
+    if version==17: year=2022
+    else:
+        # TODO: add more cases as required.
+        fatal('unrecognised Visual Studio version: %s'%version)
+    
+    argv=[r'''C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe''',
+          '-version',str(version),
+          '-property','installationPath']
+    vswhere_subprocess=subprocess.Popen(argv,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.DEVNULL)
+    vswhere_subprocess.wait()
+    if vswhere_subprocess.returncode!=0:
+        fatal('failed with exit code %d: %s'%(ret.returncode,get_copyable_argv(argv)))
+
+    # TODO: do you need to specify an encoding here?
+    data=vswhere_subprocess.stdout.read()
+    install_path=data.strip().decode()
+
+    cmake_bin_path=os.path.join(install_path,
+                                'common7',
+                                'IDE',
+                                'CommonExtensions',
+                                'Microsoft',
+                                'CMake',
+                                'CMake',
+                                'bin')
+
+    def get_required_file_path(*parts):
+        path=os.path.join(*parts)
+        if not os.path.isfile(path): fatal('file not found: %s'%path)
+        return path
+
+    cmake_path=get_required_file_path(cmake_bin_path,'cmake.exe')
+    ctest_path=get_required_file_path(cmake_bin_path,'ctest.exe')
+    devenv_path=get_required_file_path(install_path,'Common7/IDE/devenv.com')
+
+    return VSStuff(year=year,
+                   install_path=install_path,
+                   devenv_path=devenv_path,
+                   cmake_path=cmake_path,
+                   ctest_path=ctest_path)
+
+##########################################################################
+##########################################################################
+
+BuildType=collections.namedtuple('BuildType','configuration compiler sanitizer init_target clean_target build_target test_target output_path')
 
 CreateBuildMakefileResult=collections.namedtuple('CreateBuildMakefileResult','makefile build_types')
 
@@ -246,10 +298,15 @@ def create_build_makefile(matrix,
         unix_sanitizers=matrix.unix_sanitizers[:]
         if len(unix_sanitizers)==0: unix_sanitizers.append(None)
 
+    # relative to build folder
     def get_output_path(name):
         return os.path.join('%s%s'%(options.prefix or '',name))
 
     build_types=[]
+
+    # as used to pass -j down to ninja or ctest.
+    j_option=f'''-j {options.g_max_jobs}'''
+    
     for configuration in matrix.unix_configurations:
         # Sigh... does this really have to be inside a loop?
         if is_linux(): os_name='linux'
@@ -304,8 +361,6 @@ def create_build_makefile(matrix,
 
                 # Add build target.
                 build_target=makefile.add_named_target('build_unix_%s'%target_name_suffix)
-                j_option=f'''-j {options.g_max_jobs}'''
-
                 build_target.add_line(f'''$(_V)cd "{output_path}" && ninja {j_option}''')
 
                 # Add test target.
@@ -320,13 +375,13 @@ def create_build_makefile(matrix,
                               init_target=init_target,
                               clean_target=clean_target,
                               build_target=build_target,
-                              test_target=test_target))
+                              test_target=test_target,
+                              output_path=output_path))
 
     if matrix.xcode:
         target=makefile.add_named_target('init_xcode')
-        init_targets.append(target)
 
-        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {cmd_options} {get_output_path('Xcode')}\n''')
+        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {cmd_options} {get_output_path('Xcode')}''')
 
         build_types.append(
             BuildType(configuration=None,
@@ -337,26 +392,69 @@ def create_build_makefile(matrix,
                       build_target=None,
                       test_target=None))
 
+    def add_visual_studio_targets(vsver):
+        vs_stuff=get_vs_stuff(17)
+
+        output_path=get_output_path(f'vs{vs_stuff.year}')
+        
+        #init_target=makefile.add_named_target(f'init_vs{vs_stuff.year}')
+        init_target=makefile.add_named_target(output_path,phony=False)
+
+        def get_msbuild_bat_path(caller_path):
+            return os.path.relpath(
+                os.path.join(options.g_working_copy_path,
+                             'bin/msbuild_bug_wrapper.bat'),
+                caller_path)
+
+        init_target.add_line(f'''$(_V)"{get_msbuild_bat_path(build_folder)}" $(PYTHON) "{b2build_py_path}" {global_options} _init_vs {cmd_options} {vsver} "{output_path}"''')
+
+        for configuration,cmake_build_type in CMAKE_CONFIGURATIONS.items():
+            build_target=makefile.add_named_target(f'build_vs{vs_stuff.year}{configuration}')
+            msbuild_bat=get_msbuild_bat_path(os.path.join(build_folder,
+                                                          output_path))
+            
+            build_target.add_line(f'''$(_V)cd "{output_path}" && "{msbuild_bat}" "{vs_stuff.devenv_path}" b2.sln /Build "{cmake_build_type}"''')
+
+            clean_target=makefile.add_named_target(f'clean_vs{vs_stuff.year}{configuration}')
+            clean_target.add_line(f'''$(_V)cd "{output_path}" && "{msbuild_bat}" "{vs_stuff.devenv_path}" b2.sln /Clean "{cmake_build_type}"''')
+
+            test_target=makefile.add_named_target(f'test_vs{vs_stuff.year}{configuration}')
+            test_target.add_line(f'''$(_V)cd "{output_path}" && "{vs_stuff.ctest_path}" {j_option} -C "{cmake_build_type}" --progress''')
+
+            build_types.append(
+                BuildType(configuration=configuration,
+                          compiler=f'VS{vs_stuff.year}',
+                          sanitizer=None,
+                          init_target=init_target,
+                          clean_target=clean_target,
+                          build_target=build_target,
+                          test_target=test_target,
+                          output_path=output_path))
+
+    if matrix.vs2022: add_visual_studio_targets(17)
+
+    # init_all depends on all init targets.
     target=makefile.add_named_target('init_all')
     for build_type in build_types:
         if build_type.init_target is not None:
             target.add_dependency(build_type.init_target)
 
-    # target=makefile.add_named_target('build_unix_all')
-    # if len(build_unix_targets)==0: target.add_line('$(error No Unix targets)')
-    # else:
-    #     for build_unix_target in build_unix_targets:
-    #         target.add_dependency(build_unix_target)
-
     return CreateBuildMakefileResult(makefile=makefile,
                                      build_types=build_types)
-    
+
+##########################################################################
+##########################################################################
+
+def clean_output_paths(build_folder,build_types):
+    with ChangeDirectory(build_folder):
+        for build_type in build_types: rmtree(build_type.output_folder)
+
 ##########################################################################
 ##########################################################################
 
 def run_make(build_folder,makefile_basename,target,options):
     with ChangeDirectory(build_folder):
-        argv=[get_make_path(options)]
+        argv=[get_make_path(build_folder,options)]
         argv+=get_max_jobs_args_for_make(options)
         argv+=['-f',makefile_basename]
         argv+=[target]
@@ -405,6 +503,9 @@ def init_cmd(options):
     makefile_path=os.path.join(build_folder,makefile_basename)
     
     with open(makefile_path,'wt') as f: result.makefile.write(f)
+
+    if not options.reinit:
+        clean_output_paths(build_folder,result.build_types)
 
     run_make(build_folder,makefile_basename,'init_all',options)
 
@@ -472,6 +573,26 @@ def _init_unix_cmd(options):
 ##########################################################################
 ##########################################################################
 
+def _init_vs_cmd(options):
+    vs_stuff=get_vs_stuff(options.version)
+
+    rmtree(options.output_path)
+    makedirs(options.output_path)
+
+    with ChangeDirectory(options.output_path):
+        argv=[vs_stuff.cmake_path,'-G',f'Visual Studio {options.version} {vs_stuff.year}']
+        argv+=get_cmake_defines(options)
+        argv+=['-S',os.path.relpath(options.g_working_copy_path,
+                                    options.output_path)]
+        argv+=['-B','.']
+        ret=run_subprocess(argv,options,close_fds=False)
+        if ret.returncode!=0:
+            rmtree(unix_folder)
+            fatal('init failed')
+
+##########################################################################
+##########################################################################
+
 def print_build_suffix_cmd(options):
     run_subprocess(['git','log','-1','--format=%cd-%h','--date=format:%Y%m%d-%H%M%S'],options,check=True)
 
@@ -519,18 +640,19 @@ def batch_cmd(options):
 
     def do_build_actions(action_name,attr):
         for build_type_index,build_type in enumerate(result.build_types):
-            if (build_type.init_target is None or
-                build_type.clean_target is None or
+            if (build_type.clean_target is None or
                 build_type.build_target is None or
                 build_type.test_target is None):
-                # this target is not buildable from 
+                # this target is not buildable from the command line.
                 continue
 
             configuration_name=CMAKE_CONFIGURATIONS[build_type.configuration]
             
             message=f'''{build_type_index+1}/{len(result.build_types)}: Action={action_name}; Configuration={configuration_name}; Compiler={build_type.compiler}; Sanitizer={build_type.sanitizer}'''
-            
-            target.add_line(f'''$(_V)echo "{message}"\n''')
+
+            if is_windows(): quotes=''
+            else: quotes='"'
+            target.add_line(f'''$(_V)echo {quotes}{message}{quotes}''')
 
             time_jobs_push('Action',action_name)
             time_jobs_push('Compiler',build_type.compiler)
@@ -545,13 +667,17 @@ def batch_cmd(options):
             time_jobs_pop()
             time_jobs_pop()
 
+    if options.clean: do_build_actions('Clean','clean_target')
     do_build_actions('Build','build_target')
-    do_build_actions('Test','test_target')
+    if options.test: do_build_actions('Test','test_target')
 
     target.add_line(f'''$(_V){time_jobs} print -s Action -s Config -s Compiler''')
-    
+
     with open(makefile_path,'wt') as f: result.makefile.write(f)
 
+    if options.init:
+        clean_output_paths(build_folder,result.build_types)
+        
     run_make(build_folder,makefile_basename,'init_all',options)
     run_make(build_folder,makefile_basename,'batch',options)
 
@@ -584,7 +710,7 @@ def main(argv):
         return subparser
 
     def add_common_init_options(subparser):
-        subparser.add_argument('--osx-deployment-target',metavar='TARGET',default=default_osx_deployment_target,help='''specify macOS deployment target.'''+('' if default_osx_deployment_target is None else ' Default: %s'%default_osx_deployment_target))
+        subparser.add_argument('--osx-deployment-target',metavar='TARGET',default=default_osx_deployment_target,help='''specify macOS deployment target'''+('' if default_osx_deployment_target is None else ' Default: %s'%default_osx_deployment_target))
         subparser.add_argument('--prefix',metavar='STRING',help='''prepend %(metavar)s to name of any build folder created''')
         subparser.add_argument('--name',metavar='STRING',help='''use %(metavar)s as the build name''')
 
@@ -595,10 +721,11 @@ def main(argv):
         subparser.add_argument('--enable-sanitizers',action='store_true',help='''if building Unix-style, try to use any supported sanitizers''')
 
     init_subparser=add_subparser('init',init_cmd,help='''initialise build''')
-    init_subparser.add_argument('--cc',metavar='NAME',help='''if building Unix-style, use %(metavar) as C compiler''')
+    init_subparser.add_argument('--cc',metavar='NAME',help='''if building Unix-style, use %(metavar)s as C compiler''')
     init_subparser.add_argument('--cxx',metavar='NAME',help='''if building Unix-style, use %(metavar)s as C++ compiler''')
     add_common_init_options(init_subparser)
     add_common_target_options(init_subparser)
+    init_subparser.add_argument('--reinit',action='store_true',help='''reinit when output folder exists''')
 
     _init_xcode_subparser=add_subparser('_init_xcode',_init_xcode_cmd,help='''initialise Xcode build''')
     add_common_init_options(_init_xcode_subparser)
@@ -613,9 +740,17 @@ def main(argv):
     _init_unix_subparser.add_argument('--cxx',metavar='NAME',help='''use %(metavar)s as C++ compiler''')
     _init_unix_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
 
+    _init_vs_subparser=add_subparser('_init_vs',_init_vs_cmd,help='''initialise Visual Studio build''')
+    _init_vs_subparser.add_argument('version',type=auto_int,help='''specify Visual Studio version''')
+    _init_vs_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
+    add_common_init_options(_init_vs_subparser)
+
     batch_subparser=add_subparser('batch',batch_cmd,help='''do batch builds/tests''')
     batch_subparser.add_argument('--cc-cxx',metavar='CC CXX',nargs=2,action='append',dest='compilers',default=[],help='''use %(metavar)s as C and C++ compiler respectively for Unix builds. Can specifiy multiple times''')
     add_common_init_options(batch_subparser)
+    batch_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
+    batch_subparser.add_argument('--no-clean',dest='clean',action='store_false',help='''don't clean before building''')
+    batch_subparser.add_argument('--no-test',dest='test',action='store_false',help='''don't run tests after building''')
 
     print_build_suffix_subparser=add_subparser('print-build-suffix',print_build_suffix_cmd,help='''print build suffix: time, date and hash of head commit''')
 
