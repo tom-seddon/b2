@@ -74,7 +74,6 @@ def get_copyable_argv(argv):
 def run_subprocess(argv,options,**other_popen_kwargs):
     if g_verbose:
         print('b2build (cwd: %s) running: %s'%(os.getcwd(),get_copyable_argv(argv)))
-                                               
 
     process=subprocess.Popen(argv,**other_popen_kwargs)
     process.wait()
@@ -91,21 +90,20 @@ def get_make_path(options):
 ##########################################################################
 
 def get_max_jobs_args_for_make(options):
-    if os.getenv('MAKEFLAGS') is not None:
-        if not options.g_ignore_submake:
-            # Probably running as part of a submake, so don't specify -j.
-            pv(f'''b2build: MAKEFLAGS detected. Assuming running from Make. Running make without -j {options.g_max_jobs}\n''')
-            return []
+    # if os.getenv('MAKEFLAGS') is not None:
+    #     if not options.g_ignore_submake:
+    #         # Probably running as part of a submake, so don't specify -j.
+    #         pv(f'''b2build: MAKEFLAGS detected. Assuming running from Make. Running make without -j {options.g_max_jobs}\n''')
+    #         return []
         
     return ['-j',str(options.g_max_jobs)]
 
 ##########################################################################
 ##########################################################################
 
-def get_build_folder_path(name,options):
-    return os.path.join(options.g_working_copy_path,
-                        'build'
-                        '%s%s'%(options.prefix or '',name))
+def get_build_folder_path(options):
+    path=os.path.join(options.g_working_copy_path,'build')
+    return path
 
 ##########################################################################
 ##########################################################################
@@ -128,7 +126,7 @@ def get_cmake_defines(options):
 ##########################################################################
 ##########################################################################
 
-CMAKE_BUILD_TYPES={
+CMAKE_CONFIGURATIONS={
     'd':'Debug',
     'r':'RelWithDebInfo',
     'f':'Final',
@@ -205,7 +203,7 @@ class BuildMatrix:
     def __init__(self):
         self.xcode=False
         self.vs2022=False
-        self.unix_build_types=[]
+        self.unix_configurations=[]
         self.unix_sanitizers=[]
         self.unix_compilers=[]
 
@@ -219,14 +217,13 @@ def get_optional_option(option,value):
 ##########################################################################
 ##########################################################################
 
-UnixBuild=collections.namedtuple('UnixBuild','build_type compiler sanitizer target_name_suffix')
+BuildType=collections.namedtuple('BuildType','configuration compiler sanitizer init_target clean_target build_target test_target')
 
-CreateBuildMakefileResult=collections.namedtuple('CreateBuildMakefileResult','makefile unix_builds')
+CreateBuildMakefileResult=collections.namedtuple('CreateBuildMakefileResult','makefile build_types')
 
-# TODO: now a misnomer
-def create_init_makefile(matrix,
-                         build_folder,
-                         options):
+def create_build_makefile(matrix,
+                          build_folder,
+                          options):
     global_options=' '
     global_options+=' $(if $(VERBOSE),--verbose,)'
     global_options+=' --working-copy "%s"'%(os.path.relpath(options.g_working_copy_path,build_folder))
@@ -242,7 +239,7 @@ def create_init_makefile(matrix,
     
     makefile=Makefile()
 
-    if len(matrix.unix_build_types)>0:
+    if len(matrix.unix_configurations)>0:
         unix_compilers=matrix.unix_compilers[:]
         if len(unix_compilers)==0: unix_compilers.append(None)
 
@@ -252,9 +249,8 @@ def create_init_makefile(matrix,
     def get_output_path(name):
         return os.path.join('%s%s'%(options.prefix or '',name))
 
-    init_targets=[]
-    unix_builds=[]
-    for build_type in matrix.unix_build_types:
+    build_types=[]
+    for configuration in matrix.unix_configurations:
         # Sigh... does this really have to be inside a loop?
         if is_linux(): os_name='linux'
         elif is_macos(): os_name='osx'
@@ -262,20 +258,15 @@ def create_init_makefile(matrix,
 
         for compiler in unix_compilers:
             for sanitizer in unix_sanitizers:
-                target_name_suffix='%s%s'%(build_type,sanitizer or '')
+                target_name_suffix='%s%s'%(configuration,sanitizer or '')
                 if compiler is not None:
                     # C compiler name is usually sufficient to
                     # identify it.
                     target_name_suffix+='_%s'%compiler.cc
 
-                folder_name='%s%s.%s'%(build_type,sanitizer or '',os_name)
+                folder_name='%s%s.%s'%(configuration,sanitizer or '',os_name)
                 if compiler is not None:
                     if compiler.cc!='cc': folder_name+='.%s'%compiler.cc
-
-                unix_builds.append(UnixBuild(build_type=build_type,
-                                             compiler=compiler.cc if compiler else '(default)',
-                                             sanitizer=sanitizer,
-                                             target_name_suffix=target_name_suffix))
 
                 output_path=get_output_path(folder_name)
                 bin_rel_path=os.path.relpath(
@@ -283,9 +274,7 @@ def create_init_makefile(matrix,
                     os.path.join(build_folder,output_path))
                 
                 # Add init target.
-                target=makefile.add_named_target('init_unix_%s'%target_name_suffix)
-                init_targets.append(target)
-
+                init_target=makefile.add_named_target('init_unix_%s'%target_name_suffix)
                 if sanitizer is None: cmd_prefix=''
                 else:
                     # It's normal for not all sanitizers to be
@@ -303,23 +292,35 @@ def create_init_makefile(matrix,
                 if compiler is not None:
                     line+=' --cc "%s"'%compiler.cc
                     line+=' --cxx "%s"'%compiler.cxx
-                line+=' %s'%build_type
+                line+=' %s'%configuration
 
                 line+=' "%s"'%output_path
 
-                target.add_line(line)
+                init_target.add_line(line)
+
+                # Add clean target
+                clean_target=makefile.add_named_target('clean_unix_%s'%target_name_suffix)
+                clean_target.add_line(f'''$(_V)cd "{output_path}" && ninja clean''')
 
                 # Add build target.
-                target=makefile.add_named_target('build_unix_%s'%target_name_suffix)
+                build_target=makefile.add_named_target('build_unix_%s'%target_name_suffix)
                 j_option=f'''-j {options.g_max_jobs}'''
 
-                target.add_line(f'''$(_V)cd "{output_path}" && ninja {j_option}''')
+                build_target.add_line(f'''$(_V)cd "{output_path}" && ninja {j_option}''')
 
                 # Add test target.
-                target=makefile.add_named_target('test_unix_%s'%target_name_suffix)
-                target.add_line(f'''$(_V)cd "{output_path}" && ctest --progress {j_option}''')
-                target.add_line(f'''$(_V)cd "{output_path}" && $(PYTHON) "{os.path.join(bin_rel_path,'check_ctest_log.py')}" "Testing/Temporary/LastTest.log"''')
+                test_target=makefile.add_named_target('test_unix_%s'%target_name_suffix)
+                test_target.add_line(f'''$(_V)cd "{output_path}" && ctest --progress {j_option}''')
+                test_target.add_line(f'''$(_V)cd "{output_path}" && $(PYTHON) "{os.path.join(bin_rel_path,'check_ctest_log.py')}" "Testing/Temporary/LastTest.log"''')
                 
+                build_types.append(
+                    BuildType(configuration=configuration,
+                              compiler=compiler.cc if compiler else '(default)',
+                              sanitizer=sanitizer,
+                              init_target=init_target,
+                              clean_target=clean_target,
+                              build_target=build_target,
+                              test_target=test_target))
 
     if matrix.xcode:
         target=makefile.add_named_target('init_xcode')
@@ -327,8 +328,19 @@ def create_init_makefile(matrix,
 
         target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {cmd_options} {get_output_path('Xcode')}\n''')
 
+        build_types.append(
+            BuildType(configuration=None,
+                      compiler='Xcode',
+                      sanitizer=None,
+                      init_target=target,
+                      clean_target=None,
+                      build_target=None,
+                      test_target=None))
+
     target=makefile.add_named_target('init_all')
-    for init_target in init_targets: target.add_dependency(init_target)
+    for build_type in build_types:
+        if build_type.init_target is not None:
+            target.add_dependency(build_type.init_target)
 
     # target=makefile.add_named_target('build_unix_all')
     # if len(build_unix_targets)==0: target.add_line('$(error No Unix targets)')
@@ -337,7 +349,7 @@ def create_init_makefile(matrix,
     #         target.add_dependency(build_unix_target)
 
     return CreateBuildMakefileResult(makefile=makefile,
-                                     unix_builds=unix_builds)
+                                     build_types=build_types)
     
 ##########################################################################
 ##########################################################################
@@ -375,7 +387,7 @@ def init_cmd(options):
     matrix.xcode=options.xcode
 
     if options.unix:
-        matrix.unix_build_types+=[t for t in CMAKE_BUILD_TYPES.keys()]
+        matrix.unix_configurations+=[t for t in CMAKE_CONFIGURATIONS.keys()]
 
         if options.cc is not None:
             matrix.unix_compilers.append(UnixCompiler(cc=options.cc,
@@ -384,9 +396,9 @@ def init_cmd(options):
         if options.enable_sanitizers:
             matrix.unix_sanitizers+=[s for s in UNIX_SANITIZER_TYPES.keys()]
 
-    build_folder=get_build_folder_path('',options)
+    build_folder=get_build_folder_path(options)
 
-    result=create_init_makefile(matrix,build_folder,options)
+    result=create_build_makefile(matrix,build_folder,options)
 
     makefile_basename='Makefile.init.mak'
     makedirs(build_folder)
@@ -423,8 +435,8 @@ def _init_unix_cmd(options):
     if (options.cc is not None)!=(options.cxx is not None):
         fatal('must specify neither or both of C/C++ compilers')
     
-    cmake_build_type=CMAKE_BUILD_TYPES.get(options.build)
-    if cmake_build_type is None:
+    cmake_configuration=CMAKE_CONFIGURATIONS.get(options.build)
+    if cmake_configuration is None:
         fatal('unknown build type: %s'%options.build)
 
     if options.sanitizer is None: sanitizer=None
@@ -448,7 +460,7 @@ def _init_unix_cmd(options):
         argv+=get_cmake_defines(options)
         if options.sanitizer is not None:
             argv+=['-DSANITIZE_%s=On'%sanitizer.cmake_name]
-        argv+=['-DCMAKE_BUILD_TYPE=%s'%cmake_build_type]
+        argv+=['-DCMAKE_BUILD_TYPE=%s'%cmake_configuration]
         argv+=['-S',os.path.relpath(options.g_working_copy_path,
                                     options.output_path)]
         argv+=['-B','.']
@@ -478,16 +490,16 @@ def batch_cmd(options):
     if is_windows(): matrix.vs2022=True
 
     if is_unix():
-        matrix.unix_build_types+=[t for t in CMAKE_BUILD_TYPES.keys()]
+        matrix.unix_configurations+=[t for t in CMAKE_CONFIGURATIONS.keys()]
 
         if len(options.compilers)>0:
             for compiler in options.compilers:
                 matrix.unix_compilers.append(UnixCompiler(cc=compiler[0],
                                                           cxx=compiler[1]))
 
-    build_folder=get_build_folder_path('',options)
+    build_folder=get_build_folder_path(options)
 
-    result=create_init_makefile(matrix,build_folder,options)
+    result=create_build_makefile(matrix,build_folder,options)
 
     makefile_basename='Makefile.batch.mak'
     makedirs(build_folder)
@@ -499,29 +511,42 @@ def batch_cmd(options):
 
     target.add_line(f'''$(_V){time_jobs} init''')
 
-    def do_unix_build_actions(target_name_prefix,action_name):
-        target.add_line(f'''$(_V){time_jobs} push Action "{action_name}"''')
-        for i,unix_build in enumerate(result.unix_builds):
-            message=f'''{i+1}/{len(result.unix_builds)}: Action={action_name}; Configuration={unix_build.build_type}; Compiler={unix_build.compiler}; Sanitizer={unix_build.sanitizer}'''
+    def time_jobs_push(key,value):
+        target.add_line(f'''$(_V){time_jobs} push "{key}" "{value}"''')
+
+    def time_jobs_pop():
+        target.add_line(f'''$(_V){time_jobs} pop''')
+
+    def do_build_actions(action_name,attr):
+        for build_type_index,build_type in enumerate(result.build_types):
+            if (build_type.init_target is None or
+                build_type.clean_target is None or
+                build_type.build_target is None or
+                build_type.test_target is None):
+                # this target is not buildable from 
+                continue
+
+            configuration_name=CMAKE_CONFIGURATIONS[build_type.configuration]
+            
+            message=f'''{build_type_index+1}/{len(result.build_types)}: Action={action_name}; Configuration={configuration_name}; Compiler={build_type.compiler}; Sanitizer={build_type.sanitizer}'''
             
             target.add_line(f'''$(_V)echo "{message}"\n''')
-            
-            target.add_line(f'''$(_V){time_jobs} push Compiler "{unix_build.compiler}"''')
-            target.add_line(f'''$(_V){time_jobs} push Config "{unix_build.build_type}"''')
-            if unix_build.sanitizer is not None:
-                target.add_line(f'''$(_V){time_jobs} push Sanitizer "{unix_build.sanitizer}"''')
 
-            target.add_line(f'''$(_V)$(MAKE) -f "{makefile_basename}" {target_name_prefix}{unix_build.target_name_suffix}''')
+            time_jobs_push('Action',action_name)
+            time_jobs_push('Compiler',build_type.compiler)
+            time_jobs_push('Config',configuration_name)
+            if build_type.sanitizer is not None:
+                time_jobs_push('Sanitizer',build_type.sanitizer)
 
-            if unix_build.sanitizer is not None:
-                target.add_line(f'''$(_V){time_jobs} pop''')
+            target.add_line(f'''$(_V)$(MAKE) -f "{makefile_basename}" {getattr(build_type,attr).name}''')
 
-            target.add_line(f'''$(_V){time_jobs} pop''')
-            target.add_line(f'''$(_V){time_jobs} pop''')
-        target.add_line(f'''$(_V){time_jobs} pop''')
-    
-    do_unix_build_actions('build_unix_','Build')
-    do_unix_build_actions('test_unix_','Test')
+            if build_type.sanitizer is not None: time_jobs_pop()
+            time_jobs_pop()
+            time_jobs_pop()
+            time_jobs_pop()
+
+    do_build_actions('Build','build_target')
+    do_build_actions('Test','test_target')
 
     target.add_line(f'''$(_V){time_jobs} print -s Action -s Config -s Compiler''')
     
@@ -549,7 +574,7 @@ def main(argv):
     parser.add_argument('-j',type=auto_int,metavar='N',dest='g_max_jobs',default=os.cpu_count(),help='''run up to %(metavar)s job(s) at once. Default: %(default)s''')
     parser.add_argument('-w','--working-copy',dest='g_working_copy_path',metavar='PATH',default='.',help='''specify root of b2 working copy. Default: %(default)s''')
     parser.add_argument('--make',dest='g_make_path',default='make',metavar='PATH',help='''use %(metavar)s as path to GNU Make on Linux/macOS. (On Windows, the repo's copy is always used.) Default: %(default)s''')
-    parser.add_argument('--ignore-submake',dest='g_ignore_submake',action='store_true',help='''if run from GNU Make, don't do anything special. If running further copies of GNU Make, still pass them -j''')
+    # parser.add_argument('--ignore-submake',dest='g_ignore_submake',action='store_true',help='''if run from GNU Make, don't do anything special. If running further copies of GNU Make, still pass them -j''')
 
     subparsers=parser.add_subparsers()
 
@@ -582,7 +607,7 @@ def main(argv):
     _init_unix_subparser=add_subparser('_init_unix',_init_unix_cmd,help='''initialise Unix build''')
     add_common_init_options(_init_unix_subparser)
     _init_unix_subparser.add_argument('--sanitizer',help='''specify sanitizer: '''+'; '.join(['%s (%s)'%(k,v.friendly_name) for k,v in UNIX_SANITIZER_TYPES.items()]))
-    _init_unix_subparser.add_argument('build',help='''specify build configuration: '''+'; '.join(['%s (%s)'%(k,v) for k,v in CMAKE_BUILD_TYPES.items()]))
+    _init_unix_subparser.add_argument('build',help='''specify build configuration: '''+'; '.join(['%s (%s)'%(k,v) for k,v in CMAKE_CONFIGURATIONS.items()]))
     _init_unix_subparser.add_argument('--keep',action='store_true',help='''don't delete build folder if init fails''')
     _init_unix_subparser.add_argument('--cc',metavar='NAME',help='''use %(metavar) as C compiler''')
     _init_unix_subparser.add_argument('--cxx',metavar='NAME',help='''use %(metavar)s as C++ compiler''')

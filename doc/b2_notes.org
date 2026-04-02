@@ -11166,4 +11166,30 @@ AP6 ROM Manager & Utils v1.34
   21800ENDPROC
 #+end_src
 
+* make install
+
+#+begin_src makefile-gmake
+  ##########################################################################
+  ##########################################################################
+
+  ifdef INSTALLER
+
+  build_dir=$(BUILD_FOLDER)/$(1).$(OS)
+
+  .PHONY:install
+  install:
+	  @test -n "$(DEST)" || sh -c 'echo DEST variable must be set && false'
+	  cd $(call build_dir,r) && ninja
+	  cd $(call build_dir,f) && ninja
+	  mkdir -p "$(DEST)/bin"
+	  cp -v $(call build_dir,r)/src/b2/b2 "$(DEST)/bin/b2-debug"
+	  cp -v $(call build_dir,f)/src/b2/b2 "$(DEST)/bin/b2"
+
+  # Any build will do as source for the assets.
+	  mkdir -p "$(DEST)/share/b2"
+	  cp -Rv $(call build_dir,r)/src/b2/assets/* "$(DEST)/share/b2/"
+  endif
+
+#+end_src
+
 * eof.
