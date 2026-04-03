@@ -6,7 +6,9 @@ computer to play your old games or develop new software.
 
 <!-- source release README goes here -->
 
-## Windows
+## Getting started
+
+### Windows
 
 See the
 [Windows installation instructions](./doc/Installing-on-Windows.md).
@@ -15,7 +17,7 @@ You can set b2 to run when you double click a disk image in the
 Windows file explorer. See the
 [file assocation instructions](./doc/File-Association.md).
 
-## macOS
+### macOS
 
 See the [macOS installation instructions](./doc/Installing-on-OSX.md).
 **Please also revisit the installation instructions when upgrading
@@ -25,7 +27,7 @@ You can set b2 to run when you double click a disk image in the
 Finder. See the
 [file assocation instructions](./doc/File-Association.md).
 
-## Linux
+### Linux
 
 See the [Linux installation
 instructions](./doc/Installing-on-Linux.md).
@@ -38,7 +40,7 @@ for them myself:
 * [SlackBuilds](https://slackbuilds.org/repository/15.0/system/b2/),
   maintaned by Antonio Leal
 
-## libretro/RetroArch
+### libretro/RetroArch
 
 There is a version of the core b2 emulation code available as a
 libretro core: https://docs.libretro.com/library/b2/# - looked after

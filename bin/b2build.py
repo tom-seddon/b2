@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys,os,os.path,argparse,subprocess,shutil,shlex,collections,tempfile,glob
+import sys,os,os.path,argparse,subprocess,shutil,shlex,collections,tempfile,glob,textwrap
 
 ##########################################################################
 ##########################################################################
@@ -42,6 +42,8 @@ class ChangeDirectory:
 
     def relpath(self,path): return os.path.relpath(path,self._newcwd)
 
+    def join(self,path): return os.path.join(self._newcwd,path)
+
 ##########################################################################
 ##########################################################################
 
@@ -62,6 +64,10 @@ def copyfile(src,dest):
 def copytree(src,dest,**kwargs):
     pv(f'b2build copytree: {src} -> {dest}\n')
     shutil.copytree(src,dest,**kwargs)
+
+def move(src,dest,**kwargs):
+    pv(f'b2build move: {src} -> {dest}\n')
+    shutil.move(src,dest,**kwargs)
 
 ##########################################################################
 ##########################################################################
@@ -788,8 +794,20 @@ def set_submodule_upstreams_cmd(options):
 ##########################################################################
 ##########################################################################
 
+def create_binary_release_README(rev_hash,options):
+    with open("README.txt","wt") as f:
+        f.write(f'''b2 - a BBC Micro emulator - {options.name}\n\n''')
+        f.write(f'''For licence information, please consult LICENCE.txt.\n\n''')
+        f.write(f'''Documentation can be found here: https://github.com/tom-seddon/b2/blob/{rev_hash}/README.md\n\n''')
+
+##########################################################################
+##########################################################################
+
 def release_source_linux_cmd(options):
     if is_windows(): fatal('not supported on Windows')
+
+    with ChangeDirectory(options.g_working_copy_path) as p:
+        rev_hash=get_head_revision()
 
     # stick the temp stuff in the build folder. It's excluded from the
     # archive so 
@@ -821,7 +839,7 @@ def release_source_linux_cmd(options):
              ignore=copytree_ignore)
     
     # Fix stuff up in place.
-    with ChangeDirectory(work_path):
+    with ChangeDirectory(work_path) as p:
         rmfiles('bin/*.exe')
         rmfiles('bin/*.bat')
         rmtree('etc/64tass-1.52.1237')
@@ -831,9 +849,9 @@ def release_source_linux_cmd(options):
         rmfiles('Makefile.osx.mak')
         rmfiles('Makefile.unix.mak')
         rmfiles('Makefile.windows.mak')
-        shutil.copyfile('etc/release/Makefile.release.mak','Makefile')
+        move('etc/release/Makefile.release.mak','Makefile')
         rmtree('submodules/curl') # only used on Windows
-
+        move('etc/release/LICENCE.txt','LICENCE.txt')
         if is_linux():
             # Remove the dependencies that are intended to be
             # supplied by the package manager. It all adds up!
@@ -842,6 +860,25 @@ def release_source_linux_cmd(options):
             # built from source.
             rmtree('submodules/libuv')
             rmtree('submodules/SDL_official')
+
+        # Add some extra fluff to the README.
+        readme_path='README.md'
+        with open(readme_path,'rt') as f:
+            lines=[line.rstrip() for line in f.readlines()]
+
+        try: index=lines.index('<!-- source release README goes here -->')
+        except ValueError: fatal(f'''source release README placeholder not found in: {p.join(readme_path)}''')
+
+        extra_lines=[]
+        extra_lines+=textwrap.wrap(f'''This is the Linux source distribution for version: {options.name}. For licence information, please consult [`LICENCE.txt`](./LICENCE.txt). For building and installation instructions, please see the [Linux installation instructions](./doc/Installing-on-Linux.md).''')
+        extra_lines+=['']
+        extra_lines+=textwrap.wrap(f'''This documentation can also be found on GitHub: https://github.com/tom-seddon/b2/blob/{rev_hash}/README.md''')
+
+        del lines[index]
+        for i,extra_line in enumerate(extra_lines):
+            lines.insert(index+i,extra_line)
+
+        with open(readme_path,'wt') as f: f.write('\n'.join(lines))
 
     # Set timestamps.
     if options.timestamp is not None:
@@ -885,15 +922,6 @@ def release_source_linux_cmd(options):
                             options)
 
     release_files=[os.path.join(temp,tar_name+'.bz2')]
-
-##########################################################################
-##########################################################################
-
-def create_README(rev_hash,options):
-    with open("README.txt","wt") as f:
-        f.write("b2 - a BBC Micro emulator - %s\n\n"%options.name)
-        f.write("For licence information, please consult LICENCE.txt.\n\n")
-        f.write("Documentation can be found here: https://github.com/tom-seddon/b2/blob/%s/README.md\n\n"%rev_hash)
 
 ##########################################################################
 ##########################################################################
@@ -998,7 +1026,7 @@ def release_binary_windows_cmd(options):
                                         "src/b2/RelWithDebInfo/WinPixEventRuntime.dll")),
                  "WinPixEventRuntime.dll")
         
-        create_README(head_revision,options)
+        create_binary_release_README(head_revision,options)
 
         copytree(p.relpath(os.path.join(build_folder,
                                         r_build_type.output_path,
