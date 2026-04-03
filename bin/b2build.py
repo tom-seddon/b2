@@ -319,13 +319,14 @@ CreateBuildMakefileResult=collections.namedtuple('CreateBuildMakefileResult','ma
 
 def create_build_makefile(matrix,
                           build_folder,
+                          prefix,
                           options):
     global_options=' '
     global_options+=' $(if $(VERBOSE),--verbose,)'
     global_options+=' --working-copy "%s"'%(os.path.relpath(options.g_working_copy_path,build_folder))
 
     cmd_options=' '
-    cmd_options+=get_optional_option('--prefix',options.prefix)
+    # cmd_options+=get_optional_option('--prefix',prefix)
     cmd_options+=get_optional_option('--name',options.name)
     if is_macos():
         cmd_options+=get_optional_option('--osx-deployment-target',options.osx_deployment_target)
@@ -344,7 +345,7 @@ def create_build_makefile(matrix,
 
     # relative to build folder
     def get_output_path(name):
-        return os.path.join('%s%s'%(options.prefix or '',name))
+        return os.path.join('%s%s'%(prefix or '',name))
 
     build_types=[]
 
@@ -389,7 +390,7 @@ def create_build_makefile(matrix,
                 line+=global_options
                 line+=' _init_unix '
                 line+=get_optional_option('--sanitizer',sanitizer)
-                line+=get_optional_option('--prefix',options.prefix)
+                # line+=get_optional_option('--prefix',prefix) # TODO: should use cmd_options here??
                 if compiler is not None:
                     line+=' --cc "%s"'%compiler.cc
                     line+=' --cxx "%s"'%compiler.cxx
@@ -504,8 +505,7 @@ def run_make(build_folder,makefile_basename,target,options):
         argv+=[target]
         if options.g_verbose: argv+=['VERBOSE=1']
         
-        ret=run_subprocess(argv,options,close_fds=False)
-        if ret.returncode!=0: fatal('failed with exit code %d: %s'%(ret.returncode,get_copyable_argv(argv)))
+        must_run_subprocess(argv,options,close_fds=False)
 
 ##########################################################################
 ##########################################################################
@@ -540,7 +540,10 @@ def init_cmd(options):
 
     build_folder=get_build_folder_path(options)
 
-    result=create_build_makefile(matrix,build_folder,options)
+    result=create_build_makefile(matrix,
+                                 build_folder,
+                                 options.prefix,
+                                 options)
 
     makefile_basename='Makefile.init.mak'
     makedirs(build_folder)
@@ -664,7 +667,10 @@ def batch_cmd(options):
 
     build_folder=get_build_folder_path(options)
 
-    result=create_build_makefile(matrix,build_folder,options)
+    result=create_build_makefile(matrix,
+                                 build_folder,
+                                 options.prefix,
+                                 options)
 
     makefile_basename='Makefile.batch.mak'
     makedirs(build_folder)
@@ -880,6 +886,54 @@ def release_source_linux_cmd(options):
 ##########################################################################
 ##########################################################################
 
+def release_binary_windows_cmd(options):
+    if not is_windows(): fatal('only supported on Windows')
+
+    build_folder=get_build_folder_path(options)
+
+    # TODO: more logic here.
+    matrix=BuildMatrix()
+    matrix.vs2022=True
+
+    prefix='release_binary_windows'
+
+    result=create_build_makefile(matrix,
+                                 build_folder,
+                                 prefix,
+                                 options)
+
+    makefile_basename=f'Makefile.{prefix}.mak'
+    makedirs(build_folder)
+    with open(os.path.join(build_folder,makefile_basename),'wt') as f:
+        result.makefile.write(f)
+
+    configurations=['r','f']
+
+    if options.init: clean_output_paths(build_folder,result.build_types)
+
+    run_make(build_folder,
+             makefile_basename,
+             'init_all',
+             options)
+
+    for build_type in result.build_types:
+        if build_type.configuration in configurations:
+            run_make(build_folder,
+                     makefile_basename,
+                     build_type.clean_target.name,
+                     options)
+            run_make(build_folder,
+                     makefile_basename,
+                     build_type.build_target.name,
+                     options)
+            if options.test: run_make(build_folder,
+                                      makefile_basename,
+                                      build_type.test_target.name,
+                                      options)
+    
+##########################################################################
+##########################################################################
+
 def main(argv):
     def auto_int(x): return int(x,0)
     def timestamp(x): return datetime.datetime.strptime(x,"%Y%m%d-%H%M%S")
@@ -958,7 +1012,6 @@ def main(argv):
 
     def add_common_release_options(subparser):
         subparser.add_argument('--timestamp',metavar='TIMESTAMP',dest='timestamp',default=None,type=timestamp,help='''set files' atime/mtime to %(metavar)s. Format must be YYYYMMDD-HHMMSS''')
-        subparser.add_argument('--temp',metavar='PATH',default=None,help='''use %(metavar)s as temp folder. If specified, will recreate if required, then leave as-is at end of build; if not specified, will create a temp folder and delete at end of build.''')
 
     release_source_linux_subparser=add_subparser('release-source-linux',release_source_linux_cmd,help='''make Linux source code release''',epilog='''Not functional on Windows. Unsupported on macOS''')
     add_common_release_options(release_source_linux_subparser)
@@ -967,6 +1020,14 @@ def main(argv):
     release_source_linux_subparser.add_argument('--build',action='store_true',help=''''do a test build (process will fail if build fails)''')
     release_source_linux_subparser.add_argument('--test',action='store_true',help=''''run tests after creating the archive (implies --build) (process will fail if tests fail)''')
     release_source_linux_subparser.add_argument('--install',action='store_true',help='''do a test install (implies --build) (process will fail if install fails)''')
+    release_source_linux_subparser.add_argument('--temp',metavar='PATH',default=None,help='''use %(metavar)s as temp folder. If specified, will recreate if required, then leave as-is at end of build; if not specified, will create a temp folder and delete at end of build.''')
+
+    release_binary_windows_subparser=add_subparser('release-binary-windows',release_binary_windows_cmd,help='''make Windows binary release''')
+    release_binary_windows_subparser.add_argument('-o',metavar='FILE',dest='output_path',help='''write output file to %(metavar)s. Format can be anything 7z can create''')
+    release_binary_windows_subparser.add_argument('name',help='''name for build''')
+    release_binary_windows_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
+    release_binary_windows_subparser.add_argument('--no-test',action='store_false',dest='test',help='''don't run tests''')
+    add_common_release_options(release_binary_windows_subparser)
 
     options=parser.parse_args(argv)
     if options.fun is None:
