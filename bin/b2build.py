@@ -31,9 +31,16 @@ class ChangeDirectory:
         self._oldcwd=os.getcwd()
         self._newcwd=path
 
-    def __enter__(self): os.chdir(self._newcwd)
+        pv('b2build ChangeDirectory was: %s\n'%self._oldcwd)
+        pv('b2build ChangeDirectory now: %s\n'%self._newcwd)
+
+    def __enter__(self):
+        os.chdir(self._newcwd)
+        return self
 
     def __exit__(self,*args): os.chdir(self._oldcwd)
+
+    def relpath(self,path): return os.path.relpath(path,self._newcwd)
 
 ##########################################################################
 ##########################################################################
@@ -47,6 +54,14 @@ def rmtree(path):
 def rmfiles(pattern):
     paths=glob.glob(pattern)
     for path in paths: os.unlink(path)
+
+def copyfile(src,dest):
+    pv(f'b2build copyfile: {src} -> {dest}\n')
+    shutil.copyfile(src,dest)
+
+def copytree(src,dest):
+    pv(f'b2build copytree: {src} -> {dest}\n')
+    shutil.copytree(src,dest)
 
 ##########################################################################
 ##########################################################################
@@ -123,6 +138,11 @@ def must_run_subprocess(argv,options,**other_popen_kwargs):
     if result.returncode!=0:
         fatal('failed with return code %d: %s'%(result.returncode,get_copyable_argv(argv)))
 
+def get_head_revision():
+    argv=['git','rev-parse','HEAD']
+    result=subprocess.check_output(argv,text=True).strip()
+    return result
+        
 ##########################################################################
 ##########################################################################
 
@@ -876,6 +896,9 @@ def release_source_linux_cmd(options):
                                          os.path.basename(options.output_path)),
                             options.output_path)
 
+            set_file_timestamps(options.timestamp,
+                                options.output_path)
+
     if options.temp is None:
         with tempfile.TemporaryDirectory() as temp: run(temp)
     else:
@@ -886,15 +909,28 @@ def release_source_linux_cmd(options):
 ##########################################################################
 ##########################################################################
 
+def create_README(rev_hash,options):
+    with open("README.txt","wt") as f:
+        f.write("b2 - a BBC Micro emulator - %s\n\n"%options.name)
+        f.write("For licence information, please consult LICENCE.txt.\n\n")
+        f.write("Documentation can be found here: https://github.com/tom-seddon/b2/blob/%s/README.md\n\n"%rev_hash)
+
+##########################################################################
+##########################################################################
+
 def release_binary_windows_cmd(options):
     if not is_windows(): fatal('only supported on Windows')
 
     build_folder=get_build_folder_path(options)
 
+    with ChangeDirectory(options.g_working_copy_path):
+        head_revision=get_head_revision()
+
     # TODO: more logic here.
     matrix=BuildMatrix()
     matrix.vs2022=True
 
+    # Build stuff in build/release_binary_windowvs2022 (or similar).
     prefix='release_binary_windows'
 
     result=create_build_makefile(matrix,
@@ -907,8 +943,7 @@ def release_binary_windows_cmd(options):
     with open(os.path.join(build_folder,makefile_basename),'wt') as f:
         result.makefile.write(f)
 
-    configurations=['r','f']
-
+    # Init, build, test.
     if options.init: clean_output_paths(build_folder,result.build_types)
 
     run_make(build_folder,
@@ -916,12 +951,28 @@ def release_binary_windows_cmd(options):
              'init_all',
              options)
 
+    pv(str(result.build_types))
+
+    r_build_type=None
+    f_build_type=None
+
     for build_type in result.build_types:
-        if build_type.configuration in configurations:
-            run_make(build_folder,
-                     makefile_basename,
-                     build_type.clean_target.name,
-                     options)
+        if build_type.configuration=='r':
+            r_build_type=build_type
+            build=True
+        elif build_type.configuration=='f':
+            f_build_type=build_type
+            build=True
+        else: build=False
+        
+        if build:
+            # no need to clean: init doesn't take long, and it's
+            # undesirable when --no-init specified.
+            
+            # run_make(build_folder,
+            #          makefile_basename,
+            #          build_type.clean_target.name,
+            #          options)
             run_make(build_folder,
                      makefile_basename,
                      build_type.build_target.name,
@@ -930,6 +981,83 @@ def release_binary_windows_cmd(options):
                                       makefile_basename,
                                       build_type.test_target.name,
                                       options)
+
+    # Assemble zip contents in build/release_binary_windows_temp.
+    temp_path=os.path.join(build_folder,'release_binary_windows_temp')
+    rmtree(temp_path)
+    makedirs(temp_path)
+    
+    zip_folder_path=os.path.join(temp_path,'b2')
+    makedirs(zip_folder_path)
+
+    b2_zip_path=os.path.join(temp_path,'b2-windows-%s.zip'%options.name)
+    symbols_7z_path=os.path.join(temp_path,'symbols.b2-windows-%s.7z'%options.name)
+
+    # pv(f'b2_zip_path: {b2_zip_path}\n')
+    # pv(f'symbols_7z_path: {symbols_7z_path}\n')
+    # pv(f'temp_path: {temp_path}\n')
+    # pv(f'zip_folder_path: {zi_path}\n')
+
+    with ChangeDirectory(zip_folder_path) as p:
+        copyfile(p.relpath(os.path.join(build_folder,
+                                        f_build_type.output_path,
+                                        "src/b2/Final/b2.exe")),
+                 "b2.exe")
+        
+        copyfile(p.relpath(os.path.join(build_folder,
+                                        r_build_type.output_path,
+                                        "src/b2/RelWithDebInfo/b2.exe")),
+                 "b2_Debug.exe")
+        
+        copyfile(p.relpath(os.path.join(options.g_working_copy_path,
+                                        "etc/release/LICENCE.txt")),
+                 "LICENCE.txt")
+        
+        copyfile(p.relpath(os.path.join(build_folder,
+                                        r_build_type.output_path,
+                                        "src/b2/RelWithDebInfo/WinPixEventRuntime.dll")),
+                 "WinPixEventRuntime.dll")
+        
+        create_README(head_revision,options)
+
+        copytree(p.relpath(os.path.join(build_folder,
+                                        r_build_type.output_path,
+                                        "src/b2/Final/assets")),
+                 "assets")
+
+        set_tree_timestamps(options.timestamp,'.')
+
+    with ChangeDirectory(temp_path) as p:
+        must_run_subprocess(['7z',
+                             'a',
+                             '-mx=9',
+                             p.relpath(b2_zip_path),
+                             'b2'],
+                            options)
+
+    set_file_timestamps(options.timestamp,b2_zip_path)
+
+    with ChangeDirectory(temp_path) as p:
+        copyfile(p.relpath(os.path.join(build_folder,
+                                        r_build_type.output_path,
+                                        'src/b2/RelWithDebInfo/b2.pdb')),
+                 'b2 Debug.pdb')
+        
+        copyfile(p.relpath(os.path.join(build_folder,
+                                        f_build_type.output_path,
+                                        'src/b2/Final/b2.pdb')),
+                 'b2.pdb')
+
+        must_run_subprocess(['7z',
+                             'a',
+                             '-mx=9',
+                             p.relpath(symbols_7z_path),
+                             'b2 Debug.pdb',
+                             'b2.pdb'],
+                            options)
+
+    release_file_paths=[b2_zip_path,symbols_7z_path]
+    print(release_file_paths)
     
 ##########################################################################
 ##########################################################################
