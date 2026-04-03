@@ -11194,8 +11194,16 @@ AP6 ROM Manager & Utils v1.34
 
 * build spring clean notes
 
+Example commands:
+
+#+begin_example
+./bin/b2build.py --verbose release-source-linux test_build
+./bin/b2build.py --verbose release-source-linux test_build --test --install
+#+end_example
+
 ** TODO on GitHub Actions, Linux build without FFmpeg can be achieved simply by not installing it
 ** TODO macOS still needs specific no FFmpeg option...
 ** TODO =gh_release= still needs bringing across
 ** TODO copy =LICENCE.txt= into root of Linux source release
+
 * eof.
