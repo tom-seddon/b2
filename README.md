@@ -4,6 +4,8 @@ A cross-platform emulator of the BBC Micro, BBC Master 128, BBC Master
 Compact and Olivetti PC 128 S. Use your Windows/Linux PC or macOS
 computer to play your old games or develop new software.
 
+<!-- source release README goes here -->
+
 ## Windows
 
 See the
