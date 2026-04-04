@@ -140,29 +140,41 @@ def get_copyable_argv(argv):
 ##########################################################################
 ##########################################################################
 
-def run_subprocess(argv,options,**other_popen_kwargs):
+FakeProcess=collections.namedtuple('FakeProcess','returncode')
+
+def run_subprocess(argv,options,execute=True,**other_popen_kwargs):
     argv=[arg for arg in argv if arg is not None]
-    
-    if g_verbose:
-        suffix='(cwd: %s): %s'%(os.getcwd(),get_copyable_argv(argv))
-        print(f'b2build running   {suffix}')
 
-    process=subprocess.Popen(argv,**other_popen_kwargs)
-    process.wait()
+    suffix='(cwd: %s): %s'%(os.getcwd(),get_copyable_argv(argv))
 
-    if g_verbose:
-        print(f'b2build completed {suffix} - exit code: {process.returncode}')
-    
+    if execute:
+        pv(f'b2build running   {suffix}\n')
+            
+        process=subprocess.Popen(argv,**other_popen_kwargs)
+        process.wait()
+
+        print(f'b2build completed {suffix} - exit code: {process.returncode}\n')
+    else:
+        # return process with error exit code. If the caller doesn't
+        # check: no problem!
+        process=FakeProcess(returncode =1)
+        pv(f'b2build running   {suffix} - fake exit code: {process.returncode}\n')
+        
     return process
 
 ##########################################################################
 ##########################################################################
 
-def must_run_subprocess(argv,options,**other_popen_kwargs):
-    result=run_subprocess(argv,options,**other_popen_kwargs)
+def must_run_subprocess(argv,options,execute=True,**other_popen_kwargs):
+    result=run_subprocess(argv,options,execute=execute,**other_popen_kwargs)
 
-    if result.returncode!=0:
-        fatal('failed with return code %d: %s'%(result.returncode,get_copyable_argv(argv)))
+    if execute:
+        if result.returncode!=0:
+            fatal('failed with return code %d: %s'%(result.returncode,get_copyable_argv(argv)))
+    else:
+        # If the caller supplied execute=False, it is presumably alert
+        # to the possibilty that nothing might happen.
+        pass
 
 ##########################################################################
 ##########################################################################
@@ -184,8 +196,18 @@ def must_capture_subprocess(argv,options,**other_popen_kwargs):
 def get_head_revision():
     argv=['git','rev-parse','HEAD']
     result=subprocess.check_output(argv,text=True).strip()
+    pv('b2build: head revision: %s\n'%result)
     return result
-        
+
+##########################################################################
+##########################################################################
+
+def get_current_branch():
+    argv=['git','branch','--show-current']
+    result=subprocess.check_output(argv,text=True).strip()
+    pv('b2build: current branch: %s\n'%result)
+    return result
+
 ##########################################################################
 ##########################################################################
 
@@ -883,18 +905,14 @@ def create_binary_release_README(rev_hash,options):
 ##########################################################################
 
 def gh_release(release_files,options):
-    if not options.gh_release: return
-    
     with ChangeDirectory(options.g_working_copy_path):
-        # Check for branch name. If not master, it's a prerelease
-        # build.
-        prerelease=must_capture_subprocess(['git','branch','--show-current'])[0]!='master'
+        prerelease=get_current_branch()!='master'
 
         # Get head revision for the release process.
         hash=get_head_revision()
 
     # Form GitHub release name.
-    release_name='b2-'+options.release_name
+    release_name='b2-'+options.name
     if prerelease: release_name+='-prerelease'
 
     # Assume any errors from the creation process are due to the
@@ -907,11 +925,14 @@ def gh_release(release_files,options):
                     '--notes','Release notes to follow',
                     '--target',hash,
                     '--prerelease' if prerelease else None],
-                   options)
+                   options,
+                   execute=options.gh_release)
     
     for release_file in release_files:
         must_run_subprocess(
-            ['gh','release','upload',release_name,release_file])
+            ['gh','release','upload',release_name,release_file],
+            options,
+            execute=options.gh_release)
 
 ##########################################################################
 ##########################################################################
@@ -1158,14 +1179,14 @@ def release_binary_windows_cmd(options):
                  "LICENCE.txt")
         
         copyfile(p.relpath(os.path.join(build_folder,
-                                        r_build_type.output_path,
+                                        build_type_by_configuration['r'].output_path,
                                         "src/b2/RelWithDebInfo/WinPixEventRuntime.dll")),
                  "WinPixEventRuntime.dll")
         
         create_binary_release_README(head_revision,options)
 
         copytree(p.relpath(os.path.join(build_folder,
-                                        r_build_type.output_path,
+                                        build_type_by_configuration['r'].output_path,
                                         "src/b2/Final/assets")),
                  "assets")
 

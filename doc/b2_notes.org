@@ -11200,6 +11200,7 @@ Example commands:
 ./bin/b2build.py --verbose release-source-linux test_build
 ./bin/b2build.py --verbose release-source-linux test_build --test --install
 ./bin/b2build.py --verbose release-binary-macos test_build
+bin\b2build.py --verbose release-binary-windows test_build
 #+end_example
 
 ** TODO on GitHub Actions, Linux build without FFmpeg can be achieved simply by not installing it
