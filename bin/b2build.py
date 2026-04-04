@@ -339,7 +339,28 @@ def get_vs_stuff(version):
 ##########################################################################
 ##########################################################################
 
-BuildType=collections.namedtuple('BuildType','configuration compiler sanitizer init_target clean_target build_target test_target output_path')
+BuildType=collections.namedtuple(
+    'BuildType',
+    [
+        # configuration: d/r/f
+        'configuration',
+        # human-readable compiler name
+        'compiler',
+        # sanitizer: None, or a/t/m/u
+        'sanitizer',
+        # Makefile target for init. (May be shared between multiple
+        # configurations: scrape the list to detect this.)
+        'init_target',
+        # Makefile target for clean
+        'clean_target',
+        # Makefile target for build
+        'build_target',
+        # Makefile target for test
+        'test_target',
+        # output path for init results. (May be shared between
+        # multiple configurations, same as init_target.)
+        'output_path'
+    ])
 
 CreateBuildMakefileResult=collections.namedtuple('CreateBuildMakefileResult','makefile build_types')
 
@@ -452,7 +473,8 @@ def create_build_makefile(matrix,
     if matrix.xcode:
         target=makefile.add_named_target('init_xcode')
 
-        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {cmd_options} {get_output_path('Xcode')}''')
+        output_path=get_output_path('Xcode')
+        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {cmd_options} {output_path}''')
 
         build_types.append(
             BuildType(configuration=None,
@@ -461,7 +483,8 @@ def create_build_makefile(matrix,
                       init_target=target,
                       clean_target=None,
                       build_target=None,
-                      test_target=None))
+                      test_target=None,
+                      output_path=output_path))
 
     def add_visual_studio_targets(vsver):
         vs_stuff=get_vs_stuff(17)
@@ -590,7 +613,6 @@ def init_cmd(options):
 def _init_xcode_cmd(options):
     if not is_macos(): fatal('Can build with Xcode on macOS only')
     
-    rmtree(options.output_path)
     makedirs(options.output_path)
 
     with ChangeDirectory(options.output_path):
