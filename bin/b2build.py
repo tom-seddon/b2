@@ -49,17 +49,17 @@ class ChangeDirectory:
 
 def rm(path):
     if os.path.isfile(path):
-        pv(f'''b2build rm: {path}''')
+        pv(f'''b2build rm: {path}\n''')
         os.unlink(path)
 
 def makedirs(path):
     if not os.path.isdir(path):
-        pv(f'''b2build mkdir: {path}''')
+        pv(f'''b2build mkdir: {path}\n''')
         os.makedirs(path)
 
 def rmtree(path):
     if os.path.isdir(path):
-        pv(f'''b2build rmtree: {path}''')
+        pv(f'''b2build rmtree: {path}\n''')
         shutil.rmtree(path)
 
 def rmfiles(pattern):
