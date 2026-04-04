@@ -496,8 +496,12 @@ def create_build_makefile(matrix,
                 build_target.add_line(f'''$(_V)cd "{output_path}" && ninja {j_option} $(if $(VERBOSE),--verbose,)''')
 
                 # Add test target.
+                #
+                # If VERBOSE=1, don't suppl/y --verbose: the output
+                # is... a lot. --output-on-failure will produce only
+                # the interesting stuff.
                 test_target=makefile.add_named_target('test_unix_%s'%target_name_suffix)
-                test_target.add_line(f'''$(_V)cd "{output_path}" && ctest --progress {j_option} $(if $(VERBOSE),--verbose,)''')
+                test_target.add_line(f'''$(_V)cd "{output_path}" && ctest --progress {j_option} $(if $(VERBOSE),--output-on-failure,)''')
                 test_target.add_line(f'''$(_V)cd "{output_path}" && $(PYTHON) "{os.path.join(bin_rel_path,'check_ctest_log.py')}" "Testing/Temporary/LastTest.log"''')
                 
                 build_types.append(
