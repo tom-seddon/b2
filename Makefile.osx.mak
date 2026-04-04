@@ -30,7 +30,7 @@ github_ci_macos_homebrew_ffmpeg:
 .PHONY:_github_ci_macos_release
 _github_ci_macos_release: export PYTHONUNBUFFERED=1
 _github_ci_macos_release:
-	$(PYTHON3) "./bin/b2build.py" --verbose release-binary-macos "$(shell $(PYTHON3) "./bin/b2build.py" print-build-suffix)" --timestamp "$(shell $(PYTHON3) "./bin/b2build.py" print-build-timestamp)" --gh-release
+	$(PYTHON3) "./bin/b2build.py" --verbose release-binary-macos "$(shell $(PYTHON3) "./bin/b2build.py" print-build-suffix)" --timestamp "$(shell $(PYTHON3) "./bin/b2build.py" print-build-timestamp)" --gh-release $(TARGET_ARGS)
 
 .PHONY:github_ci_macos_x64
 github_ci_macos_x64:
