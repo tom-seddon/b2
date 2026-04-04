@@ -65,9 +65,9 @@ def copytree(src,dest,**kwargs):
     pv(f'b2build copytree: {src} -> {dest}\n')
     shutil.copytree(src,dest,**kwargs)
 
-def move(src,dest,**kwargs):
-    pv(f'b2build move: {src} -> {dest}\n')
-    shutil.move(src,dest,**kwargs)
+# def move(src,dest,**kwargs):
+#     pv(f'b2build move: {src} -> {dest}\n')
+#     shutil.move(src,dest,**kwargs)
 
 ##########################################################################
 ##########################################################################
@@ -806,6 +806,13 @@ def create_binary_release_README(rev_hash,options):
 def release_source_linux_cmd(options):
     if is_windows(): fatal('not supported on Windows')
 
+    if is_macos():
+        # This isn't really designed for use on macOS, but macOS is
+        # near enough Linux for some testing purposes...
+        #
+        # Linux source releases prepared on macOS are not valid.
+        pass
+
     with ChangeDirectory(options.g_working_copy_path) as p:
         rev_hash=get_head_revision()
 
@@ -849,9 +856,9 @@ def release_source_linux_cmd(options):
         rmfiles('Makefile.osx.mak')
         rmfiles('Makefile.unix.mak')
         rmfiles('Makefile.windows.mak')
-        move('etc/release/Makefile.release.mak','Makefile')
+        copyfile('etc/release/Makefile.release.mak','Makefile')
         rmtree('submodules/curl') # only used on Windows
-        move('etc/release/LICENCE.txt','LICENCE.txt')
+        copyfile('etc/release/LICENCE.txt','LICENCE.txt')
         if is_linux():
             # Remove the dependencies that are intended to be
             # supplied by the package manager. It all adds up!
@@ -860,6 +867,12 @@ def release_source_linux_cmd(options):
             # built from source.
             rmtree('submodules/libuv')
             rmtree('submodules/SDL_official')
+
+            # Remove the release stuff.
+            #
+            # Don't do this on macOS, as the build process copies
+            # files from this folder into the app bundle.
+            rmtree('etc/release')
 
         # Add some extra fluff to the README.
         readme_path='README.md'

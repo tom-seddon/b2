@@ -96,13 +96,13 @@ configure:
 
 .PHONY:build
 build:
-	$(_V)$(MAKE) _build2 CONFIG=r RUN_TESTS=$(RUN_TESTS)
-	$(_V)$(MAKE) _build2 CONFIG=f RUN_TESTS=$(RUN_TESTS)
+	$(_V)$(MAKE) _build2 CONFIG=r
+	$(_V)$(MAKE) _build2 CONFIG=f
 
 .PHONY:_build2
 _build2: CONFIG=$(error Must specify CONFIG)
 _build2:
-	$(_V)test -d "$(BUILD)/$(CONFIG).$(OS)" && $(MAKE) _build3 CONFIG=$(CONFIG) RUN_TESTS=$(RUN_TESTS) || true
+	$(_V)(test -d "$(BUILD)/$(CONFIG).$(OS)" && $(MAKE) _build3 CONFIG=$(CONFIG)) || (test ! -d "$(BUILD)/$(CONFIG).$(OS)")
 
 .PHONY:_build3
 _build3: CONFIG=$(error Must specify CONFIG)
