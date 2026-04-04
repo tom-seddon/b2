@@ -106,7 +106,8 @@ def set_file_timestamps(timestamp,fname):
     
 def set_tree_timestamps(timestamp,root):
     for dirpath,dirnames,filenames in os.walk(root):
-        for f in dirnames+filenames: 
+        set_file_timestamps(timestamp,dirpath)
+        for f in filenames: 
             set_file_timestamps(timestamp,os.path.join(dirpath,f))
 
 ##########################################################################
@@ -1002,15 +1003,29 @@ def release_source_linux_cmd(options):
 
     # Set timestamps.
     if options.timestamp is not None:
-        with ChangeDirectory(work_path):
-            set_tree_timestamps(options.timestamp,'.')
+        if not options.tar_mtime:
+            with ChangeDirectory(temp):
+                set_tree_timestamps(options.timestamp,release_folder_name)
 
     # Create tar file in the temp folder. Don't compress it until any
     # tests succeed.
     with ChangeDirectory(temp) as p:
         tar_name='%s.tar'%options.name
-        must_run_subprocess(['tar','cf',tar_name,release_folder_name],
-                            options)
+
+        argv=['tar',
+              'cf',tar_name]
+        
+        if is_linux():
+            # assume GNU tar.
+            argv.append('--sort=name') # and why not...
+
+            if options.timestamp is not None:
+                if options.tar_mtime:
+                    argv.append(f'--mtime={options.timestamp.isoformat()}')
+
+        argv.append(release_folder_name)
+        
+        must_run_subprocess(argv,options)
 
     # Do any tests.
     if options.build or options.test or options.install:
@@ -1037,11 +1052,13 @@ def release_source_linux_cmd(options):
                                     options)
 
     # Looks good.
+    bz2_path=os.path.join(temp,tar_name+'.bz2')
     with ChangeDirectory(temp) as p:
-        must_run_subprocess(['bzip2','-9',tar_name],
-                            options)
+        must_run_subprocess(['bzip2','-9',tar_name],options)
 
-    gh_release([os.path.join(temp,tar_name+'.bz2')],options)
+    set_file_timestamps(options.timestamp,bz2_path)
+
+    gh_release([bz2_path],options)
 
 ##########################################################################
 ##########################################################################
@@ -1485,6 +1502,7 @@ def main(argv):
     release_source_linux_subparser.add_argument('--build',action='store_true',help='''do a test build (process will fail if build fails)''')
     release_source_linux_subparser.add_argument('--test',action='store_true',help='''run tests after creating the archive (implies --build) (process will fail if tests fail)''')
     release_source_linux_subparser.add_argument('--install',action='store_true',help='''do a test install (implies --build) (process will fail if install fails)''')
+    release_source_linux_subparser.add_argument('--tar-mtime',action='store_true',help='''if running on Linux, use tar --mtime to update file timestamps in archive''')
     
     release_binary_windows_subparser=add_subparser('release-binary-windows',release_binary_windows_cmd,help='''make Windows binary release''')
     release_binary_windows_subparser.add_argument('name',help='''name for build''')
