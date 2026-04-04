@@ -28,7 +28,6 @@ tom_emacs:
 # everything...
 	@echo make: Entering directory \'$(_BUILD_FOLDER)\'
 	cd "$(_BUILD_FOLDER)" && ninja
-#	cd "$(_BUILD_FOLDER)" && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
 
 ##########################################################################
 ##########################################################################
@@ -41,18 +40,18 @@ github_ci_ubuntu_clang_with_ffmpeg: export CXX=clang++-18
 github_ci_ubuntu_clang_with_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
 	$(MAKE) _github_ci_ubuntu_install_ffmpeg
-	$(MAKE) _github_ci_ubuntu_release SUFFIX1=ffmpeg-clang-
+	$(MAKE) _github_ci_ubuntu_release
 
 .PHONY:github_ci_ubuntu_without_ffmpeg
 github_ci_ubuntu_without_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
-	$(MAKE) _github_ci_ubuntu_release SUFFIX1=noffmpeg-
+	$(MAKE) _github_ci_ubuntu_release
 
 .PHONY:github_ci_ubuntu_with_ffmpeg
 github_ci_ubuntu_with_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
 	$(MAKE) _github_ci_ubuntu_install_ffmpeg
-	$(MAKE) _github_ci_ubuntu_release SUFFIX1=ffmpeg-
+	$(MAKE) _github_ci_ubuntu_release UPLOAD=1
 
 .PHONY:_github_ci_ubuntu_start
 _github_ci_ubuntu_start:
@@ -65,7 +64,7 @@ _github_ci_ubuntu_install_ffmpeg:
 
 .PHONY:_github_ci_ubuntu_release
 _github_ci_ubuntu_release:
-	$(PYTHON3) "./etc/release/release.py" --verbose --ctest-output-on-failure $(SUFFIX1)$(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
+	$(PYTHON3) "./bin/b2build.py" --verbose release-source-linux "$(shell $(PYTHON3) "./bin/b2build.py" print-build-suffix)" --timestamp "$(shell $(PYTHON3) "./bin/b2build.py" print-build-timestamp)" $(if $(UPLOAD),--gh-release,) --build --test --install
 
 ##########################################################################
 ##########################################################################

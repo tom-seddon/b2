@@ -22,7 +22,7 @@ precommit_vs2022:
 
 .PHONY:github_ci_windows
 github_ci_windows:
-	$(PYTHON3) "./etc/release/release.py" --verbose --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) --gh-release $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix)
+	$(PYTHON3) "./bin/b2build.py" --verbose release-binary-windows "$(shell $(PYTHON3) "./binb2build.py" print-build-suffix)" --timestamp "$(shell $(PYTHON3) "./binb2build.py" print-build-timestamp)" --gh-release
 
 ##########################################################################
 ##########################################################################

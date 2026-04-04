@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - wip/master
+      - wip/ci_test
 
 jobs:
   build-linux-with-ffmpeg:

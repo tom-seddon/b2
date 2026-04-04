@@ -30,19 +30,19 @@ github_ci_macos_homebrew_ffmpeg:
 .PHONY:_github_ci_macos_release
 _github_ci_macos_release: export PYTHONUNBUFFERED=1
 _github_ci_macos_release:
-	$(PYTHON3) "./etc/release/release.py" --verbose $(TARGET_ARGS) --timestamp=$(shell $(PYTHON3) "./etc/release/release2.py" print-timestamp) --gh-release $(shell $(PYTHON3) "./etc/release/release2.py" print-suffix) --ctest-output-on-failure
+	$(PYTHON3) "./bin/b2build.py" --verbose release-binary-macos "$(shell $(PYTHON3) "./bin/b2build.py" print-build-suffix)" --timestamp "$(shell $(PYTHON3) "./bin/b2build.py" print-build-timestamp)" --gh-release
 
 .PHONY:github_ci_macos_x64
 github_ci_macos_x64:
-	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=12.0
+	$(MAKE) _github_ci_macos_release TARGET_ARGS=--osx-deployment-target=12.0
 
 .PHONY:github_ci_older_macos_x64
 github_ci_older_macos_x64:
-	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=10.9
+	$(MAKE) _github_ci_macos_release TARGET_ARGS=--osx-deployment-target=10.9
 
 .PHONY:github_ci_macos_arm
 github_ci_macos_arm:
-	$(MAKE) _github_ci_macos_release TARGET_ARGS=--macos-deployment-target=13.0
+	$(MAKE) _github_ci_macos_release TARGET_ARGS=--osx-deployment-target=13.0
 
 ##########################################################################
 ##########################################################################

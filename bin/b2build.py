@@ -47,15 +47,24 @@ class ChangeDirectory:
 ##########################################################################
 ##########################################################################
 
+def rm(path):
+    if os.path.isfile(path):
+        pv(f'''b2build rm: {path}''')
+        os.unlink(path)
+
 def makedirs(path):
-    if not os.path.isdir(path): os.makedirs(path)
+    if not os.path.isdir(path):
+        pv(f'''b2build mkdir: {path}''')
+        os.makedirs(path)
 
 def rmtree(path):
-    if os.path.isdir(path): shutil.rmtree(path)
+    if os.path.isdir(path):
+        pv(f'''b2build rmtree: {path}''')
+        shutil.rmtree(path)
 
 def rmfiles(pattern):
     paths=glob.glob(pattern)
-    for path in paths: os.unlink(path)
+    for path in paths: rm(path)
 
 def copyfile(src,dest):
     pv(f'b2build copyfile: {src} -> {dest}\n')
@@ -64,6 +73,10 @@ def copyfile(src,dest):
 def copytree(src,dest,**kwargs):
     pv(f'b2build copytree: {src} -> {dest}\n')
     shutil.copytree(src,dest,**kwargs)
+
+def remakedirs(path):
+    rmtree(path)
+    makedirs(path)
 
 # def move(src,dest,**kwargs):
 #     pv(f'b2build move: {src} -> {dest}\n')
@@ -123,6 +136,9 @@ def get_copyable_argv(argv):
         
     return ' '.join([quote(arg) for arg in argv])
 
+##########################################################################
+##########################################################################
+
 def run_subprocess(argv,options,**other_popen_kwargs):
     argv=[arg for arg in argv if arg is not None]
     
@@ -138,11 +154,31 @@ def run_subprocess(argv,options,**other_popen_kwargs):
     
     return process
 
+##########################################################################
+##########################################################################
+
 def must_run_subprocess(argv,options,**other_popen_kwargs):
     result=run_subprocess(argv,options,**other_popen_kwargs)
 
     if result.returncode!=0:
         fatal('failed with return code %d: %s'%(result.returncode,get_copyable_argv(argv)))
+
+##########################################################################
+##########################################################################
+
+def must_capture_subprocess(argv,options,**other_popen_kwargs):
+    if g_verbose:
+        suffix='(cwd: %s): %s'%(os.getcwd(),get_copyable_argv(argv))
+        print(f'b2build capturing {suffix}')
+
+    try:
+        result=subprocess.check_output(argv,text=True)
+        return result.strip()
+    except CalledProcessError as e:
+        fatal('failed with return code %d: %s'%(e.returncode,get_copyable_argv(argv)))
+
+##########################################################################
+##########################################################################
 
 def get_head_revision():
     argv=['git','rev-parse','HEAD']
@@ -279,6 +315,7 @@ class BuildMatrix:
         self.unix_configurations=[]
         self.unix_sanitizers=[]
         self.unix_compilers=[]
+        self.ffmpeg=True
 
 ##########################################################################
 ##########################################################################
@@ -441,6 +478,8 @@ def create_build_makefile(matrix,
                 if compiler is not None:
                     line+=' --cc "%s"'%compiler.cc
                     line+=' --cxx "%s"'%compiler.cxx
+                if not matrix.ffmpeg: line+=' --no-ffmpeg'
+                
                 line+=' %s'%configuration
 
                 line+=' "%s"'%output_path
@@ -449,15 +488,15 @@ def create_build_makefile(matrix,
 
                 # Add clean target
                 clean_target=makefile.add_named_target('clean_unix_%s'%target_name_suffix)
-                clean_target.add_line(f'''$(_V)cd "{output_path}" && ninja clean''')
+                clean_target.add_line(f'''$(_V)cd "{output_path}" && ninja clean $(if $(VERBOSE),--verbose,)''')
 
                 # Add build target.
                 build_target=makefile.add_named_target('build_unix_%s'%target_name_suffix)
-                build_target.add_line(f'''$(_V)cd "{output_path}" && ninja {j_option}''')
+                build_target.add_line(f'''$(_V)cd "{output_path}" && ninja {j_option} $(if $(VERBOSE),--verbose,)''')
 
                 # Add test target.
                 test_target=makefile.add_named_target('test_unix_%s'%target_name_suffix)
-                test_target.add_line(f'''$(_V)cd "{output_path}" && ctest --progress {j_option}''')
+                test_target.add_line(f'''$(_V)cd "{output_path}" && ctest --progress {j_option} $(if $(VERBOSE),--verbose,)''')
                 test_target.add_line(f'''$(_V)cd "{output_path}" && $(PYTHON) "{os.path.join(bin_rel_path,'check_ctest_log.py')}" "Testing/Temporary/LastTest.log"''')
                 
                 build_types.append(
@@ -641,14 +680,13 @@ def _init_unix_cmd(options):
         if sanitizer is None:
             fatal('unknown sanitizer type: %s'%options.sanitizer)
 
-    rmtree(options.output_path)
-    makedirs(options.output_path)
-
     # bit ugly, but all the process does is run cmake then quit, so
     # it's not a massive problem having these settings lie around
     # afterwards.
     if options.cc is not None: os.putenv('CC',options.cc)
     if options.cxx is not None: os.putenv('CXX',options.cxx)
+
+    makedirs(options.output_path)
 
     # TODO: might be nice to have the build system configurable?
     with ChangeDirectory(options.output_path):
@@ -657,6 +695,7 @@ def _init_unix_cmd(options):
         if options.sanitizer is not None:
             argv+=['-DSANITIZE_%s=On'%sanitizer.cmake_name]
         argv+=['-DCMAKE_BUILD_TYPE=%s'%cmake_configuration]
+        if not options.ffmpeg: argv+=['-DUSE_FFMPEG=OFF']
         argv+=['-S',os.path.relpath(options.g_working_copy_path,
                                     options.output_path)]
         argv+=['-B','.']
@@ -671,7 +710,6 @@ def _init_unix_cmd(options):
 def _init_vs_cmd(options):
     vs_stuff=get_vs_stuff(options.version)
 
-    rmtree(options.output_path)
     makedirs(options.output_path)
 
     with ChangeDirectory(options.output_path):
@@ -689,13 +727,13 @@ def _init_vs_cmd(options):
 ##########################################################################
 
 def print_build_suffix_cmd(options):
-    run_subprocess(['git','log','-1','--format=%cd-%h','--date=format:%Y%m%d-%H%M%S'],options,check=True)
+    must_run_subprocess(['git','log','-1','--format=%cd-%h','--date=format:%Y%m%d-%H%M%S'],options)
 
 ##########################################################################
 ##########################################################################
     
 def print_build_timestamp_cmd(options):
-    run_subprocess(['git','log','-1','--format=%cd','--date=format:%Y%m%d-%H%M%S'],options,check=True)
+    must_run_subprocess(['git','log','-1','--format=%cd','--date=format:%Y%m%d-%H%M%S'],options)
 
 ##########################################################################
 ##########################################################################
@@ -825,6 +863,40 @@ def create_binary_release_README(rev_hash,options):
 ##########################################################################
 ##########################################################################
 
+def gh_release(release_files,options):
+    if not options.gh_release: return
+    
+    with ChangeDirectory(options.g_working_copy_path):
+        # Check for branch name. If not master, it's a prerelease
+        # build.
+        prerelease=must_capture_subprocess(['git','branch','--show-current'])[0]!='master'
+
+        # Get head revision for the release process.
+        hash=get_head_revision()
+
+    # Form GitHub release name.
+    release_name='b2-'+options.release_name
+    if prerelease: release_name+='-prerelease'
+
+    # Assume any errors from the creation process are due to the
+    # release already existing. Worst case, that's wrong - and gh
+    # release will fail.
+    run_subprocess(['gh',
+                    'release',
+                    'create',
+                    release_name,
+                    '--notes','Release notes to follow',
+                    '--target',hash,
+                    '--prerelease' if prerelease else None],
+                   options)
+    
+    for release_file in release_files:
+        must_run_subprocess(
+            ['gh','release','upload',release_name,release_file])
+
+##########################################################################
+##########################################################################
+
 def release_source_linux_cmd(options):
     if is_windows(): fatal('not supported on Windows')
 
@@ -843,8 +915,7 @@ def release_source_linux_cmd(options):
     temp=os.path.join(get_build_folder_path(options),
                       'release_source_linux_temp')
 
-    rmtree(temp)
-    makedirs(temp)
+    remakedirs(temp)
     
     # temp folder contents during process:
     #
@@ -956,7 +1027,7 @@ def release_source_linux_cmd(options):
         must_run_subprocess(['bzip2','-9',tar_name],
                             options)
 
-    release_files=[os.path.join(temp,tar_name+'.bz2')]
+    gh_release([os.path.join(temp,tar_name+'.bz2')],options)
 
 ##########################################################################
 ##########################################################################
@@ -986,7 +1057,8 @@ def release_binary_windows_cmd(options):
     with open(os.path.join(build_folder,makefile_basename),'wt') as f:
         result.makefile.write(f)
 
-    # Init, build, test.
+    # If initing, clean all output paths first, to ensure it starts
+    # from scratch. if reiniting, let it reuse any it finds.
     if options.init: clean_output_paths(build_folder,result.build_types)
 
     run_make(build_folder,
@@ -996,19 +1068,13 @@ def release_binary_windows_cmd(options):
 
     pv(str(result.build_types))
 
-    r_build_type=None
-    f_build_type=None
-
+    # Find RelWithDebInfo and Final configurations, and build/test as
+    # required.
+    build_type_by_configuration={}
     for build_type in result.build_types:
-        if build_type.configuration=='r':
-            r_build_type=build_type
-            build=True
-        elif build_type.configuration=='f':
-            f_build_type=build_type
-            build=True
-        else: build=False
-        
-        if build:
+        assert build_type.configuration not in build_type_by_configuration,build_type.configuration
+        build_type_by_configuration[build_type.configuration]=build_type
+        if build_type.configuration in 'rf':
             # no need to clean: init doesn't take long, and it's
             # undesirable when --no-init specified.
             
@@ -1043,12 +1109,12 @@ def release_binary_windows_cmd(options):
 
     with ChangeDirectory(zip_folder_path) as p:
         copyfile(p.relpath(os.path.join(build_folder,
-                                        f_build_type.output_path,
+                                        build_type_by_configuration['f'].output_path,
                                         "src/b2/Final/b2.exe")),
                  "b2.exe")
         
         copyfile(p.relpath(os.path.join(build_folder,
-                                        r_build_type.output_path,
+                                        build_type_by_configuration['r'].output_path,
                                         "src/b2/RelWithDebInfo/b2.exe")),
                  "b2_Debug.exe")
         
@@ -1082,12 +1148,12 @@ def release_binary_windows_cmd(options):
 
     with ChangeDirectory(temp_path) as p:
         copyfile(p.relpath(os.path.join(build_folder,
-                                        r_build_type.output_path,
+                                        build_type_by_configuration['r'].output_path,
                                         'src/b2/RelWithDebInfo/b2.pdb')),
                  'b2 Debug.pdb')
         
         copyfile(p.relpath(os.path.join(build_folder,
-                                        f_build_type.output_path,
+                                        build_type_by_configuration['f'].output_path,
                                         'src/b2/Final/b2.pdb')),
                  'b2.pdb')
 
@@ -1099,9 +1165,214 @@ def release_binary_windows_cmd(options):
                              'b2.pdb'],
                             options)
 
-    release_file_paths=[b2_zip_path,symbols_7z_path]
-    print(release_file_paths)
+    gh_release([b2_zip_path,symbols_7z_path],options)
+
+##########################################################################
+##########################################################################
+
+AppBundle=collections.namedtuple('AppBundle','configuration name')
+
+def release_binary_macos_cmd(options):
+    if not is_macos(): fatal('only supported on macOS')
+
+    with ChangeDirectory(options.g_working_copy_path):
+        head_revision=get_head_revision()
+
+    arch=must_capture_subprocess(['uname','-m'],
+                                 options)
+    if arch=='x86_64': arch='intel'
+    elif arch=='arm64': arch='applesilicon'
+    else: fatal(f'''unknown architecture from uname -m: {arch}''')
+
+    build_folder=get_build_folder_path(options)
+
+    with ChangeDirectory(options.g_working_copy_path):
+        head_revision=get_head_revision()
+
+    matrix=BuildMatrix()
+    matrix.unix_configurations+=['r','f']
+    matrix.ffmpeg=options.ffmpeg
+
+    prefix='release_binary_macos.'
+
+    # The temp folder always gets cleaned out before every build.
+    temp_folder_path=os.path.join(build_folder,f'''{prefix}temp''')
+    remakedirs(temp_folder_path)
+
+    result=create_build_makefile(matrix,
+                                 build_folder,
+                                 prefix,
+                                 options) 
+
+    makefile_basename=f'Makefile.{prefix}mak'
+    makedirs(build_folder)
+    with open(os.path.join(build_folder,makefile_basename),'wt') as f:
+        result.makefile.write(f)
+
+    # If initing, clean all output paths first, to ensure it starts
+    # from scratch. if reiniting, let it reuse any it finds.
+    if options.init: clean_output_paths(build_folder,result.build_types)
+
+    run_make(build_folder,
+             makefile_basename,
+             'init_all',
+             options)
+
+    # Building Unix-style, only requested configurations are present.
+    # So building everything covers only RelWithDebInfo and Final, as
+    # desired.
+    #
+    # Run dylibbundler from the output path too.
+    #
+    # Test too, if required.
+    build_type_by_configuration={}
+    for build_type in result.build_types:
+        build_type_by_configuration[build_type.configuration]=build_type
+        run_make(build_folder,
+                 makefile_basename,
+                 build_type.build_target.name,
+                 options)
+        output_path=os.path.join(build_folder,build_type.output_path)
+        with ChangeDirectory(output_path) as p:
+            if build_type.configuration=='r':
+                info_plist_path='src/b2/b2.app/Contents/Info.plist'
+                output=must_capture_subprocess(['/usr/libexec/PlistBuddy',
+                                                '-c',
+                                                'print CFBundleIdentifier',
+                                                info_plist_path],
+                                               options,
+                                               encoding='utf-8')
+                identifier=output.splitlines()[0].strip()
+                must_run_subprocess(['/usr/libexec/PlistBuddy',
+                                     '-c',
+                                     f'''set CFBundleIdentifier {identifier}-debug''',
+                                     info_plist_path],
+                                    options)
+
+            must_run_subprocess(
+                ['./submodules/macdylibbundler/dylibbundler',
+                 '--create-dir',
+                 '--bundle-deps',
+                 '--fix-file','src/b2/b2.app/Contents/MacOS/b2',
+                 '--dest-dir','src/b2/b2.app/Contents/libs/'],
+                options)
+                
+        if options.test: run_make(build_folder,
+                                  makefile_basename,
+                                  build_type.test_target.name,
+                                  options)
+
+    # Form DMG name stem.
+    stem='b2-macos-'
+    if options.osx_deployment_target is not None:
+        stem+=options.osx_deployment_target+'-'
+    stem+=f'''{arch}-{options.name}'''
+
+    # Form various paths.
+    temp_dmg=os.path.join(temp_folder_path,f'''{stem}_temp.dmg''')
+    final_dmg=os.path.join(temp_folder_path,f'''{stem}.dmg''')
+    symbols_temp_folder_path=os.path.join(temp_folder_path,'symbols_temp')
+    symbols_zip_path=os.path.join(temp_folder_path,f'''symbols.{stem}.7z''')
+
+    # TODO: Can't remember why this is its own thing?
+    mount=final_dmg
+
+    # Copy template DMG to temp DMG.
+    copyfile(os.path.join(options.g_working_copy_path,
+                          'etc/release/template.dmg'),
+             temp_dmg)
+
+    # Resize temp DMG.
+    must_run_subprocess(['hdiutil','resize','-size','500m',temp_dmg],
+                        options)
+
+    # Mount temp DMG.
+    must_run_subprocess(['hdiutil','attach',temp_dmg,'-mountpoint',mount],
+                        options)
+
+
+    # Copy each app bundle to the appropriate place. Verify it with
+    # codesign (why not...), and use dsymutil+ditto to move the .dSYM
+    # folder so it can be archived.
+    app_bundles=[AppBundle(configuration='r',name='b2 Debug'),
+                 AppBundle(configuration='f',name='b2')]
+
+    try:
+        copyfile(os.path.join(options.g_working_copy_path,
+                              'etc/release/LICENCE.txt'),
+                 os.path.join(mount,'LICENCE.txt'))
+
+        with ChangeDirectory(mount):
+            create_binary_release_README(head_revision,options)
+
+        for bundle in app_bundles:
+            src_app_path=os.path.join(build_folder,
+                                      build_type_by_configuration[bundle.configuration].output_path,
+                                      'src/b2/b2.app')
+
+            dest_app_path=os.path.join(mount,f'''{bundle.name}.app''')
+            
+            must_run_subprocess(['ditto',src_app_path,dest_app_path],
+                                options)
+
+            must_run_subprocess(['codesign','-v',dest_app_path],
+                                options)
+
+            must_run_subprocess(['dsymutil',
+                                 os.path.join(src_app_path,
+                                              'Contents/MacOS/b2')],
+                                options)
+
+            dsym_path=os.path.join(src_app_path,
+                                   'Contents/MacOS/b2.dSYM')
+
+            must_run_subprocess(['ditto',
+                                 dsym_path,
+                                 os.path.join(symbols_temp_folder_path,
+                                              f'''{bundle.name}.dSYM''')],
+                                options)
+
+            # don't leave the .dSYM lying around, in case a second
+            # build is run with --no-init. This doesn't matter so much
+            # for correctness (--no-init does not create valid
+            # releases), but they are quite large and might exhaust
+            # the dmg capacity.
+            rmtree(dsym_path)
+
+        set_tree_timestamps(options.timestamp,
+                            mount)
+
+        must_run_subprocess(['diskutil','rename',mount,stem],
+                            options)
+    finally:
+        # Unmount temp DMG.
+        must_run_subprocess(['hdiutil','detach',mount],
+                            options)
+
+    # Convert temp DMG into final DMG, set timestamps, and remove temp
+    # DMG.
+    must_run_subprocess(['hdiutil',
+                         'convert',
+                         temp_dmg,
+                         '-format','UDBZ',
+                         '-o',final_dmg],
+                        options)
+    rm(temp_dmg)
     
+    set_file_timestamps(options.timestamp,
+                        final_dmg)
+
+    # Assemble symbols zip.
+    with ChangeDirectory(symbols_temp_folder_path) as p:
+        must_run_subprocess(['7z',
+                             'a',
+                             '-mx=9',
+                             p.relpath(symbols_zip_path),
+                             '*'],
+                            options)
+
+    gh_release([final_dmg,symbols_zip_path],options)
+
 ##########################################################################
 ##########################################################################
 
@@ -1132,7 +1403,6 @@ def main(argv):
         return subparser
 
     def add_common_init_options(subparser):
-        subparser.add_argument('--osx-deployment-target',metavar='TARGET',default=default_osx_deployment_target,help='''specify macOS deployment target'''+('' if default_osx_deployment_target is None else ' Default: %s'%default_osx_deployment_target))
         subparser.add_argument('--name',metavar='STRING',help='''use %(metavar)s as the build name''')
 
     def add_common_target_options(subparser):
@@ -1141,26 +1411,34 @@ def main(argv):
         subparser.add_argument('--xcode',action='store_true',help='''initialise Xcode build''')
         subparser.add_argument('--enable-sanitizers',action='store_true',help='''if building Unix-style, try to use any supported sanitizers''')
 
+    def add_macos_specific_target_options(subparser):
+        subparser.add_argument('--osx-deployment-target',metavar='TARGET',default=default_osx_deployment_target,help='''specify macOS deployment target'''+('' if default_osx_deployment_target is None else ' Default: %s'%default_osx_deployment_target))
+
     init_subparser=add_subparser('init',init_cmd,help='''initialise build''')
     init_subparser.add_argument('--cc',metavar='NAME',help='''if building Unix-style, use %(metavar)s as C compiler''')
     init_subparser.add_argument('--cxx',metavar='NAME',help='''if building Unix-style, use %(metavar)s as C++ compiler''')
     add_common_init_options(init_subparser)
     add_common_target_options(init_subparser)
+    add_macos_specific_target_options(init_subparser)
     init_subparser.add_argument('--reinit',action='store_true',help='''reinit when output folder exists''')
     init_subparser.add_argument('--prefix',metavar='STRING',help='''prepend %(metavar)s to name of any build folder created''')
 
     _init_xcode_subparser=add_subparser('_init_xcode',_init_xcode_cmd,help='''initialise Xcode build''')
     add_common_init_options(_init_xcode_subparser)
     _init_xcode_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
+    # don't bother adding macOS-specific target options. The Xcode
+    # builds just have to be good enough to run on the local system.
 
     _init_unix_subparser=add_subparser('_init_unix',_init_unix_cmd,help='''initialise Unix build''')
     add_common_init_options(_init_unix_subparser)
+    add_macos_specific_target_options(_init_unix_subparser)
     _init_unix_subparser.add_argument('--sanitizer',help='''specify sanitizer: '''+'; '.join(['%s (%s)'%(k,v.friendly_name) for k,v in UNIX_SANITIZER_TYPES.items()]))
     _init_unix_subparser.add_argument('build',help='''specify build configuration: '''+'; '.join(['%s (%s)'%(k,v) for k,v in CMAKE_CONFIGURATIONS.items()]))
     _init_unix_subparser.add_argument('--keep',action='store_true',help='''don't delete build folder if init fails''')
     _init_unix_subparser.add_argument('--cc',metavar='NAME',help='''use %(metavar)s as C compiler''')
     _init_unix_subparser.add_argument('--cxx',metavar='NAME',help='''use %(metavar)s as C++ compiler''')
     _init_unix_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
+    _init_unix_subparser.add_argument('--no-ffmpeg',dest='ffmpeg',action='store_false',help='''don't look for ffmpeg''')
 
     _init_vs_subparser=add_subparser('_init_vs',_init_vs_cmd,help='''initialise Visual Studio build''')
     _init_vs_subparser.add_argument('version',type=auto_int,help='''specify Visual Studio version''')
@@ -1170,6 +1448,8 @@ def main(argv):
     batch_subparser=add_subparser('batch',batch_cmd,help='''do batch builds/tests''')
     batch_subparser.add_argument('--cc-cxx',metavar='CC CXX',nargs=2,action='append',dest='compilers',default=[],help='''use %(metavar)s as C and C++ compiler respectively for Unix builds. Can specifiy multiple times''')
     add_common_init_options(batch_subparser)
+    # don't bother adding macOS-specific target options. Batch builds
+    # only have to be good enough to run on the local system.
     batch_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
     batch_subparser.add_argument('--no-clean',dest='clean',action='store_false',help='''don't clean before building''')
     batch_subparser.add_argument('--no-test',dest='test',action='store_false',help='''don't run tests after building''')
@@ -1183,21 +1463,29 @@ def main(argv):
 
     def add_common_release_options(subparser):
         subparser.add_argument('--timestamp',metavar='TIMESTAMP',dest='timestamp',default=None,type=timestamp,help='''set files' atime/mtime to %(metavar)s. Format must be YYYYMMDD-HHMMSS''')
+        subparser.add_argument('--gh-release',action='store_true',help='''create GitHub release (or prerelease if not on master branch) and upload artefacts''')
 
     release_source_linux_subparser=add_subparser('release-source-linux',release_source_linux_cmd,help='''make Linux source code release''',epilog='''Not functional on Windows. Unsupported on macOS''')
     add_common_release_options(release_source_linux_subparser)
     release_source_linux_subparser.add_argument('name',help='''name for build''')
-    release_source_linux_subparser.add_argument('--build',action='store_true',help=''''do a test build (process will fail if build fails)''')
-    release_source_linux_subparser.add_argument('--test',action='store_true',help=''''run tests after creating the archive (implies --build) (process will fail if tests fail)''')
+    release_source_linux_subparser.add_argument('--build',action='store_true',help='''do a test build (process will fail if build fails)''')
+    release_source_linux_subparser.add_argument('--test',action='store_true',help='''run tests after creating the archive (implies --build) (process will fail if tests fail)''')
     release_source_linux_subparser.add_argument('--install',action='store_true',help='''do a test install (implies --build) (process will fail if install fails)''')
     
     release_binary_windows_subparser=add_subparser('release-binary-windows',release_binary_windows_cmd,help='''make Windows binary release''')
-    release_binary_windows_subparser.add_argument('-o',metavar='FILE',dest='output_path',help='''write output file to %(metavar)s. Format can be anything 7z can create''')
     release_binary_windows_subparser.add_argument('name',help='''name for build''')
     release_binary_windows_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
     release_binary_windows_subparser.add_argument('--no-test',action='store_false',dest='test',help='''don't run tests''')
     add_common_release_options(release_binary_windows_subparser)
 
+    release_binary_macos_subparser=add_subparser('release-binary-macos',release_binary_macos_cmd,help='''make macOS binary release''')
+    release_binary_macos_subparser.add_argument('name',help='''name for build''')
+    release_binary_macos_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
+    release_binary_macos_subparser.add_argument('--no-test',action='store_false',dest='test',help='''don't run tests''')
+    add_common_release_options(release_binary_macos_subparser)
+    add_macos_specific_target_options(release_binary_macos_subparser)
+    release_binary_macos_subparser.add_argument('--no-ffmpeg',dest='ffmpeg',action='store_false',help='''don't try to find ffmpeg''')
+    
     options=parser.parse_args(argv)
     if options.fun is None:
         parser.print_help()
