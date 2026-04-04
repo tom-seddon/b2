@@ -93,11 +93,11 @@ def set_file_timestamps(timestamp,fname):
         # lame way of avoiding touching it.
         return
 
-    t=time.mktime(timestamp.timetuple())
+    t=timestamp.timestamp()
 
     try:
         os.utime(fname,(t,t))
-    except:
+    except :
         print("WARNING: failed to set timestamps for: %s"%fname,file=sys.stderr)
         pass
 
@@ -726,14 +726,28 @@ def _init_vs_cmd(options):
 ##########################################################################
 ##########################################################################
 
+# get timestamp for build: time of HEAD, in UTC
+def get_build_timestamp(options):
+    with ChangeDirectory(options.g_working_copy_path):
+        s=must_capture_subprocess(['git','log','-1','--format=%cd','--date=iso-strict'],options)
+    dt=datetime.datetime.fromisoformat(s.strip())
+    dt=dt.astimezone(tz=datetime.timezone.utc)
+    return dt
+
+##########################################################################
+##########################################################################
+
 def print_build_suffix_cmd(options):
-    must_run_subprocess(['git','log','-1','--format=%cd-%h','--date=format:%Y%m%d-%H%M%S'],options)
+    t=get_build_timestamp(options)
+    h=must_capture_subprocess(['git','log','-1','--format=%h'],options)
+    print(f'''{t.strftime('%Y%m%d-%H%M%S')}-{h}''')
 
 ##########################################################################
 ##########################################################################
     
 def print_build_timestamp_cmd(options):
-    must_run_subprocess(['git','log','-1','--format=%cd','--date=format:%Y%m%d-%H%M%S'],options)
+    t=get_build_timestamp(options)
+    print(t.isoformat())
 
 ##########################################################################
 ##########################################################################
@@ -1378,7 +1392,7 @@ def release_binary_macos_cmd(options):
 
 def main(argv):
     def auto_int(x): return int(x,0)
-    def timestamp(x): return datetime.datetime.strptime(x,"%Y%m%d-%H%M%S")
+    def timestamp(x): return datetime.datetime.fromisoformat(x)
 
     default_osx_deployment_target=None
     if is_macos():
@@ -1455,14 +1469,14 @@ def main(argv):
     batch_subparser.add_argument('--no-test',dest='test',action='store_false',help='''don't run tests after building''')
     batch_subparser.add_argument('--prefix',metavar='STRING',help='''prepend %(metavar)s to name of any build folder created''')
 
-    print_build_suffix_subparser=add_subparser('print-build-suffix',print_build_suffix_cmd,help='''print build suffix: time, date and hash of head commit''')
+    print_build_suffix_subparser=add_subparser('print-build-suffix',print_build_suffix_cmd,help='''print build suffix: path-friendly date, time and hash of head commit. (Date and time are in UTC)''')
 
-    print_build_timestamp_parser=add_subparser('print-build-timestamp',print_build_timestamp_cmd,help='''print build timestamp: time and date of head commit''')
+    print_build_timestamp_parser=add_subparser('print-build-timestamp',print_build_timestamp_cmd,help='''print build timestamp: UTC date and time of head commit, in ISO format''')
 
     set_submodule_upstreams_parser=add_subparser('set-submodule-upstreams',set_submodule_upstreams_cmd,help='''set upstream remotes for b2 submodules''')
 
     def add_common_release_options(subparser):
-        subparser.add_argument('--timestamp',metavar='TIMESTAMP',dest='timestamp',default=None,type=timestamp,help='''set files' atime/mtime to %(metavar)s. Format must be YYYYMMDD-HHMMSS''')
+        subparser.add_argument('--timestamp',metavar='TIMESTAMP',dest='timestamp',default=None,type=timestamp,help='''set files' atime/mtime to %(metavar)s. Format must be ISO8601 as output by print-build-timestamp''')
         subparser.add_argument('--gh-release',action='store_true',help='''create GitHub release (or prerelease if not on master branch) and upload artefacts''')
 
     release_source_linux_subparser=add_subparser('release-source-linux',release_source_linux_cmd,help='''make Linux source code release''',epilog='''Not functional on Windows. Unsupported on macOS''')
