@@ -243,7 +243,7 @@ def get_cmake_defines(options):
     defines=[]
     
     if is_macos():
-        if options.osx_deployment_target is not None:
+        if getattr(options,'osx_deployment_target',None) is not None:
             defines.append('-DCMAKE_OSX_DEPLOYMENT_TARGET=%s'%options.osx_deployment_target)
 
         # new requirement for CMake 4.x.
@@ -450,6 +450,13 @@ def create_build_makefile(matrix,
 
     build_types=[]
 
+    cmd_options=''
+    cmd_options+=get_optional_option('--name',options.name)
+    if is_macos():
+        cmd_options+=get_optional_option('--osx-deployment-target',
+                                         options.osx_deployment_target)
+    
+
     # as used to pass -j down to ninja or ctest.
     j_option=f'''-j {options.g_max_jobs}'''
     
@@ -491,10 +498,7 @@ def create_build_makefile(matrix,
                 line+=global_options
                 line+=' _init_unix'
                 line+=get_optional_option('--sanitizer',sanitizer)
-                line+=get_optional_option('--name',options.name)
-                if is_macos():
-                    line+=get_optional_option('--osx-deployment-target',
-                                              options.osx_deployment_target)
+                line+=' '+cmd_options
 
                 if compiler is not None:
                     line+=' --cc "%s"'%compiler.cc
@@ -537,9 +541,8 @@ def create_build_makefile(matrix,
     if matrix.xcode:
         target=makefile.add_named_target('init_xcode')
 
-        # No extra options in this case. #_init_xcode
         output_path=get_output_path('Xcode')
-        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {output_path}''')
+        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {cmd_options} {output_path}''')
 
         build_types.append(
             BuildType(configuration=None,
@@ -1543,10 +1546,8 @@ def main(argv):
 
     _init_xcode_subparser=add_subparser('_init_xcode',_init_xcode_cmd,help='''initialise Xcode build''')
     add_common_init_options(_init_xcode_subparser)
+    add_macos_specific_target_options(_init_xcode_subparser)
     _init_xcode_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
-    # don't bother adding macOS-specific target options. The Xcode
-    # builds just have to be good enough to run on the local system.
-    # #_init_xcode
 
     _init_unix_subparser=add_subparser('_init_unix',_init_unix_cmd,help='''initialise Unix build''')
     add_common_init_options(_init_unix_subparser)
