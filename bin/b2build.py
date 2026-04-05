@@ -1035,7 +1035,7 @@ def release_source_linux_cmd(options):
     # Create tar file in the temp folder. Don't compress it until any
     # tests succeed.
     with ChangeDirectory(temp) as p:
-        tar_name='%s.tar'%options.name
+        tar_name='b2-linux-source-%s.tar'%options.name
 
         argv=['tar',
               'cf',tar_name]
