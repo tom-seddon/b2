@@ -928,6 +928,7 @@ def gh_release(release_files,options):
                     release_name,
                     '--notes',notes,
                     '--target',hash,
+                    '--title',release_name,
                     '--prerelease' if prerelease else None],
                    options,
                    execute=options.gh_release)
