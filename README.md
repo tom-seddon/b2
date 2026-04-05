@@ -4,10 +4,11 @@ A cross-platform emulator of the BBC Micro, BBC Master 128, BBC Master
 Compact and Olivetti PC 128 S. Use your Windows/Linux PC or macOS
 computer to play your old games or develop new software.
 
-<!-- source release README goes here -->
+<!-- @@ source_release_README -->
 
 ## Getting started
 
+<!-- << not_source_release -->
 ### Windows
 
 See the
@@ -28,9 +29,10 @@ Finder. See the
 [file assocation instructions](./doc/File-Association.md).
 
 ### Linux
-
+<!-- >> not_source_release -->
 See the [Linux installation
 instructions](./doc/Installing-on-Linux.md).
+<!-- << not_source_release -->
 
 There are some additional options, though I can't provide any support
 for them myself:
@@ -49,6 +51,7 @@ provide any support for this but I do approve!
 
 Included in RetroArch, available on the Apple App Store: :
 https://apps.apple.com/us/app/retroarch/id6499539433
+<!-- >> not_source_release -->
 
 # Documentation
 
@@ -75,12 +78,13 @@ time hobby project for me, so it can take a while before the right
 combination of appropriate block of time, motivation, equipment setup,
 etc., presents itself.)
 
+<!-- << not_source_release -->
 # Source code
 
 b2 is free and open source. Follow the [building
 instructions](./doc/Building.md) to get the code from the GitHub repo
 and build it yourself.
-
+<!-- >> not_source_release -->
 # Licence
 
 ## `etc`, `submodules`
@@ -96,9 +100,3 @@ every dependency can be added as a git submodule.
 Copyright (C) 2016-2026 by Tom Seddon
 
 Licence: GPL v3.
-
------
-
-[Build status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y/branch/master?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2/branch/master)
-
-[Pre-release build status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y/branch/wip/master?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2/branch/wip/master)

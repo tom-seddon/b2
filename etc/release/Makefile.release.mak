@@ -30,7 +30,6 @@ endif
 
 PYTHON:=/usr/bin/python3
 _V:=$(if $(VERBOSE),,@)
-__VERBOSE:=$(if $(VERBOSE),--verbose,)
 BUILD:=build
 
 ##########################################################################
@@ -88,8 +87,8 @@ default:
 
 .PHONY:configure
 configure:
-	$(if $(_B2_WITH_DEBUGGER),$(_V)cmake -S "." -B "build/r.$(OS)" $(CMAKE_CONFIGURE_OPTIONS) -DCMAKE_BUILD_TYPE=RelWithDebInfo,rm -Rf "build/r.$(OS)")
-	$(if $(_B2_STANDARD),$(_V)cmake -S "." -B "build/f.$(OS)" $(CMAKE_CONFIGURE_OPTIONS) -DCMAKE_BUILD_TYPE=Final,rm -Rf "build/f.$(OS)")
+	$(if $(_B2_WITH_DEBUGGER),$(_V)cmake -S "." -B "build/r.$(OS)" $(CMAKE_CONFIGURE_OPTIONS) -DCMAKE_BUILD_TYPE=RelWithDebInfo,rm -Rf "build/r.$(OS)") $(if $(RELEASE_NAME),"-DRELEASE_NAME=$(RELEASE_NAME)",)
+	$(if $(_B2_STANDARD),$(_V)cmake -S "." -B "build/f.$(OS)" $(CMAKE_CONFIGURE_OPTIONS) -DCMAKE_BUILD_TYPE=Final,rm -Rf "build/f.$(OS)") $(if $(RELEASE_NAME),"-DRELEASE_NAME=$(RELEASE_NAME)",)
 
 ##########################################################################
 ##########################################################################
@@ -111,8 +110,8 @@ _build3:
 # Verbose output is only really intended for use with CI. It produces
 # quite a lot of stuff (but doesn't seem to actually add too much to
 # the build time).
-	$(_V)cd "$(_PATH)" && ninja $(__VERBOSE) -j $(NPROC)
-	$(if $(_RUN_TESTS),$(_V)cd "$(_PATH)" && ctest $(__VERBOSE) --progress -j $(NPROC))
+	$(_V)cd "$(_PATH)" && ninja $(if $(VERBOSE),--verbose,) -j $(NPROC)
+	$(if $(_RUN_TESTS),$(_V)cd "$(_PATH)" && ctest $(if $(VERBOSE),--output-on-failure,) --progress -j $(NPROC))
 
 ##########################################################################
 ##########################################################################

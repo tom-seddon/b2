@@ -1,14 +1,15 @@
+<!-- << not_source_release -->
 # Installing on Linux from source
 
-You can build from a source code release, which has a streamlined
-process designed to be buildable and installable without too much
-fuss.
+You can build from a source code release. Instructions below.
 
-You can also build from the source code in the repo.
+You can also build from the source code in the repo. See the [building
+instructions](./Building.md).
 
-## Install from source release
+<!-- >> not_source_release -->
+# Install from source release
 
-### Prerequisites
+## Prerequisites
 
 - Python 3.x
 - gcc and g++, or clang
@@ -21,7 +22,7 @@ You can also build from the source code in the repo.
 - Ninja
 - Gtk 4.10 or later
 
-#### APT-based distributions
+### APT-based distributions
 
 The dependencies can be installed via apt. Ubuntu 24 and Linux Mint 22
 should install suitable versions of the packages mentioned.
@@ -35,7 +36,7 @@ with:
 	
 	sudo apt-get -y install libswresample-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libx264-dev
 
-#### Other distributions
+### Other distributions
 
 You're on your own here I'm afraid, but hopefully the APT package list
 will be enough to help figure out how to install the dependencies.
@@ -45,26 +46,23 @@ compatibily layer for SDL3), as found on Arch Linux at least.
 
 Any feedback welcome.
 
-### Download files
+## Source release files
 
+<!-- << not_source_release -->
 Files for the latest release are here:
 
 https://github.com/tom-seddon/b2/releases/latest
 
-The full list of releases includes prereleases, downloadable at your
-own risk:
+Download the `b2-linux-source-XXX.tar.bz2` file. (You don't need to
+download any of the other files; this file contains everything
+required.)
 
-https://github.com/tom-seddon/b2/releases/
-
-Whatever you go for, download the `b2-linux-source-XXX.tar.bz2` file.
-(You don't need to download any of the other files; this file contains
-everything required.)
-
+<!-- >> not_source_release -->
 Extract to a folder of your choice. It will create a new folder called
-`b2-XXX` (same suffix as the tar.bz2), with the b2 code inside. Change
-to that folder.
+`b2-XXX` (same suffix as the tar.bz2), with the actual files inside.
+Change to that folder and run the steps from there.
 
-### Configure
+## Configure
 
 The configure step will find required libraries and whatnot and set
 things up for the build.
@@ -73,9 +71,9 @@ things up for the build.
 	
 Set the `B2_STANDARD` flag to 1 or 0, depending on whether you want to
 build normal b2; and same for `B2_WITH_DEBUGGER` depending whether you
-want to build [b2 with debugger](./docs/Debug-version.md).
+want to build [b2 with debugger](./Debug-version.md).
 
-### Build
+## Build
 
 The build step will build the code, and then run the automated tests.
 
@@ -87,7 +85,7 @@ The build will make use of as many cores as it can find. If this
 awakens the OOM killer, try supplying `NPROC=1` on the command line to
 have it compile only one file at once.
 
-### Install
+## Install
 
     make install PREFIX=<<path>>
 	
@@ -103,11 +101,11 @@ The following files and folders will be created under the prefix path:
 - `bin/b2-debug` - if b2 with debugger was built
 - `share/b2/` - always copied
 
-### Uninstall
+## Uninstall
 
 To uninstall, manually delete the files and folders above.
 
-### Other notes
+## Other notes
 
 - there are no build options other than described in this document,
   and no other supported way of building
@@ -125,7 +123,16 @@ To uninstall, manually delete the files and folders above.
   
       export CC=$(which clang-20)
 	  export CXX=$(which clang++-20)
-	  
-## Install from repo
 
-See the [building instructions](./Building.md).
+# Install from source prerelease
+
+Prerelease versions may also be available:
+https://github.com/tom-seddon/b2/releases (look for the ones marked
+`Pre-release`, avoiding any with release notes telling you not to
+download it! )
+
+These may include new features and fixes added since the latest
+release, will make their way into some future release in due course,
+once they've had a bit more testing.
+
+Installation instructions are as above.

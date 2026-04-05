@@ -432,12 +432,6 @@ def create_build_makefile(matrix,
     global_options+=' $(if $(VERBOSE),--verbose,)'
     global_options+=' --working-copy "%s"'%(os.path.relpath(options.g_working_copy_path,build_folder))
 
-    cmd_options=' '
-    # cmd_options+=get_optional_option('--prefix',prefix)
-    cmd_options+=get_optional_option('--name',options.name)
-    if is_macos():
-        cmd_options+=get_optional_option('--osx-deployment-target',options.osx_deployment_target)
-    
     b2build_py_path=os.path.join(options.g_working_copy_path,'bin',b2build_py_basename)
     b2build_py_path=os.path.relpath(b2build_py_path,build_folder)
     
@@ -495,9 +489,13 @@ def create_build_makefile(matrix,
 
                 line=f'''$(_V){cmd_prefix}$(PYTHON) {b2build_py_path}'''
                 line+=global_options
-                line+=' _init_unix '
+                line+=' _init_unix'
                 line+=get_optional_option('--sanitizer',sanitizer)
-                # line+=get_optional_option('--prefix',prefix) # TODO: should use cmd_options here??
+                line+=get_optional_option('--name',options.name)
+                if is_macos():
+                    line+=get_optional_option('--osx-deployment-target',
+                                              options.osx_deployment_target)
+
                 if compiler is not None:
                     line+=' --cc "%s"'%compiler.cc
                     line+=' --cxx "%s"'%compiler.cxx
@@ -539,8 +537,9 @@ def create_build_makefile(matrix,
     if matrix.xcode:
         target=makefile.add_named_target('init_xcode')
 
+        # No extra options in this case. #_init_xcode
         output_path=get_output_path('Xcode')
-        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {cmd_options} {output_path}''')
+        target.add_line(f'''$(_V)$(PYTHON) "{b2build_py_path}"{global_options} _init_xcode {output_path}''')
 
         build_types.append(
             BuildType(configuration=None,
@@ -566,7 +565,7 @@ def create_build_makefile(matrix,
                              'bin/msbuild_bug_wrapper.bat'),
                 caller_path)
 
-        init_target.add_line(f'''$(_V)"{get_msbuild_bat_path(build_folder)}" $(PYTHON) "{b2build_py_path}" {global_options} _init_vs {cmd_options} {vsver} "{output_path}"''')
+        init_target.add_line(f'''$(_V)"{get_msbuild_bat_path(build_folder)}" $(PYTHON) "{b2build_py_path}" {global_options} _init_vs {get_optional_option('--name',options.name)} {vsver} "{output_path}"''')
 
         for configuration,cmake_build_type in CMAKE_CONFIGURATIONS.items():
             build_target=makefile.add_named_target(f'build_vs{vs_stuff.year}{configuration}')
@@ -911,6 +910,11 @@ def gh_release(release_files,options):
         # Get head revision for the release process.
         hash=get_head_revision()
 
+    if prerelease:
+        notes='''Don't download: it's not ready yet! Please download an earlier pre-release, or get the current latest release from https://github.com/tom-seddon/b2/releases/latest'''
+    else:
+        notes='''Release notes to follow.'''
+
     # Form GitHub release name.
     release_name='b2-'+options.name
     if prerelease: release_name+='-prerelease'
@@ -922,7 +926,7 @@ def gh_release(release_files,options):
                     'release',
                     'create',
                     release_name,
-                    '--notes','Release notes to follow',
+                    '--notes',notes,
                     '--target',hash,
                     '--prerelease' if prerelease else None],
                    options,
@@ -937,6 +941,75 @@ def gh_release(release_files,options):
 ##########################################################################
 ##########################################################################
 
+# TODO: replace with some other mechanism, as part of the doc revamp
+def fix_up_md(md_path,options):
+    with open(md_path,'rt') as f:
+        input_lines=[line.rstrip() for line in f.readlines()]
+
+    index=0
+    cmd_prefix='<!-- '
+    cmd_suffix=' -->'
+
+    cmd_begin_region='<< '
+    cmd_end_region='>> '
+    cmd_loc='@@ '
+
+    def get_source_release_README():
+
+        return extra_lines
+
+    output_lines=[]
+    output=True
+    
+    index=0
+    region=None
+    
+    def fatal2(msg): fatal('%s(%d): %s'%(md_path,1+index,msg))
+
+    while index<len(input_lines):
+        input_line=input_lines[index]
+
+        if (input_line.startswith(cmd_prefix) and
+            input_line.endswith(cmd_suffix)):
+            cmd=input_line[len(cmd_prefix):-len(cmd_suffix)].strip()
+            pv('%s(%d): got cmd: %s\n'%(md_path,1+index,cmd))
+            if cmd.startswith(cmd_begin_region):
+                if region is not None: fatal2('''regions can't nest''')
+                region=cmd[len(cmd_begin_region):].strip()
+            elif cmd.startswith(cmd_end_region):
+                if region is None: fatal2('''not in a region''')
+                name=cmd[len(cmd_end_region):].strip()
+                if name!=region: fatal2(f'''region end name mismatch: expected: {region}; got: {name}''')
+                region=None
+            elif cmd.startswith(cmd_loc):
+                name=cmd[len(cmd_loc):].strip()
+                if name=='source_release_README':
+                    with ChangeDirectory(options.g_working_copy_path) as p:
+                        rev_hash=get_head_revision()
+
+                    output_lines=[]
+                    output_lines+=textwrap.wrap(f'''This is the Linux source distribution for version: {options.name}. For licence information, please consult [`LICENCE.txt`](./LICENCE.txt).''')
+                    output_lines+=['']
+                    output_lines+=textwrap.wrap(f'''This documentation can also be found on GitHub: https://github.com/tom-seddon/b2/blob/{rev_hash}/README.md''')
+                else: fatal2(f'''unknown name: {name}''')
+            else: fatal2(f'''unrecognised cmd: {cmd}''')
+                    
+        else:
+            if region=='not_source_release':
+                pass
+            else: output_lines.append(input_line)
+
+        index+=1
+
+    with open(md_path,'wt') as f: f.write('\n'.join(output_lines))
+
+##########################################################################
+##########################################################################
+        
+# imenu doesn't find the following function, but here's one that it
+# does.
+def release_source_linux_cmd_(options): pass
+
 def release_source_linux_cmd(options):
     if is_windows(): fatal('not supported on Windows')
 
@@ -946,9 +1019,6 @@ def release_source_linux_cmd(options):
         #
         # Linux source releases prepared on macOS are not valid.
         pass
-
-    with ChangeDirectory(options.g_working_copy_path) as p:
-        rev_hash=get_head_revision()
 
     # stick the temp stuff in the build folder. It's excluded from the
     # archive so 
@@ -1007,24 +1077,15 @@ def release_source_linux_cmd(options):
             # files from this folder into the app bundle.
             rmtree('etc/release')
 
-        # Add some extra fluff to the README.
-        readme_path='README.md'
-        with open(readme_path,'rt') as f:
-            lines=[line.rstrip() for line in f.readlines()]
+        # Fix up the docs a bit.
+        fix_up_md('README.md',options)
+        for md_path in glob.glob('doc/*.md'): fix_up_md(md_path,options)
 
-        try: index=lines.index('<!-- source release README goes here -->')
-        except ValueError: fatal(f'''source release README placeholder not found in: {p.join(readme_path)}''')
-
-        extra_lines=[]
-        extra_lines+=textwrap.wrap(f'''This is the Linux source distribution for version: {options.name}. For licence information, please consult [`LICENCE.txt`](./LICENCE.txt). For building and installation instructions, please see the [Linux installation instructions](./doc/Installing-on-Linux.md).''')
-        extra_lines+=['']
-        extra_lines+=textwrap.wrap(f'''This documentation can also be found on GitHub: https://github.com/tom-seddon/b2/blob/{rev_hash}/README.md''')
-
-        del lines[index]
-        for i,extra_line in enumerate(extra_lines):
-            lines.insert(index+i,extra_line)
-
-        with open(readme_path,'wt') as f: f.write('\n'.join(lines))
+        # Bake the release name into the Makefile.
+        with open('Makefile','rt') as f: text=f.read()
+        text=f'''RELEASE_NAME={options.name}\n'''+text
+        with open('Makefile','wt') as f: f.write(text)
+            
 
     # Set timestamps.
     if options.timestamp is not None:
@@ -1484,6 +1545,7 @@ def main(argv):
     _init_xcode_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
     # don't bother adding macOS-specific target options. The Xcode
     # builds just have to be good enough to run on the local system.
+    # #_init_xcode
 
     _init_unix_subparser=add_subparser('_init_unix',_init_unix_cmd,help='''initialise Unix build''')
     add_common_init_options(_init_unix_subparser)

@@ -33,15 +33,6 @@ installed in the same way, an extended version with [additional
 debugging features](./Debug-version.md) for use when creating new
 programs or investigating existing software.
 
-## macOS files missing from releases page?
-
-The releases are created automatically, and it can sometimes take a
-day or two for the macOS version to appear.
-
-If this happens, you can download an older version for now from the
-full list at https://github.com/tom-seddon/b2/releases. Please revisit
-after a day or two!
-
 ## Keystroke Receiving warning
 
 The first time you run b2 on newer macOS, you may get a warning about
@@ -66,3 +57,16 @@ To fix this, go to `System Preferences`, `Security and Privacy`,
 clicking on its row and using the `-` button.
 
 Run it again, and you should get the keystroke access warning.
+
+# Prerelease versions
+
+Prerelease versions may also be available:
+https://github.com/tom-seddon/b2/releases (look for the ones marked
+`Pre-release`, avoiding any with release notes telling you not to
+download it! )
+
+These may include new features and fixes added since the latest
+release, will make their way into some future release in due course,
+once they've had a bit more testing.
+
+Installation instructions are as above.
