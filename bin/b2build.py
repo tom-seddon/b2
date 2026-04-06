@@ -9,6 +9,12 @@ b2build_py_basename=os.path.basename(__file__)
 ##########################################################################
 ##########################################################################
 
+# only relevant if running on macOS.
+g_local_osx_deployment_target=None
+
+##########################################################################
+##########################################################################
+
 def fatal(msg):
     sys.stderr.write('FATAL: %s\n'%msg)
     sys.exit(1)
@@ -153,7 +159,7 @@ def run_subprocess(argv,options,execute=True,**other_popen_kwargs):
         process=subprocess.Popen(argv,**other_popen_kwargs)
         process.wait()
 
-        print(f'b2build completed {suffix} - exit code: {process.returncode}\n')
+        pv(f'b2build completed {suffix} - exit code: {process.returncode}\n')
     else:
         # return process with error exit code. If the caller doesn't
         # check: no problem!
@@ -339,6 +345,7 @@ class BuildMatrix:
         self.unix_sanitizers=[]
         self.unix_compilers=[]
         self.ffmpeg=True
+        self.osx_deployment_target=None
 
 ##########################################################################
 ##########################################################################
@@ -454,8 +461,7 @@ def create_build_makefile(matrix,
     cmd_options+=get_optional_option('--name',options.name)
     if is_macos():
         cmd_options+=get_optional_option('--osx-deployment-target',
-                                         options.osx_deployment_target)
-    
+                                         matrix.osx_deployment_target)
 
     # as used to pass -j down to ninja or ctest.
     j_option=f'''-j {options.g_max_jobs}'''
@@ -644,6 +650,7 @@ def init_cmd(options):
 
     matrix.vs2022=options.vs2022
     matrix.xcode=options.xcode
+    matrix.osx_deployment_target=options.osx_deployment_target
 
     if options.unix:
         matrix.unix_configurations+=[t for t in CMAKE_CONFIGURATIONS.keys()]
@@ -793,6 +800,9 @@ def batch_cmd(options):
             for compiler in options.compilers:
                 matrix.unix_compilers.append(UnixCompiler(cc=compiler[0],
                                                           cxx=compiler[1]))
+
+    if is_macos():
+        matrix.osx_deployment_target=g_local_osx_deployment_target
 
     build_folder=get_build_folder_path(options)
 
@@ -1313,6 +1323,7 @@ def release_binary_macos_cmd(options):
     matrix=BuildMatrix()
     matrix.unix_configurations+=['r','f']
     matrix.ffmpeg=options.ffmpeg
+    matrix.osx_deployment_target=options.osx_deployment_target
 
     prefix='release_binary_macos.'
 
@@ -1501,9 +1512,9 @@ def main(argv):
     def auto_int(x): return int(x,0)
     def timestamp(x): return datetime.datetime.fromisoformat(x)
 
-    default_osx_deployment_target=None
+    global g_local_osx_deployment_target
     if is_macos():
-        try: default_osx_deployment_target=subprocess.check_output(['sw_vers','-productVersion'],text='utf-8').rstrip()
+        try: g_local_osx_deployment_target=subprocess.check_output(['sw_vers','-productVersion'],text='utf-8').rstrip()
         except CalledProcessError: pass
     
     parser=argparse.ArgumentParser(description='''b2 build automation tool''',
@@ -1533,7 +1544,7 @@ def main(argv):
         subparser.add_argument('--enable-sanitizers',action='store_true',help='''if building Unix-style, try to use any supported sanitizers''')
 
     def add_macos_specific_target_options(subparser):
-        subparser.add_argument('--osx-deployment-target',metavar='TARGET',default=default_osx_deployment_target,help='''specify macOS deployment target'''+('' if default_osx_deployment_target is None else ' Default: %s'%default_osx_deployment_target))
+        subparser.add_argument('--osx-deployment-target',metavar='TARGET',default=g_local_osx_deployment_target,help='''specify macOS deployment target'''+('' if g_local_osx_deployment_target is None else ' Default: %s'%g_local_osx_deployment_target))
 
     init_subparser=add_subparser('init',init_cmd,help='''initialise build''')
     init_subparser.add_argument('--cc',metavar='NAME',help='''if building Unix-style, use %(metavar)s as C compiler''')
