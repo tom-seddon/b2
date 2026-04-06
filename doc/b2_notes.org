@@ -11166,6 +11166,40 @@ AP6 ROM Manager & Utils v1.34
   21800ENDPROC
 #+end_src
 
+** TODO
+*** TODO TIMING1
+
+RTC:
+
+- Electron ::
+- b2 ::
+
+**** =TESTDISPEND=TRUE=
+
+The display end timing is different for odd/even frames. And there
+seems to be 2 states relative to the CPU clock. 2 possible alternating
+cases on my Electron, both seen from repeated runs:
+
+- 66F1/66D2
+- 66F2/66D1
+
+b2:
+
+- 66E1/66E0
+
+Well, that's pretty close on average... but 1 extra cycle on real
+hardware?
+
+**** =TESTDISPEND=FALSE=
+
+Consist timings, but, again, 2 states:
+
+- 66E2/66E1
+
+b2:
+
+- 66E1/66E2
+
 * make install
 
 #+begin_src makefile-gmake
