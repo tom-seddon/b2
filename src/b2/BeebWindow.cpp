@@ -2296,7 +2296,8 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
             }
         }
 
-        if (ImGui::MenuItem("Save copy as...")) {
+        if (ImGui::MenuItem("Save copy as...###save_copy_as")) {
+            printf("*** HERE\n");
             SaveFileDialog fd(SAVE_DISK_IMAGE_COPY_SELECTOR_GUID, m_init_arguments.app_handler);
 
             std::vector<FileDialogFilter> filters = disc_image->GetFileDialogFilters();
@@ -2448,7 +2449,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
     }
 
     if (this->DoDiscImageSubMenu2(&path,
-                                  "In-memory disc image...",
+                                  "In-memory disc image...###open_memory",
                                   boot ? nullptr : "New in-memory disc image###new_memory",
                                   "Recent in-memory disc image",
                                   true)) {

@@ -496,6 +496,10 @@ foreach(MODEL master compact)
   add_b2_test_literal_category(b2ui.nvram_update.${MODEL})
 endforeach()
 
+add_b2_test_literal_category(b2ui.load_zipped_disk.80.ssd)
+add_b2_test_literal_category(b2ui.load_zipped_disk.MasterWelcome.adl)
+add_b2_test_literal_category(b2ui.load_zipped_disk.two_disks)
+
 ##########################################################################
 ##########################################################################
 

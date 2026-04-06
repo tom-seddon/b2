@@ -961,6 +961,91 @@ class TestCopyOfDisk : public DearImGuiTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestLoadZippedDisk : public DearImGuiTest {
+  public:
+    TestLoadZippedDisk(std::string zip_path, std::string disk_path)
+        : m_zip_path(std::move(zip_path))
+        , m_disk_path(std::move(disk_path)) {
+    }
+
+    std::string GetFullName() const override {
+        return "b2ui.load_zipped_disk." + PathWithoutExtension(PathGetName(m_zip_path));
+    }
+
+    void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
+
+        TEST_TRUE(PathIsFileOnDisk(m_zip_path, nullptr, nullptr));
+        if (!m_disk_path.empty()) {
+            TEST_TRUE(PathIsFileOnDisk(m_disk_path, nullptr, nullptr));
+        }
+
+        {
+            UniqueLock<Mutex> lock;
+            TEST_NULL(beeb_thread->GetDiscImage(&lock, 0));
+        }
+
+        {
+            UniqueLock<Mutex> lock;
+            TEST_NULL(beeb_thread->GetDiscImage(&lock, 1));
+        }
+
+        this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, m_zip_path);
+
+        ctx->SetRef("##MainMenuBar");
+        ctx->MenuClick("###file/###drive0/###open_memory");
+
+        if (m_disk_path.empty()) {
+            {
+                UniqueLock<Mutex> lock;
+                TEST_NULL(beeb_thread->GetDiscImage(&lock, 0));
+            }
+
+            {
+                UniqueLock<Mutex> lock;
+                TEST_NULL(beeb_thread->GetDiscImage(&lock, 1));
+            }
+        } else {
+            {
+                UniqueLock<Mutex> lock;
+                TEST_NON_NULL(beeb_thread->GetDiscImage(&lock, 0));
+            }
+
+            {
+                UniqueLock<Mutex> lock;
+                TEST_NULL(beeb_thread->GetDiscImage(&lock, 1));
+            }
+
+            this->SetNextSelectorDialogResult(SAVE_DISK_IMAGE_COPY_SELECTOR_GUID, m_disk_copy_path);
+
+            ctx->SetRef("##MainMenuBar");
+            ctx->MenuClick("###file/###drive0/###save_copy_as");
+
+            TEST_TRUE(PathIsFileOnDisk(m_disk_copy_path, nullptr, nullptr));
+        }
+    }
+
+    void Run() override {
+        if (!m_disk_path.empty()) {
+            std::string config_folder;
+            TEST_TRUE(this->GetConfigFolder(&config_folder));
+
+            m_disk_copy_path = PathJoined(config_folder, "test." + PathGetName(m_disk_path));
+        }
+
+        TEST_EQ_II(this->Run2(), 0);
+    }
+
+  protected:
+  private:
+    std::string m_zip_path;
+    std::string m_disk_path;
+    std::string m_disk_copy_path;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const BeebConfig *FindConfigByName(size_t *index, const std::string &name) {
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
         const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
@@ -1359,6 +1444,13 @@ int main(int argc, char *argv[]) {
     AddCopyOfDiskTests(&all_tests, BLANK_DFS_DISCS, NUM_BLANK_DFS_DISCS);
     AddCopyOfDiskTests(&all_tests, BLANK_ADFS_DISCS, NUM_BLANK_ADFS_DISCS);
     AddCopyOfDiskTests(&all_tests, WELCOME_DISKS, NUM_WELCOME_DISKS);
+
+    all_tests.push_back(std::make_unique<TestLoadZippedDisk>(PathJoined(b2_SOURCE_DIR, "etc/tests/disks/80.ssd.zip"),
+                                                             PathJoined(b2_SOURCE_DIR, "etc/discs/80.ssd")));
+    all_tests.push_back(std::make_unique<TestLoadZippedDisk>(PathJoined(b2_SOURCE_DIR, "etc/tests/disks/MasterWelcome.adl.zip"),
+                                                             PathJoined(b2_SOURCE_DIR, "etc/discs/MasterWelcome.adl")));
+    all_tests.push_back(std::make_unique<TestLoadZippedDisk>(PathJoined(b2_SOURCE_DIR, "etc/tests/disks/two_disks.zip"),
+                                                             ""));
 
     std::map<std::string, Test *> tests_by_name;
     for (const std::unique_ptr<Test> &test : all_tests) {
