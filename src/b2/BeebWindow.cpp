@@ -1866,52 +1866,60 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
+    bool show_popup_ui = true;
+    if (m_init_arguments.app_handler->IsDearImGuiTestEngineEnabled()) {
+        // The popups can interfere with the test engine, so don't show em.
+        show_popup_ui = false;
+    }
+
     if (ValueChanged(&m_msg_last_num_messages_printed, m_message_list->GetNumMessagesPrinted())) {
         m_messages_popup_ui_active = true;
         m_messages_popup_ticks = now;
     }
 
     if (m_messages_popup_ui_active) {
-        // With ImGuiWindowFlags_NoMouseInputs, the popup is ignored entirely
-        // for hovering purposes, so the mouse can end up interacting with
-        // widgets behind it. Which doesn't feel very desirable, as the popup is
-        // mostly opaque.
-        //
-        // Without it, you can still give the popup focus by clicking. Which
-        // also isn't ideal.
-        ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
-                                  ImGuiWindowFlags_NoNavInputs |
-                                  ImGuiWindowFlags_NoNavFocus |
-                                  ImGuiWindowFlags_AlwaysAutoResize |
-                                  ImGuiWindowFlags_NoFocusOnAppearing);
-        ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        if (show_popup_ui) {
+            // With ImGuiWindowFlags_NoMouseInputs, the popup is ignored entirely
+            // for hovering purposes, so the mouse can end up interacting with
+            // widgets behind it. Which doesn't feel very desirable, as the popup is
+            // mostly opaque.
+            //
+            // Without it, you can still give the popup focus by clicking. Which
+            // also isn't ideal.
+            ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
+                                      ImGuiWindowFlags_NoNavInputs |
+                                      ImGuiWindowFlags_NoNavFocus |
+                                      ImGuiWindowFlags_AlwaysAutoResize |
+                                      ImGuiWindowFlags_NoFocusOnAppearing);
+            ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
-        // What's supposed to happen here: the window is 90% of the
-        // screen width and as tall as it needs to be ("set axis to
-        // 0.0f to force an auto-fit on this axis").
-        //
-        // What actually happens: it's the right width, but 0 pixels
-        // high, and gets saved to imgui.ini that way. Then on the
-        // next run, it's 32 pixels high (?) - and that seems to
-        // persist for future runs with the same ini file. But 32
-        // pixels high is still too short.
-        //
-        // Fortunately, with AlwaysAutoResize and
-        // SetNextWindowPosCenter, the default size is sensible.
+            // What's supposed to happen here: the window is 90% of the
+            // screen width and as tall as it needs to be ("set axis to
+            // 0.0f to force an auto-fit on this axis").
+            //
+            // What actually happens: it's the right width, but 0 pixels
+            // high, and gets saved to imgui.ini that way. Then on the
+            // next run, it's 32 pixels high (?) - and that seems to
+            // persist for future runs with the same ini file. But 32
+            // pixels high is still too short.
+            //
+            // Fortunately, with AlwaysAutoResize and
+            // SetNextWindowPosCenter, the default size is sensible.
 
-        //ImGui::SetNextWindowSize(ImVec2(output_width*0.9f,0));
+            //ImGui::SetNextWindowSize(ImVec2(output_width*0.9f,0));
 
-        if (ImGui::Begin("Recent Messages", &m_messages_popup_ui_active, flags)) {
-            ImGuiWindow *window = ImGui::GetCurrentWindow();
-            ImGui::BringWindowToDisplayFront(window);
+            if (ImGui::Begin("Recent Messages", &m_messages_popup_ui_active, flags)) {
+                ImGuiWindow *window = ImGui::GetCurrentWindow();
+                ImGui::BringWindowToDisplayFront(window);
 
-            m_message_list->ForEachMessage(15, [](MessageList::Message *m) {
-                if (!m->seen) {
-                    ImGuiMessageListMessage(m);
-                }
-            });
+                m_message_list->ForEachMessage(15, [](MessageList::Message *m) {
+                    if (!m->seen) {
+                        ImGuiMessageListMessage(m);
+                    }
+                });
+            }
+            ImGui::End();
         }
-        ImGui::End();
 
         if (GetSecondsFromTicks(now - m_messages_popup_ticks) > MESSAGES_POPUP_TIME_SECONDS) {
             m_message_list->ForEachMessage([](MessageList::Message *m) {
@@ -1946,103 +1954,105 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
     }
 
     if (m_leds_popup_ui_active) {
-        ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
-                                  //ImGuiWindowFlags_ShowBorders|
-                                  ImGuiWindowFlags_AlwaysAutoResize |
-                                  ImGuiWindowFlags_NoFocusOnAppearing);
-        ImGui::SetNextWindowPos(ImVec2(10.f, display_size.y - m_leds_popup_height - 2));
+        if (show_popup_ui) {
+            ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
+                                      //ImGuiWindowFlags_ShowBorders|
+                                      ImGuiWindowFlags_AlwaysAutoResize |
+                                      ImGuiWindowFlags_NoFocusOnAppearing);
+            ImGui::SetNextWindowPos(ImVec2(10.f, display_size.y - m_leds_popup_height - 2));
 
-        ImGui::SetNextWindowBgAlpha(m_settings.leds_popup_alpha);
+            ImGui::SetNextWindowBgAlpha(m_settings.leds_popup_alpha);
 
-        if (ImGui::Begin("LEDs", &m_leds_popup_ui_active, flags)) {
-            ImGuiStyleColourPusher colour_pusher;
-            colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
-
-            ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_CapsLock), "Caps Lock");
-
-            ImGui::SameLine();
-
-            ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_ShiftLock), "Shift Lock");
-
-            ImGui::SameLine();
-
-            ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_TapeMotor), "Motor");
-
-            ImGui::SameLine();
-
-            colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(0.f, 1.f, 0.f, 1.f));
-
-            switch (timeline_state.mode) {
-            case BeebThreadTimelineMode_None:
-                ImGuiLED(ImGuiLEDStyle_Circle, false, "Replay");
-                break;
-
-            case BeebThreadTimelineMode_Replay:
-                ImGuiLED(ImGuiLEDStyle_Circle, true, "Replay");
-                ImGui::SameLine();
-                if (ImGui::Button("Stop")) {
-                    m_beeb_thread->Send(std::make_shared<BeebThread::StopReplayMessage>());
-                }
-                break;
-
-            case BeebThreadTimelineMode_Record:
+            if (ImGui::Begin("LEDs", &m_leds_popup_ui_active, flags)) {
+                ImGuiStyleColourPusher colour_pusher;
                 colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
-                ImGuiLED(ImGuiLEDStyle_Circle, true, "Record");
+
+                ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_CapsLock), "Caps Lock");
+
                 ImGui::SameLine();
-                if (ImGuiConfirmButton("Stop")) {
-                    m_beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
-                }
-                colour_pusher.Pop();
-                break;
-            }
 
-            ImGui::SameLine();
-            ImGuiLED(ImGuiLEDStyle_Circle, copying, "Copy");
-            if (copying) {
+                ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_ShiftLock), "Shift Lock");
+
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel")) {
-                    m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
-                }
-            }
 
-            ImGui::SameLine();
-            ImGuiLED(ImGuiLEDStyle_Circle, pasting, "Paste");
-            if (pasting) {
+                ImGuiLED(ImGuiLEDStyle_Circle, !!(m_leds & BBCMicroLEDFlag_TapeMotor), "Motor");
+
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel")) {
-                    m_beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
-                }
-            }
 
-            colour_pusher.Pop();
-            colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
+                colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(0.f, 1.f, 0.f, 1.f));
 
-            for (int i = 0; i < NUM_DRIVES; ++i) {
-                if (i > 0) {
+                switch (timeline_state.mode) {
+                case BeebThreadTimelineMode_None:
+                    ImGuiLED(ImGuiLEDStyle_Circle, false, "Replay");
+                    break;
+
+                case BeebThreadTimelineMode_Replay:
+                    ImGuiLED(ImGuiLEDStyle_Circle, true, "Replay");
                     ImGui::SameLine();
+                    if (ImGui::Button("Stop")) {
+                        m_beeb_thread->Send(std::make_shared<BeebThread::StopReplayMessage>());
+                    }
+                    break;
+
+                case BeebThreadTimelineMode_Record:
+                    colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
+                    ImGuiLED(ImGuiLEDStyle_Circle, true, "Record");
+                    ImGui::SameLine();
+                    if (ImGuiConfirmButton("Stop")) {
+                        m_beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
+                    }
+                    colour_pusher.Pop();
+                    break;
                 }
-                ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_FloppyDisk0Shift + i)), "Drive %d", i);
-            }
 
-            for (int i = 0; i < NUM_HARD_DISKS; ++i) {
                 ImGui::SameLine();
-                ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_HardDisk0Shift + i)), "HD %d", i);
+                ImGuiLED(ImGuiLEDStyle_Circle, copying, "Copy");
+                if (copying) {
+                    ImGui::SameLine();
+                    if (ImGui::Button("Cancel")) {
+                        m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
+                    }
+                }
+
+                ImGui::SameLine();
+                ImGuiLED(ImGuiLEDStyle_Circle, pasting, "Paste");
+                if (pasting) {
+                    ImGui::SameLine();
+                    if (ImGui::Button("Cancel")) {
+                        m_beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
+                    }
+                }
+
+                colour_pusher.Pop();
+                colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
+
+                for (int i = 0; i < NUM_DRIVES; ++i) {
+                    if (i > 0) {
+                        ImGui::SameLine();
+                    }
+                    ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_FloppyDisk0Shift + i)), "Drive %d", i);
+                }
+
+                for (int i = 0; i < NUM_HARD_DISKS; ++i) {
+                    ImGui::SameLine();
+                    ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_HardDisk0Shift + i)), "HD %d", i);
+                }
             }
-        }
 
-        // Annoyingly, it takes a couple of frames for the window height to
-        // settle down. Try to figure out when it's at its final value, so the
-        // popup doesn't briefly appear in the wrong place.
-        {
-            float y = ImGui::GetCursorPosY();
-            float h = ImGui::GetWindowHeight();
+            // Annoyingly, it takes a couple of frames for the window height to
+            // settle down. Try to figure out when it's at its final value, so the
+            // popup doesn't briefly appear in the wrong place.
+            {
+                float y = ImGui::GetCursorPosY();
+                float h = ImGui::GetWindowHeight();
 
-            if (h > y) {
-                m_leds_popup_height = h;
+                if (h > y) {
+                    m_leds_popup_height = h;
+                }
             }
-        }
 
-        ImGui::End();
+            ImGui::End();
+        }
 
         if (GetSecondsFromTicks(now - m_leds_popup_ticks) > LEDS_POPUP_TIME_SECONDS) {
             if (m_settings.leds_popup_mode != BeebWindowLEDsPopupMode_On) {
@@ -2051,42 +2061,44 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
         }
     }
 
-    std::vector<std::shared_ptr<JobQueue::Job>> jobs = BeebWindows::GetJobs();
-    if (!jobs.empty()) {
-        bool open = false;
+    if (show_popup_ui) {
+        std::vector<std::shared_ptr<JobQueue::Job>> jobs = BeebWindows::GetJobs();
+        if (!jobs.empty()) {
+            bool open = false;
 
-        for (const std::shared_ptr<JobQueue::Job> &job : jobs) {
-            if (!job->HasImGui()) {
-                continue;
-            }
+            for (const std::shared_ptr<JobQueue::Job> &job : jobs) {
+                if (!job->HasImGui()) {
+                    continue;
+                }
 
-            if (open) {
-                ImGui::Separator();
-            } else {
-                ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
-                                          //ImGuiWindowFlags_ShowBorders|
-                                          ImGuiWindowFlags_AlwaysAutoResize |
-                                          ImGuiWindowFlags_NoFocusOnAppearing);
+                if (open) {
+                    ImGui::Separator();
+                } else {
+                    ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
+                                              //ImGuiWindowFlags_ShowBorders|
+                                              ImGuiWindowFlags_AlwaysAutoResize |
+                                              ImGuiWindowFlags_NoFocusOnAppearing);
 
-                ImGui::SetNextWindowPos(ImVec2(10.f, 30.f));
+                    ImGui::SetNextWindowPos(ImVec2(10.f, 30.f));
 
-                open = true;
+                    open = true;
 
-                if (!ImGui::Begin("Jobs", nullptr, flags)) {
-                    goto jobs_imgui_done;
+                    if (!ImGui::Begin("Jobs", nullptr, flags)) {
+                        goto jobs_imgui_done;
+                    }
+                }
+
+                job->DoImGui();
+
+                if (ImGui::Button("Cancel")) {
+                    job->Cancel();
                 }
             }
 
-            job->DoImGui();
-
-            if (ImGui::Button("Cancel")) {
-                job->Cancel();
+        jobs_imgui_done:
+            if (open) {
+                ImGui::End();
             }
-        }
-
-    jobs_imgui_done:
-        if (open) {
-            ImGui::End();
         }
     }
 }
