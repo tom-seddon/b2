@@ -1295,17 +1295,34 @@ void BBCMicro::WriteElectronULA5(void *m_, M6502Word a, uint8_t value) {
         m->m_state.electron_ula.nmi = false;
     }
 
-    if (m->m_state.electron_ula.romsel != m->m_state.paging.romsel.b_bits.pr) {
-        m->m_state.paging.romsel.b_bits.pr = value & 0xf;
+    // see https://stardot.org.uk/forums/viewtopic.php?t=27791
+    uint8_t new_pr = value & 0xf;
+    uint8_t old_pr = m->m_state.paging.romsel.b_bits.pr;
 
-        m->UpdatePaging();
-        m->UpdateCPUDataBusFn();
+    bool ignore;
+    if ((old_pr & 0b1100) == 0b1000) {
+        // ignore if out of range.
+        ignore = !(new_pr & 0b1000);
+    } else {
+        // ignore if top bits not 0.
+        ignore = (value & 0xf0) != 0;
+    }
+
+    TRACEF(m->m_trace, "Write Electron ULA R5 - select ROM $%x%s", m->m_state.paging.romsel.b_bits.pr, ignore ? " (ignored)" : "");
+
+    if (!ignore) {
+        if (m->m_state.electron_ula.romsel != m->m_state.paging.romsel.b_bits.pr) {
+            m->m_state.paging.romsel.b_bits.pr = value & 0xf;
+
+            m->UpdatePaging();
+            m->UpdateCPUDataBusFn();
 
 #if BBCMICRO_TRACE
-        if (m->m_trace) {
-            m->m_trace->AllocWriteROMSELEvent(m->m_state.paging.romsel);
-        }
+            if (m->m_trace) {
+                m->m_trace->AllocWriteROMSELEvent(m->m_state.paging.romsel);
+            }
 #endif
+        }
     }
 }
 
