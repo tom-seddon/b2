@@ -1106,7 +1106,7 @@ uint8_t BBCMicro::ReadElectronULA4(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
 
     m->m_state.electron_ula.irq.bits.rx_data_full = 0;
-    ASSERT(false);
+    //ASSERT(false);
 
     return 0xff;
 }
