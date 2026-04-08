@@ -1091,6 +1091,9 @@ def release_source_linux_cmd(options):
             # files from this folder into the app bundle.
             rmtree('etc/release')
 
+        # Stop BeebLink finding any of this stuff.
+        with open('.beeblink-ignore','wb') as f: pass
+
         # Fix up the docs a bit.
         fix_up_md('README.md',options)
         for md_path in glob.glob('doc/*.md'): fix_up_md(md_path,options)
