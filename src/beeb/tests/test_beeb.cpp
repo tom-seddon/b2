@@ -3639,6 +3639,16 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<Mode7demTest>(45, 29, false, false));
     all_tests.push_back(std::make_unique<Mode7demTest>(46, 10, true, false));
 
+    {
+        TestBBCType type = GetElectronWithPlus1Type();
+
+        for (uint8_t i = 0; i < 4; ++i) {
+            type.is_ram[i] = true;
+        }
+
+        all_tests.push_back(std::make_unique<BasicTest>("electron.rom_unlock", type, PathJoined(b2_SOURCE_DIR, "etc/b2_tests/8/$.SWRWP")));
+    }
+
     //
     // all tests must be added by this point!
     //

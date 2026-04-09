@@ -412,6 +412,9 @@ class BBCMicroState {
     ElectronULA electron_ula;
     Plus1 plus1;
 
+    // Sideways RAM write protection. Bit i is set if bank i is write-protected.
+    uint16_t electron_sideways_ram_write_protection = 0x0000;
+
 #if ENABLE_TAPE
     std::shared_ptr<const UEFReader> tape;
 #endif

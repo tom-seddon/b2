@@ -474,6 +474,13 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdatePaging() {
+    uint16_t sideways_ram_write_protection;
+    if (IsElectron(m_state.type->type_id)) {
+        sideways_ram_write_protection = m_state.electron_sideways_ram_write_protection;
+    } else {
+        sideways_ram_write_protection = 0x0000;
+    }
+
     MemoryBigPageTables tables;
     uint32_t paging_flags;
     (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, m_state.paging);
@@ -486,7 +493,13 @@ void BBCMicro::UpdatePaging() {
             ASSERT(tables.mem_big_pages[i][j].i < NUM_BIG_PAGES);
             bp = &m_big_pages[tables.mem_big_pages[i][j].i];
 
-            mbp->w[j] = bp->w;
+            // Sideways ROM write protection is a runtime option.
+            if (bp->rom_bank_mask & sideways_ram_write_protection) {
+                mbp->w[j] = g_unmapped_writes;
+            } else {
+                mbp->w[j] = bp->w;
+            }
+
             mbp->r[j] = bp->r;
 #if BBCMICRO_DEBUGGER
             mbp->byte_debug_flags[j] = bp->byte_debug_flags;
@@ -555,11 +568,13 @@ void BBCMicro::WriteHostTube0Wrapper(void *m_, M6502Word a, uint8_t value) {
 
 void BBCMicro::GetBigPageProperties(const uint8_t **read_ptr,
                                     bool *writeable_ptr,
+                                    uint16_t *rom_bank_mask_ptr,
                                     const BigPageMetadata **metadata_ptr,
                                     BigPageIndex big_page_index,
                                     const BBCMicroState *state) {
-    *writeable_ptr = false;
     *read_ptr = nullptr;
+    *writeable_ptr = false;
+    *rom_bank_mask_ptr = 0x0000;
     *metadata_ptr = &state->type->big_pages_metadata[big_page_index.i];
 
     if (big_page_index.i >= 0 &&
@@ -589,6 +604,8 @@ void BBCMicro::GetBigPageProperties(const uint8_t **read_ptr,
             *read_ptr = &state->sideways_ram_buffers[bank]->at(offset);
             *writeable_ptr = true;
         }
+
+        *rom_bank_mask_ptr = 1 << bank;
     } else if ((big_page_index.i >= MOS_BIG_PAGE_INDEX.i &&
                 big_page_index.i < MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES)) {
         if (!!state->os_buffer) {
@@ -635,7 +652,7 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
 #endif
                                    BigPageIndex big_page_index) {
     bp->index = big_page_index;
-    GetBigPageProperties(&bp->r, &bp->writeable, &bp->metadata, bp->index, state);
+    GetBigPageProperties(&bp->r, &bp->writeable, &bp->rom_bank_mask, &bp->metadata, bp->index, state);
 
 #if BBCMICRO_DEBUGGER
     auto mutable_debug_state = const_cast<BBCMicroDebugState *>(debug_state); //ugh
@@ -660,7 +677,7 @@ void BBCMicro::InitPaging() {
         bp->index = big_page_index;
 
         bool writeable;
-        GetBigPageProperties(&bp->r, &writeable, &bp->metadata, bp->index, &m_state);
+        GetBigPageProperties(&bp->r, &writeable, &bp->rom_bank_mask, &bp->metadata, bp->index, &m_state);
 
         if (writeable) {
             bp->w = const_cast<uint8_t *>(bp->r);
@@ -1474,6 +1491,38 @@ void BBCMicro::WriteElectronULAF(void *m_, M6502Word a, uint8_t value) {
     m->m_state.electron_ula.palette[0xb].bits.r = !(value & 0b00001000);
     m->m_state.electron_ula.palette[0x1].bits.g = !(value & 0b00010000);
     m->m_state.electron_ula.palette[0x3].bits.g = !(value & 0b00100000);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetElectronSidewaysRAMWriteProtection(uint16_t sideways_ram_write_protection) {
+    if (m_state.electron_sideways_ram_write_protection != sideways_ram_write_protection) {
+        m_state.electron_sideways_ram_write_protection = sideways_ram_write_protection;
+        this->UpdatePaging();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template <uint16_t ROM_BANKS_MASK>
+void BBCMicro::WriteElectronUnlockBanks(void *m_, M6502Word a, uint8_t value) {
+    (void)a, (void)value;
+    auto m = (BBCMicro *)m_;
+
+    m->SetElectronSidewaysRAMWriteProtection(m->m_state.electron_sideways_ram_write_protection & ~ROM_BANKS_MASK);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template <uint16_t ROM_BANKS_MASK>
+void BBCMicro::WriteElectronLockBanks(void *m_, M6502Word a, uint8_t value) {
+    (void)a, (void)value;
+    auto m = (BBCMicro *)m_;
+
+    m->SetElectronSidewaysRAMWriteProtection(m->m_state.electron_sideways_ram_write_protection | ROM_BANKS_MASK);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3608,6 +3657,18 @@ void BBCMicro::InitStuff() {
         this->SetDebugXFJIO(0xfc70, &Plus1::DebugRead0, &GetDebugMMIOReadPlus1Context);
         this->SetDebugXFJIO(0xfc72, &Plus1::DebugRead2, &GetDebugMMIOReadPlus1Context);
 #endif
+
+        static constexpr uint16_t ROM_DF_MASK = 1 << 13 | 1 << 15;
+        static constexpr uint16_t ROM_02_MASK = 1 << 0 | 1 << 2;
+        static constexpr uint16_t ROM_13_MASK = 1 << 1 | 1 << 3;
+
+        this->SetXFJIO(0xfcda, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_DF_MASK>, this);
+        this->SetXFJIO(0xfcdb, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_DF_MASK>, this);
+        this->SetXFJIO(0xfcdc, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_02_MASK>, this);
+        this->SetXFJIO(0xfcdd, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_02_MASK>, this);
+        this->SetXFJIO(0xfcde, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_13_MASK>, this);
+        this->SetXFJIO(0xfcdf, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_13_MASK>, this);
+
         break;
 
     case BBCMicroTypeID_B:

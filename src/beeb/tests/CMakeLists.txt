@@ -166,3 +166,5 @@ foreach(TYPE b bplus electron master compact)
     add_test_beeb_literal_category(tests.${WHICH}.${TYPE})
   endforeach()
 endforeach()
+
+add_test_beeb_literal_category(electron.rom_unlock)

@@ -351,6 +351,10 @@ class BBCMicro : private WD1770Handler {
         // (exclusive).
         BigPageIndex index = {0};
 
+        // Bit i is set if this big page refers to something in ROM bank i. Used to handle sideways RAM bank write protection.
+        uint16_t rom_bank_mask = 0x0000;
+
+        // More metadata for debugger use, or just rarely accessed.
         const BigPageMetadata *metadata = nullptr;
     };
 
@@ -373,6 +377,7 @@ class BBCMicro : private WD1770Handler {
         const uint8_t *read_io_byte_debug_flags[24] = {};
 #endif
         BigPageIndex index = {0};
+        uint16_t rom_bank_mask = 0x0000;
         const BigPageMetadata *metadata = nullptr;
     };
 
@@ -947,6 +952,14 @@ class BBCMicro : private WD1770Handler {
     static void WriteElectronULAE(void *m_, M6502Word a, uint8_t value);
     static void WriteElectronULAF(void *m_, M6502Word a, uint8_t value);
 
+    void SetElectronSidewaysRAMWriteProtection(uint16_t sideways_ram_write_protection);
+
+    template <uint16_t ROM_BANKS_MASK>
+    static void WriteElectronUnlockBanks(void *m_, M6502Word a, uint8_t value);
+
+    template <uint16_t ROM_BANKS_MASK>
+    static void WriteElectronLockBanks(void *m_, M6502Word a, uint8_t value);
+
     uint8_t GetStaleDatabusByte() const;
 #if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
@@ -964,6 +977,7 @@ class BBCMicro : private WD1770Handler {
                                     BigPageIndex big_page_index);
     static void GetBigPageProperties(const uint8_t **read_ptr,
                                      bool *writeable_ptr,
+                                     uint16_t *rom_bank_mask_ptr,
                                      const BigPageMetadata **metadata_ptr,
                                      BigPageIndex big_page_index,
                                      const BBCMicroState *state);
