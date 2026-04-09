@@ -620,6 +620,7 @@ class TestBBCMicro : public BBCMicro {
     std::string spool_output;
     std::string spool_output_name;
     bool ever_hit_brk = false;
+    uint16_t brk_pc = 0;
     bool unscaled_teletext = false;
 
 #if BBCMICRO_DEBUGGER
@@ -1108,6 +1109,7 @@ void TestBBCMicro::Paste(std::string text) {
 uint32_t TestBBCMicro::Update1() {
     VideoDataUnit temp_video_data_unit;
     SoundDataUnit temp_sound_data_unit;
+
     uint32_t update_result = this->Update(&temp_video_data_unit,
                                           &temp_sound_data_unit);
 
@@ -1182,6 +1184,7 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
 
     if (!!m_test_trace) {
         std::string path = GetOutputFileName(strprintf("%s.trace.txt", stem.c_str()));
+        PathCreateFolder(PathGetFolder(path));
         LOGF(OUTPUT, "Saving trace to: %s\n", path.c_str());
         FILE *f = fopen(path.c_str(), "wb"); //always save with Unix-type line endings
         TEST_NON_NULL(f);
@@ -1740,12 +1743,14 @@ class StandardTest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// run BASIC program that issues an error via BRK on failure.
+// run BASIC program that issues an error via BRK on failure (most likely via the STOP command in BASIC).
 //
 // The test is run until control returns to the BASIC prompt (one way or another). The test succeeds if no BRK was ever executed.
 class BasicTest : public Test {
   public:
-    BasicTest(std::string name, const TestBBCType type, std::string file_name)
+    bool should_hit_brk = false;
+
+    BasicTest(std::string name, TestBBCType type, std::string file_name)
         : m_name(std::move(name))
         , m_type(std::move(type))
         , m_file_name(std::move(file_name)) {
@@ -1757,6 +1762,8 @@ class BasicTest : public Test {
 
     void Run() override {
         TestBBCMicro bbc(m_type);
+
+        //bbc.StartTrace(0, 256 * 1024 * 1024);
 
         bbc.StartCaptureOSWRCH();
         bbc.RunUntilOSWORD0(10.0);
@@ -1773,7 +1780,13 @@ class BasicTest : public Test {
             LOG(BBC_OUTPUT).EnsureBOL();
         }
 
-        TEST_FALSE(bbc.ever_hit_brk);
+        bbc.SaveTestTrace(m_name);
+
+        if (should_hit_brk) {
+            TEST_TRUE(bbc.ever_hit_brk);
+        } else {
+            TEST_FALSE(bbc.ever_hit_brk);
+        }
     }
 
   protected:
@@ -1781,6 +1794,20 @@ class BasicTest : public Test {
     std::string m_name;
     TestBBCType m_type;
     std::string m_file_name;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class BasicStopTest : public BasicTest {
+  public:
+    BasicStopTest(std::string name, bool stop, TestBBCType type)
+        : BasicTest(std::move(name), std::move(type), PathJoined(b2_SOURCE_DIR, "etc/b2_tests/8", stop ? "$.STOP" : "$.NOSTOP")) {
+        this->should_hit_brk = stop;
+    }
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -3546,6 +3573,16 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<MMFSDiskAccessTest>(strprintf("disk.mmfs.compact.%d.mos511i", io_flags), GetMasterCompactMOS511iType(), io_flags));
     }
     all_tests.push_back(std::make_unique<MMFSDiskAccessTest>("disk.mmfs.electron", GetElectronWithPlus1Type()));
+
+    for (int stop = 0; stop < 2; ++stop) {
+        std::string prefix = strprintf("tests.%s.", stop ? "stop" : "nostop");
+
+        all_tests.push_back(std::make_unique<BasicStopTest>(prefix + "b", !!stop, GetBTapeType()));
+        all_tests.push_back(std::make_unique<BasicStopTest>(prefix + "bplus", !!stop, GetBPlusType()));
+        all_tests.push_back(std::make_unique<BasicStopTest>(prefix + "electron", !!stop, GetElectronWithPlus1Type()));
+        all_tests.push_back(std::make_unique<BasicStopTest>(prefix + "master", !!stop, GetMasterMOS320Type()));
+        all_tests.push_back(std::make_unique<BasicStopTest>(prefix + "compact", !!stop, GetMasterCompactMOS510Type()));
+    }
 
     {
         std::string path = PathJoined(b2_SOURCE_DIR, "submodules/beeb_6502_timing_tests/beeb/beeb_6502_timing_tests/0/$.TIMINGS");

@@ -310,7 +310,6 @@ parasite_update_done:
         // Update CPU.
         if constexpr (IsElectronUpdate(UPDATE_FLAGS)) {
             if (m_state.cpu_run_state == BBCMicroCPURunState_Running) {
-                result |= BBCMicroUpdateResultFlag_Host;
                 (*m_state.cpu.tfn)(&m_state.cpu);
 
                 if (m_state.cpu.abus.w < 0x8000) {
@@ -341,7 +340,6 @@ parasite_update_done:
                     m_state.cpu_run_state = BBCMicroCPURunState_Running;
                 }
             } else {
-                result |= BBCMicroUpdateResultFlag_Host;
                 (*m_state.cpu.tfn)(&m_state.cpu);
 
                 M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
@@ -721,6 +719,8 @@ parasite_update_done:
             }
 
             M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - IO_BEGIN_ADDRESS.w)};
+
+            result |= BBCMicroUpdateResultFlag_Host;
 
             if (const uint8_t read = m_state.cpu.read) {
                 (void)read;
