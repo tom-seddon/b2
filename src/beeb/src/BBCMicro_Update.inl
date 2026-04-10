@@ -490,7 +490,7 @@ parasite_update_done:
                     case ElectronULADisplayState_VSync:
                         m_state.electron_ula.display_state = ElectronULADisplayState_AfterVSync;
                         m_state.electron_ula.rtc_interrupt_timer = 2 * 8192;
-                        m_state.electron_ula.display_vsync_counter = (312 - (ElectronULA::VSYNC_SCANLINE + 2)) * 128;
+                        m_state.electron_ula.display_vsync_counter = (312 - (ElectronULA::VSYNC_SCANLINE + 2)) * 128 + 4;
                         //m_state.electron_ula.display_vsync_counter += 64;
                         break;
 

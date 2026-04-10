@@ -11169,36 +11169,22 @@ AP6 ROM Manager & Utils v1.34
 ** TODO
 *** TODO TIMING1
 
-RTC:
+| DISPEND | SWRAM | Electron             | b2        |
+|---------+-------+----------------------+-----------|
+|       0 |     0 | 66DE/66DF            | 66DD/66DE |
+|       0 |     1 | 8DC0                 | 8DBE      |
+|       1 |     0 | 66EE/66CF; 66EF/66CE | 66DD/66DE |
+|       1 |     1 | 8DA0/8DE0            | 8DBE      |
 
-- Electron ::
-- b2 ::
+A strategic +4 seems to sort out the main discrepancy...
 
-**** =TESTDISPEND=TRUE=
+#+begin_quote
+- m_state.electron_ula.display_vsync_counter = (312 - (ElectronULA::VSYNC_SCANLINE + 2)) * 128;
++ m_state.electron_ula.display_vsync_counter = (312 - (ElectronULA::VSYNC_SCANLINE + 2)) * 128+4;
+#+end_quote
 
-The display end timing is different for odd/even frames. And there
-seems to be 2 states relative to the CPU clock. 2 possible alternating
-cases on my Electron, both seen from repeated runs:
-
-- 66F1/66D2
-- 66F2/66D1
-
-b2:
-
-- 66E1/66E0
-
-Well, that's pretty close on average... but 1 extra cycle on real
-hardware?
-
-**** =TESTDISPEND=FALSE=
-
-Consist timings, but, again, 2 states:
-
-- 66E2/66E1
-
-b2:
-
-- 66E1/66E2
+b2's display end timings are still too conistent though! To be
+continued...
 
 * make install
 
