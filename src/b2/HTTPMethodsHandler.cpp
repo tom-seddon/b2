@@ -22,6 +22,8 @@
 #include "LoadMemoryDiscImage.h"
 #include <beeb/DirectDiscImage.h>
 #include "SymbolTable.h"
+#include "http_api.h"
+#include <shared/strings.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -108,6 +110,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"set-byte-breakpoint", &HTTPMethodsHandler::HandleSetByteBreakpointRequest},
         {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
+        {"request", &HTTPMethodsHandler::HandleGenericRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
@@ -864,6 +867,62 @@ class HTTPMethodsHandler : public HTTPHandler {
     }
 #endif
 
+#if BBCMICRO_DEBUGGER
+    void HandleGenericRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
+            return;
+        }
+
+        nlohmann::json j;
+        if (!this->GetJSONBodyOrSendResponse(&j, server, request)) {
+            return;
+        }
+
+        ApiRequest api_request;
+        std::string exc_what;
+        if (!LoadJSON(&api_request, j, &exc_what)) {
+            server->SendResponse(request, HTTPResponse::BadRequest("Request object parse error: %s", exc_what.c_str()));
+            return;
+        }
+
+        ApiRuntimeArgs runtime_args;
+        runtime_args.beeb_window = beeb_window;
+        runtime_args.beeb_thread = runtime_args.beeb_window->GetBeebThread();
+        runtime_args.messages = std::make_shared<Messages>(std::make_shared<MessageList>("API request"));
+
+        ApiExecute(runtime_args,
+                   api_request,
+                   [messages = runtime_args.messages, response_data = request.response_data, server](bool success, nlohmann::json result) -> void {
+                       if (success) {
+                           std::string content_str = result.dump(4);
+
+                           HTTPResponse response = HTTPResponse::OK();
+
+                           response.content_type = HTTP_JSON_CONTENT_TYPE;
+                           response.content.assign(content_str.begin(), content_str.end());
+
+                           // The messages are discarded, on the basis they're probably not interesting.
+
+                           server->SendResponse(response_data, response);
+                       } else {
+                           std::shared_ptr<MessageList> message_list = messages->GetMessageList();
+
+                           std::string content_str;
+
+                           message_list->ForEachMessage([&content_str](MessageList::Message *m) -> void {
+                               content_str += strprintf("%s: %s\n", GetMessageTypeEnumName(m->type), m->text.c_str());
+                           });
+
+                           server->SendResponse(response_data, HTTPResponse::InternalServerError("%s", content_str.c_str()));
+                       }
+                   });
+    }
+#endif
+
     void HandleLaunchRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         std::string path;
         PathParameter pps[] = {
@@ -977,6 +1036,25 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
         beeb_thread->Send(std::move(message), std::move(completion_fun));
+    }
+
+    bool GetJSONBodyOrSendResponse(nlohmann::json *j, HTTPServer *server, const HTTPRequest &request) {
+        // JSON only.
+        if (request.content_type != HTTP_JSON_CONTENT_TYPE) {
+            server->SendResponse(request, HTTPResponse::UnsupportedMediaType(request));
+            return false;
+        }
+
+        // Parse the JSON.
+        std::string exc_what;
+        try {
+            *j = nlohmann::json::parse(request.body.begin(), request.body.end());
+        } catch (const nlohmann::json::exception &exc) {
+            server->SendResponse(request, HTTPResponse::BadRequest("JSON parse error: %s", exc.what()));
+            return false;
+        }
+
+        return true;
     }
 };
 

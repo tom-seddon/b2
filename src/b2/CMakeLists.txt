@@ -52,6 +52,7 @@ add_library(b2_lib STATIC
   LoadMemoryDiscImage.cpp LoadMemoryDiscImage.h
   json.h json.cpp
   miniz.cpp
+  http_api.cpp http_api.h
   )
 
 if(OSX)
