@@ -4245,17 +4245,17 @@ void BeebWindow::DoPaste(bool add_return) {
         // Convert UTF-8 into BBC-friendly ASCII.
         std::string ascii;
         {
-            uint32_t bad_codepoint;
-            const uint8_t *bad_char_start;
+            int32_t bad_codepoint;
+            size_t bad_char_start;
             int bad_char_len;
             if (!GetBBCASCIIFromUTF8(&ascii, utf8, &bad_codepoint, &bad_char_start, &bad_char_len)) {
-                if (bad_codepoint == 0) {
+                if (bad_codepoint < 0) {
                     m_msg.e.f("Clipboard contents are not valid UTF-8 text\n");
                 } else {
                     m_msg.e.f("Invalid character: ");
 
                     if (bad_codepoint >= 32) {
-                        m_msg.e.f("'%.*s', ", bad_char_len, bad_char_start);
+                        m_msg.e.f("'%.*s', ", bad_char_len, &utf8[bad_char_start]);
                     }
 
                     m_msg.e.f("%u (0x%X)\n", bad_codepoint, bad_codepoint);

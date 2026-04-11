@@ -388,6 +388,93 @@ static void TestGuid() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+namespace nlohmann {
+    template <>
+    struct adl_serializer<std::variant<uint8_t, std::string>> {
+        static void from_json(const json &j, std::variant<uint8_t, std::string> &v) {
+            if (j.is_string()) {
+                v = j.get<std::string>();
+            } else if (j.is_number_unsigned()) {
+                uint64_t value = j.get<uint64_t>();
+                if (value >= 256) {
+                    throw nlohmann::json::type_error::create(302, strprintf("invalid uint8_t value: %" PRIu64, value), nullptr);
+                }
+
+                v = (uint8_t)value;
+            } else {
+                throw nlohmann::json::type_error::create(302, "value not uint8_t or string", nullptr);
+            }
+        }
+    };
+} // namespace nlohmann
+
+struct VariantTest2 {
+    std::variant<uint8_t, std::string> value;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(VariantTest2, value);
+
+struct VariantTest1 {
+    std::vector<std::variant<uint8_t, std::string>> bytes;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(VariantTest1, bytes);
+
+static void TestVariant() {
+    VariantTest1 test1;
+    printf("%s: size=%zu\n", __func__, sizeof test1.bytes[0]);
+
+    std::string test1_str = "{\"bytes\":[\"str\",5,6,\"str2\"]}";
+    nlohmann::json j;
+    try {
+        j = nlohmann::json::parse(test1_str);
+    } catch (const nlohmann::json::exception &exc) {
+        TEST_FAIL("json parse exception: %s\n", exc.what());
+    }
+
+    try {
+        test1 = j.get<VariantTest1>();
+    } catch (const nlohmann::json::exception &exc) {
+        TEST_FAIL("json get exception: %s\n", exc.what());
+    }
+
+    TEST_EQ_UU(test1.bytes.size(), 4);
+
+    const std::string *s;
+    const uint8_t *u;
+
+    s = std::get_if<std::string>(&test1.bytes[0]);
+    TEST_NON_NULL(s);
+    TEST_EQ_SS(*s, "str");
+
+    u = std::get_if<uint8_t>(&test1.bytes[1]);
+    TEST_NON_NULL(u);
+    TEST_EQ_UU(*u, 5);
+
+    u = std::get_if<uint8_t>(&test1.bytes[2]);
+    TEST_NON_NULL(u);
+    TEST_EQ_UU(*u, 6);
+
+    s = std::get_if<std::string>(&test1.bytes[3]);
+    TEST_NON_NULL(s);
+    TEST_EQ_SS(*s, "str2");
+
+    //    std::string test2_str = "{\"value\":5}";
+    //    try {
+    //        j = nlohmann::json::parse(test2_str);
+    //    } catch (const nlohmann::json::exception &exc) {
+    //        TEST_FAIL("json parse exception: %s\n", exc.what());
+    //    }
+    //
+    //    VariantTest2 test2;
+    //    try {
+    //        test2 = j.get<VariantTest2>();
+    //    } catch (const nlohmann::json::exception &exc) {
+    //        TEST_FAIL("json parse exception: %s\n", exc.what());
+    //    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char *argv[]) {
     (void)argc, (void)argv;
 
@@ -483,6 +570,8 @@ int main(int argc, char *argv[]) {
     fputs(serialize2.c_str(), stdout);
 
     TestGuid();
+
+    TestVariant();
 
     return 0;
 }

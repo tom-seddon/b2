@@ -187,14 +187,19 @@ bool GetUInt64FromString(uint64_t *value, const char *str, int radix = 0, const 
 
 // returns true on success, or false on failure.
 //
-// TODO: should be std::vector<uint8_t> *bbc_ascii -
-bool GetBBCASCIIFromUTF8(std::string *ascii,
-                         const std::vector<uint8_t> &data,
-                         uint32_t *bad_codepoint_ptr,
-                         const uint8_t **bad_char_start_ptr,
-                         int *bad_char_len_ptr);
+// On failure:
+//
+// 1. If *bad_codepoint_ptr<0, the UTF-8 was generally invalid. *bad_char_start_ptr points to the start of the invalid char. *bad_char_len_ptr is indeterminate.
+//
+// 2. If *bad_codepoint_ptr>=0, the UTF-8 was apparently valid up to that point, but one of the chars is not BBC-friendly. *bad_codepoint_ptr is the codepoint of the problem char. *bad_char_start_ptr points to the start of the UTF-8 for that char. *bad_char_len_ptr is the length of the UTF-8 for that char.
+//
+// TODO: should be std::vector<uint8_t> *bbc_ascii
 
-// returns 0 on success, or the unsupported codepoint on failure.q
+bool GetBBCASCIIFromUTF8(std::string *ascii, const uint8_t *data, size_t data_size_bytes, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr);
+bool GetBBCASCIIFromUTF8(std::string *ascii, const std::string &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr);
+bool GetBBCASCIIFromUTF8(std::string *ascii, const std::vector<uint8_t> &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr);
+
+// returns 0 on success, or the unsupported codepoint on failure.
 uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii,
                                   const std::vector<uint8_t> &data);
 

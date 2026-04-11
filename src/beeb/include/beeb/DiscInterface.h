@@ -102,7 +102,7 @@ class DiscInterface {
 // This disc interface is used for the B+ and B+128.
 extern const DiscInterface &DISC_INTERFACE_ACORN_1770;
 
-// This disc interface is used for the Master 128.
+// This disc interface is used for the Master 128/Compact.
 extern const DiscInterface &DISC_INTERFACE_MASTER128;
 
 // Other BBC B disk interfaces.

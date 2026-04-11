@@ -355,8 +355,8 @@ class TestUTF8 : public Test {
             std::string utf8 = GetUTF8FromBBCASCII(annoying_chars, BBCUTF8ConvertMode_SAA5050, false);
             std::string ascii;
 
-            uint32_t bad_codepoint;
-            const uint8_t *bad_char_start;
+            int32_t bad_codepoint;
+            size_t bad_char_start;
             int bad_char_len;
             TEST_TRUE(GetBBCASCIIFromUTF8(&ascii, std::vector<uint8_t>(utf8.begin(), utf8.end()), &bad_codepoint, &bad_char_start, &bad_char_len));
             TEST_EQ_SS(ascii, std::string(annoying_chars.begin(), annoying_chars.end()));

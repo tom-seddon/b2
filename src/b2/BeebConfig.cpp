@@ -32,7 +32,7 @@ ROMType BeebConfig::SidewaysROM::GetROMType() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, size_t size, Messages *msg) {
+static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, size_t size, const LogSet *logs) {
     std::string path;
     if (rom.standard_rom) {
         path = rom.standard_rom->GetAssetPath();
@@ -40,12 +40,12 @@ static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, siz
         path = rom.file_name;
     }
 
-    if (!LoadFile(data, path, msg)) {
+    if (!LoadFile(data, path, logs)) {
         return false;
     }
 
     if (data->size() > size) {
-        msg->e.f(
+        logs->e.f(
             "ROM too large (%zu bytes; max: %zu bytes): %s\n",
             data->size(),
             size,
@@ -57,9 +57,9 @@ static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, siz
 }
 
 template <size_t SIZE>
-static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::ROM &rom, Messages *msg) {
+static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::ROM &rom, const LogSet *logs) {
     std::vector<uint8_t> data;
-    if (!LoadROM2(&data, rom, SIZE, msg)) {
+    if (!LoadROM2(&data, rom, SIZE, logs)) {
         return nullptr;
     }
 
@@ -77,16 +77,16 @@ static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::RO
 }
 
 static std::shared_ptr<std::vector<uint8_t>> LoadSidewaysROM(const BeebConfig::SidewaysROM &rom,
-                                                             Messages *msg) {
+                                                             const LogSet *logs) {
     const ROMTypeMetadata *metadata = GetROMTypeMetadata(rom.GetROMType());
 
     if (metadata->num_bytes == 0) {
-        msg->e.f("ROM type not loadable from file: %s\n", metadata->description);
+        logs->e.f("ROM type not loadable from file: %s\n", metadata->description);
         return nullptr;
     }
 
     std::vector<uint8_t> data;
-    if (!LoadROM2(&data, rom, metadata->num_bytes, msg)) {
+    if (!LoadROM2(&data, rom, metadata->num_bytes, logs)) {
         return nullptr;
     }
 
@@ -515,69 +515,17 @@ const BeebConfig *GetDefaultBeebConfigByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type) {
-//    switch (type->type_id) {
-//    case BBCMicroTypeID_Master:
-//        return g_default_master_128_nvram_contents;
-//
-//    case BBCMicroTypeID_MasterCompact:
-//        return g_default_master_compact_nvram_contents;
-//
-//    default:
-//        return std::vector<uint8_t>();
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void ResetDefaultNVRAMContents(const BBCMicroType *type) {
-//    switch (type->type_id) {
-//    default:
-//        break;
-//
-//    case BBCMicroTypeID_Master:
-//        g_default_master_128_nvram_contents = GetDefaultMaster128NVRAM();
-//        break;
-//
-//    case BBCMicroTypeID_MasterCompact:
-//        g_default_master_compact_nvram_contents = GetDefaultMasterCompactNVRAM();
-//        break;
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void SetDefaultNVRAMContents(const BBCMicroType *type, std::vector<uint8_t> nvram_contents) {
-//    switch (type->type_id) {
-//    default:
-//        break;
-//
-//    case BBCMicroTypeID_Master:
-//        g_default_master_128_nvram_contents = std::move(nvram_contents);
-//        break;
-//
-//    case BBCMicroTypeID_MasterCompact:
-//        g_default_master_compact_nvram_contents = std::move(nvram_contents);
-//        break;
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebLoadedConfig::Load(
     BeebLoadedConfig *dest,
     const BeebConfig &src,
     const BeebConfigArguments &arguments,
-    Messages *msg) {
+    const LogSet *logs) {
     dest->config = src;
     dest->arguments = arguments;
 
     size_t sideways_roms_end;
     if (dest->config.os.standard_rom || dest->config.os_rom_type == OSROMType_16KB) {
-        dest->os = LoadOSROM<16384>(dest->config.os, msg);
+        dest->os = LoadOSROM<16384>(dest->config.os, logs);
         if (!dest->os) {
             return false;
         }
@@ -599,12 +547,12 @@ bool BeebLoadedConfig::Load(
         ASSERT(metadata);
 
         std::vector<uint8_t> data;
-        if (!LoadFile(&data, dest->config.os.file_name, msg)) {
+        if (!LoadFile(&data, dest->config.os.file_name, logs)) {
             return false;
         }
 
         if (data.size() != metadata->file_size_bytes) {
-            msg->e.f("%s ROM is %zu bytes, not %zu bytes as expected: %s\n", metadata->description, data.size(), data.size(), dest->config.os.file_name.c_str());
+            logs->e.f("%s ROM is %zu bytes, not %zu bytes as expected: %s\n", metadata->description, data.size(), data.size(), dest->config.os.file_name.c_str());
             return false;
         }
 
@@ -633,7 +581,7 @@ bool BeebLoadedConfig::Load(
         BeebConfig::SidewaysROM *rom = &dest->config.roms[i];
 
         if (rom->standard_rom || !rom->file_name.empty()) {
-            dest->roms[i] = LoadSidewaysROM(*rom, msg);
+            dest->roms[i] = LoadSidewaysROM(*rom, logs);
 
             // Allow a sideways ROM load failure. The message will get printed
             // out.
@@ -660,7 +608,7 @@ bool BeebLoadedConfig::Load(
 
     if (parasite_os) {
         if (parasite_os->standard_rom || !parasite_os->file_name.empty()) {
-            dest->parasite_os = LoadOSROM<4096>(*parasite_os, msg);
+            dest->parasite_os = LoadOSROM<4096>(*parasite_os, logs);
             if (!dest->parasite_os) {
                 return false;
             }
@@ -670,7 +618,7 @@ bool BeebLoadedConfig::Load(
     bool any_hard_disk_failures = false;
     for (size_t i = 0; i < NUM_HARD_DISKS; ++i) {
         if (!src.hard_disk_dat_paths[i].empty()) {
-            dest->hard_disk_images.images[i] = HardDiskImage::CreateForFile(src.hard_disk_dat_paths[i], msg);
+            dest->hard_disk_images.images[i] = HardDiskImage::CreateForFile(src.hard_disk_dat_paths[i], logs);
             if (!dest->hard_disk_images.images[i]) {
                 any_hard_disk_failures = true;
                 // (but carry on, to note any additional failures)

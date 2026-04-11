@@ -684,11 +684,7 @@ static void InitUTF8ConvertTables() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetBBCASCIIFromUTF8(std::string *ascii,
-                         const std::vector<uint8_t> &data,
-                         uint32_t *bad_codepoint_ptr,
-                         const uint8_t **bad_char_start_ptr,
-                         int *bad_char_len_ptr) {
+bool GetBBCASCIIFromUTF8(std::string *ascii, const uint8_t *data, size_t data_size_bytes, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
     uint32_t state = UTF8_ACCEPT, codepoint;
 
     InitUTF8ConvertTables();
@@ -696,23 +692,22 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
     ascii->clear();
     size_t char_start = 0;
 
-    uint32_t bad_codepoint = 0;
-    const uint8_t *bad_char_start = nullptr;
+    int32_t bad_codepoint = -1;
     int bad_char_len = 0;
 
-    for (size_t i = 0; i < data.size(); ++i) {
+    for (size_t i = 0; i < data_size_bytes; ++i) {
         decode(&state, &codepoint, data[i]);
         if (state == UTF8_ACCEPT) {
             auto &&it = g_bbc_char_by_codepoint.find(codepoint);
             if (it == g_bbc_char_by_codepoint.end()) {
-                bad_codepoint = codepoint;
-                bad_char_start = &data[char_start];
+                bad_codepoint = (int32_t)codepoint; //cast is safe - Unicode codepoints are <32 bits
                 bad_char_len = (int)(i - char_start);
 
                 goto bad;
             }
 
             ascii->push_back(it->second);
+            char_start = i + 1;
         } else if (state == UTF8_REJECT) {
             goto bad;
         }
@@ -726,7 +721,7 @@ bad:;
     }
 
     if (bad_char_start_ptr) {
-        *bad_char_start_ptr = bad_char_start;
+        *bad_char_start_ptr = char_start;
     }
 
     if (bad_char_len_ptr) {
@@ -734,6 +729,14 @@ bad:;
     }
 
     return false;
+}
+
+bool GetBBCASCIIFromUTF8(std::string *ascii, const std::string &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
+    return GetBBCASCIIFromUTF8(ascii, (const uint8_t *)data.data(), data.size(), bad_codepoint_ptr, bad_char_start_ptr, bad_char_len_ptr);
+}
+
+bool GetBBCASCIIFromUTF8(std::string *ascii, const std::vector<uint8_t> &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
+    return GetBBCASCIIFromUTF8(ascii, data.data(), data.size(), bad_codepoint_ptr, bad_char_start_ptr, bad_char_len_ptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
