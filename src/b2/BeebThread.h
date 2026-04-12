@@ -100,6 +100,19 @@ struct BeebThreadTimelineState {
 
 static_assert(sizeof(std::atomic<CycleCount>) == sizeof(CycleCount), "atomic<CycleCount> has overhead...");
 
+// TODO: there's probably a more generic mechanism lurking in here somewhere.
+class OSWORD0Callback : public std::enable_shared_from_this<OSWORD0Callback> {
+  public:
+    OSWORD0Callback() = default;
+    virtual ~OSWORD0Callback() = default;
+
+    // called on some arbitrary thread.
+    virtual void ThreadOnOSWORD0(BeebThread *beeb_thread) = 0;
+
+  protected:
+  private:
+};
+
 class BeebThread {
     struct ThreadState;
 
@@ -938,24 +951,30 @@ class BeebThread {
       private:
     };
 
-    class StartCountingOSWORD0sMessage : public Message {
+    class AddOSWORD0CallbackMessage : public Message {
       public:
+        explicit AddOSWORD0CallbackMessage(std::shared_ptr<OSWORD0Callback> callback);
+
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
 
       protected:
       private:
+        std::shared_ptr<OSWORD0Callback> m_callback;
     };
 
-    class StopCountingOSWORD0sMessage : public Message {
+    class RemoveOSWORD0CallbackMessage : public Message {
       public:
+        explicit RemoveOSWORD0CallbackMessage(std::shared_ptr<OSWORD0Callback> callback);
+
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
 
       protected:
       private:
+        std::shared_ptr<OSWORD0Callback> m_callback;
     };
 
     struct AudioCallbackRecord {
@@ -1117,8 +1136,6 @@ class BeebThread {
 
     bool TakeNVRAMChanged();
 
-    uint64_t GetNumOSWORD0s() const;
-
   protected:
   private:
     struct AudioThreadData;
@@ -1174,7 +1191,6 @@ class BeebThread {
     std::atomic<size_t> m_printer_data_size_bytes{false};
     std::atomic<BBCMicroHaltReason> m_debug_halt_reason{BBCMicroHaltReason_None};
     std::atomic<uint32_t> m_update_flags{0};
-    std::atomic<uint64_t> m_num_osword0s{0};
 
     // Set if NVRAM changes. Query using TakeNVRAMChanged, which does an atomic
     // swap with false. (The way b2 is arranged, it's just a lot simpler to
@@ -1258,7 +1274,7 @@ class BeebThread {
 
     static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void *context);
-    static bool ThreadCountOSWORD0s(const BBCMicro *beeb, const M6502 *cpu, void *context);
+    static bool ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
 
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
     void ThreadReplaceBeebFromState(ThreadState *ts, const std::shared_ptr<const BeebState> &beeb_state, uint32_t flags);
@@ -1305,6 +1321,8 @@ class BeebThread {
     void ThreadNextReplayEvent(ThreadState *ts);
 
     void ThreadStopReplay(ThreadState *ts);
+
+    void ThreadUpdateOSWORD0Callbacks(ThreadState *ts);
 
     void SetLastTrace(std::shared_ptr<Trace> last_trace);
 

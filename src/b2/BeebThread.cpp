@@ -177,6 +177,8 @@ struct BeebThread::ThreadState {
     int mouse_total_dx = 0;
     int mouse_total_dy = 0;
 
+    std::vector<std::shared_ptr<OSWORD0Callback>> osword_0_callbacks;
+
     Log log{"BEEB  ", LOG(BTHREAD)};
     Messages msgs;
 };
@@ -1893,12 +1895,25 @@ bool BeebThread::MainThreadIsReadyMessage::ThreadPrepare(std::shared_ptr<Message
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::StartCountingOSWORD0sMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                             CompletionFun *completion_fun,
-                                                             ThreadState *ts) {
+BeebThread::AddOSWORD0CallbackMessage::AddOSWORD0CallbackMessage(std::shared_ptr<OSWORD0Callback> callback)
+    : m_callback(std::move(callback)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::AddOSWORD0CallbackMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                          CompletionFun *completion_fun,
+                                                          ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb->AddHostInstructionCallback(&BeebThread::ThreadCountOSWORD0s, ts);
+    if (std::find(ts->osword_0_callbacks.begin(),
+                  ts->osword_0_callbacks.end(),
+                  m_callback) == ts->osword_0_callbacks.end()) {
+        ts->osword_0_callbacks.push_back(m_callback);
+    }
+
+    ts->beeb_thread->ThreadUpdateOSWORD0Callbacks(ts);
 
     ptr->reset();
 
@@ -1908,12 +1923,24 @@ bool BeebThread::StartCountingOSWORD0sMessage::ThreadPrepare(std::shared_ptr<Mes
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::StopCountingOSWORD0sMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                            CompletionFun *completion_fun,
-                                                            ThreadState *ts) {
+BeebThread::RemoveOSWORD0CallbackMessage::RemoveOSWORD0CallbackMessage(std::shared_ptr<OSWORD0Callback> callback)
+    : m_callback(std::move(callback)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::RemoveOSWORD0CallbackMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                             CompletionFun *completion_fun,
+                                                             ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb->RemoveHostInstructionCallback(&BeebThread::ThreadCountOSWORD0s, ts);
+    ts->osword_0_callbacks.erase(std::remove(ts->osword_0_callbacks.begin(),
+                                             ts->osword_0_callbacks.end(),
+                                             m_callback),
+                                 ts->osword_0_callbacks.end());
+
+    ts->beeb_thread->ThreadUpdateOSWORD0Callbacks(ts);
 
     ptr->reset();
 
@@ -2581,13 +2608,6 @@ bool BeebThread::TakeNVRAMChanged() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint64_t BeebThread::GetNumOSWORD0s() const {
-    return m_num_osword0s.load(std::memory_order_acquire);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_DEBUGGER
 BBCMicroHaltReason BeebThread::DebugGetHaltReason() const {
     return m_debug_halt_reason.load(std::memory_order_acquire);
@@ -2796,12 +2816,14 @@ bool BeebThread::ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::ThreadCountOSWORD0s(const BBCMicro *beeb, const M6502 *cpu, void *context) {
+bool BeebThread::ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 *cpu, void *context) {
     (void)beeb;
     auto ts = (ThreadState *)context;
 
     if (cpu->pc.w == 0xfff2 && cpu->a == 0) {
-        ts->beeb_thread->m_num_osword0s.fetch_add(1, std::memory_order_acq_rel);
+        for (const std::shared_ptr<OSWORD0Callback> &callback : ts->osword_0_callbacks) {
+            callback->ThreadOnOSWORD0(ts->beeb_thread);
+        }
     }
 
     return true;
@@ -2950,12 +2972,13 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 
     ts->beeb->SetNVRAMChangedCallback(&BeebThread::ThreadHandleNVRAMChanged, this);
 
-    // The new BBC is never copying state. Either it came via
+    // The new BBC is never copying. Either it came via
     // ThreadReplaceBeebFromState (and was newly created there), or it came from
     // the HardReset message and was newly created there.
     //
     // This could be a bit tidier, but hangs together well enough.
     ts->beeb_thread->m_is_copying.store(false, std::memory_order_release);
+    this->ThreadUpdateOSWORD0Callbacks(ts);
 
     //m_paused=false;
 }
@@ -3915,6 +3938,17 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
     if (!!ts->timeline_replay_old_state) {
         this->ThreadReplaceBeebFromState(ts, ts->timeline_replay_old_state, 0);
         ts->timeline_replay_old_state.reset();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadUpdateOSWORD0Callbacks(ThreadState *ts) {
+    if (ts->osword_0_callbacks.empty()) {
+        ts->beeb->RemoveHostInstructionCallback(&BeebThread::ThreadHandleOSWORD0Callbacks, ts);
+    } else {
+        ts->beeb->AddHostInstructionCallback(&BeebThread::ThreadHandleOSWORD0Callbacks, ts);
     }
 }
 

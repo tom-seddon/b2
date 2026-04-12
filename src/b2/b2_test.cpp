@@ -1061,18 +1061,6 @@ static const BeebConfig *FindConfigByName(size_t *index, const std::string &name
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//static void WaitForOSWORD0(ImGuiTestContext *ctx, std::shared_ptr<BeebThread> beeb_thread, uint64_t *num_osword0s_ptr) {
-//    for (;;) {
-//        uint64_t num_osword0s = beeb_thread->GetNumOSWORD0s();
-//        if (num_osword0s > *num_osword0s_ptr) {
-//            *num_osword0s_ptr = num_osword0s;
-//            return;
-//        }
-//
-//        ctx->Yield();
-//    }
-//}
-
 class Yielder {
   public:
     explicit Yielder(ImGuiTestContext *ctx, BeebWindow *beeb_window, DearImGuiTest *test)
@@ -1166,6 +1154,21 @@ static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &be
     }
 }
 
+class CountOSWORD0s : public OSWORD0Callback {
+  public:
+    uint64_t GetNumOSWORD0s() const {
+        return m_num_osword_0s.load(std::memory_order_acquire);
+    }
+
+    void ThreadOnOSWORD0(BeebThread *) override {
+        m_num_osword_0s.fetch_add(1, std::memory_order_acq_rel);
+    }
+
+  protected:
+  private:
+    std::atomic<uint64_t> m_num_osword_0s{0};
+};
+
 // Do a *STATUS and retrieve the output.
 static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_window, DearImGuiTest *test) {
     // the captures here are a little questionable. But nothing will be out of scope at the wrong point!
@@ -1178,8 +1181,8 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_windo
     std::string text;
     std::atomic<bool> done = false;
 
-    uint64_t num_osword0s = beeb_thread->GetNumOSWORD0s();
-    beeb_thread->Send(std::make_shared<BeebThread::StartCountingOSWORD0sMessage>());
+    auto &&osword_0_counter = std::make_shared<CountOSWORD0s>();
+    beeb_thread->Send(std::make_shared<BeebThread::AddOSWORD0CallbackMessage>(osword_0_counter));
     beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([&done, &text](std::vector<uint8_t> data) {
         text = GetUTF8FromBBCASCII(data, BBCUTF8ConvertMode_PassThrough, false);
         done = true;
@@ -1190,7 +1193,7 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_windo
     PasteAndWait(&yielder, beeb_thread, "\r");
 
     yielder.Reset();
-    while (beeb_thread->GetNumOSWORD0s() == num_osword0s) {
+    while (osword_0_counter->GetNumOSWORD0s() == 0) {
         yielder.Yield();
     }
 
@@ -1199,6 +1202,8 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_windo
     while (!done) {
         yielder.Yield();
     }
+
+    beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWORD0CallbackMessage>(osword_0_counter));
 
     return text;
 }
