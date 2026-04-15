@@ -388,6 +388,25 @@ static void TestGuid() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+template <class T>
+static T LoadJSONString(const std::string &str, const char *func) {
+    nlohmann::json j;
+    try {
+        j = nlohmann::json::parse(str);
+    } catch (const nlohmann::json::exception &exc) {
+        TEST_FAIL("%s: json parse exception: %s", func, exc.what());
+    }
+
+    try {
+        return j.get<T>();
+    } catch (const nlohmann::json::exception &exc) {
+        TEST_FAIL("%s: json get exception: %s", func, exc.what());
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 namespace nlohmann {
     template <>
     struct adl_serializer<std::variant<uint8_t, std::string>> {
@@ -423,18 +442,8 @@ static void TestVariant() {
     printf("%s: size=%zu\n", __func__, sizeof test1.bytes[0]);
 
     std::string test1_str = "{\"bytes\":[\"str\",5,6,\"str2\"]}";
-    nlohmann::json j;
-    try {
-        j = nlohmann::json::parse(test1_str);
-    } catch (const nlohmann::json::exception &exc) {
-        TEST_FAIL("json parse exception: %s\n", exc.what());
-    }
 
-    try {
-        test1 = j.get<VariantTest1>();
-    } catch (const nlohmann::json::exception &exc) {
-        TEST_FAIL("json get exception: %s\n", exc.what());
-    }
+    test1 = LoadJSONString<VariantTest1>(test1_str, __func__);
 
     TEST_EQ_UU(test1.bytes.size(), 4);
 
@@ -470,6 +479,23 @@ static void TestVariant() {
     //    } catch (const nlohmann::json::exception &exc) {
     //        TEST_FAIL("json parse exception: %s\n", exc.what());
     //    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct StringTest1 {
+    std::string s;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StringTest1, s);
+
+static void TestString() {
+    std::string test1_str = "{\"s\":\"\\u0000\"}";
+
+    StringTest1 test1 = LoadJSONString<StringTest1>(test1_str, __func__);
+
+    TEST_EQ_UU(test1.s.size(), 1);
+    TEST_EQ_UU((unsigned)test1.s[0], 0u);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -572,6 +598,8 @@ int main(int argc, char *argv[]) {
     TestGuid();
 
     TestVariant();
+
+    TestString();
 
     return 0;
 }
