@@ -101,13 +101,36 @@ struct BeebThreadTimelineState {
 static_assert(sizeof(std::atomic<CycleCount>) == sizeof(CycleCount), "atomic<CycleCount> has overhead...");
 
 // TODO: there's probably a more generic mechanism lurking in here somewhere.
-class OSWORD0Callback : public std::enable_shared_from_this<OSWORD0Callback> {
+class OSWORD0Callback {
   public:
     OSWORD0Callback() = default;
     virtual ~OSWORD0Callback() = default;
 
     // called on some arbitrary thread.
-    virtual void ThreadOnOSWORD0(BeebThread *beeb_thread) = 0;
+    //
+    // Return true to leave the callback in place, or false to have it removed automatically.
+    [[nodiscard]] virtual bool ThreadOnOSWORD0(BeebThread *beeb_thread) = 0;
+
+  protected:
+  private:
+};
+
+class OSWRCHCallback {
+  public:
+    OSWRCHCallback() = default;
+    virtual ~OSWRCHCallback() = default;
+
+    // called on some arbitrary thread.
+    virtual void ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) = 0;
+
+    // TODO: I did have a plan for this, but it didn't pan immediately pan out.
+    //
+    //    // called when callback removed.
+    //    //
+    //    // If removed due to a RemoveOSWRCHCallback message, success; otherwise, not success.
+    //    //
+    //    // Default impl does nothing.
+    //    virtual void ThreadCallbackWasRemoved(bool success);
 
   protected:
   private:
@@ -128,6 +151,10 @@ class BeebThread {
                                       bool success,
                                       const char *message);
 
+        static void CallCompletionFun(CompletionFun &&completion_fun,
+                                      bool success,
+                                      std::string message);
+
         // Called on Beeb thread with m_mutex locked.
         //
         // Translate this, incoming message, into the message that will be
@@ -144,7 +171,7 @@ class BeebThread {
         // COMPLETION_FUN, if non-null, points to the completion fun to be
         // called when the message completes for the first time. ('completion'
         // is rather vaguely defined, and is message-dependent.) Leave this as
-        // it is to have the completion function called automatically, or move
+        // it is to have the completion function called automatically when ThreadHandle returns, or move
         // its contents for later calling to do it manually.
         //
         // Default impl does nothing and returns true (completion_fun will be
@@ -158,8 +185,11 @@ class BeebThread {
 
         // Called on the Beeb thread with m_mutex locked.
         //
+        // completion_fun may be null.
+        //
         // Default impl does nothing.
-        virtual void ThreadHandle(ThreadState *ts) const;
+        virtual void ThreadHandle(CompletionFun *completion_fun,
+                                  ThreadState *ts) const;
 
       protected:
         // Standard policies for use from the ThreadPrepare function.
@@ -220,7 +250,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -235,7 +266,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -250,7 +282,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -264,7 +297,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -279,7 +313,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -294,7 +329,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -302,23 +338,39 @@ class BeebThread {
         const BBCMicroState::DigitalJoystickInput m_state = {};
     };
 
+    // Completion criteria:
+    //
+    // Fail if replaying or halted.
+    //
+    // If OSWORD 0 flag specified: succeed when OSWORD 0 first called, or (when applicable) fail if OSWORD 0 not called within the timeout.
+    //
+    // If OSWORD 0 flag not specified: succeed when BBC reset with the new config.
     class HardResetMessage : public Message {
       public:
+        static constexpr double DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 0.;
+
         // Flags are a combination of BeebThreadHardResetFlag.
-        explicit HardResetMessage(uint32_t flags);
+        explicit HardResetMessage(uint32_t flags,
+                                  double osword_0_timeout_seconds = DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override = 0;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override = 0;
 
       protected:
         const uint32_t m_flags = 0;
 
-        void HardReset(
-            ThreadState *ts,
-            const BeebLoadedConfig &loaded_config,
-            const std::vector<uint8_t> &nvram_contents) const;
+        // How long to wait for the first OSWORD 0, if the WaitForOSWORD0 flag is specified.
+        //
+        // If 0, wait indefinitely.
+        const double m_osword_0_timeout_seconds = 0.;
+
+        void HardReset(CompletionFun *completion_fun,
+                       ThreadState *ts,
+                       const BeebLoadedConfig &loaded_config,
+                       const std::vector<uint8_t> &nvram_contents) const;
 
       private:
     };
@@ -326,13 +378,15 @@ class BeebThread {
     class HardResetAndChangeConfigMessage : public HardResetMessage {
       public:
         // Flags are a combination of BeebThreadHardResetFlag.
-        explicit HardResetAndChangeConfigMessage(uint32_t flags,
-                                                 BeebLoadedConfig loaded_config);
+        explicit HardResetAndChangeConfigMessage(BeebLoadedConfig loaded_config,
+                                                 uint32_t flags,
+                                                 double osword_0_timeout_seconds = DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -343,13 +397,14 @@ class BeebThread {
     class HardResetAndReloadConfigMessage : public HardResetMessage {
       public:
         // Flags are a combination of BeebThreadHardResetFlag.
-        explicit HardResetAndReloadConfigMessage(uint32_t flags);
+        explicit HardResetAndReloadConfigMessage(uint32_t flags,
+                                                 double osword_0_timeout_seconds = DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(
-            ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -388,7 +443,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -406,7 +462,8 @@ class BeebThread {
       public:
         explicit EjectDiscMessage(int drive);
 
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -445,7 +502,8 @@ class BeebThread {
       public:
         explicit SetDriveWriteProtectedMessage(int drive, bool is_write_protected);
 
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -469,7 +527,8 @@ class BeebThread {
         // This is a no-op. Whether saving or replaying, the current state is
         // the same. (At least... in principle. Maybe a check would be
         // worthwhile.)
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -646,7 +705,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -658,7 +718,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -710,7 +771,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -729,7 +791,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -748,7 +811,8 @@ class BeebThread {
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -764,7 +828,6 @@ class BeebThread {
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
-
                            ThreadState *ts) override;
 
       protected:
@@ -854,7 +917,8 @@ class BeebThread {
                            CompletionFun *completion_fun,
                            ThreadState *ts) override;
 
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -896,7 +960,8 @@ class BeebThread {
         //                   CompletionFun *completion_fun,
         //
         //                   ThreadState *ts) override;
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -919,7 +984,8 @@ class BeebThread {
       public:
         explicit MouseMotionMessage(int dx, int dy);
 
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -931,7 +997,8 @@ class BeebThread {
       public:
         explicit MouseButtonsMessage(uint8_t mask, uint8_t value);
 
-        void ThreadHandle(ThreadState *ts) const override;
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
 
       protected:
       private:
@@ -975,6 +1042,32 @@ class BeebThread {
       protected:
       private:
         std::shared_ptr<OSWORD0Callback> m_callback;
+    };
+
+    class AddOSWRCHCallbackMessage : public Message {
+      public:
+        explicit AddOSWRCHCallbackMessage(std::shared_ptr<OSWRCHCallback> callback);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+        std::shared_ptr<OSWRCHCallback> m_callback;
+    };
+
+    class RemoveOSWRCHCallbackMessage : public Message {
+      public:
+        explicit RemoveOSWRCHCallbackMessage(std::shared_ptr<OSWRCHCallback> callback);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+        std::shared_ptr<OSWRCHCallback> m_callback;
     };
 
     struct AudioCallbackRecord {
@@ -1275,6 +1368,7 @@ class BeebThread {
     static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
+    static bool ThreadHandleOSWRCHCallbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
 
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
     void ThreadReplaceBeebFromState(ThreadState *ts, const std::shared_ptr<const BeebState> &beeb_state, uint32_t flags);
@@ -1301,6 +1395,13 @@ class BeebThread {
     void ThreadStopRecording(ThreadState *ts);
     void ThreadClearRecording(ThreadState *ts);
     void ThreadCheckTimeline(ThreadState *ts);
+    void ThreadAddOSWORD0Callback(ThreadState *ts, std::shared_ptr<OSWORD0Callback> callback);
+    void ThreadRemoveOSWORD0Callback(ThreadState *ts, const std::shared_ptr<OSWORD0Callback> &callback);
+    void ThreadAddOSWRCHCallback(ThreadState *ts, std::shared_ptr<OSWRCHCallback> callback);
+    void ThreadRemoveOSWRCHCallback(ThreadState *ts, const std::shared_ptr<OSWRCHCallback> &callback, bool success);
+
+    // The timeout is not cycle-exact, but it will time out no sooner.
+    void ThreadAddCompletionTimeout(ThreadState *ts, std::shared_ptr<Message::CompletionFun> shared_completion_fun, double timeout_relative_seconds);
 
     // Delete one timeline save state event, leaving the timeline as intact as
     // possible.
@@ -1323,6 +1424,7 @@ class BeebThread {
     void ThreadStopReplay(ThreadState *ts);
 
     void ThreadUpdateOSWORD0Callbacks(ThreadState *ts);
+    void ThreadUpdateOSWRCHCallbacks(ThreadState *ts);
 
     void SetLastTrace(std::shared_ptr<Trace> last_trace);
 

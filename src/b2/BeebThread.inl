@@ -58,6 +58,11 @@ EPNV(Boot, 1 << 0)
 
 // Set the thing running, if it was stopped in the debugger.
 EPNV(Run, 1 << 1)
+
+// Wait for the first OSWORD 0 before calling the completion function.
+//
+// (Ignored if no completion function.)
+EPNV(WaitForOSWORD0, 1 << 2)
 EEND()
 #undef ENAME
 

@@ -9,6 +9,7 @@
 #include <shared/enums.h>
 #include <functional>
 #include "Messages.h"
+#include "b2.h"
 
 class BeebWindow;
 class BeebThread;
@@ -21,6 +22,33 @@ class BeebThread;
 // In the long run, the more ad-hoc shell-friendlier stuff will defer to this, in some documented fashion.
 //
 // Unlike most names in b2, these names have prefixes. This stuff may end up getting pulled out into a separate library.
+//
+// Ignore anything marked TODO:. These comments are for my benefit.
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(T,...) means struct T is part of the JSON API. Only structs tagged this way are part of the API.
+//
+// C++ types used, and how they map to JSON.
+//
+// - std::string - JSON string
+// - bool - JSON bool
+// - uint8_t - JSON number, integer 0-255
+// - uint16_t - JSON number, integer 0-65535
+// - std::vector<T> - JSON array of T
+// - nlohmann::json - JSON of any kind (probably depends on some other
+// - Enum<T> - JSON string, the name of one of the enum values of T
+// - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
+
+// If a field is std::optional<T>, its type is T (see above), and there is some specific handling when the field is absent.
+//
+// Otherwise, if the field is absent, it is treated as having its default value:
+//
+// - std::string - empty string
+// - bool, uint8_t, uint16_t, Enum<T> - as noted
+// - std::vector<T> - empty array
+// - nlohmann::json - null
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -53,20 +81,6 @@ class BeebThread;
 // - BBC ASCII 13 is passed through as U+000D CARRIAGE RETURN (CR)
 //
 // Other BBC ASCII values are rejected: which means they may get stripped out at source, or they may be encoded in some other fashion, depending on endpoint.
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-struct ApiRuntimeArgs {
-    // The BeebWindow of interest.
-    BeebWindow *beeb_window = nullptr;
-
-    // Result of beeb_window->GetBeebThread().
-    std::shared_ptr<BeebThread> beeb_thread;
-
-    // Specially created for the handler of this message, along with its MessageList.
-    std::shared_ptr<Messages> messages;
-};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -116,7 +130,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiROMContents, standard_rom, pa
 //////////////////////////////////////////////////////////////////////////
 
 struct ApiSidewaysROM {
-    int bank = 0;
+    uint8_t bank = 0;
 
     ApiROMContents contents;
 
@@ -128,7 +142,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSidewaysROM, bank, contents, 
 
 struct ApiOSROM {
     ApiROMContents contents;
-    OSROMType os_rom_type{OSROMType_16KB};
+    Enum<OSROMType> os_rom_type{OSROMType_16KB};
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiOSROM, contents, os_rom_type);
 
@@ -159,6 +173,8 @@ struct ApiConfigArgs {
     std::vector<uint8_t> nvram;
 
     std::optional<bool> mouse;
+
+    bool wait_for_osword_0 = false;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 base_stock_config,
@@ -192,16 +208,74 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, parts);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Execute the given request.
+static const char API_START_CAPTURE_OSWRCH_REQUEST_TYPE[] = "start_capture_oswrch";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE[] = "stop_capture_oswrch";
+
+struct ApiStopCaptureOSWRCHResult {
+    std::vector<std::variant<uint8_t, std::string>> parts;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, parts);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Use the list_values command to list values of whatever sort.
+//
+// Values marked "(configurable)" are configurable. The set of names returned can vary.
+// (TODO: is this even a good idea?)
+//
+// Other values are fixed, and will not change.
+
+static const char API_LIST_VALUES_REQUEST_TYPE[] = "list_values";
+
+struct ApiListValuesArgs {
+    // One of:
+    //
+    // - "StandardROM" - list StandardROM enum values
+    // - "OSROMType" - list OSROMType enum values
+    // - "ROMType" - list ROMType enum values
+    // - "stock_configs" - list stock config names, for possible use as base_stock_config for the config request type
+    // - "configs" (configurable) - list config names, for possible use as base_config for the config request type
+    std::string name;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesArgs, name);
+
+struct ApiListValuesResult {
+    std::vector<std::string> values;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Common arguments supplied to ApiExecuteSingleRequest and ApiExecuteMultipleRequests.
+//
+// TODO: the naming here is not great
+struct ApiRuntimeArgs {
+    BeebWindow *beeb_window = nullptr;
+
+    // Specially created for the handler of this message, along with its MessageList.
+    std::shared_ptr<Messages> messages;
+};
+
+// Execute the given request. Must be called on the main thread.
 //
 // RUNTIME_ARGS is the runtime args.
 //
 // REQUEST is the request.
 //
 // COMPLETION_FUN is the function to call on success/failure. The first argument is the success flag, and the second, ignored on failure, is the JSON-serialized request result.
-void ApiExecute(const ApiRuntimeArgs &runtime_args, const ApiRequest &request, std::function<void(bool, nlohmann::json)> completion_fun);
+void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
+                             ApiRequest request,
+                             std::function<void(bool, nlohmann::json)> completion_fun);
 
-void ApiExecute(const ApiRuntimeArgs &runtime_args, ApiMultipleRequests requests, std::function<void(bool, nlohmann::json)> completion_fun);
+void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
+                                ApiMultipleRequests request,
+                                std::function<void(bool, nlohmann::json)> completion_fun);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

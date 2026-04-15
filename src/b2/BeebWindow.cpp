@@ -750,6 +750,39 @@ bool BeebWindow::OptionsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
+  public:
+    CopyOSWRCHCallback() {
+        MUTEX_SET_NAME(m_mutex, "CopyOSWRCHCallback");
+    }
+
+    void ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) {
+        (void)beeb_thread;
+
+        LockGuard<Mutex> lock(m_mutex);
+
+        if (m_capturing) {
+            m_data.push_back(a);
+        }
+    }
+
+    void TakeDataAndStopCapturing(std::vector<uint8_t> *data) {
+        LockGuard<Mutex> lock(m_mutex);
+
+        *data = std::move(m_data);
+        m_capturing = false;
+    }
+
+  protected:
+  private:
+    Mutex m_mutex;
+    std::vector<uint8_t> m_data;
+    bool m_capturing = true;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments))
 #if BBCMICRO_DEBUGGER
@@ -3724,7 +3757,7 @@ bool BeebWindow::InitInternal() {
         ASSERT(!m_init_arguments.boot);
         m_init_arguments.boot = false;
     } else {
-        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0, m_init_arguments.default_config));
+        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(m_init_arguments.default_config, 0));
 
         // If there were any discs mounted, or there's any booting needed,
         // another reboot will be necessary. This can't all be done with one
@@ -3748,7 +3781,7 @@ bool BeebWindow::InitInternal() {
         }
 
         if (flags != 0) {
-            m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags, m_init_arguments.default_config));
+            m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(m_init_arguments.default_config, flags));
         }
     }
 
@@ -4119,6 +4152,31 @@ std::vector<uint8_t> BeebWindow::GetR8G8B8A8DisplayData() const {
     }
 
     return data;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::StartCopyOSWRCH() {
+    if (!m_copy_oswrch_callback) {
+        m_copy_oswrch_callback = std::make_shared<CopyOSWRCHCallback>();
+        m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_copy_oswrch_callback));
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::StopCopyOSWRCH(std::vector<uint8_t> *data) {
+    if (!m_copy_oswrch_callback) {
+        return false;
+    } else {
+        m_copy_oswrch_callback->TakeDataAndStopCapturing(data);
+        m_beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWRCHCallbackMessage>(m_copy_oswrch_callback));
+        m_copy_oswrch_callback = nullptr;
+
+        return true;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4539,7 +4597,7 @@ bool BeebWindow::HardReset(const BeebConfig &config, const BeebConfigArguments &
     if (BeebLoadedConfig::Load(&tmp, config, arguments, &m_msg)) {
         m_init_arguments.default_config = std::move(tmp);
 
-        auto message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags, m_init_arguments.default_config);
+        auto message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(m_init_arguments.default_config, flags);
 
         m_beeb_thread->Send(std::move(message));
 

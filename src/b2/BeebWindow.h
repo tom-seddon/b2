@@ -321,6 +321,7 @@ class BeebWindow {
 
     class OptionsUI;
     class ImGuiDebugUI;
+    class CopyOSWRCHCallback;
 
     static const char SDL_WINDOW_DATA_NAME[];
 
@@ -425,6 +426,9 @@ class BeebWindow {
 
     // Get recent display data, suitable for saving with stbimage_write.
     std::vector<uint8_t> GetR8G8B8A8DisplayData() const;
+
+    void StartCopyOSWRCH();
+    bool StopCopyOSWRCH(std::vector<uint8_t> *data);
 
   protected:
   private:
@@ -599,6 +603,8 @@ class BeebWindow {
     TimerDef *m_HandleVBlank_UpdateTVTexture_Copy_timer_def = nullptr;
     TimerDef *m_HandleVBlank_RenderSDL_timer_def = nullptr;
     TimerDef *m_HandleVBlank_DoImGui_timer_def = nullptr;
+
+    std::shared_ptr<CopyOSWRCHCallback> m_copy_oswrch_callback;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

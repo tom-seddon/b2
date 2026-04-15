@@ -8,6 +8,56 @@
 #include "BeebWindows.h"
 #include "misc.h"
 #include <shared/strings.h>
+#include "b2.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Common arguments supplied to the ApiExecuteXXXRequest functions.
+struct ApiExecuteArgs {
+    // Do not pass to later stages of the execution.
+    BeebWindow *beeb_window = nullptr;
+
+    // If passing to later stages of the execution, pass a weak_ptr<BeebThread>.
+    std::shared_ptr<BeebThread> beeb_thread;
+
+    // OK to pass to later stages of the execution.
+    std::shared_ptr<Messages> messages;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<std::variant<uint8_t, std::string>> {
+        static void from_json(const json &j, std::variant<uint8_t, std::string> &v) {
+            if (j.is_string()) {
+                v = j.get<std::string>();
+            } else if (j.is_number_unsigned()) {
+                uint64_t value = j.get<uint64_t>();
+                if (value >= 256) {
+                    throw nlohmann::json::type_error::create(302, strprintf("invalid uint8_t value: %" PRIu64, value), nullptr);
+                }
+
+                v = (uint8_t)value;
+            } else {
+                throw nlohmann::json::type_error::create(302, "value not uint8_t or string", nullptr);
+            }
+        }
+
+        static void to_json(json &j, const std::variant<uint8_t, std::string> &v) {
+            if (const uint8_t *u = std::get_if<uint8_t>(&v)) {
+                j = *u;
+            } else if (const std::string *s = std::get_if<std::string>(&v)) {
+                j = *s;
+            } else {
+                ASSERT(false);
+                j = {};
+            }
+        }
+    };
+} // namespace nlohmann
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -35,7 +85,7 @@ static void SetOptional(T *dest, const std::optional<T> &src) {
     }
 }
 
-bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, const LogSet *logs) {
+static bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, const LogSet *logs) {
     BeebConfig dest;
 
     if (!src.base_stock_config.empty()) {
@@ -131,56 +181,70 @@ bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, const LogSe
     return true;
 }
 
-// All the execute functions have this sort of signature.
-//
-// RUNTIME_ARGS is the runtime arguments, put together by b2 to make the call.
-//
-// REQUEST_ARGS is the request arguments, probably deserialized from the HTTP request's body.
-//
-// COMPLETION_FUN is the completion function, to be called on success/failure. The first argument is the success flag, and the second, which is ignored on failure, is the request result (or std::nullptr_t if the request returns no specific result).
-void ApiExecuteConfigRequest(const ApiRuntimeArgs &runtime_args, ApiConfigArgs &&request_args, std::function<void(bool, const std::nullptr_t &)> completion_fun) {
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class ConfigWaitForOSWORD0Callback : OSWORD0Callback {
+  public:
+    ConfigWaitForOSWORD0Callback(std::function<void(bool, std::nullptr_t &&)> completion_fun)
+        : m_completion_fun(std::move(completion_fun)) {
+    }
+
+    bool ThreadOnOSWORD0(BeebThread *beeb_thread) override {
+        (void)beeb_thread;
+
+        m_completion_fun(true, nullptr);
+
+        return false;
+    }
+
+  protected:
+  private:
+    std::function<void(bool, std::nullptr_t &&)> m_completion_fun;
+};
+
+static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
+                                    ApiConfigArgs &&request_args,
+                                    std::function<void(bool, std::nullptr_t &&)> completion_fun) {
+    ASSERT(IsMainThread());
+
     BeebLoadedConfig loaded_config;
-    if (!Load(&loaded_config, request_args, runtime_args.messages.get())) {
+    if (!Load(&loaded_config, request_args, execute_args.messages.get())) {
         completion_fun(false, nullptr);
         return;
     }
 
-    std::function<void(bool, std::string)> message_completion_fun = [completion_fun, messages = runtime_args.messages](bool success, std::string message) {
+    std::function<void(bool, std::string)> message_completion_fun = [completion_fun,
+                                                                     messages = execute_args.messages](bool success,
+                                                                                                       std::string message) {
         if (!success) {
             messages->e.f("%s failed: %s\n", API_CONFIG_REQUEST_TYPE, message.c_str());
         }
         completion_fun(success, nullptr);
     };
 
-    runtime_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(BeebThreadHardResetFlag_Run, loaded_config),
+    auto &&message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config), BeebThreadHardResetFlag_Run);
+
+    uint32_t flags = BeebThreadHardResetFlag_Run;
+    double osword_0_timeout_seconds = BeebThread::HardResetMessage::DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
+
+    if (request_args.wait_for_osword_0) {
+        flags |= BeebThreadHardResetFlag_WaitForOSWORD0;
+        osword_0_timeout_seconds = 15.; //TODO: should probably be configurable?
+    }
+
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config),
+                                                                                                 flags,
+                                                                                                 osword_0_timeout_seconds),
                                    std::move(message_completion_fun));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Helper for ApiPasteArgs.
-namespace nlohmann {
-    template <>
-    struct adl_serializer<std::variant<uint8_t, std::string>> {
-        static void from_json(const json &j, std::variant<uint8_t, std::string> &v) {
-            if (j.is_string()) {
-                v = j.get<std::string>();
-            } else if (j.is_number_unsigned()) {
-                uint64_t value = j.get<uint64_t>();
-                if (value >= 256) {
-                    throw nlohmann::json::type_error::create(302, strprintf("invalid uint8_t value: %" PRIu64, value), nullptr);
-                }
-
-                v = (uint8_t)value;
-            } else {
-                throw nlohmann::json::type_error::create(302, "value not uint8_t or string", nullptr);
-            }
-        }
-    };
-} // namespace nlohmann
-
-void ApiExecutePasteRequest(const ApiRuntimeArgs &runtime_args, ApiPasteArgs &&request_args, std::function<void(bool, const std::nullptr_t &)> completion_fun) {
+static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
+                                   ApiPasteArgs &&request_args,
+                                   std::function<void(bool, std::nullptr_t &&)> completion_fun) {
     std::string text;
     for (size_t i = 0; i < request_args.parts.size(); ++i) {
         if (const uint8_t *byte = std::get_if<uint8_t>(&request_args.parts[i])) {
@@ -192,10 +256,10 @@ void ApiExecutePasteRequest(const ApiRuntimeArgs &runtime_args, ApiPasteArgs &&r
         }
     }
 
-    runtime_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
 
-    runtime_args.beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(text)),
-                                   [completion_fun, messages = runtime_args.messages](bool success, std::string message) {
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(text)),
+                                   [completion_fun, messages = execute_args.messages](bool success, std::string message) {
                                        if (!success) {
                                            messages->e.f("%s failed: %s\n", API_PASTE_REQUEST_TYPE, message.c_str());
                                        }
@@ -206,46 +270,192 @@ void ApiExecutePasteRequest(const ApiRuntimeArgs &runtime_args, ApiPasteArgs &&r
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void ApiExecuteStartCaptureOSWRCHRequest(const ApiExecuteArgs &execute_args,
+                                                std::nullptr_t &&,
+                                                std::function<void(bool, std::nullptr_t &&)> completion_fun) {
+    execute_args.beeb_window->StartCopyOSWRCH();
+    completion_fun(true, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void ApiExecuteStopCaptureOSWRCHRequest(const ApiExecuteArgs &execute_args,
+                                               std::nullptr_t &&,
+                                               std::function<void(bool, ApiStopCaptureOSWRCHResult &&)> completion_fun) {
+    std::vector<uint8_t> copied_data;
+    if (!execute_args.beeb_window->StopCopyOSWRCH(&copied_data)) {
+        execute_args.messages->e.f("Not copying\n");
+        completion_fun(false, {});
+        return;
+    }
+
+    ApiStopCaptureOSWRCHResult result;
+
+    std::string *str_part = nullptr;
+    for (uint8_t byte : copied_data) {
+        if (byte == 10 || byte == 13 || (byte >= 32 && byte < 127)) {
+            if (!str_part) {
+                str_part = &std::get<std::string>(result.parts.emplace_back());
+            }
+
+            str_part->push_back((char)byte);
+        } else {
+            str_part = nullptr;
+            result.parts.push_back(byte);
+        }
+    }
+
+    completion_fun(true, std::move(result));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template <class T>
+static std::vector<std::string> ListOrdinaryEnumValues(const char *(*get_enum_name_fn)(T)) {
+    std::vector<std::string> names;
+
+    T value = 0;
+    for (;;) {
+        const char *name = (*get_enum_name_fn)(value);
+        if (name[0] == '?') {
+            break;
+        }
+
+        names.push_back(name);
+
+        ++value;
+    }
+
+    return names;
+}
+
+static std::vector<std::string> GetBeebConfigNames(size_t (*get_num_configs_fn)(),
+                                                   const BeebConfig *(*get_config_by_index_fn)(size_t)) {
+    std::vector<std::string> names;
+
+    size_t n = (*get_num_configs_fn)();
+    for (size_t i = 0; i < n; ++i) {
+        const BeebConfig *config = (*get_config_by_index_fn)(i);
+        names.push_back(config->name);
+    }
+
+    return names;
+}
+
+static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
+                                 ApiListValuesArgs &&request_args,
+                                 std::function<void(bool, ApiListValuesResult &&)> completion_fun) {
+    ApiListValuesResult result;
+    if (request_args.name == "StandardROM") {
+        result.values = ListOrdinaryEnumValues(&GetStandardROMEnumName);
+    } else if (request_args.name == "ROMType") {
+        result.values = ListOrdinaryEnumValues(&GetROMTypeEnumName);
+    } else if (request_args.name == "OSROMType") {
+        result.values = ListOrdinaryEnumValues(&GetOSROMTypeEnumName);
+    } else if (request_args.name == "stock_configs") {
+        result.values = GetBeebConfigNames(&GetNumDefaultBeebConfigs, &GetDefaultBeebConfigByIndex);
+    } else if (request_args.name == "configs") {
+        result.values = GetBeebConfigNames(&BeebWindows::GetNumConfigs, &BeebWindows::GetConfigByIndex);
+    } else {
+        execute_args.messages->e.f("unknown enum: %s\n", request_args.name.c_str());
+        completion_fun(false, {});
+        return;
+    }
+
+    completion_fun(true, std::move(result));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 template <class ArgsType, class ResultType>
-static void HandleApiExecute(const ApiRuntimeArgs &runtime_args,
+static void HandleApiExecute(const ApiExecuteArgs &execute_args,
                              const ApiRequest &request,
                              std::function<void(bool, nlohmann::json)> completion_fun,
-                             void (*execute_fn)(const ApiRuntimeArgs &,
+                             void (*execute_fn)(const ApiExecuteArgs &,
                                                 ArgsType &&,
-                                                std::function<void(bool, const ResultType &)>)) {
+                                                std::function<void(bool, ResultType &&)>),
+                             bool requires_beeb_window) {
+    if (requires_beeb_window) {
+        if (!execute_args.beeb_window) {
+            execute_args.messages->e.f("Must specify window\n");
+            completion_fun(false, nullptr);
+            return;
+        }
+    }
+
     std::string exc_what;
     ArgsType request_args;
 
     if (!LoadJSON(&request_args, request.args, &exc_what)) {
-        runtime_args.messages->e.f("Args parse failed: %s\n", exc_what.c_str());
+        execute_args.messages->e.f("Args parse failed: %s\n", exc_what.c_str());
         completion_fun(false, nullptr);
         return;
     }
 
-    (*execute_fn)(runtime_args,
+    (*execute_fn)(execute_args,
                   std::move(request_args),
-                  [completion_fun](bool success, ResultType result) -> void {
-                      completion_fun(success, result);
+                  [completion_fun](bool success, ResultType &&result) -> void {
+                      completion_fun(success, std::move(result));
                   });
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ApiExecute(const ApiRuntimeArgs &runtime_args, const ApiRequest &request, std::function<void(bool, nlohmann::json)> completion_fun) {
+static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
+                                 ApiRequest request,
+                                 std::function<void(bool, nlohmann::json)> completion_fun) {
     if (request.type == API_CONFIG_REQUEST_TYPE) {
-        HandleApiExecute(runtime_args, request, completion_fun, &ApiExecuteConfigRequest);
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteConfigRequest, true);
+    } else if (request.type == API_PASTE_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePasteRequest, true);
+    } else if (request.type == API_START_CAPTURE_OSWRCH_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCaptureOSWRCHRequest, true);
+    } else if (request.type == API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCHRequest, true);
+    } else if (request.type == API_LIST_VALUES_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
     } else {
-        runtime_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
+        execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun(false, nullptr);
     }
+}
+
+static std::shared_ptr<BeebThread> GetBeebThread(BeebWindow *beeb_window) {
+    if (beeb_window) {
+        return beeb_window->GetBeebThread();
+    } else {
+        return nullptr;
+    }
+}
+
+void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
+                             ApiRequest request,
+                             std::function<void(bool, nlohmann::json)> completion_fun) {
+    // since this is on the main thread, the BeebWindow is not going away (even if only not just quite yet).
+    ASSERT(IsMainThread());
+
+    ApiExecuteArgs execute_args;
+
+    execute_args.beeb_window = runtime_args.beeb_window;
+    execute_args.beeb_thread = GetBeebThread(execute_args.beeb_window);
+    execute_args.messages = runtime_args.messages;
+
+    ExecuteSingleRequest(std::move(execute_args),
+                         std::move(request),
+                         std::move(completion_fun));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 struct MultipleRequestsState {
-    ApiRuntimeArgs runtime_args;
+    BeebWindow *beeb_window = nullptr;
+    std::weak_ptr<BeebThread> beeb_thread;
+    std::shared_ptr<Messages> messages;
     ApiMultipleRequests request;
     ApiMultipleResponses responses;
     size_t index = 0;
@@ -253,34 +463,73 @@ struct MultipleRequestsState {
     std::function<void(bool, nlohmann::json)> overall_completion_fun;
 };
 
-static void ExecuteNext(const std::shared_ptr<MultipleRequestsState> &state) {
-    ASSERT(state->index <= state->request.requests.size());
-
-    if (state->index == state->request.requests.size()) {
-        state->overall_completion_fun(true, state->responses);
-    } else {
-        ApiExecute(state->runtime_args,
-                   state->request.requests[state->index],
-                   state->request_completion_fun);
+class ExecuteNextMainThreadMessage : public MainThreadMessage {
+  public:
+    explicit ExecuteNextMainThreadMessage(std::shared_ptr<MultipleRequestsState> state)
+        : m_state(std::move(state)) {
     }
-}
 
-void ApiExecute(const ApiRuntimeArgs &runtime_args, ApiMultipleRequests request, std::function<void(bool, nlohmann::json)> completion_fun) {
+    void HandleMessage() override {
+        ASSERT(m_state->index <= m_state->request.requests.size());
+
+        if (m_state->index == m_state->request.requests.size()) {
+            m_state->overall_completion_fun(true, m_state->responses);
+        } else {
+            ApiExecuteArgs execute_args;
+
+            execute_args.beeb_thread = m_state->beeb_thread.lock();
+            if (!execute_args.beeb_thread || !execute_args.beeb_thread->IsStarted()) {
+                m_state->messages->e.f("BeebThread gone\n");
+                m_state->overall_completion_fun(false, nullptr);
+                return;
+            }
+
+            execute_args.beeb_window = m_state->beeb_window;
+            execute_args.messages = m_state->messages;
+
+            ExecuteSingleRequest(execute_args,
+                                 m_state->request.requests[m_state->index],
+                                 m_state->request_completion_fun);
+        }
+    }
+
+  protected:
+  private:
+    std::shared_ptr<MultipleRequestsState> m_state;
+};
+
+void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
+                                ApiMultipleRequests request,
+                                std::function<void(bool, nlohmann::json)> completion_fun) {
+    ASSERT(IsMainThread());
+
+    if (request.requests.empty()) {
+        completion_fun(true, nullptr);
+        return;
+    }
+
     auto state = std::make_shared<MultipleRequestsState>();
 
-    state->runtime_args = runtime_args;
+    state->beeb_window = runtime_args.beeb_window;
+    state->beeb_thread = GetBeebThread(state->beeb_window);
+    state->messages = runtime_args.messages;
     state->request = std::move(request);
     state->overall_completion_fun = std::move(completion_fun);
-    state->request_completion_fun = [state](bool success, nlohmann::json j) -> void {
+    state->request_completion_fun = [state_weak = std::weak_ptr<MultipleRequestsState>(state)](bool success, nlohmann::json j) -> void {
+        std::shared_ptr<MultipleRequestsState> state = state_weak.lock();
+        ASSERT(!!state);
+
         if (success) {
             state->responses.responses.push_back({true, std::move(j)});
             ++state->index;
-            ExecuteNext(state);
+            PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));
         } else {
             state->responses.responses.push_back({false, {}});
             ASSERT(state->index < state->request.requests.size());
-            state->runtime_args.messages->e.f("request %zu (%s) failed\n", state->index, state->request.requests[state->index].type.c_str());
+            state->messages->e.f("request %zu (%s) failed\n", state->index, state->request.requests[state->index].type.c_str());
             state->overall_completion_fun(false, nlohmann::json());
         }
     };
+
+    PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));
 }

@@ -1160,8 +1160,10 @@ class CountOSWORD0s : public OSWORD0Callback {
         return m_num_osword_0s.load(std::memory_order_acquire);
     }
 
-    void ThreadOnOSWORD0(BeebThread *) override {
+    bool ThreadOnOSWORD0(BeebThread *) override {
         m_num_osword_0s.fetch_add(1, std::memory_order_acq_rel);
+
+        return true;
     }
 
   protected:

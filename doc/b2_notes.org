@@ -7048,7 +7048,8 @@ though.
    - =bedit_bet.sym= :: suffixes cA
    - =butils_bet.sym= :: suffixes cB
 
-* TODO WIP build notes
+* DONE WIP build notes
+CLOSED: [2026-04-15 Wed 02:24]
 
 #+begin_src markdown
   # Debugger stuff
@@ -11229,5 +11230,10 @@ bin\b2build.py --verbose release-binary-windows test_build
 ** Some notes
 
 
+* new HTTP API notes
+
+Example command lines:
+
+: curl --fail-with-body http://localhost:48075/request/b2 -H "Content-Type: application/json" --data-binary "@etc/tests/http_api/list_enum_values.StandardROM.json"
 
 * eof.

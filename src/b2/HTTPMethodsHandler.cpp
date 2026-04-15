@@ -93,6 +93,7 @@ class HTTPMethodsHandler : public HTTPHandler {
 
   protected:
   private:
+    // Method handlers are called on the main thread.
     const std::map<std::string, void (HTTPMethodsHandler::*)(HTTPServer *, HTTPRequest &&, const std::vector<std::string> &, size_t)> m_request_handlers = {
 #if BBCMICRO_DEBUGGER
         {"reset", &HTTPMethodsHandler::HandleResetRequest},
@@ -111,6 +112,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
         {"request", &HTTPMethodsHandler::HandleGenericRequest},
+        {"request-multiple", &HTTPMethodsHandler::HandleGenericMultipleRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
@@ -350,8 +352,8 @@ class HTTPMethodsHandler : public HTTPHandler {
                 return;
             }
 
-            auto config_message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(BeebThreadHardResetFlag_Run,
-                                                                                                std::move(loaded_config));
+            auto config_message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config),
+                                                                                                BeebThreadHardResetFlag_Run);
             beeb_window->GetBeebThread()->Send(std::move(config_message));
         }
 
@@ -868,59 +870,113 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    void HandleGenericRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
-        BeebWindow *beeb_window;
-        PathParameter pps[] = {
-            {&ParseWindow, &beeb_window},
-        };
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
-            return;
+    template <class RequestArgsType>
+    bool PrepareForGenericRequestOrSendResponse(BeebWindow **beeb_window_ptr,
+                                                RequestArgsType *request_args_ptr,
+                                                HTTPServer *server,
+                                                const HTTPRequest &request,
+                                                const std::vector<std::string> &path_parts,
+                                                size_t command_index) {
+        if (command_index + 1 == path_parts.size()) {
+            if (BeebWindows::GetNumWindows() == 1) {
+                *beeb_window_ptr = BeebWindows::GetWindowByIndex(0);
+            } else {
+                *beeb_window_ptr = nullptr;
+            }
+        } else {
+            PathParameter pps[] = {
+                {&ParseWindow, beeb_window_ptr},
+            };
+            if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
+                return false;
+            }
         }
 
         nlohmann::json j;
         if (!this->GetJSONBodyOrSendResponse(&j, server, request)) {
-            return;
+            return false;
         }
 
-        ApiRequest api_request;
         std::string exc_what;
-        if (!LoadJSON(&api_request, j, &exc_what)) {
+        if (!LoadJSON(request_args_ptr, j, &exc_what)) {
             server->SendResponse(request, HTTPResponse::BadRequest("Request object parse error: %s", exc_what.c_str()));
+            return false;
+        }
+
+        return true;
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    static void HandleGenericRequestCompletion(bool success,
+                                               const nlohmann::json &result_j,
+                                               HTTPServer *server,
+                                               const HTTPResponseData &response_data,
+                                               const std::shared_ptr<Messages> &messages) {
+        if (success) {
+            std::string content_str = result_j.dump(4);
+
+            HTTPResponse response = HTTPResponse::OK();
+
+            response.content_type = HTTP_JSON_CONTENT_TYPE;
+            response.content.assign(content_str.begin(), content_str.end());
+
+            // The messages are discarded, on the basis they're probably not interesting.
+
+            server->SendResponse(response_data, response);
+        } else {
+            std::shared_ptr<MessageList> message_list = messages->GetMessageList();
+
+            std::string content_str;
+
+            message_list->ForEachMessage([&content_str](MessageList::Message *m) -> void {
+                content_str += strprintf("%s: %s\n", GetMessageTypeEnumName(m->type), m->text.c_str());
+            });
+
+            server->SendResponse(response_data, HTTPResponse::InternalServerError("%s", content_str.c_str()));
+        }
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleGenericRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        ApiRuntimeArgs runtime_args;
+        ApiRequest request_args;
+        if (!this->PrepareForGenericRequestOrSendResponse(&runtime_args.beeb_window, &request_args, server, request, path_parts, command_index)) {
             return;
         }
 
-        ApiRuntimeArgs runtime_args;
-        runtime_args.beeb_window = beeb_window;
-        runtime_args.beeb_thread = runtime_args.beeb_window->GetBeebThread();
         runtime_args.messages = std::make_shared<Messages>(std::make_shared<MessageList>("API request"));
 
-        ApiExecute(runtime_args,
-                   api_request,
-                   [messages = runtime_args.messages, response_data = request.response_data, server](bool success, nlohmann::json result) -> void {
-                       if (success) {
-                           std::string content_str = result.dump(4);
-
-                           HTTPResponse response = HTTPResponse::OK();
-
-                           response.content_type = HTTP_JSON_CONTENT_TYPE;
-                           response.content.assign(content_str.begin(), content_str.end());
-
-                           // The messages are discarded, on the basis they're probably not interesting.
-
-                           server->SendResponse(response_data, response);
-                       } else {
-                           std::shared_ptr<MessageList> message_list = messages->GetMessageList();
-
-                           std::string content_str;
-
-                           message_list->ForEachMessage([&content_str](MessageList::Message *m) -> void {
-                               content_str += strprintf("%s: %s\n", GetMessageTypeEnumName(m->type), m->text.c_str());
-                           });
-
-                           server->SendResponse(response_data, HTTPResponse::InternalServerError("%s", content_str.c_str()));
-                       }
-                   });
+        ApiExecuteSingleRequest(std::move(runtime_args),
+                                std::move(request_args),
+                                [messages = runtime_args.messages,
+                                 response_data = request.response_data,
+                                 server](bool success, nlohmann::json result) -> void {
+                                    HandleGenericRequestCompletion(success, result, server, response_data, messages);
+                                });
     }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleGenericMultipleRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        ApiRuntimeArgs runtime_args;
+        ApiMultipleRequests request_args;
+        if (!this->PrepareForGenericRequestOrSendResponse(&runtime_args.beeb_window, &request_args, server, request, path_parts, command_index)) {
+            return;
+        }
+
+        runtime_args.messages = std::make_shared<Messages>(std::make_shared<MessageList>("API request"));
+
+        ApiExecuteMultipleRequests(std::move(runtime_args),
+                                   std::move(request_args),
+                                   [messages = runtime_args.messages,
+                                    response_data = request.response_data,
+                                    server](bool success, nlohmann::json result) -> void {
+                                       HandleGenericRequestCompletion(success, result, server, response_data, messages);
+                                   });
+    }
+
 #endif
 
     void HandleLaunchRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
