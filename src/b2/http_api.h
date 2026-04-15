@@ -10,6 +10,7 @@
 #include <functional>
 #include "Messages.h"
 #include "b2.h"
+#include <variant>
 
 class BeebWindow;
 class BeebThread;

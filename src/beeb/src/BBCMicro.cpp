@@ -1511,7 +1511,7 @@ void BBCMicro::WriteElectronUnlockBanks(void *m_, M6502Word a, uint8_t value) {
     (void)a, (void)value;
     auto m = (BBCMicro *)m_;
 
-    m->SetElectronSidewaysRAMWriteProtection(m->m_state.electron_sideways_ram_write_protection & ~ROM_BANKS_MASK);
+    m->SetElectronSidewaysRAMWriteProtection(m->m_state.electron_sideways_ram_write_protection & (uint16_t)~ROM_BANKS_MASK);
 }
 
 //////////////////////////////////////////////////////////////////////////

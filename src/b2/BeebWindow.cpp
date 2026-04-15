@@ -756,7 +756,7 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
         MUTEX_SET_NAME(m_mutex, "CopyOSWRCHCallback");
     }
 
-    void ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) {
+    void ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) override {
         (void)beeb_thread;
 
         LockGuard<Mutex> lock(m_mutex);

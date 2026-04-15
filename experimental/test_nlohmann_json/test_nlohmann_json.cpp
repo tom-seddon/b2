@@ -495,7 +495,7 @@ static void TestString() {
     StringTest1 test1 = LoadJSONString<StringTest1>(test1_str, __func__);
 
     TEST_EQ_UU(test1.s.size(), 1);
-    TEST_EQ_UU((unsigned)test1.s[0], 0u);
+    TEST_EQ_UU((unsigned char)test1.s[0], 0u);
 }
 
 //////////////////////////////////////////////////////////////////////////
