@@ -216,8 +216,19 @@ HTTPResponse HTTPResponse::NotFound() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HTTPResponse HTTPResponse::NotFound(const HTTPRequest &request) {
-    return HTTPResponse("404 Not Found", HTTP_TEXT_CONTENT_TYPE, request.method + " " + request.url);
+HTTPResponse HTTPResponse::NotFound(const HTTPRequest &request, const char *fmt, ...) {
+    std::string message = "Not Found: " + request.method + " " + request.url;
+
+    if (fmt) {
+        message += "\r\n";
+
+        va_list v;
+        va_start(v, fmt);
+        message += strprintfv(fmt, v);
+        va_end(v);
+    }
+
+    return HTTPResponse("404 Not Found", HTTP_TEXT_CONTENT_TYPE, std::move(message));
 }
 
 //////////////////////////////////////////////////////////////////////////

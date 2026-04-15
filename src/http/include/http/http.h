@@ -128,7 +128,7 @@ class HTTPResponse {
     static HTTPResponse BadRequest(const char *fmt, ...) PRINTF_LIKE(1, 2);
     static HTTPResponse BadRequest(const HTTPRequest &request, const char *fmt = nullptr, ...) PRINTF_LIKE(2, 3);
     static HTTPResponse NotFound();
-    static HTTPResponse NotFound(const HTTPRequest &request);
+    static HTTPResponse NotFound(const HTTPRequest &request, const char *fmt = nullptr, ...) PRINTF_LIKE(2, 3);
     static HTTPResponse UnsupportedMediaType(const HTTPRequest &request);
     static HTTPResponse InternalServerError(const char *fmt, ...) PRINTF_LIKE(1, 2);
     static HTTPResponse ServiceUnavailable();
