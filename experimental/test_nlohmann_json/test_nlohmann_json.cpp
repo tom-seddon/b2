@@ -3,10 +3,15 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
+#elif defined _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5262) //implicit fall-through occurs here; are you missing a break statement? Use [[fallthrough]] when a break statement is intentionally omitted between cases
 #endif
 #include <nlohmann/json.hpp>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
+#elif defined _MSC_VER
+#pragma warning(pop)
 #endif
 #include <shared/testing.h>
 #include <shared/path.h>
@@ -20,6 +25,7 @@
 #include <SDL.h>
 #include <shared/guid.h>
 #include <shared/debug.h>
+#include <inttypes.h>
 
 #include <shared/enum_decl.h>
 #include "test_nlohmann_json.inl"

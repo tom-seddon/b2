@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include <nlohmann/json.hpp>
+#include "json.h"
 #include "load_save.h"
 #include "misc.h"
 #include <SDL.h>

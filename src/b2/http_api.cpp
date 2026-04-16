@@ -9,6 +9,7 @@
 #include "misc.h"
 #include <shared/strings.h>
 #include "b2.h"
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -233,9 +234,7 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
         osword_0_timeout_seconds = 15.; //TODO: should probably be configurable?
     }
 
-    execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config),
-                                                                                                 flags,
-                                                                                                 osword_0_timeout_seconds),
+    execute_args.beeb_thread->Send(std::move(message),
                                    std::move(message_completion_fun));
 }
 

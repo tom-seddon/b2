@@ -3648,27 +3648,28 @@ void BBCMicro::InitStuff() {
         ASSERT(false);
         [[fallthrough]];
     case BBCMicroTypeID_Electron:
-        // Plus 1 stuff.
-        this->SetXFJIO(0xfc70, &Plus1::Read0, &m_state.plus1, &Plus1::Write0, &m_state.plus1);
-        this->SetXFJIO(0xfc71, nullptr, nullptr, &Plus1::Write1, &m_state.plus1);
-        this->SetXFJIO(0xfc72, &Plus1::Read2, &m_state.plus1, nullptr, nullptr);
-        this->SetXFJIO(0xfc73, nullptr, nullptr, &Plus1::Write3, &m_state.plus1);
+        {
+            // Plus 1 stuff.
+            this->SetXFJIO(0xfc70, &Plus1::Read0, &m_state.plus1, &Plus1::Write0, &m_state.plus1);
+            this->SetXFJIO(0xfc71, nullptr, nullptr, &Plus1::Write1, &m_state.plus1);
+            this->SetXFJIO(0xfc72, &Plus1::Read2, &m_state.plus1, nullptr, nullptr);
+            this->SetXFJIO(0xfc73, nullptr, nullptr, &Plus1::Write3, &m_state.plus1);
 #if BBCMICRO_DEBUGGER
-        this->SetDebugXFJIO(0xfc70, &Plus1::DebugRead0, &GetDebugMMIOReadPlus1Context);
-        this->SetDebugXFJIO(0xfc72, &Plus1::DebugRead2, &GetDebugMMIOReadPlus1Context);
+            this->SetDebugXFJIO(0xfc70, &Plus1::DebugRead0, &GetDebugMMIOReadPlus1Context);
+            this->SetDebugXFJIO(0xfc72, &Plus1::DebugRead2, &GetDebugMMIOReadPlus1Context);
 #endif
 
-        static constexpr uint16_t ROM_DF_MASK = 1 << 13 | 1 << 15;
-        static constexpr uint16_t ROM_02_MASK = 1 << 0 | 1 << 2;
-        static constexpr uint16_t ROM_13_MASK = 1 << 1 | 1 << 3;
+            static constexpr uint16_t ROM_DF_MASK = 1 << 13 | 1 << 15;
+            static constexpr uint16_t ROM_02_MASK = 1 << 0 | 1 << 2;
+            static constexpr uint16_t ROM_13_MASK = 1 << 1 | 1 << 3;
 
-        this->SetXFJIO(0xfcda, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_DF_MASK>, this);
-        this->SetXFJIO(0xfcdb, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_DF_MASK>, this);
-        this->SetXFJIO(0xfcdc, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_02_MASK>, this);
-        this->SetXFJIO(0xfcdd, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_02_MASK>, this);
-        this->SetXFJIO(0xfcde, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_13_MASK>, this);
-        this->SetXFJIO(0xfcdf, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_13_MASK>, this);
-
+            this->SetXFJIO(0xfcda, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_DF_MASK>, this);
+            this->SetXFJIO(0xfcdb, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_DF_MASK>, this);
+            this->SetXFJIO(0xfcdc, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_02_MASK>, this);
+            this->SetXFJIO(0xfcdd, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_02_MASK>, this);
+            this->SetXFJIO(0xfcde, nullptr, nullptr, &BBCMicro::WriteElectronUnlockBanks<ROM_13_MASK>, this);
+            this->SetXFJIO(0xfcdf, nullptr, nullptr, &BBCMicro::WriteElectronLockBanks<ROM_13_MASK>, this);
+        }
         break;
 
     case BBCMicroTypeID_B:
