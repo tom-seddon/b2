@@ -40,3 +40,11 @@ bool SaveJSONFile2(const nlohmann::json &j, const std::string &path, const LogSe
 
     return true;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<uint8_t> SaveJSONData(const nlohmann::json &j) {
+    std::string str = j.dump(4);
+    return std::vector<uint8_t>(str.begin(), str.end());
+}
