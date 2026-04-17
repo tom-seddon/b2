@@ -141,13 +141,15 @@ class HTTPClientImpl : public HTTPClient {
         }
 
         // Collate full list of header lines.
+        //
+        // TODO: curl_slist_append copies the string. So why form the entire header line, including the key again? I don't remember...
         std::map<std::string, std::string> header_by_key = m_default_header_by_key;
 
         for (auto &&key_and_value : request.headers) {
             header_by_key[key_and_value.first] = key_and_value.first + ": " + key_and_value.second;
         }
 
-        header_by_key[CONTENT_TYPE] = GetContentTypeHeader(request.content_type, request.content_type_charset);
+        header_by_key[CONTENT_TYPE] = CONTENT_TYPE + ": " + GetContentTypeHeader(request.content_type, request.content_type_charset);
 
         // Form URL.
         std::string url = request.url;

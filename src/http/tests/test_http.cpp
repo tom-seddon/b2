@@ -62,23 +62,41 @@ int main() {
         server->SetHandler(handler);
 
         {
-            HTTPRequest request("http://127.0.0.1:" + std::to_string(PORT) + "/test_url");
+            std::string base_url = "http://127.0.0.1:" + std::to_string(PORT) + "/test_url";
 
             std::unique_ptr<HTTPClient> client = CreateHTTPClient();
             client->SetLogs(&logs);
             client->SetVerbose(true);
 
-            HTTPResponse response;
-            int status = client->SendRequest(request, &response);
-            TEST_EQ_II(status, 200);
+            {
+                HTTPRequest request(base_url);
+                HTTPResponse response;
+                int status = client->SendRequest(request, &response);
+                TEST_EQ_II(status, 200);
+            }
 
-            status = client->SendRequest(HTTPRequest("http://127.0.0.1:" + std::to_string(PORT) + "/test_url?key=value"), &response);
-            (void)status;
+            {
+                HTTPRequest request(base_url + "?key=value");
+                HTTPResponse response;
+                int status = client->SendRequest(request, &response);
+                TEST_EQ_II(status, 200);
+            }
+
+            {
+                HTTPRequest request(base_url);
+                request.SetHeaderValue("X-TestHeader", "helloo");
+                request.content_type = HTTP_TEXT_CONTENT_TYPE;
+                request.body = {'h', 'e', 'l', 'l', 'o', 'o', '\n', '\r'};
+                request.method = "POST";
+                HTTPResponse response;
+                int status = client->SendRequest(request, &response);
+                TEST_EQ_II(status, 200);
+            }
         }
 
         std::vector<HTTPRequest> requests = handler->GetRequests();
 
-        TEST_EQ_UU(requests.size(), 2);
+        TEST_EQ_UU(requests.size(), 3);
 
         TEST_EQ_SS(requests[0].url_path, "/test_url");
         TEST_TRUE(requests[0].query.empty());
@@ -88,6 +106,14 @@ int main() {
         TEST_EQ_UU(requests[1].query.size(), 1);
         TEST_EQ_SS(requests[1].query[0].key, "key");
         TEST_EQ_SS(requests[1].query[0].value, "value");
+
+        TEST_EQ_SS(requests[2].url_path, "/test_url");
+        TEST_TRUE(requests[2].query.empty());
+        TEST_EQ_SS(requests[2].url, "/test_url");
+        TEST_NON_NULL(requests[2].GetHeaderValue("X-TestHeader"));
+        TEST_EQ_SS(*requests[2].GetHeaderValue("X-TestHeader"), "helloo");
+        TEST_NON_NULL(requests[2].GetHeaderValue("Content-Type"));
+        TEST_EQ_SS(*requests[2].GetHeaderValue("Content-Type"), HTTP_TEXT_CONTENT_TYPE);
     }
 
     return 0;
