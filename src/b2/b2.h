@@ -56,7 +56,7 @@ class AppHandler {
     // argc/argv access. Return value is the full argv, including argv[0].
     virtual std::vector<std::string> GetCommandLineArgs() const = 0;
 
-    // Folder for config files. Return false if none (and b2 will pick a
+    // Folder for config files. Return false if none (and b2 will use the
     // default).
     //
     // (config_folder may be null, just to query whether an override was
@@ -91,6 +91,9 @@ class AppHandler {
     //
     // Default impl does nothing.
     virtual void DearImGuiTestEngineDidBecomeReady(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
+
+    // Whether to quit once the test queue becomes empty.
+    virtual bool ShouldQuitWhenTestQueueEmpty() const = 0;
 #endif
 
     // Indicate selector dialog has been opened.
@@ -104,9 +107,6 @@ class AppHandler {
     //
     // Default impl does nothing.
     virtual void SetSelectorDialogResult(const Guid &guid, const std::string &result);
-
-    // Whether to quit once the test queue becomes empty.
-    virtual bool ShouldQuitWhenTestQueueEmpty() const = 0;
 
   protected:
   private:

@@ -501,6 +501,8 @@ add_b2_test_literal_category(b2ui.load_zipped_disk.80.ssd)
 add_b2_test_literal_category(b2ui.load_zipped_disk.MasterWelcome.adl)
 add_b2_test_literal_category(b2ui.load_zipped_disk.two_disks)
 
+add_b2_test_literal_category(b2.http.config)
+
 ##########################################################################
 ##########################################################################
 

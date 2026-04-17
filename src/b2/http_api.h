@@ -10,7 +10,6 @@
 #include <functional>
 #include "Messages.h"
 #include "b2.h"
-#include <variant>
 
 class BeebWindow;
 class BeebThread;
@@ -41,6 +40,7 @@ class BeebThread;
 // - nlohmann::json - JSON of any kind (probably depends on some other
 // - Enum<T> - JSON string, the name of one of the enum values of T
 // - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
+// - BBCString - JSON array of strings and numbers. See the BBCString struct
 
 // If a field is std::optional<T>, its type is T (see above), and there is some specific handling when the field is absent.
 //
@@ -54,34 +54,38 @@ class BeebThread;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Unicode to BBC string conversion rules:
+// A BBC Micro string: a sequence of bytes in the BBC Micro character set.
 //
-// The API treats strings as sequences of Unicode codepoints. These are converted to BBC ASCII bytes as follows:
+// Such strings are represented in JSON as an array containing strings and numbers, representing the contents of the BBC Micro string, as follows:
 //
-// - Unicode codepoints 32-126 inclusive are passed through as bytes, as-is. (The BBC Micro character set in this range is the same as Unicode, with one exception: BBC Micro byte 96 represents £. This means U+0060 ` GRAVE ACCENT will come through as £ at the BBC end.)
+// - number - value between 0-255, the byte value in question
+// - string - BBC Micro chars, translated to/from PC character set as per the translation tables below:
 //
-// - U+00A3 £ POUND SIGN is converted to 96
+// Other values (number <0; number >255; char not mentioned) are invalid.
 //
-// - U+000A LINE FEED (LF) is passed through as 10
+// BBC->JSON character translation table:
 //
-// - U+000D CARRIAGE RETURN (CR) is passed through as 13
+// - BBC bytes 10, 13, and 32-126 inclusive are passed through as the corresponding Unicode codepoint
 //
-// Other Unicode codepoints are rejected and will cause an error. Where it would be useful to be able to supply arbitrary BBC ASCII values, additional encoding schemes will be provided.
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// BBC to Unicode string conversion rules:
+// Note that this means that BBC 96 (£) will end up in JSON as U++0060 ` GRAVE ACCENT.
 //
-// BBC output is considered to be a sequence of BBC ASCII bytes, converted to Unicode strings as follows:
+// JSON->BBC character translation table:
 //
-// - BBC ASCII values 32-126 inclusive are passed through as-is. (The BBC Micro character set in this range is the same as Unicode, with one exception: BBC Micro byte 96 represents £. This means £ will come though as U+0060 ` GRAVE ACCENT.)
+// - Unicode codepoints 10, 13 and 32-126 inclusive are passed through as the corresponding byte value
+// - Unicode U+00A3 £ POUND SIGN is converted to BBC 96
 //
-// - BBC ASCII 10 is passed through as U+000A LINE FEED (LF)
+// Note that this means that U+0060 ` GRAVE ACCENT will end up on the BBC as BBC 96 (£).
+// Note that this means there are two ways specify BBC 96 (£). This is deliberate.
 //
-// - BBC ASCII 13 is passed through as U+000D CARRIAGE RETURN (CR)
+// Further notes:
 //
-// Other BBC ASCII values are rejected: which means they may get stripped out at source, or they may be encoded in some other fashion, depending on endpoint.
+// - Numbers and strings are considered equivalent. As an example: JSON ["ABC"], JSON [65,"BC"] and JSON [65,"B",67] all represent the same BBC string: BBC "ABC"
+// - This encoding is designed to be vaguely human readable and writeable assuming that the data is captured OSWRCH output or typeable text intended for OSRDCH paste
+struct BBCString {
+    std::vector<uint8_t> bytes;
+};
+void from_json(const nlohmann::json &j, BBCString &s);
+void to_json(nlohmann::json &j, const BBCString &s);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -195,16 +199,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
 static const char API_PASTE_REQUEST_TYPE[] = "paste";
 
 struct ApiPasteArgs {
-    // All the parts of the paste data are converted to BBC ASCII, and concatenated, to form the string that ultimately gets pasted.
-    //
-    // JSON strings are converted to a sequence of BBC ASCII bytes, as per the Unicode to BBC string conversion rules above.
-    //
-    // JSON numbers from 0-255 are converted to byte values.
-    //
-    // Other values are rejected.
-    std::vector<std::variant<uint8_t, std::string>> parts;
+    BBCString input;
+    //bool wait_for_osword_0 = false;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, parts);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -217,9 +215,9 @@ static const char API_START_CAPTURE_OSWRCH_REQUEST_TYPE[] = "start_capture_oswrc
 static const char API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE[] = "stop_capture_oswrch";
 
 struct ApiStopCaptureOSWRCHResult {
-    std::vector<std::variant<uint8_t, std::string>> parts;
+    BBCString output;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, parts);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, output);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

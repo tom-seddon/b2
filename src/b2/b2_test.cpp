@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include "json.h"
 #include <shared/system_specific.h>
 #include <shared/CommandLineParser.h>
 #include <string>
@@ -33,6 +34,9 @@
 #include "BeebThread.h"
 #include <inttypes.h>
 #include <beeb/uef.h>
+#include "http_api.h"
+#include <http/HTTPClient.h>
+#include <http/http.h>
 
 // the b2 code includes the stb_image_write implementation.
 #include <stb_image_write.h>
@@ -49,6 +53,12 @@
 //LOG_DEFINE(stderr, "", &g_log_printer_stderr);
 //
 //static const LogSet g_stdio_logs(LOG(stdout), LOG(stderr), LOG(stderr));
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// covering any tests that could be run both ways.
+static bool g_interactive = false;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -114,12 +124,8 @@ void Test::DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) {
 
 class DearImGuiTest : public Test, public AppHandler {
   public:
-    static void Interactive() {
-        ms_interactive = true;
-    }
-
     bool IsHeadless() const override {
-        return !ms_interactive;
+        return !g_interactive;
     }
 
     bool IsHighDPIEnabled() const override {
@@ -227,12 +233,12 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
     bool ShouldQuitWhenTestQueueEmpty() const override {
-        if (ms_interactive) {
-            // Keep running. See what happens. Quit manually if you want the test to continue.
-            return false;
-        } else {
+        if (this->IsHeadless()) {
             // Quit.
             return true;
+        } else {
+            // Keep running. See what happens. Quit manually if you want the test to continue.
+            return false;
         }
     }
 
@@ -288,12 +294,7 @@ class DearImGuiTest : public Test, public AppHandler {
     int m_http_port = 0;
     std::map<Guid, SelectorResults> m_selector_results_by_guid;
     bool m_test_was_run = false;
-
-    static bool ms_interactive;
 };
-
-// TODO: some better mechanism for this, surely.
-bool DearImGuiTest::ms_interactive = false;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1046,6 +1047,173 @@ class TestLoadZippedDisk : public DearImGuiTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestHTTPAPI : public Test, public AppHandler {
+  public:
+    TestHTTPAPI(std::string name)
+        : m_name(std::move(name)) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    bool IsHighDPIEnabled() const override {
+        return false;
+    }
+
+    std::vector<std::string> GetCommandLineArgs() const override {
+        return {"<<placeholder>>"};
+    }
+
+    void Run() override {
+        int result = b2_main(this);
+        TEST_TRUE(m_thread.joinable());
+        m_thread_args.stop_thread.store(true, std::memory_order_release);
+        m_thread.join();
+        TEST_TRUE(m_thread_args.test_was_run.load(std::memory_order_acquire));
+        TEST_EQ_II(result, 0);
+    }
+
+    bool IsHeadless() const override {
+        return !g_interactive;
+    }
+
+    bool IsSoundEnabled() const override {
+        // This intentionally also affects --interactive.
+        return false;
+    }
+
+    bool GetConfigFolder(std::string *config_folder) const override {
+        if (config_folder) {
+            *config_folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
+        }
+        return true;
+    }
+
+    virtual int GetRequestedHttpServerListenPort() const override {
+        // Let the OS choose. Don't have multiple instances fight.
+        return 0;
+    }
+
+    void SetActualHttpServerListenPort(int port) override {
+        TEST_LE_II(m_thread_args.http_port, 0);
+        m_thread_args.http_port = port;
+    }
+
+    int GetLaunchRequestHttpServerPort() const override {
+        return m_thread_args.http_port;
+    }
+
+    bool GetAssetsFolder(std::string *assets_folder) const override {
+        *assets_folder = ASSETS_FOLDER;
+        return true;
+    }
+
+    void MessageLoopWillStart() override {
+        TEST_GT_II(m_thread_args.http_port, 0);
+        TEST_FALSE(m_thread.joinable());
+        TEST_FALSE(m_thread_args.test_was_run.load(std::memory_order_acquire));
+        TEST_FALSE(m_thread_args.stop_thread.load(std::memory_order_acquire));
+        m_thread = std::thread([this]() -> void {
+            this->Thread(&m_thread_args);
+        });
+    }
+
+    bool IsDearImGuiTestEngineEnabled() const override {
+        return false;
+    }
+
+    bool ShouldQuitWhenTestQueueEmpty() const override {
+        return false;
+    }
+
+    bool HandleSelectorDialogOpen(std::string *, const Guid &) override {
+        return false;
+    }
+
+  protected:
+    struct ThreadArgs {
+        int http_port = -1;
+        std::atomic<bool> test_was_run{false};
+        std::atomic<bool> stop_thread{false};
+    };
+
+    virtual void Thread(ThreadArgs *args) = 0;
+
+    //    int GetActualHttpServerListenPort()const{
+    //        TEST_GT_II(m_thread_args.http_port,0);
+    //        return m_thread_args.http_port;
+    //    }
+
+  private:
+    std::string m_name;
+    std::thread m_thread;
+    ThreadArgs m_thread_args;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template <class T>
+static HTTPRequest GetHTTPRequestForApiRequest(std::string url, std::string type, const T &body) {
+    HTTPRequest http_request;
+
+    ApiRequest api_request;
+    api_request.type = std::move(type);
+    api_request.args = body;
+
+    http_request.url = std::move(url);
+    http_request.method = "POST";
+    http_request.content_type = HTTP_JSON_CONTENT_TYPE;
+    http_request.body = SaveJSONData(api_request);
+
+    return http_request;
+}
+
+class TestHTTPConfig : public TestHTTPAPI {
+  public:
+    TestHTTPConfig()
+        : TestHTTPAPI("b2.http.config") {
+    }
+
+  protected:
+    void Thread(ThreadArgs *args) override {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+
+        std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
+
+        ApiConfigArgs config_args;
+        config_args.base_stock_config = "B/Acorn 1770";
+        config_args.wait_for_osword_0 = true;
+
+        HTTPResponse http_response;
+        int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+        TEST_EQ_II(status, 200);
+
+        //        ApiPasteArgs paste_args;
+
+#endif
+
+        args->test_was_run.store(true, std::memory_order_release);
+
+        SDL_Event event = {};
+        event.type = SDL_QUIT;
+        SDL_PushEvent(&event);
+    }
+
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const BeebConfig *FindConfigByName(size_t *index, const std::string &name) {
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
         const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
@@ -1459,6 +1627,8 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestLoadZippedDisk>(PathJoined(b2_SOURCE_DIR, "etc/tests/disks/two_disks.zip"),
                                                              ""));
 
+    all_tests.push_back(std::make_unique<TestHTTPConfig>());
+
     std::map<std::string, Test *> tests_by_name;
     for (const std::unique_ptr<Test> &test : all_tests) {
         tests_by_name[test->GetFullName()] = test.get();
@@ -1544,7 +1714,7 @@ int main(int argc, char *argv[]) {
             // TODO: the b2 code isn't designed to be re-initialised after it's quit, but... maybe it'd actually work? To be continued.
             TEST_LE_UU(n, 1);
 
-            DearImGuiTest::Interactive();
+            g_interactive = true;
         }
 
         for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {

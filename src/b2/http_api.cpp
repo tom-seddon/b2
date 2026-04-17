@@ -29,36 +29,104 @@ struct ApiExecuteArgs {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-namespace nlohmann {
-    template <>
-    struct adl_serializer<std::variant<uint8_t, std::string>> {
-        static void from_json(const json &j, std::variant<uint8_t, std::string> &v) {
-            if (j.is_string()) {
-                v = j.get<std::string>();
-            } else if (j.is_number_unsigned()) {
-                uint64_t value = j.get<uint64_t>();
-                if (value >= 256) {
-                    throw nlohmann::json::type_error::create(302, strprintf("invalid uint8_t value: %" PRIu64, value), nullptr);
+//namespace nlohmann {
+//    template <>
+//    struct adl_serializer<std::variant<uint8_t, std::string>> {
+//        static void from_json(const json &j, std::variant<uint8_t, std::string> &v) {
+//            if (j.is_string()) {
+//                v = j.get<std::string>();
+//            } else if (j.is_number_unsigned()) {
+//                uint64_t value = j.get<uint64_t>();
+//                if (value >= 256) {
+//                    throw nlohmann::json::type_error::create(302, strprintf("invalid uint8_t value: %" PRIu64, value), nullptr);
+//                }
+//
+//                v = (uint8_t)value;
+//            } else {
+//                throw nlohmann::json::type_error::create(302, "value not uint8_t or string", nullptr);
+//            }
+//        }
+//
+//        static void to_json(json &j, const std::variant<uint8_t, std::string> &v) {
+//            if (const uint8_t *u = std::get_if<uint8_t>(&v)) {
+//                j = *u;
+//            } else if (const std::string *s = std::get_if<std::string>(&v)) {
+//                j = *s;
+//            } else {
+//                ASSERT(false);
+//                j = {};
+//            }
+//        }
+//    };
+//} // namespace nlohmann
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void from_json(const nlohmann::json &j, BBCString &s) {
+    if (!j.is_array()) {
+        throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: must be an array"), nullptr);
+    }
+
+    size_t index = 0;
+    for (const nlohmann::json &value_j : j) {
+        if (value_j.is_string()) {
+            const std::string &value = value_j.get<std::string>();
+
+            std::string bbc;
+            int32_t bad_codepoint;
+            size_t bad_char_start;
+            int bad_char_len;
+            if (!GetBBCASCIIFromUTF8(&bbc, value, &bad_codepoint, &bad_char_start, &bad_char_len)) {
+                if (bad_codepoint < 0) {
+                    // Shouldn't see this? nlohmann::json should have sorted this out!
+                    throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu not valid UTF-8", index), nullptr);
+                } else {
+                    throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu contains unsupported codepoint: %" PRId32 " (0x%" PRIx32 ")", index, bad_codepoint, bad_codepoint), nullptr);
                 }
-
-                v = (uint8_t)value;
-            } else {
-                throw nlohmann::json::type_error::create(302, "value not uint8_t or string", nullptr);
             }
+
+            s.bytes.insert(s.bytes.end(), bbc.begin(), bbc.end());
+        } else if (value_j.is_number_unsigned()) {
+            uint64_t value = value_j.get<uint64_t>();
+            if (value >= 256) {
+                throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu not valid byte value", index), nullptr);
+            }
+
+            s.bytes.push_back((uint8_t)value);
+        } else {
+            throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu not string or byte", index), nullptr);
         }
 
-        static void to_json(json &j, const std::variant<uint8_t, std::string> &v) {
-            if (const uint8_t *u = std::get_if<uint8_t>(&v)) {
-                j = *u;
-            } else if (const std::string *s = std::get_if<std::string>(&v)) {
-                j = *s;
-            } else {
-                ASSERT(false);
-                j = {};
+        ++index;
+    }
+}
+
+void to_json(nlohmann::json &j, const BBCString &s) {
+    j = nlohmann::json::value_t::array;
+
+    std::string str;
+    bool in_str = false;
+    for (const uint8_t byte : s.bytes) {
+        if ((byte >= 32 && byte < 127) || byte == 10 || byte == 13) {
+            if (!in_str) {
+                str.clear();
+                in_str = true;
             }
+            str.push_back((char)byte);
+        } else {
+            if (in_str) {
+                j.push_back(std::move(str));
+                in_str = false;
+            }
+            j.push_back(byte);
         }
-    };
-} // namespace nlohmann
+    }
+
+    if (in_str) {
+        j.push_back(std::move(str));
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -224,8 +292,6 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
         completion_fun(success, nullptr);
     };
 
-    auto &&message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config), BeebThreadHardResetFlag_Run);
-
     uint32_t flags = BeebThreadHardResetFlag_Run;
     double osword_0_timeout_seconds = BeebThread::HardResetMessage::DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
 
@@ -234,7 +300,9 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
         osword_0_timeout_seconds = 15.; //TODO: should probably be configurable?
     }
 
-    execute_args.beeb_thread->Send(std::move(message),
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config),
+                                                                                                 flags,
+                                                                                                 osword_0_timeout_seconds),
                                    std::move(message_completion_fun));
 }
 
@@ -244,16 +312,7 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
 static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
                                    ApiPasteArgs &&request_args,
                                    std::function<void(bool, std::nullptr_t &&)> completion_fun) {
-    std::string text;
-    for (size_t i = 0; i < request_args.parts.size(); ++i) {
-        if (const uint8_t *byte = std::get_if<uint8_t>(&request_args.parts[i])) {
-            text.push_back((char)*byte);
-        } else if (const std::string *string = std::get_if<std::string>(&request_args.parts[i])) {
-            text += *string;
-        } else {
-            ASSERT(false);
-        }
-    }
+    std::string text(request_args.input.bytes.begin(), request_args.input.bytes.end());
 
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
 
@@ -282,27 +341,11 @@ static void ApiExecuteStartCaptureOSWRCHRequest(const ApiExecuteArgs &execute_ar
 static void ApiExecuteStopCaptureOSWRCHRequest(const ApiExecuteArgs &execute_args,
                                                std::nullptr_t &&,
                                                std::function<void(bool, ApiStopCaptureOSWRCHResult &&)> completion_fun) {
-    std::vector<uint8_t> copied_data;
-    if (!execute_args.beeb_window->StopCopyOSWRCH(&copied_data)) {
+    ApiStopCaptureOSWRCHResult result;
+    if (!execute_args.beeb_window->StopCopyOSWRCH(&result.output.bytes)) {
         execute_args.messages->e.f("Not copying\n");
         completion_fun(false, {});
         return;
-    }
-
-    ApiStopCaptureOSWRCHResult result;
-
-    std::string *str_part = nullptr;
-    for (uint8_t byte : copied_data) {
-        if (byte == 10 || byte == 13 || (byte >= 32 && byte < 127)) {
-            if (!str_part) {
-                str_part = &std::get<std::string>(result.parts.emplace_back());
-            }
-
-            str_part->push_back((char)byte);
-        } else {
-            str_part = nullptr;
-            result.parts.push_back(byte);
-        }
     }
 
     completion_fun(true, std::move(result));

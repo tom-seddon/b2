@@ -1,5 +1,5 @@
 {
-    "type":"list_enum_values",
+    "type":"list_values",
     "args":{
 	"name":"StandardROM"
     }
