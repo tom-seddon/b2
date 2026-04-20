@@ -241,6 +241,10 @@ HTTPResponse HTTPResponse::UnsupportedMediaType(const HTTPRequest &request) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+HTTPResponse HTTPResponse::InternalServerError(){
+    return HTTPResponse("501 Internal Server Error");
+}
+
 HTTPResponse HTTPResponse::InternalServerError(const char *fmt, ...) {
     va_list v;
 

@@ -130,6 +130,7 @@ class HTTPResponse {
     static HTTPResponse NotFound();
     static HTTPResponse NotFound(const HTTPRequest &request, const char *fmt = nullptr, ...) PRINTF_LIKE(2, 3);
     static HTTPResponse UnsupportedMediaType(const HTTPRequest &request);
+    static HTTPResponse InternalServerError();
     static HTTPResponse InternalServerError(const char *fmt, ...) PRINTF_LIKE(1, 2);
     static HTTPResponse ServiceUnavailable();
     static HTTPResponse ServiceUnavailable(const char *fmt, ...) PRINTF_LIKE(1, 2);
