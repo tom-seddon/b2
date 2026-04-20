@@ -94,7 +94,8 @@ LOG_DEFINE(REPLAY, "REPLAY ", &log_printer_stderr_and_debugger, false);
 //////////////////////////////////////////////////////////////////////////
 
 // What to feed to OSRDCH (via Paste OSRDCH) to list a program.
-static const std::string COPY_BASIC("OLD\rLIST\r");
+static const std::vector<uint8_t> COPY_BASIC({'O', 'L', 'D', '\r',
+                                              'L', 'I', 'S', 'T', '\r'});
 
 // What a listed program's OSWRCH output will start with if it was listed by
 // doing a Paste OSRDCH with *COPY_BASIC.
@@ -1450,7 +1451,7 @@ bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::StartPasteMessage::StartPasteMessage(std::string text)
+BeebThread::StartPasteMessage::StartPasteMessage(std::vector<uint8_t> text)
     : m_text(std::move(text)) {
 }
 
@@ -2274,6 +2275,15 @@ void BeebThread::Send(std::shared_ptr<Message> message,
 
 void BeebThread::SendTimingMessage(uint64_t max_sound_units) {
     m_mq.ProducerPushIndexed(0, SentMessage{std::make_shared<TimingMessage>(max_sound_units)});
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::AreNonTimingMessagesPending() const {
+    bool pending;
+    m_mq.ProducerGetQueueState(&pending, nullptr);
+    return pending;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3446,7 +3456,7 @@ void BeebThread::ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadStartPaste(ThreadState *ts, std::string text) {
+void BeebThread::ThreadStartPaste(ThreadState *ts, std::vector<uint8_t> text) {
     // No need to call paste_completion_fun - this is looked after elsewhere.
 
     ts->beeb->StartPaste(std::move(text));

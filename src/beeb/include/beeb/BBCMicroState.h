@@ -378,7 +378,7 @@ class BBCMicroState {
     // starting a replay from that state then the rest of the
     // paste needs to be performed.)
     BBCMicroPasteState paste_state = BBCMicroPasteState_None;
-    std::shared_ptr<const std::string> paste_text;
+    std::shared_ptr<const std::vector<uint8_t>> paste_text;
     size_t paste_index = 0;
     uint32_t paste_delay_cycles = 0;
 

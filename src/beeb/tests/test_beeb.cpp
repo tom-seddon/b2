@@ -658,7 +658,7 @@ class TestBBCMicro : public BBCMicro {
     // return value is video output.
     std::vector<uint32_t> RunForNFrames(size_t num_frames);
 
-    void Paste(std::string text);
+    void Paste(const std::string &bbc_ascii_text);
 
     uint32_t Update1();
 
@@ -1089,10 +1089,10 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestBBCMicro::Paste(std::string text) {
-    printf("Paste: %s\n", text.c_str());
+void TestBBCMicro::Paste(const std::string &bbc_ascii_text) {
+    printf("Paste: %s\n", bbc_ascii_text.c_str());
 
-    this->StartPaste(std::move(text));
+    this->StartPaste(std::vector<uint8_t>(bbc_ascii_text.begin(), bbc_ascii_text.end()));
 
     uint64_t start_ticks = GetCurrentTickCount();
 

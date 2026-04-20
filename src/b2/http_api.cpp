@@ -73,7 +73,7 @@ void from_json(const nlohmann::json &j, BBCString &s) {
         if (value_j.is_string()) {
             const std::string &value = value_j.get<std::string>();
 
-            std::string bbc;
+            std::vector<uint8_t> bbc;
             int32_t bad_codepoint;
             size_t bad_char_start;
             int bad_char_len;
@@ -312,11 +312,9 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
 static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
                                    ApiPasteArgs &&request_args,
                                    std::function<void(bool, std::nullptr_t &&)> completion_fun) {
-    std::string text(request_args.input.bytes.begin(), request_args.input.bytes.end());
-
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
 
-    execute_args.beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(text)),
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(request_args.input.bytes)),
                                    [completion_fun, messages = execute_args.messages](bool success, std::string message) {
                                        if (!success) {
                                            messages->e.f("%s failed: %s\n", API_PASTE_REQUEST_TYPE, message.c_str());

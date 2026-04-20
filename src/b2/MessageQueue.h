@@ -29,6 +29,19 @@ class MessageQueue {
         MUTEX_SET_NAME(m_mutex, name);
     }
 
+    // Whether there are any non-indexed messages in the queue.
+    void ProducerGetQueueState(bool *non_indexed, bool *indexed) const {
+        LockGuard<Mutex> lock(m_mutex);
+
+        if (non_indexed) {
+            *non_indexed = !m_messages.empty();
+        }
+
+        if (indexed) {
+            *indexed = m_indexed_messages_pending != 0;
+        }
+    }
+
     // Pushed messages are retrieved in the order they were submitted.
     void ProducerPush(T message) {
         LockGuard<Mutex> lock(m_mutex);
@@ -101,7 +114,7 @@ class MessageQueue {
         }
     };
 
-    Mutex m_mutex;
+    mutable Mutex m_mutex;
     std::condition_variable_any m_cv;
     std::vector<Message> m_messages;
     Message m_indexed_messages[64];

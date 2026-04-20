@@ -564,7 +564,7 @@ uint32_t inline decode(uint32_t *state, uint32_t *codep, uint32_t byte) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::unordered_map<uint32_t, char> g_bbc_char_by_codepoint;
+static std::unordered_map<uint32_t, uint8_t> g_bbc_char_by_codepoint;
 static std::string g_utf8_char_by_bbc_char[BBCUTF8ConvertMode_Count][128];
 static bool g_utf8_convert_tables_initialised = false;
 
@@ -664,7 +664,7 @@ static void InitUTF8ConvertTables() {
 
                 auto &&it = g_bbc_char_by_codepoint.find(u);
                 if (it == g_bbc_char_by_codepoint.end()) {
-                    g_bbc_char_by_codepoint[u] = (char)c;
+                    g_bbc_char_by_codepoint[u] = c;
                 } else {
                     ASSERT(g_bbc_char_by_codepoint[u] == c);
                 }
@@ -684,7 +684,7 @@ static void InitUTF8ConvertTables() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetBBCASCIIFromUTF8(std::string *ascii, const uint8_t *data, size_t data_size_bytes, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
+bool GetBBCASCIIFromUTF8(std::vector<uint8_t> *ascii, const uint8_t *data, size_t data_size_bytes, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
     uint32_t state = UTF8_ACCEPT, codepoint;
 
     InitUTF8ConvertTables();
@@ -731,19 +731,19 @@ bad:;
     return false;
 }
 
-bool GetBBCASCIIFromUTF8(std::string *ascii, const std::string &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
+bool GetBBCASCIIFromUTF8(std::vector<uint8_t> *ascii, const std::string &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
     return GetBBCASCIIFromUTF8(ascii, (const uint8_t *)data.data(), data.size(), bad_codepoint_ptr, bad_char_start_ptr, bad_char_len_ptr);
 }
 
-bool GetBBCASCIIFromUTF8(std::string *ascii, const std::vector<uint8_t> &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
+bool GetBBCASCIIFromUTF8(std::vector<uint8_t> *ascii, const std::vector<uint8_t> &data, int32_t *bad_codepoint_ptr, size_t *bad_char_start_ptr, int *bad_char_len_ptr) {
     return GetBBCASCIIFromUTF8(ascii, data.data(), data.size(), bad_codepoint_ptr, bad_char_start_ptr, bad_char_len_ptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii, const std::vector<uint8_t> &data) {
-    ascii->clear();
+uint32_t GetBBCASCIIFromISO8859_1(std::vector<uint8_t> *bbc_ascii, const std::vector<uint8_t> &data) {
+    bbc_ascii->clear();
 
     for (uint8_t x : data) {
         if (x >= 32 && x <= 126) {
@@ -755,7 +755,7 @@ uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii, const std::vector<uint8_t>
             return x;
         }
 
-        ascii->push_back((char)x);
+        bbc_ascii->push_back(x);
     }
 
     return 0;
@@ -862,17 +862,17 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8Convert
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void FixBBCASCIINewlines(std::string *str) {
+void FixBBCASCIINewlines(std::vector<uint8_t> *str) {
     // Knobble newlines.
     if (str->size() > 1) {
-        std::string::size_type i = 0;
+        size_t i = 0;
 
         while (i < str->size() - 1) {
             if ((*str)[i] == 10 && (*str)[i + 1] == 13) {
-                str->erase(i, 1);
+                str->erase(str->begin() + (ptrdiff_t)i);
             } else if ((*str)[i] == 13 && (*str)[i + 1] == 10) {
                 ++i;
-                str->erase(i, 1);
+                str->erase(str->begin() + (ptrdiff_t)i);
             } else if ((*str)[i] == 10) {
                 (*str)[i++] = 13;
             } else {

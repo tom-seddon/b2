@@ -700,7 +700,7 @@ class BeebThread {
 
     class StartPasteMessage : public Message {
       public:
-        explicit StartPasteMessage(std::string text);
+        explicit StartPasteMessage(std::vector<uint8_t> text);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -710,7 +710,7 @@ class BeebThread {
 
       protected:
       private:
-        std::string m_text;
+        std::vector<uint8_t> m_text;
     };
 
     class StopPasteMessage : public Message {
@@ -1117,6 +1117,8 @@ class BeebThread {
 
     void SendTimingMessage(uint64_t max_sound_units);
 
+    bool AreNonTimingMessagesPending() const;
+
     bool IsPasting() const;
 
     bool IsCopying() const;
@@ -1387,7 +1389,7 @@ class BeebThread {
     void ThreadSetTape(ThreadState *ts, std::shared_ptr<const UEFReader> tape);
 #endif
     void ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<DiscImage> disc_image);
-    void ThreadStartPaste(ThreadState *ts, std::string text);
+    void ThreadStartPaste(ThreadState *ts, std::vector<uint8_t> text);
     void ThreadStopCopy(ThreadState *ts);
     void ThreadMain();
     void SetVolume(float *scale_var, float db, bool mute);

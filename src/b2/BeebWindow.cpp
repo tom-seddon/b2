@@ -4301,12 +4301,12 @@ void BeebWindow::DoPaste(bool add_return) {
         }
 
         // Convert UTF-8 into BBC-friendly ASCII.
-        std::string ascii;
+        std::vector<uint8_t> bbc_ascii;
         {
             int32_t bad_codepoint;
             size_t bad_char_start;
             int bad_char_len;
-            if (!GetBBCASCIIFromUTF8(&ascii, utf8, &bad_codepoint, &bad_char_start, &bad_char_len)) {
+            if (!GetBBCASCIIFromUTF8(&bbc_ascii, utf8, &bad_codepoint, &bad_char_start, &bad_char_len)) {
                 if (bad_codepoint < 0) {
                     m_msg.e.f("Clipboard contents are not valid UTF-8 text\n");
                 } else {
@@ -4323,13 +4323,13 @@ void BeebWindow::DoPaste(bool add_return) {
             }
         }
 
-        FixBBCASCIINewlines(&ascii);
+        FixBBCASCIINewlines(&bbc_ascii);
 
         if (add_return) {
-            ascii.push_back(13);
+            bbc_ascii.push_back(13);
         }
 
-        m_beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(ascii)));
+        m_beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(bbc_ascii)));
     }
 }
 

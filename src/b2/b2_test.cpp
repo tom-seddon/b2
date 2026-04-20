@@ -299,6 +299,56 @@ class DearImGuiTest : public Test, public AppHandler {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class Yielder {
+  public:
+    explicit Yielder(ImGuiTestContext *ctx, BeebWindow *beeb_window, DearImGuiTest *test)
+        : m_ctx(ctx)
+        , m_beeb_window(beeb_window)
+        , m_test(test) {
+        this->Reset();
+    }
+
+    void Reset() {
+        m_start_ticks = GetCurrentTickCount();
+    }
+
+    void Yield() {
+        if (GetSecondsFromTicks(GetCurrentTickCount() - m_start_ticks) > m_time_limit_seconds) {
+            std::string config_folder;
+            TEST_TRUE(m_test->GetConfigFolder(&config_folder));
+
+            std::vector<uint8_t> display_data = m_beeb_window->GetR8G8B8A8DisplayData();
+
+            std::string image_path = PathJoined(config_folder, "timeout." + m_test->GetFullName() + ".png");
+            TEST_TRUE(stbi_write_png(image_path.c_str(), TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, 4, display_data.data(), TV_TEXTURE_WIDTH * 4));
+
+            TEST_FALSE(true);
+        }
+        m_ctx->Yield();
+    }
+
+    void YieldUntilMessageQueueEmpty() {
+        std::shared_ptr<BeebThread> beeb_thread = m_beeb_window->GetBeebThread();
+
+        while (beeb_thread->AreNonTimingMessagesPending()) {
+            this->Yield();
+        }
+    }
+
+  protected:
+  private:
+    ImGuiTestContext *const m_ctx = nullptr;
+    BeebWindow *const m_beeb_window = nullptr;
+    DearImGuiTest *const m_test = nullptr;
+    uint64_t m_start_ticks = 0;
+
+    // TODO: make it configurable. Default test engine watchdog starts moaning at 30 seconds.
+    const double m_time_limit_seconds = 30.f;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class NullTest : public Test {
   public:
     NullTest(std::string full_name)
@@ -341,9 +391,13 @@ class TestUTF8 : public Test {
         TEST_EQ_SS(GetUTF8StringForCodePoint(0x8d8a), "\xe8\xb6\x8a");
 
         {
-            std::string ascii;
-            GetBBCASCIIFromISO8859_1(&ascii, {'`', 0xa3});
-            TEST_EQ_SS(ascii, "``");
+            std::vector<uint8_t> wanted_ascii = {'`', '`'};
+
+            std::vector<uint8_t> got_ascii;
+            GetBBCASCIIFromISO8859_1(&got_ascii, {'`', 0xa3});
+
+            TEST_EQ_UU(got_ascii.size(), wanted_ascii.size());
+            TEST_EQ_AA(got_ascii.data(), wanted_ascii.data(), got_ascii.size());
         }
 
         const std::vector<uint8_t> annoying_chars = {'`', '|', '\\', '{', '[', ']', '}', '^', '_'};
@@ -354,13 +408,15 @@ class TestUTF8 : public Test {
 
         {
             std::string utf8 = GetUTF8FromBBCASCII(annoying_chars, BBCUTF8ConvertMode_SAA5050, false);
-            std::string ascii;
+            std::vector<uint8_t> bbc_ascii;
 
             int32_t bad_codepoint;
             size_t bad_char_start;
             int bad_char_len;
-            TEST_TRUE(GetBBCASCIIFromUTF8(&ascii, std::vector<uint8_t>(utf8.begin(), utf8.end()), &bad_codepoint, &bad_char_start, &bad_char_len));
-            TEST_EQ_SS(ascii, std::string(annoying_chars.begin(), annoying_chars.end()));
+            TEST_TRUE(GetBBCASCIIFromUTF8(&bbc_ascii, utf8, &bad_codepoint, &bad_char_start, &bad_char_len));
+
+            TEST_EQ_UU(bbc_ascii.size(), annoying_chars.size());
+            TEST_EQ_AA(bbc_ascii.data(), annoying_chars.data(), bbc_ascii.size());
         }
     }
 };
@@ -976,6 +1032,8 @@ class TestLoadZippedDisk : public DearImGuiTest {
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
         std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
 
+        Yielder yielder(ctx, beeb_window, this);
+
         TEST_TRUE(PathIsFileOnDisk(m_zip_path, nullptr, nullptr));
         if (!m_disk_path.empty()) {
             TEST_TRUE(PathIsFileOnDisk(m_disk_path, nullptr, nullptr));
@@ -995,6 +1053,7 @@ class TestLoadZippedDisk : public DearImGuiTest {
 
         ctx->SetRef("##MainMenuBar");
         ctx->MenuClick("###file/###drive0/###open_memory");
+        yielder.YieldUntilMessageQueueEmpty();
 
         if (m_disk_path.empty()) {
             {
@@ -1021,6 +1080,7 @@ class TestLoadZippedDisk : public DearImGuiTest {
 
             ctx->SetRef("##MainMenuBar");
             ctx->MenuClick("###file/###drive0/###save_copy_as");
+            yielder.YieldUntilMessageQueueEmpty();
 
             TEST_TRUE(PathIsFileOnDisk(m_disk_copy_path, nullptr, nullptr));
         }
@@ -1208,12 +1268,6 @@ class TestHTTPConfig : public TestHTTPAPI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const BeebConfig *FindConfigByName(size_t *index, const std::string &name) {
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
         const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
@@ -1228,45 +1282,6 @@ static const BeebConfig *FindConfigByName(size_t *index, const std::string &name
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-class Yielder {
-  public:
-    explicit Yielder(ImGuiTestContext *ctx, BeebWindow *beeb_window, DearImGuiTest *test)
-        : m_ctx(ctx)
-        , m_beeb_window(beeb_window)
-        , m_test(test) {
-        this->Reset();
-    }
-
-    void Reset() {
-        m_start_ticks = GetCurrentTickCount();
-    }
-
-    void Yield() {
-        if (GetSecondsFromTicks(GetCurrentTickCount() - m_start_ticks) > m_time_limit_seconds) {
-            std::string config_folder;
-            TEST_TRUE(m_test->GetConfigFolder(&config_folder));
-
-            std::vector<uint8_t> display_data = m_beeb_window->GetR8G8B8A8DisplayData();
-
-            std::string image_path = PathJoined(config_folder, "timeout." + m_test->GetFullName() + ".png");
-            TEST_TRUE(stbi_write_png(image_path.c_str(), TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, 4, display_data.data(), TV_TEXTURE_WIDTH * 4));
-
-            TEST_FALSE(true);
-        }
-        m_ctx->Yield();
-    }
-
-  protected:
-  private:
-    ImGuiTestContext *const m_ctx = nullptr;
-    BeebWindow *const m_beeb_window = nullptr;
-    DearImGuiTest *const m_test = nullptr;
-    uint64_t m_start_ticks = 0;
-
-    // TODO: make it configurable. Default test engine watchdog starts moaning at 30 seconds.
-    const double m_time_limit_seconds = 30.f;
-};
 
 // Pick out the MODE value from the *STATUS output.
 static uint8_t GetMODEFromSTATUSOutput(const std::string &status_output) {
@@ -1290,7 +1305,13 @@ static uint8_t GetMODEFromSTATUSOutput(const std::string &status_output) {
 }
 
 // Paste text and wait for the paste to complete.
-static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &beeb_thread, const std::string &text) {
+static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &beeb_thread, const std::string &text_) {
+    std::vector<uint8_t> text;
+    for (char c : text_) {
+        TEST_TRUE((c >= 32 && c < 127) || c == 13);
+        text.push_back((uint8_t)c);
+    }
+
     std::atomic<bool> pasted_status = false;
     beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text),
                       [&pasted_status](bool success, std::string) -> void {

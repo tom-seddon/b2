@@ -381,14 +381,14 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        std::string ascii;
+        std::vector<uint8_t> bbc_ascii;
         if (request.content_type == HTTP_TEXT_CONTENT_TYPE && (request.content_type_charset.empty() || request.content_type_charset == HTTP_ISO_8859_1_CHARSET)) {
-            if (GetBBCASCIIFromISO8859_1(&ascii, request.body) != 0) {
+            if (GetBBCASCIIFromISO8859_1(&bbc_ascii, request.body) != 0) {
                 server->SendResponse(request, HTTPResponse::BadRequest(request));
                 return;
             }
         } else if (request.content_type == HTTP_TEXT_CONTENT_TYPE && request.content_type_charset == HTTP_UTF8_CHARSET) {
-            if (!GetBBCASCIIFromUTF8(&ascii, request.body, nullptr, nullptr, nullptr)) {
+            if (!GetBBCASCIIFromUTF8(&bbc_ascii, request.body, nullptr, nullptr, nullptr)) {
                 server->SendResponse(request, HTTPResponse::BadRequest(request));
                 return;
             }
@@ -399,9 +399,9 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        FixBBCASCIINewlines(&ascii);
+        FixBBCASCIINewlines(&bbc_ascii);
 
-        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::StartPasteMessage>(std::move(ascii)));
+        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::StartPasteMessage>(std::move(bbc_ascii)));
     }
 #endif
 
