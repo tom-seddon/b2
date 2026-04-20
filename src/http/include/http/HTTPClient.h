@@ -24,7 +24,7 @@ class HTTPClient {
     HTTPClient(HTTPClient &&) = delete;
     HTTPClient &operator=(HTTPClient &&) = delete;
 
-    virtual void SetLogs(LogSet *logs) = 0;
+    virtual void SetLogs(const LogSet *logs) = 0;
     virtual void SetVerbose(bool verbose) = 0;
 
     virtual void AddDefaultHeader(const char *key, const char *value) = 0;

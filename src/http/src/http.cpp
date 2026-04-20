@@ -241,7 +241,7 @@ HTTPResponse HTTPResponse::UnsupportedMediaType(const HTTPRequest &request) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HTTPResponse HTTPResponse::InternalServerError(){
+HTTPResponse HTTPResponse::InternalServerError() {
     return HTTPResponse("501 Internal Server Error");
 }
 

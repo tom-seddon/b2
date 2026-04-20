@@ -106,7 +106,7 @@ class HTTPClientImpl : public HTTPClient {
         curl_easy_cleanup(m_curl), m_curl = nullptr;
     }
 
-    void SetLogs(LogSet *logs) override {
+    void SetLogs(const LogSet *logs) override {
         m_logs = logs;
     }
 
@@ -137,7 +137,7 @@ class HTTPClientImpl : public HTTPClient {
             // 127.0.0.1
             curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1L);
 
-            curl_easy_setopt(m_curl, CURLOPT_FAILONERROR, 1L);
+            //curl_easy_setopt(m_curl, CURLOPT_FAILONERROR, 1L);
         }
 
         // Collate full list of header lines.
@@ -233,8 +233,7 @@ class HTTPClientImpl : public HTTPClient {
         }
 
         int http_status;
-        if (perform_result == CURLE_OK ||
-            perform_result == CURLE_HTTP_RETURNED_ERROR) {
+        if (perform_result == CURLE_OK) {
             char *content_type;
             curl_easy_getinfo(m_curl, CURLINFO_CONTENT_TYPE, &content_type);
 
@@ -263,7 +262,7 @@ class HTTPClientImpl : public HTTPClient {
   protected:
   private:
     CURL *m_curl = nullptr;
-    LogSet *m_logs = nullptr;
+    const LogSet *m_logs = nullptr;
     bool m_verbose = false;
 
     std::map<std::string, std::string> m_default_header_by_key;
