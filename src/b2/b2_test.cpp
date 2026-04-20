@@ -49,10 +49,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//LOG_DEFINE(stdout, "", &g_log_printer_stdout);
-//LOG_DEFINE(stderr, "", &g_log_printer_stderr);
-//
-//static const LogSet g_stdio_logs(LOG(stdout), LOG(stderr), LOG(stderr));
+LOG_DEFINE(stdout, "", &log_printer_stdout);
+LOG_DEFINE(stderr, "", &log_printer_stderr);
+
+static const LogSet g_stdio_logs(LOG(stdout), LOG(stderr), LOG(stderr));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1107,6 +1107,11 @@ class TestLoadZippedDisk : public DearImGuiTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Test HTTP API. When the message loop starts, indicating the HTTP server is ready, a background thread is started that calls Thread. Use this to do blocking HTTP client calls and check the results.
+//
+// Set args->test_was_run to true once done.
+//
+// Once Thread returns, the program will quit.
 class TestHTTPAPI : public Test, public AppHandler {
   public:
     TestHTTPAPI(std::string name)
@@ -1176,6 +1181,10 @@ class TestHTTPAPI : public Test, public AppHandler {
         TEST_FALSE(m_thread_args.stop_thread.load(std::memory_order_acquire));
         m_thread = std::thread([this]() -> void {
             this->Thread(&m_thread_args);
+
+            SDL_Event event = {};
+            event.type = SDL_QUIT;
+            SDL_PushEvent(&event);
         });
     }
 
@@ -1230,6 +1239,20 @@ static HTTPRequest GetHTTPRequestForApiRequest(std::string url, std::string type
     return http_request;
 }
 
+template <class T>
+static T GetApiResultFromHTTPResponse(const HTTPResponse &http_response) {
+    TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
+
+    ApiResponse api_response;
+    TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
+
+    T api_result;
+    std::string exc_what;
+    TEST_TRUE(LoadJSON(&api_result, api_response.result, &exc_what));
+
+    return api_result;
+}
+
 class TestHTTPConfig : public TestHTTPAPI {
   public:
     TestHTTPConfig()
@@ -1240,6 +1263,8 @@ class TestHTTPConfig : public TestHTTPAPI {
     void Thread(ThreadArgs *args) override {
 #if BBCMICRO_DEBUGGER
         std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+        client->SetLogs(&g_stdio_logs);
+        client->SetVerbose(true);
 
         std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
 
@@ -1247,19 +1272,39 @@ class TestHTTPConfig : public TestHTTPAPI {
         config_args.base_stock_config = "B/Acorn 1770";
         config_args.wait_for_osword_0 = true;
 
-        HTTPResponse http_response;
-        int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
-        TEST_EQ_II(status, 200);
+        {
+            HTTPResponse http_response;
+            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            TEST_EQ_II(status, 200);
+        }
 
-        //        ApiPasteArgs paste_args;
+        {
+            HTTPResponse http_response;
+            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_START_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
+            TEST_EQ_II(status, 200);
+        }
+
+        {
+            HTTPResponse http_response;
+            ApiPasteArgs paste_args;
+            TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "*FX0\r", nullptr, nullptr, nullptr));
+            paste_args.wait_for_osword_0 = true;
+            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
+            TEST_EQ_II(status, 200);
+        }
+
+        {
+            HTTPResponse http_response;
+            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
+            TEST_EQ_II(status, 200);
+
+            ApiStopCaptureOSWRCHResult result = GetApiResultFromHTTPResponse<ApiStopCaptureOSWRCHResult>(http_response);
+            printf("got %zu\n", result.output.bytes.size());
+        }
 
 #endif
 
         args->test_was_run.store(true, std::memory_order_release);
-
-        SDL_Event event = {};
-        event.type = SDL_QUIT;
-        SDL_PushEvent(&event);
     }
 
   private:
@@ -1313,7 +1358,7 @@ static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &be
     }
 
     std::atomic<bool> pasted_status = false;
-    beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text),
+    beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text, 0),
                       [&pasted_status](bool success, std::string) -> void {
                           TEST_TRUE(success);
                           pasted_status = true;

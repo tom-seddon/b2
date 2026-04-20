@@ -41,9 +41,9 @@ struct LogSet;
 //
 // TODO: maybe there's some better place for this.
 
+bool LoadJSONData2(nlohmann::json *j, const std::vector<uint8_t> &data, const LogSet *logs, const char *notional_path);
 bool LoadJSONFile2(nlohmann::json *j, const std::string &path, const LogSet *logs, uint32_t flags);
-void HandleLoadJSONFileError(const std::string &path, const LogSet *logs, const std::string &exc_what);
-bool SaveJSONFile2(const nlohmann::json &j, const std::string &path, const LogSet *logs, uint32_t flags);
+void HandleLoadJSONError(const char *notional_path, const LogSet *logs, const char *exc_what);
 
 template <class T>
 inline bool LoadJSON(T *object, const nlohmann::json &j, std::string *exc_what) {
@@ -59,6 +59,22 @@ inline bool LoadJSON(T *object, const nlohmann::json &j, std::string *exc_what) 
 }
 
 template <class T>
+inline bool LoadJSONData(T *object, const std::vector<uint8_t> &data, const LogSet *logs, const char *notional_path = nullptr) {
+    nlohmann::json j;
+    if (!LoadJSONData2(&j, data, logs, notional_path)) {
+        return false;
+    }
+
+    std::string exc_what;
+    if (!LoadJSON(object, j, &exc_what)) {
+        HandleLoadJSONError(notional_path, logs, exc_what.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+template <class T>
 inline bool LoadJSONFile(T *object, const std::string &path, const LogSet *logs, uint32_t flags = 0) {
     nlohmann::json j;
     if (!LoadJSONFile2(&j, path, logs, flags)) {
@@ -67,20 +83,14 @@ inline bool LoadJSONFile(T *object, const std::string &path, const LogSet *logs,
 
     std::string exc_what;
     if (!LoadJSON(object, j, &exc_what)) {
-        HandleLoadJSONFileError(path, logs, exc_what);
+        HandleLoadJSONError(path.c_str(), logs, exc_what.c_str());
         return false;
     }
 
     return true;
 }
 
-template <class T>
-inline bool SaveJSONFile(const T &object, const std::string &path, const LogSet *logs, uint32_t flags = 0) {
-    nlohmann::json j(object);
-    bool good = SaveJSONFile2(j, path, logs, flags);
-    return good;
-}
-
+bool SaveJSONFile(const nlohmann::json &j, const std::string &path, const LogSet *logs, uint32_t flags = 0);
 std::vector<uint8_t> SaveJSONData(const nlohmann::json &j);
 
 //////////////////////////////////////////////////////////////////////////

@@ -23,7 +23,7 @@ class BeebThread;
 //
 // Unlike most names in b2, these names have prefixes. This stuff may end up getting pulled out into a separate library.
 //
-// Ignore anything marked TODO:. These comments are for my benefit.
+// Anything marked TODO: is for my benefit, and can be ignored.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ class BeebThread;
 // - uint16_t - JSON number, integer 0-65535
 // - std::vector<T> - JSON array of T
 // - nlohmann::json - JSON of any kind (probably depends on some other
-// - Enum<T> - JSON string, the name of one of the enum values of T
+// - Enum<T> - JSON string, the name of one of the enum values of T. Use the list_values endpoint to list the valid JSON values for the enum. Note that the valid JSON values exclude the prefix; so, for example, for the StandardROM enum, StandardROM_None in C++ maps to "None" in JSON.
 // - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
 // - BBCString - JSON array of strings and numbers. See the BBCString struct
 
@@ -54,7 +54,7 @@ class BeebThread;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// A BBC Micro string: a sequence of bytes in the BBC Micro character set.
+// BBCString represents a BBC Micro string: a sequence of bytes in the BBC Micro character set.
 //
 // Such strings are represented in JSON as an array containing strings and numbers, representing the contents of the BBC Micro string, as follows:
 //
@@ -90,16 +90,22 @@ void to_json(nlohmann::json &j, const BBCString &s);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// A single API request.
 struct ApiRequest {
+    // The type of request. Use the value of the API_XXX_REQUEST_TYPE value, where XXX is the request type name in upper case snake_case format.
     std::string type;
 
+    // The args for the request. Use the ApiXXXArgs struct, where XXX is the request type name in PascalCase format - or null if no such.
     nlohmann::json args;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, type, args);
 
+// The response to a ApiRequest.
 struct ApiResponse {
+    // Success flag. True if the request succeeded; false if it didn't.
     bool success = false;
 
+    // The result struct. If the request failed, this will be an ApiFailureResult; otherwise, this will be the ApiXXXResult struct, where XXX is the name of th request in PascalCase format.
     nlohmann::json result;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResponse, success, result);
@@ -107,12 +113,21 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResponse, success, result);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Multiple API requests, made in one batch.
+//
+// This is deliberately its own special thing.
 struct ApiMultipleRequests {
+    // The sequence of requests to make.
     std::vector<ApiRequest> requests;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleRequests, requests);
 
+// The response to a ApiMultipleRequests.
 struct ApiMultipleResponses {
+    // Success flag for the multiple requests as a whole. True if all requests succeeded.
+    bool success = true;
+
+    // The responses to the requests that were processed. There may be fewer responses than requests; if a request fails, its response is included, but the remaining requests are discarded.
     std::vector<ApiResponse> responses;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses);
@@ -120,11 +135,22 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Result struct for a request that failed.
+struct ApiFailureResult {
+    // Any log messages that were printed during the execution, intended for human consumption.
+    std::vector<std::string> messages;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureResult, messages);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Struct representing the contents of a ROM.
 struct ApiROMContents {
-    // The StandardROM to use, if any.
+    // The StandardROM to use, if any. If StandardROM_None, try the path.
     Enum<StandardROM> standard_rom{StandardROM_None};
 
-    // Path to ROM on disk, somewhere the target b2 can find it.
+    // Path to ROM on disk, somewhere the target b2 can find it. If empty, assume the bank is empty.
     std::string path;
 
     // TODO: ROM contents? base64 encoded?
@@ -134,19 +160,28 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiROMContents, standard_rom, pa
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Struct representing the contents of a sideways ROM bank.
 struct ApiSidewaysROM {
+    // The bank to use. Must be 0-15 inclusive.
     uint8_t bank = 0;
 
+    // The contents of the ROM.
     ApiROMContents contents;
 
+    // If true, this bank is sideways RAM.
     bool writeable = false;
 
+    // The ROM type. Only relevant if the OS is being loaded from disk; the standard ROMs are all 16 KB.
     Enum<ROMType> rom_type{ROMType_16KB};
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSidewaysROM, bank, contents, writeable, rom_type);
 
+// Struct representing the contents of the OS ROM.
 struct ApiOSROM {
+    // The contents of the ROM.
     ApiROMContents contents;
+
+    // The OS ROM type. Only relevant if the OS is being loaded from disk; the standard ROMs are all 16 KB.
     Enum<OSROMType> os_rom_type{OSROMType_16KB};
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiOSROM, contents, os_rom_type);
@@ -154,7 +189,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiOSROM, contents, os_rom_type)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// There's no BeebConfig/BeebLoadedConfig separation via the HTTP API. You specify the config, and a new running BBC with that config appears.
+// There's no BeebConfig/BeebLoadedConfig separation via the HTTP API. You specify the config, and a new running BBC with that config appears, corresponding to no entry on the hardware menu.
 
 static const char API_CONFIG_REQUEST_TYPE[] = "config";
 
@@ -191,7 +226,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 video_nula,
                                                 beeblink,
                                                 nvram,
-                                                mouse);
+                                                mouse,
+                                                wait_for_osword_0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -200,9 +236,9 @@ static const char API_PASTE_REQUEST_TYPE[] = "paste";
 
 struct ApiPasteArgs {
     BBCString input;
-    //bool wait_for_osword_0 = false;
+    bool wait_for_osword_0 = false;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input, wait_for_osword_0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -251,6 +287,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Nothing from this point is relevant to the HTTP API. It's all C++ stuff that exists to make
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Common arguments supplied to ApiExecuteSingleRequest and ApiExecuteMultipleRequests.
 //
 // TODO: the naming here is not great
@@ -270,11 +311,11 @@ struct ApiRuntimeArgs {
 // COMPLETION_FUN is the function to call on success/failure. The first argument is the success flag, and the second, ignored on failure, is the JSON-serialized request result.
 void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
                              ApiRequest request,
-                             std::function<void(bool, nlohmann::json)> completion_fun);
+                             std::function<void(ApiResponse)> completion_fun);
 
 void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
                                 ApiMultipleRequests request,
-                                std::function<void(bool, nlohmann::json)> completion_fun);
+                                std::function<void(ApiMultipleResponses)> completion_fun);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

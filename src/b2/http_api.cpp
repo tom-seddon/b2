@@ -10,6 +10,7 @@
 #include <shared/strings.h>
 #include "b2.h"
 #include <inttypes.h>
+#include "Messages.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -314,7 +315,17 @@ static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
                                    std::function<void(bool, std::nullptr_t &&)> completion_fun) {
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
 
-    execute_args.beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(request_args.input.bytes)),
+    uint32_t flags = 0;
+    double osword_0_timeout_seconds = BeebThread::StartPasteMessage::DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
+
+    if (request_args.wait_for_osword_0) {
+        flags |= BeebThreadPasteFlag_WaitForOSWORD0;
+        osword_0_timeout_seconds = 15.; //TODO: should probably be configurable?
+    }
+
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(request_args.input.bytes),
+                                                                                   flags,
+                                                                                   osword_0_timeout_seconds),
                                    [completion_fun, messages = execute_args.messages](bool success, std::string message) {
                                        if (!success) {
                                            messages->e.f("%s failed: %s\n", API_PASTE_REQUEST_TYPE, message.c_str());
@@ -472,9 +483,51 @@ static std::shared_ptr<BeebThread> GetBeebThread(BeebWindow *beeb_window) {
     }
 }
 
+static const char *GetMessagePrefix(const MessageList::Message *message) {
+    switch (message->type) {
+    default:
+        ASSERT(false);
+        return "?";
+
+    case MessageType_Info:
+        return "I";
+
+    case MessageType_Warning:
+        return "W";
+
+    case MessageType_Error:
+        return "E";
+    }
+}
+
+static ApiResponse GetApiResponse(bool success, nlohmann::json j, const std::shared_ptr<Messages> &messages) {
+    ApiResponse response;
+
+    response.success = success;
+
+    if (response.success) {
+        response.result = std::move(j);
+    } else {
+        ApiFailureResult result;
+
+        std::shared_ptr<MessageList> message_list = messages->GetMessageList();
+        message_list->ForEachMessage([&result](MessageList::Message *message) -> void {
+            std::string str = GetMessagePrefix(message);
+            str += ": ";
+            str += message->text;
+
+            result.messages.push_back(std::move(str));
+        });
+
+        response.result = std::move(result);
+    }
+
+    return response;
+}
+
 void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
                              ApiRequest request,
-                             std::function<void(bool, nlohmann::json)> completion_fun) {
+                             std::function<void(ApiResponse)> completion_fun) {
     // since this is on the main thread, the BeebWindow is not going away (even if only not just quite yet).
     ASSERT(IsMainThread());
 
@@ -486,7 +539,9 @@ void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
 
     ExecuteSingleRequest(std::move(execute_args),
                          std::move(request),
-                         std::move(completion_fun));
+                         [messages = execute_args.messages, completion_fun](bool success, nlohmann::json j) -> void {
+                             completion_fun(GetApiResponse(success, std::move(j), messages));
+                         });
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -497,11 +552,23 @@ struct MultipleRequestsState {
     std::weak_ptr<BeebThread> beeb_thread;
     std::shared_ptr<Messages> messages;
     ApiMultipleRequests request;
-    ApiMultipleResponses responses;
+    ApiMultipleResponses response;
     size_t index = 0;
-    std::function<void(bool, nlohmann::json)> request_completion_fun;
-    std::function<void(bool, nlohmann::json)> overall_completion_fun;
+    std::function<void(ApiResponse)> request_completion_fun;
+    std::function<void(ApiMultipleResponses)> overall_completion_fun;
 };
+
+static void CallOverallCompletionFun(const std::shared_ptr<MultipleRequestsState> &state) {
+    state->response.success = true;
+    for (const ApiResponse &response : state->response.responses) {
+        if (!response.success) {
+            state->response.success = false;
+            break;
+        }
+    }
+
+    state->overall_completion_fun(std::move(state->response));
+}
 
 class ExecuteNextMainThreadMessage : public MainThreadMessage {
   public:
@@ -513,23 +580,23 @@ class ExecuteNextMainThreadMessage : public MainThreadMessage {
         ASSERT(m_state->index <= m_state->request.requests.size());
 
         if (m_state->index == m_state->request.requests.size()) {
-            m_state->overall_completion_fun(true, m_state->responses);
+            CallOverallCompletionFun(m_state);
         } else {
-            ApiExecuteArgs execute_args;
-
-            execute_args.beeb_thread = m_state->beeb_thread.lock();
-            if (!execute_args.beeb_thread || !execute_args.beeb_thread->IsStarted()) {
+            std::shared_ptr<BeebThread> beeb_thread = m_state->beeb_thread.lock();
+            if (!beeb_thread || !beeb_thread->IsStarted()) {
+                // Ugh. Have to abandon the whole thing.
                 m_state->messages->e.f("BeebThread gone\n");
-                m_state->overall_completion_fun(false, nullptr);
+                m_state->response.responses.push_back(GetApiResponse(false, nullptr, m_state->messages));
+                CallOverallCompletionFun(m_state);
                 return;
             }
 
-            execute_args.beeb_window = m_state->beeb_window;
-            execute_args.messages = m_state->messages;
-
-            ExecuteSingleRequest(execute_args,
-                                 m_state->request.requests[m_state->index],
-                                 m_state->request_completion_fun);
+            ApiRuntimeArgs runtime_args;
+            runtime_args.beeb_window = m_state->beeb_window;
+            runtime_args.messages = m_state->messages;
+            ApiExecuteSingleRequest(runtime_args,
+                                    m_state->request.requests[m_state->index],
+                                    m_state->request_completion_fun);
         }
     }
 
@@ -540,11 +607,11 @@ class ExecuteNextMainThreadMessage : public MainThreadMessage {
 
 void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
                                 ApiMultipleRequests request,
-                                std::function<void(bool, nlohmann::json)> completion_fun) {
+                                std::function<void(ApiMultipleResponses)> completion_fun) {
     ASSERT(IsMainThread());
 
     if (request.requests.empty()) {
-        completion_fun(true, nullptr);
+        completion_fun({});
         return;
     }
 
@@ -554,21 +621,22 @@ void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
     state->beeb_thread = GetBeebThread(state->beeb_window);
     state->messages = runtime_args.messages;
     state->request = std::move(request);
+    //state->response.responses.resize(state->request.requests.size());
     state->overall_completion_fun = std::move(completion_fun);
-    state->request_completion_fun = [state_weak = std::weak_ptr<MultipleRequestsState>(state)](bool success, nlohmann::json j) -> void {
+    state->request_completion_fun = [state_weak = std::weak_ptr<MultipleRequestsState>(state)](ApiResponse response) -> void {
         std::shared_ptr<MultipleRequestsState> state = state_weak.lock();
         ASSERT(!!state);
 
-        if (success) {
-            state->responses.responses.push_back({true, std::move(j)});
-            ++state->index;
-            PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));
-        } else {
-            state->responses.responses.push_back({false, {}});
-            ASSERT(state->index < state->request.requests.size());
-            state->messages->e.f("request %zu (%s) failed\n", state->index, state->request.requests[state->index].type.c_str());
-            state->overall_completion_fun(false, nlohmann::json());
+        ASSERT(state->index < state->response.responses.size());
+
+        state->response.responses.push_back(std::move(response));
+
+        if (!state->response.responses.back().success) {
+            // break out of the loop.
+            state->index = state->response.responses.size();
         }
+
+        PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));
     };
 
     PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));

@@ -401,7 +401,7 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         FixBBCASCIINewlines(&bbc_ascii);
 
-        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::StartPasteMessage>(std::move(bbc_ascii)));
+        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::StartPasteMessage>(std::move(bbc_ascii), 0));
     }
 #endif
 
@@ -909,32 +909,20 @@ class HTTPMethodsHandler : public HTTPHandler {
 
 #if BBCMICRO_DEBUGGER
     static void HandleGenericRequestCompletion(bool success,
-                                               const nlohmann::json &result_j,
+                                               nlohmann::json j,
                                                HTTPServer *server,
-                                               const HTTPResponseData &response_data,
-                                               const std::shared_ptr<Messages> &messages) {
+                                               const HTTPResponseData &response_data) {
+        HTTPResponse response;
         if (success) {
-            std::string content_str = result_j.dump(4);
-
-            HTTPResponse response = HTTPResponse::OK();
-
-            response.content_type = HTTP_JSON_CONTENT_TYPE;
-            response.content.assign(content_str.begin(), content_str.end());
-
-            // The messages are discarded, on the basis they're probably not interesting.
-
-            server->SendResponse(response_data, response);
+            response = HTTPResponse::OK();
         } else {
-            std::shared_ptr<MessageList> message_list = messages->GetMessageList();
-
-            std::string content_str;
-
-            message_list->ForEachMessage([&content_str](MessageList::Message *m) -> void {
-                content_str += strprintf("%s: %s\n", GetMessageTypeEnumName(m->type), m->text.c_str());
-            });
-
-            server->SendResponse(response_data, HTTPResponse::InternalServerError("%s", content_str.c_str()));
+            response = HTTPResponse::InternalServerError();
         }
+
+        response.content_type = HTTP_JSON_CONTENT_TYPE;
+        response.content = SaveJSONData(std::move(j));
+
+        server->SendResponse(response_data, std::move(response));
     }
 #endif
 
@@ -952,8 +940,8 @@ class HTTPMethodsHandler : public HTTPHandler {
                                 std::move(request_args),
                                 [messages = runtime_args.messages,
                                  response_data = request.response_data,
-                                 server](bool success, nlohmann::json result) -> void {
-                                    HandleGenericRequestCompletion(success, result, server, response_data, messages);
+                                 server](ApiResponse response) -> void {
+                                    HandleGenericRequestCompletion(response.success, std::move(response), server, response_data);
                                 });
     }
 #endif
@@ -972,8 +960,8 @@ class HTTPMethodsHandler : public HTTPHandler {
                                    std::move(request_args),
                                    [messages = runtime_args.messages,
                                     response_data = request.response_data,
-                                    server](bool success, nlohmann::json result) -> void {
-                                       HandleGenericRequestCompletion(success, result, server, response_data, messages);
+                                    server](ApiMultipleResponses response) -> void {
+                                       HandleGenericRequestCompletion(response.success, std::move(response), server, response_data);
                                    });
     }
 

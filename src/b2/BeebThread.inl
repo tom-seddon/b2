@@ -68,3 +68,12 @@ EEND()
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#define ENAME BeebThreadPasteFlag
+EBEGIN()
+// Wait for the first OSWORD 0 before calling the completion function.
+//
+// (Ignored if no completion function.)
+EPNV(WaitForOSWORD0, 1 << 0)
+EEND()
+#undef ENAME

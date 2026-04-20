@@ -4329,7 +4329,7 @@ void BeebWindow::DoPaste(bool add_return) {
             bbc_ascii.push_back(13);
         }
 
-        m_beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(bbc_ascii)));
+        m_beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(bbc_ascii), 0));
     }
 }
 

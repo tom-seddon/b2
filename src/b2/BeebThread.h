@@ -106,6 +106,13 @@ class OSWORD0Callback {
     OSWORD0Callback() = default;
     virtual ~OSWORD0Callback() = default;
 
+    // called on some arbitrary thread, on no particular schedule.
+    //
+    // Return true if it's clear the callback is no longer relevant. It will be removed.
+    //
+    // Default impl returns true.
+    virtual bool ThreadIsStillRelevant() const;
+
     // called on some arbitrary thread.
     //
     // Return true to leave the callback in place, or false to have it removed automatically.
@@ -700,7 +707,12 @@ class BeebThread {
 
     class StartPasteMessage : public Message {
       public:
-        explicit StartPasteMessage(std::vector<uint8_t> text);
+        static constexpr double DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 0.;
+
+        // flags are a combination of BeebThreadPasteFlag
+        explicit StartPasteMessage(std::vector<uint8_t> text,
+                                   uint32_t flags,
+                                   double osword_0_timeout_seconds = DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -711,6 +723,8 @@ class BeebThread {
       protected:
       private:
         std::vector<uint8_t> m_text;
+        uint32_t m_flags = 0;
+        double m_osword_0_timeout_seconds = DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
     };
 
     class StopPasteMessage : public Message {
@@ -1425,8 +1439,10 @@ class BeebThread {
 
     void ThreadStopReplay(ThreadState *ts);
 
-    void ThreadUpdateOSWORD0Callbacks(ThreadState *ts);
-    void ThreadUpdateOSWRCHCallbacks(ThreadState *ts);
+    static void ThreadUpdateCallbacks(ThreadState *ts);
+    static void ThreadUpdateInstructionCallbacks(ThreadState *ts);
+
+    static void ThreadCallSharedCompletionFun(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, bool success, const char *message);
 
     void SetLastTrace(std::shared_ptr<Trace> last_trace);
 

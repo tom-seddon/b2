@@ -129,6 +129,13 @@ static const float VOLUMES_TABLE[] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool OSWORD0Callback::ThreadIsStillRelevant() const {
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //void OSWRCHCallback::ThreadCallbackWasRemoved(bool success) {
 //    (void)success;
 //}
@@ -193,7 +200,8 @@ struct BeebThread::ThreadState {
     //    Message::CompletionFun reset_completion_fun;
     //    CycleCount reset_timeout_cycles = {0};
 
-    Message::CompletionFun paste_completion_fun;
+    std::shared_ptr<Message::CompletionFun> paste_completion_fun;
+    uint32_t paste_flags = 0;
 
     std::unique_ptr<BeebLinkHTTPHandler> beeblink_handler;
 
@@ -203,6 +211,7 @@ struct BeebThread::ThreadState {
     std::vector<std::shared_ptr<OSWORD0Callback>> osword_0_callbacks;
     std::vector<std::shared_ptr<OSWRCHCallback>> oswrch_callbacks;
     std::vector<CompletionTimeout> completion_timeouts;
+    bool update_callbacks = false;
 
     Log log{"BEEB  ", LOG(BTHREAD)};
     Messages msgs;
@@ -636,10 +645,15 @@ bool BeebThread::HardResetMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class HardResetOSWORD0Callback : public ::OSWORD0Callback {
+class CallSharedCompletionFunOSWORD0Callback : public ::OSWORD0Callback {
   public:
-    HardResetOSWORD0Callback(std::shared_ptr<BeebThread::Message::CompletionFun> completion_fun)
+    CallSharedCompletionFunOSWORD0Callback(std::shared_ptr<BeebThread::Message::CompletionFun> completion_fun)
         : m_completion_fun(std::move(completion_fun)) {
+    }
+
+    bool ThreadIsStillRelevant() const override {
+        // if the completion fun got called, no need to keepu this callback around.
+        return !!*m_completion_fun;
     }
 
     bool ThreadOnOSWORD0(BeebThread *beeb_thread) override {
@@ -795,7 +809,7 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
             auto &&shared_completion_fun = std::make_shared<CompletionFun>(std::move(*completion_fun));
             *completion_fun = nullptr;
 
-            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<HardResetOSWORD0Callback>(shared_completion_fun));
+            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(shared_completion_fun));
 
             if (m_osword_0_timeout_seconds > 0.) {
                 ts->beeb_thread->ThreadAddCompletionTimeout(ts, shared_completion_fun, m_osword_0_timeout_seconds);
@@ -1451,8 +1465,12 @@ bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::StartPasteMessage::StartPasteMessage(std::vector<uint8_t> text)
-    : m_text(std::move(text)) {
+BeebThread::StartPasteMessage::StartPasteMessage(std::vector<uint8_t> text,
+                                                 uint32_t flags,
+                                                 double osword_0_timeout_seconds)
+    : m_text(std::move(text))
+    , m_flags(flags)
+    , m_osword_0_timeout_seconds(osword_0_timeout_seconds) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1467,11 +1485,7 @@ bool BeebThread::StartPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    if (completion_fun) {
-        Message::CallCompletionFun(std::move(ts->paste_completion_fun), false, nullptr);
-        ts->paste_completion_fun = std::move(*completion_fun);
-        *completion_fun = nullptr;
-    }
+    ThreadCallSharedCompletionFun(ts, std::move(ts->paste_completion_fun), false, "paste was stopped by a new paste starting");
 
     return true;
 }
@@ -1481,7 +1495,26 @@ bool BeebThread::StartPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
 void BeebThread::StartPasteMessage::ThreadHandle(CompletionFun *completion_fun,
                                                  ThreadState *ts) const {
-    (void)completion_fun;
+
+    ASSERT(!ts->paste_completion_fun);
+
+    ts->paste_flags = m_flags;
+    if (!!*completion_fun) {
+        // either way, the completion call will have to wait.
+        ts->paste_completion_fun = std::make_shared<CompletionFun>(std::move(*completion_fun));
+        *completion_fun = nullptr;
+    }
+
+    if (m_flags & BeebThreadPasteFlag_WaitForOSWORD0) {
+        if (!!ts->paste_completion_fun) {
+            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(ts->paste_completion_fun));
+
+            if (m_osword_0_timeout_seconds > 0.) {
+                ts->beeb_thread->ThreadAddCompletionTimeout(ts, ts->paste_completion_fun, m_osword_0_timeout_seconds);
+            }
+        }
+    }
+
     ts->beeb_thread->ThreadStartPaste(ts, m_text);
 }
 
@@ -1491,6 +1524,7 @@ void BeebThread::StartPasteMessage::ThreadHandle(CompletionFun *completion_fun,
 bool BeebThread::StopPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                  CompletionFun *completion_fun,
                                                  ThreadState *ts) {
+    // TODO: would be useful to be able to stop a paste when halted, surely?
     return PrepareUnlessReplayingOrHalted(ptr, completion_fun, ts);
 }
 
@@ -1503,6 +1537,7 @@ void BeebThread::StopPasteMessage::ThreadHandle(CompletionFun *completion_fun,
 
     ts->beeb->StopPaste();
     ts->beeb_thread->m_is_pasting.store(false, std::memory_order_release);
+    ThreadCallSharedCompletionFun(ts, std::move(ts->paste_completion_fun), false, "paste was stopped explicitly");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2996,12 +3031,13 @@ bool BeebThread::ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 
 
     if (cpu->pc.w == 0xfff2 && cpu->a == 0) {
         for (std::shared_ptr<OSWORD0Callback> &callback : ts->osword_0_callbacks) {
-            if (!callback->ThreadOnOSWORD0(ts->beeb_thread)) {
-                callback = nullptr;
+            if (!!callback) {
+                if (!callback->ThreadOnOSWORD0(ts->beeb_thread)) {
+                    callback = nullptr;
+                    ts->update_callbacks = true;
+                }
             }
         }
-
-        ts->beeb_thread->ThreadRemoveOSWORD0Callback(ts, nullptr);
     }
 
     return true;
@@ -3020,7 +3056,9 @@ bool BeebThread::ThreadHandleOSWRCHCallbacks(const BBCMicro *beeb, const M6502 *
     // 0xffee.
     if (cpu->abus.b.l == ram[0x020e] && cpu->abus.b.h == ram[0x020f]) {
         for (std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
-            callback->ThreadOnOSWRCH(ts->beeb_thread, cpu->a);
+            if (callback) {
+                callback->ThreadOnOSWRCH(ts->beeb_thread, cpu->a);
+            }
         }
     }
 
@@ -3061,13 +3099,14 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
             Message::CallCompletionFun(std::move(*timeout.shared_completion_fun), false, "Emulated system is being replaced");
         }
 
+        ThreadCallSharedCompletionFun(ts, std::move(ts->paste_completion_fun), false, "Emulated system is being replaced");
+
         ts->completion_timeouts.clear();
         ts->oswrch_callbacks.clear();
         ts->osword_0_callbacks.clear();
 
         // Belt and braces...
-        this->ThreadUpdateOSWRCHCallbacks(ts);
-        this->ThreadUpdateOSWORD0Callbacks(ts);
+        ThreadUpdateCallbacks(ts);
     } else {
         ASSERT(ts->completion_timeouts.empty());
         ASSERT(ts->oswrch_callbacks.empty());
@@ -3117,9 +3156,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         ts->beeb->SetDebugState(std::move(debug_state));
 #endif
         ts->beeb->SetPrinterBuffer(&m_printer_buffer);
-
-        //Message::CallCompletionFun(std::move(ts->reset_completion_fun), false, nullptr);
-        Message::CallCompletionFun(std::move(ts->paste_completion_fun), false, nullptr);
     }
 
     ts->num_executed_cycles = ts->beeb->GetCycleCountPtr();
@@ -3692,7 +3728,10 @@ void BeebThread::ThreadMain(void) {
             if (m_is_pasting) {
                 if (!ts.beeb->IsPasting()) {
                     m_is_pasting.store(false, std::memory_order_release);
-                    Message::CallCompletionFun(std::move(ts.paste_completion_fun), true, nullptr);
+
+                    if (!(ts.paste_flags & BeebThreadPasteFlag_WaitForOSWORD0)) {
+                        ThreadCallSharedCompletionFun(&ts, std::move(ts.paste_completion_fun), true, nullptr);
+                    }
                 }
             }
 
@@ -3748,25 +3787,24 @@ void BeebThread::ThreadMain(void) {
             }
 #endif
 
-            // frustrating loop.
-            for (;;) {
-                if (ts.completion_timeouts.empty()) {
-                    // No timeouts left.
+            for (size_t i = 0; i < ts.completion_timeouts.size(); ++i) {
+                CompletionTimeout *timeout = &ts.completion_timeouts[i];
+
+                if (ts.num_executed_cycles->n < timeout->absolute_cycles.n) {
+                    // Future timeouts are in the future, so don't keep looking.
+                    //
+                    // If the list is currently out of order, no problem - it'll get dealt with soon enough. The timeouts are approximate.
                     break;
                 }
 
-                CompletionTimeout *timeout = &ts.completion_timeouts.front();
-                if (timeout->absolute_cycles.n < ts.num_executed_cycles->n) {
-                    // Future timeouts are in the future.
-                    break;
-                }
+                ThreadCallSharedCompletionFun(&ts,
+                                              std::move(timeout->shared_completion_fun),
+                                              false,
+                                              strprintf("timed out after ~%.1f emulated seconds", timeout->relative_seconds).c_str());
+            }
 
-                Message::CallCompletionFun(std::move(*timeout->shared_completion_fun),
-                                           false,
-                                           strprintf("timed out after ~%.1f emulated seconds", timeout->relative_seconds));
-
-                // Not
-                ts.completion_timeouts.erase(ts.completion_timeouts.begin());
+            if (ts.update_callbacks) {
+                ThreadUpdateCallbacks(&ts);
             }
         }
 
@@ -4041,14 +4079,8 @@ static void AddCallback(std::vector<std::shared_ptr<T>> *callbacks, std::shared_
 //////////////////////////////////////////////////////////////////////////
 
 template <class T>
-static bool RemoveCallback(std::vector<std::shared_ptr<T>> *callbacks, const std::shared_ptr<T> &callback) {
-    auto &&it = std::find(callbacks->begin(), callbacks->end(), callback);
-    if (it == callbacks->end()) {
-        return false;
-    }
-
-    callbacks->erase(std::remove(it, callbacks->end(), callback), callbacks->end());
-    return true;
+static void RemoveCallback(std::vector<std::shared_ptr<T>> *callbacks, const std::shared_ptr<T> &callback) {
+    std::replace(callbacks->begin(), callbacks->end(), callback, std::shared_ptr<T>());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4057,7 +4089,7 @@ static bool RemoveCallback(std::vector<std::shared_ptr<T>> *callbacks, const std
 void BeebThread::ThreadAddOSWORD0Callback(ThreadState *ts, std::shared_ptr<OSWORD0Callback> callback) {
     AddCallback(&ts->osword_0_callbacks, std::move(callback));
 
-    ts->beeb_thread->ThreadUpdateOSWORD0Callbacks(ts);
+    ThreadUpdateInstructionCallbacks(ts);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4066,7 +4098,7 @@ void BeebThread::ThreadAddOSWORD0Callback(ThreadState *ts, std::shared_ptr<OSWOR
 void BeebThread::ThreadRemoveOSWORD0Callback(ThreadState *ts, const std::shared_ptr<OSWORD0Callback> &callback) {
     RemoveCallback(&ts->osword_0_callbacks, callback);
 
-    ts->beeb_thread->ThreadUpdateOSWORD0Callbacks(ts);
+    ThreadUpdateInstructionCallbacks(ts); // TODO: Currently a no-op in this situation, but, maybe one day that'll change?
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4075,23 +4107,18 @@ void BeebThread::ThreadRemoveOSWORD0Callback(ThreadState *ts, const std::shared_
 void BeebThread::ThreadAddOSWRCHCallback(ThreadState *ts, std::shared_ptr<OSWRCHCallback> callback) {
     AddCallback(&ts->oswrch_callbacks, std::move(callback));
 
-    ts->beeb_thread->ThreadUpdateOSWRCHCallbacks(ts);
+    ThreadUpdateInstructionCallbacks(ts);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadRemoveOSWRCHCallback(ThreadState *ts, const std::shared_ptr<OSWRCHCallback> &callback, bool success) {
-    bool removed = RemoveCallback(&ts->oswrch_callbacks, callback);
+    (void)success; // TODO: the OSWRCH callback completion fun mechanism isn't really fleshed out properly yet
 
-    ts->beeb_thread->ThreadUpdateOSWRCHCallbacks(ts);
+    RemoveCallback(&ts->oswrch_callbacks, callback);
 
-    // TODO: still needs a pass
-    (void)removed, (void)success;
-
-    //    if (removed) {
-    //        callback->ThreadCallbackWasRemoved(success);
-    //    }
+    ThreadUpdateInstructionCallbacks(ts); // TODO: Currently a no-op in this situation, but, maybe one day that'll change?
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4108,11 +4135,7 @@ void BeebThread::ThreadAddCompletionTimeout(ThreadState *ts, std::shared_ptr<Mes
         ts->completion_timeouts.push_back(std::move(timeout));
     }
 
-    std::sort(ts->completion_timeouts.begin(),
-              ts->completion_timeouts.end(),
-              [](const CompletionTimeout &a, const CompletionTimeout &b) -> bool {
-                  return a.absolute_cycles.n < b.absolute_cycles.n;
-              });
+    ts->update_callbacks = true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4273,22 +4296,80 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadUpdateOSWORD0Callbacks(ThreadState *ts) {
+template <class T>
+static void RemoveNulls(std::vector<T> *callbacks) {
+    callbacks->erase(std::remove(callbacks->begin(),
+                                 callbacks->end(),
+                                 nullptr),
+                     callbacks->end());
+}
+
+void BeebThread::ThreadUpdateCallbacks(ThreadState *ts) {
+    // OSWORD 0 callbacks can report their irrelevance.
+    for (std::shared_ptr<OSWORD0Callback> &callback : ts->osword_0_callbacks) {
+        if (callback) {
+            if (!callback->ThreadIsStillRelevant()) {
+                callback.reset();
+            }
+        }
+    }
+
+    // Completion timeouts can be inspected.
+    std::vector<CompletionTimeout>::iterator it = ts->completion_timeouts.begin();
+    while (it != ts->completion_timeouts.end()) {
+        if (!*it->shared_completion_fun) {
+            it = ts->completion_timeouts.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // Remove piled-up nulls from the lists.
+    RemoveNulls(&ts->osword_0_callbacks);
+    RemoveNulls(&ts->oswrch_callbacks);
+
+    // Not really ideal, but this whole business does not promise to be cheap.
+    std::sort(ts->completion_timeouts.begin(),
+              ts->completion_timeouts.end(),
+              [](const CompletionTimeout &a, const CompletionTimeout &b) -> bool {
+                  return a.absolute_cycles.n < b.absolute_cycles.n;
+              });
+
+    ThreadUpdateInstructionCallbacks(ts);
+
+    // it's ok to call if update_callbacks is false on entry. It always ends up false on exit.
+    ts->update_callbacks = false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadUpdateInstructionCallbacks(ThreadState *ts) {
     if (ts->osword_0_callbacks.empty()) {
         ts->beeb->RemoveHostInstructionCallback(&BeebThread::ThreadHandleOSWORD0Callbacks, ts);
     } else {
         ts->beeb->AddHostInstructionCallback(&BeebThread::ThreadHandleOSWORD0Callbacks, ts);
+    }
+
+    if (ts->oswrch_callbacks.empty()) {
+        ts->beeb->RemoveHostInstructionCallback(&BeebThread::ThreadHandleOSWRCHCallbacks, ts);
+    } else {
+        ts->beeb->AddHostInstructionCallback(&BeebThread::ThreadHandleOSWRCHCallbacks, ts);
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadUpdateOSWRCHCallbacks(ThreadState *ts) {
-    if (ts->oswrch_callbacks.empty()) {
-        ts->beeb->RemoveHostInstructionCallback(&BeebThread::ThreadHandleOSWRCHCallbacks, ts);
-    } else {
-        ts->beeb->AddHostInstructionCallback(&BeebThread::ThreadHandleOSWRCHCallbacks, ts);
+void BeebThread::ThreadCallSharedCompletionFun(ThreadState *ts,
+                                               std::shared_ptr<Message::CompletionFun> &&completion_fun,
+                                               bool success,
+                                               const char *message) {
+    if (!!completion_fun) {
+        Message::CallCompletionFun(std::move(*completion_fun), success, message);
+        completion_fun.reset();
+
+        ts->update_callbacks = true;
     }
 }
 
