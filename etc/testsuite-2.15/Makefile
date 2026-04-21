@@ -1,14 +1,12 @@
 ifeq ($(OS),Windows_NT)
-
-MKDIR:=mkdir.exe -p
-TASS:=../64tass-1.52.1237/64tass.exe
-
+PYTHON:=py -3
+TASS:=../../bin/64tass.exe
 else
-
-MKDIR:=mkdir -p
+PYTHON:=python3
 TASS:=64tass
-
 endif
+
+SHELLCMD:=$(PYTHON) "../../submodules/shellcmd.py/shellcmd.py"
 
 SRC:=ascii-src
 LST:=ascii-lst
@@ -16,7 +14,7 @@ BIN:=ascii-bin
 
 .PHONY:all
 all:
-	$(MKDIR) $(LST) $(BIN)
+	$(SHELLCMD) mkdir "$(LST)" "$(BIN)"
 	$(MAKE) asm "STEM=adca"
 	$(MAKE) asm "STEM=adcax"
 	$(MAKE) asm "STEM=adcay"
