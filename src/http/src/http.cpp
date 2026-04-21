@@ -17,8 +17,21 @@ const std::string HTTP_ISO_8859_1_CHARSET = "ISO-8859-1";
 const std::string HTTP_UTF8_CHARSET = "utf-8";
 const std::string DEFAULT_CONTENT_TYPE = HTTP_OCTET_STREAM_CONTENT_TYPE;
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const std::string CONTENT_TYPE = "Content-Type";
 const std::string CHARSET_PREFIX = "charset:";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string OK_STATUS_MESSAGE = "200 OK";
+const std::string BAD_REQUEST_STATUS_MESSAGE = "400 Bad Request";
+const std::string NOT_FOUND_STATUS_MESSAGE = "404 Not Found";
+const std::string UNSUPPORTED_MEDIA_TYPE_STATUS_MESSAGE = "415 Unsupported Media Type";
+const std::string INTERNAL_SERVER_ERROR_STATUS_MESSAGE = "500 Internal Server Error";
+const std::string SERVICE_UNAVAILABLE_STATUS_MESSAGE = "503 Service Unavailable";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -165,14 +178,14 @@ void HTTPRequest::AddQueryParameter(std::string key, std::string value) {
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse HTTPResponse::OK() {
-    return HTTPResponse("200 OK");
+    return HTTPResponse(OK_STATUS_MESSAGE);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse HTTPResponse::BadRequest() {
-    return HTTPResponse("400 Bad Request");
+    return HTTPResponse(BAD_REQUEST_STATUS_MESSAGE);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -185,7 +198,7 @@ HTTPResponse HTTPResponse::BadRequest(const char *fmt, ...) {
     std::string message = strprintfv(fmt, v);
     va_end(v);
 
-    return HTTPResponse("400 Bad Request", HTTP_TEXT_CONTENT_TYPE, std::move(message));
+    return HTTPResponse(BAD_REQUEST_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, std::move(message));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -203,14 +216,14 @@ HTTPResponse HTTPResponse::BadRequest(const HTTPRequest &request, const char *fm
         va_end(v);
     }
 
-    return HTTPResponse("400 Bad Request", HTTP_TEXT_CONTENT_TYPE, std::move(message));
+    return HTTPResponse(BAD_REQUEST_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, std::move(message));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse HTTPResponse::NotFound() {
-    return HTTPResponse("404 Not Found");
+    return HTTPResponse(NOT_FOUND_STATUS_MESSAGE);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -228,21 +241,21 @@ HTTPResponse HTTPResponse::NotFound(const HTTPRequest &request, const char *fmt,
         va_end(v);
     }
 
-    return HTTPResponse("404 Not Found", HTTP_TEXT_CONTENT_TYPE, std::move(message));
+    return HTTPResponse(NOT_FOUND_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, std::move(message));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse HTTPResponse::UnsupportedMediaType(const HTTPRequest &request) {
-    return HTTPResponse("415 Unsupported Media Type", HTTP_TEXT_CONTENT_TYPE, request.method + " " + request.url);
+    return HTTPResponse(UNSUPPORTED_MEDIA_TYPE_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, request.method + " " + request.url);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse HTTPResponse::InternalServerError() {
-    return HTTPResponse("501 Internal Server Error");
+    return HTTPResponse(INTERNAL_SERVER_ERROR_STATUS_MESSAGE);
 }
 
 HTTPResponse HTTPResponse::InternalServerError(const char *fmt, ...) {
@@ -252,14 +265,14 @@ HTTPResponse HTTPResponse::InternalServerError(const char *fmt, ...) {
     std::string message = strprintfv(fmt, v);
     va_end(v);
 
-    return HTTPResponse("501 Internal Server Error", HTTP_TEXT_CONTENT_TYPE, message);
+    return HTTPResponse(INTERNAL_SERVER_ERROR_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, message);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse HTTPResponse::ServiceUnavailable() {
-    return HTTPResponse("503 Service Unavailable");
+    return HTTPResponse(SERVICE_UNAVAILABLE_STATUS_MESSAGE);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -272,14 +285,14 @@ HTTPResponse HTTPResponse::ServiceUnavailable(const char *fmt, ...) {
     std::string message = strprintfv(fmt, v);
     va_end(v);
 
-    return HTTPResponse("503 Service Unavailable", HTTP_TEXT_CONTENT_TYPE, message);
+    return HTTPResponse(SERVICE_UNAVAILABLE_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, message);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse::HTTPResponse()
-    : status("500 Internal Server Error") {
+    : status(INTERNAL_SERVER_ERROR_STATUS_MESSAGE) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -293,14 +306,14 @@ HTTPResponse::HTTPResponse(std::string status_)
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse::HTTPResponse(std::string content_type, std::vector<uint8_t> content)
-    : HTTPResponse("200 OK", std::move(content_type), std::move(content)) {
+    : HTTPResponse(OK_STATUS_MESSAGE, std::move(content_type), std::move(content)) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse::HTTPResponse(std::string content_type, const std::string &content)
-    : HTTPResponse("200 OK", std::move(content_type), content) {
+    : HTTPResponse(OK_STATUS_MESSAGE, std::move(content_type), content) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -338,8 +351,9 @@ std::string HTTPResponse::GetContentString() const {
     if (this->content_type == HTTP_JSON_CONTENT_TYPE) {
         return std::string(this->content.begin(), this->content.end());
     } else if (this->content_type == HTTP_TEXT_CONTENT_TYPE) {
-        if (content_type_charset == HTTP_UTF8_CHARSET || IsPrintable(this->content))
+        if (content_type_charset == HTTP_UTF8_CHARSET || IsPrintable(this->content)) {
             return std::string(this->content.begin(), this->content.end());
+        }
     }
 
     return "(unprintable Content-Type: " + GetContentTypeHeader(this->content_type, this->content_type_charset) + ")";
