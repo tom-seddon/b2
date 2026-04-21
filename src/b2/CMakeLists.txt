@@ -504,6 +504,7 @@ add_b2_test_literal_category(b2ui.load_zipped_disk.two_disks)
 
 foreach(OS os120 os200 mos320 mos350 mos500 mos510 mos511i mosI510C electron)
   add_b2_test_literal_category(b2.http.config.${OS})
+  add_b2_test_literal_category(b2.http.paste.osword_0_timeout.${OS})
 endforeach()
 
 # add_b2_test_literal_category(b2.http.config)

@@ -298,7 +298,7 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
 
     if (request_args.wait_for_osword_0) {
         flags |= BeebThreadHardResetFlag_WaitForOSWORD0;
-        osword_0_timeout_seconds = 15.; //TODO: should probably be configurable?
+        osword_0_timeout_seconds = request_args.wait_for_osword_0_timeout_seconds.value_or(API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
     }
 
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config),
@@ -320,7 +320,7 @@ static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
 
     if (request_args.wait_for_osword_0) {
         flags |= BeebThreadPasteFlag_WaitForOSWORD0;
-        osword_0_timeout_seconds = 15.; //TODO: should probably be configurable?
+        osword_0_timeout_seconds = request_args.wait_for_osword_0_timeout_seconds.value_or(API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
     }
 
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(request_args.input.bytes),

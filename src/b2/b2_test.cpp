@@ -65,6 +65,23 @@ static bool g_interactive = false;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Relevant for any tests that have multiple versions, one per MOS type. This is
+// typically overkill but it does ensure that no surprising MOS-specific issues
+// are introduced.
+struct MOSType {
+    // standard suffix for the test names.
+    std::string suffix;
+
+    // name of stock config that includes this MOS version.
+    std::string stock_config;
+
+    // expected version name, as reported by *FX0.
+    std::string expected_os_version;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class Test {
   public:
     Test() = default;
@@ -1224,6 +1241,8 @@ class TestHTTPAPI : public Test, public AppHandler {
         m_thread = std::thread([this]() -> void {
             this->Thread(&m_thread_args);
 
+            m_thread_args.test_was_run.store(true, std::memory_order_release);
+
             SDL_Event event = {};
             event.type = SDL_QUIT;
             SDL_PushEvent(&event);
@@ -1295,6 +1314,7 @@ static T GetApiResultFromHTTPResponse(const HTTPResponse &http_response) {
     return api_result;
 }
 
+#if BBCMICRO_DEBUGGER
 static std::vector<std::string> GetLines(std::string str) {
     std::vector<std::string> lines;
     ForEachLine(str, [&lines](const std::string_view &line) -> bool {
@@ -1303,17 +1323,16 @@ static std::vector<std::string> GetLines(std::string str) {
     });
     return lines;
 }
+#endif
 
 class TestHTTPConfig : public TestHTTPAPI {
   public:
-    TestHTTPConfig(std::string suffix, std::string stock_config, std::string expected_os)
-        : m_suffix(std::move(suffix))
-        , m_stock_config(std::move(stock_config))
-        , m_expected_os(std::move(expected_os)) {
+    explicit TestHTTPConfig(MOSType mos_type)
+        : m_mos_type(std::move(mos_type)) {
     }
 
     std::string GetFullName() const override {
-        return "b2.http.config." + m_suffix;
+        return "b2.http.config." + m_mos_type.suffix;
     }
 
   protected:
@@ -1326,7 +1345,7 @@ class TestHTTPConfig : public TestHTTPAPI {
         std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
 
         ApiConfigArgs config_args;
-        config_args.base_stock_config = m_stock_config;
+        config_args.base_stock_config = m_mos_type.stock_config;
         config_args.wait_for_osword_0 = true;
 
         {
@@ -1360,18 +1379,61 @@ class TestHTTPConfig : public TestHTTPAPI {
 
             std::vector<std::string> lines = GetLines(GetUTF8FromBBCASCII(result.output.bytes, BBCUTF8ConvertMode_PassThrough, true));
             TEST_EQ_UU(lines.size(), 4u);
-            TEST_EQ_SS(lines[2], m_expected_os);
+            TEST_EQ_SS(lines[2], m_mos_type.expected_os_version);
         }
-
 #endif
-
-        args->test_was_run.store(true, std::memory_order_release);
     }
 
   private:
-    std::string m_suffix;
-    std::string m_stock_config;
-    std::string m_expected_os;
+    MOSType m_mos_type;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
+  public:
+    explicit TestHTTPPasteOSWORD0Timeout(MOSType mos_type)
+        : m_mos_type(std::move(mos_type)) {
+    }
+
+    std::string GetFullName() const override {
+        return "b2.http.paste.osword_0_timeout." + m_mos_type.suffix;
+    }
+
+  protected:
+    void Thread(ThreadArgs *args) override {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+        client->SetLogs(&g_stdio_logs);
+        client->SetVerbose(true);
+
+        std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
+
+        ApiConfigArgs config_args;
+        config_args.base_stock_config = m_mos_type.stock_config;
+        config_args.wait_for_osword_0 = true;
+
+        {
+            HTTPResponse http_response;
+            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            TEST_EQ_II(status, 200);
+        }
+
+        {
+            HTTPResponse http_response;
+            ApiPasteArgs paste_args;
+            TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "TIME=0:REPEAT:UNTILTIME>100\r", nullptr, nullptr, nullptr));
+            paste_args.wait_for_osword_0 = true;
+            paste_args.wait_for_osword_0_timeout_seconds = .5;
+            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
+            TEST_EQ_II(status, 500);
+        }
+#endif
+    }
+
+  private:
+    MOSType m_mos_type;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1732,6 +1794,18 @@ static void AddCopyOfDiskTests(std::vector<std::unique_ptr<Test>> *all_tests, co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const MOSType MOS_TYPES[] = {
+    {"os120", "B/Acorn 1770", "OS 1.20"},
+    {"os200", "B+", "OS 2.00"},
+    {"mos320", "Master 128 (MOS 3.20)", "OS 3.20"},
+    {"mos350", "Master 128 (MOS 3.50)", "MOS 3.50"},
+    {"mos500", "Master Compact (MOS 5.00)", "MOS 5.00"},
+    {"mos510", "Master Compact (MOS 5.10)", "MOS 5.10"},
+    {"mos511i", "Master Compact (MOS 5.11i+Arabic)", "MOS 5.11i"},
+    {"mosI510C", "Olivetti PC 128 S", "MOS I5.10C"},
+    {"electron", "Electron/Plus 1", "OS 1.00"},
+};
+
 int main(int argc, char *argv[]) {
     TestOptions options = GetOptions(argc, argv);
 
@@ -1761,15 +1835,10 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestLoadZippedDisk>(PathJoined(b2_SOURCE_DIR, "etc/tests/disks/two_disks.zip"),
                                                              ""));
 
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("os120", "B/Acorn 1770", "OS 1.20"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("os200", "B+", "OS 2.00"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos320", "Master 128 (MOS 3.20)", "OS 3.20"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos350", "Master 128 (MOS 3.50)", "MOS 3.50"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos500", "Master Compact (MOS 5.00)", "MOS 5.00"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos510", "Master Compact (MOS 5.10)", "MOS 5.10"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos511i", "Master Compact (MOS 5.11i+Arabic)", "MOS 5.11i"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("mosI510C", "Olivetti PC 128 S", "MOS I5.10C"));
-    all_tests.push_back(std::make_unique<TestHTTPConfig>("electron", "Electron/Plus 1", "OS 1.00"));
+    for (const MOSType &mos_type : MOS_TYPES) {
+        all_tests.push_back(std::make_unique<TestHTTPConfig>(mos_type));
+        all_tests.push_back(std::make_unique<TestHTTPPasteOSWORD0Timeout>(mos_type));
+    }
 
     std::map<std::string, Test *> tests_by_name;
     for (const std::unique_ptr<Test> &test : all_tests) {

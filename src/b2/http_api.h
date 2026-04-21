@@ -90,6 +90,17 @@ void to_json(nlohmann::json &j, const BBCString &s);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// A few calls give you the option of waiting for the next OSWORD 0 (line input)
+// call before continuing.
+//
+// The timeout is configurable, and this is the default value.
+//
+// Units are emulated seconds.
+static constexpr double API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 15.;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // A single API request.
 struct ApiRequest {
     // The type of request. Use the value of the API_XXX_REQUEST_TYPE value, where XXX is the request type name in upper case snake_case format.
@@ -214,7 +225,16 @@ struct ApiConfigArgs {
 
     std::optional<bool> mouse;
 
+    // If true, wait for the next OSWORD 0 call before reporting success or
+    // failure.
     bool wait_for_osword_0 = false;
+
+    // If provided, the number of (emulated) seconds to wait for the OSWORD 0
+    // call when wait_for_osword_0. If the timeout is exceeded, the request
+    // fails.
+    //
+    // If not provided, a default will be used.
+    std::optional<double> wait_for_osword_0_timeout_seconds;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 base_stock_config,
@@ -227,7 +247,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 beeblink,
                                                 nvram,
                                                 mouse,
-                                                wait_for_osword_0);
+                                                wait_for_osword_0,
+                                                wait_for_osword_0_timeout_seconds);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -236,9 +257,19 @@ static const char API_PASTE_REQUEST_TYPE[] = "paste";
 
 struct ApiPasteArgs {
     BBCString input;
+
+    // If true, after the last character is pasted, wait for the next OSWORD 0
+    // call before reporting success or failure.
     bool wait_for_osword_0 = false;
+
+    // If provided, the number of (emulated) seconds to wait for the OSWORD 0
+    // call when wait_for_osword_0. If the timeout is exceeded, the request
+    // fails.
+    //
+    // If not provided, a default will be used.
+    std::optional<double> wait_for_osword_0_timeout_seconds;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input, wait_for_osword_0);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input, wait_for_osword_0, wait_for_osword_0_timeout_seconds);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
