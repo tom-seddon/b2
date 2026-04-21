@@ -1160,13 +1160,7 @@ class TestLoadZippedDisk : public DearImGuiTest {
 // Once Thread returns, the program will quit.
 class TestHTTPAPI : public Test, public AppHandler {
   public:
-    TestHTTPAPI(std::string name)
-        : m_name(std::move(name)) {
-    }
-
-    std::string GetFullName() const override {
-        return m_name;
-    }
+    TestHTTPAPI() = default;
 
     bool IsHighDPIEnabled() const override {
         return false;
@@ -1299,10 +1293,25 @@ static T GetApiResultFromHTTPResponse(const HTTPResponse &http_response) {
     return api_result;
 }
 
+static std::vector<std::string> GetLines(std::string str) {
+    std::vector<std::string> lines;
+    ForEachLine(str, [&lines](const std::string_view &line) -> bool {
+        lines.push_back(std::string(line));
+        return true;
+    });
+    return lines;
+}
+
 class TestHTTPConfig : public TestHTTPAPI {
   public:
-    TestHTTPConfig()
-        : TestHTTPAPI("b2.http.config") {
+    TestHTTPConfig(std::string suffix, std::string stock_config, std::string expected_os)
+        : m_suffix(std::move(suffix))
+        , m_stock_config(std::move(stock_config))
+        , m_expected_os(std::move(expected_os)) {
+    }
+
+    std::string GetFullName() const override {
+        return "b2.http.config." + m_suffix;
     }
 
   protected:
@@ -1315,7 +1324,7 @@ class TestHTTPConfig : public TestHTTPAPI {
         std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
 
         ApiConfigArgs config_args;
-        config_args.base_stock_config = "B/Acorn 1770";
+        config_args.base_stock_config = m_stock_config;
         config_args.wait_for_osword_0 = true;
 
         {
@@ -1345,7 +1354,11 @@ class TestHTTPConfig : public TestHTTPAPI {
             TEST_EQ_II(status, 200);
 
             ApiStopCaptureOSWRCHResult result = GetApiResultFromHTTPResponse<ApiStopCaptureOSWRCHResult>(http_response);
-            printf("got %zu\n", result.output.bytes.size());
+            //printf("got %zu\n", result.output.bytes.size());
+
+            std::vector<std::string> lines = GetLines(GetUTF8FromBBCASCII(result.output.bytes, BBCUTF8ConvertMode_PassThrough, true));
+            TEST_EQ_UU(lines.size(), 4u);
+            TEST_EQ_SS(lines[2], m_expected_os);
         }
 
 #endif
@@ -1354,6 +1367,9 @@ class TestHTTPConfig : public TestHTTPAPI {
     }
 
   private:
+    std::string m_suffix;
+    std::string m_stock_config;
+    std::string m_expected_os;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1711,6 +1727,9 @@ static void AddCopyOfDiskTests(std::vector<std::unique_ptr<Test>> *all_tests, co
     }
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char *argv[]) {
     TestOptions options = GetOptions(argc, argv);
 
@@ -1740,7 +1759,15 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestLoadZippedDisk>(PathJoined(b2_SOURCE_DIR, "etc/tests/disks/two_disks.zip"),
                                                              ""));
 
-    all_tests.push_back(std::make_unique<TestHTTPConfig>());
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("os120", "B/Acorn 1770", "OS 1.20"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("os200", "B+", "OS 2.00"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos320", "Master 128 (MOS 3.20)", "OS 3.20"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos350", "Master 128 (MOS 3.50)", "MOS 3.50"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos500", "Master Compact (MOS 5.00)", "MOS 5.00"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos510", "Master Compact (MOS 5.10)", "MOS 5.10"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("mos511i", "Master Compact (MOS 5.11i+Arabic)", "MOS 5.11i"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("mosI510C", "Olivetti PC 128 S", "MOS I5.10C"));
+    all_tests.push_back(std::make_unique<TestHTTPConfig>("electron", "Electron/Plus 1", "OS 1.00"));
 
     std::map<std::string, Test *> tests_by_name;
     for (const std::unique_ptr<Test> &test : all_tests) {
