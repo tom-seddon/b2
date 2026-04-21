@@ -937,6 +937,52 @@ class TestLoadUEF : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestForEachLine : public Test {
+  public:
+    std::string GetFullName() const override {
+        return "misc.ForEachLine";
+    }
+
+    void Run() override {
+        std::vector<std::string> lines;
+
+        for (bool trailing : {true, false}) {
+            for (const char *newline : {"\n", "\r", "\r\n", "\n\r"}) {
+                printf("Newline: %d,%d; trailing: %d\n", newline[0], newline[1], trailing);
+                std::string str = std::string("a") + newline + "b" + newline + "c";
+                if (trailing) {
+                    str += newline;
+                }
+
+                lines = GetLines(str);
+                TEST_EQ_UU(lines.size(), 3);
+                TEST_EQ_SS(lines[0], "a");
+                TEST_EQ_SS(lines[1], "b");
+                TEST_EQ_SS(lines[2], "c");
+            }
+        }
+    }
+
+  protected:
+  private:
+    std::vector<std::string> GetLines(const std::string &str, size_t max_size = UINT64_MAX) {
+        TEST_GT_UU(max_size, 0);
+        std::vector<std::string> lines;
+        ForEachLine(str, [&lines, max_size](const std::string_view &line) -> bool {
+            lines.push_back(std::string(line));
+            if (lines.size() == max_size) {
+                return false;
+            }
+
+            return true;
+        });
+        return lines;
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TestCopyOfDisk : public DearImGuiTest {
   public:
     TestCopyOfDisk(const Disc *disk, int drive, bool in_memory)
@@ -1677,6 +1723,7 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestStbImageUTF8>());
     all_tests.push_back(std::make_unique<TestLoadPossiblyGzippedFile>());
     all_tests.push_back(std::make_unique<TestLoadUEF>());
+    all_tests.push_back(std::make_unique<TestForEachLine>());
 
     // the callback handling is model-dependent, so not much point checking the whole lineup.
     all_tests.push_back(std::make_unique<TestNVRAMUpdate>("master", "Master 128 (MOS 3.20)"));
