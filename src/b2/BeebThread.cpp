@@ -4317,7 +4317,7 @@ void BeebThread::ThreadUpdateCallbacks(ThreadState *ts) {
     // Completion timeouts can be inspected.
     std::vector<CompletionTimeout>::iterator it = ts->completion_timeouts.begin();
     while (it != ts->completion_timeouts.end()) {
-        if (!*it->shared_completion_fun) {
+        if (!it->shared_completion_fun) {
             it = ts->completion_timeouts.erase(it);
         } else {
             ++it;
