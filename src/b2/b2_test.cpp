@@ -49,10 +49,12 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_DEFINE(stdout, "", &log_printer_stdout);
-LOG_DEFINE(stderr, "", &log_printer_stderr);
+// don't try to call these "stdout" or "stderr" - on VC++, the name expands to
+// something that isn't an identifier.
+LOG_DEFINE(std_out, "", &log_printer_stdout);
+LOG_DEFINE(std_err, "", &log_printer_stderr);
 
-static const LogSet g_stdio_logs(LOG(stdout), LOG(stderr), LOG(stderr));
+static const LogSet g_stdio_logs(LOG(std_out), LOG(std_err), LOG(std_err));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
