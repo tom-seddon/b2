@@ -72,8 +72,8 @@ struct MOSType {
     // standard suffix for the test names.
     std::string suffix;
 
-    // name of stock config that includes this MOS version.
-    std::string stock_config;
+    // default config that includes this MOS version.
+    std::string default_config_name;
 
     // expected version name, as reported by *FX0.
     std::string expected_os_version;
@@ -1325,6 +1325,20 @@ static std::vector<std::string> GetLines(std::string str) {
 }
 #endif
 
+#if BBCMICRO_DEBUGGER
+static const BeebConfig *GetDefaultConfigByName(const std::string &name) {
+    for (size_t i = 0; i < GetNumDefaultBeebConfigs(); ++i) {
+        const BeebConfig *default_config = GetDefaultBeebConfigByIndex(i);
+
+        if (default_config->name == name) {
+            return default_config;
+        }
+    }
+
+    TEST_FAIL("default config not found: %s", name.c_str());
+}
+#endif
+
 class TestHTTPConfig : public TestHTTPAPI {
   public:
     explicit TestHTTPConfig(MOSType mos_type)
@@ -1345,7 +1359,7 @@ class TestHTTPConfig : public TestHTTPAPI {
         std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
 
         ApiConfigArgs config_args;
-        config_args.base_stock_config = m_mos_type.stock_config;
+        config_args.base_default_config = m_mos_type.default_config_name;
         config_args.wait_for_osword_0 = true;
 
         {
@@ -1410,25 +1424,104 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
 
         std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
 
-        ApiConfigArgs config_args;
-        config_args.base_stock_config = m_mos_type.stock_config;
-        config_args.wait_for_osword_0 = true;
-
         {
+            ApiConfigArgs config_args;
+            config_args.base_default_config = m_mos_type.default_config_name;
+            config_args.wait_for_osword_0 = true;
+
             HTTPResponse http_response;
             int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
         {
-            HTTPResponse http_response;
             ApiPasteArgs paste_args;
             TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "TIME=0:REPEAT:UNTILTIME>100\r", nullptr, nullptr, nullptr));
             paste_args.wait_for_osword_0 = true;
             paste_args.wait_for_osword_0_timeout_seconds = .5;
+
+            HTTPResponse http_response;
             int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
         }
+#endif
+    }
+
+  private:
+    MOSType m_mos_type;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
+  public:
+    explicit TestHTTPConfigOSWORD0Timeout(MOSType mos_type)
+        : m_mos_type(std::move(mos_type)) {
+    }
+
+    std::string GetFullName() const override {
+        return "b2.http.config.osword_0_timeout." + m_mos_type.suffix;
+    }
+
+  protected:
+    void Thread(ThreadArgs *args) override {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+        client->SetLogs(&g_stdio_logs);
+        client->SetVerbose(true);
+
+        std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
+
+        // path to any old language ROM that doesn't do an OSWORD 0 in good time...
+        std::string problem_rom_path = PathJoined(b2_SOURCE_DIR, "etc/tests/roms/Wordwise Plus v1.49 [variant 5].rom");
+
+        {
+            ApiConfigArgs config_args;
+            config_args.base_default_config = m_mos_type.default_config_name;
+            config_args.wait_for_osword_0 = true;
+            config_args.wait_for_osword_0_timeout_seconds = .5;
+
+            const BeebConfig *default_config = GetDefaultConfigByName(config_args.base_default_config);
+
+            if (default_config->nvram.empty()) {
+                // Problem ROM should replace BASIC.
+                int8_t basic_bank = -1;
+                for (int8_t bank = 15; bank >= 0; --bank) {
+                    if (const BeebROM *beeb_rom = default_config->roms[bank].standard_rom) {
+                        if (beeb_rom->rom == StandardROM_BASIC2) {
+                            basic_bank = bank;
+                            break;
+                        }
+                    }
+                }
+
+                TEST_GE_II(basic_bank, 0);
+
+                ApiSidewaysROM rom;
+                rom.bank = (uint8_t)basic_bank;
+                rom.contents.path = problem_rom_path;
+
+                config_args.sideways_roms.push_back(rom);
+            } else {
+                // Problem ROM should go in bank 8. Also fix up the LANG setting.
+                ApiSidewaysROM rom;
+                rom.bank = 8;
+                rom.contents.path = problem_rom_path;
+
+                config_args.sideways_roms.push_back(rom);
+
+                // LANG setting is top 4 bits of byte +5.
+                TEST_GE_UU(default_config->nvram.size(), 6);
+                config_args.nvram.resize(6);
+                config_args.nvram[5] = (uint8_t)((default_config->nvram[5] & 0x0f) | 0x80);
+            }
+
+            HTTPResponse http_response;
+            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            TEST_EQ_II(status, 500);
+        }
+
 #endif
     }
 
@@ -1838,6 +1931,7 @@ int main(int argc, char *argv[]) {
     for (const MOSType &mos_type : MOS_TYPES) {
         all_tests.push_back(std::make_unique<TestHTTPConfig>(mos_type));
         all_tests.push_back(std::make_unique<TestHTTPPasteOSWORD0Timeout>(mos_type));
+        all_tests.push_back(std::make_unique<TestHTTPConfigOSWORD0Timeout>(mos_type));
     }
 
     std::map<std::string, Test *> tests_by_name;

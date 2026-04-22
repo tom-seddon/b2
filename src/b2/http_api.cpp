@@ -158,19 +158,19 @@ static void SetOptional(T *dest, const std::optional<T> &src) {
 static bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, const LogSet *logs) {
     BeebConfig dest;
 
-    if (!src.base_stock_config.empty()) {
+    if (!src.base_default_config.empty()) {
         const BeebConfig *base_config = nullptr;
 
         for (size_t i = 0; i < GetNumDefaultBeebConfigs(); ++i) {
             const BeebConfig *default_config = GetDefaultBeebConfigByIndex(i);
-            if (default_config->name == src.base_stock_config) {
+            if (default_config->name == src.base_default_config) {
                 base_config = default_config;
                 break;
             }
         }
 
         if (!base_config) {
-            logs->e.f("base stock config not found: %s", src.base_stock_config.c_str());
+            logs->e.f("base default config not found: %s", src.base_default_config.c_str());
             return false;
         }
 
@@ -233,7 +233,9 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, cons
     SetOptional(&dest.beeblink, src.beeblink);
 
     for (size_t i = 0; i < dest.nvram.size() && i < src.nvram.size(); ++i) {
-        dest.nvram[i] = src.nvram[i];
+        if (src.nvram[i].has_value()) {
+            dest.nvram[i] = *src.nvram[i];
+        }
     }
 
     SetOptional(&dest.mouse, src.mouse);

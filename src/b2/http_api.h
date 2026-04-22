@@ -19,16 +19,19 @@ class BeebThread;
 
 // Structured JSON-based HTTP API, for use by automated tools.
 //
-// In the long run, the more ad-hoc shell-friendlier stuff will defer to this, in some documented fashion.
+// In the long run, the more ad-hoc shell-friendlier stuff will defer to this,
+// in some documented fashion.
 //
-// Unlike most names in b2, these names have prefixes. This stuff may end up getting pulled out into a separate library.
+// Unlike most names in b2, these names have prefixes. This stuff may end up
+// getting pulled out into a separate library.
 //
 // Anything marked TODO: is for my benefit, and can be ignored.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(T,...) means struct T is part of the JSON API. Only structs tagged this way are part of the API.
+// NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(T,...) means struct T is part
+// of the JSON API. Only structs tagged this way are part of the API.
 //
 // C++ types used, and how they map to JSON.
 //
@@ -38,11 +41,16 @@ class BeebThread;
 // - uint16_t - JSON number, integer 0-65535
 // - std::vector<T> - JSON array of T
 // - nlohmann::json - JSON of any kind (probably depends on some other
-// - Enum<T> - JSON string, the name of one of the enum values of T. Use the list_values endpoint to list the valid JSON values for the enum. Note that the valid JSON values exclude the prefix; so, for example, for the StandardROM enum, StandardROM_None in C++ maps to "None" in JSON.
+// - Enum<T> - JSON string, the name of one of the enum values of T, an enum
+//   type from the b2 code. Use the list_values endpoint to list the valid JSON
+//   values for the enum. Note that the valid JSON values exclude the prefix;
+//   so, for example, for the StandardROM enum, StandardROM_None in C++ maps to
+//   "None" in JSON.
 // - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
 // - BBCString - JSON array of strings and numbers. See the BBCString struct
 
-// If a field is std::optional<T>, its type is T (see above), and there is some specific handling when the field is absent.
+// If a field is std::optional<T>, its type is T (see above), and there is some
+// specific handling when the field is absent.
 //
 // Otherwise, if the field is absent, it is treated as having its default value:
 //
@@ -54,33 +62,44 @@ class BeebThread;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// BBCString represents a BBC Micro string: a sequence of bytes in the BBC Micro character set.
+// BBCString represents a BBC Micro string: a sequence of bytes in the BBC Micro
+// character set.
 //
-// Such strings are represented in JSON as an array containing strings and numbers, representing the contents of the BBC Micro string, as follows:
+// Such strings are represented in JSON as an array containing strings and
+// numbers, representing the contents of the BBC Micro string, as follows:
 //
 // - number - value between 0-255, the byte value in question
-// - string - BBC Micro chars, translated to/from PC character set as per the translation tables below:
+// - string - BBC Micro chars, translated to/from PC character set as per the
+//   translation tables below:
 //
 // Other values (number <0; number >255; char not mentioned) are invalid.
 //
 // BBC->JSON character translation table:
 //
-// - BBC bytes 10, 13, and 32-126 inclusive are passed through as the corresponding Unicode codepoint
+// - BBC bytes 10, 13, and 32-126 inclusive are passed through as the
+//   corresponding Unicode codepoint
 //
-// Note that this means that BBC 96 (£) will end up in JSON as U++0060 ` GRAVE ACCENT.
+// Note that this means that BBC 96 (£) will end up in JSON as U++0060 ` GRAVE
+// ACCENT.
 //
 // JSON->BBC character translation table:
 //
-// - Unicode codepoints 10, 13 and 32-126 inclusive are passed through as the corresponding byte value
+// - Unicode codepoints 10, 13 and 32-126 inclusive are passed through as the
+//   corresponding byte value
 // - Unicode U+00A3 £ POUND SIGN is converted to BBC 96
 //
-// Note that this means that U+0060 ` GRAVE ACCENT will end up on the BBC as BBC 96 (£).
-// Note that this means there are two ways specify BBC 96 (£). This is deliberate.
+// Note that this means that U+0060 ` GRAVE ACCENT will end up on the BBC as BBC
+// 96 (£). Note that this means there are two ways specify BBC 96 (£). This is
+// deliberate.
 //
 // Further notes:
 //
-// - Numbers and strings are considered equivalent. As an example: JSON ["ABC"], JSON [65,"BC"] and JSON [65,"B",67] all represent the same BBC string: BBC "ABC"
-// - This encoding is designed to be vaguely human readable and writeable assuming that the data is captured OSWRCH output or typeable text intended for OSRDCH paste
+// - Numbers and strings are considered equivalent. As an example: JSON ["ABC"],
+//   JSON [65,"BC"] and JSON [65,"B",67] all represent the same BBC string: BBC
+//   "ABC"
+// - This encoding is designed to be vaguely human readable and writeable
+//   assuming that the data is captured OSWRCH output or typeable text intended
+//   for OSRDCH paste
 struct BBCString {
     std::vector<uint8_t> bytes;
 };
@@ -135,10 +154,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleRequests, requests);
 
 // The response to a ApiMultipleRequests.
 struct ApiMultipleResponses {
-    // Success flag for the multiple requests as a whole. True if all requests succeeded.
+    // Success flag for the multiple requests as a whole. True if all requests
+    // succeeded.
     bool success = true;
 
-    // The responses to the requests that were processed. There may be fewer responses than requests; if a request fails, its response is included, but the remaining requests are discarded.
+    // The responses to the requests that were processed. There may be fewer
+    // responses than requests; if a request fails, its response is included,
+    // but the remaining requests are discarded.
     std::vector<ApiResponse> responses;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses);
@@ -200,13 +222,15 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiOSROM, contents, os_rom_type)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// There's no BeebConfig/BeebLoadedConfig separation via the HTTP API. You specify the config, and a new running BBC with that config appears, corresponding to no entry on the hardware menu.
+// There's no BeebConfig/BeebLoadedConfig separation via the HTTP API. You
+// specify the config, and a new running BBC with that config appears,
+// corresponding to no entry on the hardware menu.
 
 static const char API_CONFIG_REQUEST_TYPE[] = "config";
 
 struct ApiConfigArgs {
     //
-    std::string base_stock_config;
+    std::string base_default_config;
     std::string base_config;
 
     std::string name;
@@ -221,7 +245,7 @@ struct ApiConfigArgs {
 
     std::optional<bool> beeblink;
 
-    std::vector<uint8_t> nvram;
+    std::vector<std::optional<uint8_t>> nvram;
 
     std::optional<bool> mouse;
 
@@ -237,7 +261,7 @@ struct ApiConfigArgs {
     std::optional<double> wait_for_osword_0_timeout_seconds;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
-                                                base_stock_config,
+                                                base_default_config,
                                                 base_config,
                                                 name,
                                                 os_rom,
@@ -304,8 +328,10 @@ struct ApiListValuesArgs {
     // - "StandardROM" - list StandardROM enum values
     // - "OSROMType" - list OSROMType enum values
     // - "ROMType" - list ROMType enum values
-    // - "stock_configs" - list stock config names, for possible use as base_stock_config for the config request type
-    // - "configs" (configurable) - list config names, for possible use as base_config for the config request type
+    // - "stock_configs" - list stock config names, for possible use as
+    //   base_stock_config for the config request type
+    // - "configs" (configurable) - list config names, for possible use as
+    //   base_config for the config request type
     std::string name;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesArgs, name);
@@ -318,7 +344,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Nothing from this point is relevant to the HTTP API. It's all C++ stuff that exists to make
+// Nothing from this point is relevant to the HTTP API. It's all C++ stuff,
+// relevant to the b2 code only.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

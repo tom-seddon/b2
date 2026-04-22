@@ -102,11 +102,11 @@ namespace BeebWindows {
 
     // Fill out a BeebLoadedConfig for the given BeebConfig.
     //
-    // If it's a stock config, hand out the stock loaded config and
-    // return true.
+    // If it's a default config, hand out the default loaded config and return
+    // true.
     //
-    // Otherwise, try to initialize a BeebLoadedConfig, returning
-    // false if there was a problem and printing messages out to *msg.
+    // Otherwise, try to initialize a BeebLoadedConfig, returning false if there
+    // was a problem and printing messages out to *msg.
     bool LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, const BeebConfigArguments &config_arguments, Messages *msg);
     void AddConfig(BeebConfig config);
     void InsertConfig(BeebConfig config, size_t index);
