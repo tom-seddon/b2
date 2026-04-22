@@ -1495,7 +1495,6 @@ bool BeebThread::StartPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
 void BeebThread::StartPasteMessage::ThreadHandle(CompletionFun *completion_fun,
                                                  ThreadState *ts) const {
-
     ASSERT(!ts->paste_completion_fun);
 
     ts->paste_flags = m_flags;
@@ -1507,11 +1506,22 @@ void BeebThread::StartPasteMessage::ThreadHandle(CompletionFun *completion_fun,
 
     if (m_flags & BeebThreadPasteFlag_WaitForOSWORD0) {
         if (!!ts->paste_completion_fun) {
-            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(ts->paste_completion_fun));
+            std::shared_ptr<CompletionFun> paste_completion_fun = std::move(ts->paste_completion_fun);
 
-            if (m_osword_0_timeout_seconds > 0.) {
-                ts->beeb_thread->ThreadAddCompletionTimeout(ts, ts->paste_completion_fun, m_osword_0_timeout_seconds);
-            }
+            // It's safe to capture ts, as this is ts->completion_fun. It won't get called once ts is destroyed.
+            ts->paste_completion_fun = std::make_shared<CompletionFun>([ts,
+                                                                        osword_0_timeout_seconds = m_osword_0_timeout_seconds,
+                                                                        paste_completion_fun](bool success, std::string message) mutable -> void {
+                if (success) {
+                    ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(paste_completion_fun));
+
+                    if (osword_0_timeout_seconds > 0.) {
+                        ts->beeb_thread->ThreadAddCompletionTimeout(ts, paste_completion_fun, osword_0_timeout_seconds);
+                    }
+                } else {
+                    ThreadCallSharedCompletionFun(ts, std::move(paste_completion_fun), success, std::move(message));
+                }
+            });
         }
     }
 
@@ -3729,9 +3739,7 @@ void BeebThread::ThreadMain(void) {
                 if (!ts.beeb->IsPasting()) {
                     m_is_pasting.store(false, std::memory_order_release);
 
-                    if (!(ts.paste_flags & BeebThreadPasteFlag_WaitForOSWORD0)) {
-                        ThreadCallSharedCompletionFun(&ts, std::move(ts.paste_completion_fun), true, nullptr);
-                    }
+                    ThreadCallSharedCompletionFun(&ts, std::move(ts.paste_completion_fun), true, nullptr);
                 }
             }
 
@@ -4361,16 +4369,37 @@ void BeebThread::ThreadUpdateInstructionCallbacks(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadCallSharedCompletionFun(ThreadState *ts,
-                                               std::shared_ptr<Message::CompletionFun> &&completion_fun,
-                                               bool success,
-                                               const char *message) {
+void BeebThread::ThreadCallSharedCompletionFun2(ThreadState *ts,
+                                                std::shared_ptr<Message::CompletionFun> &&completion_fun,
+                                                bool success,
+                                                const char *char_message,
+                                                std::string *str_message) {
     if (!!completion_fun) {
-        Message::CallCompletionFun(std::move(*completion_fun), success, message);
+        CallCompletionFun2(std::move(*completion_fun), success, char_message, str_message);
         completion_fun.reset();
 
         ts->update_callbacks = true;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadCallSharedCompletionFun(ThreadState *ts,
+                                               std::shared_ptr<Message::CompletionFun> &&completion_fun,
+                                               bool success,
+                                               const char *message) {
+    ThreadCallSharedCompletionFun2(ts, std::move(completion_fun), success, message, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadCallSharedCompletionFun(ThreadState *ts,
+                                               std::shared_ptr<Message::CompletionFun> &&completion_fun,
+                                               bool success,
+                                               std::string message) {
+    ThreadCallSharedCompletionFun2(ts, std::move(completion_fun), success, nullptr, &message);
 }
 
 //////////////////////////////////////////////////////////////////////////

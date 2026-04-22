@@ -149,6 +149,7 @@ class BeebThread {
   public:
     class Message {
       public:
+        // TODO: the std::string is a bit inconvenient. This mechanism could use some improvement.
         typedef std::function<void(bool, std::string)> CompletionFun;
 
         explicit Message() = default;
@@ -1442,7 +1443,9 @@ class BeebThread {
     static void ThreadUpdateCallbacks(ThreadState *ts);
     static void ThreadUpdateInstructionCallbacks(ThreadState *ts);
 
+    static void ThreadCallSharedCompletionFun2(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, bool success, const char *char_message, std::string *str_message);
     static void ThreadCallSharedCompletionFun(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, bool success, const char *message);
+    static void ThreadCallSharedCompletionFun(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, bool success, std::string message);
 
     void SetLastTrace(std::shared_ptr<Trace> last_trace);
 

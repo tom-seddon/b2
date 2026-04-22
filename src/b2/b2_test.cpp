@@ -1377,7 +1377,7 @@ class TestHTTPConfig : public TestHTTPAPI {
         {
             HTTPResponse http_response;
             ApiPasteArgs paste_args;
-            TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "*FX0\r", nullptr, nullptr, nullptr));
+            TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "REM DUMMY LINE\rREM TIME=0:REPEAT:UNTILTIME>200\r*FX0\r", nullptr, nullptr, nullptr));
             paste_args.wait_for_osword_0 = true;
             int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
             TEST_EQ_II(status, 200);
@@ -1392,8 +1392,9 @@ class TestHTTPConfig : public TestHTTPAPI {
             //printf("got %zu\n", result.output.bytes.size());
 
             std::vector<std::string> lines = GetLines(GetUTF8FromBBCASCII(result.output.bytes, BBCUTF8ConvertMode_PassThrough, true));
-            TEST_EQ_UU(lines.size(), 4u);
-            TEST_EQ_SS(lines[2], m_mos_type.expected_os_version);
+            TEST_GE_UU(lines.size(), 2u);
+            TEST_EQ_SS(lines[lines.size() - 2], m_mos_type.expected_os_version);
+            TEST_EQ_SS(lines[lines.size() - 1], ">");
         }
 #endif
     }
