@@ -830,7 +830,7 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8Convert
 #endif
         } else if (data[i] < 32) {
             // Skip VDU codes.
-            i += 1u + VDU_CODE_LENGTHS[data[i]];
+            i += VDU_CODE_LENGTHS[data[i]];
         } else if (data[i] >= 32 && data[i] < 127) {
             utf8 += g_utf8_char_by_bbc_char[mode][data[i]];
         } else if (data[i] == 127) {

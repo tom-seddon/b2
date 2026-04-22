@@ -437,6 +437,14 @@ class TestUTF8 : public Test {
             TEST_EQ_UU(bbc_ascii.size(), annoying_chars.size());
             TEST_EQ_AA(bbc_ascii.data(), annoying_chars.data(), bbc_ascii.size());
         }
+
+        {
+            std::vector<uint8_t> vdu14 = {'A', 14, 'B'};
+            TEST_EQ_SS(GetUTF8FromBBCASCII(vdu14, BBCUTF8ConvertMode_PassThrough, false), "AB");
+
+            std::vector<uint8_t> vdu15 = {'A', 15, 'B'};
+            TEST_EQ_SS(GetUTF8FromBBCASCII(vdu15, BBCUTF8ConvertMode_PassThrough, false), "AB");
+        }
     }
 };
 
