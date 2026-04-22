@@ -541,7 +541,7 @@ void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
 
     ExecuteSingleRequest(std::move(execute_args),
                          std::move(request),
-                         [messages = execute_args.messages, completion_fun](bool success, nlohmann::json j) -> void {
+                         [messages = runtime_args.messages, completion_fun](bool success, nlohmann::json j) -> void {
                              completion_fun(GetApiResponse(success, std::move(j), messages));
                          });
 }
