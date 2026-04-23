@@ -1404,6 +1404,8 @@ class TestHTTPConfig : public TestHTTPAPI {
             TEST_EQ_SS(lines[lines.size() - 2], m_mos_type.expected_os_version);
             TEST_EQ_SS(lines[lines.size() - 1], ">");
         }
+#else
+        (void)args;
 #endif
     }
 
@@ -1453,6 +1455,8 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
         }
+#else
+        (void)args;
 #endif
     }
 
@@ -1530,7 +1534,8 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
             TEST_EQ_II(status, 500);
         }
-
+#else
+        (void)args;
 #endif
     }
 
