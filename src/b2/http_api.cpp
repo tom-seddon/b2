@@ -342,7 +342,7 @@ static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
 static void ApiExecuteStartCaptureOSWRCHRequest(const ApiExecuteArgs &execute_args,
                                                 std::nullptr_t &&,
                                                 std::function<void(bool, std::nullptr_t &&)> completion_fun) {
-    execute_args.beeb_window->StartCopyOSWRCH();
+    execute_args.beeb_window->StartCaptureOSWRCH();
     completion_fun(true, nullptr);
 }
 
@@ -353,8 +353,8 @@ static void ApiExecuteStopCaptureOSWRCHRequest(const ApiExecuteArgs &execute_arg
                                                std::nullptr_t &&,
                                                std::function<void(bool, ApiStopCaptureOSWRCHResult &&)> completion_fun) {
     ApiStopCaptureOSWRCHResult result;
-    if (!execute_args.beeb_window->StopCopyOSWRCH(&result.output.bytes)) {
-        execute_args.messages->e.f("Not copying\n");
+    if (!execute_args.beeb_window->StopCaptureOSWRCH(&result.output.bytes)) {
+        execute_args.messages->e.f("Not capturing\n");
         completion_fun(false, {});
         return;
     }

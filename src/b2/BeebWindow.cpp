@@ -297,6 +297,16 @@ LOG_EXTERN(OUTPUTND);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const std::vector<uint8_t> COPY_BASIC_PASTE_PREFIX = {'O', 'L', 'D', 13,
+                                                             'V', 'D', 'U', '1', '5', 13,
+                                                             'L', 'I', 'S', 'T', 13};
+
+// the prefix assumes the text has been run through GetUTF8FromBBCASCII.
+static const std::string COPY_BASIC_OSWRCH_PREFIX = "OLD\n>VDU15\n>LIST\n";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if RMT_ENABLED
 static size_t g_num_BeebWindow_inits = 0;
 #if RMT_USE_OPENGL
@@ -752,32 +762,47 @@ bool BeebWindow::OptionsUI::OnClose() {
 
 class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
   public:
-    CopyOSWRCHCallback() {
-        MUTEX_SET_NAME(m_mutex, "CopyOSWRCHCallback");
+    CopyOSWRCHCallback(std::string name) {
+        (void)name;
+        MUTEX_SET_NAME(m_mutex, std::move(name));
     }
 
-    void ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) override {
+    bool IsFinished() const {
+        return m_finished.load(std::memory_order_acquire);
+    }
+
+    bool ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) override {
         (void)beeb_thread;
 
-        LockGuard<Mutex> lock(m_mutex);
-
-        if (m_capturing) {
+        if (!m_finished.load(std::memory_order_acquire)) {
+            LockGuard<Mutex> lock(m_mutex);
             m_data.push_back(a);
+            return true;
+        } else {
+            return false;
         }
     }
 
-    void TakeDataAndStopCapturing(std::vector<uint8_t> *data) {
+    void TakeDataAndFinish(std::vector<uint8_t> *data) {
         LockGuard<Mutex> lock(m_mutex);
 
         *data = std::move(m_data);
-        m_capturing = false;
+        m_finished.store(true, std::memory_order_release);
+    }
+
+    void ThreadCallbackWasRemoved(bool success) override {
+        (void)success;
+
+        LockGuard<Mutex> lock(m_mutex);
+
+        m_finished.store(true, std::memory_order_release);
     }
 
   protected:
   private:
-    Mutex m_mutex;
+    mutable Mutex m_mutex;
     std::vector<uint8_t> m_data;
-    bool m_capturing = true;
+    std::atomic<bool> m_finished{false};
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1548,16 +1573,14 @@ void BeebWindow::DoCommands(bool *close_window) {
         this->DoPaste(true);
     }
 
-    const bool is_copying = m_beeb_thread->IsCopying();
+    const bool is_copying = this->IsCopyingOSWRCH();
     m_cst.SetTicked(g_toggle_copy_oswrch_text_command, is_copying);
     if (m_cst.WasActioned(g_toggle_copy_oswrch_text_command)) {
-        if (m_beeb_thread->IsCopying()) {
-            m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
+        if (is_copying) {
+            this->StopCopyOSWRCH(true);
         } else {
-            m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-                this->SetClipboardFromBBCASCII(data, m_settings.text_copy_settings);
-            },
-                                                                               false)); //false=not Copy BASIC
+            m_copy_oswrch_callback = std::make_shared<CopyOSWRCHCallback>("CopyOSWRCH");
+            m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_copy_oswrch_callback));
         }
     }
 
@@ -1568,16 +1591,44 @@ void BeebWindow::DoCommands(bool *close_window) {
                        g_copy_translation_SAA5050,
                        g_copy_toggle_handle_delete);
 
-    m_cst.SetEnabled(g_copy_basic_command, !m_beeb_thread->IsPasting());
+    m_cst.SetEnabled(g_copy_basic_command, !m_beeb_thread->IsPasting() && !is_copying);
     if (m_cst.WasActioned(g_copy_basic_command)) {
-        if (m_beeb_thread->IsCopying()) {
-            m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
-        } else {
-            m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-                this->SetClipboardFromBBCASCII(data, m_settings.text_copy_settings);
-            },
-                                                                               true)); //true=Copy BASIC
-        }
+        m_copy_oswrch_callback = std::make_shared<CopyOSWRCHCallback>("CopyOSWRCH");
+        m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_copy_oswrch_callback));
+
+        m_beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(COPY_BASIC_PASTE_PREFIX,
+                                                                            BeebThreadPasteFlag_WaitForOSWORD0),
+                            [copy_oswrch_callback = m_copy_oswrch_callback,
+                             text_copy_settings = m_settings.text_copy_settings,
+                             message_list = m_message_list,
+                             beeb_thread_weak = std::weak_ptr<BeebThread>(m_beeb_thread)](bool success, std::string) -> void {
+                                if (success) {
+                                    std::vector<uint8_t> data;
+                                    copy_oswrch_callback->TakeDataAndFinish(&data);
+
+                                    PushMainThreadMessage(std::make_unique<FunctionMessage>([data = std::move(data),
+                                                                                             message_list,
+                                                                                             text_copy_settings]() -> void {
+                                        std::string text = GetUTF8FromBBCASCII(data, text_copy_settings.convert_mode, text_copy_settings.handle_delete);
+
+                                        if (text.starts_with(COPY_BASIC_OSWRCH_PREFIX)) {
+                                            text = text.substr(COPY_BASIC_OSWRCH_PREFIX.size());
+                                        }
+
+                                        if (!text.empty()) {
+                                            if (text.back() == '>') {
+                                                text.pop_back();
+                                            }
+                                        }
+
+                                        if (SDL_SetClipboardText(text.c_str()) != 0) {
+                                            Messages messages(message_list);
+
+                                            messages.e.f("Copy to clipboard failed: %s\n", SDL_GetError());
+                                        }
+                                    }));
+                                }
+                            });
     }
 
     m_cst.SetTicked(g_parallel_printer_command, m_beeb_thread->IsParallelPrinterEnabled());
@@ -1595,7 +1646,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_copy_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
-        this->SetClipboardFromBBCASCII(data, m_settings.printer_copy_settings);
+        SetClipboardFromBBCASCII(data, m_settings.printer_copy_settings);
     }
 
     m_cst.SetEnabled(g_save_printer_buffer_command, any_printer_data);
@@ -1969,7 +2020,7 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
     bool show_leds_popup = false;
 
     bool pasting = m_beeb_thread->IsPasting();
-    bool copying = m_beeb_thread->IsCopying();
+    bool copying = this->IsCopyingOSWRCH();
     if (ValueChanged(&m_leds, m_beeb_thread->GetLEDs()) || (m_leds & BBCMicro::LED_FLAGS_ALL_DISKS)) {
         if (m_settings.leds_popup_mode != BeebWindowLEDsPopupMode_Off) {
             show_leds_popup = true;
@@ -2043,7 +2094,7 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
                 if (copying) {
                     ImGui::SameLine();
                     if (ImGui::Button("Cancel")) {
-                        m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
+                        this->StopCopyOSWRCH(false);
                     }
                 }
 
@@ -4157,23 +4208,23 @@ std::vector<uint8_t> BeebWindow::GetR8G8B8A8DisplayData() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::StartCopyOSWRCH() {
-    if (!m_copy_oswrch_callback) {
-        m_copy_oswrch_callback = std::make_shared<CopyOSWRCHCallback>();
-        m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_copy_oswrch_callback));
+void BeebWindow::StartCaptureOSWRCH() {
+    if (!m_capture_oswrch_callback) {
+        m_capture_oswrch_callback = std::make_shared<CopyOSWRCHCallback>("CaptureOSWRCH");
+        m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_capture_oswrch_callback));
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::StopCopyOSWRCH(std::vector<uint8_t> *data) {
-    if (!m_copy_oswrch_callback) {
+bool BeebWindow::StopCaptureOSWRCH(std::vector<uint8_t> *data) {
+    if (!m_capture_oswrch_callback) {
         return false;
     } else {
-        m_copy_oswrch_callback->TakeDataAndStopCapturing(data);
-        m_beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWRCHCallbackMessage>(m_copy_oswrch_callback));
-        m_copy_oswrch_callback = nullptr;
+        m_capture_oswrch_callback->TakeDataAndFinish(data);
+        m_beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWRCHCallbackMessage>(m_capture_oswrch_callback));
+        m_capture_oswrch_callback = nullptr;
 
         return true;
     }
@@ -4337,12 +4388,7 @@ void BeebWindow::DoPaste(bool add_return) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, const BeebWindowSettings::CopySettings &settings) const {
-    std::string utf8 = GetUTF8FromBBCASCII(data, settings.convert_mode, settings.handle_delete);
-
-    int rc = SDL_SetClipboardText(utf8.c_str());
-    if (rc != 0) {
-        m_msg.e.f("Failed to copy to clipboard: %s\n", SDL_GetError());
-    }
+    ::SetClipboardFromBBCASCII(data, settings.convert_mode, settings.handle_delete, &m_msg);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4619,6 +4665,38 @@ bool BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
 
     bool good = this->HardReset(config, arguments, BeebThreadHardResetFlag_Run);
     return good;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::IsCopyingOSWRCH() {
+    if (!m_copy_oswrch_callback) {
+        return false;
+    }
+
+    if (m_copy_oswrch_callback->IsFinished()) {
+        // Now redundant, so get rid.
+        m_copy_oswrch_callback.reset();
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::StopCopyOSWRCH(bool copy_to_clipboard) {
+    std::vector<uint8_t> bbc_ascii;
+    m_copy_oswrch_callback->TakeDataAndFinish(&bbc_ascii);
+
+    if (copy_to_clipboard) {
+        this->SetClipboardFromBBCASCII(bbc_ascii, m_settings.text_copy_settings);
+    }
+
+    m_beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWRCHCallbackMessage>(m_copy_oswrch_callback));
+    m_copy_oswrch_callback.reset();
 }
 
 //////////////////////////////////////////////////////////////////////////

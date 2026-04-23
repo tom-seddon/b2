@@ -128,16 +128,23 @@ class OSWRCHCallback {
     virtual ~OSWRCHCallback() = default;
 
     // called on some arbitrary thread.
-    virtual void ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) = 0;
-
-    // TODO: I did have a plan for this, but it didn't pan immediately pan out.
     //
-    //    // called when callback removed.
-    //    //
-    //    // If removed due to a RemoveOSWRCHCallback message, success; otherwise, not success.
-    //    //
-    //    // Default impl does nothing.
-    //    virtual void ThreadCallbackWasRemoved(bool success);
+    // Return true to leave the callback in place, or false to have it removed automatically.
+    [[nodiscard]] virtual bool ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) = 0;
+
+    // called on some arbitrary thread, on no particular schedule.
+    //
+    // Return true if it's clear the callback is no longer relevant. It will be removed.
+    //
+    // Default impl returns true.
+    //
+    // TODO: is this actually worth having?
+    virtual bool ThreadIsStillRelevant() const;
+
+    // callback was removed.
+    //
+    // Default impl does nothing.
+    virtual void ThreadCallbackWasRemoved(bool success);
 
   protected:
   private:
@@ -155,11 +162,21 @@ class BeebThread {
         explicit Message() = default;
         virtual ~Message() = 0;
 
+        // TODO: too many overloads!
         static void CallCompletionFun(CompletionFun &&completion_fun,
                                       bool success,
                                       const char *message);
 
         static void CallCompletionFun(CompletionFun &&completion_fun,
+                                      bool success,
+                                      std::string message);
+
+        // no-ops when !completion_fun.
+        static void CallCompletionFun(CompletionFun *completion_fun,
+                                      bool success,
+                                      const char *message);
+
+        static void CallCompletionFun(CompletionFun *completion_fun,
                                       bool success,
                                       std::string message);
 
@@ -740,44 +757,6 @@ class BeebThread {
       private:
     };
 
-    class StartCopyMessage : public Message {
-      public:
-        StartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun, bool basic);
-
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           ThreadState *ts) override;
-
-      protected:
-      private:
-        std::function<void(std::vector<uint8_t>)> m_stop_fun;
-        bool m_basic = false;
-    };
-
-    class StopCopyMessage : public Message {
-      public:
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           ThreadState *ts) override;
-
-      protected:
-      private:
-    };
-
-    //    class PauseMessage:
-    //        public Message
-    //    {
-    //    public:
-    //        explicit PauseMessage(bool pause);
-    //
-    //        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-    //                           CompletionFun *completion_fun,
-    //                           ThreadState *ts) override;
-    //    protected:
-    //    private:
-    //        const bool m_pause=false;
-    //    };
-
 #if BBCMICRO_DEBUGGER
     class DebugSetByteMessage : public Message {
       public:
@@ -1136,7 +1115,7 @@ class BeebThread {
 
     bool IsPasting() const;
 
-    bool IsCopying() const;
+    //bool IsCopying() const;
 
     // Get trace stats, or nullptr if there's no trace.
     const volatile TraceStats *GetTraceStats() const;
@@ -1382,8 +1361,6 @@ class BeebThread {
     static bool ThreadHandleTraceWriteConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);
 #endif
 
-    static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb, const M6502 *cpu, void *context);
-    static bool ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadHandleOSWRCHCallbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
 
@@ -1405,17 +1382,16 @@ class BeebThread {
 #endif
     void ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts, std::vector<uint8_t> text);
-    void ThreadStopCopy(ThreadState *ts);
     void ThreadMain();
     void SetVolume(float *scale_var, float db, bool mute);
     bool ThreadRecordSaveState(ThreadState *ts, bool user_initiated);
     void ThreadStopRecording(ThreadState *ts);
     void ThreadClearRecording(ThreadState *ts);
     void ThreadCheckTimeline(ThreadState *ts);
-    void ThreadAddOSWORD0Callback(ThreadState *ts, std::shared_ptr<OSWORD0Callback> callback);
-    void ThreadRemoveOSWORD0Callback(ThreadState *ts, const std::shared_ptr<OSWORD0Callback> &callback);
-    void ThreadAddOSWRCHCallback(ThreadState *ts, std::shared_ptr<OSWRCHCallback> callback);
-    void ThreadRemoveOSWRCHCallback(ThreadState *ts, const std::shared_ptr<OSWRCHCallback> &callback, bool success);
+    static void ThreadAddOSWORD0Callback(ThreadState *ts, std::shared_ptr<OSWORD0Callback> callback);
+    static void ThreadRemoveOSWORD0Callback(ThreadState *ts, const std::shared_ptr<OSWORD0Callback> &callback);
+    static void ThreadAddOSWRCHCallback(ThreadState *ts, std::shared_ptr<OSWRCHCallback> callback);
+    static void ThreadRemoveOSWRCHCallback(ThreadState *ts, const std::shared_ptr<OSWRCHCallback> &callback, bool success);
 
     // The timeout is not cycle-exact, but it will time out no sooner.
     void ThreadAddCompletionTimeout(ThreadState *ts, std::shared_ptr<Message::CompletionFun> shared_completion_fun, double timeout_relative_seconds);

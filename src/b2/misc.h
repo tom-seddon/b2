@@ -208,6 +208,8 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8Convert
 // Exposed only for testing purposes.
 std::string GetUTF8StringForCodePoint(uint32_t u);
 
+void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete, const LogSet *logs);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

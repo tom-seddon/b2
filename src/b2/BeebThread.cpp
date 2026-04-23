@@ -93,20 +93,6 @@ LOG_DEFINE(REPLAY, "REPLAY ", &log_printer_stderr_and_debugger, false);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// What to feed to OSRDCH (via Paste OSRDCH) to list a program.
-static const std::vector<uint8_t> COPY_BASIC({'O', 'L', 'D', '\r',
-                                              'L', 'I', 'S', 'T', '\r'});
-
-// What a listed program's OSWRCH output will start with if it was listed by
-// doing a Paste OSRDCH with *COPY_BASIC.
-//
-// (Since BBCMicro::PASTE_START_CHAR is of POD type, I'm gambling that it will
-// be initialised in time.)
-static const std::string COPY_BASIC_PREFIX = strprintf("%cOLD\n\r>LIST\n\r", BBCMicro::PASTE_START_CHAR);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const float VOLUMES_TABLE[] = {
     0.00000f,
     0.03981f,
@@ -136,9 +122,16 @@ bool OSWORD0Callback::ThreadIsStillRelevant() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//void OSWRCHCallback::ThreadCallbackWasRemoved(bool success) {
-//    (void)success;
-//}
+bool OSWRCHCallback::ThreadIsStillRelevant() const {
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void OSWRCHCallback::ThreadCallbackWasRemoved(bool success) {
+    (void)success;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -303,6 +296,28 @@ void BeebThread::Message::CallCompletionFun(CompletionFun &&completion_fun,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::Message::CallCompletionFun(CompletionFun *completion_fun,
+                                            bool success,
+                                            const char *message) {
+    if (completion_fun) {
+        CallCompletionFun(std::move(*completion_fun), success, message);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::Message::CallCompletionFun(CompletionFun *completion_fun,
+                                            bool success,
+                                            std::string message) {
+    if (completion_fun) {
+        CallCompletionFun(std::move(*completion_fun), success, message);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebThread::Message::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                         CompletionFun *completion_fun,
                                         ThreadState *ts) {
@@ -350,7 +365,7 @@ bool BeebThread::Message::PrepareUnlessReplaying(std::shared_ptr<Message> *ptr,
     (void)ptr;
 
     if (ts->timeline_mode == BeebThreadTimelineMode_Replay) {
-        CallCompletionFun(std::move(*completion_fun), false, "not valid while replaying");
+        CallCompletionFun(completion_fun, false, "not valid while replaying");
         return false;
     }
 
@@ -649,6 +664,7 @@ class CallSharedCompletionFunOSWORD0Callback : public ::OSWORD0Callback {
   public:
     CallSharedCompletionFunOSWORD0Callback(std::shared_ptr<BeebThread::Message::CompletionFun> completion_fun)
         : m_completion_fun(std::move(completion_fun)) {
+        ASSERT(!!m_completion_fun);
     }
 
     bool ThreadIsStillRelevant() const override {
@@ -1396,7 +1412,7 @@ bool BeebThread::StartTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
     ts->beeb_thread->ThreadStartTrace(ts);
 
-    CallCompletionFun(std::move(*completion_fun), true, nullptr);
+    CallCompletionFun(completion_fun, true, nullptr);
 
     ptr->reset();
     return true;
@@ -1412,7 +1428,7 @@ bool BeebThread::StopTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                  ThreadState *ts) {
     ts->beeb_thread->ThreadStopTrace(ts);
 
-    CallCompletionFun(std::move(*completion_fun), true, nullptr);
+    CallCompletionFun(completion_fun, true, nullptr);
 
     ptr->reset();
     return true;
@@ -1428,7 +1444,7 @@ bool BeebThread::CancelTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
                                                    ThreadState *ts) {
     ts->beeb_thread->ThreadCancelTrace(ts);
 
-    CallCompletionFun(std::move(*completion_fun), true, nullptr);
+    CallCompletionFun(completion_fun, true, nullptr);
 
     ptr->reset();
     return true;
@@ -1549,94 +1565,6 @@ void BeebThread::StopPasteMessage::ThreadHandle(CompletionFun *completion_fun,
     ts->beeb_thread->m_is_pasting.store(false, std::memory_order_release);
     ThreadCallSharedCompletionFun(ts, std::move(ts->paste_completion_fun), false, "paste was stopped explicitly");
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebThread::StartCopyMessage::StartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun,
-                                               bool basic)
-    : m_stop_fun(std::move(stop_fun))
-    , m_basic(basic) {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebThread::StartCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                 CompletionFun *completion_fun,
-                                                 ThreadState *ts) {
-    // StartCopy and StartCopyBASIC really aren't the same
-    // sort of thing, but they share enough code that it felt
-    // a bit daft whichever way round they went.
-
-    if (m_basic) {
-        if (!PrepareUnlessReplayingOrHalted(ptr, completion_fun, ts)) {
-            return false;
-        }
-
-        ts->beeb_thread->ThreadStartPaste(ts, COPY_BASIC);
-
-        //        std::string text;
-        //        for(size_t i=0;COPY_BASIC_LINES[i];++i) {
-        //            text+=COPY_BASIC_LINES[i];
-        //            text.push_back('\r');
-        //        }
-        //
-        //        beeb_thread->ThreadStartPaste(ts,std::move(text));
-
-        ts->beeb->AddHostInstructionCallback(&ThreadStopCopyOnOSWORD0, ts);
-    }
-
-    ts->copy_data.clear();
-    if (!ts->beeb_thread->m_is_copying) {
-        ts->beeb->AddHostInstructionCallback(&ThreadAddCopyData, ts);
-    }
-
-    ts->copy_basic = m_basic;
-    ts->copy_stop_fun = std::move(m_stop_fun);
-    ts->beeb_thread->m_is_copying.store(true, std::memory_order_release);
-
-    ptr->reset();
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                CompletionFun *completion_fun,
-                                                ThreadState *ts) {
-    (void)completion_fun;
-
-    ts->beeb_thread->ThreadStopCopy(ts);
-
-    ptr->reset();
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//BeebThread::PauseMessage::PauseMessage(bool pause):
-//    m_pause(pause)
-//{
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//bool BeebThread::PauseMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-//                                             CompletionFun *completion_fun,
-//                                             ThreadState *ts)
-//{
-//    (void)ptr,(void)completion_fun,(void)ts;
-//
-//    beeb_thread->m_paused=m_pause;
-//
-//    ptr->reset();
-//    return true;
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2082,7 +2010,7 @@ bool BeebThread::AddOSWORD0CallbackMessage::ThreadPrepare(std::shared_ptr<Messag
                                                           ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb_thread->ThreadAddOSWORD0Callback(ts, m_callback);
+    ThreadAddOSWORD0Callback(ts, m_callback);
 
     ptr->reset();
 
@@ -2104,7 +2032,7 @@ bool BeebThread::RemoveOSWORD0CallbackMessage::ThreadPrepare(std::shared_ptr<Mes
                                                              ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb_thread->ThreadRemoveOSWORD0Callback(ts, m_callback);
+    ThreadRemoveOSWORD0Callback(ts, m_callback);
 
     ptr->reset();
 
@@ -2126,7 +2054,7 @@ bool BeebThread::AddOSWRCHCallbackMessage::ThreadPrepare(std::shared_ptr<Message
                                                          ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb_thread->ThreadAddOSWRCHCallback(ts, m_callback);
+    ThreadAddOSWRCHCallback(ts, m_callback);
 
     ptr->reset();
 
@@ -2148,7 +2076,7 @@ bool BeebThread::RemoveOSWRCHCallbackMessage::ThreadPrepare(std::shared_ptr<Mess
                                                             ThreadState *ts) {
     (void)completion_fun;
 
-    ts->beeb_thread->ThreadRemoveOSWRCHCallback(ts, m_callback, true);
+    ThreadRemoveOSWRCHCallback(ts, m_callback, true);
 
     ptr->reset();
 
@@ -2341,9 +2269,9 @@ bool BeebThread::IsPasting() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::IsCopying() const {
-    return m_is_copying.load(std::memory_order_acquire);
-}
+//bool BeebThread::IsCopying() const {
+//    return m_is_copying.load(std::memory_order_acquire);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2988,53 +2916,6 @@ bool BeebThread::ThreadHandleTraceWriteConditions(const BBCMicro *beeb,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// TODO: replace with OSWORD0Callback
-bool BeebThread::ThreadStopCopyOnOSWORD0(const BBCMicro *beeb, const M6502 *cpu, void *context) {
-    (void)beeb;
-    auto ts = (ThreadState *)context;
-
-    if (!ts->beeb_thread->m_is_copying) {
-        return false;
-    }
-
-    if (cpu->pc.w == 0xfff2 && cpu->a == 0) {
-        if (!ts->beeb->IsPasting()) {
-            ts->beeb_thread->ThreadStopCopy(ts);
-            return false;
-        }
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebThread::ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void *context) {
-    (void)beeb;
-    auto ts = (ThreadState *)context;
-
-    if (!ts->beeb_thread->m_is_copying) {
-        return false;
-    }
-
-    const uint8_t *ram = beeb->GetRAM();
-
-    // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV). Who
-    // comes up with this stuff? So check against WRCHV, not just
-    // 0xffee.
-
-    if (cpu->abus.b.l == ram[0x020e] && cpu->abus.b.h == ram[0x020f]) {
-        // Opcode fetch for first byte of OSWRCH
-        ts->copy_data.push_back(cpu->a);
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebThread::ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 *cpu, void *context) {
     (void)beeb;
     auto ts = (ThreadState *)context;
@@ -3067,7 +2948,10 @@ bool BeebThread::ThreadHandleOSWRCHCallbacks(const BBCMicro *beeb, const M6502 *
     if (cpu->abus.b.l == ram[0x020e] && cpu->abus.b.h == ram[0x020f]) {
         for (std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
             if (callback) {
-                callback->ThreadOnOSWRCH(ts->beeb_thread, cpu->a);
+                if (!callback->ThreadOnOSWRCH(ts->beeb_thread, cpu->a)) {
+                    callback = nullptr;
+                    ts->update_callbacks = true;
+                }
             }
         }
     }
@@ -3110,6 +2994,12 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         }
 
         ThreadCallSharedCompletionFun(ts, std::move(ts->paste_completion_fun), false, "Emulated system is being replaced");
+
+        for (const std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
+            if (callback) {
+                callback->ThreadCallbackWasRemoved(false);
+            }
+        }
 
         ts->completion_timeouts.clear();
         ts->oswrch_callbacks.clear();
@@ -3507,38 +3397,6 @@ void BeebThread::ThreadStartPaste(ThreadState *ts, std::vector<uint8_t> text) {
 
     ts->beeb->StartPaste(std::move(text));
     m_is_pasting.store(true, std::memory_order_release);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::ThreadStopCopy(ThreadState *ts) {
-    ASSERT(m_is_copying);
-
-    if (ts->copy_basic) {
-        if (!ts->copy_data.empty()) {
-            if (ts->copy_data.back() == '>') {
-                ts->copy_data.pop_back();
-            }
-
-            if (ts->copy_data.size() >= COPY_BASIC_PREFIX.size()) {
-                auto begin = ts->copy_data.begin();
-
-                auto end = begin + (ptrdiff_t)COPY_BASIC_PREFIX.size();
-
-                if (std::equal(begin, end, COPY_BASIC_PREFIX.begin())) {
-                    ts->copy_data.erase(begin, end);
-                }
-            }
-        }
-    }
-
-    PushMainThreadMessage(std::make_unique<FunctionMessage>(
-        [data = std::move(ts->copy_data), fun = std::move(ts->copy_stop_fun)]() -> void {
-            fun(std::move(data));
-        }));
-
-    m_is_copying.store(false, std::memory_order_release);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4122,9 +3980,11 @@ void BeebThread::ThreadAddOSWRCHCallback(ThreadState *ts, std::shared_ptr<OSWRCH
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadRemoveOSWRCHCallback(ThreadState *ts, const std::shared_ptr<OSWRCHCallback> &callback, bool success) {
-    (void)success; // TODO: the OSWRCH callback completion fun mechanism isn't really fleshed out properly yet
-
     RemoveCallback(&ts->oswrch_callbacks, callback);
+
+    if (callback) {
+        callback->ThreadCallbackWasRemoved(success);
+    }
 
     ThreadUpdateInstructionCallbacks(ts); // TODO: Currently a no-op in this situation, but, maybe one day that'll change?
 }
@@ -4313,8 +4173,15 @@ static void RemoveNulls(std::vector<T> *callbacks) {
 }
 
 void BeebThread::ThreadUpdateCallbacks(ThreadState *ts) {
-    // OSWORD 0 callbacks can report their irrelevance.
     for (std::shared_ptr<OSWORD0Callback> &callback : ts->osword_0_callbacks) {
+        if (callback) {
+            if (!callback->ThreadIsStillRelevant()) {
+                callback.reset();
+            }
+        }
+    }
+
+    for (std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
         if (callback) {
             if (!callback->ThreadIsStillRelevant()) {
                 callback.reset();

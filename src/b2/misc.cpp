@@ -739,6 +739,17 @@ bool GetBBCASCIIFromUTF8(std::vector<uint8_t> *ascii, const std::vector<uint8_t>
     return GetBBCASCIIFromUTF8(ascii, data.data(), data.size(), bad_codepoint_ptr, bad_char_start_ptr, bad_char_len_ptr);
 }
 
+void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete, const LogSet *logs) {
+    std::string utf8 = GetUTF8FromBBCASCII(data, mode, handle_delete);
+
+    int rc = SDL_SetClipboardText(utf8.c_str());
+    if (rc != 0) {
+        if (logs) {
+            logs->e.f("Failed to copy to clipboard: %s\n", SDL_GetError());
+        }
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

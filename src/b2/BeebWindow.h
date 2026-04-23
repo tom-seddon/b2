@@ -427,8 +427,9 @@ class BeebWindow {
     // Get recent display data, suitable for saving with stbimage_write.
     std::vector<uint8_t> GetR8G8B8A8DisplayData() const;
 
-    void StartCopyOSWRCH();
-    bool StopCopyOSWRCH(std::vector<uint8_t> *data);
+    // For the benefit of the HTTP API, as it is stateless.
+    void StartCaptureOSWRCH();
+    bool StopCaptureOSWRCH(std::vector<uint8_t> *data);
 
   protected:
   private:
@@ -604,6 +605,7 @@ class BeebWindow {
     TimerDef *m_HandleVBlank_RenderSDL_timer_def = nullptr;
     TimerDef *m_HandleVBlank_DoImGui_timer_def = nullptr;
 
+    std::shared_ptr<CopyOSWRCHCallback> m_capture_oswrch_callback;
     std::shared_ptr<CopyOSWRCHCallback> m_copy_oswrch_callback;
 
     bool InitInternal();
@@ -672,6 +674,9 @@ class BeebWindow {
 #if ENABLE_TAPE
     void LoadTape(std::string path);
 #endif
+
+    bool IsCopyingOSWRCH();
+    void StopCopyOSWRCH(bool copy_to_clipboard);
 
     //#ifdef IMGUI_ENABLE_TEST_ENGINE
     //    static void InitDearImGuiTests(BeebWindow *beeb_window,

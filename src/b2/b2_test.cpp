@@ -1647,16 +1647,9 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_windo
 
     PasteAndWait(&yielder, beeb_thread, "*STATUS");
 
-    std::string text;
-    std::atomic<bool> done = false;
-
     auto &&osword_0_counter = std::make_shared<CountOSWORD0s>();
     beeb_thread->Send(std::make_shared<BeebThread::AddOSWORD0CallbackMessage>(osword_0_counter));
-    beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([&done, &text](std::vector<uint8_t> data) {
-        text = GetUTF8FromBBCASCII(data, BBCUTF8ConvertMode_PassThrough, false);
-        done = true;
-    },
-                                                                     false));
+    beeb_window->StartCaptureOSWRCH();
 
     // (strictly speaking, no need to wait - polling the OSWORD 0 count would cover it)
     PasteAndWait(&yielder, beeb_thread, "\r");
@@ -1666,14 +1659,12 @@ static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_windo
         yielder.Yield();
     }
 
-    beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
-    yielder.Reset();
-    while (!done) {
-        yielder.Yield();
-    }
-
     beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWORD0CallbackMessage>(osword_0_counter));
 
+    std::vector<uint8_t> data;
+    beeb_window->StopCaptureOSWRCH(&data);
+
+    std::string text = GetUTF8FromBBCASCII(data, BBCUTF8ConvertMode_PassThrough, false);
     return text;
 }
 
