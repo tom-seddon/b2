@@ -156,29 +156,26 @@ class BeebThread {
   public:
     class Message {
       public:
-        // TODO: the std::string is a bit inconvenient. This mechanism could use some improvement.
-        typedef std::function<void(bool, std::string)> CompletionFun;
+        // If !failure_reason, the operation was a success.
+        //
+        // Otherwise, failure_reason is an identifier indicating the reason for
+        // failure. There's no list of these (though maybe there should be...) -
+        // it's just a specific string that can be used to detect specific
+        // failure types.
+        //
+        // failure_text is any further human-readable text, possibly null.
+        //
+        // The pointed-to strings are owned by the caller and will only last
+        // until the completion fun returns.
+        typedef std::function<void(const char *failure_reason, const char *failure_text)> CompletionFun;
 
         explicit Message() = default;
         virtual ~Message() = 0;
 
-        // TODO: too many overloads!
-        static void CallCompletionFun(CompletionFun &&completion_fun,
-                                      bool success,
-                                      const char *message);
-
-        static void CallCompletionFun(CompletionFun &&completion_fun,
-                                      bool success,
-                                      std::string message);
-
-        // no-ops when !completion_fun.
-        static void CallCompletionFun(CompletionFun *completion_fun,
-                                      bool success,
-                                      const char *message);
-
-        static void CallCompletionFun(CompletionFun *completion_fun,
-                                      bool success,
-                                      std::string message);
+        static void CallCompletionFunSuccess(CompletionFun &&completion_fun);
+        static void CallCompletionFunFailure(CompletionFun &&completion_fun, const char *reason, const char *text);
+        static void CallCompletionFunSuccess(CompletionFun *completion_fun);
+        static void CallCompletionFunFailure(CompletionFun *completion_fun, const char *reason, const char *text);
 
         // Called on Beeb thread with m_mutex locked.
         //
@@ -1419,9 +1416,8 @@ class BeebThread {
     static void ThreadUpdateCallbacks(ThreadState *ts);
     static void ThreadUpdateInstructionCallbacks(ThreadState *ts);
 
-    static void ThreadCallSharedCompletionFun2(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, bool success, const char *char_message, std::string *str_message);
-    static void ThreadCallSharedCompletionFun(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, bool success, const char *message);
-    static void ThreadCallSharedCompletionFun(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, bool success, std::string message);
+    static void ThreadCallSharedCompletionFunSuccess(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun);
+    static void ThreadCallSharedCompletionFunFailure(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, const char *reason, const char *text);
 
     void SetLastTrace(std::shared_ptr<Trace> last_trace);
 

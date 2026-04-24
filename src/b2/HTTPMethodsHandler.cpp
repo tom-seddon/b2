@@ -1058,21 +1058,20 @@ class HTTPMethodsHandler : public HTTPHandler {
                      HTTPServer *server,
                      const HTTPRequest &request,
                      std::shared_ptr<BeebThread::Message> message) {
-        auto completion_fun = [server, response_data = request.response_data](bool success,
-                                                                              std::string message) {
+        auto completion_fun = [server, response_data = request.response_data](const char *failure_reason, const char *failure_text) -> void {
             LOGF(OUTPUT, "SendMessage completion_fun: connected ID=%" PRIu64 "\n", response_data.connection_id);
 
             HTTPResponse response;
-            if (success) {
-                response = HTTPResponse::OK();
-            } else {
+            if (failure_reason) {
                 response = HTTPResponse::InternalServerError("The request did not succeed");
-            }
 
-            if (!message.empty()) {
-                response.content_type = HTTP_TEXT_CONTENT_TYPE;
-                response.content_type_charset = HTTP_UTF8_CHARSET;
-                response.SetContentString(message);
+                if (failure_text) {
+                    response.content_type = HTTP_TEXT_CONTENT_TYPE;
+                    response.content_type_charset = HTTP_UTF8_CHARSET;
+                    response.SetContentString(failure_text);
+                }
+            } else {
+                response = HTTPResponse::OK();
             }
 
             server->SendResponse(response_data, response);

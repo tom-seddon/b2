@@ -170,10 +170,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses)
 
 // Result struct for a request that failed.
 struct ApiFailureResult {
+    // Short string indicating reason for failure.
+    std::string reason;
+
     // Any log messages that were printed during the execution, intended for human consumption.
     std::vector<std::string> messages;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureResult, messages);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureResult, reason, messages);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

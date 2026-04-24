@@ -1601,8 +1601,10 @@ void BeebWindow::DoCommands(bool *close_window) {
                             [copy_oswrch_callback = m_copy_oswrch_callback,
                              text_copy_settings = m_settings.text_copy_settings,
                              message_list = m_message_list,
-                             beeb_thread_weak = std::weak_ptr<BeebThread>(m_beeb_thread)](bool success, std::string) -> void {
-                                if (success) {
+                             beeb_thread_weak = std::weak_ptr<BeebThread>(m_beeb_thread)](const char *failure_reason, const char *failure_text) -> void {
+                                (void)failure_text;
+
+                                if (!failure_reason) {
                                     std::vector<uint8_t> data;
                                     copy_oswrch_callback->TakeDataAndFinish(&data);
 
