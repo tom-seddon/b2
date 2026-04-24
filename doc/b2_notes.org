@@ -11236,4 +11236,26 @@ Example command lines:
 
 : curl --fail-with-body http://localhost:48075/request/b2 -H "Content-Type: application/json" --data-binary "@etc/tests/http_api/list_enum_values.StandardROM.json"
 
+** file load/save paths
+
+You'll probably use curl to upload pre-existing JSON files of one kind
+or another.
+
+But what about file paths? They're a pain to specify. The receiving b2
+will have some arbitrary working folder, so relative paths will be
+annoying. But if the JSON files are part of the repo, they can't
+really contain absolute paths.
+
+Probably need a non-JSON endpoint, easily accessed from a Makefile or
+similar, used with =--data-urlencode=. On a Unix-type shell, you can
+use =`pwd`= to pop the working folder into the command line; on
+Windows, =%CD%=. So something along these lines?
+
+: curl -G "http://localhost:48075/set-root" --data-urlencode "cwd=%CD%"
+: curl -G "http://localhost:48075/set-root" --data-urlencode "cwd=`pwd`"
+
+Then decode as required.
+
+(Maybe it'd actually need to be per-window. Details...)
+
 * eof.
