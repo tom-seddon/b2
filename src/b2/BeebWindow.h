@@ -431,6 +431,10 @@ class BeebWindow {
     void StartCaptureOSWRCH();
     bool StopCaptureOSWRCH(std::vector<uint8_t> *data);
 
+    // Another bit of HTTP API state.
+    const std::string &GetApiPath() const;
+    void SetApiPath(std::string path);
+
   protected:
   private:
     BeebWindowInitArguments m_init_arguments;
@@ -607,6 +611,7 @@ class BeebWindow {
 
     std::shared_ptr<CopyOSWRCHCallback> m_capture_oswrch_callback;
     std::shared_ptr<CopyOSWRCHCallback> m_copy_oswrch_callback;
+    std::string m_api_path;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

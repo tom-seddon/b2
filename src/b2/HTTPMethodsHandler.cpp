@@ -111,6 +111,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"set-byte-breakpoint", &HTTPMethodsHandler::HandleSetByteBreakpointRequest},
         {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
+        {"set-path", &HTTPMethodsHandler::HandleSetPathRequest},
         {"request", &HTTPMethodsHandler::HandleGenericRequest},
         {"request-multiple", &HTTPMethodsHandler::HandleGenericMultipleRequest},
 #endif
@@ -908,6 +909,25 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
+    void HandleSetPathRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        ApiRuntimeArgs runtime_args;
+        ApiSetPathArgs set_path_args;
+        std::string path;
+        const PathParameter pps[] = {
+            {&ParseWindow, &runtime_args.beeb_window},
+        };
+        const QueryParameter qps[] = {
+            {"path", &ParseStdString, &set_path_args.path},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
+            return;
+        }
+
+        ApiExecuteSetPathRequest(runtime_args, set_path_args);
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
     static void HandleGenericRequestCompletion(bool success,
                                                nlohmann::json j,
                                                HTTPServer *server,
@@ -934,12 +954,9 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        runtime_args.messages = std::make_shared<Messages>(std::make_shared<MessageList>("API request"));
-
         ApiExecuteSingleRequest(std::move(runtime_args),
                                 std::move(request_args),
-                                [messages = runtime_args.messages,
-                                 response_data = request.response_data,
+                                [response_data = request.response_data,
                                  server](ApiResponse response) -> void {
                                     HandleGenericRequestCompletion(response.success, std::move(response), server, response_data);
                                 });
@@ -954,12 +971,9 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        runtime_args.messages = std::make_shared<Messages>(std::make_shared<MessageList>("API request"));
-
         ApiExecuteMultipleRequests(std::move(runtime_args),
                                    std::move(request_args),
-                                   [messages = runtime_args.messages,
-                                    response_data = request.response_data,
+                                   [response_data = request.response_data,
                                     server](ApiMultipleResponses response) -> void {
                                        HandleGenericRequestCompletion(response.success, std::move(response), server, response_data);
                                    });

@@ -186,7 +186,7 @@ struct ApiROMContents {
     // The StandardROM to use, if any. If StandardROM_None, try the path.
     Enum<StandardROM> standard_rom{StandardROM_None};
 
-    // Path to ROM on disk, somewhere the target b2 can find it. If empty, assume the bank is empty.
+    // Path to ROM on disk, somewhere the target b2 can find it, relative to the api path. If empty, assume the bank is empty.
     std::string path;
 
     // TODO: ROM contents? base64 encoded?
@@ -347,6 +347,18 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Set the api path: the folder to which all paths are treated as relative.
+
+static const char API_SET_PATH_REQUEST_TYPE[] = "set_path";
+
+struct ApiSetPathArgs {
+    std::string path;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetPathArgs, path);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Nothing from this point is relevant to the HTTP API. It's all C++ stuff,
 // relevant to the b2 code only.
 
@@ -360,7 +372,7 @@ struct ApiRuntimeArgs {
     BeebWindow *beeb_window = nullptr;
 
     // Specially created for the handler of this message, along with its MessageList.
-    std::shared_ptr<Messages> messages;
+    //std::shared_ptr<Messages> messages;
 };
 
 // Execute the given request. Must be called on the main thread.
@@ -372,11 +384,16 @@ struct ApiRuntimeArgs {
 // COMPLETION_FUN is the function to call on success/failure. The first argument is the success flag, and the second, ignored on failure, is the JSON-serialized request result.
 void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
                              ApiRequest request,
-                             std::function<void(ApiResponse)> completion_fun);
+                             std::function<void(ApiResponse &&)> completion_fun);
 
 void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
                                 ApiMultipleRequests request,
-                                std::function<void(ApiMultipleResponses)> completion_fun);
+                                std::function<void(ApiMultipleResponses &&)> completion_fun);
+
+// A handful of requests have their own specific ApiExecute functions, as they're called from elsewhere and doing all the JSON nonsense is a minor pain.
+//
+// These are not intended to be completely regular (e.g., if the request completes immediately, there's no completion fun), but they do use the ApiXXXArgs and ApiXXXResult types.
+void ApiExecuteSetPathRequest(const ApiRuntimeArgs &runtime_args, ApiSetPathArgs args);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

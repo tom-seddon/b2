@@ -11,6 +11,7 @@
 #include "b2.h"
 #include <inttypes.h>
 #include "Messages.h"
+#include <shared/path.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -132,7 +133,7 @@ void to_json(nlohmann::json &j, const BBCString &s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool CopyROM(BeebConfig::ROM *dest, const ApiROMContents &src, const LogSet *logs) {
+static bool CopyROM(BeebConfig::ROM *dest, const std::string &path, const ApiROMContents &src, const LogSet *logs) {
     if (src.standard_rom != StandardROM_None) {
         dest->standard_rom = FindBeebROM(src.standard_rom);
         if (!dest->standard_rom) {
@@ -143,7 +144,7 @@ static bool CopyROM(BeebConfig::ROM *dest, const ApiROMContents &src, const LogS
         dest->standard_rom = nullptr;
     }
 
-    dest->file_name = src.path;
+    dest->file_name = PathJoined(path, src.path);
 
     return true;
 }
@@ -155,7 +156,7 @@ static void SetOptional(T *dest, const std::optional<T> &src) {
     }
 }
 
-static bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, const LogSet *logs) {
+static bool Load(BeebLoadedConfig *loaded_config, const std::string &path, const ApiConfigArgs &src, const LogSet *logs) {
     BeebConfig dest;
 
     if (!src.base_default_config.empty()) {
@@ -197,10 +198,10 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, cons
         return false;
     }
 
-    dest.name = src.name;
+    dest.name = ""; //src.name;
 
     if (src.os_rom.has_value()) {
-        if (!CopyROM(&dest.os, src.os_rom->contents, logs)) {
+        if (!CopyROM(&dest.os, path, src.os_rom->contents, logs)) {
             return false;
         }
 
@@ -221,7 +222,7 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiConfigArgs &src, cons
 
         BeebConfig::SidewaysROM *dest_rom = &dest.roms[src_rom.bank];
 
-        if (!CopyROM(dest_rom, src_rom.contents, logs)) {
+        if (!CopyROM(dest_rom, path, src_rom.contents, logs)) {
             return false;
         }
 
@@ -281,7 +282,7 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
     ASSERT(IsMainThread());
 
     BeebLoadedConfig loaded_config;
-    if (!Load(&loaded_config, request_args, execute_args.messages.get())) {
+    if (!Load(&loaded_config, execute_args.beeb_window->GetApiPath(), request_args, execute_args.messages.get())) {
         completion_fun("load_failure", nullptr);
         return;
     }
@@ -327,6 +328,7 @@ static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
                                                                                    osword_0_timeout_seconds),
                                    [completion_fun,
                                     messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
+                                       ASSERT(!!messages);
                                        if (failure_text) {
                                            messages->e.f("%s failed: %s\n", API_PASTE_REQUEST_TYPE, failure_text);
                                        }
@@ -421,6 +423,17 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void ApiExecuteSetPath(const ApiExecuteArgs &execute_args,
+                              ApiSetPathArgs &&request_args,
+                              std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    execute_args.beeb_window->SetApiPath(std::move(request_args.path));
+
+    completion_fun(nullptr, nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 template <class ArgsType, class ResultType>
 static void HandleApiExecute(const ApiExecuteArgs &execute_args,
                              const ApiRequest &request,
@@ -469,6 +482,8 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCHRequest, true);
     } else if (request.type == API_LIST_VALUES_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
+    } else if (request.type == API_SET_PATH_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetPath, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);
@@ -500,6 +515,10 @@ static const char *GetMessagePrefix(const MessageList::Message *message) {
     }
 }
 
+static std::shared_ptr<Messages> CreateMessages() {
+    return std::make_shared<Messages>(std::make_shared<MessageList>("API request"));
+}
+
 static ApiResponse GetApiResponse(const char *failure_reason, nlohmann::json j, const std::shared_ptr<Messages> &messages) {
     ApiResponse response;
 
@@ -528,23 +547,36 @@ static ApiResponse GetApiResponse(const char *failure_reason, nlohmann::json j, 
     return response;
 }
 
-void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
-                             ApiRequest request,
-                             std::function<void(ApiResponse)> completion_fun) {
+static void InitExecuteArgs(ApiExecuteArgs *execute_args, const ApiRuntimeArgs &runtime_args, std::shared_ptr<Messages> messages) {
+    execute_args->beeb_window = runtime_args.beeb_window;
+    execute_args->beeb_thread = GetBeebThread(execute_args->beeb_window);
+    execute_args->messages = std::move(messages);
+}
+
+void ApiExecuteSingleRequest2(const ApiRuntimeArgs &runtime_args,
+                              std::shared_ptr<Messages> messages,
+                              ApiRequest request,
+                              std::function<void(ApiResponse &&)> completion_fun) {
     // since this is on the main thread, the BeebWindow is not going away (even if only not just quite yet).
     ASSERT(IsMainThread());
 
     ApiExecuteArgs execute_args;
+    InitExecuteArgs(&execute_args, runtime_args, messages);
 
-    execute_args.beeb_window = runtime_args.beeb_window;
-    execute_args.beeb_thread = GetBeebThread(execute_args.beeb_window);
-    execute_args.messages = runtime_args.messages;
+    ASSERT(!!execute_args.messages);
 
     ExecuteSingleRequest(std::move(execute_args),
                          std::move(request),
-                         [messages = runtime_args.messages, completion_fun](const char *failure_reason, nlohmann::json j) -> void {
+                         [messages, completion_fun](const char *failure_reason, nlohmann::json j) -> void {
+                             ASSERT(!!messages);
                              completion_fun(GetApiResponse(failure_reason, std::move(j), messages));
                          });
+}
+
+void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
+                             ApiRequest request,
+                             std::function<void(ApiResponse &&)> completion_fun) {
+    ApiExecuteSingleRequest2(runtime_args, CreateMessages(), std::move(request), std::move(completion_fun));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -596,10 +628,10 @@ class ExecuteNextMainThreadMessage : public MainThreadMessage {
 
             ApiRuntimeArgs runtime_args;
             runtime_args.beeb_window = m_state->beeb_window;
-            runtime_args.messages = m_state->messages;
-            ApiExecuteSingleRequest(runtime_args,
-                                    m_state->request.requests[m_state->index],
-                                    m_state->request_completion_fun);
+            ApiExecuteSingleRequest2(runtime_args,
+                                     m_state->messages,
+                                     m_state->request.requests[m_state->index],
+                                     m_state->request_completion_fun);
         }
     }
 
@@ -610,7 +642,7 @@ class ExecuteNextMainThreadMessage : public MainThreadMessage {
 
 void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
                                 ApiMultipleRequests request,
-                                std::function<void(ApiMultipleResponses)> completion_fun) {
+                                std::function<void(ApiMultipleResponses &&)> completion_fun) {
     ASSERT(IsMainThread());
 
     if (request.requests.empty()) {
@@ -622,7 +654,7 @@ void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
 
     state->beeb_window = runtime_args.beeb_window;
     state->beeb_thread = GetBeebThread(state->beeb_window);
-    state->messages = runtime_args.messages;
+    state->messages = CreateMessages();
     state->request = std::move(request);
     //state->response.responses.resize(state->request.requests.size());
     state->overall_completion_fun = std::move(completion_fun);
@@ -643,4 +675,24 @@ void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
     };
 
     PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ApiExecuteSetPathRequest(const ApiRuntimeArgs &runtime_args, ApiSetPathArgs args) {
+    ApiExecuteArgs execute_args;
+    InitExecuteArgs(&execute_args, runtime_args, CreateMessages());
+
+    bool completed = false;
+    ApiExecuteSetPath(execute_args,
+                      std::move(args),
+                      [&completed](const char *failure_reason, std::nullptr_t &&) -> void {
+                          // early warning stuff, in case I change something later and forget to fix this bit.
+                          (void)failure_reason;
+                          ASSERT(!failure_reason);
+                          completed = true;
+                      });
+
+    ASSERT(completed);
 }
