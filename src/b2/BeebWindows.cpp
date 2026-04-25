@@ -567,7 +567,11 @@ BeebWindow *BeebWindows::FindBeebWindowByName(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow *BeebWindows::FindMRUBeebWindow() {
-    return g_->windows_mru.back();
+    if (g_->windows_mru.empty()) {
+        return nullptr;
+    } else {
+        return g_->windows_mru.back();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -282,7 +282,7 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
     ASSERT(IsMainThread());
 
     BeebLoadedConfig loaded_config;
-    if (!Load(&loaded_config, execute_args.beeb_window->GetApiPath(), request_args, execute_args.messages.get())) {
+    if (!Load(&loaded_config, execute_args.beeb_window->api_read_path, request_args, execute_args.messages.get())) {
         completion_fun("load_failure", nullptr);
         return;
     }
@@ -423,10 +423,16 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void ApiExecuteSetPath(const ApiExecuteArgs &execute_args,
-                              ApiSetPathArgs &&request_args,
-                              std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
-    execute_args.beeb_window->SetApiPath(std::move(request_args.path));
+static void ApiExecuteSetPaths(const ApiExecuteArgs &execute_args,
+                               ApiSetPathsArgs &&request_args,
+                               std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    if (request_args.read_path.has_value()) {
+        execute_args.beeb_window->api_read_path = std::move(*request_args.read_path);
+    }
+
+    if (request_args.write_path.has_value()) {
+        execute_args.beeb_window->api_write_path = std::move(*request_args.write_path);
+    }
 
     completion_fun(nullptr, nullptr);
 }
@@ -482,8 +488,8 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCHRequest, true);
     } else if (request.type == API_LIST_VALUES_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
-    } else if (request.type == API_SET_PATH_REQUEST_TYPE) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetPath, true);
+    } else if (request.type == API_SET_PATHS_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetPaths, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);
@@ -547,21 +553,21 @@ static ApiResponse GetApiResponse(const char *failure_reason, nlohmann::json j, 
     return response;
 }
 
-static void InitExecuteArgs(ApiExecuteArgs *execute_args, const ApiRuntimeArgs &runtime_args, std::shared_ptr<Messages> messages) {
-    execute_args->beeb_window = runtime_args.beeb_window;
+static void InitExecuteArgs(ApiExecuteArgs *execute_args, BeebWindow *beeb_window, std::shared_ptr<Messages> messages) {
+    execute_args->beeb_window = beeb_window;
     execute_args->beeb_thread = GetBeebThread(execute_args->beeb_window);
     execute_args->messages = std::move(messages);
 }
 
-void ApiExecuteSingleRequest2(const ApiRuntimeArgs &runtime_args,
-                              std::shared_ptr<Messages> messages,
-                              ApiRequest request,
-                              std::function<void(ApiResponse &&)> completion_fun) {
+static void ExecuteSingleRequest(BeebWindow *beeb_window,
+                                 std::shared_ptr<Messages> messages,
+                                 ApiRequest request,
+                                 std::function<void(ApiResponse &&)> completion_fun) {
     // since this is on the main thread, the BeebWindow is not going away (even if only not just quite yet).
     ASSERT(IsMainThread());
 
     ApiExecuteArgs execute_args;
-    InitExecuteArgs(&execute_args, runtime_args, messages);
+    InitExecuteArgs(&execute_args, beeb_window, messages);
 
     ASSERT(!!execute_args.messages);
 
@@ -571,12 +577,6 @@ void ApiExecuteSingleRequest2(const ApiRuntimeArgs &runtime_args,
                              ASSERT(!!messages);
                              completion_fun(GetApiResponse(failure_reason, std::move(j), messages));
                          });
-}
-
-void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
-                             ApiRequest request,
-                             std::function<void(ApiResponse &&)> completion_fun) {
-    ApiExecuteSingleRequest2(runtime_args, CreateMessages(), std::move(request), std::move(completion_fun));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -591,9 +591,19 @@ struct MultipleRequestsState {
     size_t index = 0;
     std::function<void(ApiResponse)> request_completion_fun;
     std::function<void(ApiMultipleResponses)> overall_completion_fun;
+
+    MultipleRequestsState() = default;
+    ~MultipleRequestsState();
 };
 
+MultipleRequestsState::~MultipleRequestsState() {
+    //printf("*** ~MultipleRequestsState\n");
+}
+
 static void CallOverallCompletionFun(const std::shared_ptr<MultipleRequestsState> &state) {
+    // break the refcount cycle.
+    state->request_completion_fun = nullptr;
+
     state->response.success = true;
     for (const ApiResponse &response : state->response.responses) {
         if (!response.success) {
@@ -605,43 +615,53 @@ static void CallOverallCompletionFun(const std::shared_ptr<MultipleRequestsState
     state->overall_completion_fun(std::move(state->response));
 }
 
-class ExecuteNextMainThreadMessage : public MainThreadMessage {
-  public:
-    explicit ExecuteNextMainThreadMessage(std::shared_ptr<MultipleRequestsState> state)
-        : m_state(std::move(state)) {
-    }
+static void ExecuteNextRequest(const std::shared_ptr<MultipleRequestsState> &state) {
+    ASSERT(IsMainThread());
+    ASSERT(state->index <= state->request.requests.size());
 
-    void HandleMessage() override {
-        ASSERT(m_state->index <= m_state->request.requests.size());
+    if (state->index == state->request.requests.size()) {
+        CallOverallCompletionFun(state);
+    } else {
+        if (state->index == 0) {
+            if (state->request.window.empty()) {
+                state->beeb_window = BeebWindows::FindMRUBeebWindow();
+                if (!state->beeb_window) {
+                    state->messages->e.f("No recently used window\n");
+                }
+            } else {
+                state->beeb_window = BeebWindows::FindBeebWindowByName(state->request.window);
+                if (!state->beeb_window) {
+                    state->messages->e.f("Window not found: %s\n", state->request.window.c_str());
+                }
+            }
 
-        if (m_state->index == m_state->request.requests.size()) {
-            CallOverallCompletionFun(m_state);
-        } else {
-            std::shared_ptr<BeebThread> beeb_thread = m_state->beeb_thread.lock();
-            if (!beeb_thread || !beeb_thread->IsStarted()) {
-                // Ugh. Have to abandon the whole thing.
-                m_state->messages->e.f("BeebThread gone\n");
-                m_state->response.responses.push_back(GetApiResponse("discarded", nullptr, m_state->messages));
-                CallOverallCompletionFun(m_state);
+            if (!state->beeb_window) {
+                state->response.responses.push_back(GetApiResponse("window_not_found", nullptr, state->messages));
+                CallOverallCompletionFun(state);
                 return;
             }
 
-            ApiRuntimeArgs runtime_args;
-            runtime_args.beeb_window = m_state->beeb_window;
-            ApiExecuteSingleRequest2(runtime_args,
-                                     m_state->messages,
-                                     m_state->request.requests[m_state->index],
-                                     m_state->request_completion_fun);
+            state->beeb_thread = state->beeb_window->GetBeebThread();
+        } else {
+            std::shared_ptr<BeebThread> beeb_thread = state->beeb_thread.lock();
+            if (!beeb_thread || !beeb_thread->IsStarted()) {
+                // Ugh. Have to abandon the whole thing.
+                state->messages->e.f("Window has gone\n");
+                state->response.responses.push_back(GetApiResponse("discarded", nullptr, state->messages));
+                CallOverallCompletionFun(state);
+                return;
+            }
         }
+
+        // TODO: could move the request? But that might end up a pain for debugging purposes.
+        ExecuteSingleRequest(state->beeb_window,
+                             state->messages,
+                             state->request.requests[state->index],
+                             state->request_completion_fun);
     }
+}
 
-  protected:
-  private:
-    std::shared_ptr<MultipleRequestsState> m_state;
-};
-
-void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
-                                ApiMultipleRequests request,
+void ApiExecuteMultipleRequests(ApiMultipleRequests request,
                                 std::function<void(ApiMultipleResponses &&)> completion_fun) {
     ASSERT(IsMainThread());
 
@@ -652,47 +672,51 @@ void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
 
     auto state = std::make_shared<MultipleRequestsState>();
 
-    state->beeb_window = runtime_args.beeb_window;
-    state->beeb_thread = GetBeebThread(state->beeb_window);
+    //    state->beeb_window = runtime_args.beeb_window;
+    //    state->beeb_thread = GetBeebThread(state->beeb_window);
     state->messages = CreateMessages();
     state->request = std::move(request);
     //state->response.responses.resize(state->request.requests.size());
     state->overall_completion_fun = std::move(completion_fun);
-    state->request_completion_fun = [state_weak = std::weak_ptr<MultipleRequestsState>(state)](ApiResponse response) -> void {
-        std::shared_ptr<MultipleRequestsState> state = state_weak.lock();
-        ASSERT(!!state);
 
-        ASSERT(state->index < state->response.responses.size());
+    // the capture of state introduces a refcount cycle, broken as part of CallOverallCompletionFun.
+    state->request_completion_fun = [state](ApiResponse response) mutable -> void {
+        ASSERT(state->index < state->request.requests.size());
 
         state->response.responses.push_back(std::move(response));
 
         if (!state->response.responses.back().success) {
             // break out of the loop.
-            state->index = state->response.responses.size();
+            state->index = state->request.requests.size();
+        } else {
+            // next request.
+            ++state->index;
         }
 
-        PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));
+        PushMainThreadMessage(std::make_unique<FunctionMessage>([state]() -> void {
+            ExecuteNextRequest(state);
+        }));
     };
 
-    PushMainThreadMessage(std::make_unique<ExecuteNextMainThreadMessage>(state));
+    ExecuteNextRequest(state);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ApiExecuteSetPathRequest(const ApiRuntimeArgs &runtime_args, ApiSetPathArgs args) {
+void ApiExecuteSetPathsRequest(BeebWindow *beeb_window, ApiSetPathsArgs args) {
     ApiExecuteArgs execute_args;
-    InitExecuteArgs(&execute_args, runtime_args, CreateMessages());
+    InitExecuteArgs(&execute_args, beeb_window, CreateMessages());
 
     bool completed = false;
-    ApiExecuteSetPath(execute_args,
-                      std::move(args),
-                      [&completed](const char *failure_reason, std::nullptr_t &&) -> void {
-                          // early warning stuff, in case I change something later and forget to fix this bit.
-                          (void)failure_reason;
-                          ASSERT(!failure_reason);
-                          completed = true;
-                      });
+    ApiExecuteSetPaths(execute_args,
+                       std::move(args),
+                       [&completed](const char *failure_reason, std::nullptr_t &&) -> void {
+                           // early warning stuff, in case I change something later and forget to fix this bit.
+                           (void)failure_reason;
+                           ASSERT(!failure_reason);
+                           completed = true;
+                       });
 
     ASSERT(completed);
 }

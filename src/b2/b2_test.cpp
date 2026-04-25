@@ -1293,31 +1293,39 @@ class TestHTTPAPI : public Test, public AppHandler {
 //////////////////////////////////////////////////////////////////////////
 
 template <class T>
-static HTTPRequest GetHTTPRequestForApiRequest(std::string url, std::string type, const T &body) {
+static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::string type, const T &body) {
     HTTPRequest http_request;
 
-    ApiRequest api_request;
-    api_request.type = std::move(type);
-    api_request.args = body;
+    ApiMultipleRequests api_multiple_requests;
+
+    {
+        ApiRequest api_request;
+        api_request.type = std::move(type);
+        api_request.args = body;
+
+        api_multiple_requests.requests.push_back(std::move(api_request));
+    }
 
     http_request.url = std::move(url);
     http_request.method = "POST";
     http_request.content_type = HTTP_JSON_CONTENT_TYPE;
-    http_request.body = SaveJSONData(api_request);
+    http_request.body = SaveJSONData(api_multiple_requests);
 
     return http_request;
 }
 
 template <class T>
-static T GetApiResultFromHTTPResponse(const HTTPResponse &http_response) {
+static T GetSingleApiResultFromHTTPResponse(const HTTPResponse &http_response) {
     TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
 
-    ApiResponse api_response;
+    ApiMultipleResponses api_response;
     TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
+
+    TEST_EQ_UU(api_response.responses.size(), 1);
 
     T api_result;
     std::string exc_what;
-    TEST_TRUE(LoadJSON(&api_result, api_response.result, &exc_what));
+    TEST_TRUE(LoadJSON(&api_result, api_response.responses[0].result, &exc_what));
 
     return api_result;
 }
@@ -1364,7 +1372,7 @@ class TestHTTPConfig : public TestHTTPAPI {
         client->SetLogs(&g_stdio_logs);
         client->SetVerbose(true);
 
-        std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
+        std::string url = strprintf("http://localhost:%d/api", args->http_port);
 
         ApiConfigArgs config_args;
         config_args.base_default_config = m_mos_type.default_config_name;
@@ -1372,13 +1380,13 @@ class TestHTTPConfig : public TestHTTPAPI {
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_START_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_START_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
             TEST_EQ_II(status, 200);
         }
 
@@ -1387,16 +1395,16 @@ class TestHTTPConfig : public TestHTTPAPI {
             ApiPasteArgs paste_args;
             TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "REM DUMMY LINE\rREM TIME=0:REPEAT:UNTILTIME>200\r*FX0\r", nullptr, nullptr, nullptr));
             paste_args.wait_for_osword_0 = true;
-            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
             TEST_EQ_II(status, 200);
 
-            ApiStopCaptureOSWRCHResult result = GetApiResultFromHTTPResponse<ApiStopCaptureOSWRCHResult>(http_response);
+            ApiStopCaptureOSWRCHResult result = GetSingleApiResultFromHTTPResponse<ApiStopCaptureOSWRCHResult>(http_response);
             //printf("got %zu\n", result.output.bytes.size());
 
             std::vector<std::string> lines = GetLines(GetUTF8FromBBCASCII(result.output.bytes, BBCUTF8ConvertMode_PassThrough, true));
@@ -1433,7 +1441,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
         client->SetLogs(&g_stdio_logs);
         client->SetVerbose(true);
 
-        std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
+        std::string url = strprintf("http://localhost:%d/api", args->http_port);
 
         {
             ApiConfigArgs config_args;
@@ -1441,7 +1449,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             config_args.wait_for_osword_0 = true;
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
@@ -1452,9 +1460,9 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             paste_args.wait_for_osword_0_timeout_seconds = .5;
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
-            ApiFailureResult result = GetApiResultFromHTTPResponse<ApiFailureResult>(http_response);
+            ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
             TEST_EQ_SS(result.reason, "timeout");
         }
 #else
@@ -1486,7 +1494,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
         client->SetLogs(&g_stdio_logs);
         client->SetVerbose(true);
 
-        std::string url = strprintf("http://localhost:%d/request/b2", args->http_port);
+        std::string url = strprintf("http://localhost:%d/api", args->http_port);
 
         // path to any old language ROM that doesn't do an OSWORD 0 in good time...
         std::string problem_rom_path = PathJoined(b2_SOURCE_DIR, "etc/tests/roms/Wordwise Plus v1.49 [variant 5].rom");
@@ -1533,9 +1541,9 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             }
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
             TEST_EQ_II(status, 500);
-            ApiFailureResult result = GetApiResultFromHTTPResponse<ApiFailureResult>(http_response);
+            ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
             TEST_EQ_SS(result.reason, "timeout");
         }
 #else

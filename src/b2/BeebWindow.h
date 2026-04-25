@@ -325,6 +325,10 @@ class BeebWindow {
 
     static const char SDL_WINDOW_DATA_NAME[];
 
+    // Some state for the benefit of the HTTP API, because HTTP is stateless. Not much point (at least, not currently?) having accessors.
+    std::string api_read_path;
+    std::string api_write_path;
+
     BeebWindow(BeebWindowInitArguments init_arguments);
     ~BeebWindow();
 
@@ -430,10 +434,6 @@ class BeebWindow {
     // For the benefit of the HTTP API, as it is stateless.
     void StartCaptureOSWRCH();
     bool StopCaptureOSWRCH(std::vector<uint8_t> *data);
-
-    // Another bit of HTTP API state.
-    const std::string &GetApiPath() const;
-    void SetApiPath(std::string path);
 
   protected:
   private:
@@ -611,7 +611,6 @@ class BeebWindow {
 
     std::shared_ptr<CopyOSWRCHCallback> m_capture_oswrch_callback;
     std::shared_ptr<CopyOSWRCHCallback> m_copy_oswrch_callback;
-    std::string m_api_path;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

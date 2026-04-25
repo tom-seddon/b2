@@ -1431,7 +1431,9 @@ class LaunchMessage : public MainThreadMessage {
             beeb_window = BeebWindows::FindMRUBeebWindow();
         }
 
-        beeb_window->Launch(m_arguments);
+        if (beeb_window) {
+            beeb_window->Launch(m_arguments);
+        }
     }
 
   protected:

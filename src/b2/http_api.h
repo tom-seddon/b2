@@ -143,10 +143,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResponse, success, result);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Multiple API requests, made in one batch.
+// Batch of API requests.
 //
-// This is deliberately its own special thing.
+// This is deliberately its own special thing, rather than a special type of ApiRequest.
 struct ApiMultipleRequests {
+    // The window to send the requests to. If not provided, pick the MRU window.
+    std::string window;
+
     // The sequence of requests to make.
     std::vector<ApiRequest> requests;
 };
@@ -347,14 +350,17 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Set the api path: the folder to which all paths are treated as relative.
+static const char API_SET_PATHS_REQUEST_TYPE[] = "set_paths";
 
-static const char API_SET_PATH_REQUEST_TYPE[] = "set_path";
+struct ApiSetPathsArgs {
+    //
+    std::optional<std::string> read_path;
 
-struct ApiSetPathArgs {
-    std::string path;
+    std::optional<std::string> write_path;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetPathArgs, path);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetPathsArgs,
+                                                read_path,
+                                                write_path);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -365,35 +371,20 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetPathArgs, path);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Common arguments supplied to ApiExecuteSingleRequest and ApiExecuteMultipleRequests.
-//
-// TODO: the naming here is not great
-struct ApiRuntimeArgs {
-    BeebWindow *beeb_window = nullptr;
-
-    // Specially created for the handler of this message, along with its MessageList.
-    //std::shared_ptr<Messages> messages;
-};
-
-// Execute the given request. Must be called on the main thread.
+// Execute the given requests. Must be called on the main thread.
 //
 // RUNTIME_ARGS is the runtime args.
 //
 // REQUEST is the request.
 //
 // COMPLETION_FUN is the function to call on success/failure. The first argument is the success flag, and the second, ignored on failure, is the JSON-serialized request result.
-void ApiExecuteSingleRequest(const ApiRuntimeArgs &runtime_args,
-                             ApiRequest request,
-                             std::function<void(ApiResponse &&)> completion_fun);
-
-void ApiExecuteMultipleRequests(const ApiRuntimeArgs &runtime_args,
-                                ApiMultipleRequests request,
+void ApiExecuteMultipleRequests(ApiMultipleRequests request,
                                 std::function<void(ApiMultipleResponses &&)> completion_fun);
 
 // A handful of requests have their own specific ApiExecute functions, as they're called from elsewhere and doing all the JSON nonsense is a minor pain.
 //
 // These are not intended to be completely regular (e.g., if the request completes immediately, there's no completion fun), but they do use the ApiXXXArgs and ApiXXXResult types.
-void ApiExecuteSetPathRequest(const ApiRuntimeArgs &runtime_args, ApiSetPathArgs args);
+void ApiExecuteSetPathsRequest(BeebWindow *beeb_window, ApiSetPathsArgs args);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

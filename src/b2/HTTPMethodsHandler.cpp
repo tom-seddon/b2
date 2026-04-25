@@ -112,8 +112,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
         {"set-path", &HTTPMethodsHandler::HandleSetPathRequest},
-        {"request", &HTTPMethodsHandler::HandleGenericRequest},
-        {"request-multiple", &HTTPMethodsHandler::HandleGenericMultipleRequest},
+        {"api", &HTTPMethodsHandler::HandleGenericMultipleRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
@@ -323,6 +322,10 @@ class HTTPMethodsHandler : public HTTPHandler {
     template <size_t NUM_PATH_PARAMETERS>
     static bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const PathParameter (&path_parameters)[NUM_PATH_PARAMETERS]) {
         return ParseArgsOrSendResponse2(server, request, parts, command_index, path_parameters, NUM_PATH_PARAMETERS, nullptr, 0);
+    }
+
+    static bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index) {
+        return ParseArgsOrSendResponse2(server, request, parts, command_index, nullptr, 0, nullptr, 0);
     }
 
 #if BBCMICRO_DEBUGGER
@@ -871,59 +874,30 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    template <class RequestArgsType>
-    bool PrepareForGenericRequestOrSendResponse(BeebWindow **beeb_window_ptr,
-                                                RequestArgsType *request_args_ptr,
-                                                HTTPServer *server,
-                                                const HTTPRequest &request,
-                                                const std::vector<std::string> &path_parts,
-                                                size_t command_index) {
-        if (command_index + 1 == path_parts.size()) {
-            if (BeebWindows::GetNumWindows() == 1) {
-                *beeb_window_ptr = BeebWindows::GetWindowByIndex(0);
-            } else {
-                *beeb_window_ptr = nullptr;
-            }
-        } else {
-            PathParameter pps[] = {
-                {&ParseWindow, beeb_window_ptr},
-            };
-            if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
-                return false;
-            }
-        }
-
-        nlohmann::json j;
-        if (!this->GetJSONBodyOrSendResponse(&j, server, request)) {
-            return false;
-        }
-
-        std::string exc_what;
-        if (!LoadJSON(request_args_ptr, j, &exc_what)) {
-            server->SendResponse(request, HTTPResponse::BadRequest("Request object parse error: %s", exc_what.c_str()));
-            return false;
-        }
-
-        return true;
-    }
-#endif
-
-#if BBCMICRO_DEBUGGER
     void HandleSetPathRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
-        ApiRuntimeArgs runtime_args;
-        ApiSetPathArgs set_path_args;
-        std::string path;
+        BeebWindow *beeb_window;
+        std::string read_path;
+        std::string write_path;
         const PathParameter pps[] = {
-            {&ParseWindow, &runtime_args.beeb_window},
+            {&ParseWindow, &beeb_window},
         };
         const QueryParameter qps[] = {
-            {"path", &ParseStdString, &set_path_args.path},
+            {"read_path", &ParseStdString, &read_path},
+            {"write_path", &ParseStdString, &write_path},
         };
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
-        ApiExecuteSetPathRequest(runtime_args, set_path_args);
+        ApiSetPathsArgs set_paths_args;
+        if (!read_path.empty()) {
+            set_paths_args.read_path = std::move(read_path);
+        }
+        if (!write_path.empty()) {
+            set_paths_args.write_path = std::move(write_path);
+        }
+
+        ApiExecuteSetPathsRequest(beeb_window, set_paths_args);
     }
 #endif
 
@@ -947,32 +921,25 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    void HandleGenericRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
-        ApiRuntimeArgs runtime_args;
-        ApiRequest request_args;
-        if (!this->PrepareForGenericRequestOrSendResponse(&runtime_args.beeb_window, &request_args, server, request, path_parts, command_index)) {
-            return;
-        }
-
-        ApiExecuteSingleRequest(std::move(runtime_args),
-                                std::move(request_args),
-                                [response_data = request.response_data,
-                                 server](ApiResponse response) -> void {
-                                    HandleGenericRequestCompletion(response.success, std::move(response), server, response_data);
-                                });
-    }
-#endif
-
-#if BBCMICRO_DEBUGGER
     void HandleGenericMultipleRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
-        ApiRuntimeArgs runtime_args;
-        ApiMultipleRequests request_args;
-        if (!this->PrepareForGenericRequestOrSendResponse(&runtime_args.beeb_window, &request_args, server, request, path_parts, command_index)) {
+        // this doesn't take any URL or query args - but still do this, so that any supplied become an error.
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index)) {
             return;
         }
 
-        ApiExecuteMultipleRequests(std::move(runtime_args),
-                                   std::move(request_args),
+        nlohmann::json body_j;
+        if (!this->GetJSONBodyOrSendResponse(&body_j, server, request)) {
+            return;
+        }
+
+        ApiMultipleRequests api_request;
+        std::string exc_what;
+        if (!LoadJSON(&api_request, body_j, &exc_what)) {
+            server->SendResponse(request, HTTPResponse::BadRequest("JSON parse error: %s", exc_what.c_str()));
+            return;
+        }
+
+        ApiExecuteMultipleRequests(std::move(api_request),
                                    [response_data = request.response_data,
                                     server](ApiMultipleResponses response) -> void {
                                        HandleGenericRequestCompletion(response.success, std::move(response), server, response_data);
