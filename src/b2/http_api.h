@@ -103,6 +103,18 @@ void to_json(nlohmann::json &j, const BBCString &s);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// BBCBinaryData represents binary data: a sequence of arbitrary bytes.
+//
+// The encoding is always base64. This is not really ideal, but everything supports it.
+struct BBCBinaryData {
+    std::vector<uint8_t> bytes;
+};
+void from_json(const nlohmann::json &j, BBCBinaryData &s);
+void to_json(nlohmann::json &j, const BBCBinaryData &s);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // A few calls give you the option of waiting for the next OSWORD 0 (line input)
 // call before continuing.
 //
@@ -355,6 +367,24 @@ struct ApiSetGlobalsArgs {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
                                                 read_path,
                                                 write_path);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char API_SCREEN_GRAB_PNG_DATA_REQUEST_TYPE[] = "screen_grab_png_data";
+
+struct ApiScreenGrabPNGDataArgs {
+    // Correct aspect ratio looks right, but bitmap mode pixels will contain artefacts due to being resized.
+    bool correct_aspect_ratio = false;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataArgs,
+                                                correct_aspect_ratio);
+
+struct ApiScreenGrabPNGDataResult {
+    BBCBinaryData data;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataResult,
+                                                data);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

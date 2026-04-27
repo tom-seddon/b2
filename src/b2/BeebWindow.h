@@ -40,6 +40,7 @@ struct ImGuiTestEngine;
 #endif
 class AppHandler;
 struct ImVec2;
+struct LogSet;
 
 #include "keys.h"
 #include <string>
@@ -428,8 +429,8 @@ class BeebWindow {
 
     AppHandler *GetAppHandler() const;
 
-    // Get recent display data, suitable for saving with stbimage_write.
-    std::vector<uint8_t> GetR8G8B8A8DisplayData() const;
+    // Get recent display data.
+    SDLUniquePtr<SDL_Surface> GetDisplayData(bool correct_aspect_ratio, const LogSet *logs) const;
 
     // For the benefit of the HTTP API, as it is stateless.
     void StartCaptureOSWRCH();
@@ -660,6 +661,7 @@ class BeebWindow {
     void SetCaptureMouse(bool capture_mouse);
 
     SDLUniquePtr<SDL_Surface> CreateScreenshot(SDL_PixelFormatEnum pixel_format) const;
+    SDLUniquePtr<SDL_Surface> CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, bool filter, const LogSet *logs) const;
 
 #if ENABLE_SDL_FULL_SCREEN
     bool IsWindowFullScreen() const;

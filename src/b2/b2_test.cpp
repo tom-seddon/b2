@@ -336,10 +336,14 @@ class Yielder {
             std::string config_folder;
             TEST_TRUE(m_test->GetConfigFolder(&config_folder));
 
-            std::vector<uint8_t> display_data = m_beeb_window->GetR8G8B8A8DisplayData();
+            SDLUniquePtr<SDL_Surface> display_data = m_beeb_window->GetDisplayData(false, &g_stdio_logs);
+            TEST_NON_NULL(display_data.get());
+
+            std::vector<uint8_t> png_data;
+            TEST_TRUE(SaveSDLSurfaceToPNGData(&png_data, display_data.get(), &g_stdio_logs));
 
             std::string image_path = PathJoined(config_folder, "timeout." + m_test->GetFullName() + ".png");
-            TEST_TRUE(stbi_write_png(image_path.c_str(), TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, 4, display_data.data(), TV_TEXTURE_WIDTH * 4));
+            TEST_TRUE(SaveFile(png_data, image_path, &g_stdio_logs));
 
             TEST_FALSE(true);
         }

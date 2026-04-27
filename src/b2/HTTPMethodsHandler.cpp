@@ -24,6 +24,7 @@
 #include "SymbolTable.h"
 #include "http_api.h"
 #include <shared/strings.h>
+#include "load_save.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -107,78 +108,6 @@ struct ApiExecuteArgs {
 //        }
 //    };
 //} // namespace nlohmann
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-
-void from_json(const nlohmann::json &j, BBCString &s) {
-    if (!j.is_array()) {
-        throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: must be an array"), nullptr);
-    }
-
-    size_t index = 0;
-    for (const nlohmann::json &value_j : j) {
-        if (value_j.is_string()) {
-            const std::string &value = value_j.get<std::string>();
-
-            std::vector<uint8_t> bbc;
-            int32_t bad_codepoint;
-            size_t bad_char_start;
-            int bad_char_len;
-            if (!GetBBCASCIIFromUTF8(&bbc, value, &bad_codepoint, &bad_char_start, &bad_char_len)) {
-                if (bad_codepoint < 0) {
-                    // Shouldn't see this? nlohmann::json should have sorted this out!
-                    throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu not valid UTF-8", index), nullptr);
-                } else {
-                    throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu contains unsupported codepoint: %" PRId32 " (0x%" PRIx32 ")", index, bad_codepoint, bad_codepoint), nullptr);
-                }
-            }
-
-            s.bytes.insert(s.bytes.end(), bbc.begin(), bbc.end());
-        } else if (value_j.is_number_unsigned()) {
-            uint64_t value = value_j.get<uint64_t>();
-            if (value >= 256) {
-                throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu not valid byte value", index), nullptr);
-            }
-
-            s.bytes.push_back((uint8_t)value);
-        } else {
-            throw nlohmann::json::type_error::create(302, strprintf("invalid BBCString value: element %zu not string or byte", index), nullptr);
-        }
-
-        ++index;
-    }
-}
-
-void to_json(nlohmann::json &j, const BBCString &s) {
-    j = nlohmann::json::value_t::array;
-
-    std::string str;
-    bool in_str = false;
-    for (const uint8_t byte : s.bytes) {
-        if ((byte >= 32 && byte < 127) || byte == 10 || byte == 13) {
-            if (!in_str) {
-                str.clear();
-                in_str = true;
-            }
-            str.push_back((char)byte);
-        } else {
-            if (in_str) {
-                j.push_back(std::move(str));
-                in_str = false;
-            }
-            j.push_back(byte);
-        }
-    }
-
-    if (in_str) {
-        j.push_back(std::move(str));
-    }
-}
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -505,14 +434,47 @@ static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
                                  ApiSetGlobalsArgs &&request_args,
                                  std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
     if (request_args.read_path.has_value()) {
+        if (!PathIsFullySpecified(*request_args.read_path)) {
+            completion_fun("read_path not fully specified", {});
+            return;
+        }
+
         execute_args.beeb_window->api_globals.read_path = std::move(*request_args.read_path);
     }
 
     if (request_args.write_path.has_value()) {
+        if (!PathIsFullySpecified(*request_args.write_path)) {
+            completion_fun("write_path not fully specified", {});
+            return;
+        }
+
         execute_args.beeb_window->api_globals.write_path = std::move(*request_args.write_path);
     }
 
     completion_fun(nullptr, nullptr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
+                                        ApiScreenGrabPNGDataArgs &&request_args,
+                                        std::function<void(const char *, ApiScreenGrabPNGDataResult &&)> completion_fun) {
+    SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, execute_args.messages.get());
+    if (!screenshot) {
+        completion_fun("failed to capture screenshot", {});
+        return;
+    }
+
+    ApiScreenGrabPNGDataResult result;
+    if (!SaveSDLSurfaceToPNGData(&result.data.bytes, screenshot.get(), execute_args.messages.get())) {
+        completion_fun("failed to create screenshot PNG data", {});
+        return;
+    }
+
+    completion_fun(nullptr, std::move(result));
 }
 #endif
 
@@ -573,7 +535,9 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
     } else if (request.type == API_SET_GLOBALS_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetGlobals, true);
-    } else {
+    } else if (request.type == API_SCREEN_GRAB_PNG_DATA_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGData, true);
+        //} else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);
     }
@@ -846,6 +810,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"set-byte-breakpoint", &HTTPMethodsHandler::HandleSetByteBreakpointRequest},
         {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
+        {"screenshot", &HTTPMethodsHandler::HandleScreenshotRequest},
         {"api-set-globals", &HTTPMethodsHandler::HandleSetGlobalsRequest},
         {"api", &HTTPMethodsHandler::HandleGenericMultipleRequest},
 #endif
@@ -1613,6 +1578,59 @@ class HTTPMethodsHandler : public HTTPHandler {
         beeb_thread->Send(std::make_shared<BeebThread::DebugClearBreakpoints>());
 
         server->SendResponse(request, HTTPResponse::OK());
+    }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleScreenshotRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window;
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        ApiScreenGrabPNGDataArgs request_args;
+        const QueryParameter qps[] = {
+            {"correct_aspect_ratio", &ParseBool, &request_args.correct_aspect_ratio},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
+            return;
+        }
+
+        ApiExecuteArgs execute_args;
+        InitExecuteArgs(&execute_args, beeb_window, CreateMessages());
+
+        ApiExecuteScreenGrabPNGData(execute_args,
+                                    std::move(request_args),
+                                    [server,
+                                     response_data = request.response_data,
+                                     messages = execute_args.messages](const char *failure_reason, ApiScreenGrabPNGDataResult &&result) -> void {
+                                        HTTPResponse response;
+
+                                        if (failure_reason) {
+                                            response = HTTPResponse::InternalServerError();
+
+                                            response.content_type = HTTP_TEXT_CONTENT_TYPE;
+                                            response.content_type_charset = HTTP_UTF8_CHARSET;
+
+                                            std::string content_str = failure_reason;
+                                            content_str += "\n";
+
+                                            std::shared_ptr<MessageList> message_list = messages->GetMessageList();
+                                            message_list->ForEachMessage([&content_str](MessageList::Message *message) -> void {
+                                                content_str += GetMessagePrefix(message);
+                                                content_str += ": ";
+                                                content_str += message->text;
+                                                content_str += "\n";
+                                            });
+
+                                            response.content.assign(content_str.begin(), content_str.end());
+                                        } else {
+                                            response = HTTPResponse::OK();
+
+                                            response.content_type = "image/png";
+                                            response.content = std::move(result.data.bytes);
+                                        }
+                                        server->SendResponse(response_data, std::move(response));
+                                    });
     }
 #endif
 

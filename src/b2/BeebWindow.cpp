@@ -44,7 +44,7 @@
 #include "discs.h"
 #include "profiler.h"
 #include "joysticks.h"
-#include <stb_image_write.h>
+//#include <stb_image_write.h>
 #if SYSTEM_WINDOWS
 #include <dwmapi.h>
 #endif
@@ -4186,25 +4186,12 @@ AppHandler *BeebWindow::GetAppHandler() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<uint8_t> BeebWindow::GetR8G8B8A8DisplayData() const {
-    UniqueLock<Mutex> lock;
-    uint32_t *tv_pixels = m_tv.GetLastVSyncTexturePixels(&lock);
-
-    std::vector<uint8_t> data(TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT * 4);
-    const uint32_t *src = tv_pixels;
-    uint8_t *dest = data.data();
-    for (int y = 0; y < TV_TEXTURE_HEIGHT; ++y) {
-        for (int x = 0; x < TV_TEXTURE_WIDTH; ++x) {
-            uint32_t v = *src++;
-
-            *dest++ = v >> 16 & 0xff; //r
-            *dest++ = v >> 8 & 0xff;  //g
-            *dest++ = v & 0xff;       //b
-            *dest++ = 0xff;           //a
-        }
-    }
-
-    return data;
+SDLUniquePtr<SDL_Surface> BeebWindow::GetDisplayData(bool correct_aspect_ratio, const LogSet *logs) const {
+    return this->CreateScreenshot(SDL_PIXELFORMAT_RGB24,
+                                  true, //last vsync
+                                  correct_aspect_ratio,
+                                  true, //filter
+                                  logs);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4494,9 +4481,18 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
     ASSERT(pixel_format == SDL_PIXELFORMAT_RGB24 ||
            pixel_format == SDL_PIXELFORMAT_BGR24 ||
            pixel_format == SDL_PIXELFORMAT_XRGB8888);
+
+    return this->CreateScreenshot(pixel_format,
+                                  m_settings.screenshot_last_vsync,
+                                  m_settings.screenshot_correct_aspect_ratio,
+                                  m_settings.screenshot_filter,
+                                  &m_msg);
+}
+
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, bool filter, const LogSet *logs) const {
     UniqueLock<Mutex> lock;
     uint32_t *tv_pixels;
-    if (m_settings.screenshot_last_vsync) {
+    if (last_vsync) {
         tv_pixels = m_tv.GetLastVSyncTexturePixels(&lock);
     } else {
         tv_pixels = m_tv.GetTexturePixels(nullptr);
@@ -4513,7 +4509,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
                                                                    0x000000ff,
                                                                    0x00000000));
 
-    if (m_settings.screenshot_correct_aspect_ratio) {
+    if (correct_aspect_ratio) {
         SDLUniquePtr<SDL_Surface> surface(SDL_CreateRGBSurface(0,
                                                                int(TV_TEXTURE_WIDTH * CORRECT_ASPECT_RATIO_X_SCALE), TV_TEXTURE_HEIGHT,
                                                                32,
@@ -4522,7 +4518,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
                                                                src_surface->format->Bmask,
                                                                src_surface->format->Amask));
         int blit_result;
-        if (m_settings.screenshot_filter) {
+        if (filter) {
             blit_result =
 #if HAVE_SDL_SOFTSTRETCHLINEAR
                 SDL_SoftStretchLinear
@@ -4535,7 +4531,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
         }
 
         if (blit_result != 0) {
-            m_msg.e.f("Failed to resize image: %s\n", SDL_GetError());
+            logs->e.f("Failed to resize image: %s\n", SDL_GetError());
             return nullptr;
         }
 
@@ -4547,7 +4543,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
     } else {
         std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, pixel_format));
         if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
-            m_msg.e.f("Failed to copy image: %s\n", SDL_GetError());
+            logs->e.f("Failed to copy image: %s\n", SDL_GetError());
             return nullptr;
         }
 

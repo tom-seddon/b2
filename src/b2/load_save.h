@@ -55,10 +55,9 @@ std::string GetConfigFileName();
 
 // File names are assumed to be UTF-8.
 
-bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages);
+bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet *logs);
 
-// Free result using free.
-unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_out, Messages *messages);
+bool SaveSDLSurfaceToPNGData(std::vector<uint8_t> *png_data, SDL_Surface *surface, const LogSet *logs);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
