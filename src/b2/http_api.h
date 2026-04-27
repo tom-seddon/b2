@@ -7,12 +7,6 @@
 #include <beeb/type.h>
 #include "BeebConfig.h"
 #include <shared/enums.h>
-#include <functional>
-#include "Messages.h"
-#include "b2.h"
-
-class BeebWindow;
-class BeebThread;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -362,30 +356,6 @@ struct ApiSetPathsArgs {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetPathsArgs,
                                                 read_path,
                                                 write_path);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Nothing from this point is relevant to the HTTP API. It's all C++ stuff,
-// relevant to the b2 code only.
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Execute the given requests. Must be called on the main thread.
-//
-// RUNTIME_ARGS is the runtime args.
-//
-// REQUEST is the request.
-//
-// COMPLETION_FUN is the function to call on success/failure. The first argument is the success flag, and the second, ignored on failure, is the JSON-serialized request result.
-void ApiExecuteMultipleRequests(ApiMultipleRequests request,
-                                std::function<void(ApiMultipleResponses &&)> completion_fun);
-
-// A handful of requests have their own specific ApiExecute functions, as they're called from elsewhere and doing all the JSON nonsense is a minor pain.
-//
-// These are not intended to be completely regular (e.g., if the request completes immediately, there's no completion fun), but they do use the ApiXXXArgs and ApiXXXResult types.
-void ApiExecuteSetPathsRequest(BeebWindow *beeb_window, ApiSetPathsArgs args);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
