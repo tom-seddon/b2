@@ -944,6 +944,7 @@ static bool IsGzipData(const std::vector<uint8_t> &data, size_t index) {
 }
 
 static bool Decompress(std::vector<uint8_t> *data, const std::string &path, const LogSet *logs) {
+    // 3 GB should be enough for anyone
     static const size_t MAX_UNCOMPRESSED_SIZE = 3u * 1024u * 1024u * 1024u;
     static const size_t DEST_DATA_SIZE_DELTA = 1048576;
 
@@ -1072,7 +1073,6 @@ static bool Decompress(std::vector<uint8_t> *data, const std::string &path, cons
                 goto done;
 
             case TINFL_STATUS_HAS_MORE_OUTPUT:
-                // 3 GB should be enough for anyone
                 if (dest_data.size() > MAX_UNCOMPRESSED_SIZE) {
                     if (logs) {
                         logs->e.f("%s: uncompressed data too large\n", path.c_str());
@@ -1114,6 +1114,244 @@ bool LoadPossiblyGzippedFile(std::vector<uint8_t> *data, const std::string &path
 
     if (!Decompress(data, path, logs)) {
         return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static constexpr char BASE64_ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static_assert(sizeof(BASE64_ALPHABET) - 1 == 64);
+
+#define BASE64_CHAR_BITS(CH) ((CH) >= 'A' && (CH) <= 'Z' ? 0 + (CH) - 'A' : (CH) >= 'a' && (CH) <= 'z' ? 26 + (CH) - 'a' \
+                                                                        : (CH) >= '0' && (CH) <= '9'   ? 52 + (CH) - '0' \
+                                                                        : (CH) == '+'                  ? 62              \
+                                                                        : (CH) == '/'                  ? 63              \
+                                                                                                       : -1)
+
+static constexpr int8_t BASE64_BITS_FROM_CHAR[] = {BASE64_CHAR_BITS(0), BASE64_CHAR_BITS(1), BASE64_CHAR_BITS(2), BASE64_CHAR_BITS(3), BASE64_CHAR_BITS(4), BASE64_CHAR_BITS(5), BASE64_CHAR_BITS(6), BASE64_CHAR_BITS(7), BASE64_CHAR_BITS(8), BASE64_CHAR_BITS(9), BASE64_CHAR_BITS(10), BASE64_CHAR_BITS(11), BASE64_CHAR_BITS(12), BASE64_CHAR_BITS(13), BASE64_CHAR_BITS(14), BASE64_CHAR_BITS(15), BASE64_CHAR_BITS(16), BASE64_CHAR_BITS(17), BASE64_CHAR_BITS(18), BASE64_CHAR_BITS(19), BASE64_CHAR_BITS(20), BASE64_CHAR_BITS(21), BASE64_CHAR_BITS(22), BASE64_CHAR_BITS(23), BASE64_CHAR_BITS(24), BASE64_CHAR_BITS(25), BASE64_CHAR_BITS(26), BASE64_CHAR_BITS(27), BASE64_CHAR_BITS(28), BASE64_CHAR_BITS(29), BASE64_CHAR_BITS(30), BASE64_CHAR_BITS(31), BASE64_CHAR_BITS(32), BASE64_CHAR_BITS(33), BASE64_CHAR_BITS(34), BASE64_CHAR_BITS(35), BASE64_CHAR_BITS(36), BASE64_CHAR_BITS(37), BASE64_CHAR_BITS(38), BASE64_CHAR_BITS(39), BASE64_CHAR_BITS(40), BASE64_CHAR_BITS(41), BASE64_CHAR_BITS(42), BASE64_CHAR_BITS(43), BASE64_CHAR_BITS(44), BASE64_CHAR_BITS(45), BASE64_CHAR_BITS(46), BASE64_CHAR_BITS(47), BASE64_CHAR_BITS(48), BASE64_CHAR_BITS(49), BASE64_CHAR_BITS(50), BASE64_CHAR_BITS(51), BASE64_CHAR_BITS(52), BASE64_CHAR_BITS(53), BASE64_CHAR_BITS(54), BASE64_CHAR_BITS(55), BASE64_CHAR_BITS(56), BASE64_CHAR_BITS(57), BASE64_CHAR_BITS(58), BASE64_CHAR_BITS(59), BASE64_CHAR_BITS(60), BASE64_CHAR_BITS(61), BASE64_CHAR_BITS(62), BASE64_CHAR_BITS(63), BASE64_CHAR_BITS(64), BASE64_CHAR_BITS(65), BASE64_CHAR_BITS(66), BASE64_CHAR_BITS(67), BASE64_CHAR_BITS(68), BASE64_CHAR_BITS(69), BASE64_CHAR_BITS(70), BASE64_CHAR_BITS(71), BASE64_CHAR_BITS(72), BASE64_CHAR_BITS(73), BASE64_CHAR_BITS(74), BASE64_CHAR_BITS(75), BASE64_CHAR_BITS(76), BASE64_CHAR_BITS(77), BASE64_CHAR_BITS(78), BASE64_CHAR_BITS(79), BASE64_CHAR_BITS(80), BASE64_CHAR_BITS(81), BASE64_CHAR_BITS(82), BASE64_CHAR_BITS(83), BASE64_CHAR_BITS(84), BASE64_CHAR_BITS(85), BASE64_CHAR_BITS(86), BASE64_CHAR_BITS(87), BASE64_CHAR_BITS(88), BASE64_CHAR_BITS(89), BASE64_CHAR_BITS(90), BASE64_CHAR_BITS(91), BASE64_CHAR_BITS(92), BASE64_CHAR_BITS(93), BASE64_CHAR_BITS(94), BASE64_CHAR_BITS(95), BASE64_CHAR_BITS(96), BASE64_CHAR_BITS(97), BASE64_CHAR_BITS(98), BASE64_CHAR_BITS(99), BASE64_CHAR_BITS(100), BASE64_CHAR_BITS(101), BASE64_CHAR_BITS(102), BASE64_CHAR_BITS(103), BASE64_CHAR_BITS(104), BASE64_CHAR_BITS(105), BASE64_CHAR_BITS(106), BASE64_CHAR_BITS(107), BASE64_CHAR_BITS(108), BASE64_CHAR_BITS(109), BASE64_CHAR_BITS(110), BASE64_CHAR_BITS(111), BASE64_CHAR_BITS(112), BASE64_CHAR_BITS(113), BASE64_CHAR_BITS(114), BASE64_CHAR_BITS(115), BASE64_CHAR_BITS(116), BASE64_CHAR_BITS(117), BASE64_CHAR_BITS(118), BASE64_CHAR_BITS(119), BASE64_CHAR_BITS(120), BASE64_CHAR_BITS(121), BASE64_CHAR_BITS(122), BASE64_CHAR_BITS(123), BASE64_CHAR_BITS(124), BASE64_CHAR_BITS(125), BASE64_CHAR_BITS(126), BASE64_CHAR_BITS(127), BASE64_CHAR_BITS(128), BASE64_CHAR_BITS(129), BASE64_CHAR_BITS(130), BASE64_CHAR_BITS(131), BASE64_CHAR_BITS(132), BASE64_CHAR_BITS(133), BASE64_CHAR_BITS(134), BASE64_CHAR_BITS(135), BASE64_CHAR_BITS(136), BASE64_CHAR_BITS(137), BASE64_CHAR_BITS(138), BASE64_CHAR_BITS(139), BASE64_CHAR_BITS(140), BASE64_CHAR_BITS(141), BASE64_CHAR_BITS(142), BASE64_CHAR_BITS(143), BASE64_CHAR_BITS(144), BASE64_CHAR_BITS(145), BASE64_CHAR_BITS(146), BASE64_CHAR_BITS(147), BASE64_CHAR_BITS(148), BASE64_CHAR_BITS(149), BASE64_CHAR_BITS(150), BASE64_CHAR_BITS(151), BASE64_CHAR_BITS(152), BASE64_CHAR_BITS(153), BASE64_CHAR_BITS(154), BASE64_CHAR_BITS(155), BASE64_CHAR_BITS(156), BASE64_CHAR_BITS(157), BASE64_CHAR_BITS(158), BASE64_CHAR_BITS(159), BASE64_CHAR_BITS(160), BASE64_CHAR_BITS(161), BASE64_CHAR_BITS(162), BASE64_CHAR_BITS(163), BASE64_CHAR_BITS(164), BASE64_CHAR_BITS(165), BASE64_CHAR_BITS(166), BASE64_CHAR_BITS(167), BASE64_CHAR_BITS(168), BASE64_CHAR_BITS(169), BASE64_CHAR_BITS(170), BASE64_CHAR_BITS(171), BASE64_CHAR_BITS(172), BASE64_CHAR_BITS(173), BASE64_CHAR_BITS(174), BASE64_CHAR_BITS(175), BASE64_CHAR_BITS(176), BASE64_CHAR_BITS(177), BASE64_CHAR_BITS(178), BASE64_CHAR_BITS(179), BASE64_CHAR_BITS(180), BASE64_CHAR_BITS(181), BASE64_CHAR_BITS(182), BASE64_CHAR_BITS(183), BASE64_CHAR_BITS(184), BASE64_CHAR_BITS(185), BASE64_CHAR_BITS(186), BASE64_CHAR_BITS(187), BASE64_CHAR_BITS(188), BASE64_CHAR_BITS(189), BASE64_CHAR_BITS(190), BASE64_CHAR_BITS(191), BASE64_CHAR_BITS(192), BASE64_CHAR_BITS(193), BASE64_CHAR_BITS(194), BASE64_CHAR_BITS(195), BASE64_CHAR_BITS(196), BASE64_CHAR_BITS(197), BASE64_CHAR_BITS(198), BASE64_CHAR_BITS(199), BASE64_CHAR_BITS(200), BASE64_CHAR_BITS(201), BASE64_CHAR_BITS(202), BASE64_CHAR_BITS(203), BASE64_CHAR_BITS(204), BASE64_CHAR_BITS(205), BASE64_CHAR_BITS(206), BASE64_CHAR_BITS(207), BASE64_CHAR_BITS(208), BASE64_CHAR_BITS(209), BASE64_CHAR_BITS(210), BASE64_CHAR_BITS(211), BASE64_CHAR_BITS(212), BASE64_CHAR_BITS(213), BASE64_CHAR_BITS(214), BASE64_CHAR_BITS(215), BASE64_CHAR_BITS(216), BASE64_CHAR_BITS(217), BASE64_CHAR_BITS(218), BASE64_CHAR_BITS(219), BASE64_CHAR_BITS(220), BASE64_CHAR_BITS(221), BASE64_CHAR_BITS(222), BASE64_CHAR_BITS(223), BASE64_CHAR_BITS(224), BASE64_CHAR_BITS(225), BASE64_CHAR_BITS(226), BASE64_CHAR_BITS(227), BASE64_CHAR_BITS(228), BASE64_CHAR_BITS(229), BASE64_CHAR_BITS(230), BASE64_CHAR_BITS(231), BASE64_CHAR_BITS(232), BASE64_CHAR_BITS(233), BASE64_CHAR_BITS(234), BASE64_CHAR_BITS(235), BASE64_CHAR_BITS(236), BASE64_CHAR_BITS(237), BASE64_CHAR_BITS(238), BASE64_CHAR_BITS(239), BASE64_CHAR_BITS(240), BASE64_CHAR_BITS(241), BASE64_CHAR_BITS(242), BASE64_CHAR_BITS(243), BASE64_CHAR_BITS(244), BASE64_CHAR_BITS(245), BASE64_CHAR_BITS(246), BASE64_CHAR_BITS(247), BASE64_CHAR_BITS(248), BASE64_CHAR_BITS(249), BASE64_CHAR_BITS(250), BASE64_CHAR_BITS(251), BASE64_CHAR_BITS(252), BASE64_CHAR_BITS(253), BASE64_CHAR_BITS(254), BASE64_CHAR_BITS(255)};
+static_assert(sizeof(BASE64_BITS_FROM_CHAR) == 256);
+
+//static constexpr char BASE64_FS_SAFE_ALPHABET[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+//static_assert(sizeof(BASE64_FS_SAFE_ALPHABET) - 1 == 64);
+
+static constexpr char BASE64_PAD_CHAR = '=';
+
+// Original data:
+//
+//  23  22  21  20  19  18  17  16   15  14  13  12  11  10  9   8    7   6   5   4   3   2   1   0
+// +---+---+---+---+---+---+---+---++---+---+---+---+---+---+---+---++---+---+---+---+---+---+---+---+
+// | A | B | C | D | E | F | G | H || I | J | K | L | M | N | O | P || Q | R | S | T | U | V | W | X |
+// +---+---+---+---+---+---+---+---++---+---+---+---+---+---+---+---++---+---+---+---+---+---+---+---+
+//
+// Encoded data:
+//
+//  23  22  21  20  19  18   17  16  15  14  13  12   11  10  9   8   7   6    5   4   3   2   1   0
+// +---+---+---+---+---+---++---+---+---+---+---+---++---+---+---+---+---+---++---+---+---+---+---+---+
+// | A | B | C | D | E | F || G | H | I | J | K | L || M | N | O | P | Q | R || S | T | U | V | W | X |
+// +---+---+---+---+---+---++---+---+---+---+---+---++---+---+---+---+---+---++---+---+---+---+---+---+
+
+static std::string Base64Encode2(const std::vector<uint8_t> &data, const char *alphabet) {
+    std::string result;
+
+    size_t i = 0;
+
+    if (data.size() >= 3) {
+        for (; i < data.size() - 2; i += 3) {
+
+            uint8_t d0 = data[i + 0]; // abcdefgh
+            uint8_t d1 = data[i + 1]; // ijklmnop
+            uint8_t d2 = data[i + 2]; // qrstuvwx
+
+            result.push_back(alphabet[d0 >> 2]);                       //abcdef
+            result.push_back(alphabet[((d0 & 0x3) << 4) | (d1 >> 4)]); //gh|ijkl
+            result.push_back(alphabet[((d1 & 0xf) << 2) | (d2 >> 6)]); //mnop|qr
+            result.push_back(alphabet[d2 & 0x3f]);                     //stuvwx
+        }
+    }
+
+    if (i == data.size() - 2) {
+        uint8_t d0 = data[i + 0]; //abcdefgh
+        uint8_t d1 = data[i + 1]; //ijklmnop
+
+        result.push_back(alphabet[d0 >> 2]);                       //abcdef
+        result.push_back(alphabet[((d0 & 0x3) << 4) | (d1 >> 4)]); //gh|ijkl
+        result.push_back(alphabet[(d1 & 0xf) << 2]);               //mnop|00
+
+        result.push_back(BASE64_PAD_CHAR);
+    } else if (i == data.size() - 1) {
+        uint8_t d0 = data[i + 0];
+
+        result.push_back(alphabet[d0 >> 2]);
+        result.push_back(alphabet[(d0 & 0x3) << 4]);
+
+        result.push_back(BASE64_PAD_CHAR);
+        result.push_back(BASE64_PAD_CHAR);
+    } else {
+        ASSERT(i == data.size());
+    }
+
+    return result;
+}
+
+std::string Base64Encode(const std::vector<uint8_t> &data) {
+    return Base64Encode2(data, BASE64_ALPHABET);
+}
+
+bool Base64Decode(std::vector<uint8_t> *data, const std::string &str, const LogSet *logs) {
+    if (str.size() % 4 != 0) {
+        if (logs) {
+            logs->e.f("invalid length for base64 data: %zu\n", str.size());
+        }
+
+        return false;
+    }
+
+    size_t i = 0;
+
+    if (str.size() > 4) {
+        for (; i < str.size() - 4; i += 4) {
+            int8_t c0 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 0]]; //abcdef
+            if (c0 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 0]);
+                }
+                return false;
+            }
+
+            int8_t c1 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 1]]; //ghijkl
+            if (c1 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 1]);
+                }
+                return false;
+            }
+
+            int8_t c2 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 2]]; //mnopqr
+            if (c2 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 2]);
+                }
+                return false;
+            }
+
+            int8_t c3 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 3]]; //stuvwx
+            if (c3 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 3]);
+                }
+                return false;
+            }
+
+            data->push_back((uint8_t)c0 << 2 | (uint8_t)c1 >> 4);   //abcdef|gh
+            data->push_back((uint8_t)(c1 << 4) | (uint8_t)c2 >> 2); //ijkl|mnop
+            data->push_back((uint8_t)(c2 << 6) | (uint8_t)c3);      //qr|stuvwx
+        }
+    }
+
+    if (str[i + 3] == BASE64_PAD_CHAR) {
+        // 1 or 2 pad chars
+        if (str[i + 2] == BASE64_PAD_CHAR) {
+            // 2 pad chars - 1 byte
+            int8_t c0 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 0]]; //abcdef
+            if (c0 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 0]);
+                }
+                return false;
+            }
+
+            int8_t c1 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 1]]; //ghijkl
+            if (c1 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 1]);
+                }
+                return false;
+            }
+
+            if ((c1 & 0xf) != 0) {
+                if (logs) {
+                    logs->e.f("invalid padded base64 char: %c\n", str[i + 1]);
+                }
+                return false;
+            }
+
+            data->push_back((uint8_t)c0 << 2 | (uint8_t)c1 >> 4); //abcdef|gh
+        } else {
+            // 1 pad char - 2 bytes
+            int8_t c0 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 0]]; //abcdef
+            if (c0 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 0]);
+                }
+                return false;
+            }
+
+            int8_t c1 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 1]]; //ghijkl
+            if (c1 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 1]);
+                }
+                return false;
+            }
+
+            int8_t c2 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 2]]; //mnopqr
+            if (c2 < 0) {
+                if (logs) {
+                    logs->e.f("invalid base64 char: %d\n", str[i + 2]);
+                }
+                return false;
+            }
+
+            if ((c2 & 3) != 0) {
+                if (logs) {
+                    logs->e.f("invalid padded base64 char: %c\n", str[i + 1]);
+                }
+                return false;
+            }
+
+            data->push_back((uint8_t)c0 << 2 | (uint8_t)c1 >> 4);   //abcdef|gh
+            data->push_back((uint8_t)(c1 << 4) | (uint8_t)c2 >> 2); //ijkl|mnop
+        }
+    } else {
+        // No pad chars - 3 bytes
+        int8_t c0 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 0]]; //abcdef
+        if (c0 < 0) {
+            if (logs) {
+                logs->e.f("invalid base64 char: %d\n", str[i + 0]);
+            }
+            return false;
+        }
+
+        int8_t c1 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 1]]; //ghijkl
+        if (c1 < 0) {
+            if (logs) {
+                logs->e.f("invalid base64 char: %d\n", str[i + 1]);
+            }
+            return false;
+        }
+
+        int8_t c2 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 2]]; //mnopqr
+        if (c2 < 0) {
+            if (logs) {
+                logs->e.f("invalid base64 char: %d\n", str[i + 2]);
+            }
+            return false;
+        }
+
+        int8_t c3 = BASE64_BITS_FROM_CHAR[(uint8_t)str[i + 3]]; //stuvwx
+        if (c3 < 0) {
+            if (logs) {
+                logs->e.f("invalid base64 char: %d\n", str[i + 3]);
+            }
+            return false;
+        }
+
+        data->push_back((uint8_t)c0 << 2 | (uint8_t)c1 >> 4);   //abcdef|gh
+        data->push_back((uint8_t)(c1 << 4) | (uint8_t)c2 >> 2); //ijkl|mnop
+        data->push_back((uint8_t)(c2 << 6) | (uint8_t)c3);      //qr|stuvwx
     }
 
     return true;
