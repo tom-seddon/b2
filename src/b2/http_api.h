@@ -389,4 +389,29 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataResult,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char API_SCREEN_GRAB_PNG_FILE_REQUEST_TYPE[] = "screen_grab_png_file";
+
+struct ApiScreenGrabPNGFileArgs {
+    // Correct aspect ratio looks right, but bitmap mode pixels will contain artefacts due to being resized.
+    bool correct_aspect_ratio = false;
+
+    // Name of file to save to. If fully-specified, will be saved to the named
+    // file. Otherwise, must be a file name (no path components) and will be
+    // saved relative to the API write path.
+    std::string path;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileArgs,
+                                                correct_aspect_ratio,
+                                                path);
+
+struct ApiScreenGrabPNGFileResult {
+    // Path of file actually saved.
+    std::string path;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileResult,
+                                                path);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif

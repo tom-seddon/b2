@@ -25,6 +25,7 @@
 #include "http_api.h"
 #include <shared/strings.h>
 #include "load_save.h"
+#include <shared/file_io.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -464,16 +465,65 @@ static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
                                         std::function<void(const char *, ApiScreenGrabPNGDataResult &&)> completion_fun) {
     SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, execute_args.messages.get());
     if (!screenshot) {
-        completion_fun("failed to capture screenshot", {});
+        completion_fun("screenshot_error", {});
         return;
     }
 
     ApiScreenGrabPNGDataResult result;
     if (!SaveSDLSurfaceToPNGData(&result.data.bytes, screenshot.get(), execute_args.messages.get())) {
-        completion_fun("failed to create screenshot PNG data", {});
+        completion_fun("screenshot_error", {});
         return;
     }
 
+    completion_fun(nullptr, std::move(result));
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
+                                        ApiScreenGrabPNGFileArgs &&request_args,
+                                        std::function<void(const char *, ApiScreenGrabPNGFileResult &&)> completion_fun) {
+    SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, execute_args.messages.get());
+    if (!screenshot) {
+        completion_fun("screenshot_error", {});
+        return;
+    }
+
+    std::vector<uint8_t> png_data;
+    if (!SaveSDLSurfaceToPNGData(&png_data, screenshot.get(), execute_args.messages.get())) {
+        completion_fun("screenshot_error", {});
+        return;
+    }
+
+    std::string path;
+    if (PathIsFullySpecified(request_args.path)) {
+        path = request_args.path;
+    } else {
+        if (std::find_if(path.begin(), path.end(), &PathIsSeparatorChar) != path.end()) {
+            execute_args.messages->e.f("Name includes path separator: %s\n", request_args.path.c_str());
+            completion_fun("screenshot_error", {});
+            return;
+        }
+
+        if (!execute_args.beeb_window->api_globals.write_path.has_value()) {
+            execute_args.messages->e.f("API global write_path not set for name: %s\n", request_args.path.c_str());
+            completion_fun("screenshot_error", {});
+            return;
+        }
+
+        path = PathJoined(*execute_args.beeb_window->api_globals.write_path, request_args.path);
+    }
+
+    if (!SaveFile(png_data, path, execute_args.messages.get())) {
+        completion_fun("screenshot_error", {});
+        return;
+    }
+
+    ApiScreenGrabPNGFileResult result;
+    result.path = std::move(path);
     completion_fun(nullptr, std::move(result));
 }
 #endif
@@ -537,7 +587,9 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetGlobals, true);
     } else if (request.type == API_SCREEN_GRAB_PNG_DATA_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGData, true);
-        //} else {
+    } else if (request.type == API_SCREEN_GRAB_PNG_FILE_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGFile, true);
+    } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);
     }
