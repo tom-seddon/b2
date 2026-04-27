@@ -1126,8 +1126,8 @@ class TestBase64 : public Test {
         for (size_t i = 0; ok_100_encode_strs[i]; ++i) {
             size_t n = i + 1;
             std::vector<uint8_t> data;
-            for (size_t i = 0; i < n; ++i) {
-                data.push_back((uint8_t)i);
+            for (size_t j = 0; j < n; ++j) {
+                data.push_back((uint8_t)j);
             }
 
             std::string str = Base64Encode(data);
