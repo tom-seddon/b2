@@ -343,17 +343,16 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
 
-static const char API_SET_PATHS_REQUEST_TYPE[] = "set_paths";
+static const char API_SET_GLOBALS_REQUEST_TYPE[] = "set_globals";
 
-struct ApiSetPathsArgs {
+struct ApiSetGlobalsArgs {
     //
     std::optional<std::string> read_path;
 
     std::optional<std::string> write_path;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetPathsArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
                                                 read_path,
                                                 write_path);
 

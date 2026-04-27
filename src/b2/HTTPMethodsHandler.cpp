@@ -185,7 +185,7 @@ void to_json(nlohmann::json &j, const BBCString &s) {
 
 #if BBCMICRO_DEBUGGER
 
-static bool CopyROM(BeebConfig::ROM *dest, const std::string &path, const ApiROMContents &src, const LogSet *logs) {
+static bool CopyROM(BeebConfig::ROM *dest, const ApiSetGlobalsArgs &api_globals, const ApiROMContents &src, const LogSet *logs) {
     if (src.standard_rom != StandardROM_None) {
         dest->standard_rom = FindBeebROM(src.standard_rom);
         if (!dest->standard_rom) {
@@ -196,7 +196,16 @@ static bool CopyROM(BeebConfig::ROM *dest, const std::string &path, const ApiROM
         dest->standard_rom = nullptr;
     }
 
-    dest->file_name = PathJoined(path, src.path);
+    if (PathIsFullySpecified(src.path)) {
+        dest->file_name = src.path;
+    } else {
+        if (!api_globals.read_path.has_value()) {
+            logs->e.f("API global read_path not set for relative path: %s\n", src.path.c_str());
+            return false;
+        }
+
+        dest->file_name = PathJoined(*api_globals.read_path, src.path);
+    }
 
     return true;
 }
@@ -208,7 +217,7 @@ static void SetOptional(T *dest, const std::optional<T> &src) {
     }
 }
 
-static bool Load(BeebLoadedConfig *loaded_config, const std::string &path, const ApiConfigArgs &src, const LogSet *logs) {
+static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_globals, const ApiConfigArgs &src, const LogSet *logs) {
     BeebConfig dest;
 
     if (!src.base_default_config.empty()) {
@@ -253,7 +262,7 @@ static bool Load(BeebLoadedConfig *loaded_config, const std::string &path, const
     dest.name = ""; //src.name;
 
     if (src.os_rom.has_value()) {
-        if (!CopyROM(&dest.os, path, src.os_rom->contents, logs)) {
+        if (!CopyROM(&dest.os, api_globals, src.os_rom->contents, logs)) {
             return false;
         }
 
@@ -274,7 +283,7 @@ static bool Load(BeebLoadedConfig *loaded_config, const std::string &path, const
 
         BeebConfig::SidewaysROM *dest_rom = &dest.roms[src_rom.bank];
 
-        if (!CopyROM(dest_rom, path, src_rom.contents, logs)) {
+        if (!CopyROM(dest_rom, api_globals, src_rom.contents, logs)) {
             return false;
         }
 
@@ -338,7 +347,7 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
     ASSERT(IsMainThread());
 
     BeebLoadedConfig loaded_config;
-    if (!Load(&loaded_config, execute_args.beeb_window->api_read_path, request_args, execute_args.messages.get())) {
+    if (!Load(&loaded_config, execute_args.beeb_window->api_globals, request_args, execute_args.messages.get())) {
         completion_fun("load_failure", nullptr);
         return;
     }
@@ -492,15 +501,15 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApiExecuteSetPaths(const ApiExecuteArgs &execute_args,
-                               ApiSetPathsArgs &&request_args,
-                               std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
+                                 ApiSetGlobalsArgs &&request_args,
+                                 std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
     if (request_args.read_path.has_value()) {
-        execute_args.beeb_window->api_read_path = std::move(*request_args.read_path);
+        execute_args.beeb_window->api_globals.read_path = std::move(*request_args.read_path);
     }
 
     if (request_args.write_path.has_value()) {
-        execute_args.beeb_window->api_write_path = std::move(*request_args.write_path);
+        execute_args.beeb_window->api_globals.write_path = std::move(*request_args.write_path);
     }
 
     completion_fun(nullptr, nullptr);
@@ -562,8 +571,8 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCHRequest, true);
     } else if (request.type == API_LIST_VALUES_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
-    } else if (request.type == API_SET_PATHS_REQUEST_TYPE) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetPaths, true);
+    } else if (request.type == API_SET_GLOBALS_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetGlobals, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);
@@ -784,28 +793,6 @@ static void ApiExecuteMultipleRequests(ApiMultipleRequests request,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-static void ApiExecuteSetPathsRequest(BeebWindow *beeb_window, ApiSetPathsArgs args) {
-    ApiExecuteArgs execute_args;
-    InitExecuteArgs(&execute_args, beeb_window, CreateMessages());
-
-    bool completed = false;
-    ApiExecuteSetPaths(execute_args,
-                       std::move(args),
-                       [&completed](const char *failure_reason, std::nullptr_t &&) -> void {
-                           // early warning stuff, in case I change something later and forget to fix this bit.
-                           (void)failure_reason;
-                           ASSERT(!failure_reason);
-                           completed = true;
-                       });
-
-    ASSERT(completed);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class HTTPMethodsHandler : public HTTPHandler {
     struct HandleRequestData {
         HTTPServer *server;
@@ -859,7 +846,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"set-byte-breakpoint", &HTTPMethodsHandler::HandleSetByteBreakpointRequest},
         {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
-        {"set-path", &HTTPMethodsHandler::HandleSetPathRequest},
+        {"api-set-globals", &HTTPMethodsHandler::HandleSetGlobalsRequest},
         {"api", &HTTPMethodsHandler::HandleGenericMultipleRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
@@ -956,6 +943,14 @@ class HTTPMethodsHandler : public HTTPHandler {
         (void)state;
 
         *(std::string *)context = str;
+
+        return true;
+    }
+
+    static bool ParseOptionalStdString(ParseArgsState *state, const std::string &str, void *context) {
+        (void)state;
+
+        *(std::optional<std::string> *)context = str;
 
         return true;
     }
@@ -1622,30 +1617,35 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    void HandleSetPathRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+    void HandleSetGlobalsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
-        std::string read_path;
-        std::string write_path;
+        ApiSetGlobalsArgs request_args;
         const PathParameter pps[] = {
             {&ParseWindow, &beeb_window},
         };
         const QueryParameter qps[] = {
-            {"read_path", &ParseStdString, &read_path},
-            {"write_path", &ParseStdString, &write_path},
+            {"read_path", &ParseOptionalStdString, &request_args.read_path},
+            {"write_path", &ParseOptionalStdString, &request_args.write_path},
         };
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 
-        ApiSetPathsArgs set_paths_args;
-        if (!read_path.empty()) {
-            set_paths_args.read_path = std::move(read_path);
-        }
-        if (!write_path.empty()) {
-            set_paths_args.write_path = std::move(write_path);
-        }
+        ApiExecuteArgs execute_args;
+        InitExecuteArgs(&execute_args, beeb_window, CreateMessages());
 
-        ApiExecuteSetPathsRequest(beeb_window, set_paths_args);
+        bool completed = false;
+        ApiExecuteSetGlobals(execute_args,
+                             std::move(request_args),
+                             [&completed](const char *failure_reason, std::nullptr_t &&) -> void {
+                                 // early warning stuff, in case I change something later and forget to fix this bit.
+                                 (void)failure_reason;
+                                 ASSERT(!failure_reason);
+                                 completed = true;
+                             });
+        ASSERT(completed);
+
+        server->SendResponse(request, HTTPResponse::OK());
     }
 #endif
 

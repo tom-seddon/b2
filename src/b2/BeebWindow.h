@@ -58,6 +58,7 @@ struct ImVec2;
 #include <condition_variable>
 #include <thread>
 #include "json.h"
+#include "http_api.h"
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -326,8 +327,7 @@ class BeebWindow {
     static const char SDL_WINDOW_DATA_NAME[];
 
     // Some state for the benefit of the HTTP API, because HTTP is stateless. Not much point (at least, not currently?) having accessors.
-    std::string api_read_path;
-    std::string api_write_path;
+    ApiSetGlobalsArgs api_globals;
 
     BeebWindow(BeebWindowInitArguments init_arguments);
     ~BeebWindow();
