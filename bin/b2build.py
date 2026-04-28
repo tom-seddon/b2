@@ -568,6 +568,10 @@ def create_build_makefile(matrix,
         #init_target=makefile.add_named_target(f'init_vs{vs_stuff.year}')
         init_target=makefile.add_named_target(output_path,phony=False)
 
+        bin_rel_path=os.path.relpath(
+            os.path.join(options.g_working_copy_path,'bin'),
+            os.path.join(build_folder,output_path))
+
         def get_msbuild_bat_path(caller_path):
             return os.path.relpath(
                 os.path.join(options.g_working_copy_path,
@@ -588,6 +592,7 @@ def create_build_makefile(matrix,
 
             test_target=makefile.add_named_target(f'test_vs{vs_stuff.year}{configuration}')
             test_target.add_line(f'''$(_V)cd "{output_path}" && "{vs_stuff.ctest_path}" {j_option} -C "{cmake_build_type}" --progress''')
+            test_target.add_line(f'''$(_V)cd "{output_path}" && $(PYTHON) "{os.path.join(bin_rel_path,'check_ctest_log.py')}" "Testing/Temporary/LastTest.log"''')
 
             build_types.append(
                 BuildType(configuration=configuration,
