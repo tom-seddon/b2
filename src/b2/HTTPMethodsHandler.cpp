@@ -1692,7 +1692,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         const QueryParameter qps[] = {
             {"correct_aspect_ratio", &ParseBool, &request_args.correct_aspect_ratio},
         };
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps)) {
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, pps, qps)) {
             return;
         }
 

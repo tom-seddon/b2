@@ -1807,6 +1807,8 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
         } else {
             TEST_EQ_II(status, 500);
         }
+#else
+        (void)thread_args;
 #endif
     }
 

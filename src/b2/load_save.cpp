@@ -368,6 +368,21 @@ bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_ptr, const LogSet *logs) {
+    int png_size;
+    unsigned char *png = SaveSDLSurface2(&png_size, surface, logs);
+    if (!png || png_size < 0) {
+        free(png), png = nullptr;
+        return nullptr;
+    }
+
+    *png_size_ptr = (size_t)png_size;
+    return png;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool SaveSDLSurfaceToPNGData(std::vector<uint8_t> *png_data, SDL_Surface *surface, const LogSet *logs) {
     bool good = false;
     int png_size;
