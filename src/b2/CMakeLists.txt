@@ -449,13 +449,6 @@ add_custom_command(
 ##########################################################################
 ##########################################################################
 
-add_executable(b2client b2client.cpp)
-b2_target_boilerplate(b2client SANITIZERS)
-target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohmann_json)
-
-##########################################################################
-##########################################################################
-
 add_executable(b2_test
   b2_test.cpp
   b2_test.inl)
