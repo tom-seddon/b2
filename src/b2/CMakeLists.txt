@@ -457,7 +457,8 @@ target_link_libraries(b2client PRIVATE shared_lib http_lib nlohmann_json::nlohma
 ##########################################################################
 
 add_executable(b2_test
-  b2_test.cpp)
+  b2_test.cpp
+  b2_test.inl)
 # Load assets from wherever b2 was built to. 
 target_compile_definitions(b2_test PRIVATE ASSETS_FOLDER="$<TARGET_FILE_DIR:b2>")
 # Stick config stuff in some transient place.
@@ -507,6 +508,12 @@ foreach(OS os120 os200 mos320 mos350 mos500 mos510 mos511i mosI510C electron)
   add_b2_test_literal_category(b2.http.config.${OS})
   add_b2_test_literal_category(b2.http.paste.osword_0_timeout.${OS})
   add_b2_test_literal_category(b2.http.config.osword_0_timeout.${OS})
+endforeach()
+
+foreach(STAGE Before During After)
+  foreach(DO_BRK 0 1)
+    add_b2_test_literal_category(b2.http.track_brk.${STAGE}.${DO_BRK})
+  endforeach()
 endforeach()
 
 # add_b2_test_literal_category(b2.http.config)

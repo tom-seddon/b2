@@ -136,6 +136,13 @@ void OSWRCHCallback::ThreadCallbackWasRemoved(bool success) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BRKCallback::ThreadCallbackWasRemoved(bool success) {
+    (void)success;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Some operations have an optional timeout. To deal with this, create shared_ptr<CompletionFun>, with the completion fun in it. (This is to share between whatever invokes the completion on non-timeout, and the CompletionTimeout.)
 //
 // Use ThreadAddCompletionTimeout to add the entry to the list.
@@ -203,6 +210,7 @@ struct BeebThread::ThreadState {
 
     std::vector<std::shared_ptr<OSWORD0Callback>> osword_0_callbacks;
     std::vector<std::shared_ptr<OSWRCHCallback>> oswrch_callbacks;
+    std::vector<std::shared_ptr<BRKCallback>> brk_callbacks;
     std::vector<CompletionTimeout> completion_timeouts;
     bool update_callbacks = false;
 
@@ -2064,6 +2072,50 @@ bool BeebThread::RemoveOSWRCHCallbackMessage::ThreadPrepare(std::shared_ptr<Mess
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::AddBRKCallbackMessage::AddBRKCallbackMessage(std::shared_ptr<BRKCallback> callback)
+    : m_callback(std::move(callback)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::AddBRKCallbackMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                      CompletionFun *completion_fun,
+                                                      ThreadState *ts) {
+    (void)completion_fun;
+
+    ThreadAddBRKCallback(ts, m_callback);
+
+    ptr->reset();
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::RemoveBRKCallbackMessage::RemoveBRKCallbackMessage(std::shared_ptr<BRKCallback> callback)
+    : m_callback(std::move(callback)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::RemoveBRKCallbackMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                         CompletionFun *completion_fun,
+                                                         ThreadState *ts) {
+    (void)completion_fun;
+
+    ThreadRemoveBRKCallback(ts, m_callback);
+
+    ptr->reset();
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebThread::KeyStates::GetState(BeebKey key) const {
     ASSERT(key >= 0 && (int)key < 128);
 
@@ -2925,8 +2977,29 @@ bool BeebThread::ThreadHandleOSWRCHCallbacks(const BBCMicro *beeb, const M6502 *
     // 0xffee.
     if (cpu->abus.b.l == ram[0x020e] && cpu->abus.b.h == ram[0x020f]) {
         for (std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
-            if (callback) {
+            if (!!callback) {
                 if (!callback->ThreadOnOSWRCH(ts->beeb_thread, cpu->a)) {
+                    callback = nullptr;
+                    ts->update_callbacks = true;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::ThreadHandleBRKCallbacks(const BBCMicro *beeb, const M6502 *cpu, void *context) {
+    (void)beeb;
+    auto ts = (ThreadState *)context;
+
+    if (cpu->opcode == 0x00) {
+        for (std::shared_ptr<BRKCallback> &callback : ts->brk_callbacks) {
+            if (!!callback) {
+                if (!callback->ThreadOnBRK(ts->beeb_thread)) {
                     callback = nullptr;
                     ts->update_callbacks = true;
                 }
@@ -2963,10 +3036,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 
     // this cancels any callbacks.
     if (ts->beeb) {
-        //        for (const std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
-        //            callback->ThreadCallbackWasRemoved(false);
-        //        }
-
         for (CompletionTimeout &timeout : ts->completion_timeouts) {
             Message::CallCompletionFunFailure(std::move(*timeout.shared_completion_fun), "discarded", "Emulated system is being replaced");
         }
@@ -2979,9 +3048,16 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
             }
         }
 
+        for (const std::shared_ptr<BRKCallback> &callback : ts->brk_callbacks) {
+            if (callback) {
+                callback->ThreadCallbackWasRemoved(false);
+            }
+        }
+
         ts->completion_timeouts.clear();
         ts->oswrch_callbacks.clear();
         ts->osword_0_callbacks.clear();
+        ts->brk_callbacks.clear();
 
         // Belt and braces...
         ThreadUpdateCallbacks(ts);
@@ -2989,6 +3065,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         ASSERT(ts->completion_timeouts.empty());
         ASSERT(ts->oswrch_callbacks.empty());
         ASSERT(ts->osword_0_callbacks.empty());
+        ASSERT(ts->brk_callbacks.empty());
     }
 
     std::shared_ptr<DiscImage> old_disc_images[NUM_DRIVES];
@@ -3970,6 +4047,28 @@ void BeebThread::ThreadRemoveOSWRCHCallback(ThreadState *ts, const std::shared_p
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::ThreadAddBRKCallback(ThreadState *ts, std::shared_ptr<BRKCallback> callback) {
+    AddCallback(&ts->brk_callbacks, std::move(callback));
+
+    ThreadUpdateInstructionCallbacks(ts);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadRemoveBRKCallback(ThreadState *ts, const std::shared_ptr<BRKCallback> &callback) {
+    RemoveCallback(&ts->brk_callbacks, callback);
+
+    if (callback) {
+        callback->ThreadCallbackWasRemoved(true);
+    }
+
+    ThreadUpdateInstructionCallbacks(ts);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::ThreadAddCompletionTimeout(ThreadState *ts, std::shared_ptr<Message::CompletionFun> shared_completion_fun, double timeout_relative_seconds) {
     {
         CompletionTimeout timeout;
@@ -4197,18 +4296,21 @@ void BeebThread::ThreadUpdateCallbacks(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadUpdateInstructionCallbacks(ThreadState *ts) {
-    if (ts->osword_0_callbacks.empty()) {
-        ts->beeb->RemoveHostInstructionCallback(&BeebThread::ThreadHandleOSWORD0Callbacks, ts);
+void BeebThread::ThreadUpdateInstructionCallback(ThreadState *ts, bool empty, bool (*instruction_fn)(const BBCMicro *, const M6502 *, void *)) {
+    if (empty) {
+        ts->beeb->RemoveHostInstructionCallback(instruction_fn, ts);
     } else {
-        ts->beeb->AddHostInstructionCallback(&BeebThread::ThreadHandleOSWORD0Callbacks, ts);
+        ts->beeb->AddHostInstructionCallback(instruction_fn, ts);
     }
+}
 
-    if (ts->oswrch_callbacks.empty()) {
-        ts->beeb->RemoveHostInstructionCallback(&BeebThread::ThreadHandleOSWRCHCallbacks, ts);
-    } else {
-        ts->beeb->AddHostInstructionCallback(&BeebThread::ThreadHandleOSWRCHCallbacks, ts);
-    }
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadUpdateInstructionCallbacks(ThreadState *ts) {
+    ThreadUpdateInstructionCallback(ts, ts->osword_0_callbacks.empty(), &BeebThread::ThreadHandleOSWORD0Callbacks);
+    ThreadUpdateInstructionCallback(ts, ts->oswrch_callbacks.empty(), &BeebThread::ThreadHandleOSWRCHCallbacks);
+    ThreadUpdateInstructionCallback(ts, ts->brk_callbacks.empty(), &BeebThread::ThreadHandleBRKCallbacks);
 }
 
 //////////////////////////////////////////////////////////////////////////

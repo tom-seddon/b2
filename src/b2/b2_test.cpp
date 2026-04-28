@@ -42,6 +42,14 @@
 #include <stb_image_write.h>
 //#include <stb_image.h>
 
+#include <shared/enum_decl.h>
+#include "b2_test.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "b2_test.inl"
+#include <shared/enum_end.h>
+
 #ifndef TRANSIENT_DATA_FOLDER
 #error
 #endif
@@ -1700,6 +1708,132 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestHTTPBRKTracking : public TestHTTPAPI {
+  public:
+    explicit TestHTTPBRKTracking(TestHTTPBRKTrackingStage stage, bool do_brk)
+        : m_stage(stage)
+        , m_do_brk(do_brk) {
+    }
+
+    std::string GetFullName() const override {
+        return strprintf("b2.http.track_brk.%s.%d", GetTestHTTPBRKTrackingStageEnumName(m_stage), m_do_brk);
+    }
+
+  protected:
+    void Thread(ThreadArgs *thread_args) override {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+        client->SetLogs(&g_stdio_logs);
+        client->SetVerbose(true);
+
+        std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
+
+        bool should_succeed = false;
+
+        ApiMultipleRequests requests;
+
+        {
+            ApiConfigArgs args;
+            args.base_default_config = "B/Acorn 1770";
+            args.wait_for_osword_0 = true;
+            args.wait_for_osword_0_timeout_seconds = 10.;
+
+            ApiRequest request;
+            request.type = API_CONFIG_REQUEST_TYPE;
+            request.args = args;
+
+            requests.requests.push_back(std::move(request));
+        }
+
+        if (m_stage == TestHTTPBRKTrackingStage_Before) {
+            ApiRequest request;
+            request.type = API_FAIL_IF_BRK_TRACKED;
+            requests.requests.push_back(std::move(request));
+
+            should_succeed = true;
+        }
+
+        {
+            ApiRequest request;
+            request.type = API_START_TRACKING_BRKS;
+            requests.requests.push_back(std::move(request));
+        }
+
+        if (m_do_brk) {
+            ApiPasteArgs args;
+            args.input.bytes = {'S', 'T', 'O', 'P', '\r'};
+            args.wait_for_osword_0 = true;
+
+            ApiRequest request;
+            request.type = API_PASTE_REQUEST_TYPE;
+            request.args = std::move(args);
+
+            requests.requests.push_back(std::move(request));
+        }
+
+        if (m_stage == TestHTTPBRKTrackingStage_During) {
+            ApiRequest request;
+            request.type = API_FAIL_IF_BRK_TRACKED;
+            requests.requests.push_back(std::move(request));
+
+            should_succeed = !m_do_brk;
+        }
+
+        {
+            ApiRequest request;
+            request.type = API_STOP_TRACKING_BRKS;
+            requests.requests.push_back(std::move(request));
+        }
+
+        if (m_stage == TestHTTPBRKTrackingStage_After) {
+            ApiRequest request;
+            request.type = API_FAIL_IF_BRK_TRACKED;
+            requests.requests.push_back(std::move(request));
+
+            should_succeed = true;
+        }
+
+        HTTPRequest http_request;
+        http_request.url = url;
+        http_request.method = "POST";
+        http_request.content_type = HTTP_JSON_CONTENT_TYPE;
+        http_request.body = SaveJSONData(requests);
+
+        HTTPResponse http_response;
+        int status = client->SendRequest(http_request, &http_response);
+
+        if (should_succeed) {
+            TEST_EQ_II(status, 200);
+        } else {
+            TEST_EQ_II(status, 500);
+        }
+#endif
+    }
+
+  private:
+    TestHTTPBRKTrackingStage m_stage = TestHTTPBRKTrackingStage_Before;
+    bool m_do_brk = false;
+};
+
+//template <class T>
+//static T GetSingleApiResultFromHTTPResponse(const HTTPResponse &http_response) {
+//    TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
+//
+//    ApiMultipleResponses api_response;
+//    TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
+//
+//    TEST_EQ_UU(api_response.responses.size(), 1);
+//
+//    T api_result;
+//    std::string exc_what;
+//    TEST_TRUE(LoadJSON(&api_result, api_response.responses[0].result, &exc_what));
+//
+//    return api_result;
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const BeebConfig *FindConfigByName(size_t *index, const std::string &name) {
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
         const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
@@ -2095,6 +2229,22 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<TestHTTPPasteOSWORD0Timeout>(mos_type));
         all_tests.push_back(std::make_unique<TestHTTPConfigOSWORD0Timeout>(mos_type));
     }
+
+    for (TestHTTPBRKTrackingStage stage : {TestHTTPBRKTrackingStage_Before,
+                                           TestHTTPBRKTrackingStage_During,
+                                           TestHTTPBRKTrackingStage_After}) {
+        for (bool do_brk : {false, true}) {
+            all_tests.push_back(std::make_unique<TestHTTPBRKTracking>(stage, do_brk));
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+    //
+    // all tests to be added by this point.
+    //
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
 
     std::map<std::string, Test *> tests_by_name;
     for (const std::unique_ptr<Test> &test : all_tests) {

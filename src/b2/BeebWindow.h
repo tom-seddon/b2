@@ -324,6 +324,7 @@ class BeebWindow {
     class OptionsUI;
     class ImGuiDebugUI;
     class CopyOSWRCHCallback;
+    class TrackBRKsCallback;
 
     static const char SDL_WINDOW_DATA_NAME[];
 
@@ -435,6 +436,11 @@ class BeebWindow {
     // For the benefit of the HTTP API, as it is stateless.
     void StartCaptureOSWRCH();
     bool StopCaptureOSWRCH(std::vector<uint8_t> *data);
+
+    // Also for the benefit of the HTTP API.
+    void StartTrackingBRKs();
+    void StopTrackingBRKs();
+    bool TakeBRKFlag();
 
   protected:
   private:
@@ -612,6 +618,7 @@ class BeebWindow {
 
     std::shared_ptr<CopyOSWRCHCallback> m_capture_oswrch_callback;
     std::shared_ptr<CopyOSWRCHCallback> m_copy_oswrch_callback;
+    std::shared_ptr<TrackBRKsCallback> m_track_brks_callback;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

@@ -532,6 +532,49 @@ static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+static void ApiExecuteStartTrackingBRKs(const ApiExecuteArgs &execute_args,
+                                        std::nullptr_t &&,
+                                        std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    execute_args.beeb_window->StartTrackingBRKs();
+
+    completion_fun(nullptr, {});
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteStopTrackingBRKs(const ApiExecuteArgs &execute_args,
+                                       std::nullptr_t &&,
+                                       std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    execute_args.beeb_window->StopTrackingBRKs();
+
+    completion_fun(nullptr, {});
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiFailIfBRKTracked(const ApiExecuteArgs &execute_args,
+                                std::nullptr_t &&,
+                                std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    bool any = execute_args.beeb_window->TakeBRKFlag();
+
+    if (any) {
+        completion_fun("brk_executed", {});
+    } else {
+        completion_fun(nullptr, {});
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 template <class ArgsType, class ResultType>
 static void HandleApiExecute(const ApiExecuteArgs &execute_args,
                              const ApiRequest &request,
@@ -589,6 +632,12 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGData, true);
     } else if (request.type == API_SCREEN_GRAB_PNG_FILE_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGFile, true);
+    } else if (request.type == API_START_TRACKING_BRKS) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartTrackingBRKs, true);
+    } else if (request.type == API_STOP_TRACKING_BRKS) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopTrackingBRKs, true);
+    } else if (request.type == API_FAIL_IF_BRK_TRACKED) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiFailIfBRKTracked, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);

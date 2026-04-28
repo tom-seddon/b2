@@ -808,6 +808,45 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BeebWindow::TrackBRKsCallback : public BRKCallback {
+  public:
+    TrackBRKsCallback() = default;
+
+    bool ThreadOnBRK(BeebThread *beeb_thread) override {
+        (void)beeb_thread;
+
+        if (m_was_removed.load(std::memory_order_acquire)) {
+            return false;
+        } else {
+            m_brk_executed.store(true, std::memory_order_release);
+
+            return true;
+        }
+    }
+
+    void ThreadCallbackWasRemoved(bool success) override {
+        (void)success;
+
+        m_was_removed.store(true, std::memory_order_release);
+    }
+
+    bool WasRemoved() const {
+        return m_was_removed.load(std::memory_order_acquire);
+    }
+
+    bool TakeBRKExecuted() {
+        return m_brk_executed.exchange(false, std::memory_order_acq_rel);
+    }
+
+  protected:
+  private:
+    std::atomic<bool> m_brk_executed{false};
+    std::atomic<bool> m_was_removed{false};
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments))
 #if BBCMICRO_DEBUGGER
@@ -4198,6 +4237,12 @@ SDLUniquePtr<SDL_Surface> BeebWindow::GetDisplayData(bool correct_aspect_ratio, 
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::StartCaptureOSWRCH() {
+    if (m_capture_oswrch_callback) {
+        if (m_capture_oswrch_callback->IsFinished()) {
+            m_capture_oswrch_callback.reset();
+        }
+    }
+
     if (!m_capture_oswrch_callback) {
         m_capture_oswrch_callback = std::make_shared<CopyOSWRCHCallback>("CaptureOSWRCH");
         m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_capture_oswrch_callback));
@@ -4216,6 +4261,49 @@ bool BeebWindow::StopCaptureOSWRCH(std::vector<uint8_t> *data) {
         m_capture_oswrch_callback = nullptr;
 
         return true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::StartTrackingBRKs() {
+    if (m_track_brks_callback) {
+        if (m_track_brks_callback->WasRemoved()) {
+            m_track_brks_callback.reset();
+        }
+    }
+
+    if (!m_track_brks_callback) {
+        m_track_brks_callback = std::make_shared<TrackBRKsCallback>();
+        m_beeb_thread->Send(std::make_shared<BeebThread::AddBRKCallbackMessage>(m_track_brks_callback));
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::StopTrackingBRKs() {
+    if (m_track_brks_callback) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::RemoveBRKCallbackMessage>(m_track_brks_callback));
+        m_track_brks_callback.reset();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::TakeBRKFlag() {
+    if (m_track_brks_callback) {
+        if (m_track_brks_callback->WasRemoved()) {
+            m_track_brks_callback.reset();
+        }
+    }
+
+    if (m_track_brks_callback) {
+        return m_track_brks_callback->TakeBRKExecuted();
+    } else {
+        return false;
     }
 }
 

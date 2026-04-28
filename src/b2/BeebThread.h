@@ -150,6 +150,26 @@ class OSWRCHCallback {
   private:
 };
 
+class BRKCallback {
+  public:
+    BRKCallback() = default;
+    virtual ~BRKCallback() = default;
+
+    [[nodiscard]] virtual bool ThreadOnBRK(BeebThread *beeb_thread) = 0;
+
+    // Callback was removed for some reason other than its ThreadOnBRK returning
+    // false.
+    //
+    // If success, the reason was an explicit removal; if !success, the reason
+    // was the BBCMicro being replaced.
+    //
+    // Default impl does nothing.
+    virtual void ThreadCallbackWasRemoved(bool success);
+
+  protected:
+  private:
+};
+
 class BeebThread {
     struct ThreadState;
 
@@ -1061,6 +1081,32 @@ class BeebThread {
         std::shared_ptr<OSWRCHCallback> m_callback;
     };
 
+    class AddBRKCallbackMessage : public Message {
+      public:
+        explicit AddBRKCallbackMessage(std::shared_ptr<BRKCallback> callback);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+        std::shared_ptr<BRKCallback> m_callback;
+    };
+
+    class RemoveBRKCallbackMessage : public Message {
+      public:
+        explicit RemoveBRKCallbackMessage(std::shared_ptr<BRKCallback> callback);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+        std::shared_ptr<BRKCallback> m_callback;
+    };
+
     struct AudioCallbackRecord {
         uint64_t time = 0;
         uint64_t needed = 0;
@@ -1360,6 +1406,7 @@ class BeebThread {
 
     static bool ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadHandleOSWRCHCallbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
+    static bool ThreadHandleBRKCallbacks(const BBCMicro *beeb, const M6502 *cpu, void *context);
 
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
     void ThreadReplaceBeebFromState(ThreadState *ts, const std::shared_ptr<const BeebState> &beeb_state, uint32_t flags);
@@ -1389,6 +1436,8 @@ class BeebThread {
     static void ThreadRemoveOSWORD0Callback(ThreadState *ts, const std::shared_ptr<OSWORD0Callback> &callback);
     static void ThreadAddOSWRCHCallback(ThreadState *ts, std::shared_ptr<OSWRCHCallback> callback);
     static void ThreadRemoveOSWRCHCallback(ThreadState *ts, const std::shared_ptr<OSWRCHCallback> &callback, bool success);
+    static void ThreadAddBRKCallback(ThreadState *ts, std::shared_ptr<BRKCallback> callback);
+    static void ThreadRemoveBRKCallback(ThreadState *ts, const std::shared_ptr<BRKCallback> &callback);
 
     // The timeout is not cycle-exact, but it will time out no sooner.
     void ThreadAddCompletionTimeout(ThreadState *ts, std::shared_ptr<Message::CompletionFun> shared_completion_fun, double timeout_relative_seconds);
@@ -1414,6 +1463,7 @@ class BeebThread {
     void ThreadStopReplay(ThreadState *ts);
 
     static void ThreadUpdateCallbacks(ThreadState *ts);
+    static void ThreadUpdateInstructionCallback(ThreadState *ts, bool empty, bool (*instruction_fn)(const BBCMicro *, const M6502 *, void *));
     static void ThreadUpdateInstructionCallbacks(ThreadState *ts);
 
     static void ThreadCallSharedCompletionFunSuccess(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun);
