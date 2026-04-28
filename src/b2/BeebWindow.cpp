@@ -530,7 +530,7 @@ void BeebWindow::OptionsUI::DoImGui() {
 
         ImGui::Checkbox("Emulate interlace", &settings->display_interlace);
 
-        ImGui::Checkbox("Hide CRTC cursor when unfocused", &settings->hide_cursor_when_unfocused);
+        ImGui::Checkbox("Hide BBC cursor when unfocused", &settings->hide_cursor_when_unfocused);
 
 #if 1 //BUILD_TYPE_Debug
         if (ImGui::Checkbox("Threaded texture update", &m_beeb_window->m_update_tv_texture_thread_enabled)) {
