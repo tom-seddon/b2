@@ -353,19 +353,12 @@ endif()
 # The release process copies the asset folder from an unspecified
 # configuration. The assets must be the same for every configuration.
 
-if(APPLE)
-# Agh, set this up slightly wrongly originally...
-set(ASSETS ../Resources/assets)
-else()
-set(ASSETS assets)
-endif()
+function(add_copy_assets_custom_commands TARGET ASSETS)
+  set(ROMS ${ASSETS}/roms)
+  set(DISCS ${ASSETS}/discs)
+  set(FONTS ${ASSETS}/fonts)
+  set(SAMPLES ${ASSETS}/samples)
 
-set(ROMS ${ASSETS}/roms)
-set(DISCS ${ASSETS}/discs)
-set(FONTS ${ASSETS}/fonts)
-set(SAMPLES ${ASSETS}/samples)
-
-function(add_copy_assets_custom_commands TARGET)
   # B/B+/General ROMs
   add_custom_command(
     TARGET ${TARGET} POST_BUILD
@@ -438,13 +431,20 @@ function(add_copy_assets_custom_commands TARGET)
     TARGET ${TARGET} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../submodules/SDL_GameControllerDB/gamecontrollerdb.txt $<TARGET_FILE_DIR:${TARGET}>/${ASSETS}
     VERBATIM)
-
 endfunction()
 
-# This is a bit pointless on Windows, as TARGET_FILE_DIR:b2 and
-# TARGET_FILE_DIR:b2_headless are the same folder.
-add_copy_assets_custom_commands(b2)
-add_copy_assets_custom_commands(b2_headless)
+if(APPLE)
+# Agh, set this up slightly wrongly originally...
+set(ASSETS ../Resources/assets)
+else()
+set(ASSETS assets)
+endif()
+
+# this is a bit pointless on Windows, as TARGET_FILE_DIR:b2 and
+# TARGET_FILE_DIR:b2_headless are the same folder, and ${ASSETS} is
+# assets...
+add_copy_assets_custom_commands(b2 ${ASSETS})
+add_copy_assets_custom_commands(b2_headless assets)
 
 # Add the licence to the macOS app bundle.
 if(OSX)

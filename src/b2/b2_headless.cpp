@@ -7,6 +7,8 @@
 #include <shared/guid.h>
 #include "BeebWindow.h"
 
+#if BBCMICRO_DEBUGGER
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -96,12 +98,12 @@ class HeadlessAppHandler : public AppHandler {
         return m_options.headless;
     }
 
-    bool IsHighDPIEnabled() const {
+    bool IsHighDPIEnabled() const override {
         // As per b2_test.
         return false;
     }
 
-    bool IsSoundEnabled() const {
+    bool IsSoundEnabled() const override {
         return true;
     }
 
@@ -145,7 +147,7 @@ class HeadlessAppHandler : public AppHandler {
     }
 
     // default b2 logic is ok.
-    bool GetAssetsFolder(std::string *assets_folder) const {
+    bool GetAssetsFolder(std::string *assets_folder) const override {
         (void)assets_folder;
 
         return false;
@@ -182,7 +184,6 @@ class HeadlessAppHandler : public AppHandler {
 //////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[]) {
-#if BBCMICRO_DEBUGGER
 
     HeadlessOptions options;
     if (!ParseCommandLineOptions(&options, argc, argv)) {
@@ -202,11 +203,13 @@ int main(int argc, char *argv[]) {
 
     int result = b2_main(&app_handler);
     return result;
+}
 
 #else
 
-    fprintf(stderr, "FATAL: non-functional placeholder build.\n");
+int main() {
+    fprintf(stderr, "FATAL: this is a non-functional placeholder build.\n");
     return 1;
+}
 
 #endif
-}
