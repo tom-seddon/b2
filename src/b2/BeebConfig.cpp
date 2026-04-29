@@ -491,6 +491,7 @@ void InitDefaultBeebConfigs() {
     for (BeebConfig &config : g_default_configs) {
         config.ResetNVRAM();
 
+        config.base_default_config_name = config.name;
         config.parasite_os_external_3MHz_65c02.standard_rom = FindBeebROM(StandardROM_TUBE110);
         config.parasite_os_master_turbo.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
     }
@@ -662,6 +663,3 @@ void BeebLoadedConfig::ReuseROMs(const BeebLoadedConfig &oth) {
         }
     }
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////

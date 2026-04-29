@@ -66,6 +66,12 @@ class BeebConfig {
 
     std::string name;
 
+    // Late addition, so can be empty.
+    //
+    // (Not generally visible to the UI, but will be used to fill out the
+    // base_default_config field when exporting an ApiConfigArgs.)
+    std::string base_default_config_name;
+
     Enum<BBCMicroTypeID> type_id{BBCMicroTypeID_B};
     ROM os;
     SidewaysROM roms[16];
@@ -111,11 +117,29 @@ class BeebConfig {
   protected:
   private:
 };
+
 // This only handles some of the BeebConfig properties. The remainder are dealt
 // with manually, for one reason or another (usually name mismatches or
 // inconvenient schema).
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebConfig::MMFSConfig, image_path, debug);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebConfig, name, video_nula, ext_mem, beeblink, adji, adji_dip_switches, nvram_type, mouse, parasite_type, os_rom_type, rom_board, serial, scsi, hard_disk_dat_paths, mmfs_enabled, mmfs_config);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebConfig,
+                                                name,
+                                                base_default_config_name,
+                                                video_nula,
+                                                ext_mem,
+                                                beeblink,
+                                                adji,
+                                                adji_dip_switches,
+                                                nvram_type,
+                                                mouse,
+                                                parasite_type,
+                                                os_rom_type,
+                                                rom_board,
+                                                serial,
+                                                scsi,
+                                                hard_disk_dat_paths,
+                                                mmfs_enabled,
+                                                mmfs_config);
 
 void InitDefaultBeebConfigs();
 
