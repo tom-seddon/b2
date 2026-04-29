@@ -243,15 +243,10 @@ static const char API_CONFIG_REQUEST_TYPE[] = "config";
 struct ApiConfigArgs {
     //
     std::string base_default_config;
-    std::string base_config;
-
-    std::string name;
 
     std::optional<ApiOSROM> os_rom;
 
     std::vector<ApiSidewaysROM> sideways_roms;
-
-    std::optional<std::string> disk_interface;
 
     std::optional<bool> video_nula;
 
@@ -274,11 +269,8 @@ struct ApiConfigArgs {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 base_default_config,
-                                                base_config,
-                                                name,
                                                 os_rom,
                                                 sideways_roms,
-                                                disk_interface,
                                                 video_nula,
                                                 beeblink,
                                                 nvram,

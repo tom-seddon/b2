@@ -167,23 +167,6 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
         }
 
         dest = *base_config;
-    } else if (!src.base_config.empty()) {
-        const BeebConfig *base_config = nullptr;
-
-        for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
-            const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
-            if (config->name == src.base_config) {
-                base_config = config;
-                break;
-            }
-        }
-
-        if (!base_config) {
-            logs->e.f("base config not found: %s", src.base_config.c_str());
-            return false;
-        }
-
-        dest = *base_config;
     } else {
         logs->e.f("no base config supplied");
         return false;
