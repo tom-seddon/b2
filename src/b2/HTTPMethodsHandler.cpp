@@ -796,6 +796,24 @@ static void ExecuteNextRequest(const std::shared_ptr<MultipleRequestsState> &sta
     }
 }
 
+static void HandleRequestCompletion(const std::shared_ptr<MultipleRequestsState> &state, ApiResponse &&response) {
+    ASSERT(state->index < state->request.requests.size());
+
+    state->response.responses.push_back(std::move(response));
+
+    if (!state->response.responses.back().success) {
+        // break out of the loop.
+        state->index = state->request.requests.size();
+    } else {
+        // next request.
+        ++state->index;
+    }
+
+    PushMainThreadMessage(std::make_unique<FunctionMessage>([state]() -> void {
+        ExecuteNextRequest(state);
+    }));
+}
+
 void ApiExecuteMultipleRequests(ApiMultipleRequests &&request,
                                 std::function<void(ApiMultipleResponses &&)> completion_fun) {
     ASSERT(IsMainThread());
@@ -815,22 +833,8 @@ void ApiExecuteMultipleRequests(ApiMultipleRequests &&request,
     state->overall_completion_fun = std::move(completion_fun);
 
     // the capture of state introduces a refcount cycle, broken as part of CallOverallCompletionFun.
-    state->request_completion_fun = [state](ApiResponse response) mutable -> void {
-        ASSERT(state->index < state->request.requests.size());
-
-        state->response.responses.push_back(std::move(response));
-
-        if (!state->response.responses.back().success) {
-            // break out of the loop.
-            state->index = state->request.requests.size();
-        } else {
-            // next request.
-            ++state->index;
-        }
-
-        PushMainThreadMessage(std::make_unique<FunctionMessage>([state]() -> void {
-            ExecuteNextRequest(state);
-        }));
+    state->request_completion_fun = [state](ApiResponse &&response) -> void {
+        HandleRequestCompletion(state, std::move(response));
     };
 
     ExecuteNextRequest(state);

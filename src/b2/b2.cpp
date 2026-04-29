@@ -362,10 +362,7 @@ static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType) {
     case CTRL_C_EVENT:
     case CTRL_BREAK_EVENT:
         {
-            SDL_Event event = {};
-            event.type = SDL_QUIT;
-
-            SDL_PushEvent(&event);
+            PushQuitMessage(3);
 
             // Once the ctrl handler is running, the process will inevitably
             // finish, one way or the other. Give it 5 seconds to hopefully shut
@@ -654,6 +651,18 @@ void FunctionMessage::HandleMessage() {
     rmt_ScopedCPUSample(SDLEventType_Function, 0);
 
     m_fun();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void PushQuitMessage(int exit_code) {
+    SDL_Event event = {};
+
+    event.user.type = g_first_event_type + SDLEventType_Quit;
+    event.user.code = exit_code;
+
+    SDL_PushEvent(&event);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1576,13 +1585,17 @@ static void FreeEventData(SDL_Event *event) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool TickNoopMessageLoop() {
+bool TickNoopMessageLoop(int *exit_code) {
     bool keep_running = true;
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
             keep_running = false;
+            *exit_code = 0;
+        } else if (event.type == g_first_event_type + SDLEventType_Quit) {
+            keep_running = false;
+            *exit_code = event.user.code;
         }
 
         // Whatever it was, in the bin it goes.
@@ -1608,7 +1621,8 @@ bool IsMainThread() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &init_message_list) {
+static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &init_message_list) {
+    int exit_code = EXIT_SUCCESS;
     Messages init_messages(init_message_list);
 
     {
@@ -1624,10 +1638,10 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     if (!ParseCommandLineOptions(&options, app_handler, &init_messages)) {
         if (options.help) {
             ShowOutputMessagesDialog("Command line help", init_messages);
-            return true;
+            return EXIT_SUCCESS;
         }
 
-        return false;
+        return EXIT_FAILURE;
     }
 
     //#ifdef IMGUI_ENABLE_TEST_ENGINE
@@ -1636,7 +1650,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     //        for (const std::string &test_name : test_names) {
     //            printf("2fcf9707-9498-4a03-9b27-ef501fa2fbb6:%s\n", test_name.c_str());
     //        }
-    //        return true;
+    //        return EXIT_SUCCESS
     //    }
     //#endif
 
@@ -1655,7 +1669,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
         init_messages.i.f("libcurl version: %s\n", versions.libcurl_version.c_str());
 
         ShowOutputMessagesDialog("Version information", init_messages);
-        return true;
+        return EXIT_SUCCESS;
     }
 
     {
@@ -1675,14 +1689,14 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
         init_messages.i.f("Failing startup early: info message.\n");
         init_messages.w.f("Failing startup early: warning message.\n");
         init_messages.e.f("Failing startup early: error message.\n");
-        return false;
+        return EXIT_FAILURE;
     }
 #endif
 
     // https://curl.haxx.se/libcurl/c/curl_global_init.html
     if (!InitHTTPDependencies(&init_messages)) {
         ShowOutputMessagesDialog("Initialisation failure", init_messages);
-        return false;
+        return EXIT_FAILURE;
     }
 
     //if (g_app_handler->IsHeadless()) {
@@ -1718,7 +1732,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
             // it's headless mode and a random port was picked - but that's ok).
         } else {
             if (BootDiskInExistingProcess(options.file_association_path, app_handler, &init_messages)) {
-                return true;
+                return EXIT_SUCCESS;
             }
         }
 
@@ -1728,7 +1742,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     }
 
     if (!InitLogs(options, &init_messages)) {
-        return false;
+        return EXIT_FAILURE;
     }
 
     BBCMicro::PrintInfo(&LOG(OUTPUT));
@@ -1751,13 +1765,13 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     if (!BeebWindows::Init()) {
         init_messages.e.f(
             "FATAL: failed to initialize window manager.\n");
-        return false;
+        return EXIT_FAILURE;
     }
 
     SDL_AudioDeviceID audio_device;
     SDL_AudioSpec audio_spec;
     if (!InitSystem(&audio_device, &audio_spec, options, app_handler, &init_messages)) {
-        return false;
+        return EXIT_FAILURE;
     }
 
 #if SYSTEM_LINUX
@@ -1770,19 +1784,19 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
 
 #if SYSTEM_WINDOWS
     if (!InitMF(&init_messages)) {
-        return false;
+        return EXIT_FAILURE;
     }
 #endif
 
 #if HAVE_FFMPEG
     if (!InitFFmpeg(&init_messages)) {
-        return false;
+        return EXIT_FAILURE;
     }
 #endif
 
     if (!LoadDiscDriveSamples(&init_messages)) {
         init_messages.e.f("Failed to initialise disc drive samples.\n");
-        return false;
+        return EXIT_FAILURE;
     }
 
     InitDefaultBeebConfigs();
@@ -1791,13 +1805,13 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
         //        if(!Timeline::Init()) {
         //            init_messages.e.f(
         //                "FATAL: failed to initialize timeline.\n");
-        //            return false;
+        //            return EXIT_FAILURE;
         //        }
 
         SDL_PauseAudioDevice(audio_device, 0);
 
         if (!LoadGlobalConfig(&init_messages)) {
-            return false;
+            return EXIT_FAILURE;
         }
 
         // Ugh. This thing here is really a bit of a bodge...
@@ -1818,7 +1832,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
         }
         if (!vblank_monitor) {
             init_messages.e.f("Failed to initialise vblank monitor.\n");
-            return false;
+            return EXIT_FAILURE;
         }
 
         BeebLoadedConfig initial_loaded_config;
@@ -1850,7 +1864,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
 
             if (!got_initial_loaded_config) {
                 // Ugh, ok.
-                return false;
+                return EXIT_FAILURE;
             }
         }
 
@@ -1859,7 +1873,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
             init_messages.i.f("Failing startup late: info message.\n");
             init_messages.w.f("Failing startup late: warning message.\n");
             init_messages.e.f("Failing startup late: error message.\n");
-            return false;
+            return EXIT_FAILURE;
         }
 #endif
 
@@ -1899,7 +1913,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
                 }
 
                 if (!ia.init_disc_images[i]) {
-                    return false;
+                    return EXIT_FAILURE;
                 }
             }
 
@@ -1925,7 +1939,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
 
         if (!BeebWindows::CreateBeebWindow(ia)) {
             init_messages.e.f("FATAL: failed to open initial window.\n");
-            return false;
+            return EXIT_FAILURE;
         }
 
         // not needed any more.
@@ -2135,6 +2149,18 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
                             }
                             break;
 
+                        case SDLEventType_Quit:
+                            {
+                                exit_code = event.user.code;
+
+                                // and post another quit event, to be retrieved
+                                // straight away next time round the loop.
+                                SDL_Event event2 = {};
+                                event2.type = SDL_QUIT;
+                                SDL_PushEvent(&event2);
+                            }
+                            break;
+
                         case SDLEventType_Count:
                             // only here to avoid incomplete switch warning.
                             ASSERT(false);
@@ -2181,7 +2207,7 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     }
 #endif
 
-    return true;
+    return exit_code;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2210,25 +2236,23 @@ int b2_main(AppHandler *app_handler) {
 
     auto &&messages = std::make_shared<MessageList>("b2");
 
-    bool good = main2(app_handler, messages);
+    int exit_code = main2(app_handler, messages);
 
     //g_app_handler_mutable = nullptr;
 
-    if (!good) {
+    if (exit_code != EXIT_SUCCESS) {
+        if (!app_handler->IsHeadless()) {
 #if SYSTEM_LINUX
-        // Do this here, just in case main2 didn't get to its own
-        // post-SDL2_Init gtk_init call.
-        gtk_init();
+            // Do this here, just in case main2 didn't get to its own
+            // post-SDL2_Init gtk_init call.
+            gtk_init();
 #endif
-        FailureMessageBox("Initialisation failed", messages);
+            FailureMessageBox("Initialisation failed", messages);
+        }
     }
 
     // If there are any messages, get them printed now.
     messages->SetFlags(messages->GetFlags() | MessageListFlags_Stdio);
 
-    if (!good) {
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
+    return exit_code;
 }

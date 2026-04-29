@@ -6,6 +6,9 @@
 #include "b2.h"
 #include <shared/guid.h>
 #include "BeebWindow.h"
+#include "http_api.h"
+#include "HTTPMethodsHandler.h"
+#include <shared/file_io.h>
 
 #if BBCMICRO_DEBUGGER
 
@@ -13,6 +16,16 @@
 //////////////////////////////////////////////////////////////////////////
 
 static const char PRODUCT_NAME[] = "b2 headless - " STRINGIZE(RELEASE_NAME);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// don't try to call these "stdout" or "stderr" - on VC++, the name expands to
+// something that isn't an identifier.
+LOG_DEFINE(std_out, "", &log_printer_stdout);
+LOG_DEFINE(std_err, "", &log_printer_stderr);
+
+static const LogSet g_stdio_logs(LOG(std_out), LOG(std_err), LOG(std_err));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -41,7 +54,7 @@ static bool ParseCommandLineOptions(HeadlessOptions *options, int argc, char *ar
     CommandLineParser p(PRODUCT_NAME);
 
     p.AddOption('v', "verbose").SetIfPresent(&options->verbose).Help("be more verbose");
-    p.AddOption("gui").ResetIfPresent(&options->headless).Help("bring up GUI, a bit like non-headless b2");
+    p.AddOption("gui").ResetIfPresent(&options->headless).Help("show interactive GUI while running");
     p.AddHelpOption(&options->help);
     p.AddOption("config-folder").Arg(&options->config_folder).Help("specify folder for config and cache files (will be created if required)").SetIfPresent(&options->config_folder_specified);
     p.AddOption("http-port").Arg(&options->http_port).Meta("PORT").Help("specify TCP port for HTTP server to listen on (0 means system will choose)");
@@ -65,8 +78,8 @@ static bool ParseCommandLineOptions(HeadlessOptions *options, int argc, char *ar
         p.AddOption('d', "disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG. One of: " + list);
     }
 
-    p.AddOption("api-read").Meta("PATH").Arg(&options->api_read_path).Help("set JSON API read path to PATH").SetIfPresent(&options->api_read_path_specified);
-    p.AddOption("api-write").Meta("PATH").Arg(&options->api_write_path).Help("set JSON API write path to PATH").SetIfPresent(&options->api_write_path_specified);
+    p.AddOption("api-read").Meta("PATH").Arg(&options->api_read_path).Help("set initial JSON API read path to PATH").SetIfPresent(&options->api_read_path_specified);
+    p.AddOption("api-write").Meta("PATH").Arg(&options->api_write_path).Help("set initial JSON API write path to PATH").SetIfPresent(&options->api_write_path_specified);
     p.AddOption("api-input").Meta("PATH").Arg(&options->api_input_path).Help("pass contents of PATH to JSON API on startup");
     p.AddOption("api-output").Meta("PATH").Arg(&options->api_output_path).Help("write JSON API output to PATH");
 
@@ -86,8 +99,9 @@ static bool ParseCommandLineOptions(HeadlessOptions *options, int argc, char *ar
 
 class HeadlessAppHandler : public AppHandler {
   public:
-    explicit HeadlessAppHandler(const HeadlessOptions &options)
-        : m_options(options) {
+    explicit HeadlessAppHandler(const HeadlessOptions &options, std::unique_ptr<ApiMultipleRequests> api_request)
+        : m_options(options)
+        , m_api_request(std::move(api_request)) {
     }
 
     std::string GetProductName() const override {
@@ -99,7 +113,10 @@ class HeadlessAppHandler : public AppHandler {
     }
 
     bool IsHighDPIEnabled() const override {
-        // As per b2_test.
+        // As per b2_test: safest just to run in DPI-unaware mode.
+        //
+        // This intentionally also affects --gui.
+
         return false;
     }
 
@@ -144,6 +161,14 @@ class HeadlessAppHandler : public AppHandler {
         if (m_options.api_write_path_specified) {
             beeb_window->api_globals.write_path = m_options.api_write_path;
         }
+
+        if (!!m_api_request) {
+            std::unique_ptr<ApiMultipleRequests> api_request = std::move(m_api_request);
+            ApiExecuteMultipleRequests(std::move(*api_request),
+                                       [this](ApiMultipleResponses &&response) -> void {
+                                           this->HandleApiRequestComplete(std::move(response));
+                                       });
+        }
     }
 
     // default b2 logic is ok.
@@ -178,6 +203,24 @@ class HeadlessAppHandler : public AppHandler {
   private:
     int m_http_port = -1;
     HeadlessOptions m_options;
+    std::unique_ptr<ApiMultipleRequests> m_api_request;
+
+    void QuitIfHeadless(int exit_code) {
+        if (this->IsHeadless()) {
+            PushQuitMessage(exit_code);
+        }
+    }
+
+    void HandleApiRequestComplete(ApiMultipleResponses &&response) {
+        if (!m_options.api_output_path.empty()) {
+            if (!SaveJSONFile(std::move(response), m_options.api_output_path, &g_stdio_logs, SaveFlag_CreateFolder)) {
+                this->QuitIfHeadless(1);
+                return;
+            }
+        }
+
+        this->QuitIfHeadless(0);
+    }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -199,7 +242,22 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    HeadlessAppHandler app_handler(options);
+    std::unique_ptr<ApiMultipleRequests> api_request;
+    if (!options.api_input_path.empty()) {
+        api_request = std::make_unique<ApiMultipleRequests>();
+        if (!LoadJSONFile(api_request.get(), options.api_input_path, &g_stdio_logs)) {
+            fprintf(stderr, "FATAL: failed to load API input file\n");
+            return 1;
+        }
+
+        // TODO: bit janky, this.
+        if (!api_request->window.empty()) {
+            fprintf(stderr, "FATAL: API request window name must be empty\n");
+            return 1;
+        }
+    }
+
+    HeadlessAppHandler app_handler(options, std::move(api_request));
 
     int result = b2_main(&app_handler);
     return result;
@@ -207,7 +265,7 @@ int main(int argc, char *argv[]) {
 
 #else
 
-int main() {
+int main(int, char *[]) {
     fprintf(stderr, "FATAL: this is a non-functional placeholder build.\n");
     return 1;
 }

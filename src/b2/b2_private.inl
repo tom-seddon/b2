@@ -13,6 +13,8 @@ EPN(UpdateWindowTitle)
 // (MessageHandler *)data1 - delete
 EPN(Message)
 
+EPN(Quit)
+
 EPN(Count)
 
 EEND()

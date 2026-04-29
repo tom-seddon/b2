@@ -85,6 +85,11 @@ class AppHandler {
     // Return port to use for HTTP launch requests.
     virtual int GetLaunchRequestHttpServerPort() const = 0;
 
+    // Indicate BeebWindow was created and its Init function succeeded.
+    //
+    // Default impl does nothing.
+    virtual void HandleBeebWindowPostInit(BeebWindow *beeb_window);
+
     // Indicate message loop is about to start.
     //
     // HandleBeebWindowPostInit was called for the first window, and the first
@@ -92,11 +97,6 @@ class AppHandler {
     //
     // Default impl does nothing.
     virtual void MessageLoopWillStart();
-
-    // Indicate BeebWindow was created and its Init function succeeded.
-    //
-    // Default impl does nothing.
-    virtual void HandleBeebWindowPostInit(BeebWindow *beeb_window);
 
     // Folder for asset files. Return false if none (and b2 will pick a default).
     virtual bool GetAssetsFolder(std::string *assets_folder) const = 0;
@@ -207,6 +207,12 @@ void PushNewWindowMessage(BeebWindowInitArguments init_arguments);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Request a quit with the given error code.
+void PushQuitMessage(int exit_code);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct GlobalSettings {
     bool vsync = true;
     EnumFlags<BeebConfigFeatureFlag> feature_flags;
@@ -245,10 +251,10 @@ void FreeWindowsConsole();
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Do one tick of a placeholder no-op message loop, that consumes all
-// messages available and largely ignores them. One exception: returns
-// false if SDL_QUIT was received.
-bool TickNoopMessageLoop();
+// Do one tick of a placeholder no-op message loop, that consumes all messages
+// available and largely ignores them. One exception: returns false if a quit
+// event was encountered, and sets *exit_code to the exit code to use.
+bool TickNoopMessageLoop(int *exit_code);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
