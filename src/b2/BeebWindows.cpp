@@ -195,6 +195,8 @@ BeebWindow *BeebWindows::CreateBeebWindow(BeebWindowInitArguments init_arguments
     }
     g_->windows_mru.push_back(window);
 
+    init_arguments.app_handler->HandleBeebWindowPostInit(window);
+
     //    // There probably needs to be a more general mechanism than this.
     //    Timeline::DidChange();
 

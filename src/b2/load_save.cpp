@@ -63,6 +63,9 @@ static std::string g_override_config_folder;
 // If non-empty, use this as the folder to load assets from.
 static std::string g_override_assets_folder;
 
+// If non-empty, use this as the folder to save cache files to.
+static std::string g_override_cache_folder;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -126,6 +129,13 @@ void SetAssetsFolder(std::string folder) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void SetCacheFolder(std::string folder) {
+    g_override_cache_folder = std::move(folder);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::string GetConfigPath(const std::string &path) {
     if (!g_override_config_folder.empty()) {
         return PathJoined(g_override_config_folder, path);
@@ -152,6 +162,10 @@ std::string GetConfigPath(const std::string &path) {
 }
 
 std::string GetCachePath(const std::string &path) {
+    if (!g_override_cache_folder.empty()) {
+        return PathJoined(g_override_cache_folder, path);
+    }
+
 #if SYSTEM_WINDOWS
 
     return GetWindowsPath(FOLDERID_LocalAppData, path);

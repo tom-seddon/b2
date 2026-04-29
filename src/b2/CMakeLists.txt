@@ -236,17 +236,29 @@ add_executable(b2 MACOSX_BUNDLE
 target_link_libraries(b2 PRIVATE b2_lib)
 b2_target_boilerplate(b2 SANITIZERS)
 
-if(WIN32)
-  # /INCREMENTAL:NO - http://stackoverflow.com/questions/21569478
-  #
-  # /OPT:REF /OPT:ICF - no idea why these have gone missing. Aren't
-  # they supposed to be the defaults?? (This would happen in VC6
-  # sometimes too, but I can't remember why... anyway, specifying them
-  # explicitly was always the solution then too.)
-  set(EXTRA_LINKER_FLAGS "/INCREMENTAL:NO /OPT:REF /OPT:ICF")
-  set_target_properties(b2 PROPERTIES LINK_FLAGS_RELWITHDEBINFO ${EXTRA_LINKER_FLAGS})
-  set_target_properties(b2 PROPERTIES LINK_FLAGS_FINAL ${EXTRA_LINKER_FLAGS})
-endif()
+# b2_headless shares much of the setup with b2, as it's also a
+# runnable copy of the emulator designed for end user use.
+#
+# A Final build of b2_headless doesn't make much sense, so it compiles
+# into no-op executable.
+add_executable(b2_headless
+  b2_headless.cpp)
+target_link_libraries(b2_headless PRIVATE b2_lib)
+b2_target_boilerplate(b2_headless SANITIZERS)
+
+foreach(TARGET b2 b2_headless)
+  if(WIN32)
+    # /INCREMENTAL:NO - http://stackoverflow.com/questions/21569478
+    #
+    # /OPT:REF /OPT:ICF - no idea why these have gone missing. Aren't
+    # they supposed to be the defaults?? (This would happen in VC6
+    # sometimes too, but I can't remember why... anyway, specifying them
+    # explicitly was always the solution then too.)
+    set(EXTRA_LINKER_FLAGS "/INCREMENTAL:NO /OPT:REF /OPT:ICF")
+    set_target_properties(${TARGET} PROPERTIES LINK_FLAGS_RELWITHDEBINFO ${EXTRA_LINKER_FLAGS})
+    set_target_properties(${TARGET} PROPERTIES LINK_FLAGS_FINAL ${EXTRA_LINKER_FLAGS})
+  endif()
+endforeach()
 
 ##########################################################################
 ##########################################################################
@@ -353,85 +365,88 @@ set(DISCS ${ASSETS}/discs)
 set(FONTS ${ASSETS}/fonts)
 set(SAMPLES ${ASSETS}/samples)
 
-# B/B+/General ROMs
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different OS12.ROM B+MOS.rom BASIC2.ROM acorn/DFS-2.26.rom watford/DDFS-1.54T.rom watford/DDFS-1.53.rom opus/OPUS-DDOS-3.45.rom opus/challenger-1.01.rom MasterTurboParasite.rom TUBE110.rom ElectronMOS.rom AP6v134.rom acorn/Plus3ADFS.rom $<TARGET_FILE_DIR:b2>/${ROMS}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms
-  VERBATIM)
-
-# Master ROMs
-function(do_master_ROMs VERSION)
+function(add_copy_assets_custom_commands TARGET)
+  # B/B+/General ROMs
   add_custom_command(
-    TARGET b2 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}/m128/${VERSION}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom dfs.rom edit.rom mos.rom terminal.rom view.rom viewsht.rom $<TARGET_FILE_DIR:b2>/${ROMS}/m128/${VERSION}/
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/M128/${VERSION}
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TARGET}>/${ROMS}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different OS12.ROM B+MOS.rom BASIC2.ROM acorn/DFS-2.26.rom watford/DDFS-1.54T.rom watford/DDFS-1.53.rom opus/OPUS-DDOS-3.45.rom opus/challenger-1.01.rom MasterTurboParasite.rom TUBE110.rom ElectronMOS.rom AP6v134.rom acorn/Plus3ADFS.rom $<TARGET_FILE_DIR:${TARGET}>/${ROMS}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms
     VERBATIM)
+
+  # Master ROMs
+  foreach(VERSION 3.20 3.50)
+    add_custom_command(
+      TARGET ${TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TARGET}>/${ROMS}/m128/${VERSION}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom dfs.rom edit.rom mos.rom terminal.rom view.rom viewsht.rom $<TARGET_FILE_DIR:${TARGET}>/${ROMS}/m128/${VERSION}/
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/M128/${VERSION}
+      VERBATIM)
+  endforeach()
+
+  # Compact ROMs
+  foreach(VERSION 5.00 5.10 I5.10C 5.11i)
+    add_custom_command(
+      TARGET ${TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TARGET}>/${ROMS}/mcompact/${VERSION}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom utils.rom mos.rom $<TARGET_FILE_DIR:${TARGET}>/${ROMS}/mcompact/${VERSION}/
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/${VERSION}
+      VERBATIM)
+  endforeach()
+
+  # Additional MOS 5.11i ROMs
+  add_custom_command(
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different international.rom arabic.rom $<TARGET_FILE_DIR:${TARGET}>/${ROMS}/mcompact/5.11i/
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/5.11i)
+
+  # Discs
+  add_custom_command(
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TARGET}>/${DISCS}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different 80.ssd 80.dsd 40.ssd 40.dsd Welcome.ssd adl.adl adm.adm ads.ads MasterWelcome.adl CompactWelcome.adl PC128SWelcome.adl Plus3Welcome.adm 10MB.dat 10MB.dsc $<TARGET_FILE_DIR:${TARGET}>/${DISCS}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/discs
+    VERBATIM)
+
+  # Fonts
+  add_custom_command(
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TARGET}>/${FONTS})
+
+  add_custom_command(
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different fa-regular-400.ttf fa-solid-900.ttf $<TARGET_FILE_DIR:${TARGET}>/${FONTS}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../submodules/Font-Awesome/web-fonts-with-css/webfonts
+    VERBATIM)
+
+  add_custom_command(
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../etc/liberation-fonts-ttf-2.1.5/LiberationMono-Regular.ttf $<TARGET_FILE_DIR:${TARGET}>/${FONTS}
+    VERBATIM)
+
+  # Floppy disc sounds
+  file(GLOB FLOPPY_SAMPLES ${CMAKE_CURRENT_LIST_DIR}/../../etc/samples_floppy/*.wav)
+
+  add_custom_command(
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TARGET}>/${SAMPLES}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FLOPPY_SAMPLES} $<TARGET_FILE_DIR:${TARGET}>/${SAMPLES}
+    VERBATIM)
+
+  # Other stuff
+  add_custom_command(
+    TARGET ${TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../submodules/SDL_GameControllerDB/gamecontrollerdb.txt $<TARGET_FILE_DIR:${TARGET}>/${ASSETS}
+    VERBATIM)
+
 endfunction()
 
-do_master_ROMs(3.20)
-do_master_ROMs(3.50)
+# This is a bit pointless on Windows, as TARGET_FILE_DIR:b2 and
+# TARGET_FILE_DIR:b2_headless are the same folder.
+add_copy_assets_custom_commands(b2)
+add_copy_assets_custom_commands(b2_headless)
 
-# Compact ROMs
-function(do_compact_ROMs VERSION)
-  add_custom_command(
-    TARGET b2 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom utils.rom mos.rom $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}/
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/${VERSION}
-    VERBATIM)
-endfunction()
-
-do_compact_ROMs(5.00)
-do_compact_ROMs(5.10)
-do_compact_ROMs(I5.10C)
-do_compact_ROMs(5.11i)
-
-# Additional MOS 5.11i ROMs
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different international.rom arabic.rom $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/5.11i/
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/5.11i)
-
-# Discs
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${DISCS}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different 80.ssd 80.dsd 40.ssd 40.dsd Welcome.ssd adl.adl adm.adm ads.ads MasterWelcome.adl CompactWelcome.adl PC128SWelcome.adl Plus3Welcome.adm 10MB.dat 10MB.dsc $<TARGET_FILE_DIR:b2>/${DISCS}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/discs
-  VERBATIM)
-
-# Fonts
-
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${FONTS})
-
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different fa-regular-400.ttf fa-solid-900.ttf $<TARGET_FILE_DIR:b2>/${FONTS}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../submodules/Font-Awesome/web-fonts-with-css/webfonts
-  VERBATIM)
-
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../etc/liberation-fonts-ttf-2.1.5/LiberationMono-Regular.ttf $<TARGET_FILE_DIR:b2>/${FONTS}
-  VERBATIM)
-
-# Floppy disc sounds
-
-file(GLOB FLOPPY_SAMPLES ${CMAKE_CURRENT_LIST_DIR}/../../etc/samples_floppy/*.wav)
-
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${SAMPLES}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FLOPPY_SAMPLES} $<TARGET_FILE_DIR:b2>/${SAMPLES}
-  VERBATIM)
-
-# Add the licence to the macOS app bundle
-
+# Add the licence to the macOS app bundle.
 if(OSX)
   add_custom_command(
     TARGET b2 POST_BUILD
@@ -439,12 +454,6 @@ if(OSX)
     VERBATIM)
 endif()
 
-# Other stuff
-
-add_custom_command(
-  TARGET b2 POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../submodules/SDL_GameControllerDB/gamecontrollerdb.txt $<TARGET_FILE_DIR:b2>/${ASSETS}
-  VERBATIM)
 
 ##########################################################################
 ##########################################################################

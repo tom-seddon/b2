@@ -97,7 +97,7 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master emulator - " STRINGIZE(RELEASE_NAME);
+const char DEFAULT_PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master emulator - " STRINGIZE(RELEASE_NAME);
 
 const char GAMECONTROLLER_DB_FILE_NAME[] = "gamecontrollerdb.txt";
 
@@ -195,6 +195,13 @@ void AppHandler::MessageLoopWillStart() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void AppHandler::HandleBeebWindowPostInit(BeebWindow *beeb_window) {
+    (void)beeb_window;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void AppHandler::SetSelectorDialogResult(const Guid &guid, const std::string &result) {
     (void)guid, (void)result;
 }
@@ -204,6 +211,13 @@ void AppHandler::SetSelectorDialogResult(const Guid &guid, const std::string &re
 
 OrdinaryAppHandler::OrdinaryAppHandler(int argc, char *argv[])
     : m_argv(argv + 0, argv + argc) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string OrdinaryAppHandler::GetProductName() const {
+    return DEFAULT_PRODUCT_NAME;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -237,8 +251,8 @@ std::vector<std::string> OrdinaryAppHandler::GetCommandLineArgs() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool OrdinaryAppHandler::GetConfigFolder(std::string *config_folder) const {
-    (void)config_folder;
+bool OrdinaryAppHandler::GetConfigAndCacheOverrideFolder(std::string *folder) const {
+    (void)folder;
 
     // the default logic is sensible.
     return false;
@@ -819,8 +833,6 @@ struct Options {
     bool remotery = false;
     bool remotery_thread_sampler = false;
 #endif
-    std::string override_config_folder = GetConfigPath("");
-    bool override_config_folder_specified = false;
 
     // File association mode is what you get when b2 has been set up as the
     // program to use when double clicking on disk images.
@@ -839,13 +851,6 @@ struct Options {
     bool fail_startup_late = false;
     bool fail_startup_early = false;
 #endif
-
-    //bool headless = false;
-    //#ifdef IMGUI_ENABLE_TEST_ENGINE
-    //    bool imgui_enable_test_engine = false;
-    //    bool imgui_list_tests = false;
-    //    std::vector<std::string> imgui_tests;
-    //#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -901,7 +906,7 @@ static bool ParseCommandLineOptions(
         return true;
     }
 
-    CommandLineParser p(PRODUCT_NAME);
+    CommandLineParser p(app_handler->GetProductName());
 
     p.SetLogs(&init_messages->i, &init_messages->e);
 
@@ -951,10 +956,6 @@ static bool ParseCommandLineOptions(
     p.AddOption("remotery-thread-sampler").SetIfPresent(&options->remotery_thread_sampler).Help("activate Remotery thread sampler");
 #endif
 
-    if (!app_handler->GetConfigFolder(nullptr)) {
-        p.AddOption("config-folder").Arg(&options->override_config_folder).SetIfPresent(&options->override_config_folder_specified).Help("specify folder for config files (will be created if non-existent)").ShowDefault();
-    }
-
     if (app_handler->IsHighDPIEnabled()) {
         p.AddOption("disable-high-dpi").ResetIfPresent(&options->enable_high_dpi).Help("disable handling of high-DPI displays");
     }
@@ -974,13 +975,6 @@ static bool ParseCommandLineOptions(
     p.AddOption("fail-startup-late").SetIfPresent(&options->fail_startup_late).Help("fail the startup process at a late stage, even if it actually succeeded. Use this to test the failure UI");
 #endif
 
-    //p.AddOption("headless").SetIfPresent(&options->headless).Help("run in headless mode (implies --imgui-enable-test-engine)");
-    //#ifdef IMGUI_ENABLE_TEST_ENGINE
-    //    p.AddOption("imgui-enable-test-engine").SetIfPresent(&options->imgui_enable_test_engine).Help("enable Dear ImGui Test Engine");
-    //    p.AddOption("imgui-list-tests").SetIfPresent(&options->imgui_list_tests).Help("list all Dear ImGui tests on stdout, formatted for the benefit of check_ctest_log");
-    //    p.AddOption("imgui-run-test").AddArgToList(&options->imgui_tests).Help("run the given Dear ImGui test(s)");
-    //#endif
-
     if (!p.Parse(argv)) {
         return false;
     }
@@ -991,15 +985,6 @@ static bool ParseCommandLineOptions(
         init_messages->e.f("Invalid audio buffer size: %d\n", options->audio_buffer_size);
         return false;
     }
-
-    //if (options->headless) {
-    //    if (!options->override_config_folder_specified) {
-    //        init_messages->e.f("Must specify override config folder in headless mode");
-    //        return false;
-    //    }
-
-    //    options->imgui_enable_test_engine = true;
-    //}
 
     return true;
 }
@@ -1480,7 +1465,9 @@ static std::shared_ptr<HTTPHandler> g_http_handler;
 static int g_requested_http_server_port = -1;
 
 void StartHTTPServer(Messages *messages) {
-    ASSERT(g_requested_http_server_port >= 0);
+    if (g_requested_http_server_port < 0) {
+        return;
+    }
 
     if (GetHTTPServerListenPort() != 0) {
         return;
@@ -1507,6 +1494,14 @@ int GetHTTPServerListenPort() {
         return 0;
     } else {
         return g_http_server->GetListenPort();
+    }
+}
+
+bool CanStartHTTPServer() {
+    if (g_requested_http_server_port >= 0) {
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -1664,11 +1659,14 @@ static bool main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &i
     }
 
     {
-        std::string config_folder;
-        if (app_handler->GetConfigFolder(&config_folder)) {
-            SetConfigFolder(config_folder);
-        } else if (options.override_config_folder_specified) {
-            SetConfigFolder(options.override_config_folder);
+        std::string folder;
+        if (app_handler->GetConfigAndCacheOverrideFolder(&folder)) {
+            SetConfigFolder(folder);
+
+            // TODO: cache stuff should go in its own folder, if only to avoid
+            // name conflicts. But DearImGuiTest::Run2 has some code in it that
+            // assumes the config folder doesn't have any subfolders.
+            SetCacheFolder(folder);
         }
     }
 

@@ -151,6 +151,10 @@ void Test::DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) {
 
 class DearImGuiTest : public Test, public AppHandler {
   public:
+    std::string GetProductName() const override {
+        return DEFAULT_PRODUCT_NAME;
+    }
+
     bool IsHeadless() const override {
         return !g_interactive;
     }
@@ -176,9 +180,9 @@ class DearImGuiTest : public Test, public AppHandler {
         return argv;
     }
 
-    bool GetConfigFolder(std::string *config_folder) const override {
-        if (config_folder) {
-            *config_folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
+    bool GetConfigAndCacheOverrideFolder(std::string *folder) const override {
+        if (folder) {
+            *folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
         }
         return true;
     }
@@ -287,7 +291,7 @@ class DearImGuiTest : public Test, public AppHandler {
     [[nodiscard]] int Run2() {
         // Get custom config folder. Don't continue if using the default, as files will be deleted.
         std::string config_folder;
-        TEST_TRUE(this->GetConfigFolder(&config_folder));
+        TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&config_folder));
 
         // Create config folder if it doesn't exist.
         if (!PathIsFolderOnDisk(config_folder)) {
@@ -342,7 +346,7 @@ class Yielder {
     void Yield() {
         if (GetSecondsFromTicks(GetCurrentTickCount() - m_start_ticks) > m_time_limit_seconds) {
             std::string config_folder;
-            TEST_TRUE(m_test->GetConfigFolder(&config_folder));
+            TEST_TRUE(m_test->GetConfigAndCacheOverrideFolder(&config_folder));
 
             SDLUniquePtr<SDL_Surface> display_data = m_beeb_window->GetDisplayData(false, &g_stdio_logs);
             TEST_NON_NULL(display_data.get());
@@ -1225,7 +1229,7 @@ class TestCopyOfDisk : public DearImGuiTest {
 
     void Run() override {
         std::string config_folder;
-        TEST_TRUE(this->GetConfigFolder(&config_folder));
+        TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&config_folder));
         m_disk_path = PathJoined(config_folder, "test." + m_disk->path);
         TEST_EQ_II(this->Run2(), 0);
     }
@@ -1312,7 +1316,7 @@ class TestLoadZippedDisk : public DearImGuiTest {
     void Run() override {
         if (!m_disk_path.empty()) {
             std::string config_folder;
-            TEST_TRUE(this->GetConfigFolder(&config_folder));
+            TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&config_folder));
 
             m_disk_copy_path = PathJoined(config_folder, "test." + PathGetName(m_disk_path));
         }
@@ -1330,7 +1334,9 @@ class TestLoadZippedDisk : public DearImGuiTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Test HTTP API. When the message loop starts, indicating the HTTP server is ready, a background thread is started that calls Thread. Use this to do blocking HTTP client calls and check the results.
+// Test HTTP API. When the message loop starts, indicating the HTTP server is
+// ready, a background thread is started that calls Thread. Use this to do
+// blocking HTTP client calls and check the results.
 //
 // Set args->test_was_run to true once done.
 //
@@ -1338,6 +1344,10 @@ class TestLoadZippedDisk : public DearImGuiTest {
 class TestHTTPAPI : public Test, public AppHandler {
   public:
     TestHTTPAPI() = default;
+
+    std::string GetProductName() const override {
+        return DEFAULT_PRODUCT_NAME;
+    }
 
     bool IsHighDPIEnabled() const override {
         return false;
@@ -1365,9 +1375,9 @@ class TestHTTPAPI : public Test, public AppHandler {
         return false;
     }
 
-    bool GetConfigFolder(std::string *config_folder) const override {
-        if (config_folder) {
-            *config_folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
+    bool GetConfigAndCacheOverrideFolder(std::string *folder) const override {
+        if (folder) {
+            *folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
         }
         return true;
     }

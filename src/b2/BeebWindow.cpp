@@ -619,9 +619,13 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGuiHeader("HTTP Server");
         int port = GetHTTPServerListenPort();
         if (port == 0) {
-            ImGui::TextUnformatted("HTTP server not running");
-            if (ImGui::Button("Start HTTP server")) {
-                StartHTTPServer(&m_beeb_window->m_msg);
+            if (!CanStartHTTPServer()) {
+                ImGui::TextUnformatted("HTTP server not available");
+            } else {
+                ImGui::TextUnformatted("HTTP server not running");
+                if (ImGui::Button("Start HTTP server")) {
+                    StartHTTPServer(&m_beeb_window->m_msg);
+                }
             }
         } else {
             ImGui::Text("HTTP server listening on port %d (0x%x)", port, port);
@@ -4025,7 +4029,7 @@ void BeebWindow::UpdateTitle() {
     if (m_window) {
         SDL_SetWindowTitle(m_window, title);
     } else {
-        puts(title);
+        //puts(title);
     }
 }
 

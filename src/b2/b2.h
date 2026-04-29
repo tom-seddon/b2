@@ -21,7 +21,7 @@ struct Guid;
 //////////////////////////////////////////////////////////////////////////
 
 // Printable product name, including version string.
-extern const char PRODUCT_NAME[];
+extern const char DEFAULT_PRODUCT_NAME[];
 
 // Name of the game controller database file.
 extern const char GAMECONTROLLER_DB_FILE_NAME[];
@@ -43,6 +43,9 @@ class AppHandler {
     AppHandler(AppHandler &&) = delete;
     AppHandler &operator=(AppHandler &&) = delete;
 
+    // Get the product name.
+    virtual std::string GetProductName() const = 0;
+
     // Whether running headless or not. Must always return the same value for a given
     // run.
     virtual bool IsHeadless() const = 0;
@@ -50,20 +53,27 @@ class AppHandler {
     // Whether to allow high-DPI support.
     virtual bool IsHighDPIEnabled() const = 0;
 
-    // Whether to allow sound.
+    // If not running headless, whether to allow sound.
     virtual bool IsSoundEnabled() const = 0;
 
     // argc/argv access. Return value is the full argv, including argv[0].
+    //
+    // Anything in here is passed to the ordinary b2 app command line argument
+    // handling, the idea being that the test code can ensure it's exercising
+    // the b2 app command line processing.
+    //
+    // This is a bit inconvenient for b2_headless.
     virtual std::vector<std::string> GetCommandLineArgs() const = 0;
 
-    // Folder for config files. Return false if none (and b2 will use the
-    // default).
+    // Folder for config and cache files. Return false if none (and b2 will use
+    // defaults).
     //
-    // (config_folder may be null, just to query whether an override was
-    // actually specified.)
-    virtual bool GetConfigFolder(std::string *config_folder) const = 0;
+    // (folder may be null, just to query whether an override was actually
+    // specified.)
+    virtual bool GetConfigAndCacheOverrideFolder(std::string *folder) const = 0;
 
-    // Return HTTP server listen port. May be 0 to specify any.
+    // Return HTTP server listen port. May be 0 to specify any, or <0 to
+    // indicate that the HTTP server can't be started.
     virtual int GetRequestedHttpServerListenPort() const = 0;
 
     // Indicate actual HTTP server listen port chosen, or 0 if the HTTP server
@@ -77,8 +87,16 @@ class AppHandler {
 
     // Indicate message loop is about to start.
     //
+    // HandleBeebWindowPostInit was called for the first window, and the first
+    // window is the MRU window.
+    //
     // Default impl does nothing.
     virtual void MessageLoopWillStart();
+
+    // Indicate BeebWindow was created and its Init function succeeded.
+    //
+    // Default impl does nothing.
+    virtual void HandleBeebWindowPostInit(BeebWindow *beeb_window);
 
     // Folder for asset files. Return false if none (and b2 will pick a default).
     virtual bool GetAssetsFolder(std::string *assets_folder) const = 0;
@@ -121,14 +139,15 @@ class OrdinaryAppHandler : public AppHandler {
   public:
     OrdinaryAppHandler(int argc, char *argv[]);
 
-    bool IsHeadless() const override;       //returns false
-    bool IsHighDPIEnabled() const override; //returns true
-    bool IsSoundEnabled() const override;   //returns true
+    std::string GetProductName() const override; //returns DEFAULT_PRODUCT_NAME
+    bool IsHeadless() const override;            //returns false
+    bool IsHighDPIEnabled() const override;      //returns true
+    bool IsSoundEnabled() const override;        //returns true
     std::vector<std::string> GetCommandLineArgs() const override;
-    bool GetConfigFolder(std::string *config_folder) const override; //returns false
-    int GetRequestedHttpServerListenPort() const override;           //returns 0xbbcb
-    int GetLaunchRequestHttpServerPort() const override;             //returns 0xbbcb
-    bool GetAssetsFolder(std::string *asset_folder) const override;  //returns false
+    bool GetConfigAndCacheOverrideFolder(std::string *folder) const override; //returns false
+    int GetRequestedHttpServerListenPort() const override;                    //returns 0xbbcb
+    int GetLaunchRequestHttpServerPort() const override;                      //returns 0xbbcb
+    bool GetAssetsFolder(std::string *asset_folder) const override;           //returns false
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override; //returns false
 #endif
@@ -207,6 +226,9 @@ void StopHTTPServer();
 
 // Returns 0 if server not running.
 int GetHTTPServerListenPort();
+
+// Whether it's valid to call StartHTTPServer.
+bool CanStartHTTPServer();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

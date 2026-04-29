@@ -813,8 +813,8 @@ static void ExecuteNextRequest(const std::shared_ptr<MultipleRequestsState> &sta
     }
 }
 
-static void ApiExecuteMultipleRequests(ApiMultipleRequests request,
-                                       std::function<void(ApiMultipleResponses &&)> completion_fun) {
+void ApiExecuteMultipleRequests(ApiMultipleRequests &&request,
+                                std::function<void(ApiMultipleResponses &&)> completion_fun) {
     ASSERT(IsMainThread());
 
     if (request.requests.empty()) {

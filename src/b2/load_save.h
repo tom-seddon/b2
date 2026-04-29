@@ -31,6 +31,10 @@ void SetConfigFolder(std::string folder);
 // default will be used.
 void SetAssetsFolder(std::string folder);
 
+// Set folder for cache files explicitly. If never set, a system-specific
+// default will be used.
+void SetCacheFolder(std::string folder);
+
 // Get path to user-specific config file. This will be stored
 // somewhere persistent, that may follow the user around.
 //
