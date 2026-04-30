@@ -265,6 +265,8 @@ struct ApiConfigArgs {
     // fails.
     //
     // If not provided, a default will be used.
+    //
+    // If <=0, no timeout (please exercise appropriate caution).
     std::optional<double> wait_for_osword_0_timeout_seconds;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
@@ -406,28 +408,32 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileResult,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Start tracking BRK instructions. There is some overhead, so this isn't the
+// Start counting BRK instructions. There is some overhead, so this isn't the
 // default - and, in any event, you might want to ignore them sometimes.
-
-static const char API_START_TRACKING_BRKS[] = "start_tracking_brks";
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Stop tracking BRK instructions.
-
-static const char API_STOP_TRACKING_BRKS[] = "stop_tracking_brks";
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Fail if any BRK instructions were executed between a start_tracking_brks and
-// stop_tracking_brks.
 //
-// (May be called before start_tracking_brks or after stop_tracking_brks: in
-// this case, it succeeds.)
+// The counter starts at 0.
 
-static const char API_FAIL_IF_BRK_TRACKED[] = "fail_if_brk_tracked";
+static const char API_START_COUNTING_BRKS[] = "start_counting_brks";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Stop counting BRK instructions.
+
+static const char API_STOP_COUNTING_BRKS[] = "stop_counting_brks";
+
+struct ApiStopCountingBRKsArgs {
+    // If not supplied, the request always succeeds.
+    //
+    // Otherwise, specifies expected number of BRKs counted. The request will fail
+    // if the actual number counted is different.
+    std::optional<uint64_t> expected_brk_count;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCountingBRKsArgs,
+                                                expected_brk_count);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -45,6 +45,7 @@ struct HeadlessOptions {
     bool api_write_path_specified = false;
     std::string api_input_path;
     std::string api_output_path;
+    bool enable_sound = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,7 +55,8 @@ static bool ParseCommandLineOptions(HeadlessOptions *options, int argc, char *ar
     CommandLineParser p(PRODUCT_NAME);
 
     p.AddOption('v', "verbose").SetIfPresent(&options->verbose).Help("be more verbose");
-    p.AddOption("gui").ResetIfPresent(&options->headless).Help("show interactive GUI while running");
+    p.AddOption("gui").ResetIfPresent(&options->headless).Help("show ordinary b2 UI while running");
+    p.AddOption("enable-sound").SetIfPresent(&options->enable_sound).Help("enable sound when showing ordinary b2 UI");
     p.AddHelpOption(&options->help);
     p.AddOption("config-folder").Arg(&options->config_folder).Help("specify folder for config and cache files (will be created if required)").SetIfPresent(&options->config_folder_specified);
     p.AddOption("http-port").Arg(&options->http_port).Meta("PORT").Help("specify TCP port for HTTP server to listen on (0 means system will choose)");
@@ -121,7 +123,7 @@ class HeadlessAppHandler : public AppHandler {
     }
 
     bool IsSoundEnabled() const override {
-        return true;
+        return m_options.enable_sound;
     }
 
     std::vector<std::string> GetCommandLineArgs() const override {
@@ -213,13 +215,22 @@ class HeadlessAppHandler : public AppHandler {
 
     void HandleApiRequestComplete(ApiMultipleResponses &&response) {
         if (!m_options.api_output_path.empty()) {
-            if (!SaveJSONFile(std::move(response), m_options.api_output_path, &g_stdio_logs, SaveFlag_CreateFolder)) {
+            if (!SaveJSONFile(response, m_options.api_output_path, &g_stdio_logs, SaveFlag_CreateFolder)) {
                 this->QuitIfHeadless(1);
                 return;
             }
         }
 
-        this->QuitIfHeadless(0);
+        if (!this->IsHeadless()) {
+            printf("JSON result:\n");
+            printf("---8<---\n");
+            puts(nlohmann::json(response).dump(4).c_str());
+            printf("---8<---\n");
+
+            printf("Success: %s\n", BOOL_STR(response.success));
+        }
+
+        this->QuitIfHeadless(response.success ? 0 : 1);
     }
 };
 

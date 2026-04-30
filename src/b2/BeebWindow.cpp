@@ -812,9 +812,9 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BeebWindow::TrackBRKsCallback : public BRKCallback {
+class BeebWindow::CountBRKsCallback : public BRKCallback {
   public:
-    TrackBRKsCallback() = default;
+    CountBRKsCallback() = default;
 
     bool ThreadOnBRK(BeebThread *beeb_thread) override {
         (void)beeb_thread;
@@ -822,7 +822,7 @@ class BeebWindow::TrackBRKsCallback : public BRKCallback {
         if (m_was_removed.load(std::memory_order_acquire)) {
             return false;
         } else {
-            m_brk_executed.store(true, std::memory_order_release);
+            m_num_brks.fetch_add(1, std::memory_order_release);
 
             return true;
         }
@@ -838,13 +838,13 @@ class BeebWindow::TrackBRKsCallback : public BRKCallback {
         return m_was_removed.load(std::memory_order_acquire);
     }
 
-    bool TakeBRKExecuted() {
-        return m_brk_executed.exchange(false, std::memory_order_acq_rel);
+    uint64_t GetNumBRKs() const {
+        return m_num_brks.load(std::memory_order_acquire);
     }
 
   protected:
   private:
-    std::atomic<bool> m_brk_executed{false};
+    std::atomic<uint64_t> m_num_brks{0};
     std::atomic<bool> m_was_removed{false};
 };
 
@@ -4271,41 +4271,29 @@ bool BeebWindow::StopCaptureOSWRCH(std::vector<uint8_t> *data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::StartTrackingBRKs() {
-    if (m_track_brks_callback) {
-        if (m_track_brks_callback->WasRemoved()) {
-            m_track_brks_callback.reset();
+void BeebWindow::StartCountingBRKs() {
+    if (m_count_brks_callback) {
+        if (m_count_brks_callback->WasRemoved()) {
+            m_count_brks_callback.reset();
         }
     }
 
-    if (!m_track_brks_callback) {
-        m_track_brks_callback = std::make_shared<TrackBRKsCallback>();
-        m_beeb_thread->Send(std::make_shared<BeebThread::AddBRKCallbackMessage>(m_track_brks_callback));
+    if (!m_count_brks_callback) {
+        m_count_brks_callback = std::make_shared<CountBRKsCallback>();
+        m_beeb_thread->Send(std::make_shared<BeebThread::AddBRKCallbackMessage>(m_count_brks_callback));
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::StopTrackingBRKs() {
-    if (m_track_brks_callback) {
-        m_beeb_thread->Send(std::make_shared<BeebThread::RemoveBRKCallbackMessage>(m_track_brks_callback));
-        m_track_brks_callback.reset();
-    }
-}
+bool BeebWindow::StopCountingBRKs(uint64_t *num_brks) {
+    if (m_count_brks_callback) {
+        *num_brks = m_count_brks_callback->GetNumBRKs();
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::TakeBRKFlag() {
-    if (m_track_brks_callback) {
-        if (m_track_brks_callback->WasRemoved()) {
-            m_track_brks_callback.reset();
-        }
-    }
-
-    if (m_track_brks_callback) {
-        return m_track_brks_callback->TakeBRKExecuted();
+        m_beeb_thread->Send(std::make_shared<BeebThread::RemoveBRKCallbackMessage>(m_count_brks_callback));
+        m_count_brks_callback.reset();
+        return true;
     } else {
         return false;
     }

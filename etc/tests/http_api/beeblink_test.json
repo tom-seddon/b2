@@ -1,0 +1,42 @@
+{
+    "requests":[
+        {
+            "type":"config",
+            "args":{
+                "base_default_config":"B/Acorn 1770",
+                "sideways_roms":[
+                    {
+                        "bank":10,
+                        "contents":{
+                            "path":"beeb/build/beeblink_b2.rom"
+                        }
+                    }
+                ],
+                "beeblink":true,
+                "wait_for_osword_0":true
+            }
+        },
+        {
+            "type":"start_counting_brks",
+            "args":null
+        },
+        {
+            "type":"paste",
+            "args":{
+                "input":["*HELP\r",
+                         "*BLFS\r",
+                         "*VOL BEEBLINK_DFS_TESTS\r",
+                         "CHAIN \"ALL\"\r"],
+                "wait_for_osword_0":true,
+                "wait_for_osword_0_timeout_seconds":600
+            }
+        },
+        {
+            "type":"stop_counting_brks",
+            "args":{
+                "expected_brk_count":8
+            }
+        }
+    ]
+}
+

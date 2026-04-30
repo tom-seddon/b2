@@ -1720,13 +1720,12 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
 
 class TestHTTPBRKTracking : public TestHTTPAPI {
   public:
-    explicit TestHTTPBRKTracking(TestHTTPBRKTrackingStage stage, bool do_brk)
-        : m_stage(stage)
-        , m_do_brk(do_brk) {
+    explicit TestHTTPBRKTracking(bool do_brk)
+        : m_do_brk(do_brk) {
     }
 
     std::string GetFullName() const override {
-        return strprintf("b2.http.track_brk.%s.%d", GetTestHTTPBRKTrackingStageEnumName(m_stage), m_do_brk);
+        return strprintf("b2.http.track_brk.%d", m_do_brk);
     }
 
   protected:
@@ -1737,8 +1736,6 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
         client->SetVerbose(true);
 
         std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
-
-        bool should_succeed = false;
 
         ApiMultipleRequests requests;
 
@@ -1755,17 +1752,9 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             requests.requests.push_back(std::move(request));
         }
 
-        if (m_stage == TestHTTPBRKTrackingStage_Before) {
-            ApiRequest request;
-            request.type = API_FAIL_IF_BRK_TRACKED;
-            requests.requests.push_back(std::move(request));
-
-            should_succeed = true;
-        }
-
         {
             ApiRequest request;
-            request.type = API_START_TRACKING_BRKS;
+            request.type = API_START_COUNTING_BRKS;
             requests.requests.push_back(std::move(request));
         }
 
@@ -1781,26 +1770,15 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             requests.requests.push_back(std::move(request));
         }
 
-        if (m_stage == TestHTTPBRKTrackingStage_During) {
-            ApiRequest request;
-            request.type = API_FAIL_IF_BRK_TRACKED;
-            requests.requests.push_back(std::move(request));
-
-            should_succeed = !m_do_brk;
-        }
-
         {
-            ApiRequest request;
-            request.type = API_STOP_TRACKING_BRKS;
-            requests.requests.push_back(std::move(request));
-        }
+            ApiStopCountingBRKsArgs args;
+            args.expected_brk_count = m_do_brk ? 1 : 0;
 
-        if (m_stage == TestHTTPBRKTrackingStage_After) {
             ApiRequest request;
-            request.type = API_FAIL_IF_BRK_TRACKED;
-            requests.requests.push_back(std::move(request));
+            request.type = API_STOP_COUNTING_BRKS;
+            request.args = std::move(args);
 
-            should_succeed = true;
+            requests.requests.push_back(std::move(request));
         }
 
         HTTPRequest http_request;
@@ -1811,19 +1789,14 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
 
         HTTPResponse http_response;
         int status = client->SendRequest(http_request, &http_response);
+        TEST_EQ_II(status, 200);
 
-        if (should_succeed) {
-            TEST_EQ_II(status, 200);
-        } else {
-            TEST_EQ_II(status, 500);
-        }
 #else
         (void)thread_args;
 #endif
     }
 
   private:
-    TestHTTPBRKTrackingStage m_stage = TestHTTPBRKTrackingStage_Before;
     bool m_do_brk = false;
 };
 
@@ -2242,12 +2215,8 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<TestHTTPConfigOSWORD0Timeout>(mos_type));
     }
 
-    for (TestHTTPBRKTrackingStage stage : {TestHTTPBRKTrackingStage_Before,
-                                           TestHTTPBRKTrackingStage_During,
-                                           TestHTTPBRKTrackingStage_After}) {
-        for (bool do_brk : {false, true}) {
-            all_tests.push_back(std::make_unique<TestHTTPBRKTracking>(stage, do_brk));
-        }
+    for (bool do_brk : {false, true}) {
+        all_tests.push_back(std::make_unique<TestHTTPBRKTracking>(do_brk));
     }
 
     //////////////////////////////////////////////////////////////////////////

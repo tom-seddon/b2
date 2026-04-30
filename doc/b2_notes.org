@@ -11258,4 +11258,117 @@ Then decode as required.
 
 (Maybe it'd actually need to be per-window. Details...)
 
+** export config to JSON
+
+Some half-baked stuff.
+
+#+begin_src c++
+  static void AddROMPath(std::vector<std::string> *all_paths, const BeebConfig::ROM &rom) {
+      if (!rom.standard_rom) {
+          all_paths->push_back(rom.file_name);
+      }
+  }
+
+  static std::string GetApiPath(const std::string &path, const std::string *suggested_api_read_path) {
+      if (suggested_api_read_path) {
+          ASSERT(PathCompare(path.substr(0, suggested_api_read_path->size()), *suggested_api_read_path) == 0);
+          return path.substr(suggested_api_read_path->size());
+      } else {
+          return path;
+      }
+  }
+
+  bool GetApiConfigArgsForBeebConfig(ApiConfigArgs *api_args, std::string *suggested_api_read_path, const BeebConfig &config, const LogSet *logs) {
+      if (config.base_default_config_name.empty()) {
+      }
+
+      // Collate all the paths.
+      std::vector<std::string> all_paths;
+      for (const BeebConfig::SidewaysROM &rom : config.roms) {
+          AddROMPath(&all_paths, rom);
+      }
+      AddROMPath(&all_paths, config.os);
+
+      if (suggested_api_read_path) {
+          suggested_api_read_path->clear();
+
+          // Not very clever. But computers are fast!
+          if (!all_paths.empty()) {
+              size_t common_prefix_size = 1;
+              bool match;
+              do {
+                  match = true;
+                  std::string possible_common_prefix = all_paths[0].substr(0, common_prefix_size);
+                  for (size_t j = 1; j < all_paths.size(); ++j) {
+                      if (PathCompare(all_paths[j].substr(0, common_prefix_size), possible_common_prefix) != 0) {
+                          match = false;
+                          break;
+                      }
+                  }
+
+                  ++common_prefix_size;
+              } while (match);
+
+              ,*suggested_api_read_path = all_paths[0].substr(0, common_prefix_size);
+              size_t last_separator = std::string::npos;
+              for (size_t i = 0; i < suggested_api_read_path->size(); ++i) {
+                  if (PathIsSeparatorChar((*suggested_api_read_path)[i])) {
+                      last_separator = i;
+                  }
+              }
+
+              if (last_separator == std::string::npos) {
+                  // bleargh. just give up.
+                  suggested_api_read_path->clear();
+              } else {
+                  // truncate prefix at the last path separator.
+                  ,*suggested_api_read_path = suggested_api_read_path->substr(0, last_separator + 1);
+              }
+          }
+      }
+
+      // ...
+
+      api_args->video_nula = config.video_nula;
+      api_args->beeblink = config.beeblink;
+      api_args->mouse = config.mouse;
+
+      // TODO: NVRAM?
+  }
+#+end_src
+** BeebLink test
+
+#+begin_example
+  --config-folder=D:\temp\b2_headless_test --api-read=D:\tom\github\beeblink --api-input=D:\tom\github\b2\etc\tests\http_api\beeblink_test.json
+#+end_example
+
+#+begin_src js-json
+  {
+      "requests":[
+  	{
+  	    "type":"config",
+  	    "args":{
+  		"base_default_config":"B/Acorn 1770",
+  		"sideways_roms":[
+  		    {
+  			"bank":10,
+  			"contents":{
+  			    "path":"beeb/build/beeblink_b2.rom"
+  			}
+  		    }
+  		],
+  		"wait_for_osword_0":true
+  	    }
+  	},
+  	{
+  	    "type":"paste",
+  	    "args":{
+  		"input":["*HELP\r"],
+  		"wait_for_osword_0":true
+  	    }
+  	}
+      ]
+  }
+#+end_src
+
 * eof.

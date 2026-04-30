@@ -515,10 +515,10 @@ static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApiExecuteStartTrackingBRKs(const ApiExecuteArgs &execute_args,
+static void ApiExecuteStartCountingBRKs(const ApiExecuteArgs &execute_args,
                                         std::nullptr_t &&,
                                         std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
-    execute_args.beeb_window->StartTrackingBRKs();
+    execute_args.beeb_window->StartCountingBRKs();
 
     completion_fun(nullptr, {});
 }
@@ -528,29 +528,25 @@ static void ApiExecuteStartTrackingBRKs(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApiExecuteStopTrackingBRKs(const ApiExecuteArgs &execute_args,
-                                       std::nullptr_t &&,
+static void ApiExecuteStopCountingBRKs(const ApiExecuteArgs &execute_args,
+                                       ApiStopCountingBRKsArgs &&request_args,
                                        std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
-    execute_args.beeb_window->StopTrackingBRKs();
+    uint64_t num_brks;
+    if (!execute_args.beeb_window->StopCountingBRKs(&num_brks)) {
+        execute_args.messages->e.f("not currently counting BRKs");
+        completion_fun("request_error", {});
+        return;
+    }
+
+    if (request_args.expected_brk_count.has_value()) {
+        if (*request_args.expected_brk_count != num_brks) {
+            execute_args.messages->e.f("expected BRK count mismatch: expected %" PRIu64 ", got %" PRIu64, *request_args.expected_brk_count, num_brks);
+            completion_fun("test_failed", {});
+            return;
+        }
+    }
 
     completion_fun(nullptr, {});
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-static void ApiFailIfBRKTracked(const ApiExecuteArgs &execute_args,
-                                std::nullptr_t &&,
-                                std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
-    bool any = execute_args.beeb_window->TakeBRKFlag();
-
-    if (any) {
-        completion_fun("brk_executed", {});
-    } else {
-        completion_fun(nullptr, {});
-    }
 }
 #endif
 
@@ -615,12 +611,10 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGData, true);
     } else if (request.type == API_SCREEN_GRAB_PNG_FILE_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGFile, true);
-    } else if (request.type == API_START_TRACKING_BRKS) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartTrackingBRKs, true);
-    } else if (request.type == API_STOP_TRACKING_BRKS) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopTrackingBRKs, true);
-    } else if (request.type == API_FAIL_IF_BRK_TRACKED) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiFailIfBRKTracked, true);
+    } else if (request.type == API_START_COUNTING_BRKS) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCountingBRKs, true);
+    } else if (request.type == API_STOP_COUNTING_BRKS) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCountingBRKs, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);
@@ -668,6 +662,10 @@ static ApiResponse GetApiResponse(const char *failure_reason, nlohmann::json j, 
         ApiFailureResult result;
 
         result.reason = failure_reason;
+
+        messages->i.Flush();
+        messages->w.Flush();
+        messages->e.Flush();
 
         std::shared_ptr<MessageList> message_list = messages->GetMessageList();
         message_list->ForEachMessage([&result](MessageList::Message *message) -> void {

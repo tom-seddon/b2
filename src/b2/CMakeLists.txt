@@ -512,10 +512,8 @@ foreach(OS os120 os200 mos320 mos350 mos500 mos510 mos511i mosI510C electron)
   add_b2_test_literal_category(b2.http.config.osword_0_timeout.${OS})
 endforeach()
 
-foreach(STAGE Before During After)
-  foreach(DO_BRK 0 1)
-    add_b2_test_literal_category(b2.http.track_brk.${STAGE}.${DO_BRK})
-  endforeach()
+foreach(DO_BRK 0 1)
+  add_b2_test_literal_category(b2.http.track_brk.${DO_BRK})
 endforeach()
 
 # add_b2_test_literal_category(b2.http.config)
