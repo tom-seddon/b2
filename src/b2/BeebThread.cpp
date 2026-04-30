@@ -3111,6 +3111,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         ts->beeb->SetDebugState(std::move(debug_state));
 #endif
         ts->beeb->SetPrinterBuffer(&m_printer_buffer);
+        ts->beeb->SetPrinterEnabled(m_is_printer_enabled.load(std::memory_order_acquire));
     }
 
     ts->num_executed_cycles = ts->beeb->GetCycleCountPtr();
