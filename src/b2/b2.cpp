@@ -1590,6 +1590,14 @@ bool TickNoopMessageLoop(int *exit_code) {
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        // The exit_code parameter exists so that the
+        // SDLEventType_Quit exit code can be reported for forwarding
+        // on.
+        //
+        // But it's a bit pointless, because the main reason a
+        // quit-type event would show up here is that SDL2's SIGTERM
+        // handler pushed one. And it always pushes a SDL_QUIT, which
+        // has an implicit exit code of 0.
         if (event.type == SDL_QUIT) {
             keep_running = false;
             *exit_code = 0;

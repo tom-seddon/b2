@@ -139,15 +139,16 @@ struct RunDialogData {
 static gboolean HandleRunDialogIdle(gpointer user_data) {
     auto rdd = (RunDialogData *)user_data;
 
-    if (!TickNoopMessageLoop()) {
+    int exit_code;
+    if (!TickNoopMessageLoop(&exit_code)) {
         // Cancel the dialog, whichever it was. This will count as a
         // cancel of some kind, and execution will continue.
         g_cancellable_cancel(rdd->gcancellable);
 
         // Post another quit message so the main message loop sees it.
-        SDL_Event event = {};
-        event.type = SDL_QUIT;
-        SDL_PushEvent(&event);
+        // Use a failure exit code, as this (probably?) counts as an
+        // error case.
+        PushQuitMessage(1);
     }
 
     return G_SOURCE_CONTINUE;
