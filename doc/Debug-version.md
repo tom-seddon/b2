@@ -697,17 +697,16 @@ applies.
 or the command line in general, and the endpoints are generally
 designed to be fairly easy to use in this way.
 
-It's a good idea (though not mandatory!) to specify `--fail` or
-`--fail-with-body` on the `curl` command line, so that it reports any
-non-success HTTP server status by exiting with a non-zero status.
-
-`--fail` discards any response body in the error case, and
-`--fail-with-body` processes it as normal despite the error.
+It's a good idea to specify `--fail-with-body` on the `curl` command
+line, so that it reports any non-success HTTP server status by exiting
+with a non-zero status and printing the response. The b2 HTTP API
+responds with printable text error messages in the failure case,
+hopefully pointing you towards the problem.
 
 For escaping paths and strings, use `--data-urlencode` to encode the
 arguments appropriately. For example, if using the `reset` command:
 
-    curl 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
+    curl --fail-with-body 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
 
 ## HTTP endpoints
 
@@ -904,8 +903,8 @@ file, if you prefer) invoke [curl](https://curl.se/) to use the
 then the `run` endpoint to get it to boot the disk of interest. Two
 commands will do:
 
-    curl -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.20)"
-	curl -H "Content-Type:application/binary" --upload-file "my_program.ssd" "http://localhost:48075/run/b2?name=my_program.ssd"
+    curl --fail-with-body -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.20)"
+	curl --fail-with-body -H "Content-Type:application/binary" --upload-file "my_program.ssd" "http://localhost:48075/run/b2?name=my_program.ssd"
 	
 Other examples from GitHub:
 
