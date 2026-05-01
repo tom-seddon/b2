@@ -98,7 +98,9 @@ class AppHandler {
     // Default impl does nothing.
     virtual void MessageLoopWillStart();
 
-    // Folder for asset files. Return false if none (and b2 will pick a default).
+    // Folder for asset files. This is poorly named - it's actually the CMake TARGET_DIR for the project that the assets should be loaded from (meaning test projects can get away without having to have their own copy).
+    //
+    // Return false if none (and b2 will pick a default).
     virtual bool GetAssetsFolder(std::string *assets_folder) const = 0;
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE

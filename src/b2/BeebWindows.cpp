@@ -331,9 +331,9 @@ void BeebWindows::ThreadFillAudioBuffer(uint32_t audio_device_id, float *mix_buf
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::UpdateWindowTitles() {
+void BeebWindows::Handle1HzTimer() {
     for (BeebWindow *window : g_->windows) {
-        window->UpdateTitle();
+        window->Handle1HzTimer();
     }
 }
 

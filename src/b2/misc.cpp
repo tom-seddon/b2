@@ -775,7 +775,7 @@ uint32_t GetBBCASCIIFromISO8859_1(std::vector<uint8_t> *bbc_ascii, const std::ve
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const uint8_t VDU_CODE_LENGTHS[32] = {
+const uint8_t NUM_VDU_CONTROL_CODE_PARAMETERS[32] = {
     0,
     1,
     0,
@@ -841,7 +841,7 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8Convert
 #endif
         } else if (data[i] < 32) {
             // Skip VDU codes.
-            i += VDU_CODE_LENGTHS[data[i]];
+            i += NUM_VDU_CONTROL_CODE_PARAMETERS[data[i]];
         } else if (data[i] >= 32 && data[i] < 127) {
             utf8 += g_utf8_char_by_bbc_char[mode][data[i]];
         } else if (data[i] == 127) {

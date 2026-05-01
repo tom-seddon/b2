@@ -11340,6 +11340,7 @@ Some half-baked stuff.
 
 #+begin_example
   --config-folder=D:\temp\b2_headless_test --api-read=D:\tom\github\beeblink --api-input=D:\tom\github\b2\etc\tests\http_api\beeblink_test.json
+  --config-folder=/tmp/b2_headless_test --api-read=/Users/tom/github/beeblink --api-input=/Users/tom/github/b2/etc/tests/http_api/beeblink_test.json
 #+end_example
 
 #+begin_src js-json

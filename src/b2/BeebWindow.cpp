@@ -771,6 +771,10 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
         MUTEX_SET_NAME(m_mutex, std::move(name));
     }
 
+    void Finish() {
+        m_finished.store(true, std::memory_order_release);
+    }
+
     bool IsFinished() const {
         return m_finished.load(std::memory_order_acquire);
     }
@@ -787,11 +791,15 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
         }
     }
 
-    void TakeDataAndFinish(std::vector<uint8_t> *data) {
+    void TakeData(std::vector<uint8_t> *data) {
         LockGuard<Mutex> lock(m_mutex);
 
         *data = std::move(m_data);
-        m_finished.store(true, std::memory_order_release);
+    }
+
+    void TakeDataAndFinish(std::vector<uint8_t> *data) {
+        this->TakeData(data);
+        this->Finish();
     }
 
     void ThreadCallbackWasRemoved(bool success) override {
@@ -807,6 +815,62 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
     mutable Mutex m_mutex;
     std::vector<uint8_t> m_data;
     std::atomic<bool> m_finished{false};
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class BeebWindow::EchoOSWRCHCallback : public OSWRCHCallback {
+  public:
+    EchoOSWRCHCallback(std::string name) {
+        (void)name;
+        MUTEX_SET_NAME(m_mutex, std::move(name));
+    }
+
+    bool WasRemoved() const {
+        return m_removed.load(std::memory_order_acquire);
+    }
+
+    bool ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) override {
+        (void)beeb_thread;
+
+        LockGuard<Mutex> lock(m_mutex);
+
+        if (m_num_args_left > 0) {
+            --m_num_args_left;
+        } else {
+            // Deliberately simplistic translation.
+            if (a >= 32 && a <= 126) {
+                m_data.push_back((char)a);
+            } else if (a == 127) {
+                m_data += "\b \b"; //let the terminal deal with it
+            } else if (a == 13) {
+                m_data.push_back('\n');
+            } else if (a < 32) {
+                m_num_args_left = NUM_VDU_CONTROL_CODE_PARAMETERS[a];
+            }
+        }
+
+        return true;
+    }
+
+    std::string TakeData() {
+        LockGuard<Mutex> lock(m_mutex);
+        return std::move(m_data);
+    }
+
+    void ThreadCallbackWasRemoved(bool success) override {
+        (void)success;
+        m_removed.store(true, std::memory_order_release);
+    }
+
+  protected:
+  private:
+    mutable Mutex m_mutex;
+    std::string m_data;
+    uint8_t m_num_args_left = 0;
+    //std::atomic<bool> m_finished{false};
+    std::atomic<bool> m_removed{false};
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -3972,6 +4036,29 @@ void BeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id, float 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::Handle1HzTimer() {
+    this->UpdateTitle();
+
+    // "expiring" ain't really a great term though.
+    std::vector<std::shared_ptr<EchoOSWRCHCallback>>::iterator it = m_expiring_echo_oswrch_callbacks.begin();
+    while (it != m_expiring_echo_oswrch_callbacks.end()) {
+        this->EchoOSWRCH(*it);
+
+        if ((*it)->WasRemoved()) {
+            it = m_expiring_echo_oswrch_callbacks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    if (m_echo_oswrch_callback) {
+        this->EchoOSWRCH(m_echo_oswrch_callback);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::UpdateTitle() {
     if (!m_beeb_thread->IsStarted()) {
         return;
@@ -4296,6 +4383,26 @@ bool BeebWindow::StopCountingBRKs(uint64_t *num_brks) {
         return true;
     } else {
         return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::StartEchoOSWRCH() {
+    if (!m_echo_oswrch_callback) {
+        m_echo_oswrch_callback = std::make_shared<EchoOSWRCHCallback>("EchoOSWRCH");
+        m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_echo_oswrch_callback));
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::StopEchoOSWRCH() {
+    if (!!m_echo_oswrch_callback) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWRCHCallbackMessage>(m_echo_oswrch_callback));
+        m_expiring_echo_oswrch_callbacks.push_back(std::move(m_echo_oswrch_callback));
     }
 }
 
@@ -4775,6 +4882,16 @@ void BeebWindow::StopCopyOSWRCH(bool copy_to_clipboard) {
 
     m_beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWRCHCallbackMessage>(m_copy_oswrch_callback));
     m_copy_oswrch_callback.reset();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::EchoOSWRCH(const std::shared_ptr<EchoOSWRCHCallback> &callback) {
+    std::string data = callback->TakeData();
+    if (!data.empty()) {
+        puts(data.c_str());
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

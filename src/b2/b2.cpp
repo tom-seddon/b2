@@ -582,17 +582,17 @@ static void ThreadFillAudioBuffer(void *userdata, uint8_t *stream, int len) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PushUpdateWindowTitleEvent(void) {
+static void Push1HzMainThreadTimer(void) {
     SDL_Event event = {};
-    event.user.type = g_first_event_type + SDLEventType_UpdateWindowTitle;
+    event.user.type = g_first_event_type + SDLEventType_1HzMainThreadTimer;
 
     SDL_PushEvent(&event);
 }
 
-static Uint32 UpdateWindowTitle(Uint32 interval, void *param) {
+static Uint32 Handle1HzMainThreadTimer(Uint32 interval, void *param) {
     (void)param;
 
-    PushUpdateWindowTitleEvent();
+    Push1HzMainThreadTimer();
 
     return interval;
 }
@@ -1093,9 +1093,9 @@ static bool InitSystem(
     // Allocate user events
     g_first_event_type = SDL_RegisterEvents(SDLEventType_Count);
 
-    //
-    SDL_AddTimer(1000, &UpdateWindowTitle, NULL);
-    PushUpdateWindowTitleEvent();
+    // Also send an inaugural event to kick things off.
+    SDL_AddTimer(1000, &Handle1HzMainThreadTimer, NULL);
+    Push1HzMainThreadTimer();
 
     SDL_StartTextInput();
 
@@ -2125,10 +2125,10 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
                             }
                             break;
 
-                        case SDLEventType_UpdateWindowTitle:
+                        case SDLEventType_1HzMainThreadTimer:
                             {
-                                rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle, 0);
-                                BeebWindows::UpdateWindowTitles();
+                                rmt_ScopedCPUSample(SDLEventType_1HzMainThreadTimer, 0);
+                                BeebWindows::Handle1HzTimer();
 
                                 if (vblank_monitor->NeedsRefreshDisplayList()) {
                                     auto &&message_list = std::make_shared<MessageList>("RefreshDisplayList");

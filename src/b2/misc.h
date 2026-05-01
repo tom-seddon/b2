@@ -210,6 +210,8 @@ std::string GetUTF8StringForCodePoint(uint32_t u);
 
 void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete, const LogSet *logs);
 
+extern const uint8_t NUM_VDU_CONTROL_CODE_PARAMETERS[32];
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

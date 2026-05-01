@@ -71,7 +71,7 @@ namespace BeebWindows {
 
     void ThreadFillAudioBuffer(uint32_t audio_device_id, float *mix_buffer, size_t mix_buffer_size);
 
-    void UpdateWindowTitles();
+    void Handle1HzTimer();
 
     // If the keymap is in use by any windows, they'll be reset to use
     // the default keymap.

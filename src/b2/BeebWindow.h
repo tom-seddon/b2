@@ -325,6 +325,7 @@ class BeebWindow {
     class ImGuiDebugUI;
     class CopyOSWRCHCallback;
     class CountBRKsCallback;
+    class EchoOSWRCHCallback;
 
     static const char SDL_WINDOW_DATA_NAME[];
 
@@ -366,6 +367,7 @@ class BeebWindow {
 
     bool HandleVBlank(uint64_t ticks);
 
+    void Handle1HzTimer();
     void UpdateTitle();
 
     void BeebKeymapWillBeDeleted(BeebKeymap *keymap);
@@ -440,6 +442,9 @@ class BeebWindow {
     // Also for the benefit of the HTTP API.
     void StartCountingBRKs();
     bool StopCountingBRKs(uint64_t *num_brks);
+
+    void StartEchoOSWRCH();
+    void StopEchoOSWRCH();
 
   protected:
   private:
@@ -618,6 +623,8 @@ class BeebWindow {
     std::shared_ptr<CopyOSWRCHCallback> m_capture_oswrch_callback;
     std::shared_ptr<CopyOSWRCHCallback> m_copy_oswrch_callback;
     std::shared_ptr<CountBRKsCallback> m_count_brks_callback;
+    std::shared_ptr<EchoOSWRCHCallback> m_echo_oswrch_callback;
+    std::vector<std::shared_ptr<EchoOSWRCHCallback>> m_expiring_echo_oswrch_callbacks;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
@@ -689,6 +696,7 @@ class BeebWindow {
 
     bool IsCopyingOSWRCH();
     void StopCopyOSWRCH(bool copy_to_clipboard);
+    void EchoOSWRCH(const std::shared_ptr<EchoOSWRCHCallback> &callback);
 
     //#ifdef IMGUI_ENABLE_TEST_ENGINE
     //    static void InitDearImGuiTests(BeebWindow *beeb_window,

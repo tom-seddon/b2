@@ -46,6 +46,7 @@ struct HeadlessOptions {
     std::string api_input_path;
     std::string api_output_path;
     bool enable_sound = false;
+    bool echo_oswrch = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -84,6 +85,8 @@ static bool ParseCommandLineOptions(HeadlessOptions *options, int argc, char *ar
     p.AddOption("api-write").Meta("PATH").Arg(&options->api_write_path).Help("set initial JSON API write path to PATH").SetIfPresent(&options->api_write_path_specified);
     p.AddOption("api-input").Meta("PATH").Arg(&options->api_input_path).Help("pass contents of PATH to JSON API on startup");
     p.AddOption("api-output").Meta("PATH").Arg(&options->api_output_path).Help("write JSON API output to PATH");
+
+    p.AddOption("echo-oswrch").SetIfPresent(&options->echo_oswrch).Help("echo printable OSWRCH chars to stdout");
 
     if (!p.Parse(argc, argv, nullptr)) {
         return false;
@@ -162,6 +165,10 @@ class HeadlessAppHandler : public AppHandler {
 
         if (m_options.api_write_path_specified) {
             beeb_window->api_globals.write_path = m_options.api_write_path;
+        }
+
+        if (m_options.echo_oswrch) {
+            beeb_window->StartEchoOSWRCH();
         }
 
         if (!!m_api_request) {

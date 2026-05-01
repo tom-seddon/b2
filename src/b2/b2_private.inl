@@ -8,7 +8,7 @@ EBEGIN()
 EPN(VBlank)
 
 // N/A
-EPN(UpdateWindowTitle)
+EPN(1HzMainThreadTimer)
 
 // (MessageHandler *)data1 - delete
 EPN(Message)
