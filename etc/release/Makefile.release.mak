@@ -126,7 +126,7 @@ else
 
 .PHONY:install
 install: PREFIX=$(error Must specify PREFIX)
-install: _B2_PATH:=src/b2/b2
+install: _B2_PATH:=src/b2/b2/b2
 install: _AVAILABLE=$(shell (test -f "$(BUILD)/r.linux/$(_B2_PATH)" && echo r)||(test -d "$(BUILD)/f.linux/$(_B2_PATH)" && echo f))
 install:
 	$(if $(_AVAILABLE),,$(_V)echo No builds available && false)
@@ -134,6 +134,6 @@ install:
 	$(_V)test -f "$(BUILD)/r.linux/$(_B2_PATH)" && cp -v "$(BUILD)/r.linux/$(_B2_PATH)" "$(PREFIX)/bin/b2-debug" || true
 	$(_V)test -f "$(BUILD)/f.linux/$(_B2_PATH)" && cp -v "$(BUILD)/f.linux/$(_B2_PATH)" "$(PREFIX)/bin/b2" || true
 	$(_V)mkdir -p "$(PREFIX)/share/b2"
-	$(_V)cp -Rv "$(BUILD)/$(_AVAILABLE).linux/src/b2/assets/"* "$(PREFIX)/share/b2/"
+	$(_V)cp -Rv "$(BUILD)/$(_AVAILABLE).linux/src/b2/b2/assets/"* "$(PREFIX)/share/b2/"
 
 endif

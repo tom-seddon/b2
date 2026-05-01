@@ -1096,9 +1096,6 @@ def release_source_linux_cmd(options):
             # files from this folder into the app bundle.
             rmtree('etc/release')
 
-        # Stop BeebLink finding any of this stuff.
-        with open('.beeblink-ignore','wb') as f: pass
-
         # Fix up the docs a bit.
         fix_up_md('README.md',options)
         for md_path in glob.glob('doc/*.md'): fix_up_md(md_path,options)
@@ -1107,7 +1104,6 @@ def release_source_linux_cmd(options):
         with open('Makefile','rt') as f: text=f.read()
         text=f'''RELEASE_NAME={options.name}\n'''+text
         with open('Makefile','wt') as f: f.write(text)
-            
 
     # Set timestamps.
     if options.timestamp is not None:
@@ -1134,6 +1130,12 @@ def release_source_linux_cmd(options):
         argv.append(release_folder_name)
         
         must_run_subprocess(argv,options)
+
+    # Stop BeebLink being able to find the volumes that are lying
+    # around in the temp folder.
+    with ChangeDirectory(work_path) as p:
+        # Stop BeebLink finding any of this stuff.
+        with open('.beeblink-ignore','wb') as f: pass
 
     # Do any tests.
     if options.build or options.test or options.install:
