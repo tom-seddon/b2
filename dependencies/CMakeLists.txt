@@ -40,8 +40,8 @@ if(WIN32)
     get_pix_info()
     add_custom_command(
       TARGET ${target} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E $<IF:${USE_PIX},copy_if_different,true> ${PIX_FOLDER}/bin/x64/WinPixEventRuntime.dll $<TARGET_FILE_DIR:b2>
+      COMMAND ${CMAKE_COMMAND} -E $<IF:${USE_PIX},copy_if_different,true> ${PIX_FOLDER}/bin/x64/WinPixEventRuntime.dll $<TARGET_FILE_DIR:${TARGET}>
       VERBATIM)
   endfunction()
-  
+
 endif()

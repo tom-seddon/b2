@@ -200,11 +200,6 @@ class DearImGuiTest : public Test, public AppHandler {
         return m_http_port;
     }
 
-    bool GetAssetsFolder(std::string *assets_folder) const override {
-        *assets_folder = ASSETS_FOLDER;
-        return true;
-    }
-
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override {
         return true;
@@ -1396,11 +1391,6 @@ class TestHTTPAPI : public Test, public AppHandler {
         return m_thread_args.http_port;
     }
 
-    bool GetAssetsFolder(std::string *assets_folder) const override {
-        *assets_folder = ASSETS_FOLDER;
-        return true;
-    }
-
     void MessageLoopWillStart() override {
         TEST_GT_II(m_thread_args.http_port, 0);
         TEST_FALSE(m_thread.joinable());
@@ -2138,11 +2128,6 @@ class b2ModeAppHandler : public OrdinaryAppHandler {
         printf("Config path: %s\n", GetConfigPath("").c_str());
         printf("Cache path: %s\n", GetCachePath("").c_str());
         printf("Example asset path: %s\n", GetAssetPath(GAMECONTROLLER_DB_FILE_NAME).c_str());
-    }
-
-    bool GetAssetsFolder(std::string *assets_folder) const override {
-        *assets_folder = ASSETS_FOLDER;
-        return true;
     }
 
   protected:

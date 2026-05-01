@@ -60,9 +60,6 @@ LOG_TAGGED_DEFINE(LOADSAVE, "config", "LD/SV ", &log_printer_stdout_and_debugger
 // If non-empty, use this as the folder to save config files in.
 static std::string g_override_config_folder;
 
-// If non-empty, use this as the folder to load assets from.
-static std::string g_override_assets_folder;
-
 // If non-empty, use this as the folder to save cache files to.
 static std::string g_override_cache_folder;
 
@@ -117,13 +114,6 @@ static std::string GetXDGPath(const char *env_name, const char *folder_name, con
 
 void SetConfigFolder(std::string folder) {
     g_override_config_folder = std::move(folder);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void SetAssetsFolder(std::string folder) {
-    g_override_assets_folder = std::move(folder);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -233,11 +223,6 @@ static std::string GetAssetPathInternal(const std::string *f0, ...) {
         }
 
         va_end(v);
-    }
-
-    if (!g_override_assets_folder.empty()) {
-        std::string path = PathJoined(g_override_assets_folder, ASSETS_FOLDER, suffix);
-        return path;
     }
 
 #if SYSTEM_WINDOWS || SYSTEM_OSX

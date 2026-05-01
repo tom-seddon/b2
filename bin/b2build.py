@@ -1249,12 +1249,12 @@ def release_binary_windows_cmd(options):
     with ChangeDirectory(zip_folder_path) as p:
         copyfile(p.relpath(os.path.join(build_folder,
                                         build_type_by_configuration['f'].output_path,
-                                        "src/b2/Final/b2.exe")),
+                                        "src/b2/b2/Final/b2.exe")),
                  "b2.exe")
         
         copyfile(p.relpath(os.path.join(build_folder,
                                         build_type_by_configuration['r'].output_path,
-                                        "src/b2/RelWithDebInfo/b2.exe")),
+                                        "src/b2/b2/RelWithDebInfo/b2.exe")),
                  "b2_Debug.exe")
         
         copyfile(p.relpath(os.path.join(options.g_working_copy_path,
@@ -1263,14 +1263,14 @@ def release_binary_windows_cmd(options):
         
         copyfile(p.relpath(os.path.join(build_folder,
                                         build_type_by_configuration['r'].output_path,
-                                        "src/b2/RelWithDebInfo/WinPixEventRuntime.dll")),
+                                        "src/b2/b2/RelWithDebInfo/WinPixEventRuntime.dll")),
                  "WinPixEventRuntime.dll")
         
         create_binary_release_README(head_revision,options)
 
         copytree(p.relpath(os.path.join(build_folder,
                                         build_type_by_configuration['r'].output_path,
-                                        "src/b2/Final/assets")),
+                                        "src/b2/b2/Final/assets")),
                  "assets")
 
         set_tree_timestamps(options.timestamp,'.')
@@ -1288,12 +1288,12 @@ def release_binary_windows_cmd(options):
     with ChangeDirectory(temp_path) as p:
         copyfile(p.relpath(os.path.join(build_folder,
                                         build_type_by_configuration['r'].output_path,
-                                        'src/b2/RelWithDebInfo/b2.pdb')),
+                                        'src/b2/b2/RelWithDebInfo/b2.pdb')),
                  'b2 Debug.pdb')
         
         copyfile(p.relpath(os.path.join(build_folder,
                                         build_type_by_configuration['f'].output_path,
-                                        'src/b2/Final/b2.pdb')),
+                                        'src/b2/b2/Final/b2.pdb')),
                  'b2.pdb')
 
         must_run_subprocess(['7z',

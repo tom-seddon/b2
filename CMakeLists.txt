@@ -372,7 +372,7 @@ endif()
 
 # SANITIZERS - set up sanitizers for that target
 function(b2_target_boilerplate TARGET)
-  set(options SANITIZERS)
+  set(options SANITIZERS RUNTIME_OUTPUT_DIRECTORY PIX)
   cmake_parse_arguments(PARSE_ARGV 1 arg_b2_target_boilerplate "${options}" "" "")
 
   if(DEFINED arg_b2_target_boilerplate_UNPARSED_ARGUMENTS)
@@ -381,6 +381,20 @@ function(b2_target_boilerplate TARGET)
   
   if(${arg_b2_target_boilerplate_SANITIZERS})
     add_sanitizers(${TARGET})
+  endif()
+
+  if(${arg_b2_target_boilerplate_RUNTIME_OUTPUT_DIRECTORY})
+    # add a RUNTIME_OUTPUT_DIRECTORY named after the target, so that
+    # targets that would otherwise get built into the same folder
+    # don't step on one another.
+    set_property(TARGET ${TARGET}
+      PROPERTY RUNTIME_OUTPUT_DIRECTORY ${TARGET})
+  endif()
+
+  if(${arg_b2_target_boilerplate_PIX})
+    if(WIN32)
+      add_copy_pix_dlls_command(${TARGET})
+    endif()
   endif()
 
   set_property(TARGET ${TARGET} PROPERTY CXX_SCAN_FOR_MODULES FALSE)

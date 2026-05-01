@@ -54,7 +54,7 @@ add_library(b2_lib STATIC
   miniz.cpp
   http_api.cpp http_api.h
   )
-
+  
 if(OSX)
   target_sources(b2_lib PRIVATE load_save.mm)
 endif()
@@ -234,7 +234,7 @@ target_link_libraries(b2_lib PUBLIC ${SDL2_LIBRARY})
 add_executable(b2 MACOSX_BUNDLE
   b2_app.cpp)
 target_link_libraries(b2 PRIVATE b2_lib)
-b2_target_boilerplate(b2 SANITIZERS)
+b2_target_boilerplate(b2 SANITIZERS RUNTIME_OUTPUT_DIRECTORY PIX)
 
 # b2_headless shares much of the setup with b2, as it's also a
 # runnable copy of the emulator designed for end user use.
@@ -244,7 +244,7 @@ b2_target_boilerplate(b2 SANITIZERS)
 add_executable(b2_headless
   b2_headless.cpp)
 target_link_libraries(b2_headless PRIVATE b2_lib)
-b2_target_boilerplate(b2_headless SANITIZERS)
+b2_target_boilerplate(b2_headless SANITIZERS RUNTIME_OUTPUT_DIRECTORY PIX)
 
 foreach(TARGET b2 b2_headless)
   if(WIN32)
@@ -341,8 +341,6 @@ if(WIN32)
   # http://public.kitware.com/Bug/view.php?id=12566
   #
   # TL;DR - bleargh. So this is done with a #pragma in b2.cpp.
-
-  add_copy_pix_dlls_command(b2)
 endif()
 
 ##########################################################################
@@ -461,15 +459,15 @@ endif()
 add_executable(b2_test
   b2_test.cpp
   b2_test.inl)
-# Load assets from wherever b2 was built to. 
-target_compile_definitions(b2_test PRIVATE ASSETS_FOLDER="$<TARGET_FILE_DIR:b2>")
 # Stick config stuff in some transient place.
 target_compile_definitions(b2_test PRIVATE TRANSIENT_DATA_FOLDER="${CMAKE_BINARY_DIR}/b2_test_data.$<CONFIG>")
 # Also have b2_SOURCE_DIR, same as test_beeb.
 target_compile_definitions(b2_test PRIVATE b2_SOURCE_DIR="${b2_SOURCE_DIR}")
 
-b2_target_boilerplate(b2_test SANITIZERS)
+b2_target_boilerplate(b2_test SANITIZERS RUNTIME_OUTPUT_DIRECTORY PIX)
 target_link_libraries(b2_test PRIVATE b2_lib)
+
+add_copy_assets_custom_commands(b2_test assets)
 
 add_test(NAME b2/b2_test_list_tests
   COMMAND $<TARGET_FILE:b2_test> --list-for-check_ctest_log)
@@ -547,3 +545,4 @@ endforeach()
 # endfunction()
 
 # add_b2_integration_test(b2_tests.quit)
+

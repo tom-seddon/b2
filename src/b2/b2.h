@@ -98,11 +98,6 @@ class AppHandler {
     // Default impl does nothing.
     virtual void MessageLoopWillStart();
 
-    // Folder for asset files. This is poorly named - it's actually the CMake TARGET_DIR for the project that the assets should be loaded from (meaning test projects can get away without having to have their own copy).
-    //
-    // Return false if none (and b2 will pick a default).
-    virtual bool GetAssetsFolder(std::string *assets_folder) const = 0;
-
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     // Whether to initialise Dear ImGui Test Engine.
     virtual bool IsDearImGuiTestEngineEnabled() const = 0;
@@ -149,7 +144,6 @@ class OrdinaryAppHandler : public AppHandler {
     bool GetConfigAndCacheOverrideFolder(std::string *folder) const override; //returns false
     int GetRequestedHttpServerListenPort() const override;                    //returns 0xbbcb
     int GetLaunchRequestHttpServerPort() const override;                      //returns 0xbbcb
-    bool GetAssetsFolder(std::string *asset_folder) const override;           //returns false
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override; //returns false
 #endif

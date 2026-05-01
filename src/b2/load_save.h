@@ -27,10 +27,6 @@ std::string GetAssetPath(const std::string &f0, const std::string &f1);
 // default will be used.
 void SetConfigFolder(std::string folder);
 
-// Set folder for asset files explicitly. If never set, a system-specific
-// default will be used.
-void SetAssetsFolder(std::string folder);
-
 // Set folder for cache files explicitly. If never set, a system-specific
 // default will be used.
 void SetCacheFolder(std::string folder);

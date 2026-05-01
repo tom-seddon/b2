@@ -180,13 +180,6 @@ class HeadlessAppHandler : public AppHandler {
         }
     }
 
-    // default b2 logic is ok.
-    bool GetAssetsFolder(std::string *assets_folder) const override {
-        (void)assets_folder;
-
-        return false;
-    }
-
 #if IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override {
         return false;
