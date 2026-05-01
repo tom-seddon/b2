@@ -193,7 +193,7 @@ def must_capture_subprocess(argv,options,**other_popen_kwargs):
     try:
         result=subprocess.check_output(argv,text=True)
         return result.strip()
-    except CalledProcessError as e:
+    except subprocess.CalledProcessError as e:
         fatal('failed with return code %d: %s'%(e.returncode,get_copyable_argv(argv)))
 
 ##########################################################################
@@ -1377,7 +1377,7 @@ def release_binary_macos_cmd(options):
         output_path=os.path.join(build_folder,build_type.output_path)
         with ChangeDirectory(output_path) as p:
             if build_type.configuration=='r':
-                info_plist_path='src/b2/b2.app/Contents/Info.plist'
+                info_plist_path='src/b2/b2/b2.app/Contents/Info.plist'
                 output=must_capture_subprocess(['/usr/libexec/PlistBuddy',
                                                 '-c',
                                                 'print CFBundleIdentifier',
@@ -1395,8 +1395,8 @@ def release_binary_macos_cmd(options):
                 ['./submodules/macdylibbundler/dylibbundler',
                  '--create-dir',
                  '--bundle-deps',
-                 '--fix-file','src/b2/b2.app/Contents/MacOS/b2',
-                 '--dest-dir','src/b2/b2.app/Contents/libs/'],
+                 '--fix-file','src/b2/b2/b2.app/Contents/MacOS/b2',
+                 '--dest-dir','src/b2/b2/b2.app/Contents/libs/'],
                 options)
                 
         if options.test: run_make(build_folder,
@@ -1450,7 +1450,7 @@ def release_binary_macos_cmd(options):
         for bundle in app_bundles:
             src_app_path=os.path.join(build_folder,
                                       build_type_by_configuration[bundle.configuration].output_path,
-                                      'src/b2/b2.app')
+                                      'src/b2/b2/b2.app')
 
             dest_app_path=os.path.join(mount,f'''{bundle.name}.app''')
             

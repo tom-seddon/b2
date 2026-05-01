@@ -1168,11 +1168,9 @@ static void CheckAssetPath(const std::string &path_) {
 
     // Don't compare the entire real path, because that'll be
     // different from the apparent path when run from a symlinked
-    // location. Strip out everything before the assets folder in the
-    // app bundle, which is easy to do as the bundle has an
-    // identifying enough layout. And there'll be no symlinks inside
-    // the app bundle.
-    std::string bundle_assets_folder = "/Contents/Resources/assets/";
+    // location. Strip out everything before the assets folder, easy
+    // enough to do as a string processing operation.
+    std::string bundle_assets_folder = "/assets/";
 
     std::string::size_type real_relative_path_start = real_path.rfind(bundle_assets_folder);
     ASSERT(real_relative_path_start != std::string::npos);

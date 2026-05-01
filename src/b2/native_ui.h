@@ -50,6 +50,9 @@ void *GetKeyWindow();
 // Returns [NSEvent doubleClickInterval].
 double GetDoubleClickIntervalSeconds();
 
+// Determines whether program is running from inside a .app bundle or not.
+bool IsRunningFromAppBundle();
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////

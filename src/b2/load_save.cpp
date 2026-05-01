@@ -12,6 +12,7 @@
 #endif
 #include <shared/file_io.h>
 #include "load_save_config_rapidjson.h"
+#include "native_ui.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -188,7 +189,7 @@ static const char ASSETS_FOLDER[] = "assets";
 #elif SYSTEM_LINUX
 static const char ASSETS_FOLDER[] = "assets";
 #elif SYSTEM_OSX
-static const char ASSETS_FOLDER[] = "../Resources/assets";
+static std::string g_assets_folder;
 #else
 #error unknown system
 #endif
@@ -225,11 +226,23 @@ static std::string GetAssetPathInternal(const std::string *f0, ...) {
         va_end(v);
     }
 
-#if SYSTEM_WINDOWS || SYSTEM_OSX
-
-    // Look somewhere relative to the EXE.
+#if SYSTEM_WINDOWS
 
     std::string path = PathJoined(PathGetFolder(PathGetEXEFileName()), ASSETS_FOLDER, suffix);
+    return path;
+
+#elif SYSTEM_OSX
+
+    if (g_assets_folder.empty()) {
+        // It'd be nice just to have all the stuff in assets next to the EXE in every case, but the docs warn against doing anything unusual with the bundle layout.
+        if (IsRunningFromAppBundle()) {
+            g_assets_folder = "../Resources/assets";
+        } else {
+            g_assets_folder = "assets";
+        }
+    }
+
+    std::string path = PathJoined(PathGetFolder(PathGetEXEFileName()), g_assets_folder, suffix);
     return path;
 
 #elif SYSTEM_LINUX
