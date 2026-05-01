@@ -766,7 +766,8 @@ bool BeebWindow::OptionsUI::OnClose() {
 
 class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
   public:
-    CopyOSWRCHCallback(std::string name) {
+    CopyOSWRCHCallback(std::string name, bool persistent = false)
+        : m_persistent(persistent) {
         (void)name;
         MUTEX_SET_NAME(m_mutex, std::move(name));
     }
@@ -777,6 +778,10 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
 
     bool IsFinished() const {
         return m_finished.load(std::memory_order_acquire);
+    }
+
+    bool ThreadIsPersistent() const override {
+        return m_persistent;
     }
 
     bool ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) override {
@@ -812,6 +817,7 @@ class BeebWindow::CopyOSWRCHCallback : public OSWRCHCallback {
 
   protected:
   private:
+    const bool m_persistent = false;
     mutable Mutex m_mutex;
     std::vector<uint8_t> m_data;
     std::atomic<bool> m_finished{false};
@@ -829,6 +835,11 @@ class BeebWindow::EchoOSWRCHCallback : public OSWRCHCallback {
 
     bool WasRemoved() const {
         return m_removed.load(std::memory_order_acquire);
+    }
+
+    bool ThreadIsPersistent() const override {
+        // Echo OSWRCH is always persistent, as it's set on the command line.
+        return true;
     }
 
     bool ThreadOnOSWRCH(BeebThread *beeb_thread, uint8_t a) override {
@@ -998,6 +1009,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
 
 BeebWindow::~BeebWindow() {
     m_beeb_thread->Stop();
+
+    this->EchoOSWRCH();
 
     if (m_update_tv_texture_thread.joinable()) {
         {
@@ -4039,21 +4052,7 @@ void BeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id, float 
 void BeebWindow::Handle1HzTimer() {
     this->UpdateTitle();
 
-    // "expiring" ain't really a great term though.
-    std::vector<std::shared_ptr<EchoOSWRCHCallback>>::iterator it = m_expiring_echo_oswrch_callbacks.begin();
-    while (it != m_expiring_echo_oswrch_callbacks.end()) {
-        this->EchoOSWRCH(*it);
-
-        if ((*it)->WasRemoved()) {
-            it = m_expiring_echo_oswrch_callbacks.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    if (m_echo_oswrch_callback) {
-        this->EchoOSWRCH(m_echo_oswrch_callback);
-    }
+    this->EchoOSWRCH();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4335,7 +4334,7 @@ void BeebWindow::StartCaptureOSWRCH() {
     }
 
     if (!m_capture_oswrch_callback) {
-        m_capture_oswrch_callback = std::make_shared<CopyOSWRCHCallback>("CaptureOSWRCH");
+        m_capture_oswrch_callback = std::make_shared<CopyOSWRCHCallback>("CaptureOSWRCH", true);
         m_beeb_thread->Send(std::make_shared<BeebThread::AddOSWRCHCallbackMessage>(m_capture_oswrch_callback));
     }
 }
@@ -4882,6 +4881,27 @@ void BeebWindow::StopCopyOSWRCH(bool copy_to_clipboard) {
 
     m_beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWRCHCallbackMessage>(m_copy_oswrch_callback));
     m_copy_oswrch_callback.reset();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::EchoOSWRCH() {
+    // "expiring" ain't really a great term though.
+    std::vector<std::shared_ptr<EchoOSWRCHCallback>>::iterator it = m_expiring_echo_oswrch_callbacks.begin();
+    while (it != m_expiring_echo_oswrch_callbacks.end()) {
+        this->EchoOSWRCH(*it);
+
+        if ((*it)->WasRemoved()) {
+            it = m_expiring_echo_oswrch_callbacks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    if (m_echo_oswrch_callback) {
+        this->EchoOSWRCH(m_echo_oswrch_callback);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

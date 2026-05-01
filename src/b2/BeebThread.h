@@ -127,6 +127,11 @@ class OSWRCHCallback {
     OSWRCHCallback() = default;
     virtual ~OSWRCHCallback() = default;
 
+    // persistent callbacks persist across ThreadReplaceBeeb operations.
+    //
+    // Default impl returns false.
+    virtual bool ThreadIsPersistent() const;
+
     // called on some arbitrary thread.
     //
     // Return true to leave the callback in place, or false to have it removed automatically.

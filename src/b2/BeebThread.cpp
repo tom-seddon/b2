@@ -122,6 +122,13 @@ bool OSWORD0Callback::ThreadIsStillRelevant() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool OSWRCHCallback::ThreadIsPersistent() const {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool OSWRCHCallback::ThreadIsStillRelevant() const {
     return true;
 }
@@ -3042,9 +3049,12 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 
         ThreadCallSharedCompletionFunFailure(ts, std::move(ts->paste_completion_fun), "discarded", "Emulated system is being replaced");
 
-        for (const std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
+        for (std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
             if (callback) {
-                callback->ThreadCallbackWasRemoved(false);
+                if (!callback->ThreadIsPersistent()) {
+                    callback->ThreadCallbackWasRemoved(false);
+                    callback.reset();
+                }
             }
         }
 
@@ -3055,7 +3065,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         }
 
         ts->completion_timeouts.clear();
-        ts->oswrch_callbacks.clear();
         ts->osword_0_callbacks.clear();
         ts->brk_callbacks.clear();
 
@@ -3110,9 +3119,12 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 #if BBCMICRO_DEBUGGER
         ts->beeb->SetDebugState(std::move(debug_state));
 #endif
-        ts->beeb->SetPrinterBuffer(&m_printer_buffer);
-        ts->beeb->SetPrinterEnabled(m_is_printer_enabled.load(std::memory_order_acquire));
     }
+
+    ts->beeb->SetPrinterBuffer(&m_printer_buffer);
+    ts->beeb->SetPrinterEnabled(m_is_printer_enabled.load(std::memory_order_acquire));
+
+    ThreadUpdateCallbacks(ts);
 
     ts->num_executed_cycles = ts->beeb->GetCycleCountPtr();
 
@@ -4280,6 +4292,7 @@ void BeebThread::ThreadUpdateCallbacks(ThreadState *ts) {
     // Remove piled-up nulls from the lists.
     RemoveNulls(&ts->osword_0_callbacks);
     RemoveNulls(&ts->oswrch_callbacks);
+    RemoveNulls(&ts->brk_callbacks);
 
     // Not really ideal, but this whole business does not promise to be cheap.
     std::sort(ts->completion_timeouts.begin(),

@@ -696,6 +696,7 @@ class BeebWindow {
 
     bool IsCopyingOSWRCH();
     void StopCopyOSWRCH(bool copy_to_clipboard);
+    void EchoOSWRCH();
     void EchoOSWRCH(const std::shared_ptr<EchoOSWRCHCallback> &callback);
 
     //#ifdef IMGUI_ENABLE_TEST_ENGINE
