@@ -79,17 +79,13 @@ Initial setup, for use after cloning or updating the repo:
    goes wrong it should stop with a `CMake Error` that will hopefully
    explain things
 
-Day-to-day build steps:
+Ordinary build steps:
 
-1. Change to build folder.
+1. Change to build folder. One of the following:
 
-   For macOS, debug (`build/d.osx`) or release (`build/r.osx`).
-   
-   For Linux, debug (`build/d.linux`) or release (`build/r.linux`).
-   
-   (Debug build has no optimizations, asserts compiled in, plus maybe
-   some other stuff that's snuck in.)
-   
+   - for b2 with debugger, `build/r.linux` or `build/r.osx`
+   - for b2 without debugger, `build/f.linux` or `build/f.osx`
+
 2. Run `ninja` to build. If building with gcc, note that it is normal
    for this to take longer than you might like. Build times with clang
    are a bit better. It may use a lot of RAM in either case
@@ -97,10 +93,11 @@ Day-to-day build steps:
    (`ninja -j 1` will run max 1 job at once, possibly worth trying on
    Linux if the build awakens the OOM killer)
 
-3. Run `ninja test` to run the automated tests (this might take a few
+3. Run `ctest -j N`, where `N` is the number of hardware threads on
+   your PC, to run the automated tests (this might take a few
    minutes - they should all pass)
 
-4. On Linux, run `./src/b2/b2` to run
+4. On Linux, run `./src/b2/b2/b2` to run
 
    On macOS, run `./src/b2/b2.app/Contents/MacOS/b2` to run
 
@@ -122,25 +119,6 @@ The app is built as a bundle, which you can find in the `src/b2`
 folder inside the build folder of interest. You can run this in situ
 from Finder or the command line, or copy it to your `Applications`
 folder and run it from there.
-
-# Sanitizers
-
-As well as plain old release and debug, you can build b2 with
-whichever gcc/clang sanitizers your compiler supports. Sanitizer build
-folders have a suffix indicating which sanitizer is active:
-
-* `a` - address sanitizer
-* `t` - thread sanitizer
-* `u` - undefined behaviour sanitizer
-* `m` - memory sanitizer
-
-Not all compilers support all sanitizers, nor is there any guarantee
-this actually works. And if it does work, you might still get
-warnings.
-
-# Running the automated tests
-
-`ninja test` will run the full set of tests.
 
 # Want to build with some other compiler?
 
