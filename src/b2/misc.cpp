@@ -1127,11 +1127,11 @@ static_assert(sizeof(BASE64_ALPHABET) - 1 == 64);
 
 static constexpr int8_t GetBase64BitsFromChar(uint8_t ch) {
     if (ch >= 'A' && ch <= 'Z') {
-        return 0 + (ch - 'A');
+        return (int8_t)(0 + (ch - 'A'));
     } else if (ch >= 'a' && ch <= 'z') {
-        return 26 + (ch - 'a');
+        return (int8_t)(26 + (ch - 'a'));
     } else if (ch >= '0' && ch <= '9') {
-        return 52 + (ch - '0');
+        return (int8_t)(52 + (ch - '0'));
     } else if (ch == '+') {
         return 62;
     } else if (ch == '/') {
