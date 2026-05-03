@@ -32,7 +32,7 @@ ROMType BeebConfig::SidewaysROM::GetROMType() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, size_t size, const LogSet *logs) {
+static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, size_t size, const LogSet &logs) {
     std::string path;
     if (rom.standard_rom) {
         path = rom.standard_rom->GetAssetPath();
@@ -40,12 +40,12 @@ static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, siz
         path = rom.file_name;
     }
 
-    if (!LoadFile(data, path, logs)) {
+    if (!LoadFile(data, path, &logs)) {
         return false;
     }
 
     if (data->size() > size) {
-        logs->e.f(
+        logs.e.f(
             "ROM too large (%zu bytes; max: %zu bytes): %s\n",
             data->size(),
             size,
@@ -57,7 +57,7 @@ static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, siz
 }
 
 template <size_t SIZE>
-static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::ROM &rom, const LogSet *logs) {
+static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::ROM &rom, const LogSet &logs) {
     std::vector<uint8_t> data;
     if (!LoadROM2(&data, rom, SIZE, logs)) {
         return nullptr;
@@ -77,11 +77,11 @@ static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::RO
 }
 
 static std::shared_ptr<std::vector<uint8_t>> LoadSidewaysROM(const BeebConfig::SidewaysROM &rom,
-                                                             const LogSet *logs) {
+                                                             const LogSet &logs) {
     const ROMTypeMetadata *metadata = GetROMTypeMetadata(rom.GetROMType());
 
     if (metadata->num_bytes == 0) {
-        logs->e.f("ROM type not loadable from file: %s\n", metadata->description);
+        logs.e.f("ROM type not loadable from file: %s\n", metadata->description);
         return nullptr;
     }
 
@@ -520,7 +520,7 @@ bool BeebLoadedConfig::Load(
     BeebLoadedConfig *dest,
     const BeebConfig &src,
     const BeebConfigArguments &arguments,
-    const LogSet *logs) {
+    const LogSet &logs) {
     dest->config = src;
     dest->arguments = arguments;
 
@@ -548,12 +548,12 @@ bool BeebLoadedConfig::Load(
         ASSERT(metadata);
 
         std::vector<uint8_t> data;
-        if (!LoadFile(&data, dest->config.os.file_name, logs)) {
+        if (!LoadFile(&data, dest->config.os.file_name, &logs)) {
             return false;
         }
 
         if (data.size() != metadata->file_size_bytes) {
-            logs->e.f("%s ROM is %zu bytes, not %zu bytes as expected: %s\n", metadata->description, data.size(), data.size(), dest->config.os.file_name.c_str());
+            logs.e.f("%s ROM is %zu bytes, not %zu bytes as expected: %s\n", metadata->description, data.size(), data.size(), dest->config.os.file_name.c_str());
             return false;
         }
 
@@ -619,7 +619,7 @@ bool BeebLoadedConfig::Load(
     bool any_hard_disk_failures = false;
     for (size_t i = 0; i < NUM_HARD_DISKS; ++i) {
         if (!src.hard_disk_dat_paths[i].empty()) {
-            dest->hard_disk_images.images[i] = HardDiskImage::CreateForFile(src.hard_disk_dat_paths[i], logs);
+            dest->hard_disk_images.images[i] = HardDiskImage::CreateForFile(src.hard_disk_dat_paths[i], &logs);
             if (!dest->hard_disk_images.images[i]) {
                 any_hard_disk_failures = true;
                 // (but carry on, to note any additional failures)

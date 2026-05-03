@@ -1830,7 +1830,7 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
             bool got_initial_loaded_config = false;
 
             if (!options.config_name.empty()) {
-                if (BeebWindows::LoadConfigByName(&initial_loaded_config, options.config_name, {}, &init_messages)) {
+                if (BeebWindows::LoadConfigByName(&initial_loaded_config, options.config_name, {}, init_messages)) {
                     got_initial_loaded_config = true;
                 }
             }
@@ -1840,14 +1840,14 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
                     if (BeebWindows::LoadConfigByName(&initial_loaded_config,
                                                       BeebWindows::defaults.config,
                                                       {},
-                                                      &init_messages)) {
+                                                      init_messages)) {
                         got_initial_loaded_config = true;
                     }
                 }
             }
 
             if (!got_initial_loaded_config) {
-                if (BeebLoadedConfig::Load(&initial_loaded_config, *GetDefaultBeebConfigByIndex(0), {}, &init_messages)) {
+                if (BeebLoadedConfig::Load(&initial_loaded_config, *GetDefaultBeebConfigByIndex(0), {}, init_messages)) {
                     got_initial_loaded_config = true;
                 }
             }

@@ -237,7 +237,7 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
         arguments.multi_os_bank = dest.os_rom_type - OSROMType_MultiOSBank0;
     }
 
-    if (!BeebLoadedConfig::Load(loaded_config, dest, arguments, &logs)) {
+    if (!BeebLoadedConfig::Load(loaded_config, dest, arguments, logs)) {
         return false;
     }
 
@@ -480,14 +480,14 @@ static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
 static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
                                         ApiScreenGrabPNGDataArgs &&request_args,
                                         std::function<void(const char *, ApiScreenGrabPNGDataResult &&)> completion_fun) {
-    SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, execute_args.messages.get());
+    SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, *execute_args.messages);
     if (!screenshot) {
         completion_fun("screenshot_error", {});
         return;
     }
 
     ApiScreenGrabPNGDataResult result;
-    if (!SaveSDLSurfaceToPNGData(&result.data.bytes, screenshot.get(), execute_args.messages.get())) {
+    if (!SaveSDLSurfaceToPNGData(&result.data.bytes, screenshot.get(), *execute_args.messages)) {
         completion_fun("screenshot_error", {});
         return;
     }
@@ -503,14 +503,14 @@ static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
 static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
                                         ApiScreenGrabPNGFileArgs &&request_args,
                                         std::function<void(const char *, ApiScreenGrabPNGFileResult &&)> completion_fun) {
-    SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, execute_args.messages.get());
+    SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, *execute_args.messages);
     if (!screenshot) {
         completion_fun("screenshot_error", {});
         return;
     }
 
     std::vector<uint8_t> png_data;
-    if (!SaveSDLSurfaceToPNGData(&png_data, screenshot.get(), execute_args.messages.get())) {
+    if (!SaveSDLSurfaceToPNGData(&png_data, screenshot.get(), *execute_args.messages)) {
         completion_fun("screenshot_error", {});
         return;
     }
@@ -1220,7 +1220,7 @@ class HTTPMethodsHandler : public HTTPHandler {
             BeebConfigArguments arguments;
 
             BeebLoadedConfig loaded_config;
-            if (!BeebWindows::LoadConfigByName(&loaded_config, config_name, arguments, &messages)) {
+            if (!BeebWindows::LoadConfigByName(&loaded_config, config_name, arguments, messages)) {
                 this->SendMessagesResponse(server, request, message_list);
                 return;
             }

@@ -55,14 +55,14 @@ std::string GetConfigFileName();
 
 // File names are assumed to be UTF-8.
 
-bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet *logs);
+bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet &logs);
 
 // Result must be freed with free.
 //
 // Used by the macOS copy-to-clipboard routine (as it can directly consume data allocated with malloc).
-unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_ptr, const LogSet *logs);
+unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_ptr, const LogSet &logs);
 
-bool SaveSDLSurfaceToPNGData(std::vector<uint8_t> *png_data, SDL_Surface *surface, const LogSet *logs);
+bool SaveSDLSurfaceToPNGData(std::vector<uint8_t> *png_data, SDL_Surface *surface, const LogSet &logs);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

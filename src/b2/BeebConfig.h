@@ -176,7 +176,7 @@ class BeebLoadedConfig {
     std::shared_ptr<const std::array<uint8_t, 4096>> parasite_os;
     HardDiskImageSet hard_disk_images;
 
-    static bool Load(BeebLoadedConfig *loaded_config, const BeebConfig &config, const BeebConfigArguments &arguments, const LogSet *logs);
+    static bool Load(BeebLoadedConfig *loaded_config, const BeebConfig &config, const BeebConfigArguments &arguments, const LogSet &logs);
 
     void ReuseROMs(const BeebLoadedConfig &oth);
 

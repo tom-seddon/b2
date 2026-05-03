@@ -329,11 +329,11 @@ static bool IsR8G8B8(const SDL_PixelFormat *format) {
     return true;
 }
 
-static unsigned char *SaveSDLSurface2(int *out_len, SDL_Surface *surface, const LogSet *logs) {
+static unsigned char *SaveSDLSurface2(int *out_len, SDL_Surface *surface, const LogSet &logs) {
     SDL_SurfaceLocker locker(surface);
 
     if (!locker.IsLocked()) {
-        logs->e.f("Failed to lock surface: %s\n", SDL_GetError());
+        logs.e.f("Failed to lock surface: %s\n", SDL_GetError());
         return nullptr;
     }
 
@@ -349,7 +349,7 @@ static unsigned char *SaveSDLSurface2(int *out_len, SDL_Surface *surface, const 
 
         if (SDL_ConvertPixels(surface->w, surface->h, surface->format->format, surface->pixels, surface->pitch,
                               SDL_PIXELFORMAT_ABGR8888, file_pixels.data(), surface->w * 4) < 0) {
-            logs->e.f("Failed to convert pixel data: %s\n", SDL_GetError());
+            logs.e.f("Failed to convert pixel data: %s\n", SDL_GetError());
             return nullptr;
         }
 
@@ -357,7 +357,7 @@ static unsigned char *SaveSDLSurface2(int *out_len, SDL_Surface *surface, const 
     }
 }
 
-bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet *logs) {
+bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet &logs) {
     int png_size;
     unsigned char *png = SaveSDLSurface2(&png_size, surface, logs);
     if (!png || png_size < 0) {
@@ -365,7 +365,7 @@ bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet 
         return false;
     }
 
-    bool good = SaveFile(png, (size_t)png_size, path, logs);
+    bool good = SaveFile(png, (size_t)png_size, path, &logs);
 
     free(png);
     png = nullptr;
@@ -380,7 +380,7 @@ bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, const LogSet 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_ptr, const LogSet *logs) {
+unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_ptr, const LogSet &logs) {
     int png_size;
     unsigned char *png = SaveSDLSurface2(&png_size, surface, logs);
     if (!png || png_size < 0) {
@@ -395,7 +395,7 @@ unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_pt
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SaveSDLSurfaceToPNGData(std::vector<uint8_t> *png_data, SDL_Surface *surface, const LogSet *logs) {
+bool SaveSDLSurfaceToPNGData(std::vector<uint8_t> *png_data, SDL_Surface *surface, const LogSet &logs) {
     bool good = false;
     int png_size;
     unsigned char *png = SaveSDLSurface2(&png_size, surface, logs);

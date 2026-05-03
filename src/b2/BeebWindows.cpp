@@ -405,10 +405,10 @@ BeebKeymap *BeebWindows::FindBeebKeymapByName(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, const BeebConfigArguments &config_arguments, Messages *msg) {
+bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, const BeebConfigArguments &config_arguments, const Messages &msg) {
     const BeebConfig *config = FindBeebConfigByName(config_name);
     if (!config) {
-        msg->e.f("unknown config: %s\n", config_name.c_str());
+        msg.e.f("unknown config: %s\n", config_name.c_str());
         return false;
     }
 

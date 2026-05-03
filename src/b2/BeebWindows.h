@@ -107,7 +107,7 @@ namespace BeebWindows {
     //
     // Otherwise, try to initialize a BeebLoadedConfig, returning false if there
     // was a problem and printing messages out to *msg.
-    bool LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, const BeebConfigArguments &config_arguments, Messages *msg);
+    bool LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, const BeebConfigArguments &config_arguments, const Messages &msg);
     void AddConfig(BeebConfig config);
     void InsertConfig(BeebConfig config, size_t index);
     void RemoveConfigByIndex(size_t index);

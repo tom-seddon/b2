@@ -39,10 +39,14 @@ bool LoadJSONFile2(nlohmann::json *j, const std::string &path, const LogSet *log
 
 void HandleLoadJSONError(const char *notional_path, const LogSet *logs, const char *exc_what) {
     if (notional_path) {
-        logs->e.f("%s: ", notional_path);
+        if (logs) {
+            logs->e.f("%s: ", notional_path);
+        }
     }
 
-    logs->e.f("failed to load: %s\n", exc_what);
+    if (logs) {
+        logs->e.f("failed to load: %s\n", exc_what);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

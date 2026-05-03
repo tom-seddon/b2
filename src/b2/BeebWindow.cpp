@@ -1844,7 +1844,7 @@ void BeebWindow::DoCommands(bool *close_window) {
         if (fd.Open(m_window, &path)) {
             SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24);
             if (!!screenshot) {
-                SaveSDLSurface(screenshot.get(), path, &m_msg);
+                SaveSDLSurface(screenshot.get(), path, m_msg);
             }
         }
     }
@@ -4315,7 +4315,7 @@ AppHandler *BeebWindow::GetAppHandler() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SDLUniquePtr<SDL_Surface> BeebWindow::GetDisplayData(bool correct_aspect_ratio, const LogSet *logs) const {
+SDLUniquePtr<SDL_Surface> BeebWindow::GetDisplayData(bool correct_aspect_ratio, const LogSet &logs) const {
     return this->CreateScreenshot(SDL_PIXELFORMAT_RGB24,
                                   true, //last vsync
                                   correct_aspect_ratio,
@@ -4672,10 +4672,10 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
                                   m_settings.screenshot_last_vsync,
                                   m_settings.screenshot_correct_aspect_ratio,
                                   m_settings.screenshot_filter,
-                                  &m_msg);
+                                  m_msg);
 }
 
-SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, bool filter, const LogSet *logs) const {
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, bool filter, const LogSet &logs) const {
     UniqueLock<Mutex> lock;
     uint32_t *tv_pixels;
     if (last_vsync) {
@@ -4717,7 +4717,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
         }
 
         if (blit_result != 0) {
-            logs->e.f("Failed to resize image: %s\n", SDL_GetError());
+            logs.e.f("Failed to resize image: %s\n", SDL_GetError());
             return nullptr;
         }
 
@@ -4729,7 +4729,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
     } else {
         std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, pixel_format));
         if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
-            logs->e.f("Failed to copy image: %s\n", SDL_GetError());
+            logs.e.f("Failed to copy image: %s\n", SDL_GetError());
             return nullptr;
         }
 
@@ -4824,7 +4824,7 @@ void BeebWindow::SaveWindowLayout(const std::string &path) {
 bool BeebWindow::HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags) {
     BeebLoadedConfig tmp;
 
-    if (BeebLoadedConfig::Load(&tmp, config, arguments, &m_msg)) {
+    if (BeebLoadedConfig::Load(&tmp, config, arguments, m_msg)) {
         m_init_arguments.default_config = std::move(tmp);
 
         auto message = std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(m_init_arguments.default_config, flags);

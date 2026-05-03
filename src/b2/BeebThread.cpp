@@ -883,7 +883,7 @@ bool BeebThread::HardResetAndReloadConfigMessage::ThreadPrepare(std::shared_ptr<
     }
 
     BeebLoadedConfig reloaded_config;
-    if (!BeebLoadedConfig::Load(&reloaded_config, ts->current_config.config, ts->current_config.arguments, &ts->msgs)) {
+    if (!BeebLoadedConfig::Load(&reloaded_config, ts->current_config.config, ts->current_config.arguments, ts->msgs)) {
         return false;
     }
 

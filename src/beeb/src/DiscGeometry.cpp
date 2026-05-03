@@ -84,9 +84,9 @@ static void PrintInvalidSizeMessage(const char *name, const LogSet &logs) {
     logs.e.f("\n");
 }
 
-static void WarnIfNotMultipleOfSectorSize(const char *name, size_t size, const LogSet *logs) {
+static void WarnIfNotMultipleOfSectorSize(const char *name, size_t size, const LogSet &logs) {
     if (size % 256 != 0) {
-        logs->w.f("File length (%zu) not a multiple of sector size (256): %s\n", size, name);
+        logs.w.f("File length (%zu) not a multiple of sector size (256): %s\n", size, name);
     }
 }
 
@@ -95,7 +95,9 @@ static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry, const char *na
     ASSERT(!disc_image_type->possible_geometries[0].double_density);
     *geometry = DiscGeometry(80, 10, 256, disc_image_type->possible_geometries[0].double_sided);
 
-    WarnIfNotMultipleOfSectorSize(name, size, logs);
+    if (logs) {
+        WarnIfNotMultipleOfSectorSize(name, size, *logs);
+    }
 
     if (size > geometry->GetTotalNumBytes()) {
         if (logs) {
@@ -144,7 +146,9 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *nam
 static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, uint64_t size, const LogSet *logs, const DiscImageType *disc_image_type) {
     (void)disc_image_type;
 
-    WarnIfNotMultipleOfSectorSize(name, size, logs);
+    if (logs) {
+        WarnIfNotMultipleOfSectorSize(name, size, *logs);
+    }
 
     if (size > ADL_SIZE) {
         if (logs) {
