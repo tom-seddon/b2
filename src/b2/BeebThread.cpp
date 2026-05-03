@@ -825,7 +825,7 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
             *completion_fun = nullptr;
 
             // policy for this case: if *EXECing, don't call the completion function.
-            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(shared_completion_fun,false));
+            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(shared_completion_fun, false));
 
             if (m_osword_0_timeout_seconds > 0.) {
                 ts->beeb_thread->ThreadAddCompletionTimeout(ts, shared_completion_fun, m_osword_0_timeout_seconds);
@@ -1532,7 +1532,7 @@ void BeebThread::StartPasteMessage::ThreadHandle(CompletionFun *completion_fun,
                     ThreadCallSharedCompletionFunFailure(ts, std::move(paste_completion_fun), failure_reason, failure_text);
                 } else {
                     // TODO: feels most useful to skip OSWORD 0s during *EXEC. But maybe it's arguable.
-                    ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(paste_completion_fun,false));
+                    ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(paste_completion_fun, false));
 
                     if (osword_0_timeout_seconds > 0.) {
                         ts->beeb_thread->ThreadAddCompletionTimeout(ts, paste_completion_fun, osword_0_timeout_seconds);

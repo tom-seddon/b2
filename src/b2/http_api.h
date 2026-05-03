@@ -237,6 +237,25 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiOSROM, contents, os_rom_type)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Updated NVRAM byte.
+struct ApiConfigNVRAMByte {
+    // Offset in NVRAM.
+    int index = -1;
+
+    // AND value for byte.
+    uint8_t andv = 0;
+
+    // OR value for byte.
+    uint8_t orv = 0;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigNVRAMByte,
+                                                index,
+                                                andv,
+                                                orv);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Specify a new BBC config.
 
 static const char API_CONFIG_REQUEST_TYPE[] = "config";
@@ -252,7 +271,7 @@ struct ApiConfigArgs {
 
     std::optional<bool> beeblink;
 
-    //std::vector<std::optional<uint8_t>> nvram;//TODO: need a better syntax for this.
+    std::vector<ApiConfigNVRAMByte> nvram_bytes;
 
     bool boot = false;
 
@@ -272,7 +291,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 sideways_roms,
                                                 video_nula,
                                                 beeblink,
-                                                //nvram,
+                                                nvram_bytes,
                                                 boot,
                                                 wait_for_osword_0,
                                                 wait_for_osword_0_timeout_seconds);

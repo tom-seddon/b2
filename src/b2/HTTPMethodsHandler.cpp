@@ -114,6 +114,7 @@ struct ApiExecuteArgs {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 static bool GetFilePath(std::string *full_path, const std::string &path, const ApiSetGlobalsArgs &api_globals, const LogSet &logs) {
     if (PathIsFullySpecified(path)) {
         *full_path = path;
@@ -128,6 +129,7 @@ static bool GetFilePath(std::string *full_path, const std::string &path, const A
         return true;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -219,11 +221,15 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
     SetOptional(&dest.video_nula, src.video_nula);
     SetOptional(&dest.beeblink, src.beeblink);
 
-    //    for (size_t i = 0; i < dest.nvram.size() && i < src.nvram.size(); ++i) {
-    //        if (src.nvram[i].has_value()) {
-    //            dest.nvram[i] = *src.nvram[i];
-    //        }
-    //    }
+    for (const ApiConfigNVRAMByte &byte : src.nvram_bytes) {
+        if (byte.index < 0 || (size_t)byte.index >= dest.nvram.size()) {
+            logs.e.f("invalid NVRAM byte index: %d\n", byte.index);
+            return false;
+        }
+
+        dest.nvram[(size_t)byte.index] &= byte.andv;
+        dest.nvram[(size_t)byte.index] |= byte.orv;
+    }
 
     BeebConfigArguments arguments;
 
@@ -246,9 +252,9 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
 #if BBCMICRO_DEBUGGER
 template <class RequestArgsType>
 static void GetResetArguments(uint32_t *flags, double *osword_0_timeout_seconds, const RequestArgsType &request_args) {
-    *flags=BeebThreadHardResetFlag_Run;
-    *osword_0_timeout_seconds=BeebThread::HardResetMessage::DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
-    
+    *flags = BeebThreadHardResetFlag_Run;
+    *osword_0_timeout_seconds = BeebThread::HardResetMessage::DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
+
     if (request_args.wait_for_osword_0) {
         *flags |= BeebThreadHardResetFlag_WaitForOSWORD0;
         *osword_0_timeout_seconds = request_args.wait_for_osword_0_timeout_seconds.value_or(API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
@@ -274,10 +280,10 @@ static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
         completion_fun("load_failure", nullptr);
         return;
     }
-    
+
     uint32_t flags;
     double osword_0_timeout_seconds;
-    GetResetArguments(&flags,&osword_0_timeout_seconds,request_args);
+    GetResetArguments(&flags, &osword_0_timeout_seconds, request_args);
 
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config),
                                                                                                  flags,
@@ -301,7 +307,7 @@ static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
                             std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
     uint32_t flags;
     double osword_0_timeout_seconds;
-    GetResetArguments(&flags,&osword_0_timeout_seconds,request_args);
+    GetResetArguments(&flags, &osword_0_timeout_seconds, request_args);
 
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(flags,
                                                                                                  osword_0_timeout_seconds),

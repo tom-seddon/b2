@@ -1685,9 +1685,15 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
                 config_args.sideways_roms.push_back(rom);
 
                 // LANG setting is top 4 bits of byte +5.
-                TEST_GE_UU(default_config->nvram.size(), 6);
-                config_args.nvram.resize(6);
-                config_args.nvram[5] = (uint8_t)((default_config->nvram[5] & 0x0f) | 0x80);
+                {
+                    ApiConfigNVRAMByte byte;
+
+                    byte.index = 5;
+                    byte.andv = 0x0f;
+                    byte.orv = rom.bank << 4;
+
+                    config_args.nvram_bytes.push_back(byte);
+                }
             }
 
             HTTPResponse http_response;
@@ -1744,7 +1750,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
 
         {
             ApiRequest request;
-            request.type = API_START_COUNTING_BRKS;
+            request.type = API_START_COUNTING_BRKS_REQUEST_TYPE;
             requests.requests.push_back(std::move(request));
         }
 
@@ -1765,7 +1771,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             args.expected_brk_count = m_do_brk ? 1 : 0;
 
             ApiRequest request;
-            request.type = API_STOP_COUNTING_BRKS;
+            request.type = API_STOP_COUNTING_BRKS_REQUEST_TYPE;
             request.args = std::move(args);
 
             requests.requests.push_back(std::move(request));
@@ -1892,7 +1898,7 @@ class CountOSWORD0s : public OSWORD0Callback {
         return m_num_osword_0s.load(std::memory_order_acquire);
     }
 
-    bool ThreadOnOSWORD0(BeebThread *) override {
+    bool ThreadOnOSWORD0(BeebThread *, bool) override {
         m_num_osword_0s.fetch_add(1, std::memory_order_acq_rel);
 
         return true;
