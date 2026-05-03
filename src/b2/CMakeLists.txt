@@ -514,7 +514,7 @@ foreach(DO_BRK 0 1)
   add_b2_test_literal_category(b2.http.track_brk.${DO_BRK})
 endforeach()
 
-# add_b2_test_literal_category(b2.http.config)
+add_b2_test_literal_category(b2.http.peek)
 
 ##########################################################################
 ##########################################################################

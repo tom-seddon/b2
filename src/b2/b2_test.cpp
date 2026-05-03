@@ -1530,13 +1530,13 @@ class TestHTTPConfig : public TestHTTPAPI {
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_START_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_START_CAPTURE_OSWRCH, nullptr), &http_response);
             TEST_EQ_II(status, 200);
         }
 
@@ -1545,13 +1545,13 @@ class TestHTTPConfig : public TestHTTPAPI {
             ApiPasteArgs paste_args;
             TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "REM DUMMY LINE\rREM TIME=0:REPEAT:UNTILTIME>200\r*FX0\r", nullptr, nullptr, nullptr));
             paste_args.wait_for_osword_0 = true;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_PASTE, paste_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_STOP_CAPTURE_OSWRCH, nullptr), &http_response);
             TEST_EQ_II(status, 200);
 
             ApiStopCaptureOSWRCHResult result = GetSingleApiResultFromHTTPResponse<ApiStopCaptureOSWRCHResult>(http_response);
@@ -1599,7 +1599,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             config_args.wait_for_osword_0 = true;
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
@@ -1610,7 +1610,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             paste_args.wait_for_osword_0_timeout_seconds = .5;
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_PASTE_REQUEST_TYPE, paste_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_PASTE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
             TEST_EQ_SS(result.reason, "timeout");
@@ -1697,7 +1697,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             }
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_CONFIG_REQUEST_TYPE, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
             TEST_EQ_SS(result.reason, "timeout");
@@ -1742,7 +1742,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             args.wait_for_osword_0_timeout_seconds = 10.;
 
             ApiRequest request;
-            request.type = API_CONFIG_REQUEST_TYPE;
+            request.type = API_REQUEST_TYPE_CONFIG;
             request.args = args;
 
             requests.requests.push_back(std::move(request));
@@ -1750,7 +1750,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
 
         {
             ApiRequest request;
-            request.type = API_START_COUNTING_BRKS_REQUEST_TYPE;
+            request.type = API_REQUEST_TYPE_START_COUNTING_BRKS;
             requests.requests.push_back(std::move(request));
         }
 
@@ -1760,7 +1760,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             args.wait_for_osword_0 = true;
 
             ApiRequest request;
-            request.type = API_PASTE_REQUEST_TYPE;
+            request.type = API_REQUEST_TYPE_PASTE;
             request.args = std::move(args);
 
             requests.requests.push_back(std::move(request));
@@ -1771,7 +1771,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             args.expected_brk_count = m_do_brk ? 1 : 0;
 
             ApiRequest request;
-            request.type = API_STOP_COUNTING_BRKS_REQUEST_TYPE;
+            request.type = API_REQUEST_TYPE_STOP_COUNTING_BRKS;
             request.args = std::move(args);
 
             requests.requests.push_back(std::move(request));
@@ -1811,6 +1811,112 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
 //
 //    return api_result;
 //}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TestHTTPPeek : public TestHTTPAPI {
+  public:
+    TestHTTPPeek() = default;
+
+    std::string GetFullName() const override {
+        return "b2.http.peek";
+    }
+
+  protected:
+    void Thread(ThreadArgs *thread_args) override {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+        client->SetLogs(&g_stdio_logs);
+        client->SetVerbose(true);
+
+        std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
+
+        ApiMultipleRequests requests;
+
+        {
+            ApiConfigArgs args;
+            args.base_default_config = "B/Acorn 1770";
+            args.wait_for_osword_0 = true;
+            args.wait_for_osword_0_timeout_seconds = 10.;
+
+            ApiRequest request;
+            request.type = API_REQUEST_TYPE_CONFIG;
+            request.args = args;
+
+            requests.requests.push_back(std::move(request));
+        }
+
+        {
+            ApiPeekArgs args;
+            args.begin = 0x8000;
+            args.size = 0x4000;
+            args.suffix = "f";
+
+            ApiRequest request;
+            request.type = API_REQUEST_TYPE_PEEK;
+            request.args = args;
+
+            requests.requests.push_back(std::move(request));
+        }
+
+        {
+            ApiPeekArgs args;
+            args.begin = 0x8000;
+            args.end = 0xc000;
+            args.suffix = "e";
+
+            ApiRequest request;
+            request.type = API_REQUEST_TYPE_PEEK;
+            request.args = args;
+
+            requests.requests.push_back(std::move(request));
+        }
+
+        HTTPRequest http_request;
+        http_request.url = url;
+        http_request.method = "POST";
+        http_request.content_type = HTTP_JSON_CONTENT_TYPE;
+        http_request.body = SaveJSONData(requests);
+
+        HTTPResponse http_response;
+        int status = client->SendRequest(http_request, &http_response);
+        TEST_EQ_II(status, 200);
+
+        ApiMultipleResponses api_response;
+        TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
+        TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
+
+        TEST_TRUE(api_response.success);
+        TEST_EQ_UU(api_response.responses.size(), 3);
+
+        std::string exc_what;
+
+        ApiPeekResult basic2_result;
+        TEST_TRUE(LoadJSON(&basic2_result, api_response.responses[1].result, &exc_what));
+        TEST_EQ_UU(basic2_result.data.bytes.size(), 16384);
+
+        ApiPeekResult acorn_dfs_result;
+        TEST_TRUE(LoadJSON(&acorn_dfs_result, api_response.responses[2].result, &exc_what));
+        TEST_EQ_UU(acorn_dfs_result.data.bytes.size(), 16384);
+
+        std::vector<uint8_t> basic2;
+        TEST_TRUE(LoadFile(&basic2, BEEB_ROM_BASIC2.GetAssetPath(), &g_stdio_logs));
+        TEST_EQ_UU(basic2.size(), 16384);
+        TEST_EQ_AA(basic2_result.data.bytes.data(), basic2.data(), 16384);
+
+        std::vector<uint8_t> acorn_dfs;
+        TEST_TRUE(LoadFile(&acorn_dfs, BEEB_ROM_ACORN_DFS.GetAssetPath(), &g_stdio_logs));
+        TEST_EQ_UU(acorn_dfs.size(), 16384);
+        TEST_EQ_AA(acorn_dfs_result.data.bytes.data(), acorn_dfs.data(), 16384);
+
+#else
+        (void)thread_args;
+#endif
+    }
+
+  private:
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2210,6 +2316,8 @@ int main(int argc, char *argv[]) {
         all_tests.push_back(std::make_unique<TestHTTPBRKTracking>(do_brk));
     }
 
+    all_tests.push_back(std::make_unique<TestHTTPPeek>());
+
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     //
@@ -2300,7 +2408,9 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            // TODO: the b2 code isn't designed to be re-initialised after it's quit, but... maybe it'd actually work? To be continued.
+            // TODO: the b2 code isn't designed to be re-initialised after it's
+            // quit, but... maybe it'd actually be possible to make this work?
+            // To be continued.
             TEST_LE_UU(n, 1);
 
             g_interactive = true;

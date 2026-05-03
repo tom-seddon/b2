@@ -291,7 +291,7 @@ static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
                                    [completion_fun,
                                     messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
                                        if (failure_text) {
-                                           messages->e.f("%s failed: %s\n", API_CONFIG_REQUEST_TYPE, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_CONFIG, failure_text);
                                        }
                                        completion_fun(failure_reason, nullptr);
                                    });
@@ -314,7 +314,7 @@ static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
                                    [completion_fun,
                                     messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
                                        if (failure_text) {
-                                           messages->e.f("%s failed: %s\n", API_RESET_REQUEST_TYPE, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_RESET, failure_text);
                                        }
                                        completion_fun(failure_reason, nullptr);
                                    });
@@ -345,7 +345,7 @@ static void ApiExecutePaste(const ApiExecuteArgs &execute_args,
                                     messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
                                        ASSERT(!!messages);
                                        if (failure_text) {
-                                           messages->e.f("%s failed: %s\n", API_PASTE_REQUEST_TYPE, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_PASTE, failure_text);
                                        }
                                        completion_fun(failure_reason, nullptr);
                                    });
@@ -613,11 +613,54 @@ static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
                                    [messages = execute_args.messages,
                                     completion_fun](const char *failure_reason, const char *failure_text) -> void {
                                        if (failure_text) {
-                                           messages->e.f("%s failed: %s\n", API_LOAD_DISK_IMAGE_REQUEST_TYPE, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_LOAD_DISK_IMAGE, failure_text);
                                        }
 
                                        completion_fun(failure_reason, {});
                                    });
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
+                           ApiPeekArgs &&request_args,
+                           std::function<void(const char *, ApiPeekResult &&)> completion_fun) {
+    if (request_args.end.has_value() == request_args.size.has_value()) {
+        execute_args.messages->e.f("Must specify exactly one of size or value\n");
+        completion_fun("request_error", {});
+        return;
+    }
+
+    uint32_t end;
+    if (request_args.end.has_value()) {
+        end = *request_args.end;
+        if (end < request_args.begin) {
+            execute_args.messages->e.f("end must be >= begin\n");
+            completion_fun("request_error", {});
+            return;
+        }
+    } else {
+        end = request_args.begin + *request_args.size;
+    }
+
+    uint32_t dso;
+    std::shared_ptr<const BBCMicroType> type = execute_args.beeb_thread->GetBBCMicroType();
+    if (!ParseAddressSuffix(&dso, type, request_args.suffix.c_str(), &execute_args.messages->e)) {
+        completion_fun("request_error", {});
+        return;
+    }
+
+    execute_args.beeb_thread->Send(std::make_unique<BeebThread::CallbackMessage>([begin = request_args.begin,
+                                                                                  end,
+                                                                                  dso,
+                                                                                  mos = request_args.mos,
+                                                                                  completion_fun](BBCMicro *m) -> void {
+        ApiPeekResult result;
+        result.data.bytes.resize(end - begin);
+        m->DebugGetBytes(result.data.bytes.data(), result.data.bytes.size(), {(uint16_t)begin}, dso, mos);
+
+        completion_fun(nullptr, std::move(result));
+    }));
 }
 #endif
 
@@ -666,30 +709,32 @@ static void HandleApiExecute(const ApiExecuteArgs &execute_args,
 static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
                                  ApiRequest request,
                                  std::function<void(const char *, nlohmann::json)> completion_fun) {
-    if (request.type == API_CONFIG_REQUEST_TYPE) {
+    if (request.type == API_REQUEST_TYPE_CONFIG) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteConfig, true);
-    } else if (request.type == API_PASTE_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_PASTE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePaste, true);
-    } else if (request.type == API_START_CAPTURE_OSWRCH_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_START_CAPTURE_OSWRCH) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCaptureOSWRCH, true);
-    } else if (request.type == API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_STOP_CAPTURE_OSWRCH) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCH, true);
-    } else if (request.type == API_LIST_VALUES_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_LIST_VALUES) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
-    } else if (request.type == API_SET_GLOBALS_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_SET_GLOBALS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetGlobals, true);
-    } else if (request.type == API_SCREEN_GRAB_PNG_DATA_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_SCREEN_GRAB_PNG_DATA) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGData, true);
-    } else if (request.type == API_SCREEN_GRAB_PNG_FILE_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_SCREEN_GRAB_PNG_FILE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGFile, true);
-    } else if (request.type == API_START_COUNTING_BRKS_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_START_COUNTING_BRKS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCountingBRKs, true);
-    } else if (request.type == API_STOP_COUNTING_BRKS_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_STOP_COUNTING_BRKS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCountingBRKs, true);
-    } else if (request.type == API_LOAD_DISK_IMAGE_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_LOAD_DISK_IMAGE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteLoadDiskImage, true);
-    } else if (request.type == API_RESET_REQUEST_TYPE) {
+    } else if (request.type == API_REQUEST_TYPE_RESET) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteReset, true);
+    } else if (request.type == API_REQUEST_TYPE_PEEK) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePeek, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);

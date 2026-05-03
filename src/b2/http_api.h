@@ -24,9 +24,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(T,...) means struct T is part
 // of the JSON API. Only structs tagged this way are part of the API.
 //
@@ -46,15 +43,17 @@
 // - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
 // - BBCString - JSON array of strings and numbers. See the BBCString struct
 
-// If a field is std::optional<T>, its type is T (see above), and there is some
-// specific handling when the field is absent.
-//
-// Otherwise, if the field is absent, it is treated as having its default value:
+// If the field is absent, it is treated as having its default value:
 //
 // - std::string - empty string
 // - bool, uint8_t, uint16_t, Enum<T> - as noted
 // - std::vector<T> - empty array
 // - nlohmann::json - null
+
+// If a field is std::optional<T>, its type is T (see above), but it doesn't
+// have a default value, and there is some specific handling when the field is
+// absent. (Don't read too much into the term "optional". An "optional" value
+// may well actually be mandatory.)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -97,23 +96,23 @@
 // - This encoding is designed to be vaguely human readable and writeable
 //   assuming that the data is captured OSWRCH output or typeable text intended
 //   for OSRDCH paste
-struct BBCString {
+struct ApiBBCString {
     std::vector<uint8_t> bytes;
 };
-void from_json(const nlohmann::json &j, BBCString &s);
-void to_json(nlohmann::json &j, const BBCString &s);
+void from_json(const nlohmann::json &j, ApiBBCString &s);
+void to_json(nlohmann::json &j, const ApiBBCString &s);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// BBCBinaryData represents binary data: a sequence of arbitrary bytes.
+// ApiBinaryData binary data: a sequence of arbitrary bytes.
 //
 // The encoding is always base64. This is not really ideal, but everything supports it.
-struct BBCBinaryData {
+struct ApiBinaryData {
     std::vector<uint8_t> bytes;
 };
-void from_json(const nlohmann::json &j, BBCBinaryData &s);
-void to_json(nlohmann::json &j, const BBCBinaryData &s);
+void from_json(const nlohmann::json &j, ApiBinaryData &s);
+void to_json(nlohmann::json &j, const ApiBinaryData &s);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -131,7 +130,7 @@ static constexpr double API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 15.;
 
 // A single API request.
 struct ApiRequest {
-    // The type of request. Use the value of the API_XXX_REQUEST_TYPE value, where XXX is the request type name in upper case snake_case format.
+    // The type of request. Use the value of the API_REQUEST_TYPE_XXX value, where XXX is the request type name in upper case snake_case format.
     std::string type;
 
     // The args for the request. Use the ApiXXXArgs struct, where XXX is the request type name in PascalCase format - or null if no such.
@@ -258,7 +257,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigNVRAMByte,
 
 // Specify a new BBC config.
 
-static const char API_CONFIG_REQUEST_TYPE[] = "config";
+static const char API_REQUEST_TYPE_CONFIG[] = "config";
 
 struct ApiConfigArgs {
     std::string base_default_config;
@@ -299,7 +298,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_RESET_REQUEST_TYPE[] = "reset";
+static const char API_REQUEST_TYPE_RESET[] = "reset";
 
 struct ApiResetArgs {
     bool boot = false;
@@ -314,10 +313,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResetArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_PASTE_REQUEST_TYPE[] = "paste";
+static const char API_REQUEST_TYPE_PASTE[] = "paste";
 
 struct ApiPasteArgs {
-    BBCString input;
+    ApiBBCString input;
 
     // If true, after the last character is pasted, wait for the next OSWORD 0
     // call before reporting success or failure.
@@ -335,15 +334,15 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input, wait_for_os
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_START_CAPTURE_OSWRCH_REQUEST_TYPE[] = "start_capture_oswrch";
+static const char API_REQUEST_TYPE_START_CAPTURE_OSWRCH[] = "start_capture_oswrch";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE[] = "stop_capture_oswrch";
+static const char API_REQUEST_TYPE_STOP_CAPTURE_OSWRCH[] = "stop_capture_oswrch";
 
 struct ApiStopCaptureOSWRCHResult {
-    BBCString output;
+    ApiBBCString output;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, output);
 
@@ -357,7 +356,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, outp
 //
 // Other values are fixed, and will not change.
 
-static const char API_LIST_VALUES_REQUEST_TYPE[] = "list_values";
+static const char API_REQUEST_TYPE_LIST_VALUES[] = "list_values";
 
 struct ApiListValuesArgs {
     // One of:
@@ -381,7 +380,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_SET_GLOBALS_REQUEST_TYPE[] = "set_globals";
+static const char API_REQUEST_TYPE_SET_GLOBALS[] = "set_globals";
 
 struct ApiSetGlobalsArgs {
     //
@@ -396,7 +395,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_SCREEN_GRAB_PNG_DATA_REQUEST_TYPE[] = "screen_grab_png_data";
+static const char API_REQUEST_TYPE_SCREEN_GRAB_PNG_DATA[] = "screen_grab_png_data";
 
 struct ApiScreenGrabPNGDataArgs {
     // Correct aspect ratio looks right, but bitmap mode pixels will contain artefacts due to being resized.
@@ -406,7 +405,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataArgs,
                                                 correct_aspect_ratio);
 
 struct ApiScreenGrabPNGDataResult {
-    BBCBinaryData data;
+    ApiBinaryData data;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataResult,
                                                 data);
@@ -414,7 +413,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataResult,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_SCREEN_GRAB_PNG_FILE_REQUEST_TYPE[] = "screen_grab_png_file";
+static const char API_REQUEST_TYPE_SCREEN_GRAB_PNG_FILE[] = "screen_grab_png_file";
 
 struct ApiScreenGrabPNGFileArgs {
     // Correct aspect ratio looks right, but bitmap mode pixels will contain artefacts due to being resized.
@@ -444,14 +443,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileResult,
 //
 // The counter starts at 0.
 
-static const char API_START_COUNTING_BRKS_REQUEST_TYPE[] = "start_counting_brks";
+static const char API_REQUEST_TYPE_START_COUNTING_BRKS[] = "start_counting_brks";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // Stop counting BRK instructions.
 
-static const char API_STOP_COUNTING_BRKS_REQUEST_TYPE[] = "stop_counting_brks";
+static const char API_REQUEST_TYPE_STOP_COUNTING_BRKS[] = "stop_counting_brks";
 
 struct ApiStopCountingBRKsArgs {
     // If not supplied, the request always succeeds.
@@ -466,7 +465,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCountingBRKsArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_LOAD_DISK_IMAGE_REQUEST_TYPE[] = "load_disk_image";
+static const char API_REQUEST_TYPE_LOAD_DISK_IMAGE[] = "load_disk_image";
 
 struct ApiLoadDiskImageArgs {
     std::string path;
@@ -475,6 +474,31 @@ struct ApiLoadDiskImageArgs {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadDiskImageArgs,
                                                 path,
                                                 drive);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char API_REQUEST_TYPE_PEEK[] = "peek";
+
+struct ApiPeekArgs {
+    uint32_t begin = 0;
+    std::optional<uint32_t> end;
+    std::optional<uint32_t> size;
+    std::string suffix;
+    bool mos = false;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekArgs,
+                                                begin,
+                                                end,
+                                                size,
+                                                suffix,
+                                                mos);
+
+struct ApiPeekResult {
+    ApiBinaryData data;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekResult,
+                                                data);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
