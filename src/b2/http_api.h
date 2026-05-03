@@ -243,15 +243,15 @@ struct ApiConfigNVRAMByte {
     int index = -1;
 
     // AND value for byte.
-    uint8_t andv = 0;
+    uint8_t mask = 0;
 
     // OR value for byte.
-    uint8_t orv = 0;
+    uint8_t value = 0;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigNVRAMByte,
                                                 index,
-                                                andv,
-                                                orv);
+                                                mask,
+                                                value);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

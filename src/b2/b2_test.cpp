@@ -1689,8 +1689,8 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
                     ApiConfigNVRAMByte byte;
 
                     byte.index = 5;
-                    byte.andv = 0x0f;
-                    byte.orv = rom.bank << 4;
+                    byte.mask = 0x0f;
+                    byte.value = rom.bank << 4;
 
                     config_args.nvram_bytes.push_back(byte);
                 }

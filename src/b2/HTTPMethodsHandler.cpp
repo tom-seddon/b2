@@ -227,8 +227,8 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
             return false;
         }
 
-        dest.nvram[(size_t)byte.index] &= byte.andv;
-        dest.nvram[(size_t)byte.index] |= byte.orv;
+        dest.nvram[(size_t)byte.index] &= byte.mask;
+        dest.nvram[(size_t)byte.index] |= byte.value;
     }
 
     BeebConfigArguments arguments;
