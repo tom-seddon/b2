@@ -1858,7 +1858,7 @@ void BeebWindow::DoCommands(bool *close_window) {
 #endif
         SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(ideal_clipboard_format);
         if (!!screenshot) {
-            SetClipboardImage(screenshot.get(), &m_msg);
+            SetClipboardImage(screenshot.get(), m_msg);
         }
     }
 

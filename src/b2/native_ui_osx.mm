@@ -38,9 +38,9 @@ nlohmann::json SaveSelectorDialogPersistentDataOSX() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
+void SetClipboardImage(SDL_Surface *surface, const LogSet &logs) {
     size_t png_size;
-    unsigned char *png = SaveSDLSurfaceToPNGData(surface, &png_size, messages);
+    unsigned char *png = SaveSDLSurfaceToPNGData(surface, &png_size, logs);
     if (!png) {
         return;
     }
