@@ -11372,4 +11372,8 @@ Some half-baked stuff.
   }
 #+end_src
 
+** OSWORD 0 stuff
+
+*EXEC file handle: $0256
+
 * eof.

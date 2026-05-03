@@ -24,6 +24,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(T,...) means struct T is part
 // of the JSON API. Only structs tagged this way are part of the API.
 //
@@ -234,14 +237,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiOSROM, contents, os_rom_type)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// There's no BeebConfig/BeebLoadedConfig separation via the HTTP API. You
-// specify the config, and a new running BBC with that config appears,
-// corresponding to no entry on the hardware menu.
+// Specify a new BBC config.
 
 static const char API_CONFIG_REQUEST_TYPE[] = "config";
 
 struct ApiConfigArgs {
-    //
     std::string base_default_config;
 
     std::optional<ApiOSROM> os_rom;
@@ -252,21 +252,18 @@ struct ApiConfigArgs {
 
     std::optional<bool> beeblink;
 
-    std::vector<std::optional<uint8_t>> nvram;
+    //std::vector<std::optional<uint8_t>> nvram;//TODO: need a better syntax for this.
 
-    std::optional<bool> mouse;
+    bool boot = false;
 
-    // If true, wait for the next OSWORD 0 call before reporting success or
-    // failure.
+    // If true, wait for the next OSWORD 0 call before the request completes.
     bool wait_for_osword_0 = false;
 
-    // If provided, the number of (emulated) seconds to wait for the OSWORD 0
-    // call when wait_for_osword_0. If the timeout is exceeded, the request
-    // fails.
+    // If wait_for_osword_0 is true: the number of (emulated) seconds to wait for the OSWORD 0
+    // call to be made. If the timeout is exceeded, the request
+    // fails. If not provided, a default will be used; if the value is <=0, no timeout, and the emulator will wait indefinitely.
     //
-    // If not provided, a default will be used.
-    //
-    // If <=0, no timeout (please exercise appropriate caution).
+    // If wait_for_osword_0 is false: ignored.
     std::optional<double> wait_for_osword_0_timeout_seconds;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
@@ -275,8 +272,23 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 sideways_roms,
                                                 video_nula,
                                                 beeblink,
-                                                nvram,
-                                                mouse,
+                                                //nvram,
+                                                boot,
+                                                wait_for_osword_0,
+                                                wait_for_osword_0_timeout_seconds);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char API_RESET_REQUEST_TYPE[] = "reset";
+
+struct ApiResetArgs {
+    bool boot = false;
+    bool wait_for_osword_0 = false;
+    std::optional<double> wait_for_osword_0_timeout_seconds;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResetArgs,
+                                                boot,
                                                 wait_for_osword_0,
                                                 wait_for_osword_0_timeout_seconds);
 
@@ -413,14 +425,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileResult,
 //
 // The counter starts at 0.
 
-static const char API_START_COUNTING_BRKS[] = "start_counting_brks";
+static const char API_START_COUNTING_BRKS_REQUEST_TYPE[] = "start_counting_brks";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // Stop counting BRK instructions.
 
-static const char API_STOP_COUNTING_BRKS[] = "stop_counting_brks";
+static const char API_STOP_COUNTING_BRKS_REQUEST_TYPE[] = "stop_counting_brks";
 
 struct ApiStopCountingBRKsArgs {
     // If not supplied, the request always succeeds.
@@ -434,6 +446,16 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCountingBRKsArgs,
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static const char API_LOAD_DISK_IMAGE_REQUEST_TYPE[] = "load_disk_image";
+
+struct ApiLoadDiskImageArgs {
+    std::string path;
+    int drive = 0;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadDiskImageArgs,
+                                                path,
+                                                drive);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

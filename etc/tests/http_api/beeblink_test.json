@@ -26,7 +26,7 @@
                 "input":["*HELP\r",
                          "*BLFS\r",
                          "*VOL BEEBLINK_DFS_TESTS\r",
-                         "CHAIN \"ALL\"\r"],
+			 "*EXEC !BOOT\r"],
                 "wait_for_osword_0":true,
                 "wait_for_osword_0_timeout_seconds":600
             }

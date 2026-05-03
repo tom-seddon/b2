@@ -115,8 +115,10 @@ class OSWORD0Callback {
 
     // called on some arbitrary thread.
     //
+    // execing is true if there's apparently a *EXEC in progress.
+    //
     // Return true to leave the callback in place, or false to have it removed automatically.
-    [[nodiscard]] virtual bool ThreadOnOSWORD0(BeebThread *beeb_thread) = 0;
+    [[nodiscard]] virtual bool ThreadOnOSWORD0(BeebThread *beeb_thread, bool execing) = 0;
 
   protected:
   private:

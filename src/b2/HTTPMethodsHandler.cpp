@@ -26,6 +26,7 @@
 #include <shared/strings.h>
 #include "load_save.h"
 #include <shared/file_io.h>
+#include "LoadMemoryDiscImage.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -113,28 +114,39 @@ struct ApiExecuteArgs {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool GetFilePath(std::string *full_path, const std::string &path, const ApiSetGlobalsArgs &api_globals, const LogSet &logs) {
+    if (PathIsFullySpecified(path)) {
+        *full_path = path;
+        return true;
+    } else {
+        if (!api_globals.read_path.has_value()) {
+            logs.e.f("API global read_path not set for relative path: %s\n", path.c_str());
+            return false;
+        }
+
+        *full_path = PathJoined(*api_globals.read_path, path);
+        return true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 
-static bool CopyROM(BeebConfig::ROM *dest, const ApiSetGlobalsArgs &api_globals, const ApiROMContents &src, const LogSet *logs) {
+static bool CopyROM(BeebConfig::ROM *dest, const ApiSetGlobalsArgs &api_globals, const ApiROMContents &src, const LogSet &logs) {
     if (src.standard_rom != StandardROM_None) {
         dest->standard_rom = FindBeebROM(src.standard_rom);
         if (!dest->standard_rom) {
-            logs->e.f("StandardROM not available: %s", GetStandardROMEnumName(src.standard_rom));
+            logs.e.f("StandardROM not available: %s", GetStandardROMEnumName(src.standard_rom));
             return false;
         }
     } else {
         dest->standard_rom = nullptr;
     }
 
-    if (PathIsFullySpecified(src.path)) {
-        dest->file_name = src.path;
-    } else {
-        if (!api_globals.read_path.has_value()) {
-            logs->e.f("API global read_path not set for relative path: %s\n", src.path.c_str());
-            return false;
-        }
-
-        dest->file_name = PathJoined(*api_globals.read_path, src.path);
+    if (!GetFilePath(&dest->file_name, src.path, api_globals, logs)) {
+        return false;
     }
 
     return true;
@@ -147,7 +159,7 @@ static void SetOptional(T *dest, const std::optional<T> &src) {
     }
 }
 
-static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_globals, const ApiConfigArgs &src, const LogSet *logs) {
+static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_globals, const ApiConfigArgs &src, const LogSet &logs) {
     BeebConfig dest;
 
     if (!src.base_default_config.empty()) {
@@ -162,13 +174,13 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
         }
 
         if (!base_config) {
-            logs->e.f("base default config not found: %s", src.base_default_config.c_str());
+            logs.e.f("base default config not found: %s", src.base_default_config.c_str());
             return false;
         }
 
         dest = *base_config;
     } else {
-        logs->e.f("no base config supplied");
+        logs.e.f("no base config supplied");
         return false;
     }
 
@@ -185,12 +197,12 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
     bool got_rom[16] = {};
     for (const ApiSidewaysROM &src_rom : src.sideways_roms) {
         if (src_rom.bank < 0 || src_rom.bank >= 16) {
-            logs->e.f("invalid ROM bank: %d", src_rom.bank);
+            logs.e.f("invalid ROM bank: %d", src_rom.bank);
             return false;
         }
 
         if (got_rom[src_rom.bank]) {
-            logs->e.f("already set bank: %d", src_rom.bank);
+            logs.e.f("already set bank: %d", src_rom.bank);
             return false;
         }
 
@@ -207,13 +219,11 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
     SetOptional(&dest.video_nula, src.video_nula);
     SetOptional(&dest.beeblink, src.beeblink);
 
-    for (size_t i = 0; i < dest.nvram.size() && i < src.nvram.size(); ++i) {
-        if (src.nvram[i].has_value()) {
-            dest.nvram[i] = *src.nvram[i];
-        }
-    }
-
-    SetOptional(&dest.mouse, src.mouse);
+    //    for (size_t i = 0; i < dest.nvram.size() && i < src.nvram.size(); ++i) {
+    //        if (src.nvram[i].has_value()) {
+    //            dest.nvram[i] = *src.nvram[i];
+    //        }
+    //    }
 
     BeebConfigArguments arguments;
 
@@ -221,7 +231,7 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
         arguments.multi_os_bank = dest.os_rom_type - OSROMType_MultiOSBank0;
     }
 
-    if (!BeebLoadedConfig::Load(loaded_config, dest, arguments, logs)) {
+    if (!BeebLoadedConfig::Load(loaded_config, dest, arguments, &logs)) {
         return false;
     }
 
@@ -234,44 +244,40 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-
-class ConfigWaitForOSWORD0Callback : OSWORD0Callback {
-  public:
-    ConfigWaitForOSWORD0Callback(std::function<void(bool, std::nullptr_t &&)> completion_fun)
-        : m_completion_fun(std::move(completion_fun)) {
+template <class RequestArgsType>
+static void GetResetArguments(uint32_t *flags, double *osword_0_timeout_seconds, const RequestArgsType &request_args) {
+    *flags=BeebThreadHardResetFlag_Run;
+    *osword_0_timeout_seconds=BeebThread::HardResetMessage::DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
+    
+    if (request_args.wait_for_osword_0) {
+        *flags |= BeebThreadHardResetFlag_WaitForOSWORD0;
+        *osword_0_timeout_seconds = request_args.wait_for_osword_0_timeout_seconds.value_or(API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
     }
 
-    bool ThreadOnOSWORD0(BeebThread *beeb_thread) override {
-        (void)beeb_thread;
-
-        m_completion_fun(true, nullptr);
-
-        return false;
+    if (request_args.boot) {
+        *flags |= BeebThreadHardResetFlag_Boot;
     }
+}
+#endif
 
-  protected:
-  private:
-    std::function<void(bool, std::nullptr_t &&)> m_completion_fun;
-};
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
-                                    ApiConfigArgs &&request_args,
-                                    std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
+                             ApiConfigArgs &&request_args,
+                             std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
     ASSERT(IsMainThread());
 
     BeebLoadedConfig loaded_config;
-    if (!Load(&loaded_config, execute_args.beeb_window->api_globals, request_args, execute_args.messages.get())) {
+    if (!Load(&loaded_config, execute_args.beeb_window->api_globals, request_args, *execute_args.messages)) {
         completion_fun("load_failure", nullptr);
         return;
     }
-
-    uint32_t flags = BeebThreadHardResetFlag_Run;
-    double osword_0_timeout_seconds = BeebThread::HardResetMessage::DEFAULT_OSWORD_0_TIMEOUT_SECONDS;
-
-    if (request_args.wait_for_osword_0) {
-        flags |= BeebThreadHardResetFlag_WaitForOSWORD0;
-        osword_0_timeout_seconds = request_args.wait_for_osword_0_timeout_seconds.value_or(API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS);
-    }
+    
+    uint32_t flags;
+    double osword_0_timeout_seconds;
+    GetResetArguments(&flags,&osword_0_timeout_seconds,request_args);
 
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(std::move(loaded_config),
                                                                                                  flags,
@@ -284,16 +290,38 @@ static void ApiExecuteConfigRequest(const ApiExecuteArgs &execute_args,
                                        completion_fun(failure_reason, nullptr);
                                    });
 }
-
 #endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
-                                   ApiPasteArgs &&request_args,
-                                   std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
+                            ApiResetArgs &&request_args,
+                            std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    uint32_t flags;
+    double osword_0_timeout_seconds;
+    GetResetArguments(&flags,&osword_0_timeout_seconds,request_args);
+
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(flags,
+                                                                                                 osword_0_timeout_seconds),
+                                   [completion_fun,
+                                    messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
+                                       if (failure_text) {
+                                           messages->e.f("%s failed: %s\n", API_RESET_REQUEST_TYPE, failure_text);
+                                       }
+                                       completion_fun(failure_reason, nullptr);
+                                   });
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecutePaste(const ApiExecuteArgs &execute_args,
+                            ApiPasteArgs &&request_args,
+                            std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
 
     uint32_t flags = 0;
@@ -322,9 +350,9 @@ static void ApiExecutePasteRequest(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApiExecuteStartCaptureOSWRCHRequest(const ApiExecuteArgs &execute_args,
-                                                std::nullptr_t &&,
-                                                std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+static void ApiExecuteStartCaptureOSWRCH(const ApiExecuteArgs &execute_args,
+                                         std::nullptr_t &&,
+                                         std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
     execute_args.beeb_window->StartCaptureOSWRCH();
     completion_fun(nullptr, nullptr);
 }
@@ -334,9 +362,9 @@ static void ApiExecuteStartCaptureOSWRCHRequest(const ApiExecuteArgs &execute_ar
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApiExecuteStopCaptureOSWRCHRequest(const ApiExecuteArgs &execute_args,
-                                               std::nullptr_t &&,
-                                               std::function<void(const char *, ApiStopCaptureOSWRCHResult &&)> completion_fun) {
+static void ApiExecuteStopCaptureOSWRCH(const ApiExecuteArgs &execute_args,
+                                        std::nullptr_t &&,
+                                        std::function<void(const char *, ApiStopCaptureOSWRCHResult &&)> completion_fun) {
     ApiStopCaptureOSWRCHResult result;
     if (!execute_args.beeb_window->StopCaptureOSWRCH(&result.output.bytes)) {
         execute_args.messages->e.f("Not capturing\n");
@@ -554,6 +582,43 @@ static void ApiExecuteStopCountingBRKs(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
+                                    ApiLoadDiskImageArgs &&request_args,
+                                    std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    if (request_args.drive < 0 || request_args.drive >= NUM_DRIVES) {
+        execute_args.messages->e.f("Invalid drive: %d\n", request_args.drive);
+        completion_fun("request_error", {});
+        return;
+    }
+
+    std::string path;
+    if (!GetFilePath(&path, request_args.path, execute_args.beeb_window->api_globals, *execute_args.messages)) {
+        completion_fun("load_failed", {});
+        return;
+    }
+
+    std::shared_ptr<MemoryDiscImage> disc_image = LoadMemoryDiscImage(path, *execute_args.messages);
+    if (!disc_image) {
+        completion_fun("load_failed", {});
+        return;
+    }
+
+    execute_args.beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(request_args.drive, std::move(disc_image), true),
+                                   [messages = execute_args.messages,
+                                    completion_fun](const char *failure_reason, const char *failure_text) -> void {
+                                       if (failure_text) {
+                                           messages->e.f("%s failed: %s\n", API_LOAD_DISK_IMAGE_REQUEST_TYPE, failure_text);
+                                       }
+
+                                       completion_fun(failure_reason, {});
+                                   });
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 template <class ArgsType, class ResultType>
 static void HandleApiExecute(const ApiExecuteArgs &execute_args,
                              const ApiRequest &request,
@@ -596,13 +661,13 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
                                  ApiRequest request,
                                  std::function<void(const char *, nlohmann::json)> completion_fun) {
     if (request.type == API_CONFIG_REQUEST_TYPE) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteConfigRequest, true);
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteConfig, true);
     } else if (request.type == API_PASTE_REQUEST_TYPE) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePasteRequest, true);
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePaste, true);
     } else if (request.type == API_START_CAPTURE_OSWRCH_REQUEST_TYPE) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCaptureOSWRCHRequest, true);
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCaptureOSWRCH, true);
     } else if (request.type == API_STOP_CAPTURE_OSWRCH_REQUEST_TYPE) {
-        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCHRequest, true);
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCH, true);
     } else if (request.type == API_LIST_VALUES_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
     } else if (request.type == API_SET_GLOBALS_REQUEST_TYPE) {
@@ -611,10 +676,14 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGData, true);
     } else if (request.type == API_SCREEN_GRAB_PNG_FILE_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGFile, true);
-    } else if (request.type == API_START_COUNTING_BRKS) {
+    } else if (request.type == API_START_COUNTING_BRKS_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCountingBRKs, true);
-    } else if (request.type == API_STOP_COUNTING_BRKS) {
+    } else if (request.type == API_STOP_COUNTING_BRKS_REQUEST_TYPE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCountingBRKs, true);
+    } else if (request.type == API_LOAD_DISK_IMAGE_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteLoadDiskImage, true);
+    } else if (request.type == API_RESET_REQUEST_TYPE) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteReset, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);

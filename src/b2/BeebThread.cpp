@@ -655,8 +655,9 @@ bool BeebThread::HardResetMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
 class CallSharedCompletionFunOSWORD0Callback : public ::OSWORD0Callback {
   public:
-    CallSharedCompletionFunOSWORD0Callback(std::shared_ptr<BeebThread::Message::CompletionFun> completion_fun)
-        : m_completion_fun(std::move(completion_fun)) {
+    CallSharedCompletionFunOSWORD0Callback(std::shared_ptr<BeebThread::Message::CompletionFun> completion_fun, bool call_if_execing)
+        : m_completion_fun(std::move(completion_fun))
+        , m_call_if_execing(call_if_execing) {
         ASSERT(!!m_completion_fun);
     }
 
@@ -665,17 +666,22 @@ class CallSharedCompletionFunOSWORD0Callback : public ::OSWORD0Callback {
         return !!*m_completion_fun;
     }
 
-    bool ThreadOnOSWORD0(BeebThread *beeb_thread) override {
+    bool ThreadOnOSWORD0(BeebThread *beeb_thread, bool execing) override {
         (void)beeb_thread;
 
-        BeebThread::Message::CallCompletionFunSuccess(std::move(*m_completion_fun));
+        if (!execing || m_call_if_execing) {
+            BeebThread::Message::CallCompletionFunSuccess(std::move(*m_completion_fun));
 
-        return false;
+            return false;
+        } else {
+            return true;
+        }
     }
 
   protected:
   private:
     std::shared_ptr<BeebThread::Message::CompletionFun> m_completion_fun;
+    bool m_call_if_execing = false;
 };
 
 void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
@@ -818,7 +824,8 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
             auto &&shared_completion_fun = std::make_shared<CompletionFun>(std::move(*completion_fun));
             *completion_fun = nullptr;
 
-            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(shared_completion_fun));
+            // policy for this case: if *EXECing, don't call the completion function.
+            ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(shared_completion_fun,false));
 
             if (m_osword_0_timeout_seconds > 0.) {
                 ts->beeb_thread->ThreadAddCompletionTimeout(ts, shared_completion_fun, m_osword_0_timeout_seconds);
@@ -1524,7 +1531,8 @@ void BeebThread::StartPasteMessage::ThreadHandle(CompletionFun *completion_fun,
                 if (failure_reason) {
                     ThreadCallSharedCompletionFunFailure(ts, std::move(paste_completion_fun), failure_reason, failure_text);
                 } else {
-                    ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(paste_completion_fun));
+                    // TODO: feels most useful to skip OSWORD 0s during *EXEC. But maybe it's arguable.
+                    ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(paste_completion_fun,false));
 
                     if (osword_0_timeout_seconds > 0.) {
                         ts->beeb_thread->ThreadAddCompletionTimeout(ts, paste_completion_fun, osword_0_timeout_seconds);
@@ -2958,9 +2966,13 @@ bool BeebThread::ThreadHandleOSWORD0Callbacks(const BBCMicro *beeb, const M6502 
     auto ts = (ThreadState *)context;
 
     if (cpu->pc.w == 0xfff2 && cpu->a == 0) {
+        const uint8_t *ram = beeb->GetRAM();
+
+        bool execing = ram[0x256] != 0;
+
         for (std::shared_ptr<OSWORD0Callback> &callback : ts->osword_0_callbacks) {
             if (!!callback) {
-                if (!callback->ThreadOnOSWORD0(ts->beeb_thread)) {
+                if (!callback->ThreadOnOSWORD0(ts->beeb_thread, execing)) {
                     callback = nullptr;
                     ts->update_callbacks = true;
                 }
