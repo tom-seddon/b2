@@ -3029,7 +3029,7 @@ class NVRAMDebugWindow : public DebugUI {
             ImGui::Text("Tube on: %s\n", BOOL_STR(nvram[15] & 1));
             ImGui::Text("Use printer ignore char: %s\n", BOOL_STR((nvram[15] & 2) == 0));
             ImGui::Text("Serial baud rate index: %d\n", nvram[15] >> 2 & 7);
-            ImGui::Text("*FX5 setting: %d\n", nvram[15] >> 5 & 7);
+            ImGui::Text("Printer type: %d\n", nvram[15] >> 5 & 7);
             // 16 bit 0 unused
             ImGui::Text("Default beep volume: %s\n", nvram[16] & 2 ? "loud" : "quiet");
             ImGui::Text("Default Tube: %s\n", nvram[16] & 4 ? "external" : "internal");
