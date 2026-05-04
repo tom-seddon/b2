@@ -3633,11 +3633,12 @@ void BBCMicro::InitStuff() {
         m_beeblink = std::make_unique<BeebLink>(m_beeblink_handler);
 
         if (IsBBCMicro(m_state.type->type_id)) {
+            // TODO: should really use the same addresses for all types...
             this->SetSIO(0xfe9e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
             this->SetSIO(0xfe9f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
         } else {
-            this->SetXFJIO(0xfc8e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
-            this->SetXFJIO(0xfc8f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
+            this->SetXFJIO(0xfc5e, &BeebLink::ReadControl, m_beeblink.get(), &BeebLink::WriteControl, m_beeblink.get());
+            this->SetXFJIO(0xfc5f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
         }
     }
 
