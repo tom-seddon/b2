@@ -34,10 +34,10 @@ static HWND GetHWNDForSDLWindow(SDL_Window *window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
+void SetClipboardImage(SDL_Surface *surface, const LogSet &logs) {
     SDL_SurfaceLocker locker(surface);
     if (!locker.IsLocked()) {
-        messages->e.f("Failed to lock surface: %s\n", SDL_GetError());
+        logs.e.f("Failed to lock surface: %s\n", SDL_GetError());
         return;
     }
 
@@ -82,34 +82,34 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
 
     screen_dc = CreateDC("DISPLAY", nullptr, nullptr, nullptr);
     if (!screen_dc) {
-        messages->e.f("CreateDC failed: %s\n", GetLastErrorDescription());
+        logs.e.f("CreateDC failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
     bitmap = CreateCompatibleBitmap(screen_dc, surface->w, surface->h);
     if (!bitmap) {
-        messages->e.f("CreateCompatibleBitmap failed: size was %d x %d\n", surface->w, surface->h);
+        logs.e.f("CreateCompatibleBitmap failed: size was %d x %d\n", surface->w, surface->h);
         goto done;
     }
 
     n = SetDIBits(screen_dc, bitmap, 0, surface->h, dibits, (BITMAPINFO *)&header, DIB_RGB_COLORS);
     if (n != surface->h) {
-        messages->e.f("SetDIBits failed: result was %d\n", n);
+        logs.e.f("SetDIBits failed: result was %d\n", n);
         goto done;
     }
 
     if (!OpenClipboard(nullptr)) {
-        messages->e.f("OpenClipboard failed: %s\n", GetLastErrorDescription());
+        logs.e.f("OpenClipboard failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
     if (!EmptyClipboard()) {
-        messages->e.f("EmptyClipboard failed: %s\n", GetLastErrorDescription());
+        logs.e.f("EmptyClipboard failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
     if (!SetClipboardData(CF_BITMAP, bitmap)) {
-        messages->e.f("SetClipboardData failed: %s\n", GetLastErrorDescription());
+        logs.e.f("SetClipboardData failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
