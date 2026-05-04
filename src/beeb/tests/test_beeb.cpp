@@ -2756,9 +2756,9 @@ class DiskAccessTest : public Test {
         // OS 1.20 skips clearing the first byte in every page, so overwrite the
         // memory with known data. (Since b2's behaviour might change if
         // https://github.com/tom-seddon/b2/issues/49 ever gets fixed)
-        std::vector<uint8_t> clear_data(random_data.size() + extra_size, 0);
-        for (size_t i = 0; i < random_data.size(); ++i) {
-            clear_data[i] = 0xff;
+        std::vector<uint8_t> clear_data(random_data.size(), 0xff);
+        for (size_t i = 0; i < extra_size; ++i) {
+            clear_data.push_back(0x00);
         }
         bbc->SetBytes(ADDRESS, clear_data);
 
