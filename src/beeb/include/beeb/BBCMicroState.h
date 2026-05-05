@@ -429,6 +429,10 @@ class BBCMicroState {
     bool parasite_boot_mode = true;
     Tube parasite_tube;
 
+#if BBCMICRO_DEBUGGER
+    uint8_t presence_test_value = 0xff;
+#endif
+
     explicit BBCMicroState(std::shared_ptr<const BBCMicroType> type,
                            const DiscInterface *disc_interface,
                            BBCMicroParasiteType parasite_type,

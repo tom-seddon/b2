@@ -595,6 +595,14 @@ class BBCMicro : private WD1770Handler {
     void SetDebugIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
 #endif
 
+#if BBCMICRO_DEBUGGER
+    // Set external/internal FRED/JIM IO functions.
+    //
+    // Debug only, as only the debug ports act this way.
+    void SetXFJIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
+    void SetDebugXJFIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn);
+#endif
+
     // The pointer is moved into the result.
     std::shared_ptr<DiscImage> TakeDiscImage(int drive);
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -917,6 +925,10 @@ class BBCMicro : private WD1770Handler {
     static uint8_t DebugReadADJI(const void *dji_, M6502Word a);
 #endif
     static uint8_t ReadSERPROC(void *m_, M6502Word a);
+#if BBCMICRO_DEBUGGER
+    static uint8_t ReadDebugPort0(void *m_, M6502Word a);
+    static void WriteDebugPort0(void *m_, M6502Word a, uint8_t value);
+#endif
 
     // TODO: ideally, these will end up in ElectronULA.cpp in the long run
     static uint8_t ReadElectronULA0(void *m_, M6502Word a);

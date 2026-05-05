@@ -509,6 +509,12 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
+#if BBCMICRO_DEBUGGER
+    if (ImGui::Checkbox("Debug ports", &config->debug_ports)) {
+        m_edited = true;
+    }
+#endif
+
     if (HasTube(config->type_id)) {
         ImGui::Separator();
 

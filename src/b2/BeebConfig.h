@@ -112,6 +112,9 @@ class BeebConfig {
     bool mmfs_enabled = false;
     MMFSConfig mmfs_config;
 
+    // If set, extra debug ports.
+    bool debug_ports = false;
+
     void ResetNVRAM();
 
   protected:
@@ -139,7 +142,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebConfig,
                                                 scsi,
                                                 hard_disk_dat_paths,
                                                 mmfs_enabled,
-                                                mmfs_config);
+                                                mmfs_config,
+                                                debug_ports);
 
 void InitDefaultBeebConfigs();
 

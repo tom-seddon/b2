@@ -52,8 +52,8 @@
 
 // If a field is std::optional<T>, its type is T (see above), but it doesn't
 // have a default value, and there is some specific handling when the field is
-// absent. (Don't read too much into the term "optional". An "optional" value
-// may well actually be mandatory.)
+// absent. (Which could be that its absence is an error! Don't read too much into the specific term "optional" - that's just what C++ calls this concept. An "optional" value
+// could actually be mandatory.)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -499,6 +499,19 @@ struct ApiPeekResult {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekResult,
                                                 data);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char API_REQUEST_TYPE_WAIT_FOR_EVENT[] = "wait_for_event";
+
+struct ApiWaitForEventArgs {
+    std::optional<uint8_t> event;
+    std::optional<double> timeout_seconds;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiWaitForEventArgs,
+                                                event,
+                                                timeout_seconds);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

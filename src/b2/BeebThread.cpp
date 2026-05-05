@@ -770,6 +770,12 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
         }
     }
 
+#if BBCMICRO_DEBUGGER
+    if (ts->current_config.config.debug_ports) {
+        init_flags |= BBCMicroInitFlag_DebugPorts;
+    }
+#endif
+
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
         rom_types[i] = ts->current_config.config.roms[i].type;

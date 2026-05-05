@@ -1077,6 +1077,30 @@ uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+uint8_t BBCMicro::ReadDebugPort0(void *m_, M6502Word a) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    return (uint8_t)(m->m_state.presence_test_value + 1);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::WriteDebugPort0(void *m_, M6502Word a, uint8_t value) {
+    (void)a;
+    auto m = (BBCMicro *)m_;
+
+    m->m_state.presence_test_value = value;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 uint8_t BBCMicro::ReadElectronULA0(void *m_, M6502Word a) {
     (void)a;
     auto m = (BBCMicro *)m_;
@@ -2061,6 +2085,22 @@ void BBCMicro::SetDebugIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, Debug
 }
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetXFJIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
+    this->SetXFJIO(addr, read_fn, read_context, write_fn, write_context);
+    this->SetIFJIO(addr, read_fn, read_context, write_fn, write_context);
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetDebugXJFIFJIO(uint16_t addr, DebugReadMMIOFn debug_read_fn, DebugGetReadMMIOContextFn debug_get_context_fn) {
+    this->SetDebugXFJIO(addr, debug_read_fn, debug_get_context_fn);
+    this->SetDebugIFJIO(addr, debug_read_fn, debug_get_context_fn);
+}
+#endif
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -3641,6 +3681,12 @@ void BBCMicro::InitStuff() {
             this->SetXFJIO(0xfc5f, &BeebLink::ReadData, m_beeblink.get(), &BeebLink::WriteData, m_beeblink.get());
         }
     }
+
+#if BBCMICRO_DEBUGGER
+    if (m_state.init_flags & BBCMicroInitFlag_DebugPorts) {
+        this->SetXFJIFJIO(0xfc50, &BBCMicro::ReadDebugPort0, this, &BBCMicro::WriteDebugPort0, this);
+    }
+#endif
 
     this->UpdateCPUDataBusFn();
 
