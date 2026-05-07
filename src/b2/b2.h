@@ -46,6 +46,15 @@ class AppHandler {
     // Get the product name.
     virtual std::string GetProductName() const = 0;
 
+#if SYSTEM_OSX
+    // Get the name to save the window placement data under - see -[NSWindow saveFrameUsingName:]
+    //
+    // If empty, opt out of the mechanism entirely.
+    virtual std::string GetFrameName() const = 0;
+#else
+    // The window placement data is saved to the config file, so it participates in the same persistence mechanism as everything else.
+#endif
+
     // Whether running headless or not. Must always return the same value for a given
     // run.
     virtual bool IsHeadless() const = 0;
@@ -137,9 +146,12 @@ class OrdinaryAppHandler : public AppHandler {
     OrdinaryAppHandler(int argc, char *argv[]);
 
     std::string GetProductName() const override; //returns DEFAULT_PRODUCT_NAME
-    bool IsHeadless() const override;            //returns false
-    bool IsHighDPIEnabled() const override;      //returns true
-    bool IsSoundEnabled() const override;        //returns true
+#if SYSTEM_OSX
+    std::string GetFrameName() const override; //returns "b2Frame"
+#endif
+    bool IsHeadless() const override;       //returns false
+    bool IsHighDPIEnabled() const override; //returns true
+    bool IsSoundEnabled() const override;   //returns true
     std::vector<std::string> GetCommandLineArgs() const override;
     bool GetConfigAndCacheOverrideFolder(std::string *folder) const override; //returns false
     int GetRequestedHttpServerListenPort() const override;                    //returns 0xbbcb

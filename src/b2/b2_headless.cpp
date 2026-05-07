@@ -113,6 +113,12 @@ class HeadlessAppHandler : public AppHandler {
         return PRODUCT_NAME;
     }
 
+#if SYSTEM_OSX
+    std::string GetFrameName() const override {
+        return "";
+    }
+#endif
+
     bool IsHeadless() const override {
         return m_options.headless;
     }

@@ -202,13 +202,7 @@ struct BeebWindowInitArguments {
     // If set, reset windows. Only ever set for the first window created.
     bool reset_windows = false;
 
-#if SYSTEM_OSX
-
-    // Frame name to load window frame from, or empty if the default
-    // is OK.
-    std::string frame_name;
-
-#else
+#if !SYSTEM_OSX
 
     // Placement data to use for this window. Empty if the default
     // position is OK.

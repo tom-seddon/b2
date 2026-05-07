@@ -155,6 +155,12 @@ class DearImGuiTest : public Test, public AppHandler {
         return DEFAULT_PRODUCT_NAME;
     }
 
+#if SYSTEM_OSX
+    std::string GetFrameName() const override {
+        return "b2_DearImGuiTest";
+    }
+#endif
+
     bool IsHeadless() const override {
         return !g_interactive;
     }
@@ -1353,6 +1359,12 @@ class TestHTTPAPI : public Test, public AppHandler {
         return DEFAULT_PRODUCT_NAME;
     }
 
+#if SYSTEM_OSX
+    std::string GetFrameName() const override {
+        return "";
+    }
+#endif
+
     bool IsHighDPIEnabled() const override {
         return false;
     }
@@ -1939,6 +1951,12 @@ class TestDocImageCreation : public DearImGuiTest {
     std::string GetFullName() const override {
         return "b2.doc_image_creation";
     }
+
+#if SYSTEM_OSX
+    std::string GetFrameName() const override {
+        return "";
+    }
+#endif
 
     bool IsHeadless() const override {
         return false;

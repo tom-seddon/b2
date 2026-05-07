@@ -3748,7 +3748,7 @@ void BeebWindow::SavePosition() {
 
 #elif SYSTEM_OSX
 
-    SaveCocoaFrameUsingName(m_nswindow, m_init_arguments.frame_name);
+    SaveCocoaFrameUsingName(m_nswindow, m_init_arguments.app_handler->GetFrameName());
 
 #else
 
@@ -3871,7 +3871,7 @@ bool BeebWindow::InitInternal() {
         m_nswindow = wmi.info.cocoa.window;
 
         if (!reset_windows) {
-            SetCocoaFrameUsingName(m_nswindow, m_init_arguments.frame_name);
+            SetCocoaFrameUsingName(m_nswindow, m_init_arguments.app_handler->GetFrameName());
         }
 
 #else

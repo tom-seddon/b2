@@ -223,6 +223,15 @@ std::string OrdinaryAppHandler::GetProductName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_OSX
+std::string OrdinaryAppHandler::GetFrameName() const {
+    return "b2Frame";
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool OrdinaryAppHandler::IsHeadless() const {
     return false;
 }
@@ -1883,9 +1892,7 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
             ia.gui_scale = options.gui_scale;
 #endif
 
-#if SYSTEM_OSX
-            ia.frame_name = "b2Frame";
-#else
+#if !SYSTEM_OSX
             ia.placement_data = BeebWindows::GetLastWindowPlacementData();
 #endif
 
