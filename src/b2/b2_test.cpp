@@ -305,7 +305,11 @@ class DearImGuiTest : public Test, public AppHandler {
         });
 
         int result = b2_main(this);
-        TEST_TRUE(m_test_was_run);
+        if (this->IsHeadless()) {
+            TEST_TRUE(m_test_was_run);
+        } else {
+            // In interactive mode, the user is under no obligation to run the test.
+        }
         return result;
     }
 
