@@ -3474,6 +3474,32 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static SDLUniquePtr<SDL_Surface> CaptureBackBuffer(SDL_Renderer *renderer) {
+    int w, h;
+    if (SDL_GetRendererOutputSize(renderer, &w, &h) != 0) {
+        return nullptr;
+    }
+
+    SDLUniquePtr<SDL_Surface> surface(SDL_CreateRGBSurfaceWithFormat(0, w, h, -1, SDL_PIXELFORMAT_RGB24));
+    if (!surface) {
+        return nullptr;
+    }
+
+    {
+        SDL_SurfaceLocker locker(surface.get());
+
+        if (!locker.IsLocked()) {
+            return nullptr;
+        }
+
+        if (SDL_RenderReadPixels(renderer, nullptr, surface->format->format, surface->pixels, surface->pitch) != 0) {
+            return nullptr;
+        }
+    }
+
+    return surface;
+}
+
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
     if (!m_send_main_thread_ready_message) {
         m_beeb_thread->Send(std::make_shared<BeebThread::MainThreadIsReadyMessage>());
@@ -3611,13 +3637,18 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             Timer HandleVBlank_RenderSDL_timer(m_HandleVBlank_RenderSDL_timer_def);
 
             m_imgui_stuff->RenderSDL();
-
-            if (m_renderer) {
-                SDL_RenderPresent(m_renderer);
-            }
-
-            m_imgui_stuff->PostSwap();
         }
+
+        if (m_capture_back_buffer) {
+            m_captured_back_buffer = ::CaptureBackBuffer(m_renderer);
+            m_capture_back_buffer = false;
+        }
+
+        if (m_renderer) {
+            SDL_RenderPresent(m_renderer);
+        }
+
+        m_imgui_stuff->PostSwap();
     }
 
     return keep_window;
@@ -4321,6 +4352,21 @@ SDLUniquePtr<SDL_Surface> BeebWindow::GetDisplayData(bool correct_aspect_ratio, 
                                   correct_aspect_ratio,
                                   true, //filter
                                   logs);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::CaptureNextBackBuffer() {
+    m_capture_back_buffer = true;
+    m_captured_back_buffer.reset();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SDLUniquePtr<SDL_Surface> BeebWindow::TakeCapturedBackBuffer() {
+    return std::move(m_captured_back_buffer);
 }
 
 //////////////////////////////////////////////////////////////////////////

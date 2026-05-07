@@ -201,6 +201,11 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
+    // Whether to auto-run the test if not in headless mode.
+    virtual bool ShouldAutoRunTest() const {
+        return false;
+    }
+
     bool IsDearImGuiTestEngineEnabled() const override {
         return true;
     }
@@ -217,7 +222,7 @@ class DearImGuiTest : public Test, public AppHandler {
         io->ConfigLogToDebugger = true;
         io->ConfigBreakOnError = true;
 
-        if (this->IsHeadless()) {
+        if (this->IsHeadless() || this->ShouldAutoRunTest()) {
             ImGuiTestEngine_QueueTest(m_test_engine, m_test);
         }
     }
@@ -1921,6 +1926,50 @@ class TestHTTPPeek : public TestHTTPAPI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestDocImageCreation : public DearImGuiTest {
+  public:
+    TestDocImageCreation(std::string output_path)
+        : m_output_path(std::move(output_path)) {
+    }
+
+    std::string GetFullName() const override {
+        return "b2.doc_image_creation";
+    }
+
+    bool IsHeadless() const override {
+        return false;
+    }
+
+    // always interactive, so
+    bool ShouldAutoRunTest() const override {
+        return true;
+    }
+
+    void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        TEST_TRUE(PathCreateFolder(m_output_path));
+
+        Yielder yielder(ctx, beeb_window, this);
+
+        beeb_window->CaptureNextBackBuffer();
+        yielder.Yield();
+
+        SDLUniquePtr<SDL_Surface> surface = beeb_window->TakeCapturedBackBuffer();
+        TEST_NON_NULL(surface);
+        TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, "test.png"), g_stdio_logs));
+    }
+
+    void Run() override {
+        TEST_EQ_II(this->Run2(), 0);
+    }
+
+  protected:
+  private:
+    std::string m_output_path;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const BeebConfig *FindConfigByName(size_t *index, const std::string &name) {
     for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
         const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
@@ -2144,6 +2193,7 @@ struct TestOptions {
     bool b2 = false;
     std::vector<std::string> b2_argv;
     bool interactive = false;
+    std::string doc_images_path;
 };
 
 static TestOptions GetOptions(int argc, char *argv[]) {
@@ -2161,10 +2211,15 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     p.AddOption('T', "test-pattern").Meta("TEST").AddArgToList(&test_name_patterns).Help("run test(s) matching TEST, a case-insensitive glob pattern");
     p.AddOption('l', "list").SetIfPresent(&options.list).Help("list all test names");
     p.AddOption('l', "list-for-check_ctest_log").SetIfPresent(&options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
-    p.AddOption(0, "wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
+    p.AddOption("wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
     p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2, with Dear ImGui Test Engine enabled. Tests will be available - run at own risk");
     p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
-    p.AddOption(0, "interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run UI in interactive mode");
+    p.AddOption("interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run UI in interactive mode");
+
+    // this oddity exists because b2_test happens to have all the infrastructure
+    // in place to make it work, and not because it makes any sense
+    // conceptually.
+    p.AddOption("doc-images").Meta("PATH").Arg(&options.doc_images_path).Help("run in doc image creation mode, and output doc images to PATH");
 
     // intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
@@ -2358,7 +2413,12 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    if (options.b2) {
+    if (!options.doc_images_path.empty()) {
+        TestDocImageCreation doc_images(options.doc_images_path);
+
+        doc_images.Run();
+
+    } else if (options.b2) {
         std::vector<char *> b2_argv;
         b2_argv.push_back(argv[0]);
         for (std::string &b2_arg : options.b2_argv) {

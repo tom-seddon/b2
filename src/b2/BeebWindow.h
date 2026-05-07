@@ -435,6 +435,13 @@ class BeebWindow {
     // Get recent display data.
     SDLUniquePtr<SDL_Surface> GetDisplayData(bool correct_aspect_ratio, const LogSet &logs) const;
 
+    // Call CaptureNextBackBuffer to have the next back buffer captured. Then
+    // TakeCapturedBackBuffer to retrieve it.
+    //
+    // This API only really makes sense for Dear ImGui Test Engine use.
+    void CaptureNextBackBuffer();
+    SDLUniquePtr<SDL_Surface> TakeCapturedBackBuffer();
+
     // For the benefit of the HTTP API, as it is stateless.
     void StartCaptureOSWRCH();
     bool StopCaptureOSWRCH(std::vector<uint8_t> *data);
@@ -625,6 +632,9 @@ class BeebWindow {
     std::shared_ptr<CountBRKsCallback> m_count_brks_callback;
     std::shared_ptr<EchoOSWRCHCallback> m_echo_oswrch_callback;
     std::vector<std::shared_ptr<EchoOSWRCHCallback>> m_expiring_echo_oswrch_callbacks;
+
+    bool m_capture_back_buffer = false;
+    SDLUniquePtr<SDL_Surface> m_captured_back_buffer;
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
