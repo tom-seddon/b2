@@ -5078,14 +5078,16 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CaptureRenderTarget() const {
     // Sigh... for some reason, the thing comes out upside down, at least with
     // the GL driver. See also, perhaps:
     // https://github.com/libsdl-org/SDL/issues/1653
-    std::vector<char> buffer(surface->pitch);
+    ASSERT(surface->pitch > 0);
+    size_t pitch = (size_t)surface->pitch;
+    std::vector<char> buffer(pitch);
     for (int y = 0; y < surface->h / 2; ++y) {
         char *a = (char *)surface->pixels + y * surface->pitch;
         char *b = (char *)surface->pixels + (surface->h - y) * surface->pitch;
 
-        memcpy(buffer.data(), a, surface->pitch);
-        memcpy(a, b, surface->pitch);
-        memcpy(b, buffer.data(), surface->pitch);
+        memcpy(buffer.data(), a, pitch);
+        memcpy(a, b, pitch);
+        memcpy(b, buffer.data(), pitch);
     }
 
     return surface;
