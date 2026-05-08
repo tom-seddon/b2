@@ -11,6 +11,7 @@ class BeebWindow;
 class ImGuiStuff;
 #endif
 struct Guid;
+struct ImVec2;
 
 #include <functional>
 #include <vector>
@@ -47,12 +48,14 @@ class AppHandler {
     virtual std::string GetProductName() const = 0;
 
 #if SYSTEM_OSX
-    // Get the name to save the window placement data under - see -[NSWindow saveFrameUsingName:]
+    // Get the name to save the window placement data under - see -[NSWindow
+    // saveFrameUsingName:]
     //
     // If empty, opt out of the mechanism entirely.
     virtual std::string GetFrameName() const = 0;
 #else
-    // The window placement data is saved to the config file, so it participates in the same persistence mechanism as everything else.
+    // The window placement data is saved to the config file, so it participates
+    // in the same persistence mechanism as everything else.
 #endif
 
     // Whether running headless or not. Must always return the same value for a given
@@ -81,6 +84,12 @@ class AppHandler {
     // specified.)
     virtual bool GetConfigAndCacheOverrideFolder(std::string *folder) const = 0;
 
+    // Override size of display.
+    //
+    // *display_size is a sensible(ish) value on entry, so no problem just
+    // returning true.
+    virtual bool GetFixedDisplaySize(ImVec2 *display_size) const = 0;
+
     // Return HTTP server listen port. May be 0 to specify any, or <0 to
     // indicate that the HTTP server can't be started.
     virtual int GetRequestedHttpServerListenPort() const = 0;
@@ -106,6 +115,9 @@ class AppHandler {
     //
     // Default impl does nothing.
     virtual void MessageLoopWillStart();
+
+    // Whether to show b2 popup UI.
+    virtual bool ShowPopupUI() const = 0;
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     // Whether to initialise Dear ImGui Test Engine.
@@ -154,8 +166,10 @@ class OrdinaryAppHandler : public AppHandler {
     bool IsSoundEnabled() const override;   //returns true
     std::vector<std::string> GetCommandLineArgs() const override;
     bool GetConfigAndCacheOverrideFolder(std::string *folder) const override; //returns false
+    bool GetFixedDisplaySize(ImVec2 *display_size) const override;            //returns false
     int GetRequestedHttpServerListenPort() const override;                    //returns 0xbbcb
     int GetLaunchRequestHttpServerPort() const override;                      //returns 0xbbcb
+    bool ShowPopupUI() const override;                                        //returns true
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override; //returns false
 #endif

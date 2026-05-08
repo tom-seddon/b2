@@ -76,8 +76,11 @@ extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
 
 class ImGuiStuff {
   public:
-    // Default display size is used if the renderer is NULL.
-    explicit ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_test_engine, const ImVec2 &default_display_size);
+    // If !renderer, *display_size is the display size.
+    //
+    // If renderer, *display_size is the fixed display size to use, in
+    // preference to the rendere's output size.
+    explicit ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_test_engine, const ImVec2 *display_size);
     ~ImGuiStuff();
 
     ImGuiStuff(const ImGuiStuff &) = delete;
@@ -188,7 +191,8 @@ class ImGuiStuff {
     ImGuiTestEngine *m_test_engine = nullptr;
 #endif
 
-    ImVec2 m_default_display_size{};
+    bool m_got_display_size = false;
+    ImVec2 m_display_size{};
 
     ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
 

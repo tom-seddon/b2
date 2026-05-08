@@ -148,6 +148,13 @@ class HeadlessAppHandler : public AppHandler {
         return true;
     }
 
+    bool GetFixedDisplaySize(ImVec2 *display_size) const override {
+        // TODO: might be useful to be able to configure this?
+        (void)display_size;
+
+        return true;
+    }
+
     int GetRequestedHttpServerListenPort() const override {
         return m_options.http_port;
     }
@@ -184,6 +191,10 @@ class HeadlessAppHandler : public AppHandler {
                                            this->HandleApiRequestComplete(std::move(response));
                                        });
         }
+    }
+
+    bool ShowPopupUI() const override {
+        return false;
     }
 
 #if IMGUI_ENABLE_TEST_ENGINE

@@ -2072,11 +2072,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
-    bool show_popup_ui = true;
-    if (m_init_arguments.app_handler->IsDearImGuiTestEngineEnabled()) {
-        // The popups can interfere with the test engine, so don't show em.
-        show_popup_ui = false;
-    }
+    bool show_popup_ui = m_init_arguments.app_handler->ShowPopupUI();
 
     if (ValueChanged(&m_msg_last_num_messages_printed, m_message_list->GetNumMessagesPrinted())) {
         m_messages_popup_ui_active = true;
@@ -3474,32 +3470,6 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static SDLUniquePtr<SDL_Surface> CaptureBackBuffer(SDL_Renderer *renderer) {
-    int w, h;
-    if (SDL_GetRendererOutputSize(renderer, &w, &h) != 0) {
-        return nullptr;
-    }
-
-    SDLUniquePtr<SDL_Surface> surface(SDL_CreateRGBSurfaceWithFormat(0, w, h, -1, SDL_PIXELFORMAT_RGB24));
-    if (!surface) {
-        return nullptr;
-    }
-
-    {
-        SDL_SurfaceLocker locker(surface.get());
-
-        if (!locker.IsLocked()) {
-            return nullptr;
-        }
-
-        if (SDL_RenderReadPixels(renderer, nullptr, surface->format->format, surface->pixels, surface->pitch) != 0) {
-            return nullptr;
-        }
-    }
-
-    return surface;
-}
-
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
     if (!m_send_main_thread_ready_message) {
         m_beeb_thread->Send(std::make_shared<BeebThread::MainThreadIsReadyMessage>());
@@ -3557,6 +3527,14 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     }
 #endif
 
+    // The temporary render target used when capturing the back buffer.
+    //
+    // This is designed for use with a fixed display size (hence the temporary
+    // target, created at the specific size, regardless of window size) - but
+    // it'll work ok without, at the cost of going needlessly round the houses a
+    // bit compared to just grabbing the window contents directly.
+    SDLUniquePtr<SDL_Texture> capture_render_target;
+
     {
         Timer tmr2(m_HandleVBlank_start_of_frame_timer_def);
 
@@ -3565,6 +3543,12 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         //}
 
         //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+
+        ASSERT(m_capture_back_buffer_state != CaptureBackBufferState_Capturing);
+        if (m_capture_back_buffer_state == CaptureBackBufferState_Requested) {
+            capture_render_target = this->CreateCaptureRenderTarget();
+            m_capture_back_buffer_state = CaptureBackBufferState_Capturing;
+        }
 
         m_imgui_stuff->NewFrame();
 
@@ -3610,6 +3594,11 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         }
 
         if (m_renderer) {
+            if (m_got_fixed_display_size) {
+                SDL_SetRenderDrawColor(m_renderer, 64, 0, 0, 255);
+            } else {
+                SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
+            }
             SDL_RenderClear(m_renderer);
         }
 
@@ -3639,9 +3628,15 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             m_imgui_stuff->RenderSDL();
         }
 
-        if (m_capture_back_buffer) {
-            m_captured_back_buffer = ::CaptureBackBuffer(m_renderer);
-            m_capture_back_buffer = false;
+        if (m_capture_back_buffer_state == CaptureBackBufferState_Capturing) {
+            // Render target could be null, if there was some problem setting it.
+            if (!!capture_render_target) {
+                m_captured_back_buffer = this->CaptureRenderTarget();
+                SDL_SetRenderTarget(m_renderer, nullptr);
+                capture_render_target.reset();
+            }
+
+            m_capture_back_buffer_state = CaptureBackBufferState_GotResult;
         }
 
         if (m_renderer) {
@@ -3717,6 +3712,10 @@ void BeebWindow::SaveSettings() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SavePosition() {
+    if (!m_window) {
+        return;
+    }
+
 #if SYSTEM_WINDOWS
 
     uint32_t flags = SDL_GetWindowFlags(m_window);
@@ -3797,10 +3796,22 @@ bool BeebWindow::InitInternal() {
     bool reset_windows = m_init_arguments.reset_windows;
     m_init_arguments.reset_windows = false;
 
-    const float display_size_x = TV_TEXTURE_WIDTH + IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f;
-    const float display_size_y = TV_TEXTURE_HEIGHT + IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f;
+    ImVec2 display_size;
+    display_size.x = TV_TEXTURE_WIDTH + IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f;
+    display_size.y = TV_TEXTURE_HEIGHT + IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f;
 
-    if (!m_init_arguments.app_handler->IsHeadless()) {
+    const ImVec2 *imgui_fixed_display_size = nullptr;
+
+    //
+    if (m_init_arguments.app_handler->GetFixedDisplaySize(&display_size)) {
+        imgui_fixed_display_size = &display_size;
+    }
+
+    if (m_init_arguments.app_handler->IsHeadless()) {
+        // Actually, this'll need a fixed display size either way! The current
+        // setting, overridden or not, will always do.
+        imgui_fixed_display_size = &display_size;
+    } else {
         // Add some extra space round the edges so the display doesn't have to
         // be scaled down noticeably.
         //
@@ -3823,8 +3834,8 @@ bool BeebWindow::InitInternal() {
         m_window = SDL_CreateWindow("",
                                     SDL_WINDOWPOS_UNDEFINED,
                                     SDL_WINDOWPOS_UNDEFINED,
-                                    (int)display_size_x,
-                                    (int)display_size_y,
+                                    (int)display_size.x,
+                                    (int)display_size.y,
                                     window_flags);
         if (!m_window) {
             m_msg.e.f("SDL_CreateWindow failed: %s\n", SDL_GetError());
@@ -3899,6 +3910,12 @@ bool BeebWindow::InitInternal() {
 #endif
     }
 
+    if (imgui_fixed_display_size) {
+        m_got_fixed_display_size = true;
+        m_display_fixed_width = (int)imgui_fixed_display_size->x;
+        m_display_fixed_height = (int)imgui_fixed_display_size->y;
+    }
+
 #if ENABLE_SDL_FULL_SCREEN
     if (!reset_windows) {
         this->SetWindowFullScreen(m_settings.full_screen);
@@ -3928,7 +3945,7 @@ bool BeebWindow::InitInternal() {
 #else
     bool imgui_enable_test_engine = false;
 #endif
-    m_imgui_stuff = new ImGuiStuff(m_window, m_renderer, imgui_enable_test_engine, {display_size_x, display_size_y});
+    m_imgui_stuff = new ImGuiStuff(m_window, m_renderer, imgui_enable_test_engine, imgui_fixed_display_size);
     if (!m_imgui_stuff->Init(ImGuiConfigFlags_DockingEnable)) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
@@ -4041,6 +4058,14 @@ bool BeebWindow::InitInternal() {
                   width,
                   height,
                   SDL_GetPixelFormatName(format));
+
+        if (renderer_info.flags & SDL_RENDERER_TARGETTEXTURE) {
+            m_sdl_render_target_format = renderer_info.texture_formats[0];
+        } else {
+            // Don't report this - it's only interesting for the tests, which
+            // will find out when they run.
+        }
+
     } else {
         m_msg.i.f("Renderer: none (running headless)\n");
     }
@@ -4357,16 +4382,31 @@ SDLUniquePtr<SDL_Surface> BeebWindow::GetDisplayData(bool correct_aspect_ratio, 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::CaptureNextBackBuffer() {
-    m_capture_back_buffer = true;
-    m_captured_back_buffer.reset();
+bool BeebWindow::CaptureNextBackBuffer() {
+    if (!m_renderer) {
+        return false;
+    }
+
+    if (m_capture_back_buffer_state == CaptureBackBufferState_Idle) {
+        m_capture_back_buffer_state = CaptureBackBufferState_Requested;
+    } else {
+        // one already pending anyway.
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SDLUniquePtr<SDL_Surface> BeebWindow::TakeCapturedBackBuffer() {
-    return std::move(m_captured_back_buffer);
+bool BeebWindow::TakeCapturedBackBuffer(SDLUniquePtr<SDL_Surface> *surface_ptr) {
+    if (m_capture_back_buffer_state == CaptureBackBufferState_GotResult) {
+        *surface_ptr = std::move(m_captured_back_buffer);
+        m_capture_back_buffer_state = CaptureBackBufferState_Idle;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4958,6 +4998,97 @@ void BeebWindow::EchoOSWRCH(const std::shared_ptr<EchoOSWRCHCallback> &callback)
     if (!data.empty()) {
         puts(data.c_str());
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SDLUniquePtr<SDL_Texture> BeebWindow::CreateCaptureRenderTarget() const {
+    ASSERT(m_renderer);
+
+    int target_width, target_height;
+    if (m_got_fixed_display_size) {
+        target_width = m_display_fixed_width;
+        target_height = m_display_fixed_height;
+    } else {
+        SDL_GetRendererOutputSize(m_renderer, &target_width, &target_height);
+    }
+
+    SDLUniquePtr<SDL_Texture> capture_render_target(SDL_CreateTexture(m_renderer,
+                                                                      m_sdl_render_target_format,
+                                                                      SDL_TEXTUREACCESS_TARGET,
+                                                                      target_width, target_height));
+    if (!capture_render_target) {
+        m_msg.e.f("couldn't create capture render target: %s\n", SDL_GetError());
+    } else {
+        // Clear the default back buffer, so you can tell something is
+        // happening.
+        //
+        // If anything goes wrong with setting the render target, no
+        // problem. There's another SDL_RenderClear coming up that'll
+        // overwrite this one.
+        SDL_SetRenderDrawColor(m_renderer, 255, 255, 255, 0);
+        SDL_RenderClear(m_renderer);
+
+        if (SDL_SetRenderTarget(m_renderer, capture_render_target.get()) != 0) {
+            m_msg.e.f("couldn't select capture render target: %s\n", SDL_GetError());
+            // bleargh. Give up.
+            capture_render_target.reset();
+        }
+    }
+
+    return capture_render_target;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SDLUniquePtr<SDL_Surface> BeebWindow::CaptureRenderTarget() const {
+    int w, h;
+    if (SDL_Texture *render_target = SDL_GetRenderTarget(m_renderer)) {
+        if (SDL_QueryTexture(render_target, nullptr, nullptr, &w, &h) != 0) {
+            m_msg.e.f("couldn't get render target dimensions: %s\n", SDL_GetError());
+            return nullptr;
+        }
+    } else {
+        if (SDL_GetRendererOutputSize(m_renderer, &w, &h) != 0) {
+            m_msg.e.f("couldn't get renderer output size: %s\n", SDL_GetError());
+            return nullptr;
+        }
+    }
+
+    SDLUniquePtr<SDL_Surface> surface(SDL_CreateRGBSurfaceWithFormat(0, w, h, -1, SDL_PIXELFORMAT_RGB24));
+    if (!surface) {
+        m_msg.e.f("couldn't create capture surface: %s\n", SDL_GetError());
+        return nullptr;
+    }
+
+    SDL_SurfaceLocker locker(surface.get());
+
+    if (!locker.IsLocked()) {
+        m_msg.e.f("couldn't lock capture surface: %s\n", SDL_GetError());
+        return nullptr;
+    }
+
+    if (SDL_RenderReadPixels(m_renderer, nullptr, surface->format->format, surface->pixels, surface->pitch) != 0) {
+        m_msg.e.f("couldn't read pixels: %s\n", SDL_GetError());
+        return nullptr;
+    }
+
+    // Sigh... for some reason, the thing comes out upside down, at least with
+    // the GL driver. See also, perhaps:
+    // https://github.com/libsdl-org/SDL/issues/1653
+    std::vector<char> buffer(surface->pitch);
+    for (int y = 0; y < surface->h / 2; ++y) {
+        char *a = (char *)surface->pixels + y * surface->pitch;
+        char *b = (char *)surface->pixels + (surface->h - y) * surface->pitch;
+
+        memcpy(buffer.data(), a, surface->pitch);
+        memcpy(a, b, surface->pitch);
+        memcpy(b, buffer.data(), surface->pitch);
+    }
+
+    return surface;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/system.h>
 #include "dear_imgui.h"
 #include <shared/debug.h>
 #include <SDL.h>
@@ -101,13 +102,17 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiStuff::ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_test_engine, const ImVec2 &default_display_size)
+ImGuiStuff::ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_test_engine, const ImVec2 *display_size)
     : m_window(window)
-    , m_renderer(renderer)
-    , m_default_display_size(default_display_size) {
+    , m_renderer(renderer) {
     m_last_new_frame_ticks = GetCurrentTickCount();
 
     static_assert(sizeof m_imgui_key_from_sdl_scancode / sizeof m_imgui_key_from_sdl_scancode[0] == SDL_NUM_SCANCODES);
+
+    if (display_size) {
+        m_got_display_size = true;
+        m_display_size = *display_size;
+    }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     m_enable_test_engine = enable_test_engine;
@@ -475,13 +480,16 @@ void ImGuiStuff::SetPixelFont(bool pixel_font) {
 
 ImVec2 ImGuiStuff::GetDisplaySize() const {
     if (m_renderer) {
-        int output_width, output_height;
-        SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
+        if (!m_got_display_size) {
+            int output_width, output_height;
+            SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
 
-        return {(float)output_width, (float)output_height};
-    } else {
-        return m_default_display_size;
+            return {(float)output_width, (float)output_height};
+        }
     }
+
+    ASSERT(m_got_display_size);
+    return m_display_size;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -509,16 +517,17 @@ void ImGuiStuff::NewFrame() {
 
     io.DisplaySize = this->GetDisplaySize();
 
+    m_mouse_scale = 1.f;
     if (m_renderer) {
-        int window_width, window_height;
-        SDL_GetWindowSize(m_window, &window_width, &window_height);
+        if (!m_got_display_size) {
+            int window_width, window_height;
+            SDL_GetWindowSize(m_window, &window_width, &window_height);
 
-        // Always ends up as 1.0 on Windows. May end up as 2.0 on macOS with display scaling.
-        //
-        // TODO: there's probably somewhere better to get this value from... right?!
-        m_mouse_scale = (float)io.DisplaySize.x / window_width;
-    } else {
-        m_mouse_scale = 1.f;
+            // Always ends up as 1.0 on Windows. May end up as 2.0 on macOS with display scaling.
+            //
+            // TODO: there's probably somewhere better to get this value from... right?!
+            m_mouse_scale = (float)io.DisplaySize.x / window_width;
+        }
     }
 
     this->EnsureFontsReady();
@@ -591,14 +600,25 @@ void ImGuiStuff::RenderSDL() {
         }
     }
 
-    int output_width, output_height;
-    SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
+    int physical_width, physical_height;
+    SDL_GetRendererOutputSize(m_renderer, &physical_width, &physical_height);
 
-    glViewport(0, 0, output_width, output_height);
+    int logical_width, logical_height;
+    if (m_got_display_size) {
+        logical_width = (int)m_display_size.x;
+        logical_height = (int)m_display_size.y;
+    } else {
+        logical_width = physical_width;
+        logical_height = physical_height;
+    }
+
+    int viewport_y = physical_height - logical_height;
+
+    glViewport(0, viewport_y, logical_width, logical_height);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, output_width, output_height, 0, 0, 1);
+    glOrtho(0, logical_width, logical_height, 0, 0, 1);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -641,7 +661,7 @@ void ImGuiStuff::RenderSDL() {
         for (const ImDrawCmd &cmd : draw_list->CmdBuffer) {
             auto clip_h = (GLsizei)(cmd.ClipRect.w - cmd.ClipRect.y);
             glScissor((GLsizei)cmd.ClipRect.x,
-                      (GLsizei)(output_height - clip_h - cmd.ClipRect.y),
+                      (GLsizei)(logical_height - clip_h - cmd.ClipRect.y + viewport_y),
                       (GLsizei)(cmd.ClipRect.z - cmd.ClipRect.x),
                       clip_h);
 

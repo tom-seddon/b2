@@ -359,7 +359,7 @@ class BeebWindow {
 
     bool HandleVBlank(VBlankMonitor *vblank_monitor, void *display_data, uint64_t ticks);
 
-    bool HandleVBlank(uint64_t ticks);
+    bool HandleVBlank(uint64_t ticks); //TODO: should be private
 
     void Handle1HzTimer();
     void UpdateTitle();
@@ -433,8 +433,8 @@ class BeebWindow {
     // TakeCapturedBackBuffer to retrieve it.
     //
     // This API only really makes sense for Dear ImGui Test Engine use.
-    void CaptureNextBackBuffer();
-    SDLUniquePtr<SDL_Surface> TakeCapturedBackBuffer();
+    bool CaptureNextBackBuffer();
+    bool TakeCapturedBackBuffer(SDLUniquePtr<SDL_Surface> *surface_ptr);
 
     // For the benefit of the HTTP API, as it is stateless.
     void StartCaptureOSWRCH();
@@ -455,6 +455,10 @@ class BeebWindow {
     // SDLstuff.
     SDL_Window *m_window = nullptr;
     SDL_Renderer *m_renderer = nullptr;
+    bool m_got_fixed_display_size = false;
+    int m_display_fixed_width = 0;
+    int m_display_fixed_height = 0;
+    uint32_t m_sdl_render_target_format = 0;
 
 #if SYSTEM_WINDOWS
     void *m_hwnd = nullptr;
@@ -627,7 +631,7 @@ class BeebWindow {
     std::shared_ptr<EchoOSWRCHCallback> m_echo_oswrch_callback;
     std::vector<std::shared_ptr<EchoOSWRCHCallback>> m_expiring_echo_oswrch_callbacks;
 
-    bool m_capture_back_buffer = false;
+    CaptureBackBufferState m_capture_back_buffer_state = CaptureBackBufferState_Idle;
     SDLUniquePtr<SDL_Surface> m_captured_back_buffer;
 
     bool InitInternal();
@@ -703,6 +707,9 @@ class BeebWindow {
     void EchoOSWRCH();
     void EchoOSWRCH(const std::shared_ptr<EchoOSWRCHCallback> &callback);
 
+    SDLUniquePtr<SDL_Texture> CreateCaptureRenderTarget() const;
+    SDLUniquePtr<SDL_Surface> CaptureRenderTarget() const;
+
     //#ifdef IMGUI_ENABLE_TEST_ENGINE
     //    static void InitDearImGuiTests(BeebWindow *beeb_window,
     //                                   ImGuiTestEngine *test_engine,
@@ -715,6 +722,8 @@ class BeebWindow {
 
     // Keep this at the end. It's massive.
     mutable Messages m_msg;
+
+    friend class DocImageCreator;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -193,6 +193,13 @@ class DearImGuiTest : public Test, public AppHandler {
         return true;
     }
 
+    bool GetFixedDisplaySize(ImVec2 *display_size) const override {
+        display_size->x = 1024.f;
+        display_size->y = 768.f;
+
+        return true;
+    }
+
     virtual int GetRequestedHttpServerListenPort() const override {
         // Let the OS choose. Don't have multiple instances fight.
         return 0;
@@ -204,6 +211,12 @@ class DearImGuiTest : public Test, public AppHandler {
 
     int GetLaunchRequestHttpServerPort() const override {
         return m_http_port;
+    }
+
+    bool ShowPopupUI() const override {
+        // The popups can interfere with the test engine, so just don't bother
+        // display them.
+        return false;
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
@@ -1398,6 +1411,12 @@ class TestHTTPAPI : public Test, public AppHandler {
         return true;
     }
 
+    bool GetFixedDisplaySize(ImVec2 *display_size) const override {
+        (void)display_size;
+
+        return true;
+    }
+
     virtual int GetRequestedHttpServerListenPort() const override {
         // Let the OS choose. Don't have multiple instances fight.
         return 0;
@@ -1426,6 +1445,10 @@ class TestHTTPAPI : public Test, public AppHandler {
             event.type = SDL_QUIT;
             SDL_PushEvent(&event);
         });
+    }
+
+    bool ShowPopupUI() const override {
+        return false;
     }
 
     bool IsDearImGuiTestEngineEnabled() const override {
@@ -1942,9 +1965,12 @@ class TestHTTPPeek : public TestHTTPAPI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TestDocImageCreation : public DearImGuiTest {
+// m_leds_popup_ticks
+// m_messages_popup_ticks
+
+class DocImageCreator : public DearImGuiTest {
   public:
-    TestDocImageCreation(std::string output_path)
+    DocImageCreator(std::string output_path)
         : m_output_path(std::move(output_path)) {
     }
 
@@ -1967,15 +1993,26 @@ class TestDocImageCreation : public DearImGuiTest {
         return true;
     }
 
+    void HandleBeebWindowPostInit(BeebWindow *beeb_window) override {
+        beeb_window->m_imgui_test_engine_ui = false;
+    }
+
+    bool ShowPopupUI() const override {
+        // Want to show this, so that it comes through in the screen grabs.
+        return true;
+    }
+
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
         TEST_TRUE(PathCreateFolder(m_output_path));
 
         Yielder yielder(ctx, beeb_window, this);
 
-        beeb_window->CaptureNextBackBuffer();
-        yielder.Yield();
+        TEST_TRUE(beeb_window->CaptureNextBackBuffer());
 
-        SDLUniquePtr<SDL_Surface> surface = beeb_window->TakeCapturedBackBuffer();
+        SDLUniquePtr<SDL_Surface> surface;
+        while (!beeb_window->TakeCapturedBackBuffer(&surface)) {
+            yielder.Yield();
+        }
         TEST_NON_NULL(surface);
         TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, "test.png"), g_stdio_logs));
     }
@@ -2436,7 +2473,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (!options.doc_images_path.empty()) {
-        TestDocImageCreation doc_images(options.doc_images_path);
+        DocImageCreator doc_images(options.doc_images_path);
 
         doc_images.Run();
 
