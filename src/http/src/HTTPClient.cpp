@@ -298,9 +298,13 @@ class HTTPClientImpl : public HTTPClient {
 
             log->f("%s: ", prefix);
 
-            LogIndenter indent(log);
+            if (client->m_verbose) {
+                LogIndenter indent(log);
 
-            LogDumpBytes(log, data, size);
+                LogDumpBytes(log, data, size);
+            } else {
+                log->f("%zu byte(s)\n", size);
+            }
         }
     }
 };
