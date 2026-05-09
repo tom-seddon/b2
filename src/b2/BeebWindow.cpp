@@ -2675,7 +2675,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoEditMenu() {
-    if (ImGui::BeginMenu("Edit")) {
+    if (ImGui::BeginMenu("Edit###edit")) {
         m_cst.DoMenuItem(g_toggle_copy_oswrch_text_command);
         m_cst.DoMenuItem(g_copy_basic_command);
         if (ImGui::BeginMenu("Copy options")) {
@@ -2700,7 +2700,7 @@ void BeebWindow::DoEditMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoHardwareMenu() {
-    if (ImGui::BeginMenu("Hardware")) {
+    if (ImGui::BeginMenu("Hardware###hardware")) {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Configs].command);
 
         ImGui::Separator();
@@ -2734,7 +2734,7 @@ void BeebWindow::DoHardwareMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoKeyboardMenu() {
-    if (ImGui::BeginMenu("Keyboard")) {
+    if (ImGui::BeginMenu("Keyboard###keyboard")) {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Keymaps].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_CommandKeymaps].command);
 
@@ -2764,7 +2764,7 @@ void BeebWindow::DoKeyboardMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoMouseMenu() {
-    if (ImGui::BeginMenu("Mouse")) {
+    if (ImGui::BeginMenu("Mouse###mouse")) {
         m_cst.DoMenuItem(g_toggle_capture_mouse_command);
         m_cst.DoMenuItem(g_toggle_capture_mouse_on_click_command);
         ImGui::EndMenu();
@@ -2775,7 +2775,7 @@ void BeebWindow::DoMouseMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoJoysticksMenu() {
-    if (ImGui::BeginMenu("Joysticks")) {
+    if (ImGui::BeginMenu("Joysticks###joysticks")) {
         DoJoysticksMenuImGui(&m_msg);
         ImGui::EndMenu();
     }
@@ -2785,7 +2785,7 @@ void BeebWindow::DoJoysticksMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoPrinterMenu() {
-    if (ImGui::BeginMenu("Printer")) {
+    if (ImGui::BeginMenu("Printer###printer")) {
         m_cst.DoMenuItem(g_parallel_printer_command);
 
         ImGui::Separator();
@@ -2823,7 +2823,7 @@ void BeebWindow::DoPrinterMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoToolsMenu() {
-    if (ImGui::BeginMenu("Tools")) {
+    if (ImGui::BeginMenu("Tools###tools")) {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Options].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Messages].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Timeline].command);
@@ -2863,7 +2863,7 @@ void BeebWindow::DoDebugMenu() {
         return;
     }
 
-    if (ImGui::BeginMenu("Debug")) {
+    if (ImGui::BeginMenu("Debug###debug")) {
         m_cst.DoMenuItem(g_debug_stop_command);
         m_cst.DoMenuItem(g_debug_run_command);
 
@@ -3078,7 +3078,7 @@ void BeebWindow::DoExtraDebugMenu() {
         return;
     }
 
-    if (ImGui::BeginMenu("Extras")) {
+    if (ImGui::BeginMenu("Extras###extra")) {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_AudioCallback].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MutexStats].command);
 #if ENABLE_IMGUI_TEST
@@ -3119,7 +3119,7 @@ void BeebWindow::DoExtraDebugMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoWindowMenu() {
-    if (ImGui::BeginMenu("Window")) {
+    if (ImGui::BeginMenu("Window###window")) {
         {
             char name[100];
             strlcpy(name, m_name.c_str(), sizeof name);

@@ -142,7 +142,7 @@ struct Metrics {
 };
 
 struct KeymapsUIPersistentData {
-    float divider_position = FLT_MAX;
+    float divider_position = 225.f;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(KeymapsUIPersistentData, divider_position);
 

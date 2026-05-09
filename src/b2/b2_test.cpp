@@ -303,6 +303,10 @@ class DearImGuiTest : public Test, public AppHandler {
         TEST_FALSE(results->got_next_result);
         results->next_result = std::move(result);
         results->got_next_result = true;
+
+        // reset any previous result.
+        results->got_last_result = false;
+        results->last_result.clear();
     }
 
     [[nodiscard]] int Run2() {
@@ -2024,12 +2028,15 @@ class DocImageCreator : public DearImGuiTest {
         ASSERT(!m_beeb_window);
         m_beeb_window = beeb_window;
 
+        ASSERT(!m_ctx);
+        m_ctx = ctx;
+
         TEST_TRUE(PathCreateFolder(m_output_path));
 
         ASSERT(!m_yielder);
         m_yielder = std::make_unique<Yielder>(ctx, m_beeb_window, this);
 
-        ctx->MouseMoveToPos({-100, -100});
+        this->HideMouse();
         m_set_ui_flags = UIFlag_HideAllPopups | UIFlag_HideDebuggerUI | UIFlag_HideExtrasUI;
 
         this->Capture("startup.png");
@@ -2044,42 +2051,54 @@ class DocImageCreator : public DearImGuiTest {
         //ctx->SetRef("##MainMenuBar");
         //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
 
-        //
-        std::string elite_ssd_path = PathJoined(b2_SOURCE_DIR, "build", "Disc021-EliteD.ssd");
-        if (!PathIsFileOnDisk(elite_ssd_path, nullptr, nullptr)) {
-            HTTPRequest request;
-            request.url = "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd";
-            request.method = "GET";
-
-            std::unique_ptr<HTTPClient> client = CreateHTTPClient();
-            client->SetLogs(&g_stdio_logs);
-            //client->SetVerbose(true);
-
-            HTTPResponse response;
-            int status = client->SendRequest(request, &response);
-            TEST_EQ_II(status, 200);
-            TEST_EQ_SS(response.content_type, "application/vnd.acorn.disc-image.ssd");
-            TEST_TRUE(SaveFile(response.content, elite_ssd_path, &g_stdio_logs));
-        }
+        std::string elite_ssd_path = this->DownloadFileFromURL("Disc021-EliteD.ssd",
+                                                               "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd",
+                                                               "application/vnd.acorn.disc-image.ssd");
 
         this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
         ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
 
-        // Wait for boot to start.
-        while (!(m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift)) {
-            m_yielder->Yield();
-        }
+        this->WaitForDiskAccess();
 
-        // Wait for boot to finish.
-        while (m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift) {
-            m_yielder->Yield();
-        }
-
-        ctx->MouseMoveToPos({-100, -100});
-
+        this->HideMouse();
         this->Capture("running_elite.png");
 
+        //std::string repton_ssd_path = this->DownloadFileFromURL("Disc015-ReptonP.ssd",
+        //                                                        "https://bbcmicro.co.uk/gameimg/discs/266/Disc015-ReptonP.ssd",
+        //                                                        "application/vnd.acorn.disc-image.ssd");
+
+        //this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, repton_ssd_path);
+        //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+
+        //this->WaitForDiskAccess();
+
+        ctx->MenuAction(ImGuiTestAction_Hover, "###file/###hard_reset/###confirm");
+
+        this->Capture("hard_reset_confirm.png");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "###file/###hard_reset/###confirm");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware");
+
+        this->Capture("hardware_menu.png");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");
+
+        this->Capture("configs_ui.png");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");
+        ctx->MenuAction(ImGuiTestAction_Click, "###keyboard/###toggle_keyboard_layout");
+
+        this->Capture("keyboard_layout_ui.png");
+
+        //ctx->SetRef("/Keyboard Layouts");
+        //ctx->ItemAction(ImGuiTestAction_Hover, "###columns");///###keymaps");///###b/###3");
+
+        // don't leave the UI state messed up! I find it useful to poke about
+        // afterwards
+        m_set_ui_flags = 0;
         m_beeb_window = nullptr;
+        m_ctx = nullptr;
         m_yielder.reset();
     }
 
@@ -2094,7 +2113,24 @@ class DocImageCreator : public DearImGuiTest {
     uint32_t m_clear_ui_flags = 0;
     uint32_t m_ui_flags = 0;
     BeebWindow *m_beeb_window = nullptr;
+    ImGuiTestContext *m_ctx = nullptr;
     std::unique_ptr<Yielder> m_yielder;
+
+    void HideMouse() {
+        m_ctx->MouseMoveToPos({-100, -100});
+    }
+
+    void WaitForDiskAccess() {
+        // Wait for access to start.
+        while (!(m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift)) {
+            m_yielder->Yield();
+        }
+
+        // Wait for access to finish.
+        while (m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift) {
+            m_yielder->Yield();
+        }
+    }
 
     void Capture(const std::string &name) {
         TEST_TRUE(m_beeb_window->CaptureNextBackBuffer());
@@ -2105,6 +2141,32 @@ class DocImageCreator : public DearImGuiTest {
         }
         TEST_NON_NULL(surface);
         TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, name), g_stdio_logs));
+    }
+
+    std::string DownloadFileFromURL(const std::string &name, std::string url, const char *expected_mime_type = nullptr) {
+        std::string cache_folder;
+        TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&cache_folder));
+        std::string local_path = PathJoined(cache_folder, name);
+        if (!PathIsFileOnDisk(local_path, nullptr, nullptr)) {
+            HTTPRequest request;
+            request.url = std::move(url);
+            request.method = "GET";
+
+            std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+            client->SetLogs(&g_stdio_logs);
+            //client->SetVerbose(true);
+
+            HTTPResponse response;
+            int status = client->SendRequest(request, &response);
+            TEST_EQ_II(status, 200);
+            if (expected_mime_type) {
+                TEST_EQ_SS(response.content_type, "application/vnd.acorn.disc-image.ssd");
+            }
+
+            TEST_TRUE(SaveFile(response.content, local_path, &g_stdio_logs));
+        }
+
+        return local_path;
     }
 };
 
@@ -2265,7 +2327,7 @@ class TestNVRAMUpdate : public DearImGuiTest {
         const uint8_t new_mode = (old_nvram_mode + 1) & 7;
 
         ctx->SetRef("##MainMenuBar");
-        std::string hardware_config_path = "Hardware/###" + std::to_string(config_index);
+        std::string hardware_config_path = "###hardware/###" + std::to_string(config_index);
         ctx->MenuClick(hardware_config_path.c_str());
 
         // TODO: the stuff that's being done via the beeb thread might not be
