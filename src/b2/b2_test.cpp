@@ -213,10 +213,10 @@ class DearImGuiTest : public Test, public AppHandler {
         return m_http_port;
     }
 
-    bool ShowPopupUI() const override {
+    uint32_t GetUIFlags() const override {
         // The popups can interfere with the test engine, so just don't bother
         // display them.
-        return false;
+        return UIFlag_HideAllPopups;
     }
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
@@ -261,6 +261,8 @@ class DearImGuiTest : public Test, public AppHandler {
     bool HandleSelectorDialogOpen(std::string *result, const Guid &guid) override {
         auto &&it = m_selector_results_by_guid.find(guid);
         if (it == m_selector_results_by_guid.end()) {
+            TEST_FALSE(this->IsHeadless());
+            TEST_TRUE(m_allow_interactive_selector_dialogs);
             return false;
         }
 
@@ -272,10 +274,6 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
     void SetSelectorDialogResult(const Guid &guid, const std::string &result) override {
-        // TODO: unrealised plan for this is/was that it'd be possible to select
-        // files with the native UI dialog when running interactively, and the
-        // test would just fall into place same as if using the predetermined
-        // path.
         SelectorResults *results = &m_selector_results_by_guid[guid];
         TEST_FALSE(results->got_last_result);
         results->got_last_result = true;
@@ -333,17 +331,30 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
     std::vector<std::string> m_args; //excludes argv[0]
+    ImGuiTestEngine *m_test_engine = nullptr;
+
+    // if true, allow interactive selector dialogs: if no result set for the
+    // dialog, and running interactively, just pop it up and let the thing
+    // happen.
+    //
+    // TODO: this mechanism hasn't really been thought through thoroughly and
+    // will/should probably change.
+    bool m_allow_interactive_selector_dialogs = false;
+
   private:
     struct SelectorResults {
+        // upcoming result set by SetNextSelectorDialogResult. If set, next use
+        // of this dialog will return this string.
         std::string next_result;
         bool got_next_result = false;
 
+        // result from last use of this dialog, whether set automatically or
+        // interactively.
         std::string last_result;
         bool got_last_result = false;
     };
 
     //BeebWindow *m_beeb_window = nullptr;
-    ImGuiTestEngine *m_test_engine = nullptr;
     ImGuiTest *m_test = nullptr;
     int m_http_port = 0;
     std::map<Guid, SelectorResults> m_selector_results_by_guid;
@@ -367,7 +378,9 @@ class Yielder {
     }
 
     void Yield() {
-        if (GetSecondsFromTicks(GetCurrentTickCount() - m_start_ticks) > m_time_limit_seconds) {
+        if (IsDebuggerAttached()) {
+            // Ignore timeout in this case.
+        } else if (GetSecondsFromTicks(GetCurrentTickCount() - m_start_ticks) > m_time_limit_seconds) {
             std::string config_folder;
             TEST_TRUE(m_test->GetConfigAndCacheOverrideFolder(&config_folder));
 
@@ -385,7 +398,8 @@ class Yielder {
         m_ctx->Yield();
     }
 
-    void YieldUntilMessageQueueEmpty() {
+    void
+    YieldUntilMessageQueueEmpty() {
         std::shared_ptr<BeebThread> beeb_thread = m_beeb_window->GetBeebThread();
 
         while (beeb_thread->AreNonTimingMessagesPending()) {
@@ -1447,8 +1461,8 @@ class TestHTTPAPI : public Test, public AppHandler {
         });
     }
 
-    bool ShowPopupUI() const override {
-        return false;
+    uint32_t GetUIFlags() const override {
+        return UIFlag_HideAllPopups;
     }
 
     bool IsDearImGuiTestEngineEnabled() const override {
@@ -1997,24 +2011,76 @@ class DocImageCreator : public DearImGuiTest {
         beeb_window->m_imgui_test_engine_ui = false;
     }
 
-    bool ShowPopupUI() const override {
-        // Want to show this, so that it comes through in the screen grabs.
-        return true;
+    uint32_t GetUIFlags() const override {
+        uint32_t ui_flags = m_ui_flags;
+
+        ui_flags |= m_set_ui_flags;
+        ui_flags &= ~m_clear_ui_flags;
+
+        return ui_flags;
     }
 
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        ASSERT(!m_beeb_window);
+        m_beeb_window = beeb_window;
+
         TEST_TRUE(PathCreateFolder(m_output_path));
 
-        Yielder yielder(ctx, beeb_window, this);
+        ASSERT(!m_yielder);
+        m_yielder = std::make_unique<Yielder>(ctx, m_beeb_window, this);
 
-        TEST_TRUE(beeb_window->CaptureNextBackBuffer());
+        ctx->MouseMoveToPos({-100, -100});
+        m_set_ui_flags = UIFlag_HideAllPopups | UIFlag_HideDebuggerUI | UIFlag_HideExtrasUI;
 
-        SDLUniquePtr<SDL_Surface> surface;
-        while (!beeb_window->TakeCapturedBackBuffer(&surface)) {
-            yielder.Yield();
+        this->Capture("startup.png");
+
+        //m_draw_mouse_cursor = true;
+
+        ctx->SetRef("##MainMenuBar");
+        ctx->MenuAction(ImGuiTestAction_Hover, "###file/###run/###open_file");
+
+        this->Capture("file_run_disk_image.png");
+
+        //ctx->SetRef("##MainMenuBar");
+        //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+
+        //
+        std::string elite_ssd_path = PathJoined(b2_SOURCE_DIR, "build", "Disc021-EliteD.ssd");
+        if (!PathIsFileOnDisk(elite_ssd_path, nullptr, nullptr)) {
+            HTTPRequest request;
+            request.url = "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd";
+            request.method = "GET";
+
+            std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+            client->SetLogs(&g_stdio_logs);
+            //client->SetVerbose(true);
+
+            HTTPResponse response;
+            int status = client->SendRequest(request, &response);
+            TEST_EQ_II(status, 200);
+            TEST_EQ_SS(response.content_type, "application/vnd.acorn.disc-image.ssd");
+            TEST_TRUE(SaveFile(response.content, elite_ssd_path, &g_stdio_logs));
         }
-        TEST_NON_NULL(surface);
-        TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, "test.png"), g_stdio_logs));
+
+        this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
+        ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+
+        // Wait for boot to start.
+        while (!(m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift)) {
+            m_yielder->Yield();
+        }
+
+        // Wait for boot to finish.
+        while (m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift) {
+            m_yielder->Yield();
+        }
+
+        ctx->MouseMoveToPos({-100, -100});
+
+        this->Capture("running_elite.png");
+
+        m_beeb_window = nullptr;
+        m_yielder.reset();
     }
 
     void Run() override {
@@ -2024,6 +2090,22 @@ class DocImageCreator : public DearImGuiTest {
   protected:
   private:
     std::string m_output_path;
+    uint32_t m_set_ui_flags = 0;
+    uint32_t m_clear_ui_flags = 0;
+    uint32_t m_ui_flags = 0;
+    BeebWindow *m_beeb_window = nullptr;
+    std::unique_ptr<Yielder> m_yielder;
+
+    void Capture(const std::string &name) {
+        TEST_TRUE(m_beeb_window->CaptureNextBackBuffer());
+
+        SDLUniquePtr<SDL_Surface> surface;
+        while (!m_beeb_window->TakeCapturedBackBuffer(&surface)) {
+            m_yielder->Yield();
+        }
+        TEST_NON_NULL(surface);
+        TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, name), g_stdio_logs));
+    }
 };
 
 //////////////////////////////////////////////////////////////////////////

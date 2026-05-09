@@ -18,6 +18,10 @@ struct ImVec2;
 #include "json.h"
 #include "BeebConfig.h"
 
+#include <shared/enum_decl.h>
+#include "b2.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -116,8 +120,8 @@ class AppHandler {
     // Default impl does nothing.
     virtual void MessageLoopWillStart();
 
-    // Whether to show b2 popup UI.
-    virtual bool ShowPopupUI() const = 0;
+    // Return value is combination of UIFlag.
+    virtual uint32_t GetUIFlags() const = 0;
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     // Whether to initialise Dear ImGui Test Engine.
@@ -169,7 +173,7 @@ class OrdinaryAppHandler : public AppHandler {
     bool GetFixedDisplaySize(ImVec2 *display_size) const override;            //returns false
     int GetRequestedHttpServerListenPort() const override;                    //returns 0xbbcb
     int GetLaunchRequestHttpServerPort() const override;                      //returns 0xbbcb
-    bool ShowPopupUI() const override;                                        //returns true
+    uint32_t GetUIFlags() const override;                                     //returns 0
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override; //returns false
 #endif

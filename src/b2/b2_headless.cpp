@@ -193,8 +193,8 @@ class HeadlessAppHandler : public AppHandler {
         }
     }
 
-    bool ShowPopupUI() const override {
-        return false;
+    uint32_t GetUIFlags() const override {
+        return UIFlag_HideAllPopups;
     }
 
 #if IMGUI_ENABLE_TEST_ENGINE

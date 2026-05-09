@@ -33,7 +33,7 @@ add_library(b2_lib STATIC
   VideoWriter.cpp VideoWriter.h
   VideoWriterTGA.cpp VideoWriterTGA.h
   WriteVideoJob.cpp WriteVideoJob.h
-  b2.cpp b2.h b2_private.inl
+  b2.cpp b2.h b2.inl b2_private.inl
   commands.cpp commands.h
   conf.cpp conf.h
   dear_imgui.cpp dear_imgui.h dear_imgui.inl dear_imgui.imconfig.h

@@ -473,6 +473,7 @@ static void ImGuiVolume(const char *caption, float *volume, bool *mute, const st
 void BeebWindow::OptionsUI::DoImGui() {
     const std::shared_ptr<BeebThread> &beeb_thread = m_beeb_window->m_beeb_thread;
     BeebWindowSettings *settings = &m_beeb_window->m_settings;
+    uint32_t ui_flags = m_beeb_window->m_init_arguments.app_handler->GetUIFlags();
 
     //    {
     //        bool paused=m_beeb_window->m_beeb_thread->IsPaused();
@@ -638,117 +639,119 @@ void BeebWindow::OptionsUI::DoImGui() {
     ImGui::NewLine();
 
 #if BBCMICRO_DEBUGGER
-    {
-        ImGuiHeader("Debugger Options");
+    if (!(ui_flags & UIFlag_HideDebuggerUI)) {
+        {
+            ImGuiHeader("Debugger Options");
 
-        ImGui::TextUnformatted("Syntax");
-        ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_BBCBASIC, "BBC BASIC");
-        ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_Assembler, "Assembler");
-        ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_C, "C");
+            ImGui::TextUnformatted("Syntax");
+            ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_BBCBASIC, "BBC BASIC");
+            ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_Assembler, "Assembler");
+            ImGuiRadioButton(&m_beeb_window->m_settings.debugger_syntax, DebuggerSyntax_C, "C");
 
-        ImGui::Checkbox("Show memory-mapped I/O", &m_beeb_window->m_settings.debugger_show_mmio);
-    }
-
-    {
-        ImGuiHeader("Debug Options");
-
-        ImGui::Checkbox("Show extra C++ debug UI", &m_beeb_window->m_settings.extra_debug_ui);
-
-        std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
-        m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
-
-        bool teletext_debug = beeb_state->saa5050.debug;
-        if (ImGui::Checkbox("Teletext debug", &teletext_debug)) {
-            m_beeb_window->m_beeb_thread->Send(
-                std::make_shared<BeebThread::CallbackMessage>([teletext_debug](BBCMicro *m) -> void {
-                    m->SetTeletextDebug(teletext_debug);
-                }));
+            ImGui::Checkbox("Show memory-mapped I/O", &m_beeb_window->m_settings.debugger_show_mmio);
         }
 
-        bool teletext_dim_flash = beeb_state->saa5050.dim_flash;
-        if (ImGui::Checkbox("Show teletext flash as dim", &teletext_dim_flash)) {
-            m_beeb_window->m_beeb_thread->Send(
-                std::make_shared<BeebThread::CallbackMessage>([teletext_dim_flash](BBCMicro *m) -> void {
-                    m->SetTeletextDimFlash(teletext_dim_flash);
-                }));
-        }
+        {
+            ImGuiHeader("Debug Options");
 
-        ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
-        if (ImGui::Checkbox("Test pattern", &m_beeb_window->m_test_pattern)) {
-            if (m_beeb_window->m_test_pattern) {
-                m_beeb_window->m_tv.FillWithTestPattern();
-            }
-        }
+            ImGui::Checkbox("Show extra C++ debug UI", &m_beeb_window->m_settings.extra_debug_ui);
 
-        ImGui::Checkbox("Fill window (overrides auto scale/correct aspect ratio)", &m_beeb_window->m_display_fill);
+            std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
+            m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
 
-        ImGui::Checkbox("1.0 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_usec_markers);
-        ImGui::SameLine();
-        ImGui::Checkbox("0.5 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_half_usec_markers);
-
-        ImGui::Checkbox("6845 rows", &m_beeb_window->m_tv.show_6845_row_markers);
-        ImGui::SameLine();
-        ImGui::Checkbox("6845 DISPEN", &m_beeb_window->m_tv.show_6845_dispen_markers);
-
-        ImGui::TextUnformatted("RAM errors");
-
-        uint8_t ram_and, ram_or;
-        beeb_state->DebugGetMemoryFaultMasks(&ram_and, &ram_or);
-
-        bool changed = false;
-
-        for (int bit_index = 0; bit_index < 8; ++bit_index) {
-            ImGuiIDPusher pusher(bit_index);
-
-            if (bit_index > 0) {
-                ImGui::SameLine();
+            bool teletext_debug = beeb_state->saa5050.debug;
+            if (ImGui::Checkbox("Teletext debug", &teletext_debug)) {
+                m_beeb_window->m_beeb_thread->Send(
+                    std::make_shared<BeebThread::CallbackMessage>([teletext_debug](BBCMicro *m) -> void {
+                        m->SetTeletextDebug(teletext_debug);
+                    }));
             }
 
-            int bit = 7 - bit_index;
-            uint8_t mask = 1 << bit;
-
-            bool and_ = !!(ram_and & mask);
-            bool or_ = !!(ram_or & mask);
-
-            int value;
-            if (!and_ && !or_) {
-                value = 0;
-            } else if (and_ && !or_) {
-                value = 2;
-            } else {
-                value = 1;
+            bool teletext_dim_flash = beeb_state->saa5050.dim_flash;
+            if (ImGui::Checkbox("Show teletext flash as dim", &teletext_dim_flash)) {
+                m_beeb_window->m_beeb_thread->Send(
+                    std::make_shared<BeebThread::CallbackMessage>([teletext_dim_flash](BBCMicro *m) -> void {
+                        m->SetTeletextDimFlash(teletext_dim_flash);
+                    }));
             }
 
-            char caption[2] = {};
-            caption[0] = "01-"[value];
-
-            if (ImGui::Button(caption)) {
-                value = (value + 1) % 3;
-                changed = true;
-
-                if (value == 0) {
-                    ram_and &= ~mask;
-                    ram_or &= ~mask;
-                } else if (value == 1) {
-                    ram_and &= ~mask;
-                    ram_or |= mask;
-                } else {
-                    ram_and |= mask;
-                    ram_or &= ~mask;
+            ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
+            if (ImGui::Checkbox("Test pattern", &m_beeb_window->m_test_pattern)) {
+                if (m_beeb_window->m_test_pattern) {
+                    m_beeb_window->m_tv.FillWithTestPattern();
                 }
             }
 
-            ImGui::SameLine();
-            ImGui::Text("%d", bit);
-        }
+            ImGui::Checkbox("Fill window (overrides auto scale/correct aspect ratio)", &m_beeb_window->m_display_fill);
 
-        if (changed) {
-            m_beeb_window->m_beeb_thread->Send(
-                std::make_shared<BeebThread::CallbackMessage>(
-                    std::function<void(BBCMicro *)>(),
-                    [ram_and, ram_or](BBCMicro *m) -> void {
-                        m->SetMemoryAccessErrorMasks(ram_and, ram_or);
-                    }));
+            ImGui::Checkbox("1.0 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_usec_markers);
+            ImGui::SameLine();
+            ImGui::Checkbox("0.5 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_half_usec_markers);
+
+            ImGui::Checkbox("6845 rows", &m_beeb_window->m_tv.show_6845_row_markers);
+            ImGui::SameLine();
+            ImGui::Checkbox("6845 DISPEN", &m_beeb_window->m_tv.show_6845_dispen_markers);
+
+            ImGui::TextUnformatted("RAM errors");
+
+            uint8_t ram_and, ram_or;
+            beeb_state->DebugGetMemoryFaultMasks(&ram_and, &ram_or);
+
+            bool changed = false;
+
+            for (int bit_index = 0; bit_index < 8; ++bit_index) {
+                ImGuiIDPusher pusher(bit_index);
+
+                if (bit_index > 0) {
+                    ImGui::SameLine();
+                }
+
+                int bit = 7 - bit_index;
+                uint8_t mask = 1 << bit;
+
+                bool and_ = !!(ram_and & mask);
+                bool or_ = !!(ram_or & mask);
+
+                int value;
+                if (!and_ && !or_) {
+                    value = 0;
+                } else if (and_ && !or_) {
+                    value = 2;
+                } else {
+                    value = 1;
+                }
+
+                char caption[2] = {};
+                caption[0] = "01-"[value];
+
+                if (ImGui::Button(caption)) {
+                    value = (value + 1) % 3;
+                    changed = true;
+
+                    if (value == 0) {
+                        ram_and &= ~mask;
+                        ram_or &= ~mask;
+                    } else if (value == 1) {
+                        ram_and &= ~mask;
+                        ram_or |= mask;
+                    } else {
+                        ram_and |= mask;
+                        ram_or &= ~mask;
+                    }
+                }
+
+                ImGui::SameLine();
+                ImGui::Text("%d", bit);
+            }
+
+            if (changed) {
+                m_beeb_window->m_beeb_thread->Send(
+                    std::make_shared<BeebThread::CallbackMessage>(
+                        std::function<void(BBCMicro *)>(),
+                        [ram_and, ram_or](BBCMicro *m) -> void {
+                            m->SetMemoryAccessErrorMasks(ram_and, ram_or);
+                        }));
+            }
         }
     }
 #endif
@@ -2072,7 +2075,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
-    bool show_popup_ui = m_init_arguments.app_handler->ShowPopupUI();
+    uint32_t ui_flags = m_init_arguments.app_handler->GetUIFlags();
 
     if (ValueChanged(&m_msg_last_num_messages_printed, m_message_list->GetNumMessagesPrinted())) {
         m_messages_popup_ui_active = true;
@@ -2080,7 +2083,7 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
     }
 
     if (m_messages_popup_ui_active) {
-        if (show_popup_ui) {
+        if (!(ui_flags & UIFlag_HideMessagesPopup)) {
             // With ImGuiWindowFlags_NoMouseInputs, the popup is ignored entirely
             // for hovering purposes, so the mouse can end up interacting with
             // widgets behind it. Which doesn't feel very desirable, as the popup is
@@ -2156,7 +2159,7 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
     }
 
     if (m_leds_popup_ui_active) {
-        if (show_popup_ui) {
+        if (!(ui_flags & UIFlag_HideLEDsPopup)) {
             ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar |
                                       //ImGuiWindowFlags_ShowBorders|
                                       ImGuiWindowFlags_AlwaysAutoResize |
@@ -2263,7 +2266,7 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
         }
     }
 
-    if (show_popup_ui) {
+    if (!(ui_flags & UIFlag_HideJobsPopup)) {
         std::vector<std::shared_ptr<JobQueue::Job>> jobs = BeebWindows::GetJobs();
         if (!jobs.empty()) {
             bool open = false;
@@ -2343,7 +2346,7 @@ void BeebWindow::DoFileMenu() {
             m_cst.DoMenuItem(g_hard_reset_command);
         }
 
-        if (ImGui::BeginMenu("Run")) {
+        if (ImGui::BeginMenu("Run###run")) {
             this->DoDiscImageSubMenu(0, true);
 
             ImGui::EndMenu();
@@ -2643,7 +2646,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
     std::shared_ptr<DiscImage> disc_image;
 
     if (this->DoDiscImageSubMenu2(&path,
-                                  "Disc image...",
+                                  "Disc image...###open_file",
                                   boot ? nullptr : "New disc image###new_file",
                                   "Recent disc image",
                                   false)) {
@@ -3067,6 +3070,10 @@ void BeebWindow::DoDebugMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoExtraDebugMenu() {
+    if (m_init_arguments.app_handler->GetUIFlags() & UIFlag_HideExtrasUI) {
+        return;
+    }
+
     if (!m_settings.extra_debug_ui) {
         return;
     }
