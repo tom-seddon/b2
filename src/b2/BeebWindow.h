@@ -655,7 +655,7 @@ class BeebWindow {
     void DoMouseMenu();
     void DoPrinterMenu();
     void DoToolsMenu();
-#if ENABLE_DEBUG_MENU
+#if BBCMICRO_DEBUGGER
     void DoDebugMenu();
 #endif
     void DoExtraDebugMenu();

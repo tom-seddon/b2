@@ -1983,7 +1983,7 @@ void BeebWindow::DoMenuUI() {
         this->DoMouseMenu();
         this->DoPrinterMenu();
         this->DoToolsMenu();
-#if ENABLE_DEBUG_MENU
+#if BBCMICRO_DEBUGGER
         this->DoDebugMenu();
 #endif
         this->DoExtraDebugMenu();
@@ -2854,8 +2854,12 @@ void BeebWindow::DoToolsMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if ENABLE_DEBUG_MENU
+#if BBCMICRO_DEBUGGER
 void BeebWindow::DoDebugMenu() {
+    if (m_init_arguments.app_handler->GetUIFlags() & UIFlag_HideDebuggerUI) {
+        return;
+    }
+
     if (ImGui::BeginMenu("Debug")) {
         m_cst.DoMenuItem(g_debug_stop_command);
         m_cst.DoMenuItem(g_debug_run_command);
