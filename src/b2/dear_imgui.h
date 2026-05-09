@@ -227,6 +227,7 @@ class ImGuiContextSetter {
 class ImGuiIDPusher {
   public:
     explicit ImGuiIDPusher(const char *str_id);
+    explicit ImGuiIDPusher(const std::string &str);
     ImGuiIDPusher(const char *str_id_begin, const char *str_id_end);
     explicit ImGuiIDPusher(const void *ptr_id);
     explicit ImGuiIDPusher(int int_id);
