@@ -175,20 +175,22 @@ UI take priority over BBC Micro input. (If you don't tick this, you
 can still enable it later on an ad-hoc basis.)
 
 The area on the right displays the keyboard layout for each type of
-supported system: BBC B/B+, Master 128, Master Compact/Olivetti PC 128
+supported system: BBC B/B+/Master 128, Master Compact/Olivetti PC 128
 S, and Electron. The separate layouts are provided for visual
-reference, but the same key mappings apply.
+reference, but the same key mappings apply to all 3 layouts.
 
-For example, if you edit the `3` key in the BBC B/B+ layout, that
-change will also apply to the `3` key for the Master 128 layout, the
-`3` key for the Master Compact/Olivetti PC 128 S layout, and the `3`
-key for the Electron layout.
+For example, if you edit the `3` key in the BBC B/B+/Master 128
+layout, that change will also apply to the `3` key for the Master
+Compact/Olivetti PC 128 S layout, and the `3` key for the Electron
+layout.
 
-Not all layouts have the full set of keys: if you edit, say, the Tab
-key in the Master 128 layout, that will apply to the Tab key in the
-BBC B/B+ layout, and the Tab key in the Master Compact/Olivetti PC 128
-S layout. But it will have no effect on the Electron layout, as the
-Electron doesn't have a Tab key.
+Note that not all layouts have the full set of keys. If you edit, say,
+the Tab key in the BBC B/B+/Master 128 layout, that will apply to the
+Tab key in Master Compact/Olivetti PC 128 S layout, but it will have
+no effect on the Electron layout, as the Electron doesn't have a Tab
+key.
+
+## Edit keymaps keys
 
 Hover over a key to see the PC keys that map to this one. When you
 press one of the PC keys mentioned (any one), that BBC key will be
@@ -204,6 +206,8 @@ to a key's name to remove it from the list, or click outside the popup
 to cancel editing this key.
 
 IMAGE: key keymap key list
+
+## Edit character keymap keys
 
 If you're looking at a character keymap, the process is rather
 similar, but now each key is split into multiple parts, corresponding

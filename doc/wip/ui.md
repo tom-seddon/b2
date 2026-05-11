@@ -1,5 +1,11 @@
-A few notes about b2's UI. For technical reasons it has some unusual
+A few notes about b2's UI, which is not native on any platform. It
+shouldn't prove too inexplicable, but it does have some idiosyncratic
 aspects.
+
+# Using macOS?
+
+Like a Windows program, the b2 menu is part of the b2 window. The
+macOS menu bar is largely redundant.
 
 # Confirm popups
 
@@ -25,6 +31,9 @@ important. To see the full list of messages printed, go to the `Tools`
 menu and select `Messages`.
 
 IMAGE: Tools > Messages
+
+If an actual error pops up, the full messages dialog will pop up, and
+won't go away.
 
 Click `Copy` to copy the message list to the clipboard.
 

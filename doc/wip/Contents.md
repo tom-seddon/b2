@@ -6,7 +6,7 @@ https://github.com/tom-seddon/b2/issues/183
 b2 lets you run BBC Micro software on your modern system. Use it run
 old games, applications and ROMs.
 
-<<b2 running something>>
+IMAGE: b2 running something
 
 b2 runs on Windows, macOS and Linux. To install, follow the relevant
 installation instructions:
