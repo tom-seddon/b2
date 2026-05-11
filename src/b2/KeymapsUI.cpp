@@ -261,7 +261,7 @@ static const char *GetBeebKeymapNameCallback(void *context, int index) {
 void KeymapsUI::DoImGui() {
     m_wants_keyboard_focus = false;
 
-    ImGui::Columns(2, "keymaps");
+    ImGui::Columns(2, "###keymaps");
 
     // Ugh. But I couldn't get the layout to work properly with a table.
     if (m_first_update) {
@@ -317,7 +317,7 @@ void KeymapsUI::DoImGui() {
 
     ImGui::NextColumn();
 
-    ImGui::BeginChild("hello", ImVec2(0, 0), 0, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::BeginChild("###layouts", ImVec2(0, 0), 0, ImGuiWindowFlags_HorizontalScrollbar);
 
     this->DoEditKeymapGui();
 
@@ -915,17 +915,19 @@ ImVec2 KeymapsUI::GetKeySize(const Keycap *key) const {
 
 void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *line) {
     for (const Keycap *key = line; key->width_in_halves >= 0; ++key) {
-        ImGuiIDPusher id_pusher(key);
-
         const ImVec2 &size = this->GetKeySize(key);
+        char label[100];
 
         if (key->key < 0) {
-            ImGui::InvisibleButton("", size);
+            // the ID isn't predictable, but it's only empty space, so
+            // it doesn't matter.
+            snprintf(label, sizeof label, "###%p", (void *)key);
+            ImGui::InvisibleButton(label, size);
         } else {
             ImGuiStyleColourPusher colour_pusher = this->GetColourPusherForKeycap(keymap, (int8_t)key->key, key);
 
-            char tmp[100];
-            const char *label;
+            const char *name = GetBeebKeyEnumName(key->key);
+
             const char *shifted = GetKeySymLabel(key->shifted_sym);
             const char *unshifted = GetKeySymLabel(key->unshifted_sym);
             const char *ctrled = GetKeySymLabel(key->ctrled_sym);
@@ -943,19 +945,14 @@ void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *lin
                     space = " ";
                 }
 
-                snprintf(tmp, sizeof tmp, "%s %s\n%s%s", shifted, ctrled ? ctrled : funced, space, unshifted);
-                label = tmp;
+                snprintf(label, sizeof label, "%s %s\n%s%s###%s", shifted, ctrled ? ctrled : funced, space, unshifted, name);
             } else if (shifted && unshifted) {
-                snprintf(tmp, sizeof tmp, "%s\n%s", shifted, unshifted);
-                label = tmp;
+                snprintf(label, sizeof label, "%s\n%s###%s", shifted, unshifted, name);
             } else {
                 ASSERT(!shifted);
+                ASSERT(unshifted);
 
-                if (unshifted) {
-                    label = unshifted;
-                } else {
-                    label = "";
-                }
+                snprintf(label, sizeof label, "%s###%s", unshifted, name);
             }
 
             if (ImGui::Button(label, size)) {
@@ -1144,8 +1141,6 @@ void KeymapsUI::DoEditKeymapGui() {
 
     bool edited = false;
 
-    ImGuiIDPusher id_pusher(keymap);
-
     std::string title = GetKeymapUIName(*keymap);
 
     {
@@ -1167,7 +1162,7 @@ void KeymapsUI::DoEditKeymapGui() {
     ImGui::SetNextItemOpen(keymap->show_bbc_keyboard_ui);
     keymap->show_bbc_keyboard_ui = ImGui::CollapsingHeader("BBC B/B+/Master 128 layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
     if (keymap->show_bbc_keyboard_ui) {
-        ImGuiIDPusher pusher("bbc");
+        ImGuiIDPusher pusher("###bbc");
 
         this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
         this->DoKeyboardLine(keymap, g_keyboard_line2, g_m128_line2);
@@ -1180,7 +1175,7 @@ void KeymapsUI::DoEditKeymapGui() {
     ImGui::SetNextItemOpen(keymap->show_compact_keyboard_ui);
     keymap->show_compact_keyboard_ui = ImGui::CollapsingHeader("Master Compact/PC 128 S layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
     if (keymap->show_compact_keyboard_ui) {
-        ImGuiIDPusher pusher("compact");
+        ImGuiIDPusher pusher("###compact");
 
         this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
         this->DoKeyboardLine(keymap, g_compact_line2, g_m128_line2);
@@ -1193,7 +1188,7 @@ void KeymapsUI::DoEditKeymapGui() {
     ImGui::SetNextItemOpen(keymap->show_electron_keyboard_ui);
     keymap->show_electron_keyboard_ui = ImGui::CollapsingHeader("Electron layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
     if (keymap->show_electron_keyboard_ui) {
-        ImGuiIDPusher pusher("electron");
+        ImGuiIDPusher pusher("###electron");
 
         this->DoKeyboardLine(keymap, g_electron_line1, nullptr);
         this->DoKeyboardLine(keymap, g_electron_line2, nullptr);

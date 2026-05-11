@@ -2025,6 +2025,8 @@ class DocImageCreator : public DearImGuiTest {
     }
 
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
+        //m_skip.insert("run_elite");
+
         ASSERT(!m_beeb_window);
         m_beeb_window = beeb_window;
 
@@ -2036,32 +2038,35 @@ class DocImageCreator : public DearImGuiTest {
         ASSERT(!m_yielder);
         m_yielder = std::make_unique<Yielder>(ctx, m_beeb_window, this);
 
+        m_b_acorn_1770_index = this->MustFindConfigIndex("B/Acorn 1770");
+
         this->HideMouse();
         m_set_ui_flags = UIFlag_HideAllPopups | UIFlag_HideDebuggerUI | UIFlag_HideExtrasUI;
 
         this->Capture("startup.png");
 
-        //m_draw_mouse_cursor = true;
-
         ctx->SetRef("##MainMenuBar");
-        ctx->MenuAction(ImGuiTestAction_Hover, "###file/###run/###open_file");
 
-        this->Capture("file_run_disk_image.png");
+        if (this->DoSection("run_elite")) {
+            ctx->MenuAction(ImGuiTestAction_Hover, "###file/###run/###open_file");
 
-        //ctx->SetRef("##MainMenuBar");
-        //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+            this->Capture("file_run_disk_image.png");
 
-        std::string elite_ssd_path = this->DownloadFileFromURL("Disc021-EliteD.ssd",
-                                                               "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd",
-                                                               "application/vnd.acorn.disc-image.ssd");
+            //ctx->SetRef("##MainMenuBar");
+            //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
 
-        this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
-        ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+            std::string elite_ssd_path = this->DownloadFileFromURL("Disc021-EliteD.ssd",
+                                                                   "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd",
+                                                                   "application/vnd.acorn.disc-image.ssd");
 
-        this->WaitForDiskAccess();
+            this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
+            ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
 
-        this->HideMouse();
-        this->Capture("running_elite.png");
+            this->WaitForDiskAccess();
+
+            this->HideMouse();
+            this->Capture("running_elite.png");
+        }
 
         //std::string repton_ssd_path = this->DownloadFileFromURL("Disc015-ReptonP.ssd",
         //                                                        "https://bbcmicro.co.uk/gameimg/discs/266/Disc015-ReptonP.ssd",
@@ -2076,7 +2081,7 @@ class DocImageCreator : public DearImGuiTest {
 
         this->Capture("hard_reset_confirm.png");
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###file/###hard_reset/###confirm");
+        ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", m_b_acorn_1770_index).c_str());
 
         ctx->MenuAction(ImGuiTestAction_Click, "###hardware");
 
@@ -2092,7 +2097,7 @@ class DocImageCreator : public DearImGuiTest {
         this->Capture("keyboard_layout_ui.png");
 
         //ctx->SetRef("/Keyboard Layouts");
-        //ctx->ItemAction(ImGuiTestAction_Hover, "###columns");///###keymaps");///###b/###3");
+        //ctx->ItemAction(ImGuiTestAction_Hover, "###layouts/###bbc/###3");
 
         // don't leave the UI state messed up! I find it useful to poke about
         // afterwards
@@ -2115,9 +2120,26 @@ class DocImageCreator : public DearImGuiTest {
     BeebWindow *m_beeb_window = nullptr;
     ImGuiTestContext *m_ctx = nullptr;
     std::unique_ptr<Yielder> m_yielder;
+    size_t m_b_acorn_1770_index = 0;
+    std::set<std::string> m_skip;
+
+    bool DoSection(const std::string &name) const {
+        return !m_skip.contains(name);
+    }
 
     void HideMouse() {
         m_ctx->MouseMoveToPos({-100, -100});
+    }
+
+    size_t MustFindConfigIndex(const std::string &name) const {
+        for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
+            const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+            if (config->name == name) {
+                return i;
+            }
+        }
+
+        TEST_FAIL("failed to find config: %s", name.c_str());
     }
 
     void WaitForDiskAccess() {

@@ -11404,4 +11404,10 @@ follows suit.
 $fc5e/$fc5f aren't debug functionality, but they end up in the same
 region.
 
+* doc image stuff
+
+#+begin_example
+--doc-images=D:\temp\b2_doc_images
+#+end_example
+
 * eof.
