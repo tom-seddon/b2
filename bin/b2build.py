@@ -760,9 +760,9 @@ def _init_vs_cmd(options):
                                     options.output_path)]
         argv+=['-B','.']
         ret=run_subprocess(argv,options,close_fds=False)
-        if ret.returncode!=0:
-            rmtree(unix_folder)
-            fatal('init failed')
+    if ret.returncode!=0:
+        rmtree(options.output_path)
+        fatal('init failed')
 
 ##########################################################################
 ##########################################################################
