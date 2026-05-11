@@ -11410,4 +11410,26 @@ region.
 --doc-images=D:\temp\b2_doc_images
 #+end_example
 
+* =imgui_test_engine= upstream stuff
+
+** test upstream code
+
+Easiest on Windows...
+
+Clone upstream repos. Make sure to switch to docking branch.
+
+#+begin_example
+  md D:\temp\imgui_test_engine
+  cd /d D:\temp\imgui_test_engine
+  git clone --recursive git@github.com:ocornut/imgui_test_engine
+  git clone --recursive git@github.com:ocornut/imgui
+  cd imgui
+  git checkout docking
+#+end_example
+
+Load
+=D:\temp\imgui_test_engine_test\imgui_test_engine\imgui_test_engine.sln=
+into Visual Studio 2022. Accept upgrade prompts.
+
+
 * eof.
