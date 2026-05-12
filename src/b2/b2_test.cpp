@@ -151,6 +151,8 @@ void Test::DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) {
 
 class DearImGuiTest : public Test, public AppHandler {
   public:
+    static constexpr ImVec2 FIXED_DISPLAY_SIZE{1024.f, 768.f};
+
     std::string GetProductName() const override {
         return DEFAULT_PRODUCT_NAME;
     }
@@ -194,8 +196,7 @@ class DearImGuiTest : public Test, public AppHandler {
     }
 
     bool GetFixedDisplaySize(ImVec2 *display_size) const override {
-        display_size->x = 1024.f;
-        display_size->y = 768.f;
+        *display_size = FIXED_DISPLAY_SIZE;
 
         return true;
     }
@@ -1988,8 +1989,11 @@ class TestHTTPPeek : public TestHTTPAPI {
 
 class DocImageCreator : public DearImGuiTest {
   public:
-    DocImageCreator(std::string output_path)
+    DocImageCreator(std::string output_path, const std::vector<std::string> &skip_sections)
         : m_output_path(std::move(output_path)) {
+        for (const std::string &skip_section : skip_sections) {
+            m_skip_sections[skip_section] = false;
+        }
     }
 
     std::string GetFullName() const override {
@@ -2047,7 +2051,7 @@ class DocImageCreator : public DearImGuiTest {
 
         ctx->SetRef("##MainMenuBar");
 
-        if (this->DoSection("run_elite")) {
+        if (this->DoSection("elite")) {
             ctx->MenuAction(ImGuiTestAction_Hover, "###file/###run/###open_file");
 
             this->Capture("file_run_disk_image.png");
@@ -2061,6 +2065,17 @@ class DocImageCreator : public DearImGuiTest {
 
             this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
             ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+
+            m_clear_ui_flags = UIFlag_HideAllPopups;
+
+            // Extremely long-standing bug means the thing is briefly the wrong size.
+            m_yielder->Yield();
+
+            ImGuiTestItemInfo wi = ctx->WindowInfo("//###recent_messages");
+
+            this->CaptureRect("message_popup.png", 0, wi.Window->Pos.y - 50.f, FIXED_DISPLAY_SIZE.x, wi.Window->Pos.y + wi.Window->Size.y + 50.f);
+
+            m_clear_ui_flags = 0;
 
             this->WaitForDiskAccess();
 
@@ -2079,7 +2094,7 @@ class DocImageCreator : public DearImGuiTest {
 
         ctx->MenuAction(ImGuiTestAction_Hover, "###file/###hard_reset/###confirm");
 
-        this->Capture("hard_reset_confirm.png");
+        this->CaptureMouseRelativeRect("confirm.menu.png", -250, -25, 100, 25);
 
         ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", m_b_acorn_1770_index).c_str());
 
@@ -2096,8 +2111,53 @@ class DocImageCreator : public DearImGuiTest {
 
         this->Capture("keyboard_layout_ui.png");
 
-        //ctx->SetRef("/Keyboard Layouts");
-        //ctx->ItemAction(ImGuiTestAction_Hover, "###layouts/###bbc/###3");
+        ctx->ItemAction(ImGuiTestAction_Hover, "//Keyboard Layouts/**/###bbc/###LeftShift");
+
+        this->CaptureMouseRelativeRect("keyboard_layout_ui.key.hover.png", -50, -50, 125, 100);
+
+        ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###bbc/###LeftShift");
+
+        this->CaptureMouseRelativeRect("keyboard_layout_ui.key.click.png", -50, -50, 150, 125);
+
+        ctx->MouseClick(); // (a second click in the same point will cancel the popup)
+
+        ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###Default UK");
+
+        ctx->ItemAction(ImGuiTestAction_Hover, "//Keyboard Layouts/**/###bbc/###ExclamationMark");
+
+        this->CaptureMouseRelativeRect("keyboard_layout_ui.char.hover.png", -50, -50, 125, 100);
+
+        ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###bbc/###ExclamationMark");
+
+        this->CaptureMouseRelativeRect("keyboard_layout_ui.char.click.png", -50, -50, 150, 125);
+
+        ctx->MouseClick(); // (a second click in the same point will cancel the popup)
+
+        ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###delete");
+        ctx->ItemAction(ImGuiTestAction_Hover, "//Keyboard Layouts/**/###confirm");
+
+        this->CaptureMouseRelativeRect("confirm.button.png", -100, -25, 100, 25);
+
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_keyboard_layout");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###tools/###toggle_messages");
+
+        this->Capture("messages_popup.png");
+
+        //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");
+        //ASSERT(wi.Window);
+        //ctx->SetRef(wi.Window);
+        ////wi=ctx->WindowInfo("###layouts_11749C39");
+        ////ASSERT(wi.Window);
+        ////ctx->SetRef(wi.Window);
+        ////ctx->ItemAction(ImGuiTestAction_Hover, "");
+
+        //###bbc/###3"); ///###stuff/###bbc/###3");
+
+        // check that all sections specified were valid.
+        for (auto &&name_and_tested : m_skip_sections) {
+            ASSERT(name_and_tested.second);
+        }
 
         // don't leave the UI state messed up! I find it useful to poke about
         // afterwards
@@ -2121,10 +2181,16 @@ class DocImageCreator : public DearImGuiTest {
     ImGuiTestContext *m_ctx = nullptr;
     std::unique_ptr<Yielder> m_yielder;
     size_t m_b_acorn_1770_index = 0;
-    std::set<std::string> m_skip;
+    std::map<std::string, bool> m_skip_sections;
 
-    bool DoSection(const std::string &name) const {
-        return !m_skip.contains(name);
+    bool DoSection(const std::string &name) {
+        auto &&it = m_skip_sections.find(name);
+        if (it == m_skip_sections.end()) {
+            return true;
+        } else {
+            it->second = true;
+            return false;
+        }
     }
 
     void HideMouse() {
@@ -2155,6 +2221,44 @@ class DocImageCreator : public DearImGuiTest {
     }
 
     void Capture(const std::string &name) {
+        SDLUniquePtr<SDL_Surface> surface = this->Capture();
+        TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, name), g_stdio_logs));
+    }
+
+    void CaptureRect(const std::string &name, float x0, float y0, float x1, float y1) {
+        SDLUniquePtr<SDL_Surface> full_surface = this->Capture();
+
+        int w = (int)(x1 - x0);
+        int h = (int)(y1 - y0);
+
+        SDLUniquePtr<SDL_Surface> subsurface(SDL_CreateRGBSurfaceWithFormat(0, w, h, -1, full_surface->format->format));
+
+        ImVec2 mouse_pos = ImGui::GetMousePos();
+
+        SDL_Rect src_rect;
+        src_rect.x = (int)x0;
+        src_rect.y = (int)y0;
+        src_rect.w = w;
+        src_rect.h = h;
+
+        SDL_Rect dest_rect = {};
+
+        int blit_result = SDL_BlitSurface(full_surface.get(), &src_rect, subsurface.get(), &dest_rect);
+        TEST_EQ_II(blit_result, 0);
+
+        TEST_TRUE(SaveSDLSurface(subsurface.get(), PathJoined(m_output_path, name), g_stdio_logs));
+    }
+
+    void CaptureMouseRelativeRect(const std::string &name, float dx0, float dy0, float dx1, float dy1) {
+        ImVec2 mouse_pos = ImGui::GetMousePos();
+
+        float mx = mouse_pos.x;
+        float my = mouse_pos.y;
+
+        return this->CaptureRect(name, mx + dx0, my + dy0, mx + dx1, my + dy1);
+    }
+
+    SDLUniquePtr<SDL_Surface> Capture() {
         TEST_TRUE(m_beeb_window->CaptureNextBackBuffer());
 
         SDLUniquePtr<SDL_Surface> surface;
@@ -2162,7 +2266,8 @@ class DocImageCreator : public DearImGuiTest {
             m_yielder->Yield();
         }
         TEST_NON_NULL(surface);
-        TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, name), g_stdio_logs));
+
+        return surface;
     }
 
     std::string DownloadFileFromURL(const std::string &name, std::string url, const char *expected_mime_type = nullptr) {
@@ -2419,6 +2524,7 @@ struct TestOptions {
     std::vector<std::string> b2_argv;
     bool interactive = false;
     std::string doc_images_path;
+    std::vector<std::string> doc_images_skip;
 };
 
 static TestOptions GetOptions(int argc, char *argv[]) {
@@ -2441,12 +2547,15 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
     p.AddOption("interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run UI in interactive mode");
 
-    // this oddity exists because b2_test happens to have all the infrastructure
+    // This oddity exists because b2_test happens to have all the infrastructure
     // in place to make it work, and not because it makes any sense
     // conceptually.
     p.AddOption("doc-images").Meta("PATH").Arg(&options.doc_images_path).Help("run in doc image creation mode, and output doc images to PATH");
 
-    // intended for use when adding new tests, in conjunction with -T, on the
+    // A time-saving bodge. There's no specific list of possible sections.
+    p.AddOption("doc-images-skip").Meta("SECTION").AddArgToList(&options.doc_images_skip).Help("skip doc image section SECTION when creating images");
+
+    // Intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
     p.AddOption(0, "reverse").SetIfPresent(&options.reverse).Help("work through the test list in reverse order");
 
@@ -2639,7 +2748,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (!options.doc_images_path.empty()) {
-        DocImageCreator doc_images(options.doc_images_path);
+        DocImageCreator doc_images(options.doc_images_path, options.doc_images_skip);
 
         doc_images.Run();
 

@@ -400,6 +400,7 @@ class BeebWindow::ImGuiDebugUI : public SettingsUI {
   protected:
   private:
     BeebWindow *m_beeb_window = nullptr;
+    std::vector<std::string> m_ids;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -407,12 +408,94 @@ class BeebWindow::ImGuiDebugUI : public SettingsUI {
 
 BeebWindow::ImGuiDebugUI::ImGuiDebugUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
+    m_ids.push_back("");
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::ImGuiDebugUI::DoImGui() {
+    ImGuiHeader("IDs Tester");
+
+    uint32_t seed = 0;
+    uint32_t index = 0;
+    while (index < m_ids.size()) {
+        ImGuiIDPusher id_pusher(index);
+
+        uint32_t id_with_seed = ImHashStr(m_ids[index].c_str(), 0, seed);
+        uint32_t id_without_seed = ImHashStr(m_ids[index].c_str());
+
+        char label[100];
+        snprintf(label, sizeof label, "%08X (%08X)", id_with_seed, id_without_seed);
+
+        ImGuiInputText(&m_ids[index], label, m_ids[index]);
+
+        ImGui::SameLine();
+
+        int move = 0;
+        bool up_enabled = index > 0;
+        bool down_enabled = index < m_ids.size() - 1;
+
+        {
+            ImGuiStyleColourPusher style_pusher;
+            style_pusher.PushDisabledButtonColours(!up_enabled);
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("###up", ImGuiDir_Up)) {
+                if (up_enabled) {
+                    move = -1;
+                }
+            }
+        }
+
+        {
+            ImGuiStyleColourPusher style_pusher;
+            style_pusher.PushDisabledButtonColours(!down_enabled);
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("###down", ImGuiDir_Down)) {
+                move = 1;
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("+")) {
+            m_ids.insert(m_ids.begin() + index, "");
+        }
+
+        bool erase = false;
+        {
+            bool erase_enabled = m_ids.size() > 1;
+
+            ImGuiStyleColourPusher style_pusher;
+            style_pusher.PushDisabledButtonColours(!erase_enabled);
+
+            ImGui::SameLine();
+            if (ImGui::Button("-")) {
+                if (erase_enabled) {
+                    erase = true;
+                }
+            }
+        }
+
+        if (erase) {
+            m_ids.erase(m_ids.begin() + index);
+        } else {
+            if (move < 0) {
+                ASSERT(index > 0);
+                std::swap(m_ids[index], m_ids[index - 1]);
+            } else if (move > 0) {
+                ASSERT(index < m_ids.size() - 1);
+                std::swap(m_ids[index], m_ids[index + 1]);
+            }
+
+            ++index;
+        }
+
+        // (will be wrong for one frame if items added or removed)
+        seed = id_with_seed;
+    }
+
+    ImGui::Separator();
+
     m_beeb_window->m_imgui_stuff->DoDebugGui();
 }
 
@@ -2077,9 +2160,17 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
     uint32_t ui_flags = m_init_arguments.app_handler->GetUIFlags();
 
-    if (ValueChanged(&m_msg_last_num_messages_printed, m_message_list->GetNumMessagesPrinted())) {
-        m_messages_popup_ui_active = true;
-        m_messages_popup_ticks = now;
+    // Pop up if new messages.
+    {
+        size_t num_messages_printed = m_message_list->GetNumMessagesPrinted();
+        if (m_msg_last_num_messages_printed != num_messages_printed) {
+            if (num_messages_printed > 0) {
+                m_messages_popup_ui_active = true;
+                m_messages_popup_ticks = now;
+            }
+
+            m_msg_last_num_messages_printed = num_messages_printed;
+        }
     }
 
     if (m_messages_popup_ui_active) {
@@ -2113,7 +2204,7 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
 
             //ImGui::SetNextWindowSize(ImVec2(output_width*0.9f,0));
 
-            if (ImGui::Begin("Recent Messages", &m_messages_popup_ui_active, flags)) {
+            if (ImGui::Begin("Recent Messages###recent_messages", &m_messages_popup_ui_active, flags)) {
                 ImGuiWindow *window = ImGui::GetCurrentWindow();
                 ImGui::BringWindowToDisplayFront(window);
 

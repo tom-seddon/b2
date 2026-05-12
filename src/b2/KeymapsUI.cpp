@@ -26,8 +26,6 @@
 static const std::string KEYMAP_SCANCODES_SUFFIX = " " ICON_FA_KEYBOARD;
 static const std::string KEYMAP_KEYSYMS_SUFFIX = " " ICON_FA_FONT;
 
-static const char PC_SCANCODES_POPUP[] = "pc_scancodes";
-static const char PC_KEYCODES_POPUP[] = "pc_keycodes";
 static const char NEW_KEYMAP_POPUP[] = "new_keymap_popup";
 static const char COPY_KEYMAP_POPUP[] = "copy_keymap_popup";
 
@@ -75,10 +73,11 @@ static void ImGuiKeySymsList(bool *edited, ImGuiStuff *imgui_stuff, KeymapType *
 //////////////////////////////////////////////////////////////////////////
 
 std::string GetKeymapUIName(const BeebKeymap &keymap) {
+    const std::string &name = keymap.GetName();
     if (keymap.IsKeySymMap()) {
-        return keymap.GetName() + KEYMAP_KEYSYMS_SUFFIX;
+        return name + KEYMAP_KEYSYMS_SUFFIX + "###" + name;
     } else {
-        return keymap.GetName() + KEYMAP_SCANCODES_SUFFIX;
+        return name + KEYMAP_SCANCODES_SUFFIX + "###" + name;
     }
 }
 
@@ -93,10 +92,12 @@ struct Keycap {
     BeebKeySym ctrled_sym = BeebKeySym_None; //only applicable to Electron
     BeebKeySym funced_sym = BeebKeySym_None; //only applicable to Electron
     KeyColour colour = KeyColour_Default;
+    std::string explicit_id;
 
     Keycap() = default;
     Keycap(int width_in_halves, BeebKey key, BeebKeySym unshifted_sym, BeebKeySym shifted_sym = BeebKeySym_None, BeebKeySym ctrled_sym = BeebKeySym_None, BeebKeySym funced_sym = BeebKeySym_None);
     Keycap WithColour(KeyColour colour) const;
+    Keycap WithExplicitId(std::string explicit_id) const;
 };
 
 Keycap::Keycap(int width_in_halves_, BeebKey key_, BeebKeySym unshifted_sym_, BeebKeySym shifted_sym_, BeebKeySym ctrled_sym_, BeebKeySym funced_sym_)
@@ -112,6 +113,20 @@ Keycap Keycap::WithColour(KeyColour colour_) const {
     Keycap keycap = *this;
 
     keycap.colour = colour_;
+
+    return keycap;
+}
+
+Keycap Keycap::WithExplicitId(std::string explicit_id_) const {
+    // The explicit ID is used verbatim for all buttons, so, for now, this
+    // keycap must only generate one per-key button in the UK.
+    ASSERT(this->shifted_sym == BeebKeySym_None);
+    ASSERT(this->ctrled_sym == BeebKeySym_None);
+    ASSERT(this->funced_sym == BeebKeySym_None);
+
+    Keycap keycap = *this;
+
+    keycap.explicit_id = std::move(explicit_id_);
 
     return keycap;
 }
@@ -142,6 +157,7 @@ struct Metrics {
 };
 
 struct KeymapsUIPersistentData {
+    // TODO: this is now (or at least... for now?) redundant
     float divider_position = 225.f;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(KeymapsUIPersistentData, divider_position);
@@ -261,32 +277,39 @@ static const char *GetBeebKeymapNameCallback(void *context, int index) {
 void KeymapsUI::DoImGui() {
     m_wants_keyboard_focus = false;
 
-    ImGui::Columns(2, "###keymaps");
+    ImGui::BeginTable("###keymaps", 2, ImGuiTableFlags_BordersInnerV);
 
-    // Ugh. But I couldn't get the layout to work properly with a table.
-    if (m_first_update) {
-        ImGui::SetColumnWidth(0, m_persistent.divider_position);
-    } else {
-        float divider_position = ImGui::GetColumnWidth(0);
-        if (divider_position != m_persistent.divider_position) {
-            m_persistent.divider_position = divider_position;
-            m_edited = true;
-        }
-    }
+    ImGui::TableSetupColumn("###list", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("###stuff");
 
-    if (ImGui::Button("New...")) {
+    ImGui::TableNextColumn();
+
+    //ImGui::Columns(2, "###keymaps");
+
+    //// Ugh. But I couldn't get the layout to work properly with a table.
+    //if (m_first_update) {
+    //    ImGui::SetColumnWidth(0, m_persistent.divider_position);
+    //} else {
+    //    float divider_position = ImGui::GetColumnWidth(0);
+    //    if (divider_position != m_persistent.divider_position) {
+    //        m_persistent.divider_position = divider_position;
+    //        m_edited = true;
+    //    }
+    //}
+
+    if (ImGui::Button("New...###new")) {
         ImGui::OpenPopup(NEW_KEYMAP_POPUP);
     }
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Copy...")) {
+    if (ImGui::Button("Copy...###copy")) {
         ImGui::OpenPopup(COPY_KEYMAP_POPUP);
     }
 
     ImGui::SameLine();
 
-    if (ImGuiConfirmButton("Delete")) {
+    if (ImGuiConfirmButton("Delete###delete")) {
         BeebWindows::RemoveBeebKeymapByIndex((size_t)m_keymap_index);
         m_keymap_index = std::min(m_keymap_index, (int)BeebWindows::GetNumBeebKeymaps() - 1);
     }
@@ -315,7 +338,7 @@ void KeymapsUI::DoImGui() {
         }
     }
 
-    ImGui::NextColumn();
+    ImGui::TableNextColumn();
 
     ImGui::BeginChild("###layouts", ImVec2(0, 0), 0, ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -323,7 +346,9 @@ void KeymapsUI::DoImGui() {
 
     ImGui::EndChild();
 
-    ImGui::Columns(1);
+    ImGui::EndTable();
+
+    //ImGui::Columns(1);
 
     if (const BeebKeymap *keymap = ImGuiPickKeymapPopup(NEW_KEYMAP_POPUP,
                                                         &GetNumDefaultBeebKeymaps,
@@ -461,7 +486,7 @@ static const Keycap g_keyboard_line4[] = {
 
 static const Keycap g_keyboard_line5[] = {
     Keycap(2, BeebKey_ShiftLock, BeebKeySym_ShiftLock, BeebKeySym_None),
-    Keycap(3, BeebKey_Shift, BeebKeySym_Shift),
+    Keycap(3, BeebKey_Shift, BeebKeySym_Shift).WithExplicitId("LeftShift"),
     Keycap(2, BeebKey_Z, BeebKeySym_Z),
     Keycap(2, BeebKey_X, BeebKeySym_X),
     Keycap(2, BeebKey_C, BeebKeySym_C),
@@ -472,7 +497,7 @@ static const Keycap g_keyboard_line5[] = {
     Keycap(2, BeebKey_Comma, BeebKeySym_Comma, BeebKeySym_LessThan),
     Keycap(2, BeebKey_Stop, BeebKeySym_Stop, BeebKeySym_GreaterThan),
     Keycap(2, BeebKey_Slash, BeebKeySym_Slash, BeebKeySym_QuestionMarke),
-    Keycap(3, BeebKey_Shift, BeebKeySym_Shift),
+    Keycap(3, BeebKey_Shift, BeebKeySym_Shift).WithExplicitId("RightShift"),
     Keycap(2, BeebKey_Delete, BeebKeySym_Delete),
     Keycap(2, BeebKey_Copy, BeebKeySym_Copy, BeebKeySym_None).WithColour(KeyColour_Khaki),
     {},
@@ -583,7 +608,7 @@ static const Keycap g_electron_line3[] = {
 
 static const Keycap g_electron_line4[] = {
     Keycap(2, BeebKey_None, BeebKeySym_None),
-    Keycap(3, BeebKey_Shift, BeebKeySym_Shift),
+    Keycap(3, BeebKey_Shift, BeebKeySym_Shift).WithExplicitId("LeftShift"),
     Keycap(2, BeebKey_Z, BeebKeySym_Z),
     Keycap(2, BeebKey_X, BeebKeySym_X),
     Keycap(2, BeebKey_C, BeebKeySym_C),
@@ -594,7 +619,7 @@ static const Keycap g_electron_line4[] = {
     Keycap(2, BeebKey_Comma, BeebKeySym_Comma, BeebKeySym_LessThan),
     Keycap(2, BeebKey_Stop, BeebKeySym_Stop, BeebKeySym_GreaterThan),
     Keycap(2, BeebKey_Slash, BeebKeySym_Slash, BeebKeySym_QuestionMarke),
-    Keycap(3, BeebKey_Shift, BeebKeySym_Shift),
+    Keycap(3, BeebKey_Shift, BeebKeySym_Shift).WithExplicitId("RightShift"),
     Keycap(2, BeebKey_Delete, BeebKeySym_Delete),
     {},
 };
@@ -636,7 +661,9 @@ static const char *GetKeySymLabel(BeebKeySym sym) {
             L(BeebKeySym_2, "2");
             L(BeebKeySym_Quotes, "\"");
             L(BeebKeySym_3, "3");
-            L(BeebKeySym_Hash, "#");
+            // There needs to be a character to separate the # from the ### that
+            // precedes the id, and \r doesn't affect the formatting.
+            L(BeebKeySym_Hash, "#\r");
             L(BeebKeySym_4, "4");
             L(BeebKeySym_Dollar, "$");
             L(BeebKeySym_5, "5");
@@ -926,7 +953,12 @@ void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *lin
         } else {
             ImGuiStyleColourPusher colour_pusher = this->GetColourPusherForKeycap(keymap, (int8_t)key->key, key);
 
-            const char *name = GetBeebKeyEnumName(key->key);
+            const char *imgui_id;
+            if (key->explicit_id.empty()) {
+                imgui_id = GetBeebKeyEnumName(key->key);
+            } else {
+                imgui_id = key->explicit_id.c_str();
+            }
 
             const char *shifted = GetKeySymLabel(key->shifted_sym);
             const char *unshifted = GetKeySymLabel(key->unshifted_sym);
@@ -945,18 +977,21 @@ void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *lin
                     space = " ";
                 }
 
-                snprintf(label, sizeof label, "%s %s\n%s%s###%s", shifted, ctrled ? ctrled : funced, space, unshifted, name);
+                snprintf(label, sizeof label, "%s %s\n%s%s###%s", shifted, ctrled ? ctrled : funced, space, unshifted, imgui_id);
             } else if (shifted && unshifted) {
-                snprintf(label, sizeof label, "%s\n%s###%s", shifted, unshifted, name);
+                snprintf(label, sizeof label, "%s\n%s###%s", shifted, unshifted, imgui_id);
             } else {
                 ASSERT(!shifted);
                 ASSERT(unshifted);
 
-                snprintf(label, sizeof label, "%s###%s", unshifted, name);
+                snprintf(label, sizeof label, "%s###%s", unshifted, imgui_id);
             }
 
+            char scancodes_popup_name[100];
+            snprintf(scancodes_popup_name, sizeof scancodes_popup_name, "###pc_scancodes_popup_%s", imgui_id);
+
             if (ImGui::Button(label, size)) {
-                ImGui::OpenPopup(PC_SCANCODES_POPUP);
+                ImGui::OpenPopup(scancodes_popup_name);
             }
 
             if (ImGui::IsItemHovered()) {
@@ -965,7 +1000,7 @@ void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *lin
                 ImGui::EndTooltip();
             }
 
-            if (ImGui::BeginPopup(PC_SCANCODES_POPUP)) {
+            if (ImGui::BeginPopup(scancodes_popup_name)) {
                 this->DoScancodesList(keymap, key->key, true);
                 ImGui::EndPopup();
             }
@@ -987,15 +1022,28 @@ void KeymapsUI::DoScancodeKeyboardLineParts(BeebKeymap *keymap,
     }
 }
 
-void KeymapsUI::DoKeySymButton(BeebKeymap *keymap, const char *label, const ImVec2 &size, BeebKeySym key_sym, const Keycap *keycap) {
+void KeymapsUI::DoKeySymButton(BeebKeymap *keymap, const char *caption, const ImVec2 &size, BeebKeySym key_sym, const Keycap *keycap) {
     //BeebKey key=BeebKey_None;
     //BeebShiftState shift_state;
     //GetBeebKeyComboForKeySym(&key,&shift_state,key_sym);
 
     ImGuiStyleColourPusher colour_pusher = this->GetColourPusherForKeycap(keymap, (int8_t)key_sym, keycap);
 
+    const char *imgui_id;
+    if (keycap->explicit_id.empty()) {
+        imgui_id = GetBeebKeySymName(key_sym);
+    } else {
+        imgui_id = keycap->explicit_id.c_str();
+    }
+
+    char label[100];
+    snprintf(label, sizeof label, "%s###%s", caption, imgui_id);
+
+    char popup_name[100];
+    snprintf(popup_name, sizeof popup_name, "keycodes_popup_%s", imgui_id);
+
     if (ImGui::Button(label, size)) {
-        ImGui::OpenPopup(PC_KEYCODES_POPUP);
+        ImGui::OpenPopup(popup_name);
     }
 
     if (ImGui::IsItemHovered()) {
@@ -1004,7 +1052,7 @@ void KeymapsUI::DoKeySymButton(BeebKeymap *keymap, const char *label, const ImVe
         ImGui::EndTooltip();
     }
 
-    if (ImGui::BeginPopup(PC_KEYCODES_POPUP)) {
+    if (ImGui::BeginPopup(popup_name)) {
         ImGuiKeySymsList(&m_edited, m_imgui_stuff, keymap, (int8_t)key_sym, true);
         m_wants_keyboard_focus = true;
         ImGui::EndPopup();
@@ -1016,8 +1064,6 @@ void KeymapsUI::DoKeySymKeyboardLineTopHalves(BeebKeymap *keymap,
                                               BottomHalfKeycap *bottom_halves,
                                               size_t *num_bottom_halves) {
     for (const Keycap *keycap = line; keycap->width_in_halves >= 0; ++keycap) {
-        ImGuiIDPusher id_pusher(keycap);
-
         ImVec2 size = this->GetKeySize(keycap);
 
         if (keycap->key < 0) {
@@ -1036,25 +1082,18 @@ void KeymapsUI::DoKeySymKeyboardLineTopHalves(BeebKeymap *keymap,
                 bottom_halves[(*num_bottom_halves)++] = {ImGui::GetCursorPosX(), size, keycap};
 
                 if (shifted && !(ctrled || funced)) {
-                    ImGuiIDPusher id_pusher2(1);
                     this->DoKeySymButton(keymap, shifted, size, keycap->shifted_sym, keycap);
                 } else {
                     size.x *= .5f;
 
-                    {
-                        ImGuiIDPusher id_pusher2(1);
-                        this->DoKeySymButton(keymap, shifted, size, keycap->shifted_sym, keycap);
-                    }
+                    this->DoKeySymButton(keymap, shifted, size, keycap->shifted_sym, keycap);
 
                     ImGui::SameLine(0.f, 0.f);
 
-                    {
-                        ImGuiIDPusher id_pusher2(2);
-                        if (ctrled) {
-                            this->DoKeySymButton(keymap, ctrled, size, keycap->ctrled_sym, keycap);
-                        } else {
-                            this->DoKeySymButton(keymap, funced, size, keycap->funced_sym, keycap);
-                        }
+                    if (ctrled) {
+                        this->DoKeySymButton(keymap, ctrled, size, keycap->ctrled_sym, keycap);
+                    } else {
+                        this->DoKeySymButton(keymap, funced, size, keycap->funced_sym, keycap);
                     }
                 }
                 //ImGui::Button(shifted,size);
@@ -1077,9 +1116,6 @@ void KeymapsUI::DoKeySymKeyboardLineBottomHalves(BeebKeymap *keymap,
                                                  size_t num_bottom_halves) {
     for (size_t i = 0; i < num_bottom_halves; ++i) {
         const BottomHalfKeycap *key = &bottom_halves[i];
-
-        ImGuiIDPusher id_pusher(key->keycap);
-        ImGuiIDPusher id_pusher2(0);
 
         ImGui::SetCursorPos(ImVec2(key->x, y));
         this->DoKeySymButton(keymap,
@@ -1137,7 +1173,7 @@ void KeymapsUI::DoEditKeymapGui() {
     // up roughly.
     m_metrics.key_height = ImGui::GetTextLineHeight() * 2.75f;
     m_metrics.key_width = (ImGui::CalcTextSize("W").x + 5.f) * 4.f;
-    m_metrics.keypad_x = m_metrics.key_width * 21;
+    m_metrics.keypad_x = m_metrics.key_width * 19.f;
 
     bool edited = false;
 

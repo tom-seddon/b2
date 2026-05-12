@@ -973,40 +973,21 @@ ImGuiTestEngine *ImGuiStuff::GetTestEngine() const {
 
 static void DoImGuiWindowText(const char *name, const ImGuiWindow *window) {
     if (window) {
-        ImGui::Text("%s: %s (0x%x)", name, window->Name, window->ID);
+        ImGui::BulletText("%s Name: %s", name, window->Name);
+        ImGui::BulletText("%s ID: 0x%x", name, window->ID);
     } else {
-        ImGui::Text("%s: *none*", name);
+        ImGui::BulletText("%s Name: *none*", name);
+        ImGui::BulletText("%s ID: *none*", name);
+    }
+
+    if (window) {
+        for (int i = 0; i < window->IDStack.size(); ++i) {
+            ImGui::Text("%d. 0x%08X", i, window->IDStack[i]);
+        }
     }
 }
 
 void ImGuiStuff::DoDebugGui() {
-    ImGuiHeader("Windows");
-
-    DoImGuiWindowText("NavWindow", GImGui->NavWindow);
-    ImGui::Text("NavID: 0x%x (alive=%s)", GImGui->NavId, BOOL_STR(GImGui->NavIdIsAlive));
-
-    ImGui::Separator();
-
-    DoImGuiWindowText("HoveredWindow", GImGui->HoveredWindow);
-    ImGui::Text("HoveredID: 0x%x", GImGui->HoveredId);
-
-    ImGui::Separator();
-
-    DoImGuiWindowText("ActiveIdWindow", GImGui->ActiveIdWindow);
-    ImGui::Text("ActiveID: 0x%x (alive=%s)", GImGui->ActiveId, BOOL_STR(GImGui->ActiveIdIsAlive));
-
-    //        if (window != ignore_window && window->WasActive && !(window->Flags & ImGuiWindowFlags_ChildWindow))
-    //            if ((window->Flags & (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs)) != (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs))
-    //            {
-    //                ImGuiWindow* focus_window = NavRestoreLastChildNavWindow(window);
-    //                FocusWindow(focus_window);
-    //                return;
-    //            }
-
-    ImGui::Text("IsAnyItemFocused: %s", BOOL_STR(ImGui::IsAnyItemFocused()));
-
-    ImGui::Separator();
-
     ImGuiHeader("IO");
 
     {
@@ -1038,6 +1019,33 @@ void ImGuiStuff::DoDebugGui() {
             }
         }
     }
+
+    ImGui::Separator();
+
+    ImGuiHeader("Windows");
+
+    DoImGuiWindowText("NavWindow", GImGui->NavWindow);
+    ImGui::Text("NavID: 0x%x (alive=%s)", GImGui->NavId, BOOL_STR(GImGui->NavIdIsAlive));
+
+    ImGui::Separator();
+
+    DoImGuiWindowText("HoveredWindow", GImGui->HoveredWindow);
+    ImGui::Text("HoveredID: 0x%x", GImGui->HoveredId);
+
+    ImGui::Separator();
+
+    DoImGuiWindowText("ActiveIdWindow", GImGui->ActiveIdWindow);
+    ImGui::Text("ActiveID: 0x%x (alive=%s)", GImGui->ActiveId, BOOL_STR(GImGui->ActiveIdIsAlive));
+
+    //        if (window != ignore_window && window->WasActive && !(window->Flags & ImGuiWindowFlags_ChildWindow))
+    //            if ((window->Flags & (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs)) != (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs))
+    //            {
+    //                ImGuiWindow* focus_window = NavRestoreLastChildNavWindow(window);
+    //                FocusWindow(focus_window);
+    //                return;
+    //            }
+
+    ImGui::Text("IsAnyItemFocused: %s", BOOL_STR(ImGui::IsAnyItemFocused()));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1653,7 +1661,7 @@ bool ImGuiConfirmButton(const char *label, bool needs_confirm) {
         }
 
         if (ImGui::BeginPopup(CONFIRM_BUTTON_POPUP)) {
-            if (ImGui::Button("Confirm")) {
+            if (ImGui::Button("Confirm###confirm")) {
                 click = true;
                 ImGui::CloseCurrentPopup();
             }

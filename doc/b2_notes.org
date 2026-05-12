@@ -11407,7 +11407,7 @@ region.
 * doc image stuff
 
 #+begin_example
---doc-images=D:\temp\b2_doc_images
+--doc-images=D:\temp\b2_doc_images --doc-images-skip=elite
 #+end_example
 
 * =imgui_test_engine= upstream stuff
