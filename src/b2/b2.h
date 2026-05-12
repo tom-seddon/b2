@@ -86,7 +86,8 @@ class AppHandler {
     //
     // (folder may be null, just to query whether an override was actually
     // specified.)
-    virtual bool GetConfigAndCacheOverrideFolder(std::string *folder) const = 0;
+    virtual bool GetConfigOverrideFolder(std::string *folder) const = 0;
+    virtual bool GetCacheOverrideFolder(std::string *folder) const = 0;
 
     // Override size of display.
     //
@@ -169,11 +170,12 @@ class OrdinaryAppHandler : public AppHandler {
     bool IsHighDPIEnabled() const override; //returns true
     bool IsSoundEnabled() const override;   //returns true
     std::vector<std::string> GetCommandLineArgs() const override;
-    bool GetConfigAndCacheOverrideFolder(std::string *folder) const override; //returns false
-    bool GetFixedDisplaySize(ImVec2 *display_size) const override;            //returns false
-    int GetRequestedHttpServerListenPort() const override;                    //returns 0xbbcb
-    int GetLaunchRequestHttpServerPort() const override;                      //returns 0xbbcb
-    uint32_t GetUIFlags() const override;                                     //returns 0
+    bool GetConfigOverrideFolder(std::string *folder) const override; //returns false
+    bool GetCacheOverrideFolder(std::string *folder) const override;  //returns false
+    bool GetFixedDisplaySize(ImVec2 *display_size) const override;    //returns false
+    int GetRequestedHttpServerListenPort() const override;            //returns 0xbbcb
+    int GetLaunchRequestHttpServerPort() const override;              //returns 0xbbcb
+    uint32_t GetUIFlags() const override;                             //returns 0
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override; //returns false
 #endif

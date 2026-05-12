@@ -261,7 +261,17 @@ std::vector<std::string> OrdinaryAppHandler::GetCommandLineArgs() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool OrdinaryAppHandler::GetConfigAndCacheOverrideFolder(std::string *folder) const {
+bool OrdinaryAppHandler::GetConfigOverrideFolder(std::string *folder) const {
+    (void)folder;
+
+    // the default logic is sensible.
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool OrdinaryAppHandler::GetCacheOverrideFolder(std::string *folder) const {
     (void)folder;
 
     // the default logic is sensible.
@@ -1690,12 +1700,12 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
 
     {
         std::string folder;
-        if (app_handler->GetConfigAndCacheOverrideFolder(&folder)) {
-            SetConfigFolder(folder);
 
-            // TODO: cache stuff should go in its own folder, if only to avoid
-            // name conflicts. But DearImGuiTest::Run2 has some code in it that
-            // assumes the config folder doesn't have any subfolders.
+        if (app_handler->GetConfigOverrideFolder(&folder)) {
+            SetConfigFolder(folder);
+        }
+
+        if (app_handler->GetCacheOverrideFolder(&folder)) {
             SetCacheFolder(folder);
         }
     }

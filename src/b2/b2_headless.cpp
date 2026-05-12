@@ -9,6 +9,7 @@
 #include "http_api.h"
 #include "HTTPMethodsHandler.h"
 #include <shared/file_io.h>
+#include <shared/path.h>
 
 #if BBCMICRO_DEBUGGER
 
@@ -140,9 +141,17 @@ class HeadlessAppHandler : public AppHandler {
         return {m_options.argv0};
     }
 
-    bool GetConfigAndCacheOverrideFolder(std::string *folder) const override {
+    bool GetConfigOverrideFolder(std::string *folder) const override {
         if (folder) {
             *folder = m_options.config_folder;
+        }
+
+        return true;
+    }
+
+    bool GetCacheOverrideFolder(std::string *folder) const override {
+        if (folder) {
+            *folder = PathJoined(m_options.config_folder, "cache");
         }
 
         return true;

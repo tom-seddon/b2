@@ -90,6 +90,28 @@ struct MOSType {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool HandleGetConfigOverrideFolder(std::string *folder, const std::string &name) {
+    if (folder) {
+        *folder = PathJoined(TRANSIENT_DATA_FOLDER, name);
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool HandleGetCacheOverrideFolder(std::string *folder, const std::string &name) {
+    if (folder) {
+        *folder = PathJoined(TRANSIENT_DATA_FOLDER, name, "cache");
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class Test {
   public:
     Test() = default;
@@ -188,11 +210,12 @@ class DearImGuiTest : public Test, public AppHandler {
         return argv;
     }
 
-    bool GetConfigAndCacheOverrideFolder(std::string *folder) const override {
-        if (folder) {
-            *folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
-        }
-        return true;
+    bool GetConfigOverrideFolder(std::string *folder) const override {
+        return HandleGetConfigOverrideFolder(folder, this->GetFullName());
+    }
+
+    bool GetCacheOverrideFolder(std::string *folder) const override {
+        return HandleGetCacheOverrideFolder(folder, this->GetFullName());
     }
 
     bool GetFixedDisplaySize(ImVec2 *display_size) const override {
@@ -313,17 +336,21 @@ class DearImGuiTest : public Test, public AppHandler {
     [[nodiscard]] int Run2() {
         // Get custom config folder. Don't continue if using the default, as files will be deleted.
         std::string config_folder;
-        TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&config_folder));
+        TEST_TRUE(this->GetConfigOverrideFolder(&config_folder));
 
-        // Create config folder if it doesn't exist.
         if (!PathIsFolderOnDisk(config_folder)) {
             PathCreateFolder(config_folder);
         }
 
         // Clear out contents of config folder.
         PathGlob(config_folder, [](const std::string &path, bool is_folder) -> void {
-            TEST_FALSE(is_folder);
-            TEST_TRUE(PathDeleteFile(path));
+            if (is_folder) {
+                // Ignore any folders. They're (probably) the cache folder.
+                // Though it doesn't really matter either way, as b2 only uses
+                // files immediately under the config folder.
+            } else {
+                TEST_TRUE(PathDeleteFile(path));
+            }
         });
 
         int result = b2_main(this);
@@ -387,7 +414,7 @@ class Yielder {
             // Ignore timeout in this case.
         } else if (GetSecondsFromTicks(GetCurrentTickCount() - m_start_ticks) > m_time_limit_seconds) {
             std::string config_folder;
-            TEST_TRUE(m_test->GetConfigAndCacheOverrideFolder(&config_folder));
+            TEST_TRUE(m_test->GetConfigOverrideFolder(&config_folder));
 
             SDLUniquePtr<SDL_Surface> display_data = m_beeb_window->GetDisplayData(false, g_stdio_logs);
             TEST_NON_NULL(display_data.get());
@@ -1271,7 +1298,7 @@ class TestCopyOfDisk : public DearImGuiTest {
 
     void Run() override {
         std::string config_folder;
-        TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&config_folder));
+        TEST_TRUE(this->GetConfigOverrideFolder(&config_folder));
         m_disk_path = PathJoined(config_folder, "test." + m_disk->path);
         TEST_EQ_II(this->Run2(), 0);
     }
@@ -1358,7 +1385,7 @@ class TestLoadZippedDisk : public DearImGuiTest {
     void Run() override {
         if (!m_disk_path.empty()) {
             std::string config_folder;
-            TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&config_folder));
+            TEST_TRUE(this->GetConfigOverrideFolder(&config_folder));
 
             m_disk_copy_path = PathJoined(config_folder, "test." + PathGetName(m_disk_path));
         }
@@ -1423,11 +1450,12 @@ class TestHTTPAPI : public Test, public AppHandler {
         return false;
     }
 
-    bool GetConfigAndCacheOverrideFolder(std::string *folder) const override {
-        if (folder) {
-            *folder = PathJoined(TRANSIENT_DATA_FOLDER, this->GetFullName());
-        }
-        return true;
+    bool GetConfigOverrideFolder(std::string *folder) const override {
+        return HandleGetConfigOverrideFolder(folder, this->GetFullName());
+    }
+
+    bool GetCacheOverrideFolder(std::string *folder) const override {
+        return HandleGetCacheOverrideFolder(folder, this->GetFullName());
     }
 
     bool GetFixedDisplaySize(ImVec2 *display_size) const override {
@@ -2271,9 +2299,7 @@ class DocImageCreator : public DearImGuiTest {
     }
 
     std::string DownloadFileFromURL(const std::string &name, std::string url, const char *expected_mime_type = nullptr) {
-        std::string cache_folder;
-        TEST_TRUE(this->GetConfigAndCacheOverrideFolder(&cache_folder));
-        std::string local_path = PathJoined(cache_folder, name);
+        std::string local_path = GetCachePath(name);
         if (!PathIsFileOnDisk(local_path, nullptr, nullptr)) {
             HTTPRequest request;
             request.url = std::move(url);
@@ -2290,7 +2316,7 @@ class DocImageCreator : public DearImGuiTest {
                 TEST_EQ_SS(response.content_type, "application/vnd.acorn.disc-image.ssd");
             }
 
-            TEST_TRUE(SaveFile(response.content, local_path, &g_stdio_logs));
+            TEST_TRUE(SaveFile(response.content, local_path, &g_stdio_logs, SaveFlag_CreateFolder));
         }
 
         return local_path;
