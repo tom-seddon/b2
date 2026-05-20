@@ -56,7 +56,7 @@ github_ci_ubuntu_with_ffmpeg:
 .PHONY:_github_ci_ubuntu_start
 _github_ci_ubuntu_start:
 	sudo apt-get -y update
-	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-4-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev ninja-build
+	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-4-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev
 
 .PHONY:_github_ci_ubuntu_install_ffmpeg
 _github_ci_ubuntu_install_ffmpeg:

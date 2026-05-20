@@ -163,7 +163,7 @@ def run_subprocess(argv,options,execute=True,**other_popen_kwargs):
     else:
         # return process with error exit code. If the caller doesn't
         # check: no problem!
-        process=FakeProcess(returncode =1)
+        process=FakeProcess(returncode=1)
         pv(f'b2build running   {suffix} - fake exit code: {process.returncode}\n')
         
     return process
@@ -172,6 +172,7 @@ def run_subprocess(argv,options,execute=True,**other_popen_kwargs):
 ##########################################################################
 
 def must_run_subprocess(argv,options,execute=True,**other_popen_kwargs):
+    argv=[arg for arg in argv if arg is not None]
     result=run_subprocess(argv,options,execute=execute,**other_popen_kwargs)
 
     if execute:
@@ -1078,9 +1079,10 @@ def release_source_linux_cmd(options):
         rmfiles('Makefile.osx.mak')
         rmfiles('Makefile.unix.mak')
         rmfiles('Makefile.windows.mak')
-        copyfile('etc/release/Makefile.release.mak','Makefile')
         rmtree('submodules/curl') # only used on Windows
         copyfile('etc/release/LICENCE.txt','LICENCE.txt')
+        copyfile('etc/release/configure.py','configure')
+        shutil.copymode('etc/release/configure.py','configure')
         if is_linux():
             # Remove the dependencies that are intended to be
             # supplied by the package manager. It all adds up!
@@ -1100,10 +1102,14 @@ def release_source_linux_cmd(options):
         fix_up_md('README.md',options)
         for md_path in glob.glob('doc/*.md'): fix_up_md(md_path,options)
 
-        # Bake the release name into the Makefile.
-        with open('Makefile','rt') as f: text=f.read()
-        text=f'''RELEASE_NAME={options.name}\n'''+text
-        with open('Makefile','wt') as f: f.write(text)
+        if options.name is not None:
+            # Bake the release name into the configure script.
+            with open('configure','rt') as f: text=f.read()
+            new_text=text.replace("release_name=None",
+                                  f'''release_name=r\'\'\'{options.name}\'\'\'''',
+                                  1)
+            assert new_text!=text
+            with open('configure','wt') as f: f.write(new_text)
 
     # Set timestamps.
     if options.timestamp is not None:
@@ -1143,30 +1149,33 @@ def release_source_linux_cmd(options):
             if options.g_verbose: verbose_arg='VERBOSE=1'
             else: verbose_arg=None
 
-            # all imply configure.
-            must_run_subprocess(['make','configure',verbose_arg],
+            # all imply configure. Also, always build everything.
+            must_run_subprocess(['./configure',
+                                 '--build-b2',
+                                 '--build-b2-with-debugger',
+                                 '--prefix','../_b2_test_install',
+                                 '--run-tests' if options.test else '--no-run-tests',
+                                 '--ninja' if options.ninja else None],
                                 options)
 
-            # all imply build, possibly with test.
+            # all imply build.
             must_run_subprocess(['make',
-                                 'build',
-                                 verbose_arg,
-                                 'RUN_TESTS=1' if options.test else None],
+                                 verbose_arg],
                                 options)
 
             if options.install:
                 must_run_subprocess(['make',
                                      'install',
-                                     verbose_arg,
-                                     'PREFIX=../_b2_test_install'],
+                                     verbose_arg],
                                     options)
 
     # Looks good.
     bz2_path=os.path.join(temp,tar_name+'.bz2')
-    with ChangeDirectory(temp) as p:
-        must_run_subprocess(['bzip2','-9',tar_name],options)
+    if not options.no_bzip2:
+        with ChangeDirectory(temp) as p:
+            must_run_subprocess(['bzip2','-9',tar_name],options)
 
-    set_file_timestamps(options.timestamp,bz2_path)
+        set_file_timestamps(options.timestamp,bz2_path)
 
     gh_release([bz2_path],options)
 
@@ -1612,7 +1621,9 @@ def main(argv):
     release_source_linux_subparser.add_argument('--build',action='store_true',help='''do a test build (process will fail if build fails)''')
     release_source_linux_subparser.add_argument('--test',action='store_true',help='''run tests after creating the archive (implies --build) (process will fail if tests fail)''')
     release_source_linux_subparser.add_argument('--install',action='store_true',help='''do a test install (implies --build) (process will fail if install fails)''')
+    release_source_linux_subparser.add_argument('--ninja',action='store_true',help='''if doing a build, use Ninja rather than GNU Make''')
     release_source_linux_subparser.add_argument('--tar-mtime',action='store_true',help='''if running on Linux, use tar --mtime to update file timestamps in archive''')
+    release_source_linux_subparser.add_argument('--no-bzip2',action='store_true',help='''don't bother bzip2'ing the tar file''')
     
     release_binary_windows_subparser=add_subparser('release-binary-windows',release_binary_windows_cmd,help='''make Windows binary release''')
     release_binary_windows_subparser.add_argument('name',help='''name for build''')

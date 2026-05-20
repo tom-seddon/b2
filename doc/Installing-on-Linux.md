@@ -19,7 +19,6 @@ instructions](./Building.md).
 - libcurl
 - libuv
 - cmake
-- Ninja
 - Gtk 4.10 or later
 
 ### APT-based distributions
@@ -29,7 +28,7 @@ should install suitable versions of the packages mentioned.
 
 Required dependencies can be installed with:
 
-    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-4-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev cmake ninja-build
+    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk-4-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev cmake
 	
 Optional dependencies for compressed video writing can be installed
 with:
@@ -67,30 +66,38 @@ Change to that folder and run the steps from there.
 The configure step will find required libraries and whatnot and set
 things up for the build.
 
-	make configure B2_STANDARD=1 B2_WITH_DEBUGGER=1
-	
-Set the `B2_STANDARD` flag to 1 or 0, depending on whether you want to
-build normal b2; and same for `B2_WITH_DEBUGGER` depending whether you
-want to build [b2 with debugger](./Debug-version.md).
+	./configure
+
+By default, this will set things up with the following options:
+
+- build b2
+- not build b2 with debugger
+- run the automated tests after building
+- when installing, install to `/usr/local`
+
+For more options, see `./configure --help`. Options possibly most of
+interest will be `--prefix` (specify installation prefix) and
+`--build-b2-with-debugger` (also build b2 with debugger).
 
 ## Build
 
-The build step will build the code, and then run the automated tests.
+The build step will build the code, and possibly run the tests, as per
+the `./configure` settings.
 
-    make build
+    make
 	
 It is quite normal for this to take longer than you'd expect.
 
-The build will make use of as many cores as it can find. If this
-awakens the OOM killer, try supplying `NPROC=1` on the command line to
-have it compile only one file at once.
+The build and test will make use of as many CPU cores/threads as
+`nproc` reports. If this awakens the OOM killer, supply `NPROC=N` on
+the command line to have it do only `N` jobs at once.
 
 ## Install
 
-    make install PREFIX=<<path>>
+	make install
 	
-This will install the built programs to `<<path>>`, assuming a [folder
-structure like
+This will install the built programs to the configured prefix,
+assuming a [folder structure like
 `/usr`](https://en.wikipedia.org/wiki/Filesystem_Hierarchy_Standard).
 
 Use `sudo` if required.
@@ -99,7 +106,7 @@ The following files and folders will be created under the prefix path:
 
 - `bin/b2` - if standard b2 was built
 - `bin/b2-debug` - if b2 with debugger was built
-- `share/b2/` - always copied
+- `share/b2/` - always created
 
 ## Uninstall
 
@@ -107,9 +114,14 @@ To uninstall, manually delete the files and folders above.
 
 ## Other notes
 
-- there are no build options other than described in this document,
-  and no other supported way of building
+- the build process is deliberately designed to follow the
+  standard(ish) sequence of `./configure && make && sudo make
+  install`, but it is not autoconf-based so 
 
+- there are no build options other than those provided by
+  `./configure` or described above, and no other supported way of
+  building
+  
 - the source distribution is entirely self-contained, and not
   upgradeable. Each distribution quite deliberately creates an
   entirely separate folder structure
@@ -123,16 +135,19 @@ To uninstall, manually delete the files and folders above.
   
       export CC=$(which clang-20)
 	  export CXX=$(which clang++-20)
+	  
+  (Depending on Linux distribution, it's possible there could be
+  additional dependencies to install)
 
 # Install from source prerelease
 
 Prerelease versions may also be available:
 https://github.com/tom-seddon/b2/releases (look for the ones marked
 `Pre-release`, avoiding any with release notes telling you not to
-download it! )
+download it!)
 
 These may include new features and fixes added since the latest
-release, will make their way into some future release in due course,
-once they've had a bit more testing.
+release, that will make their way into some future release in due
+course, once they've had a bit more testing.
 
 Installation instructions are as above.

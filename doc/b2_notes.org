@@ -11225,10 +11225,10 @@ bin\b2build.py --verbose release-binary-windows test_build
 #+end_example
 
 ** TODO on GitHub Actions, Linux build without FFmpeg can be achieved simply by not installing it
-** TODO =gh_release= still needs bringing across
+** DONE =gh_release= still needs bringing across
+CLOSED: [2026-05-20 Wed 01:19]
 
 ** Some notes
-
 
 * new HTTP API notes
 
