@@ -556,7 +556,7 @@ static void ImGuiVolume(const char *caption, float *volume, bool *mute, const st
 void BeebWindow::OptionsUI::DoImGui() {
     const std::shared_ptr<BeebThread> &beeb_thread = m_beeb_window->m_beeb_thread;
     BeebWindowSettings *settings = &m_beeb_window->m_settings;
-    uint32_t ui_flags = m_beeb_window->m_init_arguments.app_handler->GetUIFlags();
+;
 
     //    {
     //        bool paused=m_beeb_window->m_beeb_thread->IsPaused();
@@ -722,6 +722,7 @@ void BeebWindow::OptionsUI::DoImGui() {
     ImGui::NewLine();
 
 #if BBCMICRO_DEBUGGER
+    uint32_t ui_flags = m_beeb_window->m_init_arguments.app_handler->GetUIFlags();
     if (!(ui_flags & UIFlag_HideDebuggerUI)) {
         {
             ImGuiHeader("Debugger Options");

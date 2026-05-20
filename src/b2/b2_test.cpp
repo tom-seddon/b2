@@ -2184,6 +2184,7 @@ class DocImageCreator : public DearImGuiTest {
 
         // check that all sections specified were valid.
         for (auto &&name_and_tested : m_skip_sections) {
+            (void)name_and_tested;
             ASSERT(name_and_tested.second);
         }
 
@@ -2260,8 +2261,6 @@ class DocImageCreator : public DearImGuiTest {
         int h = (int)(y1 - y0);
 
         SDLUniquePtr<SDL_Surface> subsurface(SDL_CreateRGBSurfaceWithFormat(0, w, h, -1, full_surface->format->format));
-
-        ImVec2 mouse_pos = ImGui::GetMousePos();
 
         SDL_Rect src_rect;
         src_rect.x = (int)x0;
