@@ -2017,8 +2017,9 @@ class TestHTTPPeek : public TestHTTPAPI {
 
 class DocImageCreator : public DearImGuiTest {
   public:
-    DocImageCreator(std::string output_path, const std::vector<std::string> &skip_sections)
-        : m_output_path(std::move(output_path)) {
+    DocImageCreator(std::string output_path, const std::vector<std::string> &skip_sections, bool clean)
+        : m_output_path(std::move(output_path))
+        , m_clean(clean) {
         for (const std::string &skip_section : skip_sections) {
             m_skip_sections[skip_section] = false;
         }
@@ -2057,8 +2058,6 @@ class DocImageCreator : public DearImGuiTest {
     }
 
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
-        //m_skip.insert("run_elite");
-
         ASSERT(!m_beeb_window);
         m_beeb_window = beeb_window;
 
@@ -2066,6 +2065,17 @@ class DocImageCreator : public DearImGuiTest {
         m_ctx = ctx;
 
         TEST_TRUE(PathCreateFolder(m_output_path));
+
+        if (m_clean) {
+            PathGlob(m_output_path, [](const std::string &path, bool is_folder) -> void {
+                (void)is_folder;
+                std::string ext = PathGetExtension(path);
+                if (PathCompare(ext, ".png") == 0) {
+                    PathDeleteFile(path);
+                }
+            });
+        }
+        //m_skip.insert("run_elite");
 
         ASSERT(!m_yielder);
         m_yielder = std::make_unique<Yielder>(ctx, m_beeb_window, this);
@@ -2135,6 +2145,11 @@ class DocImageCreator : public DearImGuiTest {
         this->Capture("configs_ui.png");
 
         ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "###keyboard");
+
+        this->Capture("keyboard_menu.png");
+
         ctx->MenuAction(ImGuiTestAction_Click, "###keyboard/###toggle_keyboard_layout");
 
         this->Capture("keyboard_layout_ui.png");
@@ -2171,6 +2186,23 @@ class DocImageCreator : public DearImGuiTest {
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###tools/###toggle_messages");
 
         this->Capture("messages_popup.png");
+
+        {
+            ImVec2 pt = ctx->GetWindowTitlebarPoint("//Messages");
+            ctx->MouseTeleportToPos(pt);
+            ctx->MouseDown(ImGuiMouseButton_Left);
+
+            // the dock handles seem to appear based on repeated mouse movement rather than distance. This value was determined by experiment.
+            static constexpr int DOCK_HANDLE_MOVE_COUNT = 10;
+            for (int i = 0; i < DOCK_HANDLE_MOVE_COUNT; ++i) {
+                ctx->MouseMoveToPos({pt.x + i, pt.y});
+            }
+            this->Capture("dock_handles.png");
+            ctx->MouseUp(ImGuiMouseButton_Left);
+
+            // TODO: figure out how this works...
+            //ctx->DockInto("//Messages","//Display",ImGuiDir_Up);
+        }
 
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");
         //ASSERT(wi.Window);
@@ -2211,6 +2243,7 @@ class DocImageCreator : public DearImGuiTest {
     std::unique_ptr<Yielder> m_yielder;
     size_t m_b_acorn_1770_index = 0;
     std::map<std::string, bool> m_skip_sections;
+    bool m_clean = false;
 
     bool DoSection(const std::string &name) {
         auto &&it = m_skip_sections.find(name);
@@ -2548,8 +2581,12 @@ struct TestOptions {
     bool b2 = false;
     std::vector<std::string> b2_argv;
     bool interactive = false;
-    std::string doc_images_path;
+    bool doc_images = false;
+    std::string doc_images_path = PathJoined(b2_SOURCE_DIR, "doc/wip/generated");
     std::vector<std::string> doc_images_skip;
+
+    // Or should this actually be default true?
+    bool doc_images_clean = false;
 };
 
 static TestOptions GetOptions(int argc, char *argv[]) {
@@ -2575,10 +2612,15 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     // This oddity exists because b2_test happens to have all the infrastructure
     // in place to make it work, and not because it makes any sense
     // conceptually.
-    p.AddOption("doc-images").Meta("PATH").Arg(&options.doc_images_path).Help("run in doc image creation mode, and output doc images to PATH");
+    p.AddOption("doc-images").SetIfPresent(&options.doc_images).Help("run in doc image creation mode");
+
+    p.AddOption("doc-images-path").Meta("PATH").Arg(&options.doc_images_path).ShowDefault().Help("output doc images to PATH");
 
     // A time-saving bodge. There's no specific list of possible sections.
     p.AddOption("doc-images-skip").Meta("SECTION").AddArgToList(&options.doc_images_skip).Help("skip doc image section SECTION when creating images");
+
+    //
+    p.AddOption("doc-images-clean").SetIfPresent(&options.doc_images_clean).Help("delete PNG files in doc images output folder before starting");
 
     // Intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
@@ -2772,8 +2814,8 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    if (!options.doc_images_path.empty()) {
-        DocImageCreator doc_images(options.doc_images_path, options.doc_images_skip);
+    if (options.doc_images) {
+        DocImageCreator doc_images(options.doc_images_path, options.doc_images_skip, options.doc_images_clean);
 
         doc_images.Run();
 

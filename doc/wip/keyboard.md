@@ -106,7 +106,7 @@ key.
 
 There are three other keyboard layouts available by default. Find them on the `Keyboard` menu.
 
-IMAGE: keyboard menu
+![Keyboard menu](./generated/keyboard_menu.png)
 
 ## `Default (caps/ctrl)`
 
@@ -124,7 +124,6 @@ Caps Lock maps to BBC Ctrl, to accommodate games that use Ctrl and A.
 | Caps Lock | Left Ctrl |
 | Ctrl      | Left Alt  |
 | Ctrl      | Caps Lock |
-|           |           |
 
 ## `Default UK`
 
@@ -141,15 +140,16 @@ system.)
 
 ## `Default US`
 
-Similar to Default UK, but with a couple of tweaks to make it work
-better with an standard US layout keyboard.
+Similar to Default UK, but for use with a US keyboard.
+
+Use ` to type £.
 
 # Design your own keyboard layout
 
 Use `Keyboard` > `Keyboard Layouts` to bring up the Keyboard Layouts
 dialog.
 
-IMAGE: keyboard layouts dialog
+![keyboard layouts dialog](./generated/keyboard_layout_ui.png)
 
 The list on the left lets you select the keyboard layout to edit. Edit
 one of the existing ones, or use the `New...` and `Copy...` buttons to
@@ -193,7 +193,7 @@ Hover over a key to see the PC keys that map to this one. When you
 press one of the PC keys mentioned (any one), that BBC key will be
 pressed.
 
-IMAGE: hovering over a key keymap key
+![hovering over a key keymap key](./generated/keyboard_layout_ui.key.hover.png)
 
 Click on the key to edit the mapping. The PC keys popup will prompt
 you to press a key to add it to the list. (The key-based keymaps deal
@@ -202,7 +202,7 @@ their own independent keys.) Alternatively, click the `x` button next
 to a key's name to remove it from the list, or click outside the popup
 to cancel editing this key.
 
-IMAGE: key keymap key list
+![key keymap key list](./generated/keyboard_layout_ui.key.click.png)
 
 ## Edit character keymap keys
 
@@ -210,7 +210,7 @@ If you're looking at a character keymap, the process is rather
 similar, but now each key is split into multiple parts, corresponding
 to the various characters it can produce.
 
-IMAGE: hovering over a character keymap character
+![hovering over a character keymap character](./generated/keyboard_layout_ui.char.hover.png)
 
 Click on a character to edit the mapping. The PC keys popup will
 prompt you to press a key combination to add it to the list. (Here,
@@ -219,4 +219,5 @@ and unmodified keypresses behave differently.)
 
 As above, click `x` to remove a key from the list.
 
-IMAGE: character keymap key list with meta key use in the list
+![character keymap key
+list](./generated/keyboard_layout_ui.char.click.png)
