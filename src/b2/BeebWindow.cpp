@@ -556,7 +556,7 @@ static void ImGuiVolume(const char *caption, float *volume, bool *mute, const st
 void BeebWindow::OptionsUI::DoImGui() {
     const std::shared_ptr<BeebThread> &beeb_thread = m_beeb_window->m_beeb_thread;
     BeebWindowSettings *settings = &m_beeb_window->m_settings;
-;
+    ;
 
     //    {
     //        bool paused=m_beeb_window->m_beeb_thread->IsPaused();
