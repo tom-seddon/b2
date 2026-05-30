@@ -873,43 +873,6 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8Convert
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ForEachLine(const std::string &str, std::function<bool(const std::string_view &line)> fun) {
-    std::string::size_type a = 0, b = a, n = str.size();
-    const char *data = str.data();
-
-    while (b != n) {
-        char c = str[b];
-        if (c == '\r' || c == '\n') {
-            if (!fun(std::string_view(data + a, b - a))) {
-                return false;
-            }
-
-            ++b;
-            if (b < n) {
-                char c2 = str[b];
-                if ((c2 == '\r' || c2 == '\n') && c2 != c) {
-                    ++b;
-                }
-            }
-
-            a = b;
-        } else {
-            ++b;
-        }
-    }
-
-    if (b != a) {
-        if (!fun(std::string_view(data + a, b - a))) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void FixBBCASCIINewlines(std::vector<uint8_t> *str) {
     // Knobble newlines.
     if (str->size() > 1) {
