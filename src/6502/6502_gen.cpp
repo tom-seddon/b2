@@ -255,6 +255,8 @@ class Instr {
             return Mode_Imp;
 
         case Mode_Nop22_CMOS:
+            return Mode_Imm;
+
         case Mode_Nop23_CMOS:
             return Mode_Zpg;
 
