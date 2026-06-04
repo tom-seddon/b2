@@ -34,10 +34,10 @@
 // - uint8_t - JSON number, integer 0-255
 // - uint16_t - JSON number, integer 0-65535
 // - std::vector<T> - JSON array of T
-// - nlohmann::json - JSON of any kind (probably depends on some other
+// - nlohmann::json - JSON of any kind (probably depending on some other value)
 // - Enum<T> - JSON string, the name of one of the enum values of T, an enum
 //   type from the b2 code. Use the list_values endpoint to list the valid JSON
-//   values for the enum. Note that the valid JSON values exclude the prefix;
+//   values for the enum. (If looking at the C++ code to find names: note that the valid JSON values exclude the prefix;
 //   so, for example, for the StandardROM enum, StandardROM_None in C++ maps to
 //   "None" in JSON.
 // - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
@@ -88,11 +88,12 @@
 // 96 (£). Note that this means there are two ways specify BBC 96 (£). This is
 // deliberate.
 //
-// Further notes:
+// Aside from £, numbers and strings are considered equivalent. As an example: JSON ["ABC"],
+// JSON [65,"BC"] and JSON [65,"B",67] all represent the same BBC string: BBC
+// "ABC". (Regarding £: JSON ["£"] and JSON ["`"] both represent the same BBC string: BBC "£". But the £ translation only applies in strings, so: JSON [96] represents BBC "£", but JSON [163] represents BBC CHR$163.)
 //
-// - Numbers and strings are considered equivalent. As an example: JSON ["ABC"],
-//   JSON [65,"BC"] and JSON [65,"B",67] all represent the same BBC string: BBC
-//   "ABC"
+// Other notes:
+//
 // - This encoding is designed to be vaguely human readable and writeable
 //   assuming that the data is captured OSWRCH output or typeable text intended
 //   for OSRDCH paste

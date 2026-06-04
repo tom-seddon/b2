@@ -82,6 +82,24 @@ std::string GetPercentEncoded(const std::string &str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// fix up error text: sort out newlines so they're always \r\n, and append \r\n if required.
+static std::string GetErrorResponseBodyText(const std::string &message) {
+    std::string result;
+
+    ForEachLine(message, [&result](const std::string_view &line) -> bool {
+        result += line;
+        result.push_back('\r');
+        result.push_back('\n');
+
+        return true;
+    });
+
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void GetContentType(std::string *content_type, std::string *content_type_charset, const char *content_type_header) {
     content_type->clear();
     content_type_charset->clear();
@@ -198,7 +216,7 @@ HTTPResponse HTTPResponse::BadRequest(const char *fmt, ...) {
     std::string message = strprintfv(fmt, v);
     va_end(v);
 
-    return HTTPResponse(BAD_REQUEST_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, std::move(message));
+    return HTTPResponse(BAD_REQUEST_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, GetErrorResponseBodyText(message));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -216,7 +234,7 @@ HTTPResponse HTTPResponse::BadRequest(const HTTPRequest &request, const char *fm
         va_end(v);
     }
 
-    return HTTPResponse(BAD_REQUEST_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, std::move(message));
+    return HTTPResponse(BAD_REQUEST_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, GetErrorResponseBodyText(message));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -241,14 +259,14 @@ HTTPResponse HTTPResponse::NotFound(const HTTPRequest &request, const char *fmt,
         va_end(v);
     }
 
-    return HTTPResponse(NOT_FOUND_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, std::move(message));
+    return HTTPResponse(NOT_FOUND_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, GetErrorResponseBodyText(message));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 HTTPResponse HTTPResponse::UnsupportedMediaType(const HTTPRequest &request) {
-    return HTTPResponse(UNSUPPORTED_MEDIA_TYPE_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, request.method + " " + request.url);
+    return HTTPResponse(UNSUPPORTED_MEDIA_TYPE_STATUS_MESSAGE, HTTP_TEXT_CONTENT_TYPE, request.method + " " + request.url + "\r\n");
 }
 
 //////////////////////////////////////////////////////////////////////////
