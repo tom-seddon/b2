@@ -198,7 +198,8 @@ struct WD1770 {
     uint8_t m_address[6] = {};
 
     WD1770State m_state = WD1770State_BeginIdle;
-    WD1770State m_next_state = WD1770State_BeginIdle;
+    WD1770State m_post_wait_state = WD1770State_BeginIdle;
+    WD1770State m_post_spinup_state = WD1770State_BeginIdle;
     int m_state_time = 0;
 
 #if WD1770_SAVE_SECTOR_DATA
@@ -227,11 +228,12 @@ struct WD1770 {
     void DoTypeII(WD1770State state);
     void DoTypeIII(WD1770State state);
     void DoTypeIV();
-    void Wait(int us, WD1770State next_state);
+    void Wait(int us, WD1770State next_state, WD1770State wait_state = WD1770State_Wait);
     void DoTypeIIOrTypeIIIDelay(WD1770State next_state);
     int DoTypeIIFindSector();
     void DoTypeIINextByte(WD1770State next_byte_state, WD1770State next_sector_state);
     void UpdateTrack0Status();
+    void UpdateStep(WD1770State next_state);
 
     static const int STEP_RATES_MS_1770[];
     static const int STEP_RATES_MS_1772[];

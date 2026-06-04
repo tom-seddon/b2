@@ -145,6 +145,7 @@ int WD1770::GetTimeBetweenBytesMicroseconds() const {
 void WD1770::SetState(WD1770State state) {
     m_state = state;
     m_state_time = 0;
+    TRACE_STATE(this, "SetState: ");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -177,7 +178,7 @@ void WD1770::Reset() {
 
     m_pins.value = 0;
 
-    m_state = WD1770State_BeginIdle;
+    this->SetState(WD1770State_BeginIdle);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -191,8 +192,11 @@ void WD1770::SetHandler(WD1770Handler *handler) {
 //////////////////////////////////////////////////////////////////////////
 
 void WD1770::Print1770Registers(Log *log) {
-    log->f("%s T%02u S%02u +%03zu (+0x%02zX); Cmd: 0x%02X; Status: 0x%02X",
+    log->f("state=%s (state_time=%d; wait_us=%d; post_wait_state=%s); T=%02u S=%02u O=+%03zu (+0x%02zX); Cmd: 0x%02X; Status: 0x%02X",
            GetWD1770StateEnumName(m_state),
+           m_state_time,
+           m_wait_us,
+           GetWD1770StateEnumName(m_post_wait_state),
            m_track,
            m_sector,
            m_offset, m_offset,
@@ -261,11 +265,10 @@ void WD1770::SetINTRQ(bool value) {
 //////////////////////////////////////////////////////////////////////////
 
 void WD1770::DoSpinUp(int h, int step_rate_ms, WD1770State state) {
+    TRACE("1770 - DoSpinUp entry: h=%d step_rate_ms=%d state=%s", h, step_rate_ms, GetWD1770StateEnumName(state));
     if (h == 0 && !m_status.bits.motor_on) {
         this->SpinUp();
-        m_wait_us = INDEX_PULSES_uS(6);
-        this->SetState(WD1770State_WaitForSpinUp);
-        m_next_state = state;
+        this->Wait(INDEX_PULSES_uS(6), state, WD1770State_WaitForSpinUp);
         m_status.bits.deleted_or_spinup = 0;
     } else {
         if (step_rate_ms >= 0) {
@@ -283,6 +286,7 @@ void WD1770::DoSpinUp(int h, int step_rate_ms, WD1770State state) {
         }
         m_status.bits.deleted_or_spinup = 1;
     }
+    TRACE("1770 - DoSpinUp exit: m_state=%s m_next_state=%s", GetWD1770StateEnumName(m_state), GetWD1770StateEnumName(m_post_spinup_state));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -366,9 +370,7 @@ void WD1770::DoTypeIV() {
         } else if (m_command.bits_iv.index) {
             // "Used by Superior Collection *INIT command", says my
             // comments from model-b...
-            m_wait_us = INDEX_PULSES_uS(1);
-            this->SetState(WD1770State_Wait);
-            m_next_state = WD1770State_ForceInterrupt;
+            this->Wait(INDEX_PULSES_uS(1), WD1770State_ForceInterrupt);
         } else if ((m_command.value & 0x0f) == 0) {
             this->SetState(WD1770State_ForceInterrupt);
         }
@@ -404,8 +406,8 @@ void WD1770::Write0(void *fdc_, M6502Word addr, uint8_t value) {
 
     case 0x20:
     case 0x30:
-        fdc->m_next_state = WD1770State_FinishStep;
-        fdc->DoTypeI(WD1770State_Step);
+        //fdc->m_next_state = WD1770State_FinishStep;
+        fdc->DoTypeI(WD1770State_StepThenFinishStep);
         break;
 
     case 0x40:
@@ -578,10 +580,10 @@ uint8_t WD1770::DebugRead3(const void *fdc_, M6502Word addr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void WD1770::Wait(int us, WD1770State next_state) {
+void WD1770::Wait(int us, WD1770State post_wait_state, WD1770State wait_state) {
     m_wait_us = us;
-    m_state = WD1770State_Wait;
-    m_next_state = next_state;
+    this->SetState(wait_state);
+    m_post_wait_state = post_wait_state;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -597,7 +599,7 @@ void WD1770::DoTypeIIOrTypeIIIDelay(WD1770State next_state) {
     if (m_command.bits_ii.e) {
         this->Wait(30000, next_state);
     } else {
-        m_state = next_state;
+        this->SetState(next_state);
     }
 }
 
@@ -694,6 +696,27 @@ void WD1770::UpdateTrack0Status() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void WD1770::UpdateStep(WD1770State next_state) {
+    //    ASSERT(m_next_state != WD1770State_BeginIdle);
+    //            if (m_next_state == WD1770State_BeginIdle) {
+    //                TRACE_STATE(this, "Step (next_state=BeginIdle): ");
+    //            }
+
+    int step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
+
+    ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
+    if (m_direction == STEP_IN) {
+        m_handler->StepIn(step_rate_ms);
+    } else {
+        m_handler->StepOut(step_rate_ms);
+    }
+
+    this->Wait(step_rate_ms * 1000, next_state);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //static void FinishTypeI() {
 //    if(m_command.bits_i.v) {
 //        this->SetState(WD1770State_Settle);
@@ -735,13 +758,15 @@ void WD1770::SetTrace(Trace *trace) {
 WD1770::Pins WD1770::Update() {
     WD1770State old_state = m_state;
 
+    //TRACE_STATE(this,"Update: ");
+
     switch (m_state) {
     case WD1770State_BeginIdle:
         {
             if (m_status.bits.motor_on) {
                 this->Wait(INDEX_PULSES_uS(10), WD1770State_SpinDown);
             } else {
-                m_state = WD1770State_IdleWithMotorOff;
+                this->SetState(WD1770State_IdleWithMotorOff);
             }
         }
         break;
@@ -761,7 +786,7 @@ WD1770::Pins WD1770::Update() {
 
             m_status.bits.motor_on = 0;
 
-            m_state = WD1770State_IdleWithMotorOff;
+            this->SetState(WD1770State_IdleWithMotorOff);
         }
         break;
 
@@ -774,8 +799,8 @@ WD1770::Pins WD1770::Update() {
                 this->SetState(WD1770State_FinishTypeI);
             } else {
                 m_direction = STEP_OUT;
-                m_next_state = WD1770State_Restore;
-                this->SetState(WD1770State_Step);
+                //m_next_state = WD1770State_Restore;
+                this->SetState(WD1770State_StepThenRestore);
             }
         }
         break;
@@ -792,16 +817,16 @@ WD1770::Pins WD1770::Update() {
         [[fallthrough]];
     case WD1770State_Seek:
         {
-            TRACE_STATE(this, "");
+            TRACE_STATE(this, "WD1770State_Seek: ");
 
             if (m_track < m_data) {
                 m_direction = STEP_IN;
-                this->SetState(WD1770State_Step);
-                m_next_state = WD1770State_Seek2;
+                this->SetState(WD1770State_StepThenSeek2);
+                //m_next_state = WD1770State_Seek2;
             } else if (m_track > m_data) {
                 m_direction = STEP_OUT;
-                this->SetState(WD1770State_Step);
-                m_next_state = WD1770State_Seek2;
+                this->SetState(WD1770State_StepThenSeek2);
+                //m_next_state = WD1770State_Seek2;
             } else {
                 this->SetState(WD1770State_FinishTypeI);
             }
@@ -810,14 +835,14 @@ WD1770::Pins WD1770::Update() {
 
     case WD1770State_StepIn:
         m_direction = STEP_IN;
-        this->SetState(WD1770State_Step);
-        m_next_state = WD1770State_FinishStep;
+        this->SetState(WD1770State_StepThenFinishStep);
+        //m_next_state = WD1770State_FinishStep;
         break;
 
     case WD1770State_StepOut:
         m_direction = STEP_OUT;
-        this->SetState(WD1770State_Step);
-        m_next_state = WD1770State_FinishStep;
+        this->SetState(WD1770State_StepThenFinishStep);
+        //m_next_state = WD1770State_FinishStep;
         break;
 
     case WD1770State_FinishStep:
@@ -839,20 +864,16 @@ WD1770::Pins WD1770::Update() {
         }
         break;
 
-    case WD1770State_Step:
-        {
-            ASSERT(m_next_state != WD1770State_BeginIdle);
-            int step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
+    case WD1770State_StepThenSeek2:
+        this->UpdateStep(WD1770State_Seek2);
+        break;
 
-            ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
-            if (m_direction == STEP_IN) {
-                m_handler->StepIn(step_rate_ms);
-            } else {
-                m_handler->StepOut(step_rate_ms);
-            }
+    case WD1770State_StepThenFinishStep:
+        this->UpdateStep(WD1770State_FinishStep);
+        break;
 
-            this->Wait(step_rate_ms * 1000, m_next_state);
-        }
+    case WD1770State_StepThenRestore:
+        this->UpdateStep(WD1770State_Restore);
         break;
 
     case WD1770State_RecordNotFound:
@@ -873,13 +894,15 @@ WD1770::Pins WD1770::Update() {
             ASSERT(m_wait_us >= 0);
             ++m_state_time;
             if (m_state_time >= m_wait_us) {
+                TRACE_STATE(this, "WD1770State_Wait - pre timeout: ");
                 m_wait_us = -1;
-                this->SetState(m_next_state);
-                m_next_state = WD1770State_BeginIdle;
+                this->SetState(m_post_wait_state);
+                m_post_wait_state = WD1770State_BeginIdle;
 
                 if (old_state == WD1770State_WaitForSpinUp) {
                     m_status.bits.deleted_or_spinup = 1;
                 }
+                TRACE_STATE(this, "WD1770State_Wait - post timeout: ");
             }
         }
         break;
@@ -902,7 +925,7 @@ WD1770::Pins WD1770::Update() {
                     this->Wait(SETTLE_uS_1770, WD1770State_FinishCommand);
                 }
             } else {
-                m_state = WD1770State_FinishCommand;
+                this->SetState(WD1770State_FinishCommand);
             }
         }
         break;
@@ -931,7 +954,7 @@ WD1770::Pins WD1770::Update() {
             m_status.bits.busy = 0;
             this->SetINTRQ(1);
 
-            TRACE_STATE(this, "");
+            TRACE_STATE(this, "WD1770State_FinishCommand: ");
 
             this->SetState(WD1770State_BeginIdle);
         }
@@ -1035,7 +1058,7 @@ WD1770::Pins WD1770::Update() {
     case WD1770State_WriteSectorFindSector:
         {
             if (m_handler->IsWriteProtected()) {
-                m_state = WD1770State_WriteProtectError;
+                this->SetState(WD1770State_WriteProtectError);
                 break;
             }
 
@@ -1140,7 +1163,7 @@ WD1770::Pins WD1770::Update() {
             switch (size) {
             default:
                 // ???
-                m_state = WD1770State_RecordNotFound;
+                this->SetState(WD1770State_RecordNotFound);
                 goto done;
 
             case 128:
@@ -1176,7 +1199,7 @@ WD1770::Pins WD1770::Update() {
             TRACE("1770 - Read Address: Track=%u, Side=%u, Sector=%u, Size=%u (%zu bytes), CRC1=%u, CRC2=%u\n",
                   m_address[0], m_address[1], m_address[2], m_address[3], size, m_address[4], m_address[5]);
 
-            m_state = WD1770State_ReadAddressNextByte;
+            this->SetState(WD1770State_ReadAddressNextByte);
         }
         break;
 
@@ -1187,7 +1210,7 @@ WD1770::Pins WD1770::Update() {
             }
 
             if (m_offset == sizeof m_address) {
-                m_state = WD1770State_FinishCommand;
+                this->SetState(WD1770State_FinishCommand);
                 goto done;
             }
 
@@ -1213,7 +1236,7 @@ WD1770::Pins WD1770::Update() {
             m_status.bits.crc_error = 1;
             m_status.bits.rnf = 1;
 
-            m_state = WD1770State_FinishCommand;
+            this->SetState(WD1770State_FinishCommand);
         }
         break;
 
@@ -1221,7 +1244,7 @@ WD1770::Pins WD1770::Update() {
         {
             m_status.bits.write_protect = 1;
 
-            m_state = WD1770State_FinishCommand;
+            this->SetState(WD1770State_FinishCommand);
         }
         break;
     }
