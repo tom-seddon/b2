@@ -1653,11 +1653,11 @@ static void Cycle0_InterruptCMOS(M6502 *s) {
     // Decide on the interrupt type straight away.
     if (s->nmi_flags != 0) {
         // NMI
-        s->data = 1;
+        s->cmos_is_nmi = 1;
         s->nmi_flags = 0;
     } else if (s->irq_flags != 0) {
         //IRQ
-        s->data = 0;
+        s->cmos_is_nmi = 0;
         s->irq_flags = s->device_irq_flags;
     } else {
         // ??? - assume NMI.
@@ -1717,7 +1717,7 @@ static void Cycle4_InterruptCMOS(M6502 *s) {
     //s->p.bits.b=1;
 
     /* T5 phase 1 */
-    if (s->data) {
+    if (s->cmos_is_nmi) {
         s->abus.w = 0xfffa;
     } else {
         s->abus.w = 0xfffe;

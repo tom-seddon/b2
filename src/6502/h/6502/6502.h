@@ -401,17 +401,15 @@ struct M6502 {
     // (50)
 
     /* 8-bit registers */
-    uint8_t a;          /* accumulator */
-    uint8_t x;          /* X */
-    uint8_t y;          /* Y */
-    M6502PInternal p;   /* status register */
-    uint8_t opcode;     /* (internal) last opcode fetched */
-    uint8_t data;       /* (internal) misc - usually operand
-                                 * for current instruction */
-    uint8_t acarry : 1; /* (internal) address calculation
-                                 * carry flag */
-                        /*  */
-    uint8_t d1x1 : 1;   /* (internal) D1x1, active low */
+    uint8_t a;               /* accumulator */
+    uint8_t x;               /* X */
+    uint8_t y;               /* Y */
+    M6502PInternal p;        /* status register */
+    uint8_t opcode;          /* (internal) last opcode fetched */
+    uint8_t data;            /* (internal) misc - usually operand for current instruction */
+    uint8_t acarry : 1;      /* (internal) address calculation carry flag */
+    uint8_t d1x1 : 1;        /* (internal) D1x1, active low */
+    uint8_t cmos_is_nmi : 1; /* (internal) BRK/NMI flag */
 
     // (57-58)
 
