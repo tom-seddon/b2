@@ -45,7 +45,7 @@ EEND()
 
 #if VIDEO_TRACK_METADATA
 #define ENAME VideoDataUnitMetadataFlag
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 EPNV(HasAddress, 1 << 0)
 EPNV(OddCycle, 1 << 1) //needs renaming...
 EPNV(HasValue, 1 << 2)
