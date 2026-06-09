@@ -68,6 +68,10 @@ class VideoULA {
     void EmitPixels(VideoDataUnitPixels *pixels);
     void EmitBlank(VideoDataUnitPixels *pixels);
 
+#if BBCMICRO_DEBUGGER
+    void SetBorderColour(uint8_t value);
+#endif
+
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
 #endif
@@ -99,6 +103,12 @@ class VideoULA {
     Trace *m_trace = nullptr;
 #endif
     EmitMFn m_emit_mfn = nullptr;
+
+#if BBCMICRO_DEBUGGER
+    uint64_t m_nothing_value = 0;
+#else
+    static constexpr uint64_t m_nothing_value = 0;
+#endif
 
     void UpdatePixelBufferOffset();
 

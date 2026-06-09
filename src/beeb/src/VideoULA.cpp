@@ -293,6 +293,19 @@ void VideoULA::EmitBlank(VideoDataUnitPixels *pixels) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void VideoULA::SetBorderColour(uint8_t value) {
+    // The border colour is a 64-bit value, so only pixels 0-3 need to be set.
+    VideoDataUnitPixels pixels;
+    pixels.pixels[3].all = pixels.pixels[2].all = pixels.pixels[1].all = pixels.pixels[0].all = ULA_PALETTE[0][value & 0xf];
+
+    m_nothing_value = pixels.values[0];
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_TRACE
 void VideoULA::SetTrace(Trace *t) {
     m_trace = t;
@@ -566,7 +579,7 @@ void VideoULA::EmitNuLA(VideoDataUnitPixels *pixels) {
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::EmitNothing(VideoDataUnitPixels *pixels) {
-    pixels->values[1] = pixels->values[0] = 0;
+    pixels->values[1] = pixels->values[0] = m_nothing_value;
 
     if (this->cursor_pattern & 1) {
         pixels->values[0] ^= PIXEL_VALUES_CURSOR_XOR;

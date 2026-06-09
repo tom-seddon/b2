@@ -468,6 +468,7 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
 #endif
 
     if (!dispen) {
+        // TODO: border colour.
         data0 = 0;
         data1 = 0;
     }
