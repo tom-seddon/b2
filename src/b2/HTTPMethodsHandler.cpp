@@ -220,6 +220,7 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
 
     SetOptional(&dest.video_nula, src.video_nula);
     SetOptional(&dest.beeblink, src.beeblink);
+    SetOptional(&dest.debug_ports, src.debug_ports);
 
     for (const ApiConfigNVRAMByte &byte : src.nvram_bytes) {
         if (byte.index < 0 || (size_t)byte.index >= dest.nvram.size()) {

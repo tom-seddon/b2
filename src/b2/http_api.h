@@ -271,6 +271,8 @@ struct ApiConfigArgs {
 
     std::optional<bool> beeblink;
 
+    std::optional<bool> debug_ports;
+
     std::vector<ApiConfigNVRAMByte> nvram_bytes;
 
     bool boot = false;
@@ -291,6 +293,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
                                                 sideways_roms,
                                                 video_nula,
                                                 beeblink,
+                                                debug_ports,
                                                 nvram_bytes,
                                                 boot,
                                                 wait_for_osword_0,
