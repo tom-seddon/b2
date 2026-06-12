@@ -69,6 +69,7 @@ class VideoULA {
     void EmitBlank(VideoDataUnitPixels *pixels);
 
 #if BBCMICRO_DEBUGGER
+    uint8_t GetBorderColour() const;
     void SetBorderColour(uint8_t value);
 #endif
 
@@ -106,6 +107,7 @@ class VideoULA {
 
 #if BBCMICRO_DEBUGGER
     uint64_t m_nothing_value = 0;
+    uint8_t m_border_colour = 0;
 #else
     static constexpr uint64_t m_nothing_value = 0;
 #endif

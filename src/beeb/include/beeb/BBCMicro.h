@@ -928,6 +928,7 @@ class BBCMicro : private WD1770Handler {
 #if BBCMICRO_DEBUGGER
     static uint8_t ReadDebugPort0(void *m_, M6502Word a);
     static void WriteDebugPort0(void *m_, M6502Word a, uint8_t value);
+    static uint8_t ReadDebugPortD(void *m_, M6502Word a);
     static void WriteDebugPortD(void *m_, M6502Word a, uint8_t value);
 #endif
 

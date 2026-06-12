@@ -1102,6 +1102,18 @@ void BBCMicro::WriteDebugPort0(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+uint8_t BBCMicro::ReadDebugPortD(void *m_, M6502Word a){
+    (void)a;
+    auto m=(BBCMicro*)m_;
+    
+    return m->m_state.video_ula.GetBorderColour();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BBCMicro::WriteDebugPortD(void *m_, M6502Word a, uint8_t value) {
     (void)a;
     auto m = (BBCMicro *)m_;
@@ -3697,7 +3709,7 @@ void BBCMicro::InitStuff() {
 #if BBCMICRO_DEBUGGER
     if (m_state.init_flags & BBCMicroInitFlag_DebugPorts) {
         this->SetXFJIFJIO(0xfc50, &BBCMicro::ReadDebugPort0, this, &BBCMicro::WriteDebugPort0, this);
-        this->SetXFJIFJIO(0xfc5d, nullptr, this, &BBCMicro::WriteDebugPortD, this);
+        this->SetXFJIFJIO(0xfc5d, &BBCMicro::ReadDebugPortD, this, &BBCMicro::WriteDebugPortD, this);
     }
 #endif
 

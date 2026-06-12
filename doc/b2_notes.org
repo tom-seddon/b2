@@ -11381,25 +11381,25 @@ Some half-baked stuff.
 $fc5x is where BeebEm seems to put its emulator-specific ports, so b2
 follows suit.
 
-| Addr | R                | W                      | Notes                        |
-|------+------------------+------------------------+------------------------------|
-| fc50 | Presence test    | Presence test          | Read value is 1+(last write) |
-| fc51 |                  |                        |                              |
-| fc52 |                  |                        |                              |
-| fc53 |                  |                        |                              |
-| fc54 |                  |                        |                              |
-| fc55 |                  |                        |                              |
-| fc56 |                  |                        |                              |
-| fc57 |                  |                        |                              |
-| fc58 |                  |                        |                              |
-| fc59 |                  |                        |                              |
-| fc5a |                  |                        |                              |
-| fc5b |                  |                        |                              |
-| fc5c |                  |                        |                              |
-| fc5d |                  | Physical border colour | Bitmap modes only            |
-|------+------------------+------------------------+------------------------------|
-| fc5e | BeebLink Control | BeebLink Control       | Electron only (long story)   |
-| fc5f | BeebLink Data    | BeebLink Data          | Electron only (long story)   |
+| Addr | R                | W                | Notes                        |
+|------+------------------+------------------+------------------------------|
+| fc50 | Presence test    | Presence test    | Read value is 1+(last write) |
+| fc51 |                  |                  |                              |
+| fc52 |                  |                  |                              |
+| fc53 |                  |                  |                              |
+| fc54 |                  |                  |                              |
+| fc55 |                  |                  |                              |
+| fc56 |                  |                  |                              |
+| fc57 |                  |                  |                              |
+| fc58 |                  |                  |                              |
+| fc59 |                  |                  |                              |
+| fc5a |                  |                  |                              |
+| fc5b |                  |                  |                              |
+| fc5c |                  |                  |                              |
+| fc5d | Border colour    | Border colour    | Bitmap modes only            |
+|------+------------------+------------------+------------------------------|
+| fc5e | BeebLink Control | BeebLink Control | Electron only (long story)   |
+| fc5f | BeebLink Data    | BeebLink Data    | Electron only (long story)   |
 
 $fc5e/$fc5f aren't debug functionality, but they end up in the same
 region.
