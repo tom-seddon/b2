@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: make github_ci_-buntu-gcc-no_ffmpeg
+      - run: make github_ci-ubuntu-gcc-no_ffmpeg
 
   build-windows-x64:
     runs-on: windows-2022
