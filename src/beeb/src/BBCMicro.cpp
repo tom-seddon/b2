@@ -1102,10 +1102,10 @@ void BBCMicro::WriteDebugPort0(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-uint8_t BBCMicro::ReadDebugPortD(void *m_, M6502Word a){
+uint8_t BBCMicro::ReadDebugPortD(void *m_, M6502Word a) {
     (void)a;
-    auto m=(BBCMicro*)m_;
-    
+    auto m = (BBCMicro *)m_;
+
     return m->m_state.video_ula.GetBorderColour();
 }
 #endif
