@@ -46,7 +46,7 @@ github_ci-ubuntu-clang-ffmpeg:
 github_ci-ubuntu-gcc-no_ffmpeg:
 github_ci-ubuntu-gcc-no_ffmpeg: export CC=gcc-14
 github_ci-ubuntu-gcc-no_ffmpeg: export CXX=g++-14
-w	$(MAKE) _github_ci_ubuntu_start
+	$(MAKE) _github_ci_ubuntu_start
 	$(MAKE) _github_ci_ubuntu_release
 
 .PHONY:github_ci-ubuntu-gcc-ffmpeg
