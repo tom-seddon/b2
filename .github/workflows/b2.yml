@@ -8,34 +8,62 @@ on:
       - wip/ci_test
 
 jobs:
-  build-linux-with-ffmpeg:
+  build-linux-x64-gcc-ffmpeg:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: make github_ci_ubuntu_with_ffmpeg
+      - run: make github_ci-ubuntu-gcc-ffmpeg UPLOAD=1
         env:
           GH_TOKEN: ${{ github.token }}
         
-  build-linux-clang-with-ffmpeg:
+  build-linux-x64-clang-ffmpeg:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: make github_ci_ubuntu_clang_with_ffmpeg
-        
-  build-linux-without-ffmpeg:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - run: make github_ci_ubuntu_without_ffmpeg
+      - run: make github_ci-ubuntu-clang-ffmpeg
 
-  build-windows:
+  build-linux-arm-gcc-ffmpeg:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci-ubuntu-gcc-ffmpeg
+        env:
+          GH_TOKEN: ${{ github.token }}
+        
+  build-linux-arm-clang-ffmpeg:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci-ubuntu-clang-ffmpeg
+
+  build-linux-x64-gcc-no_ffmpeg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_-buntu-gcc-no_ffmpeg
+
+  build-windows-x64:
     runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: make github_ci_windows UPLOAD=1
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build-windows-arm:
+    runs-on: 11-arm
     steps:
       - uses: actions/checkout@v4
         with:
