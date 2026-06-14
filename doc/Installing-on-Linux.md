@@ -76,8 +76,9 @@ By default, this will set things up with the following options:
 - when installing, install to `/usr/local`
 
 For more options, see `./configure --help`. Options possibly most of
-interest will be `--prefix` (specify installation prefix) and
-`--build-b2-with-debugger` (also build b2 with debugger).
+interest will be `--prefix` (specify an installation path other than
+`/usr/local`) and `--build-b2-with-debugger` (also build b2 with
+debugger).
 
 ## Build
 
@@ -90,7 +91,9 @@ It is quite normal for this to take longer than you'd expect.
 
 The build and test will make use of as many CPU cores/threads as
 `nproc` reports. If this awakens the OOM killer, supply `NPROC=N` on
-the command line to have it do only `N` jobs at once.
+the command line to have it do only `N` jobs at once. (For example'
+`make NPROC=1`. It will It will be quite normal for this to take even
+longer than you'd expect.)
 
 ## Install
 
@@ -116,7 +119,8 @@ To uninstall, manually delete the files and folders above.
 
 - the build process is deliberately designed to follow the
   standard(ish) sequence of `./configure && make && sudo make
-  install`, but it is not autoconf-based so 
+  install` - but it is not autoconf-based, so autoconf-related
+  assumptions may not apply
 
 - there are no build options other than those provided by
   `./configure` or described above, and no other supported way of
@@ -134,7 +138,7 @@ To uninstall, manually delete the files and folders above.
   example:
   
       export CC=$(which clang-20)
-	  export CXX=$(which clang++-20)
+      export CXX=$(which clang++-20)
 	  
   (Depending on Linux distribution, it's possible there could be
   additional dependencies to install)
