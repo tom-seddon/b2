@@ -342,9 +342,11 @@ class BuildMatrix:
     def __init__(self):
         self.xcode=False
         self.vs2022=False
+        self.vs2022_architecture=None
         self.unix_configurations=[]
         self.unix_sanitizers=[]
         self.unix_compilers=[]
+        self.architectures=[]
         self.ffmpeg=True
         self.osx_deployment_target=None
 
@@ -564,7 +566,10 @@ def create_build_makefile(matrix,
     def add_visual_studio_targets(vsver):
         vs_stuff=get_vs_stuff(17)
 
-        output_path=get_output_path(f'vs{vs_stuff.year}')
+        output_path_name=f'vs{vs_stuff.year}'
+        if matrix.vs2022_architecture is not None:
+            output_path_name+=f'_{matrix.vs2022_architecture}'
+        output_path=get_output_path(output_path_name)
         
         #init_target=makefile.add_named_target(f'init_vs{vs_stuff.year}')
         init_target=makefile.add_named_target(output_path,phony=False)
@@ -579,7 +584,7 @@ def create_build_makefile(matrix,
                              'bin/msbuild_bug_wrapper.bat'),
                 caller_path)
 
-        init_target.add_line(f'''$(_V)"{get_msbuild_bat_path(build_folder)}" $(PYTHON) "{b2build_py_path}" {global_options} _init_vs {get_optional_option('--name',options.name)} {vsver} "{output_path}"''')
+        init_target.add_line(f'''$(_V)"{get_msbuild_bat_path(build_folder)}" $(PYTHON) "{b2build_py_path}" {global_options} _init_vs {get_optional_option('--name',options.name)} {get_optional_option('--architecture',matrix.vs2022_architecture)} {vsver} "{output_path}"''')
 
         for configuration,cmake_build_type in CMAKE_CONFIGURATIONS.items():
             build_target=makefile.add_named_target(f'build_vs{vs_stuff.year}{configuration}')
@@ -655,6 +660,7 @@ def init_cmd(options):
     matrix=BuildMatrix()
 
     matrix.vs2022=options.vs2022
+    matrix.vs2022_architecture=options.vs2022_architecture
     matrix.xcode=options.xcode
     matrix.osx_deployment_target=options.osx_deployment_target
 
@@ -752,10 +758,17 @@ def _init_unix_cmd(options):
 def _init_vs_cmd(options):
     vs_stuff=get_vs_stuff(options.version)
 
+    if options.architecture is not None:
+        if options.architecture.lower()=='x64': cmake_architecture='x64'
+        elif options.architecture.lower()=='arm': cmake_architecture='ARM64'
+        else: fatal('unknown architecture: %s'%options.architecture)
+    else: cmake_architecture=None
+
     makedirs(options.output_path)
 
     with ChangeDirectory(options.output_path):
         argv=[vs_stuff.cmake_path,'-G',f'Visual Studio {options.version} {vs_stuff.year}']
+        if cmake_architecture is not None: argv+=['-A',cmake_architecture]
         argv+=get_cmake_defines(options)
         argv+=['-S',os.path.relpath(options.g_working_copy_path,
                                     options.output_path)]
@@ -1559,6 +1572,7 @@ def main(argv):
     def add_common_target_options(subparser):
         subparser.add_argument('--unix',action='store_true',help='''initialise Unix-style build''')
         subparser.add_argument('--vs2022',action='store_true',help='''initialise VS2022 build''')
+        subparser.add_argument('--vs2022-architecture',metavar='ARCH',default=None,help='''initialise VS2022 build for architecture %(metavar)s, one of x64 or ARM. A default will be chosen if not specified''')
         subparser.add_argument('--xcode',action='store_true',help='''initialise Xcode build''')
         subparser.add_argument('--enable-sanitizers',action='store_true',help='''if building Unix-style, try to use any supported sanitizers''')
 
@@ -1591,6 +1605,7 @@ def main(argv):
     _init_unix_subparser.add_argument('--no-ffmpeg',dest='ffmpeg',action='store_false',help='''don't look for ffmpeg''')
 
     _init_vs_subparser=add_subparser('_init_vs',_init_vs_cmd,help='''initialise Visual Studio build''')
+    _init_vs_subparser.add_argument('--architecture',metavar='ARCH',default=None,help='''configure for architecture %(metavar)s. A default will be chosen if not specified''')
     _init_vs_subparser.add_argument('version',type=auto_int,help='''specify Visual Studio version''')
     _init_vs_subparser.add_argument('output_path',metavar='PATH',help='''put output in %(metavar)s (will be deleted first, no questions asked)''')
     add_common_init_options(_init_vs_subparser)

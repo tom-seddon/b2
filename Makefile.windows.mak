@@ -6,7 +6,7 @@ SHELL:=$(windir)\system32\cmd.exe
 
 .PHONY:init_vs2022
 init_vs2022:
-	$(_V)$(PYTHON3) "bin/b2build.py" init --vs2022
+	$(_V)$(PYTHON3) "bin/b2build.py" init --vs2022 $(if $(ARCH),--vs2022-architecture $(ARCH),)
 
 ##########################################################################
 ##########################################################################

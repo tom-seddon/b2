@@ -2,7 +2,9 @@
 
 Prerequisites:
 
-- Visual Studio 2022 (ensure C++ CMake tools for Windows is included)
+- Visual Studio 2022. Ensure the following components are installed:
+  - C++ CMake tools for Windows
+  - C++ ATL for latest build tools
 - Python 3.x (the version that comes with Visual Studio 2022 is fine)
   
 Optional, but recommended:
@@ -20,19 +22,22 @@ Initial setup, for use after cloning or updating the repo:
    but there should be no obvious errors, and it should finish with an
    exit code of 0
 
-General day-to-day build steps:
+Build steps:
 
 1. Load solution into Visual Studio:
 
    - `build\vs2022\b2.sln` if using VS2022
 
-2. Build
+2. Build configuration of interest:
 
+	- for b2 with debugger, `RelWithDebInfo`
+	- for b2 without debugger, `Final`
+	
 3. Run
 
-(The day-to-day build steps may also work after updating the repo;
-cmake is supposed to sort itself out. But it does cache some
-information and the initial build steps ensure everything is rebuilt.)
+(These build steps may also work after updating the repo; cmake is
+supposed to sort itself out. But it does cache some information and
+the initial build steps ensure everything is rebuilt.)
 
 # Notes
 
@@ -42,14 +47,7 @@ information and the initial build steps ensure everything is rebuilt.)
   
 # Running the automated tests
 
-To run from the command line, run the following (depending on Visual
-Studio version), replacing `<<config>>` with the config of interest:
-`Debug`, `RelWithDebInfo`, or `Final`.
+Run `make precommit_vs2022`.
 
-- `make run_tests_vs2022 CONFIG=<<config>>` if using VS2022
-
-This will run the tests in parallel according to PC core count.
-
-(Running individual tests in the debugger is a DIY job. Consult
-`CMakeLists.txt`. The command line setup for most tests is not onerous
-and they will run from any working folder.)
+This will build all 3 configurations and run the automated tests for
+each. It may take a while. There should be no failures.
