@@ -1198,6 +1198,14 @@ def release_source_linux_cmd(options):
 def release_binary_windows_cmd(options):
     if not is_windows(): fatal('only supported on Windows')
 
+    # There's (currently) no cross-compiling for the Windows version,
+    # so use the local architecture to guess the release one. (This
+    # only contributes to the output file names.)
+    arch=os.getenv('PROCESSOR_ARCHITECTURE')
+    if arch=='AMD64': release_architecture='x64'
+    elif arch=='ARM64': release_architecture='arm64'
+    else: fatal('unknown architecture: %s'%arch)
+
     build_folder=get_build_folder_path(options)
 
     with ChangeDirectory(options.g_working_copy_path):
@@ -1262,8 +1270,13 @@ def release_binary_windows_cmd(options):
     zip_folder_path=os.path.join(temp_path,'b2')
     makedirs(zip_folder_path)
 
-    b2_zip_path=os.path.join(temp_path,'b2-windows-%s.zip'%options.name)
-    symbols_7z_path=os.path.join(temp_path,'symbols.b2-windows-%s.7z'%options.name)
+    b2_zip_path=os.path.join(temp_path,'b2-windows-%s-%s.zip'%
+                             (release_architecture,
+                              options.name))
+    symbols_7z_path=os.path.join(temp_path,
+                                 'symbols.b2-windows-%s-%s.7z'%(
+                                     release_architecture,
+                                     options.name))
 
     # pv(f'b2_zip_path: {b2_zip_path}\n')
     # pv(f'symbols_7z_path: {symbols_7z_path}\n')
