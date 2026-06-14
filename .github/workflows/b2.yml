@@ -63,7 +63,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   build-windows-arm:
-    runs-on: 11-arm
+    runs-on: windows-11-arm
     steps:
       - uses: actions/checkout@v4
         with:
