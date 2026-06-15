@@ -177,9 +177,11 @@ struct BeebWindowSettings {
 
     // refers to the extra-janky ImGui debug windows that are mainly for my benefit and not much use to anybody else.
     bool extra_debug_ui = false;
+
+    float speed_scale = 1.f;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, config, popups, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data, extra_debug_ui);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, config, popups, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, screenshot_filter, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data, extra_debug_ui, speed_scale);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

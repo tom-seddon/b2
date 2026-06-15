@@ -580,8 +580,22 @@ void BeebWindow::OptionsUI::DoImGui() {
 
             bool changed = false;
 
-            if (ImGui::Button("1x")) {
+            if (ImGui::Button("1.0x")) {
                 speed_scale = 1.f;
+                changed = true;
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("1.5x")) {
+                speed_scale = 1.5f;
+                changed = true;
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("2.0x")) {
+                speed_scale = 2.f;
                 changed = true;
             }
 
@@ -591,6 +605,7 @@ void BeebWindow::OptionsUI::DoImGui() {
 
             if (changed) {
                 beeb_thread->Send(std::make_shared<BeebThread::SetSpeedScaleMessage>(speed_scale));
+                settings->speed_scale = speed_scale;
             }
         }
 
@@ -1060,7 +1075,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     } else {
         m_settings = BeebWindows::defaults;
     }
-
+    
 #if BBCMICRO_DEBUGGER
     // Load symbol table from persistent data if available
     if (!m_settings.symbol_table_data.is_null()) {
@@ -1080,6 +1095,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_beeb_thread->SetLowPassFilter(m_settings.low_pass_filter);
     m_beeb_thread->SetLowPassFilterCutoff(m_settings.low_pass_filter_cutoff_hz);
     m_beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(m_init_arguments.limit_speed));
+    m_beeb_thread->Send(std::make_shared<BeebThread::SetSpeedScaleMessage>(m_settings.speed_scale));
 
     m_blend_amt = 1.f;
 

@@ -233,8 +233,9 @@ fiddle with screen size, emulated speed, and so on.
 
 Tick `Limit Speed` to have the emulated BBC run at a fixed rate. By
 default this is exact BBC Micro speed, or near enough, but you can use
-the `Speed scale` slider to adjust this. (Tick the `1x` button to get
-back to normal speed.)
+the `Speed scale` slider to adjust this, or click the `1.5x` or `2.0x`
+buttons to have it try to run at the given rate. Tick the `1.0x`
+button to get back to normal speed.
 
 Tick `Background economy mode` to have the emulator update its display
 less frequently when it has neither keyboard nor mouse focus,
