@@ -324,6 +324,7 @@ static const char DEVICE_NAMES[] = "device_names";
 static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
 static const char SELECTOR_DIALOG_PERSISTENT_DATA[] = "selector_dialog_persistent_data";
 static const char SHOW_BBC_KEYBOARD_UI[] = "show_bbc_keyboard_ui";
+static const char SHOW_MASTER_KEYBOARD_UI[] = "show_master_keyboard_ui";
 static const char SHOW_COMPACT_KEYBOARD_UI[] = "show_compact_keyboard_ui";
 static const char SHOW_ELECTRON_KEYBOARD_UI[] = "show_electron_keyboard_ui";
 
@@ -725,6 +726,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json, const char *keymaps_name
         }
 
         FindBoolMember(&keymap.show_bbc_keyboard_ui, keymap_json, SHOW_BBC_KEYBOARD_UI, nullptr);
+        FindBoolMember(&keymap.show_master_keyboard_ui, keymap_json, SHOW_MASTER_KEYBOARD_UI, nullptr);
         FindBoolMember(&keymap.show_compact_keyboard_ui, keymap_json, SHOW_COMPACT_KEYBOARD_UI, nullptr);
         FindBoolMember(&keymap.show_electron_keyboard_ui, keymap_json, SHOW_ELECTRON_KEYBOARD_UI, nullptr);
 
@@ -752,6 +754,9 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
 
         writer->Key(SHOW_BBC_KEYBOARD_UI);
         writer->Bool(keymap->show_bbc_keyboard_ui);
+
+        writer->Key(SHOW_MASTER_KEYBOARD_UI);
+        writer->Bool(keymap->show_master_keyboard_ui);
 
         writer->Key(SHOW_COMPACT_KEYBOARD_UI);
         writer->Bool(keymap->show_compact_keyboard_ui);

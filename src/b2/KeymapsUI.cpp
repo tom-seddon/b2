@@ -85,7 +85,7 @@ std::string GetKeymapUIName(const BeebKeymap &keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 struct Keycap {
-    int width_in_halves = -1;
+    float width_in_halves = -1.f;
     BeebKey key = BeebKey_None;
     BeebKeySym unshifted_sym = BeebKeySym_None;
     BeebKeySym shifted_sym = BeebKeySym_None;
@@ -95,18 +95,21 @@ struct Keycap {
     std::string explicit_id;
 
     Keycap() = default;
-    Keycap(int width_in_halves, BeebKey key, BeebKeySym unshifted_sym, BeebKeySym shifted_sym = BeebKeySym_None, BeebKeySym ctrled_sym = BeebKeySym_None, BeebKeySym funced_sym = BeebKeySym_None);
+    Keycap(float width_in_halves, BeebKey key, BeebKeySym unshifted_sym, BeebKeySym shifted_sym = BeebKeySym_None, BeebKeySym ctrled_sym = BeebKeySym_None, BeebKeySym funced_sym = BeebKeySym_None);
     Keycap WithColour(KeyColour colour) const;
     Keycap WithExplicitId(std::string explicit_id) const;
 };
 
-Keycap::Keycap(int width_in_halves_, BeebKey key_, BeebKeySym unshifted_sym_, BeebKeySym shifted_sym_, BeebKeySym ctrled_sym_, BeebKeySym funced_sym_)
+Keycap::Keycap(float width_in_halves_, BeebKey key_, BeebKeySym unshifted_sym_, BeebKeySym shifted_sym_, BeebKeySym ctrled_sym_, BeebKeySym funced_sym_)
     : width_in_halves(width_in_halves_)
     , key(key_)
     , unshifted_sym(unshifted_sym_)
     , shifted_sym(shifted_sym_)
     , ctrled_sym(ctrled_sym_)
     , funced_sym(funced_sym_) {
+    // spaces can be any width, but keys must be a whole number of halves.
+    ASSERT((this->key == BeebKey_None && this->unshifted_sym == BeebKeySym_None) ||
+           floorf(this->width_in_halves) == this->width_in_halves);
 }
 
 Keycap Keycap::WithColour(KeyColour colour_) const {
@@ -119,7 +122,7 @@ Keycap Keycap::WithColour(KeyColour colour_) const {
 
 Keycap Keycap::WithExplicitId(std::string explicit_id_) const {
     // The explicit ID is used verbatim for all buttons, so, for now, this
-    // keycap must only generate one per-key button in the UK.
+    // keycap must only generate one per-key button in the UI.
     ASSERT(this->shifted_sym == BeebKeySym_None);
     ASSERT(this->ctrled_sym == BeebKeySym_None);
     ASSERT(this->funced_sym == BeebKeySym_None);
@@ -369,6 +372,8 @@ void KeymapsUI::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 
 // BBC keyboard caps
+
+// Line 1
 static const Keycap g_keyboard_line1[] = {
     Keycap(5, BeebKey_None, BeebKeySym_None),
     Keycap(2, BeebKey_f0, BeebKeySym_f0).WithColour(KeyColour_Red),
@@ -385,6 +390,25 @@ static const Keycap g_keyboard_line1[] = {
     {},
 };
 
+static const Keycap g_master_line1[] = {
+    Keycap(5, BeebKey_None, BeebKeySym_None),
+    Keycap(2, BeebKey_f0, BeebKeySym_f0).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f1, BeebKeySym_f1).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f2, BeebKeySym_f2).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f3, BeebKeySym_f3).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f4, BeebKeySym_f4).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f5, BeebKeySym_f5).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f6, BeebKeySym_f6).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f7, BeebKeySym_f7).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f8, BeebKeySym_f8).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_f9, BeebKeySym_f9).WithColour(KeyColour_Red),
+    Keycap(2, BeebKey_Break, BeebKeySym_Break, BeebKeySym_None),
+    Keycap(2.5f, BeebKey_None, BeebKeySym_None),
+    Keycap(2, BeebKey_Up, BeebKeySym_Up, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    {},
+};
+
+// Line 2
 static const Keycap g_keyboard_line2[] = {
     Keycap(2, BeebKey_Escape, BeebKeySym_Escape, BeebKeySym_None),
     Keycap(2, BeebKey_1, BeebKeySym_1, BeebKeySym_ExclamationMark),
@@ -425,6 +449,7 @@ static const Keycap g_compact_line2[] = {
     {},
 };
 
+// Line 3
 static const Keycap g_keyboard_line3[] = {
     Keycap(3, BeebKey_Tab, BeebKeySym_Tab, BeebKeySym_None),
     Keycap(2, BeebKey_Q, BeebKeySym_Q),
@@ -445,6 +470,25 @@ static const Keycap g_keyboard_line3[] = {
     {},
 };
 
+static const Keycap g_master_line3[] = {
+    Keycap(3, BeebKey_Tab, BeebKeySym_Tab, BeebKeySym_None),
+    Keycap(2, BeebKey_Q, BeebKeySym_Q),
+    Keycap(2, BeebKey_W, BeebKeySym_W),
+    Keycap(2, BeebKey_E, BeebKeySym_E),
+    Keycap(2, BeebKey_R, BeebKeySym_R),
+    Keycap(2, BeebKey_T, BeebKeySym_T),
+    Keycap(2, BeebKey_Y, BeebKeySym_Y),
+    Keycap(2, BeebKey_U, BeebKeySym_U),
+    Keycap(2, BeebKey_I, BeebKeySym_I),
+    Keycap(2, BeebKey_O, BeebKeySym_O),
+    Keycap(2, BeebKey_P, BeebKeySym_P),
+    Keycap(2, BeebKey_At, BeebKeySym_At),
+    Keycap(2, BeebKey_LeftSquareBracket, BeebKeySym_LeftSquareBracket, BeebKeySym_LeftCurlyBracket),
+    Keycap(2, BeebKey_Underline, BeebKeySym_Underline, BeebKeySym_Pound),
+    Keycap(2, BeebKey_Down, BeebKeySym_Down, BeebKeySym_None).WithColour(KeyColour_Khaki),
+    {},
+};
+
 static const Keycap g_compact_line3[] = {
     Keycap(3, BeebKey_Tab, BeebKeySym_Tab, BeebKeySym_None),
     Keycap(2, BeebKey_Q, BeebKeySym_Q),
@@ -460,11 +504,11 @@ static const Keycap g_compact_line3[] = {
     Keycap(2, BeebKey_At, BeebKeySym_CompactSpecialKey),
     Keycap(2, BeebKey_LeftSquareBracket, BeebKeySym_LeftSquareBracket, BeebKeySym_LeftCurlyBracket),
     Keycap(2, BeebKey_Underline, BeebKeySym_Underline, BeebKeySym_Pound),
-    Keycap(2, BeebKey_Up, BeebKeySym_Up, BeebKeySym_None).WithColour(KeyColour_Khaki),
     Keycap(2, BeebKey_Down, BeebKeySym_Down, BeebKeySym_None).WithColour(KeyColour_Khaki),
     {},
 };
 
+// Line 4
 static const Keycap g_keyboard_line4[] = {
     Keycap(2, BeebKey_CapsLock, BeebKeySym_CapsLock, BeebKeySym_None),
     Keycap(2, BeebKey_Ctrl, BeebKeySym_Ctrl, BeebKeySym_None),
@@ -484,6 +528,7 @@ static const Keycap g_keyboard_line4[] = {
     {},
 };
 
+// Line 5
 static const Keycap g_keyboard_line5[] = {
     Keycap(2, BeebKey_ShiftLock, BeebKeySym_ShiftLock, BeebKeySym_None),
     Keycap(3, BeebKey_Shift, BeebKeySym_Shift).WithExplicitId("LeftShift"),
@@ -503,6 +548,7 @@ static const Keycap g_keyboard_line5[] = {
     {},
 };
 
+// Line 5
 static const Keycap g_keyboard_line6[] = {
     Keycap(8, BeebKey_None, BeebKeySym_None, BeebKeySym_None),
     Keycap(20, BeebKey_Space, BeebKeySym_Space, BeebKeySym_None),
@@ -930,7 +976,7 @@ struct Row2Key {
 };
 
 ImVec2 KeymapsUI::GetKeySize(const Keycap *key) const {
-    float w = (float)key->width_in_halves;
+    float w = key->width_in_halves;
     if (w == 0.f) {
         w = 2.f;
     }
@@ -1173,7 +1219,7 @@ void KeymapsUI::DoEditKeymapGui() {
     // up roughly.
     m_metrics.key_height = ImGui::GetTextLineHeight() * 2.75f;
     m_metrics.key_width = (ImGui::CalcTextSize("W").x + 5.f) * 4.f;
-    m_metrics.keypad_x = m_metrics.key_width * 19.f;
+    m_metrics.keypad_x = m_metrics.key_width * 21.f;
 
     bool edited = false;
 
@@ -1196,13 +1242,26 @@ void KeymapsUI::DoEditKeymapGui() {
     }
 
     ImGui::SetNextItemOpen(keymap->show_bbc_keyboard_ui);
-    keymap->show_bbc_keyboard_ui = ImGui::CollapsingHeader("BBC B/B+/Master 128 layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    keymap->show_bbc_keyboard_ui = ImGui::CollapsingHeader("BBC B/B+ layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
     if (keymap->show_bbc_keyboard_ui) {
         ImGuiIDPusher pusher("###bbc");
 
-        this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
+        this->DoKeyboardLine(keymap, g_keyboard_line1, nullptr);
+        this->DoKeyboardLine(keymap, g_keyboard_line2, nullptr);
+        this->DoKeyboardLine(keymap, g_keyboard_line3, nullptr);
+        this->DoKeyboardLine(keymap, g_keyboard_line4, nullptr);
+        this->DoKeyboardLine(keymap, g_keyboard_line5, nullptr);
+        this->DoKeyboardLine(keymap, g_keyboard_line6, nullptr);
+    }
+
+    ImGui::SetNextItemOpen(keymap->show_master_keyboard_ui);
+    keymap->show_master_keyboard_ui = ImGui::CollapsingHeader("Master 128 layout", ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    if (keymap->show_master_keyboard_ui) {
+        ImGuiIDPusher pusher("###master");
+
+        this->DoKeyboardLine(keymap, g_master_line1, g_m128_line1);
         this->DoKeyboardLine(keymap, g_keyboard_line2, g_m128_line2);
-        this->DoKeyboardLine(keymap, g_keyboard_line3, g_m128_line3);
+        this->DoKeyboardLine(keymap, g_master_line3, g_m128_line3);
         this->DoKeyboardLine(keymap, g_keyboard_line4, g_m128_line4);
         this->DoKeyboardLine(keymap, g_keyboard_line5, g_m128_line5);
         this->DoKeyboardLine(keymap, g_keyboard_line6, nullptr);
@@ -1213,7 +1272,7 @@ void KeymapsUI::DoEditKeymapGui() {
     if (keymap->show_compact_keyboard_ui) {
         ImGuiIDPusher pusher("###compact");
 
-        this->DoKeyboardLine(keymap, g_keyboard_line1, g_m128_line1);
+        this->DoKeyboardLine(keymap, g_master_line1, g_m128_line1);
         this->DoKeyboardLine(keymap, g_compact_line2, g_m128_line2);
         this->DoKeyboardLine(keymap, g_compact_line3, g_m128_line3);
         this->DoKeyboardLine(keymap, g_keyboard_line4, g_m128_line4);
