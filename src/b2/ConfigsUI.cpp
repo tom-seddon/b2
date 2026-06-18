@@ -928,11 +928,10 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
     ImGui::NextColumn();
 
     if (writeable && !(rom_edit_flags & (ROMEditFlag_ContainedInOSROM | ROMEditFlag_NotAccessibleWithoutROMBoard | ROMEditFlag_NotAvailable))) {
-        ImGui::BeginDisabled(!type || *type != ROMType_16KB);
+        ImGuiDisabledPusher pusher(!type || *type != ROMType_16KB);
         if (ImGui::Checkbox("##ram", writeable)) {
             edited = true;
         }
-        ImGui::EndDisabled();
     }
 
     ImGui::NextColumn();

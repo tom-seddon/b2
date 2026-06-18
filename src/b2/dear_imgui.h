@@ -351,6 +351,28 @@ class ImGuiItemFlagPusher {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class ImGuiDisabledPusher {
+  public:
+    explicit ImGuiDisabledPusher(bool disabled = true);
+    ~ImGuiDisabledPusher();
+
+    ImGuiDisabledPusher(const ImGuiDisabledPusher &) = delete;
+    ImGuiDisabledPusher &operator=(const ImGuiDisabledPusher &) = delete;
+
+    ImGuiDisabledPusher(ImGuiDisabledPusher &&) = delete;
+    ImGuiDisabledPusher &operator=(ImGuiDisabledPusher &&) = delete;
+
+    void BeginDisabled(bool disabled = true);
+    void EndDisabled();
+
+  protected:
+  private:
+    int m_num_begins = 0;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // changes position, preserving size.
 void SetImRectPosX(ImRect *rect, float x);
 void SetImRectPosY(ImRect *rect, float y);
