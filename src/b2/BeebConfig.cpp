@@ -163,6 +163,35 @@ void BeebConfig::ResetNVRAM() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BeebConfig::IsUsable() const {
+    if (this->GetJSONData()) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const nlohmann::json *BeebConfig::GetJSONData() const {
+    if (m_json_data.is_null()) {
+        return nullptr;
+    } else {
+        return &m_json_data;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebConfig::SetJSONData(nlohmann::json json_data) {
+    m_json_data = std::move(json_data);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static std::vector<BeebConfig> g_default_configs;
 
 std::vector<uint8_t> GetDefaultMaster128NVRAM() {
@@ -521,6 +550,11 @@ bool BeebLoadedConfig::Load(
     const BeebConfig &src,
     const BeebConfigArguments &arguments,
     const LogSet &logs) {
+    if (!src.IsUsable()) {
+        logs.e.f("Config is not compatible with this version of b2: %s\n", src.name.c_str());
+        return false;
+    }
+
     dest->config = src;
     dest->arguments = arguments;
 

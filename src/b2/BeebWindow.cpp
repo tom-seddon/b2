@@ -1075,7 +1075,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     } else {
         m_settings = BeebWindows::defaults;
     }
-    
+
 #if BBCMICRO_DEBUGGER
     // Load symbol table from persistent data if available
     if (!m_settings.symbol_table_data.is_null()) {
@@ -2820,6 +2820,11 @@ void BeebWindow::DoHardwareMenu() {
             bool selected = false;
 
             BeebConfig *config = BeebWindows::GetMutableConfigByIndex(config_idx);
+
+            if (!config->IsUsable()) {
+                continue;
+            }
+
             bool ticked = config->name == config_name;
             std::string item_name = config->name + "###" + std::to_string(config_idx);
 

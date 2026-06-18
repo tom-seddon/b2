@@ -78,7 +78,7 @@ class ConfigsUI : public SettingsUI {
                 const char *label,
                 const BeebROM *const *roms);
 
-    void DoEditConfigGui();
+    [[nodiscard]] bool DoEditConfigGui();
 
     bool CreateNewHardDiskImage(const HardDisk &disk, const std::string &new_dat_path) const;
 };
@@ -122,10 +122,22 @@ void ConfigsUI::DoImGui() {
 
     ImGui::SameLine();
 
-    if (ImGui::Button("Duplicate")) {
-        if (m_config_index < BeebWindows::GetNumConfigs()) {
-            Duplicate(&m_config_index);
-            m_edited = true;
+    bool is_usable = false;
+    if (m_config_index < BeebWindows::GetNumConfigs()) {
+        const BeebConfig *config = BeebWindows::GetConfigByIndex(m_config_index);
+        if (config->IsUsable()) {
+            is_usable = true;
+        }
+    }
+
+    {
+        ImGuiDisabledPusher pusher(!is_usable);
+
+        if (ImGui::Button("Duplicate")) {
+            if (m_config_index < BeebWindows::GetNumConfigs()) {
+                Duplicate(&m_config_index);
+                m_edited = true;
+            }
         }
     }
 
@@ -185,7 +197,7 @@ void ConfigsUI::DoImGui() {
         }
 
         if (ImGui::BeginPopup(CONFIG_CONTEXT_POPUP)) {
-            if (ImGui::MenuItem("Duplicate")) {
+            if (ImGui::MenuItem("Duplicate", nullptr, false, is_usable)) {
                 Duplicate(&m_config_index);
                 m_edited = true;
             }
@@ -205,7 +217,11 @@ void ConfigsUI::DoImGui() {
 
     ImGui::BeginChild("hello");
 
-    this->DoEditConfigGui();
+    bool edited = this->DoEditConfigGui();
+    if (edited) {
+        BeebWindows::ConfigDidChange((size_t)m_config_index);
+        m_edited = true;
+    }
 
     ImGui::EndChild();
 
@@ -235,12 +251,38 @@ static const char *GetADJIDIPSwitchesString(void *data, int index) {
     return tmp->c_str();
 }
 
-void ConfigsUI::DoEditConfigGui() {
+bool ConfigsUI::DoEditConfigGui() {
     if (m_config_index >= BeebWindows::GetNumConfigs()) {
-        return;
+        return false;
     }
 
     BeebConfig *config = BeebWindows::GetMutableConfigByIndex(m_config_index);
+
+    // set to true if *config was edited - as well as
+    // dirtying the corresponding loaded config, this will set
+    // m_edited.
+    bool edited = false;
+
+    const ImGuiStyle &style = ImGui::GetStyle();
+
+    ImGuiIDPusher config_id_pusher(config);
+
+    std::string title = config->name;
+
+    {
+        // with a width of -1, the label disappears...
+        //ImGuiItemWidthPusher pusher(-1);
+
+        if (ImGuiInputText(&config->name, "Name", config->name)) {
+            edited = true;
+        }
+    }
+
+    if (!config->IsUsable()) {
+        ImGui::TextWrapped("This config is not compatible with this build of b2. It can only be renamed, moved, or deleted.");
+        ImGui::TextWrapped("Its contents will be preserved.");
+        return edited;
+    }
 
     uint32_t rom_edit_sideways_rom_flags;
     uint32_t rom_edit_os_rom_flags;
@@ -274,28 +316,12 @@ void ConfigsUI::DoEditConfigGui() {
         break;
     }
 
-    // set to true if *config was edited - as well as
-    // dirtying the corresponding loaded config, this will set
-    // m_edited.
-    bool edited = false;
-
-    const ImGuiStyle &style = ImGui::GetStyle();
-
-    ImGuiIDPusher config_id_pusher(config);
+    ImGui::Separator();
 
     ImGui::Text("Model: %s", GetModelName(config->type_id));
     ImGui::Text("Disc interface: %s", config->disc_interface ? config->disc_interface->display_name.c_str() : "(none)");
 
-    std::string title = config->name;
-
-    {
-        // with a width of -1, the label disappears...
-        //ImGuiItemWidthPusher pusher(-1);
-
-        if (ImGuiInputText(&config->name, "Name", config->name)) {
-            edited = true;
-        }
-    }
+    ImGui::Separator();
 
     ImGui::Columns(3, "rom_edit", true);
 
@@ -493,7 +519,7 @@ void ConfigsUI::DoEditConfigGui() {
     if (CanHaveSerial(config->type_id)) {
         if (!HasSerial(config->type_id)) {
             if (ImGui::Checkbox("Serial", &config->serial)) {
-                m_edited = true;
+                edited = true;
             }
         }
     }
@@ -511,7 +537,7 @@ void ConfigsUI::DoEditConfigGui() {
 
 #if BBCMICRO_DEBUGGER
     if (ImGui::Checkbox("Debug ports", &config->debug_ports)) {
-        m_edited = true;
+        edited = true;
     }
 #endif
 
@@ -661,10 +687,7 @@ void ConfigsUI::DoEditConfigGui() {
         ImGui::TextWrapped("MMB files (MMFS v1) or FAT32 disk images (MMFS v2)");
     }
 
-    if (edited) {
-        BeebWindows::ConfigDidChange((size_t)m_config_index);
-        m_edited = true;
-    }
+    return edited;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -117,8 +117,14 @@ class BeebConfig {
 
     void ResetNVRAM();
 
+    bool IsUsable() const;
+    const nlohmann::json *GetJSONData() const;
+    void SetJSONData(nlohmann::json json_data);
+
   protected:
   private:
+    // The JSON data for this config.
+    nlohmann::json m_json_data;
 };
 
 // This only handles some of the BeebConfig properties. The remainder are dealt

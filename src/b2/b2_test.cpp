@@ -37,6 +37,7 @@
 #include "http_api.h"
 #include <http/HTTPClient.h>
 #include <http/http.h>
+#include <uv.h>
 
 // the b2 code includes the stb_image_write implementation.
 #include <stb_image_write.h>
@@ -314,6 +315,10 @@ class DearImGuiTest : public Test, public AppHandler {
         }
     }
 
+    virtual bool ShouldClearConfigFolder() const {
+        return true;
+    }
+
   protected:
     std::string GetLastSelectorDialogResult(const Guid &guid) {
         SelectorResults *results = &m_selector_results_by_guid[guid];
@@ -342,16 +347,18 @@ class DearImGuiTest : public Test, public AppHandler {
             PathCreateFolder(config_folder);
         }
 
-        // Clear out contents of config folder.
-        PathGlob(config_folder, [](const std::string &path, bool is_folder) -> void {
-            if (is_folder) {
-                // Ignore any folders. They're (probably) the cache folder.
-                // Though it doesn't really matter either way, as b2 only uses
-                // files immediately under the config folder.
-            } else {
-                TEST_TRUE(PathDeleteFile(path));
-            }
-        });
+        if (this->ShouldClearConfigFolder()) {
+            // Clear out contents of config folder.
+            PathGlob(config_folder, [](const std::string &path, bool is_folder) -> void {
+                if (is_folder) {
+                    // Ignore any folders. They're (probably) the cache folder.
+                    // Though it doesn't really matter either way, as b2 only uses
+                    // files immediately under the config folder.
+                } else {
+                    TEST_TRUE(PathDeleteFile(path));
+                }
+            });
+        }
 
         int result = b2_main(this);
         if (this->IsHeadless()) {
@@ -2444,11 +2451,6 @@ class TestNVRAMUpdate : public DearImGuiTest {
         , m_config_name(std::move(config_name)) {
     }
 
-    bool IsHidden() const override {
-        // https://github.com/tom-seddon/b2/issues/564
-        return true;
-    }
-
     std::string GetFullName() const override {
         return "b2ui.nvram_update." + m_model_name;
     }
@@ -2519,6 +2521,273 @@ class TestNVRAMUpdate : public DearImGuiTest {
   private:
     const std::string m_model_name;
     const std::string m_config_name;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//static void PRINTF_LIKE(3, 4) PrintLibUVError(Log *log, int rc, const char *fmt, ...) {
+//    va_list v;
+//
+//    va_start(v, fmt);
+//    log->v(fmt, v);
+//    va_end(v);
+//
+//    log->f(": %s (%s)\n", uv_strerror(rc), uv_err_name(rc));
+//}
+
+struct RerunState {
+    int64_t exit_status = -1;
+    int term_signal = -1;
+};
+
+static void HandleRerunExit(uv_process_t *process, int64_t exit_status, int term_signal) {
+    auto rerun_state = (RerunState *)process->data;
+
+    rerun_state->exit_status = exit_status;
+    rerun_state->term_signal = term_signal;
+}
+
+static void Rerun(const std::string &name) {
+    int rc;
+
+    std::vector<std::string> args;
+    args.push_back(PathGetEXEFileName());
+    args.push_back("-t");
+    args.push_back(name);
+
+    std::vector<char *> args2;
+    for (std::string &arg : args) {
+        args2.push_back(arg.data());
+    }
+    args2.push_back(nullptr);
+
+    std::vector<uv_stdio_container_t> stdios;
+    for (int i = 0; i < 3; ++i) {
+        uv_stdio_container_t stdio;
+        stdio.flags = UV_INHERIT_FD;
+        stdio.data.fd = i;
+        stdios.push_back(stdio);
+    }
+
+    RerunState rerun_state;
+
+    uv_loop_t loop{};
+    rc = uv_loop_init(&loop);
+    if (rc != 0) {
+        TEST_FAIL("uv_loop_init failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
+    }
+
+    uv_process_options_t options = {};
+    options.exit_cb = &HandleRerunExit;
+    options.file = args[0].c_str();
+    options.args = args2.data();
+    ASSERT(stdios.size() <= INT_MAX);
+    options.stdio_count = (int)stdios.size();
+    options.stdio = stdios.data();
+
+    uv_process_t subprocess = {};
+    subprocess.data = &rerun_state;
+    rc = uv_spawn(&loop, &subprocess, &options);
+    if (rc != 0) {
+        TEST_FAIL("uv_spawn failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
+    }
+
+    rc = uv_run(&loop, UV_RUN_DEFAULT);
+    if (rc != 0) {
+        TEST_FAIL("uv_run failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
+    }
+
+    uv_loop_close(&loop);
+
+    TEST_EQ_II(rerun_state.term_signal, 0);
+    TEST_EQ_II(rerun_state.exit_status, 0);
+}
+
+struct CompareJSONState {
+    std::vector<std::variant<size_t, std::string>> path_parts;
+};
+
+static void CompareJSON2(const nlohmann::json &got,
+                         const nlohmann::json &wanted,
+                         CompareJSONState *state) {
+    if (got.is_null()) {
+        TEST_TRUE(wanted.is_null());
+    } else if (got.is_number()) {
+        if (got.is_number_float()) {
+            TEST_TRUE(wanted.is_number_float());
+            double got_number = got.template get<double>();
+            double wanted_number = wanted.template get<double>();
+            TEST_TRUE(fabs(wanted_number - got_number) < 1e-3f); //whatever
+        } else if (got.is_number_integer()) {
+            TEST_TRUE(wanted.is_number_integer());
+            TEST_EQ_II(got.template get<int64_t>(), wanted.template get<int64_t>());
+        } else if (got.is_number_unsigned()) {
+            TEST_TRUE(wanted.is_number_unsigned());
+            TEST_EQ_UU(got.template get<uint64_t>(), wanted.template get<uint64_t>());
+        } else {
+            TEST_FAIL("unknown number type");
+        }
+    } else if (got.is_string()) {
+        TEST_TRUE(wanted.is_string());
+        TEST_EQ_SS(got.template get<std::string>(), wanted.template get<std::string>());
+    } else if (got.is_array()) {
+        TEST_TRUE(wanted.is_array());
+        TEST_EQ_UU(got.size(), wanted.size());
+        state->path_parts.push_back({});
+        for (size_t i = 0; i < got.size(); ++i) {
+            state->path_parts.back() = i;
+            CompareJSON2(got[i], wanted[i], state);
+        }
+        state->path_parts.pop_back();
+    } else if (got.is_object()) {
+        TEST_TRUE(wanted.is_object());
+        state->path_parts.push_back({});
+        for (const auto &kv : got.items()) {
+            std::string key = kv.key();
+            const nlohmann::json &avalue = kv.value();
+
+            TEST_TRUE(wanted.contains(key));
+            const nlohmann::json &wanted_value = wanted[key];
+
+            state->path_parts.back() = kv.key();
+            CompareJSON2(avalue, wanted_value, state);
+        }
+
+        for (const auto &kv : wanted.items()) {
+            state->path_parts.back() = kv.key();
+            TEST_TRUE(got.contains(kv.key()));
+        }
+        state->path_parts.pop_back();
+    }
+}
+
+static void CompareJSON(const nlohmann::json &got, const nlohmann::json &wanted) {
+    CompareJSONState state;
+    state.path_parts.push_back("$");
+
+    TestFailFnAdder adder([&state](const TestFailArgs *args) -> void {
+        (void)args;
+        std::string path;
+        for (const std::variant<size_t, std::string> &part : state.path_parts) {
+            if (const size_t *index = std::get_if<size_t>(&part)) {
+                path += "[" + std::to_string(*index) + "]";
+            } else if (const std::string *key = std::get_if<std::string>(&part)) {
+                if (!path.empty()) {
+                    path.push_back('.');
+                }
+                path.append(*key);
+            } else {
+                TEST_FAIL("...");
+            }
+        }
+
+        LOGF(TESTING, "Path: %s\n", path.c_str());
+    });
+
+    CompareJSON2(got, wanted, &state);
+}
+
+// https://github.com/tom-seddon/b2/issues/627
+
+static const std::string PRESERVE_CONFIG_JSON_TEST_NAME = "b2ui.preserve_config_json";
+
+// the helper test doesn't need to do anything apart from start b2, then have it quit, saving the updated config.
+class TestPreserveConfigJSONHelper : public DearImGuiTest {
+  public:
+    bool IsHidden() const override {
+        return true;
+    }
+
+    bool GetConfigOverrideFolder(std::string *folder) const override {
+        return HandleGetConfigOverrideFolder(folder, PRESERVE_CONFIG_JSON_TEST_NAME);
+    }
+
+    bool GetCacheOverrideFolder(std::string *folder) const override {
+        return HandleGetCacheOverrideFolder(folder, PRESERVE_CONFIG_JSON_TEST_NAME);
+    }
+
+    void Run() override {
+        TEST_EQ_II(this->Run2(), 0);
+    }
+
+  protected:
+  private:
+};
+
+class TestPreserveConfigJSONHelper1 : public TestPreserveConfigJSONHelper {
+  public:
+    std::string GetFullName() const override {
+        return "b2ui._preserve_config_json_1";
+    }
+
+  protected:
+  private:
+};
+
+class TestPreserveConfigJSONHelper2 : public TestPreserveConfigJSONHelper {
+  public:
+    std::string GetFullName() const override {
+        return "b2ui._preserve_config_json_2";
+    }
+
+    bool ShouldClearConfigFolder() const override {
+        // reuse the b2.json from the previous helper's run.
+        return false;
+    }
+
+  protected:
+  private:
+};
+
+class TestPreserveConfigJSON : public Test {
+  public:
+    std::string GetFullName() const override {
+        return "b2ui.preserve_config_json";
+    }
+
+    void Run() override {
+
+        Rerun("b2ui._preserve_config_json_1");
+
+        std::string config_folder;
+        TEST_TRUE(HandleGetConfigOverrideFolder(&config_folder, PRESERVE_CONFIG_JSON_TEST_NAME));
+        std::string b2_json_path = PathJoined(config_folder, "b2.json");
+
+        // Take a backup of the original config.
+        std::vector<uint8_t> b2_json_data;
+        TEST_TRUE(LoadFile(&b2_json_data, b2_json_path, nullptr));
+        TEST_TRUE(SaveFile(b2_json_data, PathJoined(config_folder, "b2.old.json"), nullptr));
+
+        nlohmann::json config_j;
+        TEST_TRUE(LoadJSONFile2(&config_j, b2_json_path, nullptr, 0));
+        nlohmann::json old_config_j = config_j;
+
+        // Muck up one of the configs.
+        TEST_TRUE(config_j.is_object());
+        TEST_TRUE(config_j.contains("new_configs"));
+        TEST_TRUE(config_j["new_configs"].is_array());
+        TEST_FALSE(config_j["new_configs"].empty());
+        TEST_EQ_SS(config_j["new_configs"][0]["name"], "B/Acorn 1770");
+        TEST_EQ_SS(config_j["new_configs"][0]["type"], "B");
+        config_j["new_configs"][0]["type"] = "BadType";
+
+        TEST_TRUE(SaveJSONFile(config_j, b2_json_path, nullptr));
+
+        //CompareJSON(config_j,old_config_j);
+
+        nlohmann::json wanted_config_j = config_j;
+
+        Rerun("b2ui._preserve_config_json_2");
+
+        nlohmann::json got_config_j;
+        TEST_TRUE(LoadJSONFile2(&got_config_j, b2_json_path, nullptr, 0));
+
+        CompareJSON(got_config_j, wanted_config_j);
+    }
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -2727,6 +2996,10 @@ int main(int argc, char *argv[]) {
 
     all_tests.push_back(std::make_unique<TestHTTPPeek>());
 
+    all_tests.push_back(std::make_unique<TestPreserveConfigJSON>());
+    all_tests.push_back(std::make_unique<TestPreserveConfigJSONHelper1>());
+    all_tests.push_back(std::make_unique<TestPreserveConfigJSONHelper2>());
+
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     //
@@ -2771,7 +3044,6 @@ int main(int argc, char *argv[]) {
         DocImageCreator doc_images(options.doc_images_path, options.doc_images_skip, options.doc_images_clean);
 
         doc_images.Run();
-
     } else if (options.b2) {
         std::vector<char *> b2_argv;
         b2_argv.push_back(argv[0]);
@@ -2815,19 +3087,22 @@ int main(int argc, char *argv[]) {
         TEST_EQ_UU(run_test.size(), all_tests.size());
 
         if (options.interactive) {
-            size_t n = 0;
+            g_interactive = true;
+        } else {
+            size_t num_dear_imgui = 0;
+
             for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {
                 if (run_test[test_index]) {
-                    ++n;
+                    if (dynamic_cast<DearImGuiTest *>(all_tests[test_index].get())) {
+                        ++num_dear_imgui;
+                    }
                 }
             }
 
             // TODO: the b2 code isn't designed to be re-initialised after it's
             // quit, but... maybe it'd actually be possible to make this work?
             // To be continued.
-            TEST_LE_UU(n, 1);
-
-            g_interactive = true;
+            TEST_LE_UU(num_dear_imgui, 1);
         }
 
         for (size_t test_index = 0; test_index < all_tests.size(); ++test_index) {

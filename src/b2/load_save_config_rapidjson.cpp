@@ -187,7 +187,10 @@ static bool LoadEnum(EnumType *value, const std::string &str, const char *what, 
         ++i;
     }
 
-    msg->e.f("unknown %s: %s\n", what, str.c_str());
+    if (msg) {
+        msg->e.f("unknown %s: %s\n", what, str.c_str());
+    }
+
     return false;
 }
 
@@ -1021,7 +1024,9 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
 
         BeebConfig config;
 
-        if (!LoadConfigPartial(&config, LoadNLohmannJSON(*config_json), msg)) {
+        nlohmann::json nlohmann_config_json = LoadNLohmannJSON(*config_json);
+
+        if (!LoadConfigPartial(&config, nlohmann_config_json, msg)) {
             continue;
         }
 
@@ -1039,86 +1044,86 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
-        if (!FindEnumMember(&config.type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, msg)) {
-            continue;
-        }
-
-        std::string disc_interface_name;
-        if (FindStringMember(&disc_interface_name, config_json, DISC_INTERFACE, nullptr)) {
-            config.disc_interface = FindDiscInterfaceByConfigName(disc_interface_name.c_str());
-            if (!config.disc_interface) {
-                msg->w.f("unknown disc interface: %s\n", disc_interface_name.c_str());
-            }
-        }
-
-        rapidjson::Value roms;
-        if (!FindArrayMember(&roms, config_json, ROMS, msg)) {
-            continue;
-        }
-
-        if (roms.Size() != 16) {
-            msg->e.f("not an array with 16 entries: %s[%" PRIsizetype "].%s\n",
-                     configs_path, config_idx, ROMS);
-            continue;
-        }
-
-        for (rapidjson::SizeType rom_idx = 0; rom_idx < 16; ++rom_idx) {
-            if (!LoadROM(&roms[rom_idx],
-                         &config.roms[rom_idx],
-                         strprintf("%s.%s[%" PRIsizetype "]", json_path.c_str(), ROMS, rom_idx),
-                         msg)) {
-                continue;
-            }
-        }
-
-        bool parasite;
-        if (FindBoolMember(&parasite, config_json, PARASITE, msg)) {
-            if (parasite) {
-                config.parasite_type = BBCMicroParasiteType_MasterTurbo;
-            } else {
-                config.parasite_type = BBCMicroParasiteType_None;
-            }
-        }
-
-        rapidjson::Document::MemberIterator parasite_os_it = config_json->FindMember(PARASITE_OS);
-        if (parasite_os_it != config_json->MemberEnd()) {
-            BeebConfig::ROM parasite_os;
-            if (!LoadROM(&parasite_os_it->value,
-                         &parasite_os,
-                         strprintf("%s.%s", json_path.c_str(), PARASITE_OS).c_str(),
-                         msg)) {
-                continue;
-            }
-
-            config.parasite_os_external_3MHz_65c02 = parasite_os;
-            config.parasite_os_master_turbo = parasite_os;
+        if (!FindEnumMember(&config.type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, nullptr)) {
+            // Assume this is actually a valid config, just not supported by this version of b2. Note its JSON contents but do no more.
+            config.SetJSONData(std::move(nlohmann_config_json));
         } else {
+            std::string disc_interface_name;
+            if (FindStringMember(&disc_interface_name, config_json, DISC_INTERFACE, nullptr)) {
+                config.disc_interface = FindDiscInterfaceByConfigName(disc_interface_name.c_str());
+                if (!config.disc_interface) {
+                    msg->w.f("unknown disc interface: %s\n", disc_interface_name.c_str());
+                }
+            }
 
-            parasite_os_it = config_json->FindMember(PARASITE_OS_MASTER_TURBO);
-            if (parasite_os_it != config_json->MemberEnd()) {
-                if (!LoadROM(&parasite_os_it->value,
-                             &config.parasite_os_master_turbo,
-                             strprintf("%s.%s", json_path.c_str(), PARASITE_OS_MASTER_TURBO),
+            rapidjson::Value roms;
+            if (!FindArrayMember(&roms, config_json, ROMS, msg)) {
+                continue;
+            }
+
+            if (roms.Size() != 16) {
+                msg->e.f("not an array with 16 entries: %s[%" PRIsizetype "].%s\n",
+                         configs_path, config_idx, ROMS);
+                continue;
+            }
+
+            for (rapidjson::SizeType rom_idx = 0; rom_idx < 16; ++rom_idx) {
+                if (!LoadROM(&roms[rom_idx],
+                             &config.roms[rom_idx],
+                             strprintf("%s.%s[%" PRIsizetype "]", json_path.c_str(), ROMS, rom_idx),
                              msg)) {
                     continue;
                 }
             }
 
-            parasite_os_it = config_json->FindMember(PARASITE_OS_EXTERNAL_3MHZ_65C02);
+            bool parasite;
+            if (FindBoolMember(&parasite, config_json, PARASITE, msg)) {
+                if (parasite) {
+                    config.parasite_type = BBCMicroParasiteType_MasterTurbo;
+                } else {
+                    config.parasite_type = BBCMicroParasiteType_None;
+                }
+            }
+
+            rapidjson::Document::MemberIterator parasite_os_it = config_json->FindMember(PARASITE_OS);
             if (parasite_os_it != config_json->MemberEnd()) {
+                BeebConfig::ROM parasite_os;
                 if (!LoadROM(&parasite_os_it->value,
-                             &config.parasite_os_external_3MHz_65c02,
-                             strprintf("%s.%s", json_path.c_str(), PARASITE_OS_EXTERNAL_3MHZ_65C02),
+                             &parasite_os,
+                             strprintf("%s.%s", json_path.c_str(), PARASITE_OS).c_str(),
                              msg)) {
                     continue;
                 }
-            }
-        }
 
-        std::string nvram_hex;
-        if (FindStringMember(&nvram_hex, config_json, NVRAM, msg)) {
-            if (!GetDataFromHexString(&config.nvram, nvram_hex)) {
-                config.nvram.clear();
+                config.parasite_os_external_3MHz_65c02 = parasite_os;
+                config.parasite_os_master_turbo = parasite_os;
+            } else {
+                parasite_os_it = config_json->FindMember(PARASITE_OS_MASTER_TURBO);
+                if (parasite_os_it != config_json->MemberEnd()) {
+                    if (!LoadROM(&parasite_os_it->value,
+                                 &config.parasite_os_master_turbo,
+                                 strprintf("%s.%s", json_path.c_str(), PARASITE_OS_MASTER_TURBO),
+                                 msg)) {
+                        continue;
+                    }
+                }
+
+                parasite_os_it = config_json->FindMember(PARASITE_OS_EXTERNAL_3MHZ_65C02);
+                if (parasite_os_it != config_json->MemberEnd()) {
+                    if (!LoadROM(&parasite_os_it->value,
+                                 &config.parasite_os_external_3MHz_65c02,
+                                 strprintf("%s.%s", json_path.c_str(), PARASITE_OS_EXTERNAL_3MHZ_65C02),
+                                 msg)) {
+                        continue;
+                    }
+                }
+            }
+
+            std::string nvram_hex;
+            if (FindStringMember(&nvram_hex, config_json, NVRAM, msg)) {
+                if (!GetDataFromHexString(&config.nvram, nvram_hex)) {
+                    config.nvram.clear();
+                }
             }
         }
 
@@ -1137,38 +1142,42 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             auto config_json = ObjectWriter(writer);
 
-            SaveNLohmannJSONObjectContents(writer, SaveConfigPartial(*config));
-
-            writer->Key(OS);
-            SaveROM(writer, config->os);
-
-            writer->Key(TYPE);
-            SaveEnum(writer, config->type_id);
-
-            writer->Key(DISC_INTERFACE);
-            if (!config->disc_interface) {
-                writer->Null();
+            if (const nlohmann::json *json_data = config->GetJSONData()) {
+                SaveNLohmannJSONObjectContents(writer, *json_data);
             } else {
-                writer->String(config->disc_interface->config_name.c_str());
-            }
+                SaveNLohmannJSONObjectContents(writer, SaveConfigPartial(*config));
 
-            {
-                auto roms_json = ArrayWriter(writer, ROMS);
+                writer->Key(OS);
+                SaveROM(writer, config->os);
 
-                for (size_t j = 0; j < 16; ++j) {
-                    SaveROM(writer, config->roms[j]);
+                writer->Key(TYPE);
+                SaveEnum(writer, config->type_id);
+
+                writer->Key(DISC_INTERFACE);
+                if (!config->disc_interface) {
+                    writer->Null();
+                } else {
+                    writer->String(config->disc_interface->config_name.c_str());
                 }
-            }
 
-            writer->Key(PARASITE_OS_MASTER_TURBO);
-            SaveROM(writer, config->parasite_os_master_turbo);
+                {
+                    auto roms_json = ArrayWriter(writer, ROMS);
 
-            writer->Key(PARASITE_OS_EXTERNAL_3MHZ_65C02);
-            SaveROM(writer, config->parasite_os_external_3MHz_65c02);
+                    for (size_t j = 0; j < 16; ++j) {
+                        SaveROM(writer, config->roms[j]);
+                    }
+                }
 
-            if (!config->nvram.empty()) {
-                writer->Key(NVRAM);
-                writer->String(GetHexStringFromData(config->nvram).c_str());
+                writer->Key(PARASITE_OS_MASTER_TURBO);
+                SaveROM(writer, config->parasite_os_master_turbo);
+
+                writer->Key(PARASITE_OS_EXTERNAL_3MHZ_65C02);
+                SaveROM(writer, config->parasite_os_external_3MHz_65c02);
+
+                if (!config->nvram.empty()) {
+                    writer->Key(NVRAM);
+                    writer->String(GetHexStringFromData(config->nvram).c_str());
+                }
             }
         }
     }

@@ -452,7 +452,6 @@ if(OSX)
     VERBATIM)
 endif()
 
-
 ##########################################################################
 ##########################################################################
 
@@ -465,7 +464,7 @@ target_compile_definitions(b2_test PRIVATE TRANSIENT_DATA_FOLDER="${CMAKE_BINARY
 target_compile_definitions(b2_test PRIVATE b2_SOURCE_DIR="${b2_SOURCE_DIR}")
 
 b2_target_boilerplate(b2_test SANITIZERS RUNTIME_OUTPUT_DIRECTORY PIX)
-target_link_libraries(b2_test PRIVATE b2_lib)
+target_link_libraries(b2_test PRIVATE b2_lib ${LibUV_LIBRARIES})
 
 add_copy_assets_custom_commands(b2_test assets)
 
@@ -514,6 +513,7 @@ foreach(DO_BRK 0 1)
 endforeach()
 
 add_b2_test_literal_category(b2.http.peek)
+add_b2_test_literal_category(b2ui.preserve_config_json)
 
 ##########################################################################
 ##########################################################################
