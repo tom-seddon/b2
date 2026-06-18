@@ -430,10 +430,10 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
         result.values = ListOrdinaryEnumValues(&GetROMTypeEnumName);
     } else if (request_args.name == "OSROMType") {
         result.values = ListOrdinaryEnumValues(&GetOSROMTypeEnumName);
-    } else if (request_args.name == "stock_configs") {
+    } else if (request_args.name == "default_configs") {
         result.values = GetBeebConfigNames(&GetNumDefaultBeebConfigs, &GetDefaultBeebConfigByIndex);
-    } else if (request_args.name == "configs") {
-        result.values = GetBeebConfigNames(&BeebWindows::GetNumConfigs, &BeebWindows::GetConfigByIndex);
+        //    } else if (request_args.name == "configs") {
+        //        result.values = GetBeebConfigNames(&BeebWindows::GetNumConfigs, &BeebWindows::GetConfigByIndex);
     } else {
         execute_args.messages->e.f("unknown value: %s\n", request_args.name.c_str());
         completion_fun("unknown_value", {});

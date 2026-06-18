@@ -355,10 +355,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, outp
 
 // Use the list_values command to list values of whatever sort.
 //
-// Values marked "(configurable)" are configurable. The set of names returned can vary.
-// (TODO: is this even a good idea?)
-//
-// Other values are fixed, and will not change.
+// The set of values of may grow in future versions of b2, but existing values will remain valid.
 
 static const char API_REQUEST_TYPE_LIST_VALUES[] = "list_values";
 
@@ -368,10 +365,8 @@ struct ApiListValuesArgs {
     // - "StandardROM" - list StandardROM enum values
     // - "OSROMType" - list OSROMType enum values
     // - "ROMType" - list ROMType enum values
-    // - "stock_configs" - list stock config names, for possible use as
-    //   base_stock_config for the config request type
-    // - "configs" (configurable) - list config names, for possible use as
-    //   base_config for the config request type
+    // - "dbefault_configs" - list stock config names, for possible use as
+    //   base_default_config for the config request type
     std::string name;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesArgs, name);
@@ -387,9 +382,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 static const char API_REQUEST_TYPE_SET_GLOBALS[] = "set_globals";
 
 struct ApiSetGlobalsArgs {
-    //
+    // Specify the read path. Relative names of files to read from are assumed to be relative to the read path. There is no attempt to provide any kind of sandboxing, and you can easily use .. to access paths above the specified read path.
     std::optional<std::string> read_path;
 
+    // Specify the write path. Names of files to write to are assumed to be relative to the write path. Since writes are destructive, unlike the read path, there is some very basic attempt at sandboxing: names with path separators are not permitted. Any files written to are written directly into the specified folder.
     std::optional<std::string> write_path;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
@@ -402,7 +398,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
 static const char API_REQUEST_TYPE_SCREEN_GRAB_PNG_DATA[] = "screen_grab_png_data";
 
 struct ApiScreenGrabPNGDataArgs {
-    // Correct aspect ratio looks right, but bitmap mode pixels will contain artefacts due to being resized.
+    // If true, output will be resized (possibly with filtering) to match the aspect ratio of output from a real BBC Micro.
     bool correct_aspect_ratio = false;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataArgs,
@@ -420,7 +416,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataResult,
 static const char API_REQUEST_TYPE_SCREEN_GRAB_PNG_FILE[] = "screen_grab_png_file";
 
 struct ApiScreenGrabPNGFileArgs {
-    // Correct aspect ratio looks right, but bitmap mode pixels will contain artefacts due to being resized.
+    // If true, output will be resized (possibly with filtering) to match the aspect ratio of output from a real BBC Micro.
     bool correct_aspect_ratio = false;
 
     // Name of file to save to. If fully-specified, will be saved to the named
