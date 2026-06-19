@@ -38,6 +38,7 @@
 #include <http/HTTPClient.h>
 #include <http/http.h>
 #include <uv.h>
+#include <variant>
 
 // the b2 code includes the stb_image_write implementation.
 #include <stb_image_write.h>
