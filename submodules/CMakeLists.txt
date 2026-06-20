@@ -248,7 +248,9 @@ target_sources(rapidjson_lib INTERFACE
   ${RAPIDJSON_INCLUDE}/rapidjson/msinttypes/inttypes.h
   ${RAPIDJSON_INCLUDE}/rapidjson/msinttypes/stdint.h)
 
-target_include_directories(rapidjson_lib INTERFACE ${RAPIDJSON_INCLUDE})
+# The .. is stupid, but it means that the #include'd paths won't find
+# any systemwide copy installed by the package manager.
+target_include_directories(rapidjson_lib INTERFACE ${RAPIDJSON_INCLUDE}/..)
 
 ##########################################################################
 ##########################################################################
