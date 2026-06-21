@@ -161,7 +161,6 @@ class BBCMicroState {
         DiscDriveSound spin_sound = DiscDriveSound_EndValue;
         size_t spin_sound_index = 0;
 
-        float noise = 0.f;
         std::shared_ptr<DiscImage> disc_image;
         bool is_write_protected = false;
     };

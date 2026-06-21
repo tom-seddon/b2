@@ -40,10 +40,10 @@ class WD1770Handler {
     virtual bool IsTrack0() = 0;
 
     // Step out (towards track 0).
-    virtual void StepOut(int step_rate_ms) = 0;
+    virtual void StepOut(uint8_t step_rate_ms) = 0;
 
     // Step in (towards track N).
-    virtual void StepIn(int step_rate_ms) = 0;
+    virtual void StepIn(uint8_t step_rate_ms) = 0;
 
     // Spin the drive up. The motor is assumed to switch on.
     virtual void SpinUp() = 0;

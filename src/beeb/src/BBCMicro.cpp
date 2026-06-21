@@ -3964,7 +3964,7 @@ bool BBCMicro::IsTrack0() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::StepOut(int step_rate_ms) {
+void BBCMicro::StepOut(uint8_t step_rate_ms) {
     int drive;
     if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive(&drive)) {
 #if BBCMICRO_TRACE
@@ -3987,7 +3987,7 @@ void BBCMicro::StepOut(int step_rate_ms) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::StepIn(int step_rate_ms) {
+void BBCMicro::StepIn(uint8_t step_rate_ms) {
     int drive;
     if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive(&drive)) {
 #if BBCMICRO_TRACE
@@ -4148,8 +4148,8 @@ void BBCMicro::InitDiscDriveSounds(DiscDriveType type) {
 // As per http://www.ninerpedia.org/index.php?title=MAME_Floppy_sound_emulation
 
 struct SeekSound {
-    size_t clock_ticks;
-    DiscDriveSound sound;
+    uint8_t ms = 0;
+    DiscDriveSound sound = DiscDriveSound_EndValue;
 };
 
 #define SEEK_SOUND(N)               \
@@ -4160,45 +4160,38 @@ struct SeekSound {
 
 static const SeekSound g_seek_sounds[] = {
     {
-        SOUND_CLOCKS_FROM_MS(17),
+        20,
         DiscDriveSound_Seek20ms,
     },
     {
-        SOUND_CLOCKS_FROM_MS(10),
+        12,
         DiscDriveSound_Seek12ms,
     },
     {
-        SOUND_CLOCKS_FROM_MS(4),
+        6,
         DiscDriveSound_Seek6ms,
     },
     {
-        1,
+        2,
         DiscDriveSound_Seek2ms,
     },
-    {0},
+    {},
 };
 
-void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd, int step_rate_ms) {
-    (void)step_rate_ms;
-
+void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd, uint8_t step_rate_ms) {
     if (dd->step_sound_index < 0) {
         // step
         dd->step_sound_index = 0;
-    } else if (dd->seek_sound == DiscDriveSound_EndValue) {
-        // skip a bit of the step sound
-        dd->step_sound_index += (int)SOUND_CLOCK_HZ / 100;
-
-        // seek. Start with 20ms... it's as good a guess as any.
-        dd->seek_sound = DiscDriveSound_Seek20ms;
-        dd->seek_sound_index = 0;
     } else {
-        for (const SeekSound *seek_sound = g_seek_sounds; seek_sound->clock_ticks != 0; ++seek_sound) {
-            if (dd->seek_sound_index >= seek_sound->clock_ticks) {
+        // seek - and possibly repeated, in which case don't restart.
+        for (const SeekSound *seek_sound = g_seek_sounds; seek_sound->ms != 0; ++seek_sound) {
+            if (step_rate_ms >= seek_sound->ms) {
                 if (dd->seek_sound != seek_sound->sound) {
                     dd->seek_sound = seek_sound->sound;
                     dd->seek_sound_index = 0;
-                    break;
                 }
+
+                break;
             }
         }
     }
@@ -4246,12 +4239,16 @@ float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
         ++dd->seek_sound_index;
         if ((size_t)dd->seek_sound_index >= seek_sound->size()) {
             dd->seek_sound = DiscDriveSound_EndValue;
+
+            if (dd->step_sound_index >= 0) {
+                // skip a bit of the step sound
+                dd->step_sound_index += (int)SOUND_CLOCK_HZ / 100;
+            }
         }
     } else if (dd->step_sound_index >= 0) {
         const std::vector<float> *step_sound = m_disc_drive_sounds[DiscDriveSound_Step];
 
-        // check for end first as the playback position is adjusted in
-        // StepSound.
+        // check for end first as the playback position is adjusted elsewhere.
         if ((size_t)dd->step_sound_index >= step_sound->size()) {
             dd->step_sound_index = -1;
         } else {

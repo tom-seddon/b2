@@ -6,7 +6,7 @@
 // Should this enum go somewhere else??
 
 #define ENAME DiscDriveSound
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 EPN(Seek2ms)
 EPN(Seek6ms)
 EPN(Seek12ms)

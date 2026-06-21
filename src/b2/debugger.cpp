@@ -4371,6 +4371,9 @@ class DiskDriveDebugWindow : public DebugUI {
                 } else {
                     ImGui::Text("(No disc present)");
                 }
+
+                ImGui::BulletText("Seek sound: %s (%u)", GetDiscDriveSoundEnumName(dd->seek_sound), dd->seek_sound);
+                ImGui::BulletText("Spin sound: %s (%u)", GetDiscDriveSoundEnumName(dd->spin_sound), dd->spin_sound);
             } else {
                 ImGui::Text("(Not present)");
             }
