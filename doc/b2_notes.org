@@ -11401,8 +11401,29 @@ follows suit.
 | fc5e | BeebLink Control | BeebLink Control | Electron only (long story)   |
 | fc5f | BeebLink Data    | BeebLink Data    | Electron only (long story)   |
 
-$fc5e/$fc5f aren't debug functionality, but they end up in the same
-region.
+$fc5e/$fc5f aren't debug functionality, but they are
+emulator-specific, so they end up in the same region.
+
+** 6502/65c02 common NOPs
+
+The numbers are quite limited, but it's fewer cycles (and less
+intrusive) than having to write some data.
+
+- https://laughtonelectronics.com/Arcana/KimKlone/Kimklone_opcode_mapping.html
+- https://www.masswerk.at/nowgobang/2021/6502-illegal-opcodes
+
+| Opcode | Addr mode   | Bytes | Cycles |
+|--------+-------------+-------+--------|
+| 82     | Immediate   |     2 |      2 |
+| c2     | Immediate   |     2 |      2 |
+| e2     | Immediate   |     2 |      2 |
+| 44     | Zero Page   |     2 |      3 |
+| 54     | Zero Page,X |     2 |      4 |
+| d4     | Zero Page,X |     2 |      4 |
+| f4     | Zero Page,X |     2 |      4 |
+
+Less overhead than writing to a debug port, and benign on real
+hardware. Scope for a handler callback or something.
 
 * doc image stuff
 
