@@ -435,7 +435,6 @@ typedef struct M6502 M6502;
 //////////////////////////////////////////////////////////////////////////
 
 void M6502_Init(M6502 *s, const M6502Config *config);
-void M6502_Destroy(M6502 *s);
 
 void M6502_Reset(M6502 *s);
 

@@ -102,7 +102,6 @@ error:;
         LogDumpBytes(&LOG(DEBUG), g_mem, 0x300);
     }
 
-    M6502_Destroy(s);
     delete s;
     s = NULL;
 
