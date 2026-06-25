@@ -1368,15 +1368,15 @@ static std::vector<InstrGen> GetAll() {
         // CMOS NOPs
         G("R_NOP11_CMOS", "CMOS NOP (1 byte, 1 cycle)", {});
 
-        G("R_NOP22_CMOS", "CMOS NOP (2 bytes, 2 cycles)", {Ri("pc++", "data", nullptr)});
+        G("R_NOP22_CMOS", "CMOS NOP (2 bytes, 2 cycles)", {Ri("pc++", "data", "call")});
 
-        G("R_NOP23_CMOS", "CMOS NOP (2 bytes, 3 cycles)", {Ri("pc++", "adl", nullptr), Ri("adl", "data", nullptr)});
+        G("R_NOP23_CMOS", "CMOS NOP (2 bytes, 3 cycles)", {Ri("pc++", "adl", nullptr), Ri("adl", "data", "call")});
 
-        G("R_NOP24_CMOS", "CMOS NOP (2 bytes, 4 cycles)", {Ri("pc++", "adl", nullptr), Ri("adl", "data!", nullptr), Ri("adl+index", "data", nullptr)}, 'x');
+        G("R_NOP24_CMOS", "CMOS NOP (2 bytes, 4 cycles)", {Ri("pc++", "adl", nullptr), Ri("adl", "data!", nullptr), Ri("adl+index", "data", "call")}, 'x');
 
-        G("R_NOP34_CMOS", "CMOS NOP (3 bytes, 4 cycles)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ri("ad", "data!", nullptr)});
+        G("R_NOP34_CMOS", "CMOS NOP (3 bytes, 4 cycles)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ri("ad", "data!", "call")});
 
-        G("R_NOP38_CMOS", "CMOS NOP (3 bytes, 8 cycles)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ri("FF00|adl", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr)});
+        G("R_NOP38_CMOS", "CMOS NOP (3 bytes, 8 cycles)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ri("FF00|adl", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", nullptr), Ri("irqh", "data!", "call")});
     }
 
 #undef R
