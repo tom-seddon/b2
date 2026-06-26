@@ -306,7 +306,7 @@ uint8_t VideoULA::GetBorderColour() const {
 void VideoULA::SetBorderColour(uint8_t value) {
     // The border colour is a 64-bit value, so only pixels 0-3 need to be set.
     VideoDataUnitPixels pixels;
-    pixels.pixels[3].all = pixels.pixels[2].all = pixels.pixels[1].all = pixels.pixels[0].all = ULA_PALETTE[0][value & 0xf];
+    pixels.pixels[3].all = pixels.pixels[2].all = pixels.pixels[1].all = pixels.pixels[0].all = ULA_PALETTE[0][value & 0x7];
 
     m_nothing_value = pixels.values[0];
     m_border_colour = value;
