@@ -771,8 +771,8 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
     }
 
 #if BBCMICRO_DEBUGGER
-    if (ts->current_config.config.debug_ports) {
-        init_flags |= BBCMicroInitFlag_DebugPorts;
+    if (ts->current_config.config.extra_debugging_hardware) {
+        init_flags |= BBCMicroInitFlag_ExtraDebuggingHardware;
     }
 #endif
 

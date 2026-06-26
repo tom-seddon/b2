@@ -3707,7 +3707,7 @@ void BBCMicro::InitStuff() {
     }
 
 #if BBCMICRO_DEBUGGER
-    if (m_state.init_flags & BBCMicroInitFlag_DebugPorts) {
+    if (m_state.init_flags & BBCMicroInitFlag_ExtraDebuggingHardware) {
         this->SetXFJIFJIO(0xfc50, &BBCMicro::ReadDebugPort0, this, &BBCMicro::WriteDebugPort0, this);
         this->SetXFJIFJIO(0xfc5d, &BBCMicro::ReadDebugPortD, this, &BBCMicro::WriteDebugPortD, this);
     }

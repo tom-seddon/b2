@@ -115,7 +115,7 @@ struct ApiExecuteArgs {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static bool GetFilePath(std::string *full_path, const std::string &path, const ApiSetGlobalsArgs &api_globals, const LogSet &logs) {
+static bool GetFilePathForRead(std::string *full_path, const std::string &path, const ApiSetGlobalsArgs &api_globals, const LogSet &logs) {
     if (PathIsFullySpecified(path)) {
         *full_path = path;
         return true;
@@ -147,7 +147,7 @@ static bool CopyROM(BeebConfig::ROM *dest, const ApiSetGlobalsArgs &api_globals,
         dest->standard_rom = nullptr;
     }
 
-    if (!GetFilePath(&dest->file_name, src.path, api_globals, logs)) {
+    if (!GetFilePathForRead(&dest->file_name, src.path, api_globals, logs)) {
         return false;
     }
 
@@ -220,7 +220,7 @@ static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_g
 
     SetOptional(&dest.video_nula, src.video_nula);
     SetOptional(&dest.beeblink, src.beeblink);
-    SetOptional(&dest.debug_ports, src.debug_ports);
+    SetOptional(&dest.extra_debugging_hardware, src.extra_debugging_hardware);
 
     for (const ApiConfigNVRAMByte &byte : src.nvram_bytes) {
         if (byte.index < 0 || (size_t)byte.index >= dest.nvram.size()) {
@@ -599,7 +599,7 @@ static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
     }
 
     std::string path;
-    if (!GetFilePath(&path, request_args.path, execute_args.beeb_window->api_globals, *execute_args.messages)) {
+    if (!GetFilePathForRead(&path, request_args.path, execute_args.beeb_window->api_globals, *execute_args.messages)) {
         completion_fun("load_failed", {});
         return;
     }

@@ -536,7 +536,7 @@ bool ConfigsUI::DoEditConfigGui() {
     }
 
 #if BBCMICRO_DEBUGGER
-    if (ImGui::Checkbox("Debug ports", &config->debug_ports)) {
+    if (ImGui::Checkbox("Extra debugging hardware", &config->extra_debugging_hardware)) {
         edited = true;
     }
 #endif

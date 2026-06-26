@@ -273,10 +273,7 @@ class BBCMicroState {
     // Previous values, for detecting edge transitions.
     AddressableLatch old_addressable_latch = {0xff};
 
-  public:
     M6502 cpu = {};
-
-  protected:
     BBCMicroCPURunState cpu_run_state = BBCMicroCPURunState_Running;
     bool resetting = false;
 

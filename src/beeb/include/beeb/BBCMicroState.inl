@@ -78,8 +78,8 @@ EPNV(MMFS, 1 << 9)
 EPNV(MMFSDebug, 1 << 10)
 
 #if BBCMICRO_DEBUGGER
-// If set has debug ports
-EPNV(DebugPorts, 1 << 11)
+// If set, has extra debugging hardware.
+EPNV(ExtraDebuggingHardware, 1 << 11)
 #endif
 
 EEND()
