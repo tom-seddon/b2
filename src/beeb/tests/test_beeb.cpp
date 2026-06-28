@@ -907,6 +907,7 @@ TestBBCMicro::TestBBCMicro(const TestBBCType &type, const HardDiskImageSet &hard
                nullptr,
                GetBBCMicroInitFlags(type),
                nullptr,
+               nullptr,
                hard_disk_images,
                std::move(mmfs_image_path),
                {0}) {

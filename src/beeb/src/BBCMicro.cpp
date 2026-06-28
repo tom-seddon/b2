@@ -30,6 +30,7 @@
 #include <unordered_set>
 #include <shared/sha1.h>
 #include <unordered_map>
+#include <beeb/debug_hardware.h>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -64,6 +65,34 @@ const char BBCMicro::PASTE_START_CHAR = ' ';
 
 #if BBCMICRO_TRACE
 const TraceEventType BBCMicro::INSTRUCTION_EVENT("Instruction", sizeof(InstructionTraceEvent), TraceEventSource_None);
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+class BBCMicro::DebugCommandHandler : public ::DebugCommandHandler {
+  public:
+    // the next command handler, if non-null, is used to handle any commands this one doesn't.
+    DebugCommandHandler(BBCMicro *beeb, ::DebugCommandHandler *next)
+        : m_beeb(beeb)
+        , m_next(next) {
+        (void)m_next;
+    }
+
+    void EnableSymbolGroup(uint8_t group) {
+        m_beeb->m_state.symbol_groups_enabled[group] = true;
+    }
+
+    void DisableSymbolGroup(uint8_t group) {
+        m_beeb->m_state.symbol_groups_enabled[group] = false;
+    }
+
+  protected:
+  private:
+    BBCMicro *const m_beeb = nullptr;
+    ::DebugCommandHandler *const m_next = nullptr;
+};
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -340,6 +369,7 @@ BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
                    const tm *rtc_time,
                    uint32_t init_flags,
                    BeebLinkHandler *beeblink_handler,
+                   ::DebugCommandHandler *debug_command_handler,
                    const HardDiskImageSet &hard_disk_images,
                    std::string mmfs_image_path,
                    CycleCount initial_cycle_count)
@@ -353,6 +383,13 @@ BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
               std::move(mmfs_image_path),
               initial_cycle_count)
     , m_beeblink_handler(beeblink_handler) {
+
+#if BBCMICRO_DEBUGGER
+    m_debug_command_handler = std::make_unique<DebugCommandHandler>(this, debug_command_handler);
+#else
+    (void)debug_command_handler;
+#endif
+
     this->InitStuff();
 }
 
@@ -1073,30 +1110,6 @@ uint8_t BBCMicro::ReadSERPROC(void *m_, M6502Word a) {
         return value;
     }
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-uint8_t BBCMicro::ReadDebugPort0(void *m_, M6502Word a) {
-    (void)a;
-    auto m = (BBCMicro *)m_;
-
-    return (uint8_t)(m->m_state.presence_test_value + 1);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-void BBCMicro::WriteDebugPort0(void *m_, M6502Word a, uint8_t value) {
-    (void)a;
-    auto m = (BBCMicro *)m_;
-
-    m->m_state.presence_test_value = value;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3708,8 +3721,32 @@ void BBCMicro::InitStuff() {
 
 #if BBCMICRO_DEBUGGER
     if (m_state.init_flags & BBCMicroInitFlag_ExtraDebuggingHardware) {
-        this->SetXFJIFJIO(0xfc50, &BBCMicro::ReadDebugPort0, this, &BBCMicro::WriteDebugPort0, this);
+        uint16_t addr = 0xfc51;
+        for (uint8_t i = 0; i < BBCMicroState::NUM_DEBUG_COMMAND_BUFFERS; ++i) {
+            DebugCommandBuffers *buffers = &m_state.debug_command_buffers[i];
+
+            this->SetXFJIFJIO(addr++, &DebugCommandBuffers::ReadData, buffers, &DebugCommandBuffers::WriteData, buffers);
+            this->SetXFJIFJIO(addr++, &DebugCommandBuffers::ReadStatus, buffers, &DebugCommandBuffers::WriteCommand, buffers);
+
+            buffers->SetHandler(m_debug_command_handler.get());
+        }
+
         this->SetXFJIFJIO(0xfc5d, &BBCMicro::ReadDebugPortD, this, &BBCMicro::WriteDebugPortD, this);
+
+        // Slightly more convenient to have this table as part of the BBCMicro.
+        m_cpu_fns.resize(256);
+        for (size_t i = 0; i < 256; ++i) {
+            m_cpu_fns[i] = m_state.cpu.config->fns[i];
+        }
+
+        ASSERT(m_cpu_fns[0x82].ifn == m_cpu_fns[0xea].ifn);
+        ASSERT(m_cpu_fns[0xc2].ifn == m_cpu_fns[0xea].ifn);
+        ASSERT(m_cpu_fns[0xe2].ifn == m_cpu_fns[0xea].ifn);
+        m_cpu_fns[0x82].ifn = &Handle82;
+        m_cpu_fns[0xc2].ifn = &HandleC2;
+        m_cpu_fns[0xe2].ifn = &HandleE2;
+
+        m_state.cpu.fns = m_cpu_fns.data();
     }
 #endif
 
@@ -3893,8 +3930,6 @@ void BBCMicro::InitStuff() {
     }
 
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
-        m_state.parasite_cpu.context = this;
-
         ASSERT(!!m_state.parasite_ram_buffer);
         ASSERT(m_state.parasite_ram_buffer->size() == 65536);
         m_parasite_ram = m_state.parasite_ram_buffer->data();
@@ -3924,12 +3959,16 @@ void BBCMicro::InitStuff() {
 #if BBCMICRO_DEBUGGER
     m_host_cpu_metadata.dso = 0;
 #endif
+    m_host_cpu_metadata.beeb = this;
+    ASSERT(!m_state.cpu.context);
     m_state.cpu.context = &m_host_cpu_metadata;
 
     m_parasite_cpu_metadata.name = "parasite";
 #if BBCMICRO_DEBUGGER
     m_parasite_cpu_metadata.dso = BBCMicroDebugStateOverride_Parasite;
 #endif
+    m_parasite_cpu_metadata.beeb = this;
+    ASSERT(!m_state.parasite_cpu.context);
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
     m_state.adc.SetHandler(&ReadAnalogueChannel, this);
@@ -4850,3 +4889,53 @@ void BBCMicro::GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint
     }
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::Handle82(M6502 *cpu) {
+    auto metadata = (BBCMicroM6502Metadata *)cpu->context;
+
+    metadata->beeb->HandleNOP(cpu, metadata->beeb->m_state.nop_82_behaviour);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::HandleC2(M6502 *cpu) {
+    auto metadata = (BBCMicroM6502Metadata *)cpu->context;
+
+    metadata->beeb->HandleNOP(cpu, metadata->beeb->m_state.nop_c2_behaviour);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::HandleE2(M6502 *cpu) {
+    auto metadata = (BBCMicroM6502Metadata *)cpu->context;
+
+    metadata->beeb->HandleNOP(cpu, metadata->beeb->m_state.nop_e2_behaviour);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::HandleNOP(M6502 *cpu, DebugNOPBehaviour behaviour) {
+    (void)cpu;
+
+    switch (behaviour) {
+    case DebugNOPBehaviour_NOP:
+        break;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

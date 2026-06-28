@@ -40,6 +40,7 @@ set(SRCS
   ${S}/serproc.cpp ${I}/serproc.h ${I}/serproc.inl
   ${S}/ElectronULA.cpp ${I}/ElectronULA.h ${I}/ElectronULA.inl
   ${S}/Plus1.cpp ${I}/Plus1.h ${I}/Plus1.inl
+  ${S}/debug_hardware.cpp ${I}/debug_hardware.h ${I}/debug_hardware.inl
 )
 
 if(MSVC)

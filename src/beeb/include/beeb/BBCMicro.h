@@ -16,6 +16,7 @@ class DiscImage;
 class BeebLinkHandler;
 class BeebLink;
 class HardDiskImage;
+class DebugCommandHandler;
 
 #include <array>
 #include <memory>
@@ -174,6 +175,7 @@ struct BBCMicroM6502Metadata {
 #if BBCMICRO_DEBUGGER
     uint32_t dso = 0;
 #endif
+    BBCMicro *beeb = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -390,6 +392,7 @@ class BBCMicro : private WD1770Handler {
              const tm *rtc_time,
              uint32_t init_flags,
              BeebLinkHandler *beeblink_handler,
+             DebugCommandHandler *debug_command_handler,
              const HardDiskImageSet &hard_disk_images,
              std::string mmfs_image_path,
              CycleCount initial_cycle_count);
@@ -825,6 +828,16 @@ class BBCMicro : private WD1770Handler {
 
     const std::vector<float> *m_disc_drive_sounds[DiscDriveSound_EndValue];
 
+#if BBCMICRO_DEBUGGER
+    // Table of CPU fns.
+    std::vector<M6502Fns> m_cpu_fns;
+#endif
+
+#if BBCMICRO_DEBUGGER
+    class DebugCommandHandler;
+    std::unique_ptr<DebugCommandHandler> m_debug_command_handler;
+#endif
+
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     //
@@ -926,8 +939,6 @@ class BBCMicro : private WD1770Handler {
 #endif
     static uint8_t ReadSERPROC(void *m_, M6502Word a);
 #if BBCMICRO_DEBUGGER
-    static uint8_t ReadDebugPort0(void *m_, M6502Word a);
-    static void WriteDebugPort0(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadDebugPortD(void *m_, M6502Word a);
     static void WriteDebugPortD(void *m_, M6502Word a, uint8_t value);
 #endif
@@ -1075,6 +1086,13 @@ class BBCMicro : private WD1770Handler {
     static uint8_t *GetByteDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug);
     static uint8_t *GetAddressDebugFlagsForBigPage(const BigPageMetadata *metadata, BBCMicroDebugState *debug);
     static void GetIOByteDebugFlagsForBigPage(uint8_t **read_io_debug_flags, uint8_t **write_io_debug_flags, const BigPageMetadata *metadata, BBCMicroDebugState *debug);
+#endif
+
+#if BBCMICRO_DEBUGGER
+    static void Handle82(M6502 *cpu);
+    static void HandleC2(M6502 *cpu);
+    static void HandleE2(M6502 *cpu);
+    void HandleNOP(M6502 *cpu, DebugNOPBehaviour behaviour);
 #endif
 
     // List terminated by nullptr - slightly odd arrangement that means the

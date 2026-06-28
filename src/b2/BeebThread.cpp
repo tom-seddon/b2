@@ -787,6 +787,7 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
                                            &now,
                                            init_flags,
                                            ts->beeblink_handler.get(),
+                                           nullptr,
                                            ts->current_config.hard_disk_images,
                                            ts->current_config.config.mmfs_config.image_path,
                                            num_cycles);

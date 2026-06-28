@@ -355,7 +355,7 @@ struct M6502 {
      * instruction. */
     M6502Fn ifn;
 
-    /* Pointer to 256 function pairs for opcode dispatch (copied from
+    /* Pointer to 256 function pairs for opcode dispatch (pointer copied from
      * the config object). */
     const M6502Fns *fns;
 

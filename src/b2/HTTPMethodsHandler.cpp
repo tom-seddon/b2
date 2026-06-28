@@ -434,6 +434,11 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
         result.values = GetBeebConfigNames(&GetNumDefaultBeebConfigs, &GetDefaultBeebConfigByIndex);
         //    } else if (request_args.name == "configs") {
         //        result.values = GetBeebConfigNames(&BeebWindows::GetNumConfigs, &BeebWindows::GetConfigByIndex);
+    } else if (request_args.name == "symbol_format_name") {
+        const std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> &parsers = SymbolTable::SymbolParserRegistry::GetParsers();
+        for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : parsers) {
+            result.values.push_back(parser->GetFormatName());
+        }
     } else {
         execute_args.messages->e.f("unknown value: %s\n", request_args.name.c_str());
         completion_fun("unknown_value", {});
@@ -443,6 +448,35 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
     completion_fun(nullptr, std::move(result));
 }
 
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteListKeysAndValues(const ApiExecuteArgs &execute_args,
+                                        ApiListKeysAndValuesArgs &&request_args,
+                                        std::function<void(const char *, ApiListKeysAndValuesResult &&)> completion_fun) {
+    ApiListKeysAndValuesResult result;
+    if (request_args.name == "DebugCommand") {
+        for (int i = 0; i < 256; ++i) {
+            const char *name = GetDebugCommandEnumName((uint8_t)i);
+            if (name[i] != '?') {
+                ApiKeyAndValue kv;
+                kv.value = name;
+                kv.value = i;
+
+                result.keys_and_values.push_back(std::move(kv));
+            }
+        }
+    } else {
+        execute_args.messages->e.f("unknown keys/values name: %s\n", request_args.name.c_str());
+        completion_fun("unknown_value", {});
+        return;
+    }
+
+    completion_fun(nullptr, std::move(result));
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -622,6 +656,9 @@ static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
 }
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
                            ApiPeekArgs &&request_args,
@@ -662,6 +699,54 @@ static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
 
         completion_fun(nullptr, std::move(result));
     }));
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteClearSymbols(const ApiExecuteArgs &execute_args,
+                                   std::nullptr_t &&,
+                                   std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+    SymbolTable *symbol_table = execute_args.beeb_window->GetMutableSymbolTable();
+    symbol_table->Clear();
+
+    completion_fun(nullptr, nullptr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
+                                  ApiLoadSymbolsArgs &&request_args,
+                                  std::function<void(const char *, ApiLoadSymbolsResult &&)> completion_fun) {
+    const SymbolTable::SymbolParser *parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName(request_args.format_name);
+    if (!parser) {
+        execute_args.messages->e.f("Unrecognised format name: %s\n", request_args.format_name.c_str());
+        completion_fun("request_error", {});
+        return;
+    }
+
+    std::string path;
+    if (!GetFilePathForRead(&path, request_args.path, execute_args.beeb_window->api_globals, *execute_args.messages)) {
+        completion_fun("load_failed", {});
+        return;
+    }
+
+    ApiLoadSymbolsResult result;
+
+    SymbolTable *symbol_table = execute_args.beeb_window->GetMutableSymbolTable();
+    if (!symbol_table->LoadFromFile(path, parser, execute_args.messages.get(), &result.file_index)) {
+        completion_fun("load_failed", {});
+        return;
+    }
+
+    symbol_table->SetFileGroupIndex(result.file_index, request_args.group);
+
+    completion_fun(nullptr, std::move(result));
 }
 #endif
 
@@ -720,6 +805,8 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCH, true);
     } else if (request.type == API_REQUEST_TYPE_LIST_VALUES) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
+    } else if (request.type == API_REQUEST_TYPE_LIST_KEYS_AND_VALUES) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListKeysAndValues, false);
     } else if (request.type == API_REQUEST_TYPE_SET_GLOBALS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetGlobals, true);
     } else if (request.type == API_REQUEST_TYPE_SCREEN_GRAB_PNG_DATA) {
@@ -736,6 +823,10 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteReset, true);
     } else if (request.type == API_REQUEST_TYPE_PEEK) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePeek, true);
+    } else if (request.type == API_REQUEST_CLEAR_SYMBOLS) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteClearSymbols, true);
+    } else if (request.type == API_REQUEST_LOAD_SYMBOLS) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteLoadSymbols, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
         completion_fun("request_error", nullptr);
@@ -1018,6 +1109,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"clear-byte-breakpoint", &HTTPMethodsHandler::HandleClearByteBreakpointRequest},
         {"clear-breakpoints", &HTTPMethodsHandler::HandleClearBreakpointsRequest},
         {"screenshot", &HTTPMethodsHandler::HandleScreenshotRequest},
+        {"b2_constants.asm", &HTTPMethodsHandler::HandleConstantsAsm},
         {"api-set-globals", &HTTPMethodsHandler::HandleSetGlobalsRequest},
         {"api", &HTTPMethodsHandler::HandleGenericMultipleRequest},
 #endif
@@ -1839,6 +1931,31 @@ class HTTPMethodsHandler : public HTTPHandler {
                                         server->SendResponse(response_data, std::move(response));
                                     });
     }
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void HandleConstantsAsm(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index)) {
+            return;
+        }
+
+        // try to make this palatable to as wide a range of assemblers as possible.
+        std::string content;
+        for (int i = 0; i < 256; ++i) {
+            const char *name = GetDebugCommandEnumName((uint8_t)i);
+            if (name[0] != '?') {
+                content += strprintf("b2DebugCommand_%s=%d\r\n", name, i);
+            }
+        }
+
+        HTTPResponse response = HTTPResponse::OK();
+
+        response.content_type = HTTP_TEXT_CONTENT_TYPE;
+        response.content.assign(content.begin(), content.end());
+
+        return server->SendResponse(request.response_data, std::move(response));
+    }
+
 #endif
 
 #if BBCMICRO_DEBUGGER

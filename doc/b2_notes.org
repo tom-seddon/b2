@@ -11381,28 +11381,54 @@ Some half-baked stuff.
 $fc5x is where BeebEm seems to put its emulator-specific ports, so b2
 follows suit.
 
-| Addr | R                | W                | Notes                        |
-|------+------------------+------------------+------------------------------|
-| fc50 | Presence test    | Presence test    | Read value is 1+(last write) |
-| fc51 |                  |                  |                              |
-| fc52 |                  |                  |                              |
-| fc53 |                  |                  |                              |
-| fc54 |                  |                  |                              |
-| fc55 |                  |                  |                              |
-| fc56 |                  |                  |                              |
-| fc57 |                  |                  |                              |
-| fc58 |                  |                  |                              |
-| fc59 |                  |                  |                              |
-| fc5a |                  |                  |                              |
-| fc5b |                  |                  |                              |
-| fc5c |                  |                  |                              |
-| fc5d | Border colour    | Border colour    | Bitmap modes only            |
-|------+------------------+------------------+------------------------------|
-| fc5e | BeebLink Control | BeebLink Control | Electron only (long story)   |
-| fc5f | BeebLink Data    | BeebLink Data    | Electron only (long story)   |
+| Addr | R                | W                | Notes                      |
+|------+------------------+------------------+----------------------------|
+| fc50 |                  |                  |                            |
+| fc51 | Data 0           | Data 0           |                            |
+| fc52 | Status 0         | Command 0        |                            |
+| fc53 | Data 1           | Data 1           |                            |
+| fc54 | Status 1         | Command 1        |                            |
+| fc55 |                  |                  |                            |
+| fc56 |                  |                  |                            |
+| fc57 |                  |                  |                            |
+| fc58 |                  |                  |                            |
+| fc59 |                  |                  |                            |
+| fc5a |                  |                  |                            |
+| fc5b |                  |                  |                            |
+| fc5c |                  |                  |                            |
+| fc5d | Border colour    | Border colour    | Bitmap modes only          |
+|------+------------------+------------------+----------------------------|
+| fc5e | BeebLink Control | BeebLink Control | Electron only (long story) |
+| fc5f | BeebLink Data    | BeebLink Data    | Electron only (long story) |
 
 $fc5e/$fc5f aren't debug functionality, but they are
 emulator-specific, so they end up in the same region.
+
+** Data/Command/Status
+
+Status:
+
+| Bit | What                           |
+|-----+--------------------------------|
+|   7 | Set if data available for read |
+|   6 | Set if command error           |
+|   5 |                                |
+|   4 |                                |
+|   3 |                                |
+|   2 |                                |
+|   1 |                                |
+|   0 |                                |
+
+Data: FIFO type of thing. Read (see Status bit 7) to fetch bytes
+produced by last command; or, write to add bytes to be consumed by
+next command.
+
+Command: write command value. Takes effect immediately.
+
+There are multiple (currently: 2) copies of this bit of hardware. Each
+one has its own independent data arrays and status, but they all
+affect the same state (meaning it makes no difference which one is
+used to submit a command).
 
 ** 6502/65c02 common NOPs
 
@@ -11424,6 +11450,54 @@ intrusive) than having to write some data.
 
 Less overhead than writing to a debug port, and benign on real
 hardware. Scope for a handler callback or something.
+
+** code junkpile
+
+#+begin_src c++
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  #if BBCMICRO_DEBUGGER
+  class BBCMicro::DebugResetDebugCommandBuffersCommandHandler : public DebugCommandHandler {
+    public:
+      DebugResetDebugCommandBuffersCommandHandler()
+          : DebugCommandHandler("ResetDebugCommandBuffers", 1) {
+      }
+
+      bool HandleCommand(BBCMicro *beeb, std::vector<uint8_t> *to_cpu, std::vector<uint8_t> &&from_cpu) const override {
+          (void)beeb, (void)to_cpu, (void)from_cpu;
+
+          return true;
+      }
+
+    protected:
+    private:
+      static const DebugResetDebugCommandBuffersCommandHandler ms_handler;
+  };
+
+  const BBCMicro::DebugResetDebugCommandBuffersCommandHandler BBCMicro::DebugResetDebugCommandBuffersCommandHandler::ms_handler;
+  #endif
+
+  class DebugReservedCommandHandler : public DebugCommandHandler {
+    public:
+      DebugReservedCommandHandler()
+          : DebugCommandHandler("Reserved", 0) {
+      }
+
+      bool HandleCommand(BBCMicro *beeb, std::vector<uint8_t> *to_cpu, std::vector<uint8_t> &&from_cpu) const override {
+          (void)beeb, (void)to_cpu, (void)from_cpu;
+
+          return true;
+      }
+
+    protected:
+    private:
+  };
+
+  static const DebugReservedCommandHandler g_debug_reserved_command_handler;
+
+
+#+end_src
 
 * doc image stuff
 

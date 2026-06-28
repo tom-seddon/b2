@@ -31,6 +31,8 @@ class Log;
 #include "MC6850.h"
 #include "ElectronULA.h"
 #include "Plus1.h"
+#include "debug_hardware.h"
+#include <bitset>
 
 #include <shared/enum_decl.h>
 #include "BBCMicroState.inl"
@@ -226,6 +228,7 @@ class BBCMicroState {
 #if ENABLE_TAPE
     std::shared_ptr<const UEFReader> DebugGetTape() const;
 #endif
+    std::bitset<256> DebugGetSymbolGroupsEnabled() const;
 #endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
@@ -426,7 +429,14 @@ class BBCMicroState {
     Tube parasite_tube;
 
 #if BBCMICRO_DEBUGGER
-    uint8_t presence_test_value = 0xff;
+    DebugNOPBehaviour nop_82_behaviour = DebugNOPBehaviour_NOP;
+    DebugNOPBehaviour nop_c2_behaviour = DebugNOPBehaviour_NOP;
+    DebugNOPBehaviour nop_e2_behaviour = DebugNOPBehaviour_NOP;
+    static constexpr uint8_t NUM_DEBUG_COMMAND_BUFFERS = 2;
+    DebugCommandBuffers debug_command_buffers[NUM_DEBUG_COMMAND_BUFFERS];
+
+    // The enabled/disabled flags are just flags, and need polling by the UI, and resolving against any UI state, etc. - this state is here so that changing symbol group states for multi-load stuff can hopefully interact more nicely with state save/load.
+    std::bitset<256> symbol_groups_enabled;
 #endif
 
     explicit BBCMicroState(std::shared_ptr<const BBCMicroType> type,

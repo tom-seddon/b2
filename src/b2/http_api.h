@@ -118,6 +118,16 @@ void to_json(nlohmann::json &j, const ApiBinaryData &s);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// ApiKeyAndValue: a key/value pair.
+struct ApiKeyAndValue {
+    std::string key;
+    nlohmann::json value;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiKeyAndValue, key, value);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // A few calls give you the option of waiting for the next OSWORD 0 (line input)
 // call before continuing.
 //
@@ -355,18 +365,22 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, outp
 
 // Use the list_values command to list values of whatever sort.
 //
-// The set of values of may grow in future versions of b2, but existing values will remain valid.
+// The set of values of may grow in future versions of b2, but the intent is that existing values will remain valid.
 
 static const char API_REQUEST_TYPE_LIST_VALUES[] = "list_values";
 
 struct ApiListValuesArgs {
-    // One of:
+    // One of the b2 enum types:
     //
     // - "StandardROM" - list StandardROM enum values
     // - "OSROMType" - list OSROMType enum values
     // - "ROMType" - list ROMType enum values
-    // - "dbefault_configs" - list stock config names, for possible use as
+    //
+    // Or, one of b2's internal lists of things:
+    //
+    // - "default_configs" - list stock config names, for possible use as
     //   base_default_config for the config request type
+    // - "symbol_format_name" - list types of symbol parser
     std::string name;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesArgs, name);
@@ -375,6 +389,28 @@ struct ApiListValuesResult {
     std::vector<std::string> values;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Use the list_keys_and_values command to list key/value pairs of whatever sort.
+//
+// The set may grow in future versions of b2, but the intent is that existing key/value pairs will remain valid.
+
+static const char API_REQUEST_TYPE_LIST_KEYS_AND_VALUES[] = "list_keys_and_values";
+
+struct ApiListKeysAndValuesArgs {
+    // One of the b2 enum types:
+    //
+    // - "DebugCommand" - list names, and corresponding values that can be written to the debug command ports
+    std::string name;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListKeysAndValuesArgs, name);
+
+struct ApiListKeysAndValuesResult {
+    std::vector<ApiKeyAndValue> keys_and_values;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListKeysAndValuesResult, keys_and_values);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -503,15 +539,41 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekResult,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_WAIT_FOR_EVENT[] = "wait_for_event";
+//static const char API_REQUEST_TYPE_WAIT_FOR_EVENT[] = "wait_for_event";
+//
+//struct ApiWaitForEventArgs {
+//    std::optional<uint8_t> event;
+//    std::optional<double> timeout_seconds;
+//};
+//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiWaitForEventArgs,
+//                                                event,
+//                                                timeout_seconds);
 
-struct ApiWaitForEventArgs {
-    std::optional<uint8_t> event;
-    std::optional<double> timeout_seconds;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char API_REQUEST_CLEAR_SYMBOLS[] = "clear_symbols";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char API_REQUEST_LOAD_SYMBOLS[] = "load_symbols";
+
+struct ApiLoadSymbolsArgs {
+    std::string path;
+    std::string format_name;
+    uint8_t group = 0;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiWaitForEventArgs,
-                                                event,
-                                                timeout_seconds);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadSymbolsArgs,
+                                                path,
+                                                format_name,
+                                                group);
+
+struct ApiLoadSymbolsResult {
+    size_t file_index = 0;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadSymbolsResult,
+                                                file_index);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
