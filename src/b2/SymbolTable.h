@@ -42,7 +42,7 @@ struct Symbol {
     //
     std::string name;
 
-    //
+    // TODO: is this actually necessary?
     size_t line_number = 0;
 };
 

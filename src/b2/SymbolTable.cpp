@@ -22,15 +22,32 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char WHITESPACE[] = " \t\r\n";
+
 template <class StringType>
 static StringType TrimWhitespace(const StringType &str) {
-    const char *whitespace = " \t\r\n";
-    size_t start = str.find_first_not_of(whitespace);
+    size_t start = str.find_first_not_of(WHITESPACE);
     if (start == std::string::npos) {
         return "";
     }
-    size_t end = str.find_last_not_of(whitespace);
+    size_t end = str.find_last_not_of(WHITESPACE);
     return str.substr(start, end - start + 1);
+}
+
+static void TrimViewWhitespace(std::string_view *view) {
+    if (view->empty()) {
+        return;
+    }
+
+    size_t a = view->find_first_not_of(WHITESPACE);
+    if (a == std::string_view::npos) {
+        return;
+    }
+
+    view->remove_prefix(a);
+
+    size_t b = view->find_last_not_of(WHITESPACE);
+    view->remove_suffix(view->size() - 1 - b);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -546,6 +563,194 @@ class AcmeParser : public SymbolTable::SymbolParser {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// returns false if there was a syntax error.
+//
+// *got_value indicates whether *value was filled in - will be false if the value was apparently valid, but not an integer.
+static bool ParseTassLabelValue(std::string *name_ptr,
+                                uint64_t *value_ptr,
+                                bool *got_value_ptr,
+                                const std::string_view &line,
+                                const std::string &file_path,
+                                size_t line_number,
+                                const LogSet *logs) {
+    std::string_view::size_type name_end = line.find_first_of('=');
+    if (name_end == std::string_view::npos) {
+        if (logs) {
+            logs->e.f("Invalid syntax: %-*s\n", (int)line.size(), line.data());
+            LogParseError(file_path, line_number, logs);
+        }
+        return false;
+    }
+
+    std::string_view::size_type value_begin = name_end + 1;
+
+    if (name_end > 0 && line[name_end - 1] == ':') {
+        // It's :=.
+        --name_end;
+    }
+
+    std::string_view name(line.begin(), line.begin() + name_end);
+    TrimViewWhitespace(&name);
+
+    std::string value_str(TrimWhitespace(line.substr(value_begin)));
+
+    if (name.empty() || value_str.empty()) {
+        if (logs) {
+            logs->e.f("Invalid syntax: %-*s\n", (int)line.size(), line.data());
+            LogParseError(file_path, line_number, logs);
+        }
+        return false;
+    }
+
+    if (name_ptr) {
+        *name_ptr = name;
+    }
+
+    *got_value_ptr = false;
+    //    if (value_str[0] == '$') {
+    //        if (GetUInt64FromString(value_ptr, value_str.c_str() + 1, 16)) {
+    //            *got_value_ptr = true;
+    //        } else {
+    //            if (logs) {
+    //                logs->e.f("Invalid hex value: %s\n", value_str.c_str());
+    //                LogParseError(file_path, line_number, logs);
+    //                return false;
+    //            }
+    //        }
+    //    } else
+    if (value_str[0] == '"') {
+        // Ignore string values.
+    } else if (value_str == "true" || value_str == "false") {
+        // Ignore boolean values.
+    } else {
+        static constexpr char ADDRESS_PREFIX[] = "address(";
+        static constexpr size_t ADDRESS_PREFIX_LENGTH = sizeof ADDRESS_PREFIX - 1;
+
+        size_t value_offset = 0;
+
+        // TODO: could probably just pass in 0, and let GetUInt64FromString deal with the $ option?
+        int value_base = 10;
+
+        if (value_str.starts_with(ADDRESS_PREFIX)) {
+            value_offset = ADDRESS_PREFIX_LENGTH;
+
+            if (value_str.ends_with(")")) {
+                value_str.pop_back();
+            }
+        }
+
+        if (value_offset < value_str.size() && value_str[value_offset] == '$') {
+            ++value_offset;
+            value_base = 16;
+        }
+
+        // Assume decimal?
+        if (GetUInt64FromString(value_ptr, value_str.c_str() + value_offset, value_base)) {
+            *got_value_ptr = true;
+        } else {
+            if (logs) {
+                logs->e.f("Invalid number value: %s\n", value_str.c_str());
+                LogParseError(file_path, line_number, logs);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+static void AddTassSymbol(std::vector<Symbol> *symbols, std::string name, bool got_value, uint64_t value, size_t line_number) {
+    if (!got_value) {
+        // No support for non-int symbols currently.
+        return;
+    }
+
+    if (value > 0xffff) {
+        // For now, silently ignore values that are wider than 16 bits.
+        return;
+    }
+
+    Symbol symbol;
+
+    symbol.line_number = line_number;
+    symbol.name = std::move(name);
+    symbol.address = (uint16_t)value;
+
+    symbols->push_back(std::move(symbol));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TassDumpedLabelsParser : public SymbolTable::SymbolParser {
+  public:
+    TassDumpedLabelsParser()
+        : SymbolParser({0x9c, 0xa8, 0x9f, 0x09, 0xb3, 0xc0, 0x4d, 0x30, 0xbb, 0xee, 0xfb, 0x1f, 0x49, 0x84, 0x8b, 0x6e}) {
+
+        try {
+            // \1 = file path
+            // \2 = line number
+            // \3 = column number
+            // \4 = remainder
+            m_line_pattern.assign("^(.*):([0-9]+):([0-9]+):(.*)$");
+        } catch (std::regex_error &) {
+            ASSERT(false);
+        }
+    }
+
+    std::string GetFormatName() const override {
+        return "64tass_dumped_labels";
+    }
+
+    std::string GetDisplayName() const override {
+        return "64tass labels (--dump-labels)";
+    }
+
+    std::vector<std::string> GetSuggestedFileExtensions() const override {
+        return {".lbl", ".sym"};
+    }
+
+    bool MatchesLine(const std::string &) const override {
+        return false;
+    }
+
+    bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
+        size_t line_number = 0;
+        bool good = ForEachLine(content, [&line_pattern = m_line_pattern, symbols, &file_path, logs, &line_number](const std::string_view &line) -> bool {
+            ++line_number;
+
+            if (line.empty()) {
+                return true;
+            }
+
+            std::match_results<std::string_view::const_iterator> matches;
+            if (!std::regex_match(line.begin(), line.end(), matches, line_pattern)) {
+                return true;
+            }
+
+            bool got_value;
+            uint64_t value;
+            std::string name;
+            if (!ParseTassLabelValue(&name, &value, &got_value, matches.str(4), file_path, line_number, logs)) {
+                return false;
+            }
+
+            AddTassSymbol(symbols, std::move(name), got_value, value, line_number);
+
+            return true;
+        });
+
+        return good;
+    }
+
+  protected:
+  private:
+    std::regex m_line_pattern;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TassLabelsParser : public SymbolTable::SymbolParser {
   public:
     TassLabelsParser()
@@ -577,75 +782,14 @@ class TassLabelsParser : public SymbolTable::SymbolParser {
                 return true;
             }
 
-            std::string_view::size_type name_end = line.find_first_of('=');
-            if (name_end == std::string_view::npos) {
-                if (logs) {
-                    logs->e.f("Invalid syntax: %-*s\n", (int)line.size(), line.data());
-                    LogParseError(file_path, line_number, logs);
-                }
+            bool got_value;
+            uint64_t value;
+            std::string name;
+            if (!ParseTassLabelValue(&name, &value, &got_value, line, file_path, line_number, logs)) {
                 return false;
             }
 
-            std::string_view::size_type value_begin = name_end + 1;
-
-            if (name_end > 0 && line[name_end - 1] == ':') {
-                // It's :=.
-                --name_end;
-            }
-
-            std::string_view name = TrimWhitespace(line.substr(0, name_end));
-            std::string value_str(TrimWhitespace(line.substr(value_begin)));
-
-            if (name.empty() || value_str.empty()) {
-                if (logs) {
-                    logs->e.f("Invalid syntax: %-*s\n", (int)line.size(), line.data());
-                    LogParseError(file_path, line_number, logs);
-                }
-                return false;
-            }
-
-            bool got_value = false;
-            uint64_t value = 0;
-            if (value_str[0] == '$') {
-                if (GetUInt64FromString(&value, value_str.c_str() + 1, 16)) {
-                    got_value = true;
-                } else {
-                    if (logs) {
-                        logs->e.f("Invalid hex value: %s\n", value_str.c_str());
-                        LogParseError(file_path, line_number, logs);
-                        return false;
-                    }
-                }
-            } else if (value_str[0] == '"') {
-                // Ignore string values.
-            } else if (value_str == "true" || value_str == "false") {
-                // Ignore boolean values.
-            } else {
-                // Assume decimal?
-                if (GetUInt64FromString(&value, value_str.c_str(), 10)) {
-                    got_value = true;
-                } else {
-                    if (logs) {
-                        logs->e.f("Invalid hex value: %s\n", value_str.c_str());
-                        LogParseError(file_path, line_number, logs);
-                        return false;
-                    }
-                }
-            }
-
-            if (got_value) {
-                if (value > 0xffff) {
-                    // For now, silently ignore values that are too large.
-                } else {
-                    Symbol symbol;
-
-                    symbol.line_number = line_number;
-                    symbol.name = name;
-                    symbol.address = (uint16_t)value;
-
-                    symbols->push_back(std::move(symbol));
-                }
-            }
+            AddTassSymbol(symbols, std::move(name), got_value, value, line_number);
 
             return true;
         });
@@ -666,6 +810,7 @@ void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
         RegisterParser(std::make_unique<AcmeParser>());
         RegisterParser(std::make_unique<BeebAsmParser>());
         RegisterParser(std::make_unique<TassLabelsParser>());
+        RegisterParser(std::make_unique<TassDumpedLabelsParser>());
     }
 }
 

@@ -594,6 +594,19 @@ static const char TASS_LABELS_INCLUSIVE_1[] =
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char TASS_DUMPED_LABELS_TEST_DATA_1[] =
+    "../../dependencies/beeb/include/common.s65:396:1: WD177x.status = 0\n"
+    "../../dependencies/beeb/include/common.s65:190:1: tube_256_byte_parasite_to_host = 6\n"
+    "fdload.s65:244:1: fdload_prepare = 3466\n"
+    "../../dependencies/beeb/include/common.s65:167:1: key_numpad_plus = $3a\n"
+    "../../dependencies/beeb/include/common.s65:34:1: osbget = address($ffd7)\n"
+    "framework_bank.loader.s65:64:1: framework_bank_exports = $badd\n"
+    "zx02_decomp.s65:29:1: jsr_get_src_byte_addrs := [3156,3178,3249]\n"
+    "zx02_decomp.s65:2:1: zx02_decomp_enable_multi_part = true\n";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class TestSymbolTable : public Test {
   public:
     std::string GetFullName() const override {
@@ -607,6 +620,7 @@ class TestSymbolTable : public Test {
         this->TestMultiSymbolTableStuff();
         this->TestBeebAsmStuff();
         this->TestTassLabelsStuff();
+        this->TestTassDumpedLabelsStuff();
         this->TestInclusiveMode();
 
         // BBCMICRO_DEBUGGER is controlled entirely at the C++ level, so the test will
@@ -746,6 +760,28 @@ class TestSymbolTable : public Test {
 
         TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "label2"));
         TEST_EQ_UU(addr, 1234);
+    }
+
+    void TestTassDumpedLabelsStuff() {
+        const SymbolTable::SymbolParser *tass_dumped_labels_parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName("64tass_dumped_labels");
+        TEST_NON_NULL(tass_dumped_labels_parser);
+
+        SymbolTable st;
+
+        TEST_TRUE(st.LoadFromString(TASS_DUMPED_LABELS_TEST_DATA_1, "1", tass_dumped_labels_parser, nullptr));
+
+        std::shared_ptr<const BBCMicroType> type = CreateTestBBCMicroType();
+
+        TEST_EQ_UU(st.GetSymbolCount(), 6);
+
+        uint16_t addr;
+        uint32_t dso;
+
+        TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "osbget"));
+        TEST_EQ_UU(addr, 0xffd7);
+
+        TEST_TRUE(st.GetAddressForSymbol(&addr, &dso, type, "WD177x.status"));
+        TEST_EQ_UU(addr, 0);
     }
 
     void TestInclusiveMode() {

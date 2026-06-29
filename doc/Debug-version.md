@@ -608,6 +608,11 @@ As output by a number of C64-minded tools.
 As output by [64tass](https://tass64.sourceforge.net/) using the `-l`
 option.
 
+### 64tass labels (--dump-labels)
+
+As output by [64tass](https://tass64.sourceforge.net/) using the
+`--dump-labels` option.
+
 ### BeebAsm
 
 As output by [BeebAsm](https://github.com/stardot/beebasm) using the
