@@ -217,13 +217,13 @@ struct WD1770 {
     int IsMotorOn();
     void SpinUp();
     void SpinDown();
-    int GetStepRateMS(uint8_t index) const;
+    uint8_t GetStepRateMS(uint8_t index) const;
     int GetTimeBetweenBytesMicroseconds() const;
     void SetState(WD1770State state);
     void Print1770Registers(Log *log);
     void SetDRQ(bool value);
     void SetINTRQ(bool value);
-    void DoSpinUp(int h, int step_rate_ms, WD1770State state);
+    void DoSpinUp(int h, uint8_t step_rate_ms, WD1770State state);
     void DoTypeI(WD1770State state);
     void DoTypeII(WD1770State state);
     void DoTypeIII(WD1770State state);
@@ -235,8 +235,8 @@ struct WD1770 {
     void UpdateTrack0Status();
     void UpdateStep(WD1770State next_state);
 
-    static const int STEP_RATES_MS_1770[];
-    static const int STEP_RATES_MS_1772[];
+    static const uint8_t STEP_RATES_MS_1770[];
+    static const uint8_t STEP_RATES_MS_1772[];
 
 #ifdef BBCMICRO_DEBUGGER
     friend class WD1770DebugWindow;

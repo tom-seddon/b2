@@ -73,12 +73,12 @@ LOG_TAGGED_DEFINE(1770nd, "1770", "1770", &log_printer_stdout, false);
 
 // The difference between the 1772 and the 1770 is the timings.
 
-const int WD1770::STEP_RATES_MS_1770[] = {6, 12, 20, 30};
+const uint8_t WD1770::STEP_RATES_MS_1770[] = {6, 12, 20, 30};
 static const int SETTLE_uS_1770 = 30000;
 
 // The data sheet has these as (2,3,5,6), but just about every other
 // reference has 2,3,6,12.
-const int WD1770::STEP_RATES_MS_1772[] = {2, 3, 6, 12};
+const uint8_t WD1770::STEP_RATES_MS_1772[] = {2, 3, 6, 12};
 //static const int SETTLE_uS_1772=30000;
 
 // Assuming 300rpm.
@@ -118,7 +118,7 @@ void WD1770::SpinDown() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int WD1770::GetStepRateMS(uint8_t index) const {
+uint8_t WD1770::GetStepRateMS(uint8_t index) const {
     ASSERT(index < 4);
 
     if (m_is1772) {
@@ -264,14 +264,14 @@ void WD1770::SetINTRQ(bool value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void WD1770::DoSpinUp(int h, int step_rate_ms, WD1770State state) {
-    TRACE("1770 - DoSpinUp entry: h=%d step_rate_ms=%d state=%s", h, step_rate_ms, GetWD1770StateEnumName(state));
+void WD1770::DoSpinUp(int h, uint8_t step_rate_ms, WD1770State state) {
+    TRACE("1770 - DoSpinUp entry: h=%d step_rate_ms=%u state=%s", h, step_rate_ms, GetWD1770StateEnumName(state));
     if (h == 0 && !m_status.bits.motor_on) {
         this->SpinUp();
         this->Wait(INDEX_PULSES_uS(6), state, WD1770State_WaitForSpinUp);
         m_status.bits.deleted_or_spinup = 0;
     } else {
-        if (step_rate_ms >= 0) {
+        if (step_rate_ms > 0) {
             // Add initial step rate delay for Type I commands. I got the setup
             // rather wrong, meaning it's inconvenient to insert the delay
             // before every step (though that's probably how it should actually
@@ -293,7 +293,7 @@ void WD1770::DoSpinUp(int h, int step_rate_ms, WD1770State state) {
 //////////////////////////////////////////////////////////////////////////
 
 void WD1770::DoTypeI(WD1770State state) {
-    LOGF(1770, "%s: state=%s: u=%d h=%d v=%d r=%d (%d ms) (track=%u)\n",
+    LOGF(1770, "%s: state=%s: u=%d h=%d v=%d r=%d (%u ms) (track=%u)\n",
          __func__,
          GetWD1770StateEnumName(state),
          m_command.bits_step.u, //bogus when restore/seek... but what can you do?
@@ -307,7 +307,7 @@ void WD1770::DoTypeI(WD1770State state) {
     m_status.bits.crc_error = 0;
     m_status.bits.rnf = 0;
 
-    int step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
+    uint8_t step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
     this->DoSpinUp(m_command.bits_i.h, step_rate_ms, state);
 }
 
@@ -333,7 +333,7 @@ void WD1770::DoTypeII(WD1770State state) {
     m_status.bits.crc_error = 0;
     m_offset = 0;
 
-    this->DoSpinUp(m_command.bits_ii.h, -1, state);
+    this->DoSpinUp(m_command.bits_ii.h, 0, state);
 }
 
 void WD1770::DoTypeIII(WD1770State state) {
@@ -350,7 +350,7 @@ void WD1770::DoTypeIII(WD1770State state) {
     m_status.bits.busy = 1;
     this->SetDRQ(0);
 
-    this->DoSpinUp(m_command.bits_iii.h, -1, state);
+    this->DoSpinUp(m_command.bits_iii.h, 0, state);
 }
 
 void WD1770::DoTypeIV() {
@@ -702,7 +702,7 @@ void WD1770::UpdateStep(WD1770State next_state) {
     //                TRACE_STATE(this, "Step (next_state=BeginIdle): ");
     //            }
 
-    int step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
+    uint8_t step_rate_ms = this->GetStepRateMS(m_command.bits_i.r);
 
     ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
     if (m_direction == STEP_IN) {

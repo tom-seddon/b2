@@ -4283,8 +4283,8 @@ class WD1770DebugWindow : public DebugUI {
             HBit(fdc->m_command.bits_i.h);
             ImGui::BulletText("Verify: %u", fdc->m_command.bits_i.v);
 
-            const int *step_rates = fdc->m_is1772 ? WD1770::STEP_RATES_MS_1772 : WD1770::STEP_RATES_MS_1770;
-            ImGui::BulletText("Step Rate: %d ms", step_rates[fdc->m_command.bits_i.r]);
+            const uint8_t *step_rates = fdc->m_is1772 ? WD1770::STEP_RATES_MS_1772 : WD1770::STEP_RATES_MS_1770;
+            ImGui::BulletText("Step Rate: %u ms", step_rates[fdc->m_command.bits_i.r]);
         } else if ((fdc->m_command.value & 0xc0) == 0x80) {
             // Type II
             ImGui::BulletText("Command: %s", fdc->m_command.value & 0x20 ? "Write Sector" : "Read Sector");
