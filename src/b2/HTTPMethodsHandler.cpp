@@ -745,6 +745,7 @@ static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
     }
 
     symbol_table->SetFileGroupIndex(result.file_index, request_args.group);
+    symbol_table->SetFileAddressSuffixes(result.file_index, std::move(request_args.suffixes));
 
     completion_fun(nullptr, std::move(result));
 }

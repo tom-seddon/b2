@@ -82,10 +82,10 @@
 //
 // - Unicode codepoints 10, 13 and 32-126 inclusive are passed through as the
 //   corresponding byte value
-// - Unicode U+00A3 £ POUND SIGN is converted to BBC 96
+// - Unicode U+00A3 £ POUND SIGN is converted to BBC 96 (£)
 //
 // Note that this means that U+0060 ` GRAVE ACCENT will end up on the BBC as BBC
-// 96 (£). Note that this means there are two ways specify BBC 96 (£). This is
+// 96 (£). Note that this means there are two ways to specify BBC 96 (£). This is
 // deliberate.
 //
 // Aside from £, numbers and strings are considered equivalent. As an example: JSON ["ABC"],
@@ -562,11 +562,13 @@ static const char API_REQUEST_LOAD_SYMBOLS[] = "load_symbols";
 struct ApiLoadSymbolsArgs {
     std::string path;
     std::string format_name;
+    std::vector<std::string> suffixes;
     uint8_t group = 0;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadSymbolsArgs,
                                                 path,
                                                 format_name,
+                                                suffixes,
                                                 group);
 
 struct ApiLoadSymbolsResult {
