@@ -1103,9 +1103,12 @@ static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window, ImVec
 
     ptr->SetBeebWindow(beeb_window);
 
-    // Constructor (if any) may already have set the default size.
+    // The default size must be set by the relevant constructor, or by the
+    // caller of CreateDebugUI.
     if (default_size.x != 0 && default_size.y != 0) {
         ptr->SetDefaultSize(default_size);
+    } else {
+        ASSERT(ptr->GetDefaultSize() != ImVec2(0.f, 0.f));
     }
 
     return ptr;
@@ -5244,7 +5247,7 @@ class SymbolBrowserUI : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<SymbolBrowserUI>(beeb_window);
+    return CreateDebugUI<SymbolBrowserUI>(beeb_window, ImVec2(750.f, 300.f));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -5303,7 +5306,7 @@ class ElectronULADebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<ElectronULADebugWindow>(beeb_window);
+    return CreateDebugUI<ElectronULADebugWindow>(beeb_window, ImVec2(400.f, 250.f));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -5437,7 +5440,7 @@ class Plus1DebugWindow : public DebugUI {
 };
 
 std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<Plus1DebugWindow>(beeb_window);
+    return CreateDebugUI<Plus1DebugWindow>(beeb_window, ImVec2(400.f, 250.f));
 }
 
 //////////////////////////////////////////////////////////////////////////
