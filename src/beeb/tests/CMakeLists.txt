@@ -42,12 +42,12 @@ target_link_libraries(test_beeb PRIVATE shared_lib beeb_lib stb_image_lib)
 b2_target_boilerplate(test_beeb SANITIZERS)
 
 function(add_test_beeb_wildcard_category category)
-  add_test(NAME beeb/test_beeb_${category}
+  add_test(NAME "beeb/test_beeb ${category} "
     COMMAND $<TARGET_FILE:test_beeb> -T "${category}.*")
 endfunction()
 
 function(add_test_beeb_literal_category test_name)
-  add_test(NAME beeb/test_beeb_${test_name}
+  add_test(NAME "beeb/test_beeb ${test_name} "
     COMMAND $<TARGET_FILE:test_beeb> -t "${test_name}")
 endfunction()
 
