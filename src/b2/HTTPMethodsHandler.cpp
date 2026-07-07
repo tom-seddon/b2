@@ -1961,7 +1961,9 @@ class HTTPMethodsHandler : public HTTPHandler {
         for (int i = 0; i < 256; ++i) {
             const char *name = GetDebugCommandEnumName((uint8_t)i);
             if (name[0] != '?') {
-                content += strprintf("b2DebugCommand_%s=%d\r\n", name, i);
+                // stuff extra spaces in to make the names double clickable in
+                // the conhost window.
+                content += strprintf("b2DebugCommand_%s = %d\r\n", name, i);
             }
         }
 
