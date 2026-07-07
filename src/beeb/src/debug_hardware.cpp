@@ -100,6 +100,14 @@ void DebugCommandBuffers::WriteCommand(void *context, M6502Word, uint8_t value) 
     case DebugCommand_DisableSymbolGroup:
         buffers->HandleSymbolGroupCommand(std::move(from_cpu), &DebugCommandHandler::DisableSymbolGroup);
         break;
+
+    case DebugCommand_DisableAllSymbolGroups:
+        if (buffers->m_handler) {
+            for (int i = 0; i < 256; ++i) {
+                buffers->m_handler->DisableSymbolGroup((uint8_t)i);
+            }
+        }
+        break;
     }
 }
 
