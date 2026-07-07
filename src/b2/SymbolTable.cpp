@@ -87,6 +87,11 @@ void SymbolTable::Clear() {
     //m_address_to_symbols.clear();
     //m_name_to_addresses.clear();
     m_lsfs.clear();
+
+    for (SymbolGroup &group : m_groups) {
+        group.name.clear();
+    }
+
     this->InvalidateEverything();
 }
 
