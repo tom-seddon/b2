@@ -616,7 +616,7 @@ class BeebWindow {
 
     bool m_beeb_got_imgui_focus = false;
 
-    bool m_send_main_thread_ready_message = false;
+    bool m_sent_main_thread_ready_message = false;
 
     std::shared_ptr<MetricSet> m_metric_set;
     TimerDef *m_HandleVBlank_timer_def = nullptr;

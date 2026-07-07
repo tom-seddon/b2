@@ -3595,9 +3595,9 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
-    if (!m_send_main_thread_ready_message) {
+    if (!m_sent_main_thread_ready_message) {
         m_beeb_thread->Send(std::make_shared<BeebThread::MainThreadIsReadyMessage>());
-        m_send_main_thread_ready_message = true;
+        m_sent_main_thread_ready_message = true;
     }
 
     bool economy = false;
