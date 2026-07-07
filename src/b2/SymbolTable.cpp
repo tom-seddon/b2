@@ -417,7 +417,7 @@ class ViceParser : public SymbolTable::SymbolParser {
 
         // VICE format: "al 00FFFF ._some_symbol" or "al C:FFFF ._some_symbol"
         // Extended regex to handle memory context prefixes
-        std::regex pattern(R"(^\s*al\s+(?:([A-Za-z0-9]):)?([0-9a-fA-F]{4,6})\s+(.+?)\s*$)");
+        std::regex pattern(R"(^\s*al\s+(?:([A-Za-z0-9]):)?([0-9a-fA-F]+)\s+(.+?)\s*$)");
 
         while (std::getline(stream, line)) {
             line_number++;
