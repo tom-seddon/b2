@@ -4568,7 +4568,7 @@ void ImGuiSymbolGroupEnabledCheckbox(SymbolTable *symbol_table, const SymbolGrou
 
     bool enabled = group->state == SymbolGroupState_Enabled;
     if (ImGui::Checkbox(label.c_str(), &enabled)) {
-        symbol_table->SetGroupEnabled(group->index, enabled);
+        symbol_table->EnableFilesInGroup(group->index, enabled);
     }
 }
 

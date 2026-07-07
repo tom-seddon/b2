@@ -430,6 +430,8 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
         result.values = ListOrdinaryEnumValues(&GetROMTypeEnumName);
     } else if (request_args.name == "OSROMType") {
         result.values = ListOrdinaryEnumValues(&GetOSROMTypeEnumName);
+    } else if (request_args.name == "SymbolFileAddressSuffixMode") {
+        result.values = ListOrdinaryEnumValues(&GetSymbolFileAddressSuffixModeEnumName);
     } else if (request_args.name == "default_configs") {
         result.values = GetBeebConfigNames(&GetNumDefaultBeebConfigs, &GetDefaultBeebConfigByIndex);
         //    } else if (request_args.name == "configs") {
@@ -746,6 +748,20 @@ static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
 
     symbol_table->SetFileGroupIndex(result.file_index, request_args.group);
     symbol_table->SetFileAddressSuffixes(result.file_index, std::move(request_args.suffixes));
+    symbol_table->SetFileAddressSuffixMode(result.file_index, request_args.suffix_mode);
+
+    if (request_args.group_name.has_value()) {
+        std::string *group_name = symbol_table->GetGroupMutableName(request_args.group);
+        if (request_args.group_name->empty()) {
+            // Update existing name with this file's path.
+            if (!group_name->empty()) {
+                group_name->append("; ");
+            }
+            group_name->append(request_args.path);
+        } else {
+            group_name->assign(*request_args.group_name);
+        }
+    }
 
     completion_fun(nullptr, std::move(result));
 }

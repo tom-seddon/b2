@@ -17,6 +17,7 @@
 #include <vector>
 #include "json.h"
 #include <shared/guid.h>
+#include <bitset>
 
 // stupid windows.h crap.
 #ifdef MoveFile
@@ -66,7 +67,7 @@ struct SymbolDetails {
 // For 6502 interop purposes, the group index basically has to be a 1-byte
 // value, so the limit is inherently 256.
 //
-// This is unlikely to change.
+// This is extremely unlikely to change.
 //
 // The recommended data type is unsigned, for ok interop with ImGui::PushID.
 static constexpr unsigned MAX_NUM_SYMBOL_FILE_GROUPS = 256;
@@ -161,7 +162,12 @@ class SymbolTable {
     void SetFileAddressSuffixes(size_t file_index, std::vector<std::string> new_address_suffixes);
     void SetFileAddressSuffixMode(size_t file_index, SymbolFileAddressSuffixMode address_suffix_mode);
     const SymbolGroup *GetSymbolGroupByIndex(uint8_t group_index) const;
-    void SetGroupEnabled(uint8_t group_index, bool enabled);
+
+    // Enable/disable all files currently in the given group.
+    void EnableFilesInGroup(uint8_t group_index, bool enabled);
+
+    // Set the enable/disable flags for all files.
+    void EnableFilesInAllGroups(const std::bitset<256> &enableds);
 
     // The group name has no impact on anything, so it can be freely changed.
     std::string *GetGroupMutableName(uint8_t group_index);

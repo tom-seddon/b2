@@ -386,22 +386,11 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class ViceParser : public SymbolTable::SymbolParser {
+class ViceParserBase : public SymbolTable::SymbolParser {
   public:
-    ViceParser()
-        : SymbolParser({0xbf, 0xb6, 0xd5, 0xe6, 0xe9, 0x79, 0x46, 0x82, 0x98, 0xd2, 0x59, 0x0f, 0x53, 0xc9, 0x2f, 0xc7}) {
-    }
-
-    std::string GetDisplayName() const override {
-        return "VICE";
-    }
-
-    std::string GetFormatName() const override {
-        return "VICE";
-    }
-
-    std::vector<std::string> GetSuggestedFileExtensions() const override {
-        return {".vice", ".lbl", ".sym"};
+    explicit ViceParserBase(const Guid &guid, bool tass)
+        : SymbolParser(guid)
+        , m_tass(tass) {
     }
 
     bool MatchesLine(const std::string &line) const override {
@@ -450,6 +439,16 @@ class ViceParser : public SymbolTable::SymbolParser {
                         symbol.name = symbol.name.substr(1);
                     }
 
+                    if (m_tass) {
+                        // work around the colon thing. See:
+                        // https://tass64.sourceforge.net/#o_vice-labels
+                        for (char &c : symbol.name) {
+                            if (c == ':') {
+                                c = '.';
+                            }
+                        }
+                    }
+
                     symbols->push_back(std::move(symbol));
                 } catch (const std::exception &e) {
                     if (logs) {
@@ -471,6 +470,48 @@ class ViceParser : public SymbolTable::SymbolParser {
         }
 
         return true;
+    }
+
+  protected:
+  private:
+    bool m_tass = false;
+};
+
+class ViceParser : public ViceParserBase {
+  public:
+    ViceParser()
+        : ViceParserBase({0xbf, 0xb6, 0xd5, 0xe6, 0xe9, 0x79, 0x46, 0x82, 0x98, 0xd2, 0x59, 0x0f, 0x53, 0xc9, 0x2f, 0xc7}, false) {
+    }
+
+    std::string GetDisplayName() const override {
+        return "VICE";
+    }
+
+    std::string GetFormatName() const override {
+        return "VICE";
+    }
+
+    std::vector<std::string> GetSuggestedFileExtensions() const override {
+        return {".vice", ".lbl", ".sym"};
+    }
+};
+
+class TassViceParser : public ViceParserBase {
+  public:
+    TassViceParser()
+        : ViceParserBase({0x44, 0x98, 0xf7, 0xbc, 0xc0, 0xe5, 0x42, 0x10, 0x80, 0x5a, 0xc8, 0xe3, 0xc5, 0x9b, 0x6a, 0xd4}, true) {
+    }
+
+    std::string GetDisplayName() const override {
+        return "64tass labels (--vice-labels)";
+    }
+
+    std::string GetFormatName() const override {
+        return "64tass_vice_labels";
+    }
+
+    std::vector<std::string> GetSuggestedFileExtensions() const override {
+        return {".vice", ".lbl", ".sym"};
     }
 };
 
@@ -816,6 +857,7 @@ void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
         RegisterParser(std::make_unique<BeebAsmParser>());
         RegisterParser(std::make_unique<TassLabelsParser>());
         RegisterParser(std::make_unique<TassDumpedLabelsParser>());
+        RegisterParser(std::make_unique<TassViceParser>());
     }
 }
 
@@ -1095,11 +1137,28 @@ const SymbolGroup *SymbolTable::GetSymbolGroupByIndex(uint8_t group_index) const
     return &m_groups[group_index];
 }
 
-void SymbolTable::SetGroupEnabled(uint8_t group_index, bool enabled) {
+void SymbolTable::EnableFilesInGroup(uint8_t group_index, bool enabled) {
     for (size_t file_index = 0; file_index < m_lsfs.size(); ++file_index) {
         if (m_lsfs[file_index]->file.group_index == group_index) {
             this->EnableFile(file_index, enabled);
         }
+    }
+}
+
+void SymbolTable::EnableFilesInAllGroups(const std::bitset<256> &enableds) {
+    bool must_invalidate = false;
+
+    for (const std::unique_ptr<LoadedSymbolFile> &lsf : m_lsfs) {
+        bool enabled = enableds[lsf->file.group_index];
+
+        if (enabled != lsf->file.enabled) {
+            lsf->file.enabled = enabled;
+            must_invalidate = true;
+        }
+    }
+
+    if (must_invalidate) {
+        this->InvalidateEverything();
     }
 }
 

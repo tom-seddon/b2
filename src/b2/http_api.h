@@ -1,12 +1,15 @@
 #ifndef HEADER_BBD76FE1EE134F62B4A86BFA7901132C // -*- mode:c++ -*-
 #define HEADER_BBD76FE1EE134F62B4A86BFA7901132C
 
+#if BBCMICRO_DEBUGGER
+
 #include "json.h"
 #include <string>
 #include "roms.h"
 #include <beeb/type.h>
 #include "BeebConfig.h"
 #include <shared/enums.h>
+#include "SymbolTable.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -563,13 +566,26 @@ struct ApiLoadSymbolsArgs {
     std::string path;
     std::string format_name;
     std::vector<std::string> suffixes;
+    Enum<SymbolFileAddressSuffixMode> suffix_mode = SymbolFileAddressSuffixMode_Exclusive;
     uint8_t group = 0;
+
+    // If no group name supplied, the group's existing name is retained.
+    //
+    // If the group name is "", the existing name is updated to include the
+    // supplied path.
+    //
+    // Otherwise, the new group name replaces the old one.
+    //
+    // (There's not yet a separate way to set the group name.)
+    std::optional<std::string> group_name;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadSymbolsArgs,
                                                 path,
                                                 format_name,
                                                 suffixes,
-                                                group);
+                                                suffix_mode,
+                                                group,
+                                                group_name);
 
 struct ApiLoadSymbolsResult {
     size_t file_index = 0;
@@ -579,5 +595,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadSymbolsResult,
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#endif
 
 #endif

@@ -1,5 +1,9 @@
 #include <shared/system.h>
+#include "conf.h"
 #include "http_api.h"
+
+#if BBCMICRO_DEBUGGER
+
 #include "misc.h"
 #include <shared/strings.h>
 #include <inttypes.h>
@@ -91,3 +95,8 @@ void from_json(const nlohmann::json &j, ApiBinaryData &s) {
 void to_json(nlohmann::json &j, const ApiBinaryData &s) {
     j = Base64Encode(s.bytes);
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#endif

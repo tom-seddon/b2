@@ -60,6 +60,7 @@ struct LogSet;
 #include <thread>
 #include "json.h"
 #include "http_api.h"
+#include <bitset>
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -325,8 +326,10 @@ class BeebWindow {
 
     static const char SDL_WINDOW_DATA_NAME[];
 
+#if BBCMICRO_DEBUGGER
     // Some state for the benefit of the HTTP API, because HTTP is stateless. Not much point (at least, not currently?) having accessors.
     ApiSetGlobalsArgs api_globals;
+#endif
 
     BeebWindow(BeebWindowInitArguments init_arguments);
     ~BeebWindow();
@@ -635,6 +638,11 @@ class BeebWindow {
 
     CaptureBackBufferState m_capture_back_buffer_state = CaptureBackBufferState_Idle;
     SDLUniquePtr<SDL_Surface> m_captured_back_buffer;
+
+#if BBCMICRO_DEBUGGER
+    bool m_got_symbol_groups_enabled = false;
+    std::bitset<256> m_symbol_groups_enabled;
+#endif
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);

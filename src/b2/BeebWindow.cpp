@@ -3638,6 +3638,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
 #if BBCMICRO_DEBUGGER
     {
+        // TODO: shouldn't this apply to Final builds as well???
         std::shared_ptr<const BBCMicroReadOnlyState> state;
         m_beeb_thread->DebugGetState(&state, nullptr);
         if (!state) {
@@ -3647,6 +3648,21 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             // normal. I hit this after adding a lot of logging to BBCMicro
             // construction.)
             return true;
+        }
+
+        // Handle symbol group enable/disable.
+        //
+        // It's supposed to look like the state changes when the debug command
+        // is submitted - but the state is actually polled, as it's easier that
+        // way (and it's a tiny amount of data).
+        //
+        // The results may not be quite perfect if poking about in the UI as
+        // well as submitting relevant commands from the emulated BBC...
+        if (!m_got_symbol_groups_enabled || state->symbol_groups_enabled != m_symbol_groups_enabled) {
+            m_symbol_groups_enabled = state->symbol_groups_enabled;
+            m_got_symbol_groups_enabled = true;
+
+            m_symbol_table->EnableFilesInAllGroups(m_symbol_groups_enabled);
         }
     }
 #endif

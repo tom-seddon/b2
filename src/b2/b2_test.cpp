@@ -1531,6 +1531,7 @@ class TestHTTPAPI : public Test, public AppHandler {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 template <class T>
 static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::string type, const T &body) {
     HTTPRequest http_request;
@@ -1552,7 +1553,9 @@ static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::strin
 
     return http_request;
 }
+#endif
 
+#if BBCMICRO_DEBUGGER
 template <class T>
 static T GetSingleApiResultFromHTTPResponse(const HTTPResponse &http_response) {
     TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
@@ -1568,6 +1571,7 @@ static T GetSingleApiResultFromHTTPResponse(const HTTPResponse &http_response) {
 
     return api_result;
 }
+#endif
 
 #if BBCMICRO_DEBUGGER
 static std::vector<std::string> GetLines(std::string str) {
