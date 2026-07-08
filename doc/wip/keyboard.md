@@ -217,7 +217,8 @@ prompt you to press a key combination to add it to the list. (Here,
 Shift, Ctrl and Alt are treated as modifiers, so you can have modified
 and unmodified keypresses behave differently.)
 
-As above, click `x` to remove a key from the list.
+As above, click `x` to remove a key from the list, or click away from
+the popup to close it.
 
 ![character keymap key
 list](./generated/keyboard_layout_ui.char.click.png)

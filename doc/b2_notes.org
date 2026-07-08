@@ -11503,6 +11503,8 @@ hardware. Scope for a handler callback or something.
 
 #+begin_example
 --doc-images=D:\temp\b2_doc_images --doc-images-skip=elite
+--doc-images --doc-images-clean
+--doc-images-skip=elite
 #+end_example
 
 * =imgui_test_engine= upstream stuff
