@@ -266,6 +266,7 @@ class DearImGuiTest : public Test, public AppHandler {
         io->ConfigLogToTTY = true;
         io->ConfigLogToDebugger = true;
         io->ConfigBreakOnError = true;
+        //io->ConfigRunSpeed = ImGuiTestRunSpeed_Cinematic;
 
         if (this->IsHeadless() || this->ShouldAutoRunTest()) {
             ImGuiTestEngine_QueueTest(m_test_engine, m_test);
@@ -2200,10 +2201,68 @@ class DocImageCreator : public DearImGuiTest {
                 ctx->MouseMoveToPos({pt.x + i, pt.y});
             }
             this->Capture("dock_handles.png");
+
+            // TODO: DockInto works fine for docking into dialogs, but not for
+            // docking into the main display? Clearly something is wrong, but I
+            // don't know what yet
+            ctx->MouseTeleportToPos(ImVec2(FIXED_DISPLAY_SIZE.x * .5f, 30));
+            ctx->Yield();
+
+            ctx->MouseUp(ImGuiMouseButton_Left);
+            this->Capture("1_dialog_docked.png");
+
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_keyboard_layout");
+
+            ctx->MouseTeleportToPos(ctx->GetWindowTitlebarPoint("//Keyboard Layouts"));
+            ctx->MouseDown(ImGuiMouseButton_Left);
+
+            for (int i = 0; i < DOCK_HANDLE_MOVE_COUNT; ++i) {
+                ctx->MouseMoveToPos({pt.x + i, pt.y});
+            }
+
+            ctx->MouseTeleportToPos(ImVec2(20, FIXED_DISPLAY_SIZE.y * .5f));
+            ctx->Yield();
             ctx->MouseUp(ImGuiMouseButton_Left);
 
+            this->Capture("2_dialogs_docked.0.png");
+
+            ctx->DockInto("//Keyboard Layouts", "//Messages", ImGuiDir_Left);
+
+            this->Capture("2_dialogs_docked.1.png");
+
+            ctx->DockInto("//Keyboard Layouts", "//Messages", ImGuiDir_None);
+
+            this->Capture("2_dialogs.tabbed.png");
+
+            {
+                ImGuiWindow *window = ctx->GetWindowByRef("//Messages");
+                TEST_NON_NULL(window);
+                TEST_NON_NULL(window->DockNode);
+                TEST_NON_NULL(window->DockNode->TabBar);
+
+                // BarRect is the tabs only, excluding the disclosure arow.
+                ImVec2 pos = window->DockNode->TabBar->BarRect.Min;
+                pos.x -= 10;
+                pos.y += 5;
+
+                ctx->MouseTeleportToPos(pos);
+
+                ctx->MouseDown(ImGuiMouseButton_Left);
+                ctx->Yield();
+                ctx->MouseUp(ImGuiMouseButton_Left);
+                ctx->Yield();
+                this->CaptureMouseRelativeRect("tab_bar_dropdown.png", -10.f, -5.f, 160.f, 75.f);
+            }
+
+            //this->Capture("test.png");
+
+            //ctx->DockClear("//Keyboard Layouts",nullptr);
+
             // TODO: figure out how this works...
-            //ctx->DockInto("//Messages","//Display",ImGuiDir_Up);
+            //ctx->DockClear("//Messages", nullptr);
+            //ctx->Yield();
+            //ctx->DockInto("//Messages", "//DockSpace", ImGuiDir_Up);
+            //ctx->Yield();
         }
 
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");

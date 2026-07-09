@@ -1,6 +1,8 @@
-A few notes about b2's UI, which is not native on any platform. It
+A few notes about b2's UI, which is not native to any platform. It
 shouldn't prove too inexplicable, but it does have some idiosyncratic
 aspects.
+
+
 
 # Using macOS?
 
@@ -61,11 +63,34 @@ Drag the window onto one of the docking prompts to have it dock itself
 to the edge of the b2 window. The emulated display will resize itself
 to accommodate the change.
 
-IMAGE: docked dialog
+![1 docked dialog](./generated/1_dialog_docked.png)
 
 You can dock further dialogs to a corner of the b2 window at its new
-size, or to corners of already docked dialogs. You can also dock a
-dialog on top of a docked dialog: the area will grow a tab bar, to
-allow you to switch between them.
+size. The dock prompts will indicate where the windows can be docked
+to, and the emulated display will resize itself to accommodate the
+change.
 
-IMAGE: docked+tabbed dialog
+![2 docked dialogs](./generated/2_dialogs_docked.0.png)
+
+You can also dock further dialogs inside existing dialogs, Again,
+follow the dock prompts. In this case, the emulated display will
+remain the same size. The newly docked dialgo will eat into the space
+of the existing one it's now docked into.
+
+![2 docked dialogs](./generated/2_dialogs_docked.1.png)
+
+You can also dock a dialog on top of a docked dialog, by dragging it
+onto the central dock prompt. The area will grow a tab bar, to allow
+you to switch between them.
+
+![2 tabbed dialogs](./generated/2_dialogs.tabbed.png)
+
+The little dropdown arrow on the left of the tab bar brings up a menu
+showing all the tabs in the tab bar. Click one to make it active.
+
+![tab bar dropdown](./generated/tab_bar_dropdown.png)
+
+If there's more tabs than can be shown at once, this is one way to
+select the invisible ones. (You can also use the little tab bar
+scrolling arrows, but it might be a bit less efficient.)
+
