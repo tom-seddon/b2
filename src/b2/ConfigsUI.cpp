@@ -178,19 +178,20 @@ void ConfigsUI::DoImGui() {
 
         bool popup = false;
 
-        ImGui::BeginListBox("##empty", ImVec2(-FLT_MIN, h - y - line_height * .5f));
-        for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
-            const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
-            if (ImGui::Selectable(config->name.c_str(), i == m_config_index)) {
-                m_config_index = i;
+        if (ImGui::BeginListBox("##empty", ImVec2(-FLT_MIN, h - y - line_height * .5f))) {
+            for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
+                const BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+                if (ImGui::Selectable(config->name.c_str(), i == m_config_index)) {
+                    m_config_index = i;
+                }
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                    m_config_index = i;
+                    popup = true;
+                }
             }
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-                m_config_index = i;
-                popup = true;
-            }
-        }
 
-        ImGui::EndListBox();
+            ImGui::EndListBox();
+        }
 
         if (popup) {
             ImGui::OpenPopup(CONFIG_CONTEXT_POPUP);
