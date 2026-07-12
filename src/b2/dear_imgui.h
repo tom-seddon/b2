@@ -392,6 +392,9 @@ bool ImGuiInputText(std::string *new_str, const char *name, std::string old_str)
 // A collapsing header that you can't collapse.
 void ImGuiHeader(const char *str);
 
+// Does SameLine; vertical separator; SameLine
+void ImguiVerticalSeparatorSameLine();
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "json.h"
 #include <shared/system_specific.h>
 #include <shared/CommandLineParser.h>
@@ -2114,7 +2115,9 @@ class DocImageCreator : public DearImGuiTest {
 
             ImGuiTestItemInfo wi = ctx->WindowInfo("//###recent_messages");
 
-            this->CaptureRect("message_popup.png", 0, wi.Window->Pos.y - 50.f, FIXED_DISPLAY_SIZE.x, wi.Window->Pos.y + wi.Window->Size.y + 50.f);
+            this->CaptureRect("message_popup.png",
+                              ImRect(0, wi.Window->Pos.y - 50.f, FIXED_DISPLAY_SIZE.x, wi.Window->Pos.y + wi.Window->Size.y + 50.f),
+                              CaptureRectFlag_DontInflateRect);
 
             m_clear_ui_flags = 0;
 
@@ -2145,7 +2148,29 @@ class DocImageCreator : public DearImGuiTest {
 
         ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");
 
-        this->Capture("configs_ui.png");
+        this->Capture("configs.png");
+
+        ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/Host OS/...");
+
+        this->CaptureRect("configs.rom_popup.b.host_os.png", this->GetPopupStackEntryRect(0), CaptureRectFlag_MoveMouseToOrigin);
+
+        {
+            // move entry 0 to entry 1, so both arrows are enabled
+            ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/###down");
+
+            ImRect rect;
+            this->UnionRect(&rect, this->GetItemRect("//Configs/**/###up"));
+            this->UnionRect(&rect, this->GetItemRect("//Configs/**/###delete"));
+
+            this->CaptureRect("configs.buttons.png", rect, CaptureRectFlag_MoveMouseToOrigin);
+
+            // reinstate original ordering
+            ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/###up");
+        }
+
+        ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/F/...");
+
+        this->CaptureRect("configs.rom_popup.b.sideways_rom.png", this->GetPopupStackEntryRect(0), CaptureRectFlag_MoveMouseToOrigin);
 
         ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");
 
@@ -2159,11 +2184,16 @@ class DocImageCreator : public DearImGuiTest {
 
         ctx->ItemAction(ImGuiTestAction_Hover, "//Keyboard Layouts/**/###bbc/###LeftShift");
 
-        this->CaptureMouseRelativeRect("keyboard_layout_ui.key.hover.png", -50, -50, 125, 100);
+        {
+            ImRect rect;
+            this->UnionRect(&rect, this->GetItemRect("//Keyboard Layouts/**/###bbc/###LeftShift"));
+            this->UnionRect(&rect, this->GetTooltipRect());
+            this->CaptureRect("keyboard_layout_ui.key.hover.png", rect);
+        }
 
         ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###bbc/###LeftShift");
 
-        this->CaptureMouseRelativeRect("keyboard_layout_ui.key.click.png", -50, -50, 150, 125);
+        this->CaptureRect("keyboard_layout_ui.key.click.png", this->GetPopupStackEntryRect(0));
 
         ctx->MouseClick(); // (a second click in the same point will cancel the popup)
 
@@ -2171,18 +2201,28 @@ class DocImageCreator : public DearImGuiTest {
 
         ctx->ItemAction(ImGuiTestAction_Hover, "//Keyboard Layouts/**/###bbc/###ExclamationMark");
 
-        this->CaptureMouseRelativeRect("keyboard_layout_ui.char.hover.png", -50, -50, 125, 100);
+        {
+            ImRect rect;
+            this->UnionRect(&rect, this->GetItemRect("//Keyboard Layouts/**/###bbc/###ExclamationMark"));
+            this->UnionRect(&rect, this->GetTooltipRect());
+            this->CaptureRect("keyboard_layout_ui.char.hover.png", rect);
+        }
 
         ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###bbc/###ExclamationMark");
 
-        this->CaptureMouseRelativeRect("keyboard_layout_ui.char.click.png", -50, -50, 150, 125);
+        this->CaptureRect("keyboard_layout_ui.char.click.png", this->GetPopupStackEntryRect(0));
 
         ctx->MouseClick(); // (a second click in the same point will cancel the popup)
 
         ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###delete");
         ctx->ItemAction(ImGuiTestAction_Hover, "//Keyboard Layouts/**/###confirm");
 
-        this->CaptureMouseRelativeRect("confirm.button.png", -100, -25, 100, 25);
+        {
+            ImRect rect;
+            this->UnionRect(&rect, this->GetItemRect("//Keyboard Layouts/**/###delete"));
+            this->UnionRect(&rect, this->GetItemRect("//Keyboard Layouts/**/###confirm"));
+            this->CaptureRect("confirm.button.png", rect);
+        }
 
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_keyboard_layout");
 
@@ -2224,11 +2264,11 @@ class DocImageCreator : public DearImGuiTest {
             ctx->Yield();
             ctx->MouseUp(ImGuiMouseButton_Left);
 
-            this->Capture("2_dialogs_docked.0.png");
+            this->Capture("2_dialogs.docked.0.png");
 
             ctx->DockInto("//Keyboard Layouts", "//Messages", ImGuiDir_Left);
 
-            this->Capture("2_dialogs_docked.1.png");
+            this->Capture("2_dialogs.docked.1.png");
 
             ctx->DockInto("//Keyboard Layouts", "//Messages", ImGuiDir_None);
 
@@ -2348,17 +2388,38 @@ class DocImageCreator : public DearImGuiTest {
         TEST_TRUE(SaveSDLSurface(surface.get(), PathJoined(m_output_path, name), g_stdio_logs));
     }
 
-    void CaptureRect(const std::string &name, float x0, float y0, float x1, float y1) {
+    void CaptureRect(const std::string &name, ImRect rect, uint32_t flags = 0) {
+        ImVec2 mouse_pos = ImGui::GetMousePos();
+
+        if (flags & CaptureRectFlag_MoveMouseToOrigin) {
+            m_ctx->MouseTeleportToPos(ImVec2(0.f, 0.f));
+        }
+
+        if (!(flags & CaptureRectFlag_DontInflateRect)) {
+            if (!(flags & CaptureRectFlag_MoveMouseToOrigin)) {
+                // If not moving the mouse to the origin: inflate the rect a bit more so the whole cursor will end up visible inside the inflated area.
+                ImVec2 offset, size, uv_border[2], uv_fill[2];
+                if (ImFontAtlasGetMouseCursorTexData(m_ctx->UiContext->DrawListSharedData.FontAtlas, ImGui::GetMouseCursor(), &offset, &size, uv_border, uv_fill)) {
+                    ImRect mrect;
+                    mrect.Min = mouse_pos;
+                    mrect.Max = mrect.Min + size;
+                    this->UnionRect(&rect, mrect);
+                }
+            }
+
+            this->InflateRect(&rect, 5.f);
+        }
+
         SDLUniquePtr<SDL_Surface> full_surface = this->Capture();
 
-        int w = (int)(x1 - x0);
-        int h = (int)(y1 - y0);
+        int w = (int)(rect.Max.x - rect.Min.x);
+        int h = (int)(rect.Max.y - rect.Min.y);
 
         SDLUniquePtr<SDL_Surface> subsurface(SDL_CreateRGBSurfaceWithFormat(0, w, h, -1, full_surface->format->format));
 
         SDL_Rect src_rect;
-        src_rect.x = (int)x0;
-        src_rect.y = (int)y0;
+        src_rect.x = (int)rect.Min.x;
+        src_rect.y = (int)rect.Min.y;
         src_rect.w = w;
         src_rect.h = h;
 
@@ -2368,15 +2429,66 @@ class DocImageCreator : public DearImGuiTest {
         TEST_EQ_II(blit_result, 0);
 
         TEST_TRUE(SaveSDLSurface(subsurface.get(), PathJoined(m_output_path, name), g_stdio_logs));
+
+        if (flags & CaptureRectFlag_MoveMouseToOrigin) {
+            m_ctx->MouseTeleportToPos(mouse_pos);
+        }
     }
 
-    void CaptureMouseRelativeRect(const std::string &name, float dx0, float dy0, float dx1, float dy1) {
+    ImRect GetMouseRelativeRect(float dx0, float dy0, float dx1, float dy1) {
         ImVec2 mouse_pos = ImGui::GetMousePos();
 
         float mx = mouse_pos.x;
         float my = mouse_pos.y;
 
-        return this->CaptureRect(name, mx + dx0, my + dy0, mx + dx1, my + dy1);
+        return ImRect(mx + dx0, my + dy0, mx + dx1, my + dy1);
+    }
+
+    ImRect GetItemRect(ImGuiTestRef ref) {
+        ImGuiTestItemInfo info = m_ctx->ItemInfo(ref);
+        ASSERT(info.ID != 0);
+        return info.RectFull;
+    }
+
+    ImRect GetWindowRect(const ImGuiWindow *window) {
+        ASSERT(window);
+        ImRect rect(window->Pos, window->Pos + window->Size);
+        return rect;
+    }
+
+    ImRect GetTooltipRect() {
+        ASSERT(m_ctx->UiContext->TooltipPreviousWindow);
+        return this->GetWindowRect(m_ctx->UiContext->TooltipPreviousWindow);
+    }
+
+    ImRect GetPopupStackEntryRect(int index) {
+        ASSERT(index >= 0 && index < m_ctx->UiContext->OpenPopupStack.Size);
+        const ImGuiPopupData *popup = &m_ctx->UiContext->OpenPopupStack[index];
+
+        return this->GetWindowRect(popup->Window);
+    }
+
+    void UnionRect(ImRect *rect, const ImRect &other) {
+        if (rect->Min.x == 0.f && rect->Min.y == 0.f && rect->Max.x == 0.f && rect->Max.y == 0.f) {
+            *rect = other;
+        } else {
+            rect->Min.x = std::min(rect->Min.x, other.Min.x);
+            rect->Min.y = std::min(rect->Min.y, other.Min.y);
+            rect->Max.x = std::max(rect->Max.x, other.Max.x);
+            rect->Max.y = std::max(rect->Max.y, other.Max.y);
+        }
+    }
+
+    void InflateRect(ImRect *rect, float amt) {
+        rect->Min.x -= amt;
+        rect->Min.y -= amt;
+        rect->Max.x += amt;
+        rect->Max.y += amt;
+    }
+
+    void CaptureMouseRelativeRect(const std::string &name, float dx0, float dy0, float dx1, float dy1) {
+        ImRect rect = this->GetMouseRelativeRect(dx0, dy0, dx1, dy1);
+        return this->CaptureRect(name, rect, CaptureRectFlag_DontInflateRect);
     }
 
     SDLUniquePtr<SDL_Surface> Capture() {

@@ -70,14 +70,14 @@ size. The dock prompts will indicate where the windows can be docked
 to, and the emulated display will resize itself to accommodate the
 change.
 
-![2 docked dialogs](./generated/2_dialogs_docked.0.png)
+![2 docked dialogs](./generated/2_dialogs.docked.0.png)
 
 You can also dock further dialogs inside existing dialogs, Again,
 follow the dock prompts. In this case, the emulated display will
 remain the same size. The newly docked dialgo will eat into the space
 of the existing one it's now docked into.
 
-![2 docked dialogs](./generated/2_dialogs_docked.1.png)
+![2 docked dialogs](./generated/2_dialogs.docked.1.png)
 
 You can also dock a dialog on top of a docked dialog, by dragging it
 onto the central dock prompt. The area will grow a tab bar, to allow
@@ -86,11 +86,11 @@ you to switch between them.
 ![2 tabbed dialogs](./generated/2_dialogs.tabbed.png)
 
 The little dropdown arrow on the left of the tab bar brings up a menu
-showing all the tabs in the tab bar. Click one to make it active.
+showing all the tabs in the tab bar. 
 
 ![tab bar dropdown](./generated/tab_bar_dropdown.png)
 
-If there's more tabs than can be shown at once, this is one way to
-select the invisible ones. (You can also use the little tab bar
-scrolling arrows, but it might be a bit less efficient.)
-
+Click one to make it active. If there's more tabs than can be shown at
+once, this is one way to select the invisible ones. (You can also use
+the little tab bar scroll arrows that will appear if the tab bar gets
+wide enough.)

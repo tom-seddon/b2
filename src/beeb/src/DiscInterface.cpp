@@ -215,6 +215,7 @@ const DiscInterface &DISC_INTERFACE_WATFORD_DDB2 = DISC_INTERFACE_WATFORD_DDB2_V
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
 static const char WATFORD_1770_DDB3_CONFIG_NAME[] = "Watford 1770 (DDB3)";
 
 class DiscInterfaceWatford1770DDB3 : public DiscInterface {

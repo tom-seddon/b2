@@ -1073,8 +1073,6 @@ void KeymapsUI::DoKeySymButton(BeebKeymap *keymap, const char *caption, const Im
     //BeebShiftState shift_state;
     //GetBeebKeyComboForKeySym(&key,&shift_state,key_sym);
 
-    ImGuiStyleColourPusher colour_pusher = this->GetColourPusherForKeycap(keymap, (int8_t)key_sym, keycap);
-
     const char *imgui_id;
     if (keycap->explicit_id.empty()) {
         imgui_id = GetBeebKeySymName(key_sym);
@@ -1088,8 +1086,11 @@ void KeymapsUI::DoKeySymButton(BeebKeymap *keymap, const char *caption, const Im
     char popup_name[100];
     snprintf(popup_name, sizeof popup_name, "keycodes_popup_%s", imgui_id);
 
-    if (ImGui::Button(label, size)) {
-        ImGui::OpenPopup(popup_name);
+    {
+        ImGuiStyleColourPusher colour_pusher = this->GetColourPusherForKeycap(keymap, (int8_t)key_sym, keycap);
+        if (ImGui::Button(label, size)) {
+            ImGui::OpenPopup(popup_name);
+        }
     }
 
     if (ImGui::IsItemHovered()) {

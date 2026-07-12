@@ -30,6 +30,7 @@ struct OSROMTypeMetadata {
     size_t file_size_bytes = 0;
     size_t rom_offset = 0;
     size_t rom_size_bytes = 0;
+    bool is_master_only = false; //if true, only shown if IsMasterSeries for the machine type
 };
 
 const OSROMTypeMetadata *GetOSROMTypeMetadata(OSROMType type);

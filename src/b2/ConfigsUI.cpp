@@ -116,11 +116,31 @@ static void Duplicate(size_t *index) {
 void ConfigsUI::DoImGui() {
     ImGui::Columns(2, "configs");
 
-    if (ImGui::Button("New...")) {
-        ImGui::OpenPopup(NEW_CONFIG_POPUP);
+    {
+        ImGuiDisabledPusher pusher(m_config_index == 0);
+
+        if (ImGui::ArrowButton("###up", ImGuiDir_Up)) {
+            m_config_index = BeebWindows::MoveConfigUp(m_config_index);
+            m_edited = true;
+        }
     }
 
     ImGui::SameLine();
+
+    {
+        ImGuiDisabledPusher pusher(m_config_index + 1 >= BeebWindows::GetNumConfigs());
+
+        if (ImGui::ArrowButton("###down", ImGuiDir_Down)) {
+            m_config_index = BeebWindows::MoveConfigDown(m_config_index);
+            m_edited = true;
+        }
+    }
+
+    ImguiVerticalSeparatorSameLine();
+
+    if (ImGui::Button("New...###new")) {
+        ImGui::OpenPopup(NEW_CONFIG_POPUP);
+    }
 
     bool is_usable = false;
     if (m_config_index < BeebWindows::GetNumConfigs()) {
@@ -129,6 +149,8 @@ void ConfigsUI::DoImGui() {
             is_usable = true;
         }
     }
+
+    ImGui::SameLine();
 
     {
         ImGuiDisabledPusher pusher(!is_usable);
@@ -141,9 +163,9 @@ void ConfigsUI::DoImGui() {
         }
     }
 
-    ImGui::SameLine();
+    ImguiVerticalSeparatorSameLine();
 
-    if (ImGuiConfirmButton("Delete")) {
+    if (ImGuiConfirmButton("Delete###delete")) {
         if (m_config_index < BeebWindows::GetNumConfigs()) {
             BeebWindows::RemoveConfigByIndex(m_config_index);
             m_edited = true;
@@ -151,22 +173,6 @@ void ConfigsUI::DoImGui() {
                 m_config_index = BeebWindows::GetNumConfigs() - 1;
             }
         }
-    }
-
-    ImGui::SameLine();
-
-    ImGui::SameLine();
-
-    if (ImGui::ArrowButton("##up", ImGuiDir_Up)) {
-        m_config_index = BeebWindows::MoveConfigUp(m_config_index);
-        m_edited = true;
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::ArrowButton("##down", ImGuiDir_Down)) {
-        m_config_index = BeebWindows::MoveConfigDown(m_config_index);
-        m_edited = true;
     }
 
     {
@@ -216,7 +222,7 @@ void ConfigsUI::DoImGui() {
 
     ImGui::NextColumn();
 
-    ImGui::BeginChild("hello");
+    ImGui::BeginChild("###config");
 
     bool edited = this->DoEditConfigGui();
     if (edited) {
@@ -265,8 +271,6 @@ bool ConfigsUI::DoEditConfigGui() {
     bool edited = false;
 
     const ImGuiStyle &style = ImGui::GetStyle();
-
-    ImGuiIDPusher config_id_pusher(config);
 
     std::string title = config->name;
 
@@ -401,7 +405,7 @@ bool ConfigsUI::DoEditConfigGui() {
         uint8_t bank = 15 - i;
 
         {
-            ImGuiIDPusher bank_id_pusher(bank);
+            //ImGuiIDPusher bank_id_pusher(bank);
 
             ImGui::Separator();
 
@@ -463,18 +467,6 @@ bool ConfigsUI::DoEditConfigGui() {
 
     ImGuiHeader("Additional hardware");
 
-    if (Has1MHzBus(config->type_id)) {
-        if (!config->disc_interface || !(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
-            if (ImGui::Checkbox("External memory", &config->ext_mem)) {
-                edited = true;
-            }
-        }
-    }
-
-    if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
-        edited = true;
-    }
-
     if (CanHaveVideoNuLA(config->type_id)) {
         if (ImGui::Checkbox("Video NuLA", &config->video_nula)) {
             edited = true;
@@ -532,6 +524,20 @@ bool ConfigsUI::DoEditConfigGui() {
                 config->disc_interface = &DISC_INTERFACE_PLUS_3;
             } else {
                 config->disc_interface = nullptr;
+            }
+        }
+    }
+
+    if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
+        edited = true;
+    }
+
+    ImGui::Separator();
+
+    if (Has1MHzBus(config->type_id)) {
+        if (!config->disc_interface || !(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
+            if (ImGui::Checkbox("External memory", &config->ext_mem)) {
+                edited = true;
             }
         }
     }
@@ -1000,8 +1006,6 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             edited = true;
         }
 
-        ImGui::Separator();
-
         if (type) {
             if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
                 for (int i = 0; i < ROMType_Count; ++i) {
@@ -1027,8 +1031,11 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
                 for (uint8_t i = 0; i < OSROMType_Count; ++i) {
                     const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata((OSROMType)i);
-                    if (ImGui::MenuItem(metadata->description, nullptr, *os_type == i)) {
-                        *os_type = (OSROMType)i;
+                    // TODO: not sure I love this condition. Should it pass through the BBCMicroTypeID instead?
+                    if (!metadata->is_master_only || (rom_edit_flags & (ROMEditFlag_Master128OSROMs | ROMEditFlag_MasterCompactOSROMs))) {
+                        if (ImGui::MenuItem(metadata->description, nullptr, *os_type == i)) {
+                            *os_type = (OSROMType)i;
+                        }
                     }
                 }
 
@@ -1036,16 +1043,21 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             }
         }
 
-        ImGui::Separator();
+        // Show the (empty) entry for sideways ROMs only. It's completely useless for the OS ROM.
+        if (type) {
+            ImGui::Separator();
 
-        if (ImGui::MenuItem("(empty)")) {
-            rom->standard_rom = nullptr;
-            rom->file_name.clear();
-            if (type) {
-                *type = ROMType_16KB;
+            if (ImGui::MenuItem("(empty)")) {
+                rom->standard_rom = nullptr;
+                rom->file_name.clear();
+                if (type) {
+                    *type = ROMType_16KB;
+                }
+                edited = true;
             }
-            edited = true;
         }
+
+        ImGui::Separator();
 
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BOSROMs, "B OS ROM", B_OS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BSidewaysROMs, "B Sideways ROM", B_SIDEWAYS_ROMS);
