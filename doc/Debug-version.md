@@ -603,6 +603,9 @@ using the `-l` option.
 
 As output by a number of C64-minded tools.
 
+If using 64tass, there is a special 64tass-specific VICE option - see
+below.
+
 ### 64tass labels
 
 As output by [64tass](https://tass64.sourceforge.net/) using the `-l`
@@ -612,6 +615,15 @@ option.
 
 As output by [64tass](https://tass64.sourceforge.net/) using the
 `--dump-labels` option.
+
+### 64tass labels (--vice-labels)
+
+Same as VICE format, but for files output by
+[64tass](https://tass64.sourceforge.net/) using the `--vice-labels`
+option.
+
+(64tass modifies the label names slightly as it saves them, and this
+option undoes that so they match the syntax in the source file.)
 
 ### BeebAsm
 
@@ -883,14 +895,14 @@ Load symbols from `PATH`, which must be supplied.
 
 `FORMAT` is the format:
 
-| `FORMAT`        | Corresponding UI option |
-|-----------------|-------------------------|
-| `vice`          | VICE                    |
-| `64tass_labels` | 64tass labels           |
-| `beebasm`       | BeebAsm                 |
-| `acme`          | ACME                    |
-
-(There is no auto-detect option.)
+| `FORMAT`               | Corresponding UI option       |
+|------------------------|-------------------------------|
+| `vice`                 | VICE                          |
+| `64tass_labels`        | 64tass labels                 |
+| `64tass_dumped_labels` | 64tass labels (--dump-labels) |
+| `64tass_vice_labels`   | 64tass labels (--vice-labels) |
+| `beebasm`              | BeebAsm                       |
+| `acme`                 | ACME                          |
 
 `GROUP` is the group to use. If not supplied, the symbols are added to
 group 0.
