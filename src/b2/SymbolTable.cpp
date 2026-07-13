@@ -219,14 +219,6 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
         return {".labels", ".txt"};
     }
 
-    bool MatchesLine(const std::string &line) const override {
-        if (line.substr(0, 3) == "[{'") {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
         ParseState ps;
 
@@ -262,7 +254,7 @@ class BeebAsmParser : public SymbolTable::SymbolParser {
 
             // BeebAsm labels always have a "." prefix. b2 treats this as a
             // syntactic element, necesasry for disambiguation in the original
-            // source file,but not part of the name (any more than the ";"
+            // source file, but not part of the name (any more than the ":"
             // suffix might be in other assemblers).
             //
             // So it will accept names that don't start with ., but it'll strip
@@ -391,17 +383,6 @@ class ViceParserBase : public SymbolTable::SymbolParser {
     explicit ViceParserBase(const Guid &guid, bool tass)
         : SymbolParser(guid)
         , m_tass(tass) {
-    }
-
-    bool MatchesLine(const std::string &line) const override {
-        // Skip empty lines and comments
-        if (line.empty() || line[0] == ';' || line[0] == '#') {
-            return false;
-        }
-
-        // Check for VICE format: "al FFFF symbol_name"
-        std::regex pattern(R"(^\s*al\s+(?:[A-Za-z0-9]:)?[0-9a-fA-F]{4,6}\s+.+)");
-        return std::regex_match(line, pattern);
     }
 
     bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
@@ -534,17 +515,6 @@ class AcmeParser : public SymbolTable::SymbolParser {
 
     std::vector<std::string> GetSuggestedFileExtensions() const override {
         return {".lbl", ".sym"};
-    }
-
-    bool MatchesLine(const std::string &line) const override {
-        // Skip empty lines and comments
-        if (line.empty() || line[0] == ';' || line[0] == '#') {
-            return false;
-        }
-
-        // Check for ACME format: "symbol_name = address"
-        std::regex pattern(R"(^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*\$?[0-9a-fA-F]+\s*$)");
-        return std::regex_match(line, pattern);
     }
 
     bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
@@ -756,10 +726,6 @@ class TassDumpedLabelsParser : public SymbolTable::SymbolParser {
         return {".lbl", ".sym"};
     }
 
-    bool MatchesLine(const std::string &) const override {
-        return false;
-    }
-
     bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
         size_t line_number = 0;
         bool good = ForEachLine(content, [&line_pattern = m_line_pattern, symbols, &file_path, logs, &line_number](const std::string_view &line) -> bool {
@@ -815,10 +781,6 @@ class TassLabelsParser : public SymbolTable::SymbolParser {
         return {".lbl", ".sym"};
     }
 
-    bool MatchesLine(const std::string &) const override {
-        return false;
-    }
-
     bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const override {
         size_t line_number = 0;
         bool good = ForEachLine(content, [symbols, &file_path, logs, &line_number](const std::string_view &line) -> bool {
@@ -864,69 +826,13 @@ void SymbolTable::SymbolParserRegistry::InitializeBuiltinParsers() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const SymbolTable::SymbolParser *SymbolTable::DetectBestParser(const std::string &content) {
-    const auto &parsers = SymbolParserRegistry::GetParsers();
-    ASSERT(!parsers.empty());
-
-    std::istringstream stream(content);
-    std::string line;
-    int lines_checked = 0;
-
-    // Track score for each parser
-    std::vector<int> parser_scores(parsers.size(), 0);
-
-    // Check first 20 non-empty, non-comment lines
-    while (std::getline(stream, line) && lines_checked < 20) {
-        // Skip empty lines and comments for counting
-        if (line.empty() || line[0] == ';' || line[0] == '#') {
-            continue;
-        }
-
-        lines_checked++;
-
-        // Test line against all registered parsers
-        for (size_t i = 0; i < parsers.size(); ++i) {
-            if (parsers[i]->MatchesLine(line)) {
-                parser_scores[i]++;
-            }
-        }
-    }
-
-    // Find parser with highest score (must be >50% confidence)
-    double confidence_threshold = 0.5;
-    int max_score = 0;
-    size_t best_parser_index = 0;
-    bool found_parser = false;
-
-    for (size_t i = 0; i < parser_scores.size(); ++i) {
-        if (parser_scores[i] > max_score) {
-            max_score = parser_scores[i];
-            best_parser_index = i;
-        }
-    }
-
-    // Check if best parser meets confidence threshold
-    if (lines_checked > 0 && max_score >= (confidence_threshold * lines_checked)) {
-        found_parser = true;
-    }
-
-    return found_parser ? parsers[best_parser_index].get() : nullptr;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool SymbolTable::LoadFromContent(const std::string &content, size_t file_index, const LogSet *logs) {
     LoadedSymbolFile *lsf = m_lsfs[file_index].get();
 
     const SymbolParser *parser = SymbolParserRegistry::FindParserByFormatName(lsf->file.file_format_name);
     if (!parser) {
-        parser = DetectBestParser(content);
-    }
-
-    if (!parser) {
         if (logs) {
-            logs->e.f("No suitable parser found for %s\n", lsf->file.file_path.c_str());
+            logs->e.f("Unknown format \"%s\" for file: %s\n", lsf->file.file_format_name.c_str(), lsf->file.file_path.c_str());
         }
         return false;
     }

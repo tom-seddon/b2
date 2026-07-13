@@ -97,11 +97,7 @@ struct SymbolFile {
     // Source file path.
     std::string file_path; // source file path
 
-    // Name of parser in the registry (going by GetFormatName), or "" for
-    // auto-detect.
-    //
-    // (If name not found, will auto-detect in that case too - but this
-    // behaviour is up for debate.)
+    // Name of parser in the registry, going by GetFormatName.
     std::string file_format_name;
 
     // Enabled flag.
@@ -205,7 +201,6 @@ class SymbolTable {
         virtual std::string GetFormatName() const = 0;
         virtual std::string GetDisplayName() const = 0; // This value is used in the UI.
         virtual std::vector<std::string> GetSuggestedFileExtensions() const = 0;
-        virtual bool MatchesLine(const std::string &line) const = 0;
         virtual bool ParseSymbolsFromContent(std::vector<Symbol> *symbols, const std::string &content, const std::string &file_path, const LogSet *logs) const = 0;
     };
 
@@ -279,8 +274,6 @@ class SymbolTable {
     mutable bool m_group_properties_valid = false;
     mutable uint64_t m_symbols_changed_counter = 1;
 
-    // Format detection and loading
-    const SymbolParser *DetectBestParser(const std::string &content);
     bool LoadFromContent(const std::string &content, size_t file_index, const LogSet *logs);
 
     // Helper methods
