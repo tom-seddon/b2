@@ -18,6 +18,11 @@ static std::vector<CommandTable2 *> *g_all_command_table2s;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const char COMMAND_CONFIRM_CAPTION[] = "Confirm###confirm";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 template <class ContType>
 static bool Contains(const ContType &cont, const typename ContType::value_type &thing) {
     auto &&it = std::find(cont.begin(), cont.end(), thing);
@@ -324,6 +329,13 @@ const std::string &Command2::GetExtraText() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const std::string &Command2::GetLabel() const {
+    return m_imgui_label;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool Command2::IsAlwaysPrioritized() const {
     return m_always_prioritized;
 }
@@ -487,7 +499,7 @@ void CommandStateTable::DoMenuItem(const Command2 &command) {
 
     if (command.m_must_confirm) {
         if (ImGui::BeginMenu(command.m_imgui_label.c_str(), state->enabled)) {
-            if (ImGui::MenuItem("Confirm###confirm", shortcut.c_str())) {
+            if (ImGui::MenuItem(COMMAND_CONFIRM_CAPTION, shortcut.c_str())) {
                 state->actioned = 1;
             }
             ImGui::EndMenu();

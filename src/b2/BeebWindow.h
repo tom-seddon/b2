@@ -706,7 +706,8 @@ class BeebWindow {
     void SaveWindowLayout(const std::string &path);
 
     bool HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags);
-    bool HardResetWithMultiOSBank(int multi_os_bank);
+    void HardResetWithMultiOSBank(int multi_os_bank);
+    void HardResetWithExternalParasite(bool external_parasite_enabled);
 
 #if ENABLE_TAPE
     void LoadTape(std::string path);

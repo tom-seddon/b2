@@ -210,7 +210,7 @@ void ConfigsUI::DoImGui() {
             }
 
             if (ImGui::BeginMenu("Delete")) {
-                if (ImGui::MenuItem("Confirm")) {
+                if (ImGui::MenuItem(COMMAND_CONFIRM_CAPTION)) {
                     BeebWindows::RemoveConfigByIndex(m_config_index);
                     m_edited = true;
                 }

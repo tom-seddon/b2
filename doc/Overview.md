@@ -474,17 +474,21 @@ There are also some second processor options, for B/B+/Master 128:
 
 - `None` for no second processor
 
-- `6502 cheese wedge` for an external 3 MHz 6502 second processor.
+- `6502 Second Processor` for an external 3 MHz 6502 second processor.
   (The Acorn documentation doesn't specify what specific type of CPU
   these cntain, but in practice they all seem to come with a Rockwell
-  65C02)
-
+  65C02, and this is what b2 emulates)
+  
 - `Master Turbo` for a 4 MHz 65C102 second processor. (With a Master,
   this appears on the internal Tube, replicating the Master Turbo;
-  with a B/B+, this setup corresponds to a
-  [universal second processor](http://chrisacorns.computinghistory.org.uk/8bit_Upgrades/Acorn_ANC21_Uni2Proc.html)
+  otherwise, this setup corresponds to an external [universal second
+  processor](http://chrisacorns.computinghistory.org.uk/8bit_Upgrades/Acorn_ANC21_Uni2Proc.html)
   with a Master Turbo board fitted)
- 
+
+(After selecting a config with an external second processor, the usual
+confirm popup for `File` > `Power-on Reset` will include extra items
+allowing you to reboot with the second processor powered on or off.)
+
 (The second processor's OS ROM is configurable, but you can probably
 just leave it at the default.)
  

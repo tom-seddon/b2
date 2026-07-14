@@ -118,6 +118,8 @@ static Command2 g_hard_reset_multi_os_bank_0_command = Command2(&g_beeb_window_c
 static Command2 g_hard_reset_multi_os_bank_1_command = Command2(&g_beeb_window_command_table, "hard_reset_multi_os_bank_1", "Multi-OS bank 1").WithExtraText(g_hard_reset_command.GetText()).WithTick();
 static Command2 g_hard_reset_multi_os_bank_2_command = Command2(&g_beeb_window_command_table, "hard_reset_multi_os_bank_2", "Multi-OS bank 2").WithExtraText(g_hard_reset_command.GetText()).WithTick();
 static Command2 g_hard_reset_multi_os_bank_3_command = Command2(&g_beeb_window_command_table, "hard_reset_multi_os_bank_3", "Multi-OS bank 3").WithExtraText(g_hard_reset_command.GetText()).WithTick();
+static Command2 g_hard_reset_with_external_parasite = Command2(&g_beeb_window_command_table, "hard_reset_with_external_parasite", "With second processor powered on").WithExtraText(g_hard_reset_command.GetText()).WithTick();
+static Command2 g_hard_reset_without_external_parasite = Command2(&g_beeb_window_command_table, "hard_reset_without_external_parasite", "With second processor powered off").WithExtraText(g_hard_reset_command.GetText()).WithTick();
 static Command2 g_save_state_command(&g_beeb_window_command_table, "save_state", "Save State");
 static Command2 g_exit_command = Command2(&g_beeb_window_command_table, "exit", "Exit").MustConfirm();
 static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_command_table, "clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm();
@@ -1721,6 +1723,14 @@ void BeebWindow::DoCommands(bool *close_window) {
         this->HardResetWithMultiOSBank(3);
     }
 
+    if (m_cst.WasActioned(g_hard_reset_with_external_parasite)) {
+        this->HardResetWithExternalParasite(true);
+    }
+
+    if (m_cst.WasActioned(g_hard_reset_without_external_parasite)) {
+        this->HardResetWithExternalParasite(false);
+    }
+
     bool can_clone = m_beeb_thread->GetBBCMicroCloneImpediments() == 0;
 
     m_cst.SetEnabled(g_save_state_command, can_clone);
@@ -2425,33 +2435,43 @@ void BeebWindow::DoFileMenu() {
         BeebConfigArguments config_arguments;
         m_beeb_thread->GetConfig(&config_name, nullptr, &config_arguments);
 
-        // This relies on the logic in BeebLoadedConfig::Load to set
-        // multi_os_bank appropriately, including setting it to <0 in the case
-        // of the model not having a multi-OS in the first place.
-        if (config_arguments.multi_os_bank >= 0) {
-            if (ImGui::BeginMenu(g_hard_reset_command.GetText().c_str())) {
-                // TODO: the tick state should be set more often than this, but
-                // they're for informational purposes only, so it doesn't
-                // particularly matter.
-                m_cst.SetTicked(g_hard_reset_multi_os_bank_0_command, config_arguments.multi_os_bank == 0);
-                m_cst.SetTicked(g_hard_reset_multi_os_bank_1_command, config_arguments.multi_os_bank == 1);
-                m_cst.SetTicked(g_hard_reset_multi_os_bank_2_command, config_arguments.multi_os_bank == 2);
-                m_cst.SetTicked(g_hard_reset_multi_os_bank_3_command, config_arguments.multi_os_bank == 3);
+        if (ImGui::BeginMenu(g_hard_reset_command.GetLabel().c_str())) {
+            // This relies on the logic in BeebLoadedConfig::Load setting the config's arguments appropriately.
 
-                if (ImGui::MenuItem("Confirm")) {
-                    m_cst.ActionCommand(g_hard_reset_command);
-                }
+            // TODO: the tick states should be set more often than this, but
+            // they're for informational purposes only, so it doesn't
+            // particularly matter.
+            m_cst.SetTicked(g_hard_reset_multi_os_bank_0_command, config_arguments.multi_os_bank == 0);
+            m_cst.SetTicked(g_hard_reset_multi_os_bank_1_command, config_arguments.multi_os_bank == 1);
+            m_cst.SetTicked(g_hard_reset_multi_os_bank_2_command, config_arguments.multi_os_bank == 2);
+            m_cst.SetTicked(g_hard_reset_multi_os_bank_3_command, config_arguments.multi_os_bank == 3);
+            m_cst.SetTicked(g_hard_reset_with_external_parasite, config_arguments.external_parasite_enabled == true);
+            m_cst.SetTicked(g_hard_reset_without_external_parasite, config_arguments.external_parasite_enabled == false);
 
+            // if this is the only case, it's equivalent to doing
+            // g_hard_reset_command.DoMenuItem(). But it ends up a bit simpler
+            // to handle all cases with the more generic code.
+            if (ImGui::MenuItem(COMMAND_CONFIRM_CAPTION)) {
+                m_cst.ActionCommand(g_hard_reset_command);
+            }
+
+            if (config_arguments.multi_os_bank >= 0) {
                 ImGui::Separator();
 
                 m_cst.DoMenuItem(g_hard_reset_multi_os_bank_0_command);
                 m_cst.DoMenuItem(g_hard_reset_multi_os_bank_1_command);
                 m_cst.DoMenuItem(g_hard_reset_multi_os_bank_2_command);
                 m_cst.DoMenuItem(g_hard_reset_multi_os_bank_3_command);
-                ImGui::EndMenu();
             }
-        } else {
-            m_cst.DoMenuItem(g_hard_reset_command);
+
+            if (config_arguments.external_parasite_enabled.has_value()) {
+                ImGui::Separator();
+
+                m_cst.DoMenuItem(g_hard_reset_with_external_parasite);
+                m_cst.DoMenuItem(g_hard_reset_without_external_parasite);
+            }
+
+            ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Run###run")) {
@@ -2586,7 +2606,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
         }
 
         if (ImGui::BeginMenu("Eject")) {
-            if (ImGui::MenuItem("Confirm")) {
+            if (ImGui::MenuItem(COMMAND_CONFIRM_CAPTION)) {
                 m_beeb_thread->Send(std::make_shared<BeebThread::EjectDiscMessage>(drive));
             }
             ImGui::EndMenu();
@@ -5047,6 +5067,7 @@ void BeebWindow::SaveWindowLayout(const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: is it actually worth this returning a bool?
 bool BeebWindow::HardReset(const BeebConfig &config, const BeebConfigArguments &arguments, uint32_t flags) {
     BeebLoadedConfig tmp;
 
@@ -5066,15 +5087,27 @@ bool BeebWindow::HardReset(const BeebConfig &config, const BeebConfigArguments &
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
+void BeebWindow::HardResetWithMultiOSBank(int multi_os_bank) {
     BeebConfig config;
     BeebConfigArguments arguments;
     m_beeb_thread->GetConfig(nullptr, &config, &arguments);
 
     arguments.multi_os_bank = multi_os_bank;
 
-    bool good = this->HardReset(config, arguments, BeebThreadHardResetFlag_Run);
-    return good;
+    this->HardReset(config, arguments, BeebThreadHardResetFlag_Run);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::HardResetWithExternalParasite(bool external_parasite_enabled) {
+    BeebConfig config;
+    BeebConfigArguments arguments;
+    m_beeb_thread->GetConfig(nullptr, &config, &arguments);
+
+    arguments.external_parasite_enabled = external_parasite_enabled;
+
+    this->HardReset(config, arguments, BeebThreadHardResetFlag_Run);
 }
 
 //////////////////////////////////////////////////////////////////////////

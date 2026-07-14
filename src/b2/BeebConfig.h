@@ -33,7 +33,12 @@ class DiscInterface;
 
 struct BeebConfigArguments {
     // Multi-OS bank to use. Applies when OS type is multi-OS.
+    //
+    // TODO: this should probably be a std::optional...
     int multi_os_bank = -1;
+
+    // Has value only when external parasite.
+    std::optional<bool> external_parasite_enabled;
 };
 
 // Doesn't curently get serialised - but maybe that'd actually be useful?

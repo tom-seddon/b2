@@ -3863,13 +3863,7 @@ void BBCMicro::InitStuff() {
     }
 
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
-        m_state.parasite_itu = 0;
-
-        if (m_state.parasite_type == BBCMicroParasiteType_MasterTurbo) {
-            if (m_state.type->type_id == BBCMicroTypeID_Master) {
-                m_state.parasite_itu = 1;
-            }
-        }
+        m_state.parasite_itu = IsInternalParasite(m_state.type->type_id, m_state.parasite_type);
 
         if (IsElectron(m_state.type->type_id)) {
             for (uint16_t a = 0xfce0; a < 0xfcf0; a += 8) {

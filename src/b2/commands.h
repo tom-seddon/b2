@@ -16,6 +16,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Caption for any confirm-type menu options. Use ###confirm for test engine
+// purposes.
+extern const char COMMAND_CONFIRM_CAPTION[];
+
 class Command2;
 
 class CommandTable2 {
@@ -117,9 +121,23 @@ class Command2 : private Command2Data {
     Command2 &operator=(Command2 &&) = default;
 
     // TODO: terminology...
+
+    // Name of the command, used for saving to config files and whatnot.
     const std::string &GetName() const;
+
+    // The human-readable text to display on the menu item or button and so on.
     const std::string &GetText() const;
+
+    // Additional disambiguating text to display if showing numerous commands in
+    // a list (e.g., for keyboard shortcut configuration purposes) - the Text
+    // only has to be meaningful in context, and could be ambiguous.
     const std::string &GetExtraText() const;
+
+    // Full Dear ImGui label, the actual string to pass to the button or menu
+    // item routine or whatever. Shows up as the human-readable text on screen,
+    // but includes ### stuff as required for test engine purposes.
+    const std::string &GetLabel() const;
+
     bool IsAlwaysPrioritized() const;
 
     // Invisible commands refer to functionality that's compiled out of this

@@ -623,6 +623,14 @@ bool BeebLoadedConfig::Load(
         }
     }
 
+    if (IsExternalParasite(dest->config.type_id, dest->config.parasite_type)) {
+        if (!dest->arguments.external_parasite_enabled.has_value()) {
+            dest->arguments.external_parasite_enabled = true;
+        }
+    } else {
+        dest->arguments.external_parasite_enabled.reset();
+    }
+
     const BeebConfig::ROM *parasite_os;
     switch (dest->config.parasite_type) {
     default:

@@ -13,6 +13,7 @@
 #include <SDL_opengl.h>
 #include "b2.h"
 #include <SDL_syswm.h>
+#include "commands.h"
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 #include <imgui_test_engine/imgui_te_engine.h>
@@ -1703,7 +1704,7 @@ bool ImGuiConfirmButton(const char *label, bool needs_confirm) {
         }
 
         if (ImGui::BeginPopup(CONFIRM_BUTTON_POPUP)) {
-            if (ImGui::Button("Confirm###confirm")) {
+            if (ImGui::Button(COMMAND_CONFIRM_CAPTION)) {
                 click = true;
                 ImGui::CloseCurrentPopup();
             }

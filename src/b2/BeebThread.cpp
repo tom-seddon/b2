@@ -776,13 +776,20 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
     }
 #endif
 
+    BBCMicroParasiteType parasite_type = ts->current_config.config.parasite_type;
+    if (IsExternalParasite(ts->current_config.config.type_id, parasite_type)) {
+        if (!ts->current_config.arguments.external_parasite_enabled.value_or(true)) {
+            parasite_type = BBCMicroParasiteType_None;
+        }
+    }
+
     ROMType rom_types[16];
     for (int i = 0; i < 16; ++i) {
         rom_types[i] = ts->current_config.config.roms[i].type;
     }
     auto beeb = std::make_unique<BBCMicro>(CreateBBCMicroType(ts->current_config.config.type_id, rom_types, type_flags),
                                            ts->current_config.config.disc_interface,
-                                           ts->current_config.config.parasite_type,
+                                           parasite_type,
                                            nvram_contents,
                                            &now,
                                            init_flags,

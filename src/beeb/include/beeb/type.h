@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <6502/6502.h>
+#include "BBCMicroParasiteType.h"
 
 static constexpr size_t NUM_MAPPER_REGIONS = 16;
 
@@ -339,6 +340,9 @@ bool CanHaveSCSI(BBCMicroTypeID type_id);
 inline bool IsElectron(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_Electron;
 }
+
+bool IsInternalParasite(BBCMicroTypeID type_id, BBCMicroParasiteType parasite_type);
+bool IsExternalParasite(BBCMicroTypeID type_id, BBCMicroParasiteType parasite_type);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
