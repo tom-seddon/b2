@@ -874,6 +874,7 @@ static const BeebROM *const MOS511i_SIDEWAYS_ROMS[] = {
 static const BeebROM *const ELECTRON_SIDEWAYS_ROMS[] = {
     &BEEB_ROM_BASIC2,
     &BEEB_ROM_PLUS_1,
+    &BEEB_ROM_AP6,
     &BEEB_ROM_PLUS_3_ADFS,
     nullptr,
 };

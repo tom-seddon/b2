@@ -86,8 +86,14 @@ OS ROM:
 
 - `Electron MOS` - OS ROM
 
-Sideways ROMs:
+Sideways ROMs for the Plus 1: (use one or the other - they can't
+coexist)
 
-- `Advanced Plus 1/Plus 6 ROM` - support ROM for the Plus 1
+- `Advanced Plus 1/Plus 6 ROM` - modern support ROM for the Plus 1
+  (recommended, as it has a number of useful extra `*` commands)
+- `Plus 1 ROM` - original support ROM for the Plus 1 (provided in case
+  of any incompatibilities)
+
+Sideways ROMs for the Plus 3:
+
 - `Plus 3 ADFS` - ADFS ROM for the Plus 3
-

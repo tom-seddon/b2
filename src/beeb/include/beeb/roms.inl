@@ -49,8 +49,10 @@ EPN(MOS511i_MOS)
 EPN(MOS511i_ARABIC)
 EPN(MOS511i_INTERNATIONAL)
 EPN(Electron_MOS)
+//Plus1 maps to the AP6 ROM - I didn't realise there'd be a good reason to have multiple types of Plus 1 ROM, so I gave this one an overly generic name
 EPN(Plus1)
 EPN(Plus3ADFS)
+EPN(AcornPlus1) //this is the original Acorn Plus 1 ROM
 EEND_SERIALIZABLE()
 #undef ENAME
 

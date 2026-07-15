@@ -88,7 +88,8 @@ const BeebROM BEEB_ROM_MOS511i_INTERNATIONAL = {"mcompact/5.11i/international.ro
 //////////////////////////////////////////////////////////////////////////
 
 const BeebROM BEEB_ROM_ELECTRON_MOS = {"ElectronMOS.rom", "Electron MOS", StandardROM_Electron_MOS};
-const BeebROM BEEB_ROM_PLUS_1 = {"AP6v134.rom", "Advanced Plus 1/Plus 6 ROM", StandardROM_Plus1};
+const BeebROM BEEB_ROM_PLUS_1 = {"Plus1.rom", "Plus 1 ROM", StandardROM_AcornPlus1};
+const BeebROM BEEB_ROM_AP6 = {"AP6v134.rom", "Advanced Plus 1/Plus 6 ROM", StandardROM_Plus1};
 const BeebROM BEEB_ROM_PLUS_3_ADFS = {"Plus3ADFS.rom", "Plus 3 ADFS", StandardROM_Plus3ADFS};
 
 //////////////////////////////////////////////////////////////////////////
@@ -149,7 +150,7 @@ const BeebROM *const BEEB_ROMS[] = {
     &BEEB_ROM_MOS511i_INTERNATIONAL,
 
     &BEEB_ROM_ELECTRON_MOS,
-    &BEEB_ROM_PLUS_1,
+    &BEEB_ROM_AP6,
     &BEEB_ROM_PLUS_3_ADFS,
 
     nullptr,
