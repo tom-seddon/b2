@@ -11,5 +11,5 @@ EPN(OnlyGBP)
 
 // Must be last
 EPN(Count)
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("a81331b6d2a38264fbe129b2b98af9206dbd7a80")
 #undef ENAME

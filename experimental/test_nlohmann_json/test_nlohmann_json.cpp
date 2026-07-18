@@ -509,6 +509,8 @@ static void TestString() {
 
 int main(int argc, char *argv[]) {
     (void)argc, (void)argv;
+    
+    EnsureEnumsInitialised();
 
     if (SDL_Init(0) != 0) {
         fprintf(stderr, "FATAL: SDL_Init failed: %s\n", SDL_GetError());

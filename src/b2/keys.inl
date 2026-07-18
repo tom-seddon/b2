@@ -167,5 +167,5 @@ EPN(KeypadReturn)
 EPN(Space)
 EPN(Break)
 EPN(CompactSpecialKey)
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("87cbc7aed12c1db18c877cd9d6ae2ecce5267426")
 #undef ENAME

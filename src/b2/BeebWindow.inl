@@ -101,7 +101,7 @@ EBEGIN()
 EPN(Off)
 EPN(On)
 EPN(Auto)
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("b2076f0d7f5c7f8cf1242fea3be80f042e165e57")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

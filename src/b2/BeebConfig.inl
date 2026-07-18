@@ -17,7 +17,7 @@ EPNV(MasterCompact, 1 << 2)
 EPNV(OlivettiPC128S, 1 << 3)
 EPNV(MasterCompactArabic, 1 << 4)
 EPNV(Electron, 1 << 5)
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("7f7fbe965abf398955fc7589c194a6ab392492fe")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -31,7 +31,7 @@ EPN(None)
 EPN(Master128)
 EPN(MasterCompact)
 EPN(MasterCompactInternational) //covers both PC 128 S and MOS 5.11i Arabic Compact
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("bf327486f45ade971ce2d0bb30b293068d99f50e")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

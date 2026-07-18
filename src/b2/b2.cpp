@@ -2240,19 +2240,19 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
 //static AppHandler *g_app_handler_mutable = nullptr;
 //AppHandler *const &g_app_handler = g_app_handler_mutable;
 
-static void PrintEnumValue(uint64_t value, const char *name, void *context) {
-    auto traits = (const EnumTraitsBase *)context;
-
-    printf("    %s: ", name);
-
-    if (traits->IsSigned()) {
-        printf("%" PRId64, (int64_t)value);
-    } else {
-        printf("%" PRIu64 " (0x%" PRIx64 ")", value, value);
-    }
-
-    printf("\n");
-}
+//static void PrintEnumValue(uint64_t value, const char *name, const EnumTraitsBase *traits, void *context) {
+//    (void)context;
+//
+//    printf("    %s: ", name);
+//
+//    if (traits->IsSigned()) {
+//        printf("%" PRId64, (int64_t)value);
+//    } else {
+//        printf("%" PRIu64 " (0x%" PRIx64 ")", value, value);
+//    }
+//
+//    printf("\n");
+//}
 
 int b2_main(AppHandler *app_handler) {
     ASSERT(app_handler);
@@ -2268,15 +2268,15 @@ int b2_main(AppHandler *app_handler) {
     InitWindowsConsoleStuff();
 #endif
 
-    for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->GetNext()) {
-        printf("%s: size=%zu signed=%s serializable=%s\n",
-               traits->GetEnumName(),
-               traits->GetSizeBytes(),
-               BOOL_STR(traits->IsSigned()),
-               BOOL_STR(traits->IsSerializable()));
-
-        traits->ForEach(&PrintEnumValue, (void *)traits);
-    }
+    //    for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->GetNext()) {
+    //        printf("%s: size=%zu signed=%s serializable=%s\n",
+    //               traits->GetEnumName(),
+    //               traits->GetSizeBytes(),
+    //               BOOL_STR(traits->IsSigned()),
+    //               BOOL_STR(traits->GetSerializableHash()));
+    //
+    //        traits->ForEach(&PrintEnumValue, nullptr);
+    //    }
 
     LinkCommands();
 

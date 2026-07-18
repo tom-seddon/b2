@@ -53,7 +53,7 @@ EPN(Electron_MOS)
 EPN(Plus1)
 EPN(Plus3ADFS)
 EPN(AcornPlus1) //this is the original Acorn Plus 1 ROM
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("f2fd0463f46b96bdbf2cc28b39da693bfd48adef")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ EPN(MO2)
 
 //must be last
 EPN(Count)
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("7ce5bd183a5ee953fe517b05da5979d7d2da280b")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ EPN(MultiOSBank3)
 
 //must be last
 EPN(Count)
-EEND_SERIALIZABLE()
+EEND_SERIALIZABLE("4b88110d808bf7d2c5bac0618b7e97e750dec686")
 #undef ENAME
 
 // MultiOSBank values must be contiguous.
