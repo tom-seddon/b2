@@ -8,7 +8,7 @@ EPN(BPlus)
 EPN(Master) // this should be Master128, but it's saved into b2.json... oops
 EPN(MasterCompact)
 EPN(Electron)
-EEND_SERIALIZABLE("7e52dd15d02e21ef78f1adaac4a822067682e497")
+EEND_SERIALIZABLE("067da8722ae6b8184490c98899a0196b52853e2c")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

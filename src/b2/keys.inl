@@ -9,18 +9,16 @@
 
 #define ENAME PCKeyModifier
 EBEGIN_DERIVED(uint32_t)
-EPNV(Shift, 1 << 24)
-EPNV(Ctrl, 1 << 25)
-EPNV(Alt, 1 << 26)
-EPNV(Gui, 1 << 27)
-EPNV(AltGr, 1 << 28)
+EPN_BIT_FLAG(Shift, 24)
+EPN_BIT_FLAG(Ctrl, 25)
+EPN_BIT_FLAG(Alt, 26)
+EPN_BIT_FLAG(Gui, 27)
+EPN_BIT_FLAG(AltGr, 28)
 
 // not sure if I'm going to bother to support this, since it's
 // effectively got 3 states (on/off/don't care)
-EPNV(NumLock, 1 << 29)
+EPN_BIT_FLAG(NumLock, 29)
 
-EQPNV(Begin, 1 << 24)
-EQPNV(End, 1 << 30)
 // Don't use 1<<30 - it's SDLK_SCANCODE_MASK
 EEND()
 #undef ENAME
@@ -167,5 +165,5 @@ EPN(KeypadReturn)
 EPN(Space)
 EPN(Break)
 EPN(CompactSpecialKey)
-EEND_SERIALIZABLE("87cbc7aed12c1db18c877cd9d6ae2ecce5267426")
+EEND_SERIALIZABLE("6f2ae7c858ece264ee3e59259c4f80445ba6da16")
 #undef ENAME

@@ -11,13 +11,13 @@
 
 #define ENAME BeebConfigFeatureFlag
 EBEGIN_DERIVED(uint32_t)
-EPNV(MasterTurbo, 1 << 0)
-EPNV(6502SecondProcessor, 1 << 1)
-EPNV(MasterCompact, 1 << 2)
-EPNV(OlivettiPC128S, 1 << 3)
-EPNV(MasterCompactArabic, 1 << 4)
-EPNV(Electron, 1 << 5)
-EEND_SERIALIZABLE("7f7fbe965abf398955fc7589c194a6ab392492fe")
+EPN_BIT_FLAG(MasterTurbo, 0)
+EPN_BIT_FLAG(6502SecondProcessor, 1)
+EPN_BIT_FLAG(MasterCompact, 2)
+EPN_BIT_FLAG(OlivettiPC128S, 3)
+EPN_BIT_FLAG(MasterCompactArabic, 4)
+EPN_BIT_FLAG(Electron, 5)
+EEND_SERIALIZABLE("4a7000195d36d5ba8c4db0e8279672848fa7a374")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -31,7 +31,7 @@ EPN(None)
 EPN(Master128)
 EPN(MasterCompact)
 EPN(MasterCompactInternational) //covers both PC 128 S and MOS 5.11i Arabic Compact
-EEND_SERIALIZABLE("bf327486f45ade971ce2d0bb30b293068d99f50e")
+EEND_SERIALIZABLE("03f63e3598a4af2cb102df7321f3914f94cbf44e")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

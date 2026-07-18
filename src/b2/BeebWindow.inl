@@ -90,7 +90,7 @@ EPN(Plus1Debug)
 
 // must be last
 EQPN(MaxValue)
-EEND()
+EEND_SERIALIZABLE("34abe885e1c2a1664dab3872c713c56a0b8c87e5")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
@@ -101,7 +101,7 @@ EBEGIN()
 EPN(Off)
 EPN(On)
 EPN(Auto)
-EEND_SERIALIZABLE("b2076f0d7f5c7f8cf1242fea3be80f042e165e57")
+EEND_SERIALIZABLE("ea3f8a879ffaa46027129285d97e4d58f9dee4be")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

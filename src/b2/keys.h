@@ -16,7 +16,9 @@ enum BBCMicroTypeID : uint8_t;
 #include "keys.inl"
 #include <shared/enum_end.h>
 
-static const uint32_t PCKeyModifier_All = PCKeyModifier_Shift | PCKeyModifier_Ctrl | PCKeyModifier_Alt | PCKeyModifier_Gui | PCKeyModifier_AltGr | PCKeyModifier_NumLock;
+static constexpr uint32_t PCKeyModifier_Begin = 1u << 24;
+static constexpr uint32_t PCKeyModifier_End = 1u << 30;
+static constexpr uint32_t PCKeyModifier_All = PCKeyModifier_Shift | PCKeyModifier_Ctrl | PCKeyModifier_Alt | PCKeyModifier_Gui | PCKeyModifier_AltGr | PCKeyModifier_NumLock;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

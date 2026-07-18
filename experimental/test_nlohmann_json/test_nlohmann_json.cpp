@@ -509,7 +509,7 @@ static void TestString() {
 
 int main(int argc, char *argv[]) {
     (void)argc, (void)argv;
-    
+
     EnsureEnumsInitialised();
 
     if (SDL_Init(0) != 0) {

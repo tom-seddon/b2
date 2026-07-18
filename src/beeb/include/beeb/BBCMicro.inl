@@ -45,7 +45,7 @@ EPNV(SerialExtra, 1 << 18)
 EPNV(6845Rows, 1 << 19)
 EPNV(6845Columns, 1 << 20)
 EPNV(Plus1, 1 << 21)
-EEND_SERIALIZABLE("8cbd909c805d038809925b10d10c51d38da63c0d")
+EEND_SERIALIZABLE("30b25ff4c5dbfa6d67c0dc5a535271281e4bf884")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////
