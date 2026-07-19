@@ -31,12 +31,12 @@ static_assert(VideoDataType_Bitmap16MHz == 0, "");
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME VideoDataUnitFlag
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 // VSync is on.
-EPNV(VSync, 1 << 0)
+EPN_BIT_FLAG(VSync, 0)
 
 // HSync is on.
-EPNV(HSync, 1 << 1)
+EPN_BIT_FLAG(HSync, 1)
 EEND()
 #undef ENAME
 
@@ -46,15 +46,15 @@ EEND()
 #if VIDEO_TRACK_METADATA
 #define ENAME VideoDataUnitMetadataFlag
 EBEGIN_DERIVED(uint8_t)
-EPNV(HasAddress, 1 << 0)
-EPNV(OddCycle, 1 << 1) //needs renaming...
-EPNV(HasValue, 1 << 2)
-EPNV(6845Raster0, 1 << 3)
-EPNV(6845DISPEN, 1 << 4)
-EPNV(6845CUDISP, 1 << 5)
+EPN_BIT_FLAG(HasAddress, 0)
+EPN_BIT_FLAG(OddCycle, 1) //needs renaming...
+EPN_BIT_FLAG(HasValue, 2)
+EPN_BIT_FLAG(6845Raster0, 3)
+EPN_BIT_FLAG(6845DISPEN, 4)
+EPN_BIT_FLAG(6845CUDISP, 5)
 
 // If the HasAddress flag isn't set, the HasCRTCAddress flag is ignored.
-EPNV(HasCRTCAddress, 1 << 6)
+EPN_BIT_FLAG(HasCRTCAddress, 6)
 EEND()
 #undef ENAME
 #endif
