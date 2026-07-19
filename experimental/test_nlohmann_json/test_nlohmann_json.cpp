@@ -190,7 +190,7 @@ void to_json(nlohmann::json &j, const KeymapKey &value) {
              mask != PCKeyModifier_End;
              mask <<= 1) {
             if (value.keycode & mask) {
-                j[GetPCKeyModifierEnumName((int)mask)] = true;
+                j[GetPCKeyModifierEnumName(mask)] = true;
             }
 
             SDL_Keycode keycode = (SDL_Keycode)(value.keycode & ~PCKeyModifier_All);
@@ -230,7 +230,7 @@ void from_json(const nlohmann::json &j, KeymapKey &value) {
         for (uint32_t mask = PCKeyModifier_Begin;
              mask != PCKeyModifier_End;
              mask <<= 1) {
-            const char *mask_name = GetPCKeyModifierEnumName((int)mask);
+            const char *mask_name = GetPCKeyModifierEnumName(mask);
             if (j.count(mask_name) > 0) {
                 bool set = j.at(mask_name).template get<bool>();
                 if (set) {
