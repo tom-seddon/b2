@@ -32,6 +32,8 @@ static_assert(VideoDataType_Bitmap16MHz == 0, "");
 
 #define ENAME VideoDataUnitFlag
 EBEGIN_DERIVED(uint8_t)
+EMETA_SIZE_BITS(4)
+
 // VSync is on.
 EPN_BIT_FLAG(VSync, 0)
 
