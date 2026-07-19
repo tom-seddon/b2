@@ -80,11 +80,11 @@ class BBCMicro::DebugCommandHandler : public ::DebugCommandHandler {
         (void)m_next;
     }
 
-    void EnableSymbolGroup(uint8_t group) {
+    void EnableSymbolGroup(uint8_t group) override {
         m_beeb->m_state.symbol_groups_enabled[group] = true;
     }
 
-    void DisableSymbolGroup(uint8_t group) {
+    void DisableSymbolGroup(uint8_t group) override {
         m_beeb->m_state.symbol_groups_enabled[group] = false;
     }
 
