@@ -52,17 +52,17 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BeebThreadHardResetFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 // Do SHIFT+BREAK.
-EPNV(Boot, 1 << 0)
+EPN_BIT_FLAG(Boot, 0)
 
 // Set the thing running, if it was stopped in the debugger.
-EPNV(Run, 1 << 1)
+EPN_BIT_FLAG(Run, 1)
 
 // Wait for the first OSWORD 0 before calling the completion function.
 //
 // (Ignored if no completion function.)
-EPNV(WaitForOSWORD0, 1 << 2)
+EPN_BIT_FLAG(WaitForOSWORD0, 2)
 EEND()
 #undef ENAME
 
@@ -70,10 +70,10 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BeebThreadPasteFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 // Wait for the first OSWORD 0 before calling the completion function.
 //
 // (Ignored if no completion function.)
-EPNV(WaitForOSWORD0, 1 << 0)
+EPN_BIT_FLAG(WaitForOSWORD0, 0)
 EEND()
 #undef ENAME

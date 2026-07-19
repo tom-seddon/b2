@@ -416,18 +416,18 @@ BBCMicro::~BBCMicro() {
 uint32_t BBCMicro::GetCloneImpediments() const {
     uint32_t result = 0;
 
-    for (int i = 0; i < NUM_DRIVES; ++i) {
+    for (uint32_t i = 0; i < NUM_DRIVES; ++i) {
         const BBCMicroState::DiscDrive *drive = &m_state.drives[i];
         if (!!drive->disc_image) {
             if (!drive->disc_image->CanClone()) {
-                result |= (uint32_t)BBCMicroCloneImpediment_Drive0 << i;
+                result |= 1u << (i + BBCMicroCloneImpediment_DrivesShift);
             }
         }
     }
 
-    for (int i = 0; i < NUM_HARD_DISKS; ++i) {
+    for (uint32_t i = 0; i < NUM_HARD_DISKS; ++i) {
         if (!!m_state.scsi->hds.images[i]) {
-            result |= (uint32_t)BBCMicroCloneImpediment_HardDisk0 << i;
+            result |= 1u << (i + BBCMicroCloneImpediment_HardDisksShift);
         }
     }
 
@@ -1857,14 +1857,14 @@ uint32_t BBCMicro::GetLEDs() {
         }
     }
 
-    for (int i = 0; i < NUM_DRIVES; ++i) {
+    for (uint32_t i = 0; i < NUM_DRIVES; ++i) {
         if (m_state.drives[i].motor) {
-            leds |= 1u << (BBCMicroLEDFlag_FloppyDisk0Shift + i);
+            leds |= 1u << (BBCMicroLEDFlag_FloppyDisksShift + i);
         }
     }
 
     if (!!m_state.scsi) {
-        leds |= (uint32_t)(m_state.scsi->leds_ever_on | m_state.scsi->leds) << BBCMicroLEDFlag_HardDisk0Shift;
+        leds |= (uint32_t)(m_state.scsi->leds_ever_on | m_state.scsi->leds) << BBCMicroLEDFlag_HardDisksShift;
         m_state.scsi->leds_ever_on = 0;
     }
 

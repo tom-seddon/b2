@@ -2373,12 +2373,12 @@ class DocImageCreator : public DearImGuiTest {
 
     void WaitForDiskAccess() {
         // Wait for access to start.
-        while (!(m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift)) {
+        while (!(m_beeb_window->m_leds >> BBCMicroLEDFlag_FloppyDisksShift & BBCMicroLEDFlag_FloppyDisksMask)) {
             m_yielder->Yield();
         }
 
         // Wait for access to finish.
-        while (m_beeb_window->m_leds & 1 << BBCMicroLEDFlag_FloppyDisk0Shift) {
+        while (m_beeb_window->m_leds >> BBCMicroLEDFlag_FloppyDisksShift & BBCMicroLEDFlag_FloppyDisksMask) {
             m_yielder->Yield();
         }
     }

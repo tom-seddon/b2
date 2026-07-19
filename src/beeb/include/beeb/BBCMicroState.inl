@@ -47,39 +47,39 @@ EEND()
 // TODO if this were a struct with bit fields, that would simplify things...
 
 #define ENAME BBCMicroInitFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 // Set if the video ULA is in fact a Video NuLA.
-EPNV(VideoNuLA, 1 << 0)
+EPN_BIT_FLAG(VideoNuLA, 0)
 
 // Set if the ExtMem is present.
-EPNV(ExtMem, 1 << 1)
+EPN_BIT_FLAG(ExtMem, 1)
 
 // Set if the power-on brr... tone should sound when doing a power-on reset
 // (this ended up here because it's convenient, not because it makes sense).
-EPNV(PowerOnTone, 1 << 2)
+EPN_BIT_FLAG(PowerOnTone, 2)
 
-EPNV(Mouse, 1 << 3)
+EPN_BIT_FLAG(Mouse, 3)
 
 // If set, ADJI inserted, available via IFJ.
-EPNV(ADJI, 1 << 4)
+EPN_BIT_FLAG(ADJI, 4)
 
 // If ADJI bit set, there's a 2-bit value encoding the base address.
-EQPNV(ADJIDIPSwitchesShift, 5)
+EPN_BIT_FIELD(ADJIDIPSwitches, 5, 2)
 
 // Compact only - if set, has serial upgrade fitted. (B/B+/Master 128 always
 // have the serial upgrade fitted.)
-EPNV(Serial, 1 << 7)
+EPN_BIT_FLAG(Serial, 7)
 
 // If set, has SCSI interface available via XFJ.
-EPNV(SCSI, 1 << 8)
+EPN_BIT_FLAG(SCSI, 8)
 
 // If set, has MMFS (Memory-Mapped Filing System) interface available via XFJ.
-EPNV(MMFS, 1 << 9)
-EPNV(MMFSDebug, 1 << 10)
+EPN_BIT_FLAG(MMFS, 9)
+EPN_BIT_FLAG(MMFSDebug, 10)
 
 #if BBCMICRO_DEBUGGER
 // If set, has extra debugging hardware.
-EPNV(ExtraDebuggingHardware, 1 << 11)
+EPN_BIT_FLAG(ExtraDebuggingHardware, 11)
 #endif
 
 EEND()
@@ -90,9 +90,9 @@ EEND()
 
 #define ENAME BBCMicroMouseButton
 EBEGIN_DERIVED(uint8_t)
-EPNV(Left, 1 << 0)
-EPNV(Middle, 1 << 1)
-EPNV(Right, 1 << 2)
+EPN_BIT_FLAG(Left, 0)
+EPN_BIT_FLAG(Middle, 1)
+EPN_BIT_FLAG(Right, 2)
 EEND()
 #undef ENAME
 

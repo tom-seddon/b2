@@ -1,22 +1,22 @@
 #define ENAME TraceOutputFlags
 EBEGIN_DERIVED(uint32_t)
 // If set, include register names in output (takes up more columns...)
-EPNV(RegisterNames, 1 << 0)
+EPN_BIT_FLAG(RegisterNames, 0)
 
 // If set, include cycles in output
-EPNV(Cycles, 1 << 1)
+EPN_BIT_FLAG(Cycles, 1)
 
 // If Cycles flag also set, include absolute cycle counts rather than relative
-EPNV(AbsoluteCycles, 1 << 2)
+EPN_BIT_FLAG(AbsoluteCycles, 2)
 
 // Extra ROM mapper verbosity
-EPNV(ROMMapper, 1 << 3)
+EPN_BIT_FLAG(ROMMapper, 3)
 
-EPNV(SymbolsAnnotations, 1 << 4)
+EPN_BIT_FLAG(SymbolsAnnotations, 4)
 
 // If adding symbols annotations, only show the annotation when it's providing
 // additional info.
-EPNV(MinimalSymbolsAnnotations, 1 << 5)
+EPN_BIT_FLAG(MinimalSymbolsAnnotations, 5)
 
 EEND_SERIALIZABLE("f6ad2dfb4b896587fd0ce49ff04324d74090e35f")
 #undef ENAME

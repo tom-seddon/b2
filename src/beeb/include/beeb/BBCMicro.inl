@@ -8,13 +8,13 @@ static_assert(NUM_HARD_DISKS <= 4);
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroLEDFlag
-EBEGIN()
-EPNV(CapsLock, 1 << 0)
-EPNV(ShiftLock, 1 << 1)
-EPNV(TapeMotor, 1 << 2)
+EBEGIN_DERIVED(uint32_t)
+EPN_BIT_FLAG(CapsLock, 0)
+EPN_BIT_FLAG(ShiftLock, 1)
+EPN_BIT_FLAG(TapeMotor, 2)
 
-EQPNV(FloppyDisk0Shift, 4)
-EQPNV(HardDisk0Shift, 8)
+EPN_BIT_FIELD(FloppyDisks, 4, 4)
+EPN_BIT_FIELD(HardDisks, 8, 4)
 EEND()
 #undef ENAME
 
@@ -23,28 +23,28 @@ EEND()
 
 #define ENAME BBCMicroTraceFlag
 EBEGIN_DERIVED(uint32_t)
-EPNV(6845, 1 << 0)
-EPNV(6845Scanlines, 1 << 1)
-EPNV(6845ScanlinesSeparators, 1 << 2)
-EPNV(RTC, 1 << 3)
-EPNV(1770, 1 << 4)
-EPNV(SystemVIA, 1 << 5)
-EPNV(UserVIA, 1 << 6)
-EPNV(VideoULA, 1 << 7)
-EPNV(SN76489, 1 << 8)
-EPNV(BeebLink, 1 << 9)
-EPNV(SystemVIAExtra, 1 << 10)
-EPNV(UserVIAExtra, 1 << 11)
-EPNV(Tube, 1 << 12)
-EPNV(ADC, 1 << 13)
-EPNV(EEPROM, 1 << 14)
-EPNV(DiskDrive, 1 << 15)
-EPNV(SCSI, 1 << 16)
-EPNV(Serial, 1 << 17)
-EPNV(SerialExtra, 1 << 18)
-EPNV(6845Rows, 1 << 19)
-EPNV(6845Columns, 1 << 20)
-EPNV(Plus1, 1 << 21)
+EPN_BIT_FLAG(6845, 0)
+EPN_BIT_FLAG(6845Scanlines, 1)
+EPN_BIT_FLAG(6845ScanlinesSeparators, 2)
+EPN_BIT_FLAG(RTC, 3)
+EPN_BIT_FLAG(1770, 4)
+EPN_BIT_FLAG(SystemVIA, 5)
+EPN_BIT_FLAG(UserVIA, 6)
+EPN_BIT_FLAG(VideoULA, 7)
+EPN_BIT_FLAG(SN76489, 8)
+EPN_BIT_FLAG(BeebLink, 9)
+EPN_BIT_FLAG(SystemVIAExtra, 10)
+EPN_BIT_FLAG(UserVIAExtra, 11)
+EPN_BIT_FLAG(Tube, 12)
+EPN_BIT_FLAG(ADC, 13)
+EPN_BIT_FLAG(EEPROM, 14)
+EPN_BIT_FLAG(DiskDrive, 15)
+EPN_BIT_FLAG(SCSI, 16)
+EPN_BIT_FLAG(Serial, 17)
+EPN_BIT_FLAG(SerialExtra, 18)
+EPN_BIT_FLAG(6845Rows, 19)
+EPN_BIT_FLAG(6845Columns, 20)
+EPN_BIT_FLAG(Plus1, 21)
 EEND_SERIALIZABLE("30b25ff4c5dbfa6d67c0dc5a535271281e4bf884")
 #undef ENAME
 
@@ -52,8 +52,8 @@ EEND_SERIALIZABLE("30b25ff4c5dbfa6d67c0dc5a535271281e4bf884")
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroHackFlag
-EBEGIN()
-EPNV(Paste, 1 << 0)
+EBEGIN_DERIVED(uint32_t)
+EPN_BIT_FLAG(Paste, 0)
 EEND()
 #undef ENAME
 
@@ -94,14 +94,12 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroCloneImpediment
-EBEGIN()
-EPNV(BeebLink, 1 << 0)
-EPNV(Serial, 1 << 1)
-EPNV(MMFS, 1 << 2)
-EPNV(Drive0, 1 << 16)
-// ...up to DriveN, which is Drive0<<(NUM_DRIVES-1)
-EPNV(HardDisk0, 1 << 20)
-// ...up to HardDiskN, which is HardDisk0<<(NUM_HARD_DISKS-1)
+EBEGIN_DERIVED(uint32_t)
+EPN_BIT_FLAG(BeebLink, 0)
+EPN_BIT_FLAG(Serial, 1)
+EPN_BIT_FLAG(MMFS, 2)
+EPN_BIT_FIELD(Drives, 16, NUM_DRIVES)
+EPN_BIT_FIELD(HardDisks, 20, NUM_HARD_DISKS)
 EEND()
 #undef ENAME
 
@@ -126,11 +124,11 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroUpdateResultFlag
-EBEGIN()
-EPNV(AudioUnit, 1 << 0)
-EPNV(VideoUnit, 1 << 1)
-EPNV(Host, 1 << 2)
-EPNV(Parasite, 1 << 3)
+EBEGIN_DERIVED(uint32_t)
+EPN_BIT_FLAG(AudioUnit, 0)
+EPN_BIT_FLAG(VideoUnit, 1)
+EPN_BIT_FLAG(Host, 2)
+EPN_BIT_FLAG(Parasite, 3)
 EEND()
 #undef ENAME
 

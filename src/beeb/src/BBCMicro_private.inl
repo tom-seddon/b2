@@ -4,14 +4,14 @@
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroIRQDevice
-EBEGIN()
-EPNV(SystemVIA, 1 << 0)
-EPNV(UserVIA, 1 << 1)
-EPNV(HostTube, 1 << 2)
-EPNV(ParasiteTube, 1 << 3)
-EPNV(SCSI, 1 << 4)
-EPNV(ACIA, 1 << 5)
-EPNV(ElectronULA, 1 << 6)
+EBEGIN_DERIVED(M6502_DeviceIRQFlags)
+EPN_BIT_FLAG(SystemVIA, 0)
+EPN_BIT_FLAG(UserVIA, 1)
+EPN_BIT_FLAG(HostTube, 2)
+EPN_BIT_FLAG(ParasiteTube, 3)
+EPN_BIT_FLAG(SCSI, 4)
+EPN_BIT_FLAG(ACIA, 5)
+EPN_BIT_FLAG(ElectronULA, 6)
 EEND()
 #undef ENAME
 
@@ -19,9 +19,9 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroNMIDevice
-EBEGIN()
-EPNV(1770, 1 << 0)
-EPNV(ParasiteTube, 1 << 1)
+EBEGIN_DERIVED(M6502_DeviceNMIFlags)
+EPN_BIT_FLAG(1770, 0)
+EPN_BIT_FLAG(ParasiteTube, 1)
 EEND()
 #undef ENAME
 
@@ -30,10 +30,10 @@ EEND()
 
 #define ENAME BBCMicroMMIOScopeFlag
 EBEGIN_DERIVED(uint8_t)
-EPNV(XFJ, 1 << 0)
-EPNV(IFJ, 1 << 1)
-EPNV(XTU, 1 << 2)
-EPNV(ITU, 1 << 3)
+EPN_BIT_FLAG(XFJ, 0)
+EPN_BIT_FLAG(IFJ, 1)
+EPN_BIT_FLAG(XTU, 2)
+EPN_BIT_FLAG(ITU, 3)
 EQPNV(All, 15)
 EEND()
 #undef ENAME

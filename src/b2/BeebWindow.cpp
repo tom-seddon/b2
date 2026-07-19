@@ -2349,16 +2349,16 @@ void BeebWindow::DoPopupUI(uint64_t now, const ImVec2 &display_size) {
                 colour_pusher.Pop();
                 colour_pusher.Push(ImGuiCol_CheckMark, ImVec4(1.f, 0.f, 0.f, 1.f));
 
-                for (int i = 0; i < NUM_DRIVES; ++i) {
+                for (uint32_t i = 0; i < NUM_DRIVES; ++i) {
                     if (i > 0) {
                         ImGui::SameLine();
                     }
-                    ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_FloppyDisk0Shift + i)), "Drive %d", i);
+                    ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_FloppyDisksShift + i)), "Drive %d", i);
                 }
 
-                for (int i = 0; i < NUM_HARD_DISKS; ++i) {
+                for (uint32_t i = 0; i < NUM_HARD_DISKS; ++i) {
                     ImGui::SameLine();
-                    ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_HardDisk0Shift + i)), "HD %d", i);
+                    ImGuiLEDf(ImGuiLEDStyle_Rectangle, !!(m_leds & 1 << (BBCMicroLEDFlag_HardDisksShift + i)), "HD %d", i);
                 }
             }
 

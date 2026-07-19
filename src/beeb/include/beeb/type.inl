@@ -25,9 +25,9 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME PagingFlags
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 // Set if display comes from shadow RAM rather than main RAM.
-EPNV(DisplayShadow, 1 << 0)
+EPN_BIT_FLAG(DisplayShadow, 0)
 EEND()
 #undef ENAME
 
@@ -38,13 +38,13 @@ EEND()
 EBEGIN_DERIVED(uint8_t)
 // These 3 bit assignments are not arbitrary - they match the bit ordering in
 // Master 128 ACCCON.
-EPNV(ITU, 1 << 0) //set for internal Tube
-EPNV(IFJ, 1 << 1) //set for internal FRED/JIM
-EPNV(TST, 1 << 2) //set for ROM visible at $fc00...$feff
+EPN_BIT_FLAG(ITU, 0) //set for internal Tube
+EPN_BIT_FLAG(IFJ, 1) //set for internal FRED/JIM
+EPN_BIT_FLAG(TST, 2) //set for ROM visible at $fc00...$feff
 
 // The inverted logic means the value can be used as an index when this value
 // isn't set.
-EPNV(NoIO, 1 << 3)
+EPN_BIT_FLAG(NoIO, 3)
 EEND()
 #undef ENAME
 
@@ -55,7 +55,7 @@ EEND()
 EBEGIN_DERIVED(uint32_t)
 // Only applies to B. If set, all ROM banks are selectable; if clear, only banks
 // 12-15 are available (corresponding to unexpanded B).
-EPNV(ROMBoard, 1 << 0)
+EPN_BIT_FLAG(ROMBoard, 0)
 EEND()
 #undef ENAME
 

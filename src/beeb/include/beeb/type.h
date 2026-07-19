@@ -12,7 +12,8 @@
 #include <6502/6502.h>
 #include "BBCMicroParasiteType.h"
 
-static constexpr size_t NUM_MAPPER_REGIONS = 16;
+static constexpr size_t NUM_MAPPER_REGIONS_LOG2 = 4;
+static constexpr size_t NUM_MAPPER_REGIONS = 1 << NUM_MAPPER_REGIONS_LOG2;
 
 #include <shared/enum_decl.h>
 #include "type.inl"

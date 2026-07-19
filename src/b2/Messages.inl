@@ -10,8 +10,8 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME MessageListFlags
-EBEGIN()
-EPNV(Save, 1 << 0)  //set if messages saved in list
-EPNV(Stdio, 1 << 1) //set to print messages to stdout/stderr
+EBEGIN_DERIVED(uint32_t)
+EPN_BIT_FLAG(Save, 0)  //set if messages saved in list
+EPN_BIT_FLAG(Stdio, 1) //set to print messages to stdout/stderr
 EEND()
 #undef ENAME

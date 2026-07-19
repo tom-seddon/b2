@@ -89,15 +89,15 @@ std::string GetCloneImpedimentsDescription(uint32_t impediments) {
         return "none";
     } else {
         std::string r;
-        for (int i = 0; i < NUM_DRIVES; ++i) {
-            if (impediments & (uint32_t)BBCMicroCloneImpediment_Drive0 << i) {
+        for (uint32_t i = 0; i < NUM_DRIVES; ++i) {
+            if (impediments & 1u << (i + BBCMicroCloneImpediment_DrivesShift)) {
                 AddCommaSeparator(&r);
                 r += strprintf("drive %d", i);
             }
         }
 
-        for (int i = 0; i < NUM_HARD_DISKS; ++i) {
-            if (impediments & (uint32_t)BBCMicroCloneImpediment_HardDisk0 << i) {
+        for (uint32_t i = 0; i < NUM_HARD_DISKS; ++i) {
+            if (impediments & 1u << (i + BBCMicroCloneImpediment_HardDisksShift)) {
                 AddCommaSeparator(&r);
                 r += strprintf("hard disk %d", i);
             }

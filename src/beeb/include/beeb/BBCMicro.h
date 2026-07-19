@@ -295,8 +295,8 @@ class BBCMicro : private WD1770Handler {
 
     static const uint16_t ADJI_ADDRESSES[4];
 
-    static constexpr uint32_t LED_FLAGS_FLOPPY_DISKS = ((1 << NUM_DRIVES) - 1) << BBCMicroLEDFlag_FloppyDisk0Shift;
-    static constexpr uint32_t LED_FLAGS_HARD_DISKS = ((1 << NUM_HARD_DISKS) - 1) << BBCMicroLEDFlag_HardDisk0Shift;
+    static constexpr uint32_t LED_FLAGS_FLOPPY_DISKS = ((1 << NUM_DRIVES) - 1) << BBCMicroLEDFlag_FloppyDisksShift;
+    static constexpr uint32_t LED_FLAGS_HARD_DISKS = ((1 << NUM_HARD_DISKS) - 1) << BBCMicroLEDFlag_HardDisksShift;
     static constexpr uint32_t LED_FLAGS_ALL_DISKS = LED_FLAGS_FLOPPY_DISKS | LED_FLAGS_HARD_DISKS;
 
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
