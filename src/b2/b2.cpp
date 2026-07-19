@@ -2218,8 +2218,7 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
 
 #if SYSTEM_OSX
     if (!app_handler->IsHeadless()) {
-        %
-            QuitHIDCallback();
+        QuitHIDCallback();
     }
 #endif
 
