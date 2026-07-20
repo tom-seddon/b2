@@ -1,24 +1,19 @@
 #define ENAME VideoNuLAModeFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 
 // 0,1
-EPNV(ModeShift, 0)
-EPNV(ModeMask, 3)
+EPN_BIT_FIELD(Mode, 0, 2)
 
 // 2
-EPNV(Fast6845Shift, 2)
-EPNV(Fast6845, 1 << VideoNuLAModeFlag_Fast6845Shift)
+EPN_BIT_FLAG(Fast6845, 2)
 
 // 3
-EQPNV(TextAttributeModeShift, 3)
-EPNV(TextAttributeMode, 1 << VideoNuLAModeFlag_TextAttributeModeShift)
+EPN_BIT_FLAG(TextAttributeMode, 3)
 
 // 4,5
-EQPNV(AttributeModeShift, 4)
-EQPNV(AttributeModeMask, 3)
+EPN_BIT_FIELD(AttributeMode, 4, 2)
 
 // 6
-EPNV(LogicalPaletteShift, 6)
-EPNV(LogicalPalette, 1 << VideoNuLAModeFlag_LogicalPaletteShift)
+EPN_BIT_FLAG(LogicalPalette, 6)
 EEND()
 #undef ENAME

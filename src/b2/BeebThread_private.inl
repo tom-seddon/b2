@@ -2,20 +2,20 @@
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BeebThreadReplaceFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 
 // If set, copy new key state from current key state. Othewise, use
 // state's key state.
-EPNV(ResetKeyState, 1 << 0)
+EPN_BIT_FLAG(ResetKeyState, 0)
 
 // Do the hold-down-SHIFT autoboot thing.
-EPNV(Autoboot, 1 << 1)
+EPN_BIT_FLAG(Autoboot, 1)
 
 // If set, keep current discs. Used when changing config.
-EPNV(KeepCurrentDiscs, 1 << 2)
+EPN_BIT_FLAG(KeepCurrentDiscs, 2)
 
 // Treat this as a reset for tracing purposes.
-EPNV(IsReset, 1 << 3)
+EPN_BIT_FLAG(IsReset, 3)
 
 EEND()
 #undef ENAME

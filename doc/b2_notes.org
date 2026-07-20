@@ -11885,4 +11885,26 @@ Sample use:
       printf("%zu\n", sizeof(ImGuiContext));
 #+end_src
 
+* enums stuff
+
+#+begin_example
+VideoNuLAModeFlag: size=32 signed=true serializable=false
+    ModeShift: 0
+    ModeMask: 3
+    Fast6845Shift: 2
+    Fast6845: 4
+    TextAttributeMode: 8
+    LogicalPaletteShift: 6
+    LogicalPalette: 64
+#+end_example
+
+#+begin_example
+VideoNuLAModeFlag: size=32 signed=false serializable=false
+    Mode: bit=0 width=2 (mask=0x3)
+    Fast6845: bit=2 width=1 (mask=0x4)
+    TextAttributeMode: bit=3 width=1 (mask=0x8)
+    AttributeMode: bit=4 width=2 (mask=0x30)
+    LogicalPalette: bit=6 width=1 (mask=0x40)
+#+end_example
+
 * eof.

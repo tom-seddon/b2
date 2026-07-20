@@ -1,5 +1,5 @@
 #define ENAME HandlerFlag
-EBEGIN()
-EPNV(PrintPrefix, 1 << 0)
+EBEGIN_DERIVED(uint32_t)
+EPN_BIT_FLAG(PrintPrefix, 0)
 EEND()
 #undef ENAME
