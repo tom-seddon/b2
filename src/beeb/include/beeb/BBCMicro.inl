@@ -13,8 +13,8 @@ EPN_BIT_FLAG(CapsLock, 0)
 EPN_BIT_FLAG(ShiftLock, 1)
 EPN_BIT_FLAG(TapeMotor, 2)
 
-EPN_BIT_FIELD(FloppyDisks, 4, 4)
-EPN_BIT_FIELD(HardDisks, 8, 4)
+EPN_BIT_FIELD(FloppyDisks, 4, NUM_DRIVES)
+EPN_BIT_FIELD(HardDisks, 8, NUM_HARD_DISKS)
 EEND()
 #undef ENAME
 
@@ -198,7 +198,7 @@ EEND()
 #define ENAME BBCMicroUpdateFlag
 EBEGIN_DERIVED(uint32_t)
 // If set, check for breakpoints wwhile running.
-EPNV(Debug, 1 << 0)
+EPN_BIT_FLAG(Debug, 0)
 
 // Some non-fast path cases:
 //
@@ -209,16 +209,16 @@ EPNV(Debug, 1 << 0)
 //   - trace start/stop conditions
 //
 // These are off the fast path, but shouldn't do anything abominable.
-EPNV(NonFastPath, 1 << 1)
+EPN_BIT_FLAG(NonFastPath, 1)
 
 // Parallel printer connected.
-EPNV(ParallelPrinter, 1 << 2)
+EPN_BIT_FLAG(ParallelPrinter, 2)
 
 // Tracing active.
-EPNV(Trace, 1 << 3)
+EPN_BIT_FLAG(Trace, 3)
 
 // Mouse connected.
-EPNV(Mouse, 1 << 4)
+EPN_BIT_FLAG(Mouse, 4)
 
 // Additional rarer non-fast path cases:
 //
@@ -230,26 +230,28 @@ EPNV(Mouse, 1 << 4)
 // - memory access error
 //
 // These are rare and/or transient, and don't promise to be remotely efficient.
-EPNV(RareNonFastPath, 1 << 5)
+EPN_BIT_FLAG(RareNonFastPath, 5)
 
-EQPNV(UpdateSystemTypeShift, 6)
-EQPNV(UpdateSystemTypeMask, 3)
+EPN_BIT_FIELD_ENUM(UpdateSystemType, 6, 2, BBCMicroUpdateSystemType)
+//EQPNV(UpdateSystemTypeShift, 6)
+//EQPNV(UpdateSystemTypeMask, 3)
 
 // If clear, parasite (if any) runs at 4 MHz.
 //
 // If set, parasite (if any) runs at an effective 3 MHz, by running for 3 cycles
 // out of every 4.
-EPNV(Parasite3MHzExternal, 1 << 8)
+EPN_BIT_FLAG(Parasite3MHzExternal, 8)
 
 // 6502 2nd processor connected.
-EPNV(Parasite, 1 << 9)
+EPN_BIT_FLAG(Parasite, 9)
 
-EQPNV(UpdateROMTypeShift, 10)
-EQPNV(UpdateROMTypeMask, 15)
+EPN_BIT_FIELD_ENUM(UpdateROMType, 10, 4, BBCMicroUpdateROMType)
+//EQPNV(UpdateROMTypeShift, 10)
+//EQPNV(UpdateROMTypeMask, 15)
 // next free bit is 1<<14
 
 // If set, serial/tape hardware is present.
-EPNV(Serial, 1 << 14)
+EPN_BIT_FLAG(Serial, 14)
 
 EEND()
 #undef ENAME
