@@ -609,15 +609,15 @@ void DebugUI::DoDebugPageOverrideImGui() {
             ImGui::SameLine();
 
             if (m_dso & BBCMicroDebugStateOverride_OverrideROM) {
-                ImGui::Text("%c!", GetROMBankCode(m_dso & BBCMicroDebugStateOverride_ROM));
+                ImGui::Text("%c!", GetROMBankCode(m_dso >> BBCMicroDebugStateOverride_ROMShift & BBCMicroDebugStateOverride_ROMMask));
             } else {
-                ImGui::Text("%c", GetROMBankCode(dso_current & BBCMicroDebugStateOverride_ROM));
+                ImGui::Text("%c", GetROMBankCode(dso_current >> BBCMicroDebugStateOverride_ROMShift & BBCMicroDebugStateOverride_ROMMask));
             }
 
             if (ImGui::BeginPopup(ROM_POPUP)) {
                 if (ImGui::Button("Use current")) {
                     m_dso &= ~BBCMicroDebugStateOverride_OverrideROM;
-                    m_dso &= ~BBCMicroDebugStateOverride_ROM;
+                    m_dso &= ~(BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift);
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -631,7 +631,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
 
                     if (ImGui::Button(text)) {
                         m_dso |= BBCMicroDebugStateOverride_OverrideROM;
-                        m_dso = (m_dso & ~BBCMicroDebugStateOverride_ROM) | i;
+                        m_dso = (m_dso & ~(BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift)) | i << BBCMicroDebugStateOverride_ROMShift;
                         ImGui::CloseCurrentPopup();
                     }
                 }

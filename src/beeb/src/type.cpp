@@ -224,7 +224,7 @@ static bool IsB(BBCMicroTypeID type_id) {
 static void ApplyROMDSO(PagingState *paging, uint32_t dso) {
 
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
-        paging->romsel.b_bits.pr = dso & BBCMicroDebugStateOverride_ROM;
+        paging->romsel.b_bits.pr = dso >> BBCMicroDebugStateOverride_ROMShift & BBCMicroDebugStateOverride_ROMMask;
     }
 
     if (dso & BBCMicroDebugStateOverride_OverrideMapperRegion) {
@@ -439,8 +439,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      4,
                                      bank_code, 0, rom_desc,
 #if BBCMICRO_DEBUGGER
-                                     BBCMicroDebugStateOverride_ROM,
-                                     BBCMicroDebugStateOverride_OverrideROM | bank,
+                                     BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift,
+                                     BBCMicroDebugStateOverride_OverrideROM | bank << BBCMicroDebugStateOverride_ROMShift,
 #endif
                                      0x8000);
                 break;
@@ -458,8 +458,10 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      4,
                                      bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
-                                     BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift,
-                                     BBCMicroDebugStateOverride_OverrideROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | region << BBCMicroDebugStateOverride_MapperRegionShift,
+                                     (BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift |
+                                      BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
+                                     (BBCMicroDebugStateOverride_OverrideROM | bank << BBCMicroDebugStateOverride_ROMShift |
+                                      BBCMicroDebugStateOverride_OverrideMapperRegion | region << BBCMicroDebugStateOverride_MapperRegionShift),
 #endif
                                      0x8000);
                 break;
@@ -473,7 +475,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      2,
                                      bank_code, 0, rom_desc,
 #if BBCMICRO_DEBUGGER
-                                     BBCMicroDebugStateOverride_ROM,
+                                     BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift,
                                      BBCMicroDebugStateOverride_OverrideROM | bank,
 #endif
                                      0x8000);
@@ -483,8 +485,10 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      2,
                                      bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
-                                     BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift,
-                                     BBCMicroDebugStateOverride_OverrideROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | region << BBCMicroDebugStateOverride_MapperRegionShift,
+                                     (BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift |
+                                      BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
+                                     (BBCMicroDebugStateOverride_OverrideROM | bank << BBCMicroDebugStateOverride_ROMShift |
+                                      BBCMicroDebugStateOverride_OverrideMapperRegion | region << BBCMicroDebugStateOverride_MapperRegionShift),
 #endif
                                      0xa000);
                 break;
@@ -770,8 +774,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataElectron(const ROMType *r
                          code[0], code[1],
                          "Electron keyboard",
 #if BBCMICRO_DEBUGGER
-                         BBCMicroDebugStateOverride_ROM,
-                         BBCMicroDebugStateOverride_OverrideROM | ElectronULA::KEYBOARD_ROM_BANK_BASE,
+                         BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift,
+                         BBCMicroDebugStateOverride_OverrideROM | ElectronULA::KEYBOARD_ROM_BANK_BASE << BBCMicroDebugStateOverride_ROMShift,
 #endif
                          0x8000);
 
@@ -1301,20 +1305,20 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         [[fallthrough]];
     case BBCMicroTypeID_B:
         type->dso_mask = (BBCMicroDebugStateOverride_OverrideROM |
-                          BBCMicroDebugStateOverride_ROM);
+                          BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift);
         type->apply_dso_fn = &ApplyDSOB;
         type->get_dso_fn = &GetDSOB;
         break;
 
     case BBCMicroTypeID_Electron:
         type->dso_mask = (BBCMicroDebugStateOverride_OverrideROM |
-                          BBCMicroDebugStateOverride_ROM);
+                          BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift);
         type->apply_dso_fn = &ApplyDSOElectron;
         type->get_dso_fn = &GetDSOElectron;
         break;
 
     case BBCMicroTypeID_BPlus:
-        type->dso_mask = (BBCMicroDebugStateOverride_ROM |
+        type->dso_mask = (BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift |
                           BBCMicroDebugStateOverride_OverrideROM |
                           BBCMicroDebugStateOverride_ANDY |
                           BBCMicroDebugStateOverride_OverrideANDY |
@@ -1326,7 +1330,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
 
     case BBCMicroTypeID_Master:
     case BBCMicroTypeID_MasterCompact:
-        type->dso_mask = (BBCMicroDebugStateOverride_ROM |
+        type->dso_mask = (BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift |
                           BBCMicroDebugStateOverride_OverrideROM |
                           BBCMicroDebugStateOverride_ANDY |
                           BBCMicroDebugStateOverride_OverrideANDY |
@@ -1581,8 +1585,8 @@ static void HandleROMSuffixChar(uint32_t *dso, int rom) {
     *dso |= BBCMicroDebugStateOverride_OverrideANDY;
 
     if (rom >= 0) {
-        *dso &= ~BBCMicroDebugStateOverride_ROM;
-        *dso |= BBCMicroDebugStateOverride_OverrideROM | (uint32_t)rom;
+        *dso &= ~(BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift);
+        *dso |= BBCMicroDebugStateOverride_OverrideROM | (uint32_t)rom << BBCMicroDebugStateOverride_ROMShift;
     }
 }
 #endif
@@ -1700,7 +1704,7 @@ uint32_t GetDSOMaskForOverrides(uint32_t dso) {
     uint32_t mask = 0;
 
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
-        mask |= BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_ROM;
+        mask |= BBCMicroDebugStateOverride_OverrideROM | BBCMicroDebugStateOverride_ROMMask << BBCMicroDebugStateOverride_ROMShift;
     }
 
     if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
@@ -1757,12 +1761,15 @@ std::string GetDSODescription(uint32_t dso) {
 
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
         description += "OverrideROM|";
-    }
 
-    uint32_t rom = dso & BBCMicroDebugStateOverride_ROM;
-    if (rom != 0) {
+        uint32_t rom = dso >> BBCMicroDebugStateOverride_ROMShift & BBCMicroDebugStateOverride_ROMMask;
         description += "0x";
-        description.push_back(HEX_CHARS_LC[dso & BBCMicroDebugStateOverride_ROM]);
+        description.push_back(HEX_CHARS_LC[rom]);
+
+        if constexpr (BBCMicroDebugStateOverride_ROMShift != 0) {
+            description += "<<" STRINGIZE(BBCMicroDebugStateOverride_ROMShift);
+        }
+
         description.push_back('|');
     }
 

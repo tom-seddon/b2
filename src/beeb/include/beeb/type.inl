@@ -70,49 +70,52 @@ static_assert((NUM_MAPPER_REGIONS & (NUM_MAPPER_REGIONS - 1)) == 0);
 
 #define ENAME BBCMicroDebugStateOverride
 EBEGIN_DERIVED(uint32_t)
+
 // If OverrideROM, select specific ROM bank as per ROM bits.
-EQPNV(ROM, 15)
-EPNV(OverrideROM, 1 << 4)
+EPN_BIT_FIELD(ROM, 0, 4)
+//EQPNV(ROM, 15)
+EPN_BIT_FLAG(OverrideROM, 4)
 
 // If OverrideANDY, ANDY selects ANDY (1) or current sideways ROM (0) at $8000
 // (exact size model-dependent).
-EPNV(ANDY, 1 << 5)
-EPNV(OverrideANDY, 1 << 6)
+EPN_BIT_FLAG(ANDY, 5)
+EPN_BIT_FLAG(OverrideANDY, 6)
 
 // If OverrideHAZEL, HAZEL selects HAZEL (1) or OS (0) at $c000...$dfff.
-EPNV(HAZEL, 1 << 7)
-EPNV(OverrideHAZEL, 1 << 8)
+EPN_BIT_FLAG(HAZEL, 7)
+EPN_BIT_FLAG(OverrideHAZEL, 8)
 
 // If OverrideShadow, Shadow selects shadow RAM (1) or main RAM (0) as
 // $3000...$7fff.
-EPNV(Shadow, 1 << 9)
-EPNV(OverrideShadow, 1 << 10)
+EPN_BIT_FLAG(Shadow, 9)
+EPN_BIT_FLAG(OverrideShadow, 10)
 
 // If OverrideOS, OS selects behaviour of $fc00...$feff: read MOS ROM/write I/O
 // (1) or read/write I/O (0).
-EPNV(OS, 1 << 11)
-EPNV(OverrideOS, 1 << 12)
+EPN_BIT_FLAG(OS, 11)
+EPN_BIT_FLAG(OverrideOS, 12)
 
-EPNV(ParasiteROM, 1 << 13)
-EPNV(OverrideParasiteROM, 1 << 14)
+EPN_BIT_FLAG(ParasiteROM, 13)
+EPN_BIT_FLAG(OverrideParasiteROM, 14)
 
 // This flag is special: it doesn't have a separate Override flag, and is itself
 // the override flag, since it's only a property of the debugger's view of the
 // system. It's always assumed to be clear (so the debugger views the host), but
 // can be set to view the parasite instead.
-EPNV(Parasite, 1 << 15)
+EPN_BIT_FLAG(Parasite, 15)
 
-EPNV(OverrideMapperRegion, 1 << 16)
-EPNV(MapperRegionShift, 17)
-EQPNV(MapperRegionMask, NUM_MAPPER_REGIONS - 1)
+EPN_BIT_FLAG(OverrideMapperRegion, 16)
+EPN_BIT_FIELD(MapperRegion, 17, NUM_MAPPER_REGIONS_LOG2)
+//EPNV(MapperRegionShift, 17)
+//EQPNV(MapperRegionMask, NUM_MAPPER_REGIONS - 1)
 
 // If OverrideIFJ, IFJ selects behaviour of $fc00...$fdff: IFJ (1) or XFJ (0).
-EPNV(OverrideIFJ, 1 << 21)
-EPNV(IFJ, 1 << 22)
+EPN_BIT_FLAG(OverrideIFJ, 21)
+EPN_BIT_FLAG(IFJ, 22)
 
 // If OverrideITU, ITU selects behaviour of Tube: ITU (1) or XTU (0).
-EPNV(OverrideITU, 1 << 23)
-EPNV(ITU, 1 << 24)
+EPN_BIT_FLAG(OverrideITU, 23)
+EPN_BIT_FLAG(ITU, 24)
 
 //next free bit is 25
 
