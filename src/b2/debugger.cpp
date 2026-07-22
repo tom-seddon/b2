@@ -623,7 +623,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
 
                 ImGui::Text("Force");
 
-                for (uint8_t i = 0; i < 16; ++i) {
+                for (uint32_t i = 0; i < 16; ++i) {
                     ImGui::SameLine();
 
                     char text[2] = {};
