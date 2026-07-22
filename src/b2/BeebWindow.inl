@@ -87,10 +87,11 @@ EPN(MutexStats)
 EPN(ElectronULADebug)
 EPN(TapeDebug)
 EPN(Plus1Debug)
+EPN(Enums)
 
 // must be last
 EQPN(MaxValue)
-EEND_SERIALIZABLE("34abe885e1c2a1664dab3872c713c56a0b8c87e5")
+EEND_SERIALIZABLE("c5f417840763725a716013a34fc04441ba375d5f")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

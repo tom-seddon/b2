@@ -285,6 +285,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_ElectronULADebug, "toggle_electron_ula_debug", "Electron ULA Debug", &CreateElectronULADebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_TapeDebug, "toggle_tape_debug", "Tape Debug", &CreateTapeDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_Plus1Debug, "toggle_plus1_debug", "Plus 1 Debug", &CreatePlus1DebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Enums, "toggle_enums", "Enums", &CreateEnumsUI);
     return true;
 }
 
@@ -3214,6 +3215,7 @@ void BeebWindow::DoExtraDebugMenu() {
     if (ImGui::BeginMenu("Extras###extra")) {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_AudioCallback].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MutexStats].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Enums].command);
 #if ENABLE_IMGUI_TEST
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DearImguiTest].command);
 #endif

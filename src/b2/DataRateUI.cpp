@@ -697,3 +697,200 @@ std::unique_ptr<SettingsUI> CreateMutexStatsUI(BeebWindow *beeb_window) {
     return nullptr;
 #endif
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class EnumsUI : public SettingsUI {
+  public:
+    EnumsUI();
+
+    void DoImGui() override;
+    bool OnClose() override;
+
+  protected:
+  private:
+    struct Enum {
+        const EnumTraitsBase *traits = nullptr;
+        std::vector<const EnumValue *> values;
+    };
+    std::vector<Enum> m_enums;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+enum class EnumTableColumn : ImGuiID {
+    Name,
+    Value,
+    ValueHex,
+
+    Count //must be last
+};
+
+//static bool EnumValueLessThanByName(const EnumValue *lhs, const EnumValue *rhs) {
+//    return strcasecmp(lhs->name, rhs->name) < 0;
+//}
+
+//static bool EnumValueLessThanBySignedValue(const EnumValue *lhs, const EnumValue *rhs) {
+//    return (int64_t)lhs->value < (int64_t)rhs->value;
+//}
+
+//static bool EnumValueLessThanByUnsignedValue(const EnumValue *lhs, const EnumValue *rhs) {
+//    return lhs->value < rhs->value;
+//}
+
+EnumsUI::EnumsUI() {
+    for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
+        Enum e;
+
+        e.traits = traits;
+
+        for (const EnumValue *value = traits->first_value; value; value = value->next) {
+            e.values.push_back(value);
+        }
+
+        m_enums.push_back(std::move(e));
+    }
+
+    std::sort(m_enums.begin(),
+              m_enums.end(),
+              [](const Enum &lhs, const Enum &rhs) -> bool {
+                  return strcasecmp(lhs.traits->name, rhs.traits->name) < 0;
+              });
+}
+
+void EnumsUI::DoImGui() {
+    ImGui::Text("TODO...");
+
+    //for (Enum &e : m_enums) {
+    //    //if (ImGui::CollapsingHeader(e.traits->name)) {
+    //    //ImGuiIDPusher id_pusher(e.traits->name);
+    //    {
+
+    //        if (e.traits->size_bits % 8 == 0) {
+    //            ImGui::BulletText("Size: %zu bits (%zu bytes)", e.traits->size_bits, e.traits->size_bits / 8);
+    //        } else {
+    //            ImGui::BulletText("Size: %zu bits", e.traits->size_bits);
+    //        }
+    //        ImGui::BulletText("Signed: %s", BOOL_STR(e.traits->is_signed));
+    //        ImGui::BulletText("Bitfield: %s", BOOL_STR(e.traits->is_bitfield));
+
+    //        const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
+
+    //        if (e.traits->is_bitfield) {
+    //        } else {
+    //            if (ImGui::BeginTable("values", (int)EnumTableColumn::Count, table_flags)) {
+    //                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Name);
+    //                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Value);
+    //                ImGui::TableSetupColumn("Value (hex)", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::ValueHex);
+
+    //                ImGui::TableSetupScrollFreeze(0, 1);
+    //                ImGui::TableHeadersRow();
+
+    //                if (ImGuiTableSortSpecs *specs = ImGui::TableGetSortSpecs()) {
+    //                    if (specs->SpecsDirty) {
+    //                        for (int spec_index = 0; spec_index < specs->SpecsCount; ++spec_index) {
+    //                            const ImGuiTableColumnSortSpecs *spec = &specs->Specs[spec_index];
+
+    //                            bool (*lt_fn)(const EnumValue *lhs, const EnumValue *rhs) = nullptr;
+    //                            switch ((EnumTableColumn)spec->ColumnUserID) {
+    //                            default:
+    //                                ASSERT(false);
+    //                                break;
+
+    //                            case EnumTableColumn::Name:
+    //                                lt_fn = &EnumValueLessThanByName;
+    //                                break;
+
+    //                            case EnumTableColumn::Value:
+    //                                if (e.traits->is_signed) {
+    //                                    lt_fn = &EnumValueLessThanBySignedValue;
+    //                                } else {
+    //                                    lt_fn = &EnumValueLessThanByUnsignedValue;
+    //                                }
+    //                                break;
+
+    //                            case EnumTableColumn::ValueHex:
+    //                                lt_fn = &EnumValueLessThanByUnsignedValue;
+    //                                break;
+    //                            }
+
+    //                            if (lt_fn) {
+    //                                std::stable_sort(e.values.begin(),
+    //                                                 e.values.end(),
+    //                                                 lt_fn);
+    //                            }
+    //                        }
+    //                    }
+    //                }
+
+    //                for (const EnumValue *value : e.values) {
+    //                    ImGui::TableNextRow();
+
+    //                    ImGui::TableNextColumn();
+    //                    ImGui::TextUnformatted(value->name);
+
+    //                    ImGui::TableNextColumn();
+    //                    if (e.traits->is_signed) {
+    //                        ImGui::Text("%" PRId64, (int64_t)value->value);
+    //                    } else {
+    //                        ImGui::Text("%" PRIu64, value->value);
+    //                    }
+
+    //                    ImGui::TableNextColumn();
+    //                    ImGui::Text("%0*" PRIx64,
+    //                                (int)((e.traits->size_bits + 3) / 4 * 4),
+    //                                value->value);
+    //                }
+
+    //                ImGui::EndTable();
+    //            }
+    //        }
+    //    }
+    //}
+
+    //for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
+    //    if (ImGui::CollapsingHeader(traits->name)) {
+    //        ImGui::BulletText("Size: %zu bits (%f bytes)", traits->size_bits, traits->size_bits / 8.);
+    //        ImGui::BulletText("Signed: %s", BOOL_STR(traits->is_signed));
+    //        ImGui::BulletText("Bitfield: %s", BOOL_STR(traits->is_bitfield));
+
+    //        if (traits->is_bitfield) {
+    //            ImGui::Text("Bitfield TODO...");
+    //        } else {
+    //            const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
+    //            if (ImGui::BeginTable("values", (int)EnumTableColumn::Count, table_flags)) {
+    //                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Name);
+    //                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Value);
+    //                ImGui::TableSetupColumn("Value (hex)", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::ValueHex);
+
+    //                ImGui::TableSetupScrollFreeze(0, 1);
+    //                ImGui::TableHeadersRow();
+
+    //                if(ImGuiTableSortSpecs*specs=
+
+    //                ImGui::EndTable();
+    //            }
+    //        }
+
+    //        for (const EnumValue *value = traits->first_value; value; value = value->next) {
+    //        }
+    //    }
+    //}
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool EnumsUI::OnClose() {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateEnumsUI(BeebWindow *beeb_window) {
+    (void)beeb_window;
+    return std::make_unique<EnumsUI>();
+}
