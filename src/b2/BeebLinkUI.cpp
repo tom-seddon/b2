@@ -13,7 +13,7 @@
 class BeebLinkUI : public SettingsUI {
   public:
     BeebLinkUI() {
-        this->SetDefaultSize({200.f,100.f});
+        this->SetDefaultSize({200.f, 100.f});
     }
 
     void DoImGui() override {
