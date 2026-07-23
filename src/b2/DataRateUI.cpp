@@ -763,7 +763,7 @@ EnumsUI::EnumsUI() {
 }
 
 void EnumsUI::DoImGui() {
-    ImGui::Text("TODO...");
+//    ImGui::Text("TODO...");
 
     //for (Enum &e : m_enums) {
     //    //if (ImGui::CollapsingHeader(e.traits->name)) {
@@ -852,34 +852,34 @@ void EnumsUI::DoImGui() {
     //    }
     //}
 
-    //for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
-    //    if (ImGui::CollapsingHeader(traits->name)) {
-    //        ImGui::BulletText("Size: %zu bits (%f bytes)", traits->size_bits, traits->size_bits / 8.);
-    //        ImGui::BulletText("Signed: %s", BOOL_STR(traits->is_signed));
-    //        ImGui::BulletText("Bitfield: %s", BOOL_STR(traits->is_bitfield));
+    for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
+        if (ImGui::CollapsingHeader(traits->name)) {
+            ImGui::BulletText("Size: %zu bits (%f bytes)", traits->size_bits, traits->size_bits / 8.);
+            ImGui::BulletText("Signed: %s", BOOL_STR(traits->is_signed));
+            ImGui::BulletText("Bitfield: %s", BOOL_STR(traits->is_bitfield));
 
-    //        if (traits->is_bitfield) {
-    //            ImGui::Text("Bitfield TODO...");
-    //        } else {
-    //            const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
-    //            if (ImGui::BeginTable("values", (int)EnumTableColumn::Count, table_flags)) {
-    //                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Name);
-    //                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Value);
-    //                ImGui::TableSetupColumn("Value (hex)", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::ValueHex);
+            if (traits->is_bitfield) {
+                ImGui::Text("Bitfield TODO...");
+            } else {
+                const uint32_t table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti;
+                if (ImGui::BeginTable("values", (int)EnumTableColumn::Count, table_flags)) {
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Name);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::Value);
+                    ImGui::TableSetupColumn("Value (hex)", ImGuiTableColumnFlags_WidthFixed, 0.f, (ImGuiID)EnumTableColumn::ValueHex);
 
-    //                ImGui::TableSetupScrollFreeze(0, 1);
-    //                ImGui::TableHeadersRow();
+                    ImGui::TableSetupScrollFreeze(0, 1);
+                    ImGui::TableHeadersRow();
 
-    //                if(ImGuiTableSortSpecs*specs=
+                    //if(ImGuiTableSortSpecs*specs=
 
-    //                ImGui::EndTable();
-    //            }
-    //        }
+                    ImGui::EndTable();
+                }
+            }
 
-    //        for (const EnumValue *value = traits->first_value; value; value = value->next) {
-    //        }
-    //    }
-    //}
+            for (const EnumValue *value = traits->first_value; value; value = value->next) {
+            }
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
