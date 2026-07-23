@@ -172,14 +172,20 @@ struct PopupMetadata {
     std::function<std::unique_ptr<SettingsUI>(BeebWindow *, ImGuiStuff *)> create_fun_2;
 };
 
-static std::unique_ptr<SettingsUI> CreatePopup(const PopupMetadata &popup, BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
-    if (!!popup.create_fun_1) {
-        return popup.create_fun_1(beeb_window);
-    } else if (!!popup.create_fun_2) {
-        return popup.create_fun_2(beeb_window, imgui_stuff);
-    } else {
-        return nullptr;
+static std::unique_ptr<SettingsUI> CreatePopup(const PopupMetadata &metadata, BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
+    std::unique_ptr<SettingsUI> popup;
+    if (!!metadata.create_fun_1) {
+        popup= metadata.create_fun_1(beeb_window);
+    } else if (!!metadata.create_fun_2) {
+        popup=metadata.create_fun_2(beeb_window, imgui_stuff);
     }
+
+    if(!!popup){
+        // The default size must have been set.
+        ASSERT(popup->GetDefaultSize() != ImVec2(0.f, 0.f));
+    }
+    
+    return popup;
 }
 
 static PopupMetadata g_popups[BeebWindowPopupType_MaxValue];
@@ -412,6 +418,7 @@ class BeebWindow::ImGuiDebugUI : public SettingsUI {
 BeebWindow::ImGuiDebugUI::ImGuiDebugUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
     m_ids.push_back("");
+        this->SetDefaultSize({200.f,100.f});
 }
 
 //////////////////////////////////////////////////////////////////////////

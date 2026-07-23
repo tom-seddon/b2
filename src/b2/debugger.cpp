@@ -1103,8 +1103,6 @@ static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window, ImVec
 
     ptr->SetBeebWindow(beeb_window);
 
-    // The default size must be set by the relevant constructor, or by the
-    // caller of CreateDebugUI.
     if (default_size.x != 0 && default_size.y != 0) {
         ptr->SetDefaultSize(default_size);
     } else {

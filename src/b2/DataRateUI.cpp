@@ -741,6 +741,8 @@ enum class EnumTableColumn : ImGuiID {
 //}
 
 EnumsUI::EnumsUI() {
+    this->SetDefaultSize({200.f,100.f});
+    
     for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
         Enum e;
 
