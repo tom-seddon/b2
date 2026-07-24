@@ -434,7 +434,7 @@ class ColumnSorter {
             if (spec->SortDirection == ImGuiSortDirection_Ascending) {
                 std::stable_sort(m_order_table->begin(),
                                  m_order_table->end(),
-                                 [this, spec, &less_than](size_t index_a, size_t index_b) -> bool {
+                                 [this, &less_than](size_t index_a, size_t index_b) -> bool {
                                      ASSERT(index_a < m_cont->size());
                                      ASSERT(index_b < m_cont->size());
 
@@ -443,7 +443,7 @@ class ColumnSorter {
             } else if (spec->SortDirection == ImGuiSortDirection_Descending) {
                 std::stable_sort(m_order_table->begin(),
                                  m_order_table->end(),
-                                 [this, spec, &less_than](size_t index_a, size_t index_b) -> bool {
+                                 [this, &less_than](size_t index_a, size_t index_b) -> bool {
                                      ASSERT(index_a < m_cont->size());
                                      ASSERT(index_b < m_cont->size());
 
