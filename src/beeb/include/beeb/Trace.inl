@@ -1,5 +1,8 @@
 #define ENAME TraceEventSource
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
+// The trace mechanism stores this value in a 2-bit field.
+EMETA_SIZE_BITS(2)
+
 // No specific source recorded.
 EPNV(None, 0)
 
@@ -13,6 +16,3 @@ EPNV(Parasite, 2)
 EPN(Count)
 EEND()
 #undef ENAME
-
-// The trace mechanism stores this value in a 2-bit field.
-static_assert(TraceEventSource_Count < 4);

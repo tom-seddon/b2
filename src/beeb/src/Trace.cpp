@@ -115,6 +115,10 @@ const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel", sizeof(WriteROMS
 const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon", sizeof(WriteACCCONEvent), TraceEventSource_Host);
 const TraceEventType Trace::PARASITE_BOOT_MODE_EVENT("_parasite_boot_mode", sizeof(ParasiteBootModeEvent), TraceEventSource_Parasite);
 const TraceEventType Trace::SET_MAPPER_REGION_EVENT("_set_mapper_region", sizeof(SetMapperRegionEvent), TraceEventSource_Host);
+#if BBCMICRO_DEBUGGER
+const TraceEventType Trace::ENABLE_SYMBOL_GROUP_EVENT("_enable_symbol_group", sizeof(SymbolGroupEvent), TraceEventSource_Host);
+const TraceEventType Trace::DISABLE_SYMBOL_GROUP_EVENT("_disable_symbol_group", sizeof(SymbolGroupEvent), TraceEventSource_Host);
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -130,6 +134,9 @@ struct Trace::Chunk {
 
     PagingState initial_paging;
     bool initial_parasite_boot_mode = false;
+#if BBCMICRO_DEBUGGER
+    std::bitset<256> initial_symbol_groups_enabled;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -163,6 +170,15 @@ Trace::~Trace() {
         c = next;
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void Trace::SetInitialSymbolGroupsEnabled(const std::bitset<256> &initial_symbol_groups_enabled) {
+    m_symbol_groups_enabled = initial_symbol_groups_enabled;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -348,6 +364,18 @@ void Trace::AllocSetMapperRegionEvent(uint8_t region) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void Trace::AllocSymbolGroupEvent(uint8_t group, bool enabled) {
+    auto ev = (SymbolGroupEvent *)this->AllocEvent(enabled ? ENABLE_SYMBOL_GROUP_EVENT : DISABLE_SYMBOL_GROUP_EVENT);
+
+    ev->group = group;
+    m_symbol_groups_enabled[ev->group] = enabled;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 LogPrinter *Trace::GetLogPrinter(TraceEventSource source, size_t max_len) {
     if (max_len > MAX_EVENT_SIZE) {
         max_len = MAX_EVENT_SIZE;
@@ -450,6 +478,19 @@ bool Trace::GetInitialParasiteBootMode() const {
 const M6502Config *Trace::GetParasiteM6502Config() const {
     return m_parasite_m6502_config;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const std::bitset<256> &Trace::GetInitialSymbolGroupsEnabled() const {
+    if (m_head) {
+        return m_head->initial_symbol_groups_enabled;
+    } else {
+        return m_symbol_groups_enabled;
+    }
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -619,6 +660,9 @@ void *Trace::Alloc(CycleCount time, size_t n) {
         c->initial_time = c->last_time = time;
         c->initial_paging = m_paging;
         c->initial_parasite_boot_mode = m_parasite_boot_mode;
+#if BBCMICRO_DEBUGGER
+        c->initial_symbol_groups_enabled = m_symbol_groups_enabled;
+#endif
 
         if (!m_head) {
             m_head = c;

@@ -80,12 +80,12 @@ class BBCMicro::DebugCommandHandler : public ::DebugCommandHandler {
         (void)m_next;
     }
 
-    void EnableSymbolGroup(uint8_t group) override {
-        m_beeb->m_state.symbol_groups_enabled[group] = true;
-    }
+    void SetSymbolGroupEnabled(uint8_t group, bool enabled) override {
+        if (m_beeb->m_trace) {
+            m_beeb->m_trace->AllocSymbolGroupEvent(group, enabled);
+        }
 
-    void DisableSymbolGroup(uint8_t group) override {
-        m_beeb->m_state.symbol_groups_enabled[group] = false;
+        m_beeb->m_state.symbol_groups_enabled[group] = enabled;
     }
 
   protected:
@@ -1955,13 +1955,17 @@ void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
         parasite_m6502_config = m_state.parasite_cpu.config;
     }
 
-    this->SetTrace(std::make_shared<Trace>(max_num_bytes,
+    auto &&trace = std::make_shared<Trace>(max_num_bytes,
                                            m_state.type,
                                            m_state.paging,
                                            m_state.parasite_type,
                                            parasite_m6502_config,
-                                           parasite_boot_mode),
-                   trace_flags);
+                                           parasite_boot_mode);
+#if BBCMICRO_DEBUGGER
+    trace->SetInitialSymbolGroupsEnabled(m_state.symbol_groups_enabled);
+#endif
+
+    this->SetTrace(std::move(trace), trace_flags);
 }
 #endif
 

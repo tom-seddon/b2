@@ -18,5 +18,8 @@ EPN_BIT_FLAG(SymbolsAnnotations, 4)
 // additional info.
 EPN_BIT_FLAG(MinimalSymbolsAnnotations, 5)
 
-EEND_SERIALIZABLE("f6ad2dfb4b896587fd0ce49ff04324d74090e35f")
+EPN_BIT_FLAG(SymbolGroups, 6)
+EPN_BIT_FLAG(SymbolGroupsVerbose, 7)
+
+EEND_SERIALIZABLE("3e0c7677345522fa61c11995ddcd8e3133e9c426")
 #undef ENAME

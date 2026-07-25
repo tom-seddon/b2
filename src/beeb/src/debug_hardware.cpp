@@ -94,17 +94,17 @@ void DebugCommandBuffers::WriteCommand(void *context, M6502Word, uint8_t value) 
         break;
 
     case DebugCommand_EnableSymbolGroup:
-        buffers->HandleSymbolGroupCommand(std::move(from_cpu), &DebugCommandHandler::EnableSymbolGroup);
+        buffers->HandleSymbolGroupCommand(std::move(from_cpu), true);
         break;
 
     case DebugCommand_DisableSymbolGroup:
-        buffers->HandleSymbolGroupCommand(std::move(from_cpu), &DebugCommandHandler::DisableSymbolGroup);
+        buffers->HandleSymbolGroupCommand(std::move(from_cpu), false);
         break;
 
     case DebugCommand_DisableAllSymbolGroups:
         if (buffers->m_handler) {
             for (int i = 0; i < 256; ++i) {
-                buffers->m_handler->DisableSymbolGroup((uint8_t)i);
+                buffers->m_handler->SetSymbolGroupEnabled((uint8_t)i, false);
             }
         }
         break;
@@ -142,7 +142,7 @@ void DebugCommandBuffers::SetHandler(DebugCommandHandler *handler) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugCommandBuffers::HandleSymbolGroupCommand(std::vector<uint8_t> &&args, void (DebugCommandHandler::*handle_command_mfn)(uint8_t)) {
+void DebugCommandBuffers::HandleSymbolGroupCommand(std::vector<uint8_t> &&args, bool enabled) {
     if (args.size() != 1) {
         this->CommandError();
         return;
@@ -150,7 +150,7 @@ void DebugCommandBuffers::HandleSymbolGroupCommand(std::vector<uint8_t> &&args, 
 
     if (m_handler) {
         uint8_t group = args[0];
-        (m_handler->*handle_command_mfn)(group);
+        m_handler->SetSymbolGroupEnabled(group, enabled);
     }
 }
 

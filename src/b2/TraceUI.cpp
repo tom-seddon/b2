@@ -99,6 +99,19 @@ class SymbolFinder : public ISaveTraceSymbolFinder {
         : m_symbol_table(std::make_unique<SymbolTable>(*symbol_table)) {
     }
 
+    const std::string &GetSymbolGroupName(uint8_t group) const override {
+        std::string *name = m_symbol_table->GetGroupMutableName(group);
+        return *name;
+    }
+
+    void SetSymbolGroupsEnabled(const std::bitset<256> &symbol_groups_enabled) override {
+        m_symbol_table->EnableFilesInAllGroups(symbol_groups_enabled);
+    }
+
+    void SetSymbolGroupEnabled(uint8_t group, bool enabled) override {
+        m_symbol_table->EnableFilesInGroup(group, enabled);
+    }
+
     const char *FindNameForAddress(uint32_t addr, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const override {
         if (const std::string *str = m_symbol_table->GetSymbolNameForAddress((uint16_t)addr, dso, type)) {
             return str->c_str();
@@ -415,9 +428,12 @@ void TraceUI::DoImGui() {
                 }
             }
 
-            // This isn't the same set of flags, but logically it's an additional
-            // trace.
+            // These aren't part of the same set of flags, but logically they're
+            // additional traces.
             ImGuiCheckboxFlags("ROM Mapper", &g_default_settings.output_flags, TraceOutputFlags_ROMMapper);
+            ImGuiCheckboxFlags("Symbol Groups", &g_default_settings.output_flags, TraceOutputFlags_SymbolGroups);
+            ImGui::SameLine();
+            ImGuiCheckboxFlags("Extra", &g_default_settings.output_flags, TraceOutputFlags_SymbolGroupsVerbose);
         }
 
         ImGui::Spacing();

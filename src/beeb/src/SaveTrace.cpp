@@ -15,6 +15,7 @@
 #include <string.h>
 #include <beeb/tube.h>
 #include <beeb/BBCMicroParasiteType.h>
+#include <inttypes.h>
 
 #include <shared/enum_decl.h>
 #include "SaveTrace_private.inl"
@@ -36,7 +37,7 @@ class TraceSaver {
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress,
-               const ISaveTraceSymbolFinder *symbol_finder)
+               ISaveTraceSymbolFinder *symbol_finder)
         : m_trace(std::move(trace))
         , m_output_flags(output_flags)
         , m_save_data_fn(save_data_fn)
@@ -61,6 +62,10 @@ class TraceSaver {
         this->SetHandler(Trace::PARASITE_BOOT_MODE_EVENT, &TraceSaver::HandleParasiteBootModeEvent, HandlerFlag_PrintPrefix);
         this->SetHandler(Trace::SET_MAPPER_REGION_EVENT, &TraceSaver::HandleSetMapperRegionEvent);
         this->SetHandler(Trace::STRING_EVENT, &TraceSaver::HandleString, HandlerFlag_PrintPrefix);
+#if BBCMICRO_DEBUGGER
+        this->SetHandler(Trace::ENABLE_SYMBOL_GROUP_EVENT, &TraceSaver::HandleSymbolGroupEvent);
+        this->SetHandler(Trace::DISABLE_SYMBOL_GROUP_EVENT, &TraceSaver::HandleSymbolGroupEvent);
+#endif
         this->SetHandler(SN76489::WRITE_EVENT, &TraceSaver::HandleSN76489WriteEvent, HandlerFlag_PrintPrefix);
         this->SetHandler(SN76489::UPDATE_EVENT, &TraceSaver::HandleSN76489UpdateEvent, HandlerFlag_PrintPrefix);
         this->SetHandler(R6522::IRQ_EVENT, &TraceSaver::HandleR6522IRQEvent, HandlerFlag_PrintPrefix);
@@ -119,6 +124,13 @@ class TraceSaver {
         m_parasite_boot_mode = m_trace->GetInitialParasiteBootMode();
         m_paging_dirty = true;
         m_parasite_type = m_trace->GetParasiteType();
+
+#if BBCMICRO_DEBUGGER
+        if (m_symbol_finder) {
+            m_symbol_groups_enabled = m_trace->GetInitialSymbolGroupsEnabled();
+            m_symbol_finder->SetSymbolGroupsEnabled(m_symbol_groups_enabled);
+        }
+#endif
 
         std::vector<char> host_m6502_padded_mnemonics_buffer;
         this->InitPaddedMnemonics(&host_m6502_padded_mnemonics_buffer, m_host_m6502_padded_mnemonics, m_type->m6502_config);
@@ -208,6 +220,7 @@ class TraceSaver {
     uint32_t m_paging_flags = 0;
 #if BBCMICRO_DEBUGGER
     uint32_t m_effective_host_dso = 0;
+    std::bitset<256> m_symbol_groups_enabled;
 #endif
     std::vector<uint8_t> m_tube_fifo1;
     const M6502Config *m_parasite_m6502_config = nullptr;
@@ -249,7 +262,7 @@ class TraceSaver {
 
     SaveTraceProgress *m_progress = nullptr;
 
-    const ISaveTraceSymbolFinder *m_symbol_finder = nullptr;
+    ISaveTraceSymbolFinder *m_symbol_finder = nullptr;
 
     class LogPrinterTraceSaver : public LogPrinter {
       public:
@@ -410,6 +423,43 @@ class TraceSaver {
         m_output->s((const char *)e->event);
         m_output->EnsureBOL();
     }
+
+#if BBCMICRO_DEBUGGER
+    void HandleSymbolGroupEvent(const TraceEvent *e) {
+        ASSERT(e->type == &Trace::ENABLE_SYMBOL_GROUP_EVENT || e->type == &Trace::DISABLE_SYMBOL_GROUP_EVENT);
+
+        auto ev = (const Trace::SymbolGroupEvent *)e->event;
+        bool enabled = e->type == &Trace::ENABLE_SYMBOL_GROUP_EVENT;
+
+        if (m_symbol_finder) {
+            m_symbol_finder->SetSymbolGroupEnabled(ev->group, enabled);
+
+            if (m_output_flags & TraceOutputFlags_SymbolGroups) {
+                m_symbol_groups_enabled[ev->group] = enabled;
+
+                bool print;
+                if (m_output_flags & TraceOutputFlags_SymbolGroupsVerbose) {
+                    print = true;
+                } else {
+                    print = m_symbol_groups_enabled[ev->group] != enabled;
+                }
+
+                if (print) {
+                    m_output->f("%s symbol group: %" PRIu8 " (0x%" PRIx8 ")", enabled ? "Enable" : "Disable", ev->group, ev->group);
+
+                    const std::string &name = m_symbol_finder->GetSymbolGroupName(ev->group);
+                    if (!name.empty()) {
+                        m_output->f(": %s", name.c_str());
+                    }
+
+                    m_output->f("\n");
+                }
+            }
+        }
+
+        m_symbol_groups_enabled[ev->group] = enabled;
+    }
+#endif
 
     static const char *GetSoundChannelName(uint8_t reg) {
         static const char *const SOUND_CHANNEL_NAMES[] = {
@@ -1305,7 +1355,7 @@ bool SaveTrace(std::shared_ptr<Trace> trace,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress,
-               const ISaveTraceSymbolFinder *symbol_finder) {
+               ISaveTraceSymbolFinder *symbol_finder) {
     TraceSaver saver(std::move(trace),
                      output_flags,
                      save_data_fn, save_data_context,

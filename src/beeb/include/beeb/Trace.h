@@ -37,6 +37,7 @@
 
 #include <shared/log.h>
 #include <string>
+#include <bitset>
 #include "type.h"
 
 #include <shared/enum_decl.h>
@@ -131,6 +132,13 @@ class Trace : public std::enable_shared_from_this<Trace> {
     };
 #include <shared/poppack.h>
 
+#include <shared/pshpack1.h>
+    // Applies to both enable and disable.
+    struct SymbolGroupEvent {
+        uint8_t group;
+    };
+#include <shared/poppack.h>
+
     //static const TraceEventType BLANK_LINE_EVENT;
     static const TraceEventType STRING_EVENT;
     static const TraceEventType DISCONTINUITY_EVENT;
@@ -138,6 +146,10 @@ class Trace : public std::enable_shared_from_this<Trace> {
     static const TraceEventType WRITE_ACCCON_EVENT;
     static const TraceEventType PARASITE_BOOT_MODE_EVENT;
     static const TraceEventType SET_MAPPER_REGION_EVENT;
+#if BBCMICRO_DEBUGGER
+    static const TraceEventType ENABLE_SYMBOL_GROUP_EVENT;
+    static const TraceEventType DISABLE_SYMBOL_GROUP_EVENT;
+#endif
 
     // max_num_bytes is approximate - actual consumption may be greater.
     // Supply SIZE_MAX to just have the data grow indefinitely.
@@ -154,6 +166,10 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
     Trace(Trace &&) = delete;
     Trace &operator=(Trace &&) = delete;
+
+#if BBCMICRO_DEBUGGER
+    void SetInitialSymbolGroupsEnabled(const std::bitset<256> &initial_symbol_groups_enabled);
+#endif
 
     // When the trace's time pointer is non-NULL, it is used to fill
     // out each event's time field.
@@ -199,6 +215,9 @@ class Trace : public std::enable_shared_from_this<Trace> {
     void AllocWriteACCCONEvent(ACCCON acccon);
     void AllocParasiteBootModeEvent(bool parasite_boot_mode);
     void AllocSetMapperRegionEvent(uint8_t region);
+#if BBCMICRO_DEBUGGER
+    void AllocSymbolGroupEvent(uint8_t group, bool enabled);
+#endif
 
     // max_len bytes is allocated. Call FinishLog to try to truncate the
     // allocation if possible.
@@ -212,6 +231,9 @@ class Trace : public std::enable_shared_from_this<Trace> {
     BBCMicroParasiteType GetParasiteType() const;
     bool GetInitialParasiteBootMode() const;
     const M6502Config *GetParasiteM6502Config() const;
+#if BBCMICRO_DEBUGGER
+    const std::bitset<256> &GetInitialSymbolGroupsEnabled() const;
+#endif
 
     typedef bool (*ForEachEventFn)(Trace *t, const TraceEvent *e, void *context);
 
@@ -251,6 +273,9 @@ class Trace : public std::enable_shared_from_this<Trace> {
     BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
     const M6502Config *m_parasite_m6502_config = nullptr;
     bool m_parasite_boot_mode = false;
+#if BBCMICRO_DEBUGGER
+    std::bitset<256> m_symbol_groups_enabled;
+#endif
 
     // Allocate a new event with variable-sized data, and return a
     // pointer to its data. (The event must have been registered with
@@ -260,7 +285,6 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
     void *Alloc(CycleCount time, size_t n);
     void Check();
-    static void PrintToTraceLog(const char *str, size_t str_len, void *data);
 };
 
 //////////////////////////////////////////////////////////////////////////

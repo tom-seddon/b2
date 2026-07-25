@@ -28,8 +28,7 @@ class DebugCommandHandler {
     DebugCommandHandler() = default;
     virtual ~DebugCommandHandler() = default;
 
-    virtual void EnableSymbolGroup(uint8_t group) = 0;
-    virtual void DisableSymbolGroup(uint8_t group) = 0;
+    virtual void SetSymbolGroupEnabled(uint8_t group, bool enabled) = 0;
 
   protected:
   private:
@@ -60,7 +59,7 @@ class DebugCommandBuffers {
     bool m_command_error = false;
     DebugCommandHandler *m_handler = nullptr;
 
-    void HandleSymbolGroupCommand(std::vector<uint8_t> &&args, void (DebugCommandHandler::*handle_command_mfn)(uint8_t));
+    void HandleSymbolGroupCommand(std::vector<uint8_t> &&args, bool enabled);
 };
 
 //////////////////////////////////////////////////////////////////////////

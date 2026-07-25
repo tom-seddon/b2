@@ -3,6 +3,7 @@
 
 #include "conf.h"
 #include <memory>
+#include <bitset>
 
 // This stuff exists even when tracing is compiled out, so that the
 // settings can still be serialized.
@@ -26,6 +27,9 @@ class ISaveTraceSymbolFinder {
     virtual ~ISaveTraceSymbolFinder() = default;
 
 #if BBCMICRO_DEBUGGER
+    virtual void SetSymbolGroupsEnabled(const std::bitset<256> &symbol_groups_enabled) = 0;
+    virtual void SetSymbolGroupEnabled(uint8_t group, bool enabled) = 0;
+    virtual const std::string &GetSymbolGroupName(uint8_t group) const = 0;
     virtual const char *FindNameForAddress(uint32_t addr, uint32_t dso, const std::shared_ptr<const BBCMicroType> &type) const = 0;
 #endif
 
@@ -66,7 +70,7 @@ bool SaveTrace(std::shared_ptr<Trace> trace,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress,
-               const ISaveTraceSymbolFinder *symbol_finder);
+               ISaveTraceSymbolFinder *symbol_finder);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
