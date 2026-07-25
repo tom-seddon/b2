@@ -77,7 +77,11 @@ SymbolTable::SymbolTable(const SymbolTable &src) {
         m_lsfs.push_back(std::make_unique<LoadedSymbolFile>(*src_lsf));
     }
 
-    // ...and the cached stuff sort itself out on first use.
+    for (size_t i = 0; i < MAX_NUM_SYMBOL_FILE_GROUPS; ++i) {
+        m_groups[i] = src.m_groups[i];
+    }
+
+    // ...and the cached stuff will sort itself out on first use.
 }
 
 //////////////////////////////////////////////////////////////////////////
