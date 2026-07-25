@@ -472,8 +472,10 @@ add_test(NAME b2/b2_test_list_tests
   COMMAND $<TARGET_FILE:b2_test> --list-for-check_ctest_log)
 
 function(add_b2_test_literal_category test_name)
-  add_test(NAME "b2 ${test_name}"
+  set(name "b2 ${test_name}")
+  add_test(NAME ${name}
     COMMAND $<TARGET_FILE:b2_test> -t "${test_name}")
+  add_test_boilerplate(${name})
 endfunction()
 
 add_b2_test_literal_category(misc.utf8)
