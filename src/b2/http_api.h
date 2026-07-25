@@ -55,8 +55,9 @@
 
 // If a field is std::optional<T>, its type is T (see above), but it doesn't
 // have a default value, and there is some specific handling when the field is
-// absent. (Which could be that its absence is an error! Don't read too much into the specific term "optional" - that's just what C++ calls this concept. An "optional" value
-// could actually be mandatory.)
+// absent. (Which could be that its absence is an error! Don't read too much
+// into the specific term "optional" - that's just what C++ calls this concept.
+// An "optional" value could actually be mandatory.)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -88,12 +89,14 @@
 // - Unicode U+00A3 £ POUND SIGN is converted to BBC 96 (£)
 //
 // Note that this means that U+0060 ` GRAVE ACCENT will end up on the BBC as BBC
-// 96 (£). Note that this means there are two ways to specify BBC 96 (£). This is
-// deliberate.
+// 96 (£). Note that this means there are two ways to specify BBC 96 (£). This
+// is deliberate.
 //
-// Aside from £, numbers and strings are considered equivalent. As an example: JSON ["ABC"],
-// JSON [65,"BC"] and JSON [65,"B",67] all represent the same BBC string: BBC
-// "ABC". (Regarding £: JSON ["£"] and JSON ["`"] both represent the same BBC string: BBC "£". But the £ translation only applies in strings, so: JSON [96] represents BBC "£", but JSON [163] represents BBC CHR$163.)
+// Aside from £, numbers and strings are considered equivalent. As an example:
+// JSON ["ABC"], JSON [65,"BC"] and JSON [65,"B",67] all represent the same BBC
+// string: BBC "ABC". (Regarding £: JSON ["£"] and JSON ["`"] both represent the
+// same BBC string: BBC "£". But the £ translation only applies in strings, so:
+// JSON [96] represents BBC "£", but JSON [163] represents BBC CHR$163.)
 //
 // Other notes:
 //
@@ -293,9 +296,10 @@ struct ApiConfigArgs {
     // If true, wait for the next OSWORD 0 call before the request completes.
     bool wait_for_osword_0 = false;
 
-    // If wait_for_osword_0 is true: the number of (emulated) seconds to wait for the OSWORD 0
-    // call to be made. If the timeout is exceeded, the request
-    // fails. If not provided, a default will be used; if the value is <=0, no timeout, and the emulator will wait indefinitely.
+    // If wait_for_osword_0 is true: the number of (emulated) seconds to wait
+    // for the OSWORD 0 call to be made. If the timeout is exceeded, the request
+    // fails. If not provided, a default will be used; if the value is <=0, no
+    // timeout, and the emulator will wait indefinitely.
     //
     // If wait_for_osword_0 is false: ignored.
     std::optional<double> wait_for_osword_0_timeout_seconds;
@@ -421,10 +425,17 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListKeysAndValuesResult, keys
 static const char API_REQUEST_TYPE_SET_GLOBALS[] = "set_globals";
 
 struct ApiSetGlobalsArgs {
-    // Specify the read path. Relative names of files to read from are assumed to be relative to the read path. There is no attempt to provide any kind of sandboxing, and you can easily use .. to access paths above the specified read path.
+    // Specify the read path. Relative names of files to read from are assumed
+    // to be relative to the read path. There is no attempt to provide any kind
+    // of sandboxing, and you can easily use .. to access paths above the
+    // specified read path.
     std::optional<std::string> read_path;
 
-    // Specify the write path. Names of files to write to are assumed to be relative to the write path. Since writes are destructive, unlike the read path, there is some very basic attempt at sandboxing: names with path separators are not permitted. Any files written to are written directly into the specified folder.
+    // Specify the write path. Names of files to write to are assumed to be
+    // relative to the write path. Since writes are destructive, unlike the read
+    // path, there is some very basic attempt at sandboxing: names with path
+    // separators are not permitted. Any files written to are written directly
+    // into the specified folder.
     std::optional<std::string> write_path;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,

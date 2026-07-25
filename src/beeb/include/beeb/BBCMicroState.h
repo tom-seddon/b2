@@ -436,7 +436,10 @@ class BBCMicroState {
     DebugCommandBuffers debug_command_buffers[NUM_DEBUG_COMMAND_BUFFERS];
 
   public:
-    // The enabled/disabled flags are just flags, and need polling by the UI, and resolving against any UI state, etc. - this state is here so that changing symbol group states for multi-load stuff can hopefully interact more nicely with state save/load.
+    // The enabled/disabled flags are just flags, and need polling by the UI,
+    // and resolving against any UI state, etc. - this state is here so that
+    // changing symbol group states for multi-load stuff can hopefully interact
+    // more nicely with state save/load.
     std::bitset<256> symbol_groups_enabled;
 
   protected:
