@@ -1918,13 +1918,14 @@ void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<ui
 void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data) {
     ASSERT(bank < 16);
 
+    auto buffer = std::make_shared<std::array<uint8_t, 16384>>();
     if (data) {
-        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>();
-        for (size_t i = 0; i < std::min(data->size(), (size_t)16384); ++i) {
+        if (!data->empty()) {
+            memcpy(buffer->data(), data->data(), std::min(data->size(), buffer->size()));
         }
-    } else {
-        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>();
     }
+
+    m_state.sideways_ram_buffers[bank] = buffer;
 
     // No sideways ROM in this bank.
     m_state.sideways_roms[bank] = {};
