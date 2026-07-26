@@ -865,7 +865,7 @@ void EnumsUI::DoImGui() {
                         ImGui::Text("%" PRIu8, value->bit_width);
 
                         ImGui::TableNextColumn();
-                        ImGui::Text("%0.*" PRIx64, e.traits->width_xdigits, value->value);
+                        ImGui::Text("%0*" PRIx64, e.traits->width_xdigits, value->value);
 
                         ImGui::TableNextColumn();
                         if (value->bit_enum) {
