@@ -18,8 +18,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <shared/enum_def.h>
-#define ENAME DWORD
-NBEGIN(DXGI_MODE_ROTATION)
+#define ENAME DXGI_MODE_ROTATION
+NBEGIN_DERIVED(DWORD)
 NN(DXGI_MODE_ROTATION_UNSPECIFIED)
 NN(DXGI_MODE_ROTATION_IDENTITY)
 NN(DXGI_MODE_ROTATION_ROTATE90)

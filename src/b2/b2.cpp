@@ -68,8 +68,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <shared/enum_def.h>
-#define ENAME int
-NBEGIN(SDL_WindowEventID)
+#define ENAME SDL_WindowEventID
+NBEGIN_DERIVED(int)
 NN(SDL_WINDOWEVENT_NONE);
 NN(SDL_WINDOWEVENT_SHOWN);
 NN(SDL_WINDOWEVENT_HIDDEN);
