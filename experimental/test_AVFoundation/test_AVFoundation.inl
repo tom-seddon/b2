@@ -1,5 +1,5 @@
-#define ENAME int
-NBEGIN(CVReturn)
+#define ENAME CVReturn
+NBEGIN()
 NN(kCVReturnSuccess)
 //NN(kCVReturnFirst)
 NN(kCVReturnError)
@@ -23,8 +23,8 @@ NN(kCVReturnRetry)
 NEND()
 #undef ENAME
 
-#define ENAME NSInteger
-NBEGIN(AVAssetWriterStatus)
+#define ENAME AVAssetWriterStatus
+NBEGIN()
 NN(AVAssetWriterStatusUnknown)
 NN(AVAssetWriterStatusWriting)
 NN(AVAssetWriterStatusCompleted)

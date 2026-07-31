@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define ENAME int
-NBEGIN(AVMediaType)
+#define ENAME AVMediaType
+NBEGIN()
 NN(AVMEDIA_TYPE_UNKNOWN)
 NN(AVMEDIA_TYPE_VIDEO)
 NN(AVMEDIA_TYPE_AUDIO)
@@ -16,8 +16,8 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define ENAME uint32_t
-NBEGIN(AVCodecFlag)
+#define ENAME AVCodecFlag
+NBEGIN_DERIVED(uint32_t)
 NN(AV_CODEC_FLAG_UNALIGNED)
 NN(AV_CODEC_FLAG_QSCALE)
 NN(AV_CODEC_FLAG_4MV)
@@ -56,8 +56,8 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define ENAME uint32_t
-NBEGIN(AVCodecFlag2)
+#define ENAME AVCodecFlag2
+NBEGIN_DERIVED(uint32_t)
 NN(AV_CODEC_FLAG2_FAST)
 NN(AV_CODEC_FLAG2_NO_OUTPUT)
 NN(AV_CODEC_FLAG2_LOCAL_HEADER)
@@ -81,8 +81,8 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define ENAME uint32_t
-NBEGIN(AVCodecCap)
+#define ENAME AVCodecCap
+NBEGIN_DERIVED(uint32_t)
 NN(AV_CODEC_CAP_DRAW_HORIZ_BAND)
 NN(AV_CODEC_CAP_DR1)
 #ifdef AV_CODEC_CAP_TRUNCATED
@@ -138,8 +138,8 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define ENAME int
-NBEGIN(AVOutputFormatFlag)
+#define ENAME AVOutputFormatFlag
+NBEGIN_DERIVED(int)
 NN(AVFMT_NOFILE)
 NN(AVFMT_NEEDNUMBER)
 NN(AVFMT_SHOW_IDS)
@@ -169,8 +169,8 @@ NEND()
 //////////////////////////////////////////////////////////////////////////
 
 #if LIBAVFORMAT_VERSION_MAJOR >= 59
-#define ENAME int
-NBEGIN(AVChannelOrder)
+#define ENAME AVChannelOrder
+NBEGIN()
 NN(AV_CHANNEL_ORDER_UNSPEC)
 NN(AV_CHANNEL_ORDER_NATIVE)
 NN(AV_CHANNEL_ORDER_CUSTOM)

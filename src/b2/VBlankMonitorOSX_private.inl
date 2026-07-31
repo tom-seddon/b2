@@ -1,5 +1,5 @@
 #define ENAME CVReturn
-NBEGIN(CVReturn)
+NBEGIN()
 NN(kCVReturnSuccess)
 NN(kCVReturnError)
 NN(kCVReturnInvalidArgument)
@@ -21,7 +21,7 @@ NEND()
 #undef ENAME
 
 #define ENAME CGError
-NBEGIN(CGError)
+NBEGIN()
 NN(kCGErrorSuccess)
 NN(kCGErrorFailure)
 NN(kCGErrorIllegalArgument)
