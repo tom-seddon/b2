@@ -768,6 +768,17 @@ static bool EnumValueLessThanByUnsignedValue(const EnumValue *lhs, const EnumVal
     return lhs->value < rhs->value;
 }
 
+static void ImGuiEnumValueName(const EnumValue *value) {
+    ImGui::TextUnformatted(value->name);
+    if (ImGui::IsItemHovered()) {
+        if (value->name != value->ui_name) {
+            ImGui::BeginTooltip();
+            ImGui::Text("UI Name: %s", value->ui_name);
+            ImGui::EndTooltip();
+        }
+    }
+}
+
 EnumsUI::EnumsUI() {
     this->SetDefaultSize({200.f, 100.f});
 
@@ -856,7 +867,7 @@ void EnumsUI::DoImGui() {
                         ImGui::TableNextRow();
 
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(value->name);
+                        ImGuiEnumValueName(value);
 
                         ImGui::TableNextColumn();
                         ImGui::Text("%" PRId8, value->bit_shift);
@@ -907,7 +918,7 @@ void EnumsUI::DoImGui() {
                         ImGui::TableNextRow();
 
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(value->name);
+                        ImGuiEnumValueName(value);
 
                         ImGui::TableNextColumn();
                         if (e.traits->is_signed) {
