@@ -2087,10 +2087,10 @@ class DocImageCreator : public DearImGuiTest {
 
         this->Capture("startup.png");
 
-        ctx->SetRef("##MainMenuBar");
+        //ctx->SetRef("##MainMenuBar");
 
         if (this->DoSection("elite")) {
-            ctx->MenuAction(ImGuiTestAction_Hover, "###file/###run/###open_file");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###run/###open_file");
 
             this->Capture("file_run_disk_image.png");
 
@@ -2102,7 +2102,7 @@ class DocImageCreator : public DearImGuiTest {
                                                                    "application/vnd.acorn.disc-image.ssd");
 
             this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
-            ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###run/###open_file");
 
             m_clear_ui_flags = UIFlag_HideAllPopups;
 
@@ -2132,17 +2132,17 @@ class DocImageCreator : public DearImGuiTest {
 
         //this->WaitForDiskAccess();
 
-        ctx->MenuAction(ImGuiTestAction_Hover, "###file/###hard_reset/###confirm");
+        ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###hard_reset/###confirm");
 
         this->CaptureMouseRelativeRect("confirm.menu.png", -250, -25, 100, 25);
 
-        ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770")).c_str());
+        ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770")).c_str());
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware");
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware");
 
         this->Capture("hardware_menu.png");
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations");
 
         this->Capture("configs.png");
 
@@ -2168,21 +2168,21 @@ class DocImageCreator : public DearImGuiTest {
 
         this->CaptureRect("configs.rom_popup.b.sideways_rom.png", this->GetPopupStackEntryRect(0), CaptureRectFlag_MoveMouseToOrigin);
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations"); //toggle it off
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //toggle it off
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations"); //toggle it on
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //toggle it on
 
         //        this->ScrollToWindow("//Configs/**/###tube");
         //
         //        this->Capture("test.png");
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations"); //toggle it off
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //toggle it off
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###keyboard");
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard");
 
         this->Capture("keyboard_menu.png");
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###keyboard/###toggle_keyboard_layout");
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_keyboard_layout");
 
         this->Capture("keyboard_layout_ui.png");
 
@@ -2350,9 +2350,9 @@ class DocImageCreator : public DearImGuiTest {
 
             BeebWindows::AddConfig(new_config);
 
-            ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", this->MustFindConfigIndex("Master 128 (multi-OS)")).c_str());
+            ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Master 128 (multi-OS)")).c_str());
 
-            ctx->MenuAction(ImGuiTestAction_Click, "###file/###hard_reset");
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###hard_reset");
 
             {
                 ImRect rect0 = this->GetPopupStackEntryRect(0);
@@ -2364,9 +2364,9 @@ class DocImageCreator : public DearImGuiTest {
                 this->CaptureRect("reset.multi_os.png", rect);
             }
 
-            ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770 + 6502 second processor")).c_str());
+            ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770 + 6502 second processor")).c_str());
 
-            ctx->MenuAction(ImGuiTestAction_Hover, "###file/###hard_reset");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###hard_reset");
 
             {
                 ImRect rect0 = this->GetPopupStackEntryRect(0);
