@@ -1531,6 +1531,10 @@ bool ImGuiInputText(std::string *new_str,
 //////////////////////////////////////////////////////////////////////////
 
 void ImGuiHeader(const char *str) {
+    // TODO: consider replacing with ImGui::SeparatorText?
+    //
+    // But there are places where the UI deliberately uses the collapsing version too, with the goal being that it looks visually consistent.
+
     ImGui::CollapsingHeader(str, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
 }
 
