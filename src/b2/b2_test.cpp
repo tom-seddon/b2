@@ -2142,7 +2142,7 @@ class DocImageCreator : public DearImGuiTest {
 
         this->Capture("hardware_menu.png");
 
-        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations");
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
 
         this->Capture("configs.png");
 
@@ -2164,19 +2164,21 @@ class DocImageCreator : public DearImGuiTest {
             ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/###up");
         }
 
-        ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/F/...");
+        ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/D/...");
 
         this->CaptureRect("configs.rom_popup.b.sideways_rom.png", this->GetPopupStackEntryRect(0), CaptureRectFlag_MoveMouseToOrigin);
 
-        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //toggle it off
+        ctx->ItemAction(ImGuiTestAction_Click, "//$FOCUSED/###type");
 
-        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //toggle it on
+        this->CaptureRect("configs.rom_popup.b.sideways_rom_type.png", this->GetPopupStackEntryRect(1), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
 
-        //        this->ScrollToWindow("//Configs/**/###tube");
-        //
-        //        this->Capture("test.png");
+        this->ScrollToWindow("//Configs/###config/###tube");
+        this->CaptureRect("config.tube.png", this->GetWindowRect("//Configs/###config/###tube"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
 
-        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //toggle it off
+        ctx->ScrollToItem("//Configs/**/###nula", ImGuiAxis_Y);
+        this->CaptureRect("config.nula.png", this->GetItemRect("//Configs/**/###nula"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
+
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
 
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard");
 
@@ -2341,14 +2343,28 @@ class DocImageCreator : public DearImGuiTest {
             std::string multimos_path = PathJoined(TRANSIENT_DATA_FOLDER, "multimos.bin");
             TEST_TRUE(SaveFile(multimos, multimos_path, nullptr));
 
-            BeebConfig new_config = *MustGetDefaultConfigByName("Master 128 (MOS 3.50)");
+            {
+                BeebConfig new_config = *MustGetDefaultConfigByName("Master 128 (MOS 3.50)");
 
-            new_config.name = "Master 128 (multi-OS)";
-            new_config.os.standard_rom = nullptr;
-            new_config.os.file_name = multimos_path;
-            new_config.os_rom_type = OSROMType_MultiOSBank0;
+                new_config.name = "Master 128 (multi-OS)";
+                new_config.os.standard_rom = nullptr;
+                new_config.os.file_name = multimos_path;
+                new_config.os_rom_type = OSROMType_MultiOSBank0;
 
-            BeebWindows::AddConfig(new_config);
+                BeebWindows::AddConfig(new_config);
+            }
+
+            {
+                BeebConfig new_config = *MustGetDefaultConfigByName("B/Acorn 1770");
+
+                new_config.name = "B/Acorn 1770 (Test)";
+
+                TEST_NON_NULL(new_config.os.standard_rom);
+                new_config.os.file_name = new_config.os.standard_rom->GetAssetPath();
+                new_config.os.standard_rom = nullptr;
+
+                BeebWindows::AddConfig(new_config);
+            }
 
             ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Master 128 (multi-OS)")).c_str());
 
@@ -2378,10 +2394,32 @@ class DocImageCreator : public DearImGuiTest {
                 this->CaptureRect("reset.second_processor.png", rect);
             }
 
-            ///
-            ///
+            // TODO: don't understand why "//Configs/**/Host OS/..." can't be
+            // found, even though it was previosuly found.
 
-            //ctx->MenuAction(ImGuiTestAction_Hover, strprintf("###file/
+            //ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770 (Test)")).c_str());
+            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
+            //ctx->Yield();
+            //ctx->Yield();
+            //ctx->Yield();
+            //ctx->Yield();
+            //ctx->ScrollToItem("//Configs/**/Host OS/...",ImGuiAxis_Y);
+            //ctx->Yield();
+            //ctx->Yield();
+            //ctx->Yield();
+            //ctx->Yield();
+
+            //ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/Host OS/...");
+            ////ctx->MenuAction(ImGuiTestAction_Click, "###type");
+            ////this->CaptureRect("configs.rom_popup.b.os_type.png", this->GetPopupStackEntryRect(1));
+            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+
+            //ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Master 128 (multi-OS)")).c_str());
+            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
+            ////ctx->ScrollToTop("//##MainMenuBar/###hardware");
+            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+
+            ////ctx->MenuAction(ImGuiTestAction_Hover, strprintf("###file/
         }
 
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");
@@ -2513,12 +2551,18 @@ class DocImageCreator : public DearImGuiTest {
         }
     }
 
-    //    void ScrollToWindow(ImGuiTestRef parent,ImGuiTestRef child){
-    //        ImGuiTestItemInfo child_info=m_ctx->ItemInfo(child);
-    //        ASSERT(child_info.ItemID!=0);
-    //
-    //        m_ctx->ScrollTo(parent_ref,ImGuiAxis_Y,child_info.
-    //    }
+    void ScrollToWindow(ImGuiTestRef ref) {
+        ImGuiTestItemInfo info = m_ctx->WindowInfo(ref);
+
+        ASSERT(info.Window);
+        ASSERT(info.Window->ParentWindow);
+
+        float min_y = info.Window->Pos.y - info.Window->ParentWindow->Pos.y;
+        float max_y = min_y + info.Window->Size.y;
+
+        m_ctx->ScrollToPos(info.Window->ParentWindow->ID, min_y, ImGuiAxis_Y);
+        m_ctx->ScrollToPos(info.Window->ParentWindow->ID, max_y, ImGuiAxis_Y);
+    }
 
     ImRect GetMouseRelativeRect(float dx0, float dy0, float dx1, float dy1) {
         ImVec2 mouse_pos = ImGui::GetMousePos();

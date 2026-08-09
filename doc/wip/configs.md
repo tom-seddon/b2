@@ -63,7 +63,7 @@ The ROMs section shows the OS ROM, and the 16 sideways ROM banks
 (numbered in hex: F to 0).
 
 Every ROM, OS or sideways, has a `...` button. Click on it to bring up
-a popup menu that'll let you configure its contents.
+a popup menu that'll let you configure its contents. Example popups:
 
 ![ROM popup](./generated/configs.rom_popup.b.host_os.png)
 ![ROM popup](./generated/configs.rom_popup.b.sideways_rom.png)

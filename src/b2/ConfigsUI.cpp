@@ -258,6 +258,27 @@ static const char *GetADJIDIPSwitchesString(void *data, int index) {
     return tmp->c_str();
 }
 
+class ImGuiRegion {
+  public:
+    explicit ImGuiRegion(const char *id);
+    ~ImGuiRegion();
+    ImGuiRegion(const ImGuiRegion &) = delete;
+    ImGuiRegion &operator=(const ImGuiRegion &) = delete;
+    ImGuiRegion(ImGuiRegion &&) = delete;
+    ImGuiRegion &operator=(ImGuiRegion &&) = delete;
+
+  protected:
+  private:
+};
+
+ImGuiRegion::ImGuiRegion(const char *id) {
+    ImGui::BeginChild(id, {0.f, 0.f}, ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
+}
+
+ImGuiRegion::~ImGuiRegion() {
+    ImGui::EndChild();
+}
+
 bool ConfigsUI::DoEditConfigGui() {
     if (m_config_index >= BeebWindows::GetNumConfigs()) {
         return false;
@@ -468,12 +489,14 @@ bool ConfigsUI::DoEditConfigGui() {
     ImGuiHeader("Additional hardware");
 
     if (CanHaveVideoNuLA(config->type_id)) {
-        if (ImGui::Checkbox("Video NuLA", &config->video_nula)) {
+        if (ImGui::Checkbox("Video NuLA###nula", &config->video_nula)) {
             edited = true;
         }
     }
 
     if (HasCartridges(config->type_id)) {
+        //ImGuiRegion region("###adji");
+
         if (ImGui::Checkbox("Retro Hardware ADJI cartridge", &config->adji)) {
             edited = true;
         }
@@ -498,20 +521,20 @@ bool ConfigsUI::DoEditConfigGui() {
     }
 
     if (HasUserPort(config->type_id)) {
-        if (ImGui::Checkbox("Mouse", &config->mouse)) {
+        if (ImGui::Checkbox("Mouse###mouse", &config->mouse)) {
             edited = true;
         }
     }
 
     if (Has4ROMSlots(config->type_id)) {
-        if (ImGui::Checkbox("ROM board", &config->rom_board)) {
+        if (ImGui::Checkbox("ROM board###rom_board", &config->rom_board)) {
             edited = true;
         }
     }
 
     if (CanHaveSerial(config->type_id)) {
         if (!HasSerial(config->type_id)) {
-            if (ImGui::Checkbox("Serial", &config->serial)) {
+            if (ImGui::Checkbox("Serial###serial", &config->serial)) {
                 edited = true;
             }
         }
@@ -519,7 +542,7 @@ bool ConfigsUI::DoEditConfigGui() {
 
     if (IsElectron(config->type_id)) {
         bool plus_3 = config->disc_interface == &DISC_INTERFACE_PLUS_3;
-        if (ImGui::Checkbox("Plus 3", &plus_3)) {
+        if (ImGui::Checkbox("Plus 3###plus3", &plus_3)) {
             if (plus_3) {
                 config->disc_interface = &DISC_INTERFACE_PLUS_3;
             } else {
@@ -528,7 +551,7 @@ bool ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
+    if (ImGui::Checkbox("BeebLink###beeblink", &config->beeblink)) {
         edited = true;
     }
 
@@ -536,14 +559,14 @@ bool ConfigsUI::DoEditConfigGui() {
 
     if (Has1MHzBus(config->type_id)) {
         if (!config->disc_interface || !(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
-            if (ImGui::Checkbox("External memory", &config->ext_mem)) {
+            if (ImGui::Checkbox("External memory###ext_mem", &config->ext_mem)) {
                 edited = true;
             }
         }
     }
 
 #if BBCMICRO_DEBUGGER
-    if (ImGui::Checkbox("Extra debugging hardware", &config->extra_debugging_hardware)) {
+    if (ImGui::Checkbox("Extra debugging hardware###debug_hardware", &config->extra_debugging_hardware)) {
         edited = true;
     }
 #endif
@@ -551,7 +574,7 @@ bool ConfigsUI::DoEditConfigGui() {
     if (HasTube(config->type_id)) {
         ImGui::Separator();
 
-        ImGui::BeginChild("###tube", {0.f, 0.f}, ImGuiChildFlags_AutoResizeY);
+        ImGuiRegion region("###tube");
 
         ImGuiHeader("Tube");
 
@@ -590,8 +613,6 @@ bool ConfigsUI::DoEditConfigGui() {
                 edited = true;
             }
         }
-
-        ImGui::EndChild();
     }
 
     if (CanHaveSCSI(config->type_id)) {
@@ -1012,7 +1033,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         }
 
         if (type) {
-            if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
+            if (ImGui::BeginMenu("Type###type", !rom->standard_rom)) {
                 for (int i = 0; i < ROMType_Count; ++i) {
                     const ROMTypeMetadata *metadata = GetROMTypeMetadata((ROMType)i);
                     if (metadata->num_bytes == 0) {
@@ -1033,7 +1054,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                 ImGui::EndMenu();
             }
         } else if (os_type) {
-            if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
+            if (ImGui::BeginMenu("Type###type", !rom->standard_rom)) {
                 for (uint8_t i = 0; i < OSROMType_Count; ++i) {
                     const OSROMTypeMetadata *metadata = GetOSROMTypeMetadata((OSROMType)i);
                     // TODO: not sure I love this condition. Should it pass through the BBCMicroTypeID instead?

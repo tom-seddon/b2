@@ -5,6 +5,8 @@ The set of possible OS ROM types depends on the model, as shown by the
 
 ## B, B+, Electron
 
+
+
 These models only support one type of OS ROM image.
 
 - `16 KB` - a ROM image, up to 16 KB
