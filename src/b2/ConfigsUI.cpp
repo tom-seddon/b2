@@ -93,7 +93,7 @@ ConfigsUI::ConfigsUI(BeebWindow *beeb_window, size_t initial_config_index)
     , m_mmfs_image_ofd(OPEN_MMFS_IMAGE_SELECTOR_GUID, beeb_window->GetAppHandler())
     , m_new_hard_disk_sfd(NEW_HARD_DISK_IMAGE_SELECTOR_GUID, beeb_window->GetAppHandler())
     , m_config_index(initial_config_index) {
-    this->SetDefaultSize(ImVec2(650, 450));
+    this->SetDefaultSize(ImVec2(750, 450));
 
     m_rom_ofd.AddAllFilesFilter();
 
@@ -550,8 +550,8 @@ bool ConfigsUI::DoEditConfigGui() {
 
     if (HasTube(config->type_id)) {
         ImGui::Separator();
-
-        ImGuiHeader("Tube");
+        
+        ImGuiHeader("Tube###tube");
 
         if (config->parasite_type != BBCMicroParasiteType_None) {
             if (config->type_id == BBCMicroTypeID_Master) {

@@ -1586,8 +1586,7 @@ static std::vector<std::string> GetLines(std::string str) {
 }
 #endif
 
-#if BBCMICRO_DEBUGGER
-static const BeebConfig *GetDefaultConfigByName(const std::string &name) {
+static const BeebConfig *MustGetDefaultConfigByName(const std::string &name) {
     for (size_t i = 0; i < GetNumDefaultBeebConfigs(); ++i) {
         const BeebConfig *default_config = GetDefaultBeebConfigByIndex(i);
 
@@ -1598,7 +1597,6 @@ static const BeebConfig *GetDefaultConfigByName(const std::string &name) {
 
     TEST_FAIL("default config not found: %s", name.c_str());
 }
-#endif
 
 class TestHTTPConfig : public TestHTTPAPI {
   public:
@@ -1750,7 +1748,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             config_args.wait_for_osword_0 = true;
             config_args.wait_for_osword_0_timeout_seconds = .5;
 
-            const BeebConfig *default_config = GetDefaultConfigByName(config_args.base_default_config);
+            const BeebConfig *default_config = MustGetDefaultConfigByName(config_args.base_default_config);
 
             if (default_config->nvram.empty()) {
                 // Problem ROM should replace BASIC.
@@ -2084,8 +2082,6 @@ class DocImageCreator : public DearImGuiTest {
         ASSERT(!m_yielder);
         m_yielder = std::make_unique<Yielder>(ctx, m_beeb_window, this);
 
-        m_b_acorn_1770_index = this->MustFindConfigIndex("B/Acorn 1770");
-
         this->HideMouse();
         m_set_ui_flags = UIFlag_HideAllPopups | UIFlag_HideDebuggerUI | UIFlag_HideExtrasUI;
 
@@ -2140,7 +2136,7 @@ class DocImageCreator : public DearImGuiTest {
 
         this->CaptureMouseRelativeRect("confirm.menu.png", -250, -25, 100, 25);
 
-        ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", m_b_acorn_1770_index).c_str());
+        ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770")).c_str());
 
         ctx->MenuAction(ImGuiTestAction_Click, "###hardware");
 
@@ -2171,8 +2167,16 @@ class DocImageCreator : public DearImGuiTest {
         ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/F/...");
 
         this->CaptureRect("configs.rom_popup.b.sideways_rom.png", this->GetPopupStackEntryRect(0), CaptureRectFlag_MoveMouseToOrigin);
+        
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");//toggle it off
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");//toggle it on
+        
+        ctx->ScrollToItem("//Configs/**/###tube",ImGuiAxis_Y);
+        
+        this->Capture("test.png");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");//toggle it off
 
         ctx->MenuAction(ImGuiTestAction_Click, "###keyboard");
 
@@ -2305,6 +2309,81 @@ class DocImageCreator : public DearImGuiTest {
             //ctx->Yield();
         }
 
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_keyboard_layout");
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###tools/###toggle_messages");
+
+        {
+            static const BeebROM *const MOS_PARTS[] = {
+                &BEEB_ROM_MOS350_MOS_ROM,
+                &BEEB_ROM_MOS350_SIDEWAYS_ROM_9,
+                &BEEB_ROM_MOS350_SIDEWAYS_ROM_A,
+                &BEEB_ROM_MOS350_SIDEWAYS_ROM_B,
+                &BEEB_ROM_MOS350_SIDEWAYS_ROM_C,
+                &BEEB_ROM_MOS350_SIDEWAYS_ROM_D,
+                &BEEB_ROM_MOS350_SIDEWAYS_ROM_E,
+                &BEEB_ROM_MOS350_SIDEWAYS_ROM_F,
+            };
+
+            std::vector<uint8_t> mos;
+            for (const BeebROM *rom : MOS_PARTS) {
+                std::vector<uint8_t> part;
+                TEST_TRUE(LoadFile(&part, rom->GetAssetPath(), nullptr));
+                TEST_EQ_UU(part.size(), 16384);
+                mos.insert(mos.end(), part.begin(), part.end());
+            }
+
+            std::vector<uint8_t> multimos;
+            for (size_t i = 0; i < 4; ++i) {
+                multimos.insert(multimos.end(), mos.begin(), mos.end());
+            }
+            TEST_EQ_UU(multimos.size(), 524288);
+
+            std::string multimos_path = PathJoined(TRANSIENT_DATA_FOLDER, "multimos.bin");
+            TEST_TRUE(SaveFile(multimos, multimos_path, nullptr));
+
+            BeebConfig new_config = *MustGetDefaultConfigByName("Master 128 (MOS 3.50)");
+
+            new_config.name = "Master 128 (multi-OS)";
+            new_config.os.standard_rom = nullptr;
+            new_config.os.file_name = multimos_path;
+            new_config.os_rom_type = OSROMType_MultiOSBank0;
+
+            BeebWindows::AddConfig(new_config);
+
+            ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", this->MustFindConfigIndex("Master 128 (multi-OS)")).c_str());
+
+            ctx->MenuAction(ImGuiTestAction_Click, "###file/###hard_reset");
+
+            {
+                ImRect rect0 = this->GetPopupStackEntryRect(0);
+                ImRect rect1 = this->GetPopupStackEntryRect(1);
+
+                ImRect rect = rect1;
+                rect.Min.x = rect0.Min.x;
+
+                this->CaptureRect("reset.multi_os.png", rect);
+            }
+            
+            ctx->MenuAction(ImGuiTestAction_Click,strprintf("###hardware/###%zu",this->MustFindConfigIndex("B/Acorn 1770 + 6502 second processor")).c_str());
+            
+            ctx->MenuAction(ImGuiTestAction_Hover,"###file/###hard_reset");
+            
+            {
+                ImRect rect0 = this->GetPopupStackEntryRect(0);
+                ImRect rect1 = this->GetPopupStackEntryRect(1);
+
+                ImRect rect = rect1;
+                rect.Min.x = rect0.Min.x;
+
+                this->CaptureRect("reset.second_processor.png", rect);
+            }
+            
+            ///
+            ///
+
+            //ctx->MenuAction(ImGuiTestAction_Hover, strprintf("###file/
+        }
+
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");
         //ASSERT(wi.Window);
         //ctx->SetRef(wi.Window);
@@ -2342,7 +2421,6 @@ class DocImageCreator : public DearImGuiTest {
     BeebWindow *m_beeb_window = nullptr;
     ImGuiTestContext *m_ctx = nullptr;
     std::unique_ptr<Yielder> m_yielder;
-    size_t m_b_acorn_1770_index = 0;
     std::map<std::string, bool> m_skip_sections;
     bool m_clean = false;
 

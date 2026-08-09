@@ -29,3 +29,17 @@ For types other than `16 KB`, the ROM images cover some of the
 sideways ROM banks as well. These sideways ROM banks will become
 hidden in the UI, and any previous settings will be ignored (but they
 won't be lost, should you decide to change the OS type back).
+
+### Multi-OS bank selection
+
+There are four `Multi-OS (512 KB)` options, corresponding to the bank
+you'd like to have selected by default for the config.
+
+To select another bank when using one of these configs, see `File` >
+`Power-on reset`, which will have 4 entries that allow the bank to be
+selected. (The currently selected bank's entry is ticked.)
+
+![Multi-OS reset menu](./generated/reset.multi_os.png)
+
+The usual `Confirm` entry will do a power-on reset with the currently
+selected bank.

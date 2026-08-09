@@ -45,6 +45,9 @@ Use the `Name` text box to edit the name shown in the menu. Note that
 each configuration's name must be unique, and b2 will add a numeric
 suffix to enforce this if required.
 
+(If you don't want the numeric suffix, edit the name of the other
+keymap to remove the conflict, then delete the suffix.)
+
 ## Model and disk interface
 
 The basic hardware type and disk interface are fixed for each
@@ -114,8 +117,8 @@ remake of the [Slogger Switched Joystick
 Interface](https://www.computinghistory.org.uk/det/32296/Slogger%20Switched%20Joystick%20Interface/).
 Select the DIP switch setting from the list box.
 
-(The emulated ADJI dhoesn't occupy a cartridge slot, so you don't lose
-any ROM slots if enabling it.)
+(The emulated ADJI doesn't occupy a cartridge slot from the sideways
+ROM perspective, so you don't lose any ROM slots if enabling it.)
 
 ### Mouse _(B/B+/Master 128 only)_
 
@@ -153,10 +156,65 @@ Add a 16 MByte paged RAM 1 MHz bus device.
 Paging registers are at &FC00 (LSB) and &FC01 (MSB), selecting which
 of the 65536 pages become accessible in page &FD.
 
-If using BBC B: the external RAM can't be enabled if the configuration 
+If using BBC B: the external RAM can't be enabled if the configuration
+includes the Opus Challenger.
 
 ### Extra debugging hardware _(b2 with debugger only)_
 
 Add extra debugging-related emulated hardware, accessible to code
 running in the emulator. For more info, see [the debugger
 documentation](./debugger.md).
+
+## Tube _(B/B+/Master 128/Electron only)_
+
+Select a second processor.
+
+- `No second processor` - no second processor installed
+- `6502 Second Processor` - a 3 MHz external 6502 Second Processor
+  will be installed
+- `Master Turbo` - a 4 MHz Master Turbo board will be installed
+
+For the Master 128, the external 6502 Second Processor will be
+connected externally, and the Master Turbo will be connected
+internally.
+
+For the B/B+/Electron, selecting the Master Turbo option corresponds
+to having an external [universal second
+processor](http://chrisacorns.computinghistory.org.uk/8bit_Upgrades/Acorn_ANC21_Uni2Proc.html)
+with a Master Turbo board fitted.
+
+If selecting a second processor, of whatever kind, please note the
+notes provided in the UI: for B/B+/Electron, a ROM with the Tube
+interface code needs to be installed; for the Master 128, support is
+built in to the MOS, but the relevant `*CONFIGURE` option must be set
+for it to activate the second processor.
+
+### Powering on/off the external second processor
+
+(This option doesn't apply to the Master 128 with Master Turbo. The
+Master Turbo is connected internally and always powered.)
+
+If there's an external 6502 second processor present, the `File` >
+`Power-on reset` will gain 2 additional options: one to reset with the
+6502 second processor on, and one to reset with it off. (The ticked
+entry indicates the current state.)
+
+![Parasite reset menu](./generated/reset.second_processor.png)
+
+The usual `Confirm` entry will do a power-on reset with the current
+state.
+
+## SCSI _(B/B+/Master 128/Electron only)_
+
+Tick `SCSI` to add an emulated SCSI hard disk adapter, useable with
+Acorn ADFS.
+
+Up to four hard disk images can be selected, corresponding to ADFS
+drives 0-4. See [the SCSI documentation](./scsi.md) for more about BBC
+hard disk images, including how to create new ones.
+
+Note: when using hard disks in the emulator, be sure to use
+`*DISMOUNT` or `*BYE` when necessary. The emulator will write data to
+the disk image file only when ADFS requests it!
+
+## MMFS
