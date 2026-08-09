@@ -2167,16 +2167,16 @@ class DocImageCreator : public DearImGuiTest {
         ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/F/...");
 
         this->CaptureRect("configs.rom_popup.b.sideways_rom.png", this->GetPopupStackEntryRect(0), CaptureRectFlag_MoveMouseToOrigin);
-        
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");//toggle it off
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");//toggle it on
-        
-        ctx->ScrollToItem("//Configs/**/###tube",ImGuiAxis_Y);
-        
-        this->Capture("test.png");
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations"); //toggle it off
 
-        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations");//toggle it off
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations"); //toggle it on
+
+        //        this->ScrollToWindow("//Configs/**/###tube");
+        //
+        //        this->Capture("test.png");
+
+        ctx->MenuAction(ImGuiTestAction_Click, "###hardware/###toggle_configurations"); //toggle it off
 
         ctx->MenuAction(ImGuiTestAction_Click, "###keyboard");
 
@@ -2363,11 +2363,11 @@ class DocImageCreator : public DearImGuiTest {
 
                 this->CaptureRect("reset.multi_os.png", rect);
             }
-            
-            ctx->MenuAction(ImGuiTestAction_Click,strprintf("###hardware/###%zu",this->MustFindConfigIndex("B/Acorn 1770 + 6502 second processor")).c_str());
-            
-            ctx->MenuAction(ImGuiTestAction_Hover,"###file/###hard_reset");
-            
+
+            ctx->MenuAction(ImGuiTestAction_Click, strprintf("###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770 + 6502 second processor")).c_str());
+
+            ctx->MenuAction(ImGuiTestAction_Hover, "###file/###hard_reset");
+
             {
                 ImRect rect0 = this->GetPopupStackEntryRect(0);
                 ImRect rect1 = this->GetPopupStackEntryRect(1);
@@ -2377,7 +2377,7 @@ class DocImageCreator : public DearImGuiTest {
 
                 this->CaptureRect("reset.second_processor.png", rect);
             }
-            
+
             ///
             ///
 
@@ -2513,6 +2513,13 @@ class DocImageCreator : public DearImGuiTest {
         }
     }
 
+    //    void ScrollToWindow(ImGuiTestRef parent,ImGuiTestRef child){
+    //        ImGuiTestItemInfo child_info=m_ctx->ItemInfo(child);
+    //        ASSERT(child_info.ItemID!=0);
+    //
+    //        m_ctx->ScrollTo(parent_ref,ImGuiAxis_Y,child_info.
+    //    }
+
     ImRect GetMouseRelativeRect(float dx0, float dy0, float dx1, float dy1) {
         ImVec2 mouse_pos = ImGui::GetMousePos();
 
@@ -2524,6 +2531,12 @@ class DocImageCreator : public DearImGuiTest {
 
     ImRect GetItemRect(ImGuiTestRef ref) {
         ImGuiTestItemInfo info = m_ctx->ItemInfo(ref);
+        ASSERT(info.ID != 0);
+        return info.RectFull;
+    }
+
+    ImRect GetWindowRect(ImGuiTestRef ref) {
+        ImGuiTestItemInfo info = m_ctx->WindowInfo(ref);
         ASSERT(info.ID != 0);
         return info.RectFull;
     }

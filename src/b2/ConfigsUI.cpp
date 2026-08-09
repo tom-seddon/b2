@@ -550,8 +550,10 @@ bool ConfigsUI::DoEditConfigGui() {
 
     if (HasTube(config->type_id)) {
         ImGui::Separator();
-        
-        ImGuiHeader("Tube###tube");
+
+        ImGui::BeginChild("###tube", {0.f, 0.f}, ImGuiChildFlags_AutoResizeY);
+
+        ImGuiHeader("Tube");
 
         if (config->parasite_type != BBCMicroParasiteType_None) {
             if (config->type_id == BBCMicroTypeID_Master) {
@@ -588,6 +590,8 @@ bool ConfigsUI::DoEditConfigGui() {
                 edited = true;
             }
         }
+
+        ImGui::EndChild();
     }
 
     if (CanHaveSCSI(config->type_id)) {
