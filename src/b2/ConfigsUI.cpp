@@ -65,8 +65,6 @@ class ConfigsUI : public SettingsUI {
     SaveFileDialog m_new_hard_disk_sfd;
     size_t m_config_index = INVALID_CONFIG_INDEX;
 
-    void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
-
     // rom_edit_flags is a combination of ROMEditFlag values
     ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, ROMType *type, OSROMType *os_type, uint32_t rom_edit_flags);
     bool DoParasiteROMEditGui(BeebConfig::ROM *rom, StandardROM standard_rom);
@@ -425,39 +423,35 @@ bool ConfigsUI::DoEditConfigGui() {
     for (uint8_t i = 0; i < 16; ++i) {
         uint8_t bank = 15 - i;
 
-        {
-            //ImGuiIDPusher bank_id_pusher(bank);
+        ImGui::Separator();
 
-            ImGui::Separator();
+        BeebConfig::SidewaysROM *rom = &config->roms[bank];
 
-            BeebConfig::SidewaysROM *rom = &config->roms[bank];
+        uint32_t rom_edit_flags = rom_edit_sideways_rom_flags | bank_fixed_flags[bank];
 
-            uint32_t rom_edit_flags = rom_edit_sideways_rom_flags | bank_fixed_flags[bank];
-
-            if (!(rom_edit_flags & (ROMEditFlag_NotAccessibleWithoutROMBoard | ROMEditFlag_NotAvailable))) {
-                if (bank_up[bank] < 16) {
-                    rom_edit_flags |= ROMEditFlag_CanMoveUp;
-                }
-
-                if (bank_down[bank] < 16) {
-                    rom_edit_flags |= ROMEditFlag_CanMoveDown;
-                }
+        if (!(rom_edit_flags & (ROMEditFlag_NotAccessibleWithoutROMBoard | ROMEditFlag_NotAvailable))) {
+            if (bank_up[bank] < 16) {
+                rom_edit_flags |= ROMEditFlag_CanMoveUp;
             }
 
-            char caption[10];
-            snprintf(caption, sizeof caption, "%X", bank);
-
-            ROMEditAction a = this->DoROMEditGui(caption,
-                                                 rom,
-                                                 &rom->writeable,
-                                                 &rom->type,
-                                                 nullptr,
-                                                 rom_edit_flags);
-            if (a != ROMEditAction_None) {
-                action = a;
-                action_bank = bank;
-                edited = true;
+            if (bank_down[bank] < 16) {
+                rom_edit_flags |= ROMEditFlag_CanMoveDown;
             }
+        }
+
+        char caption[10];
+        snprintf(caption, sizeof caption, "%X", bank);
+
+        ROMEditAction a = this->DoROMEditGui(caption,
+                                             rom,
+                                             &rom->writeable,
+                                             &rom->type,
+                                             nullptr,
+                                             rom_edit_flags);
+        if (a != ROMEditAction_None) {
+            action = a;
+            action_bank = bank;
+            edited = true;
         }
     }
 
@@ -732,36 +726,6 @@ bool ConfigsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ConfigsUI::DoROMInfoGui(const char *caption,
-                             const BeebConfig::ROM &rom,
-                             const bool *writeable) {
-    ImGuiIDPusher id_pusher(caption);
-
-    ImGui::AlignTextToFramePadding();
-
-    ImGui::TextUnformatted(caption);
-
-    ImGui::NextColumn();
-
-    if (writeable) {
-        bool value = *writeable;
-        ImGui::Checkbox("##ram", &value);
-    }
-
-    ImGui::NextColumn();
-
-    if (rom.standard_rom) {
-        ImGui::Text("*%s*", rom.standard_rom->name.c_str());
-    } else {
-        ImGui::TextUnformatted(rom.file_name.c_str());
-    }
-
-    ImGui::NextColumn();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static bool ImGuiROM(BeebConfig::ROM *rom, const BeebROM *beeb_rom) {
     if (ImGui::MenuItem(beeb_rom->name.c_str())) {
         rom->file_name.clear();
@@ -771,16 +735,6 @@ static bool ImGuiROM(BeebConfig::ROM *rom, const BeebROM *beeb_rom) {
         return false;
     }
 }
-
-//static bool ImGuiMasterROMs(BeebConfig::ROM *rom, const BeebROM *master_roms) {
-//    for (size_t i = 0; i < 8; ++i) {
-//        if (ImGuiROM(rom, &master_roms[7 - i])) {
-//            return true;
-//        }
-//    }
-//
-//    return false;
-//}
 
 static const BeebROM *const B_OS_ROMS[] = {
     &BEEB_ROM_OS12,

@@ -5,9 +5,9 @@ The set of possible OS ROM types depends on the model, as shown by the
 
 ## B, B+, Electron
 
-
-
 These models only support one type of OS ROM image.
+
+![B/B+/Electron OS ROM types](./generated/configs.rom_popup.b.os_rom_type.png)
 
 - `16 KB` - a ROM image, up to 16 KB
 
@@ -15,6 +15,10 @@ These models only support one type of OS ROM image.
 loaded so that its last byte ends up at address $ffff.)
 
 ## Master 128, Master Compact
+
+These models support multiple OS ROM image types.
+
+![Master 128/Master Compact OS ROM types](./generated/configs.rom_popup.master.os_rom_type.png)
 
 - `16 KB` - a ROM image, up to 16 KB (see above note)
 - `Master (64 KB)` - a 64 KB ROM image of the Master Compact or

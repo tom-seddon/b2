@@ -2097,9 +2097,15 @@ class DocImageCreator : public DearImGuiTest {
             //ctx->SetRef("##MainMenuBar");
             //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
 
-            std::string elite_ssd_path = this->DownloadFileFromURL("Disc021-EliteD.ssd",
-                                                                   "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd",
-                                                                   "application/vnd.acorn.disc-image.ssd");
+            // https://github.com/mattgodbolt/jsbeeb/raw/refs/heads/8c46f43a7dcddb61ac2ae15504733c1d9b5633a0/public/discs/elite.ssd
+
+            //            std::string elite_ssd_path = this->DownloadFileFromURL("Disc021-EliteD.ssd",
+            //                                                                   "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd",
+            //                                                                   "application/vnd.acorn.disc-image.ssd");
+
+            std::string elite_ssd_path = this->DownloadFileFromURL("elite.ssd",
+                                                                   "https://raw.githubusercontent.com/mattgodbolt/jsbeeb/refs/heads/main/public/discs/elite.ssd",
+                                                                   "application/octet-stream");
 
             this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
             ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###run/###open_file");
@@ -2117,10 +2123,17 @@ class DocImageCreator : public DearImGuiTest {
 
             m_clear_ui_flags = 0;
 
-            this->WaitForDiskAccess();
+            // it's impossible to guarantee a good screen grab of the opening screen, because the emulatorl doesn't run determinastically relative to the UI. So this bit is commented out - but there's a known good screen grab (that happened to come out right on my Mac...) in the doc folder.
 
-            this->HideMouse();
-            this->Capture("running_elite.png");
+            //            {
+            //                this->WaitForDiskAccess();
+            //
+            //                this->HideMouse();
+            //
+            //                this->Yield(55);
+            //
+            //                this->Capture("running_elite.png");
+            //            }
         }
 
         //std::string repton_ssd_path = this->DownloadFileFromURL("Disc015-ReptonP.ssd",
@@ -2131,6 +2144,10 @@ class DocImageCreator : public DearImGuiTest {
         //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
 
         //this->WaitForDiskAccess();
+
+        ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###hard_reset/###confirm");
+
+        this->Yield(20);
 
         ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###hard_reset/###confirm");
 
@@ -2146,7 +2163,7 @@ class DocImageCreator : public DearImGuiTest {
 
         this->Capture("configs.png");
 
-        ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/Host OS/...");
+        this->ItemAction(ImGuiTestAction_Click, "//Configs/**/Host OS/...");
 
         this->CaptureRect("configs.rom_popup.b.host_os.png", this->GetPopupStackEntryRect(0), CaptureRectFlag_MoveMouseToOrigin);
 
@@ -2343,10 +2360,11 @@ class DocImageCreator : public DearImGuiTest {
             std::string multimos_path = PathJoined(TRANSIENT_DATA_FOLDER, "multimos.bin");
             TEST_TRUE(SaveFile(multimos, multimos_path, nullptr));
 
+            static const char MASTER_128_MULTI_OS_CONFIG_NAME[] = "Master 128 (multi-OS)";
             {
                 BeebConfig new_config = *MustGetDefaultConfigByName("Master 128 (MOS 3.50)");
 
-                new_config.name = "Master 128 (multi-OS)";
+                new_config.name = MASTER_128_MULTI_OS_CONFIG_NAME;
                 new_config.os.standard_rom = nullptr;
                 new_config.os.file_name = multimos_path;
                 new_config.os_rom_type = OSROMType_MultiOSBank0;
@@ -2354,10 +2372,24 @@ class DocImageCreator : public DearImGuiTest {
                 BeebWindows::AddConfig(new_config);
             }
 
+            static const char MASTER_128_OS_TYPE_CONFIG_NAME[] = "Master 128 (MOS 3.50) (Test)";
+            {
+                BeebConfig new_config = *MustGetDefaultConfigByName("Master 128 (MOS 3.50)");
+
+                new_config.name = MASTER_128_OS_TYPE_CONFIG_NAME;
+
+                TEST_NON_NULL(new_config.os.standard_rom);
+                new_config.os.file_name = new_config.os.standard_rom->GetAssetPath();
+                new_config.os.standard_rom = nullptr;
+
+                BeebWindows::AddConfig(new_config);
+            }
+
+            static const char BBC_B_OS_TYPE_CONFIG_NAME[] = "B/Acorn 1770 (Test)";
             {
                 BeebConfig new_config = *MustGetDefaultConfigByName("B/Acorn 1770");
 
-                new_config.name = "B/Acorn 1770 (Test)";
+                new_config.name = BBC_B_OS_TYPE_CONFIG_NAME;
 
                 TEST_NON_NULL(new_config.os.standard_rom);
                 new_config.os.file_name = new_config.os.standard_rom->GetAssetPath();
@@ -2394,32 +2426,31 @@ class DocImageCreator : public DearImGuiTest {
                 this->CaptureRect("reset.second_processor.png", rect);
             }
 
-            // TODO: don't understand why "//Configs/**/Host OS/..." can't be
-            // found, even though it was previosuly found.
+            {
+                static std::pair<const char *, const char *> const TYPES[] = {
+                    {BBC_B_OS_TYPE_CONFIG_NAME, "b"},
+                    {MASTER_128_OS_TYPE_CONFIG_NAME, "master"},
+                    {nullptr, nullptr},
+                };
 
-            //ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("B/Acorn 1770 (Test)")).c_str());
-            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
-            //ctx->Yield();
-            //ctx->Yield();
-            //ctx->Yield();
-            //ctx->Yield();
-            //ctx->ScrollToItem("//Configs/**/Host OS/...",ImGuiAxis_Y);
-            //ctx->Yield();
-            //ctx->Yield();
-            //ctx->Yield();
-            //ctx->Yield();
+                for (size_t i = 0; TYPES[i].first; ++i) {
+                    ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex(TYPES[i].first)).c_str());
+                    ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
 
-            //ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/Host OS/...");
-            ////ctx->MenuAction(ImGuiTestAction_Click, "###type");
-            ////this->CaptureRect("configs.rom_popup.b.os_type.png", this->GetPopupStackEntryRect(1));
-            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+                    ImGuiTestItemInfo info = ctx->WindowInfo("//Configs/###config");
+                    TEST_NE_UU(info.ID, 0);
 
-            //ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Master 128 (multi-OS)")).c_str());
-            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
-            ////ctx->ScrollToTop("//##MainMenuBar/###hardware");
-            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+                    ctx->ScrollToTop(info.ID);
+                    ctx->Yield();
 
-            ////ctx->MenuAction(ImGuiTestAction_Hover, strprintf("###file/
+                    ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/Host OS/...");
+                    ctx->ItemAction(ImGuiTestAction_Click, "//$FOCUSED/###type");
+
+                    this->CaptureRect(strprintf("configs.rom_popup.%s.os_rom_type.png", TYPES[i].second), this->GetPopupStackEntryRect(1), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
+
+                    ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+                }
+            }
         }
 
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");
@@ -2461,6 +2492,12 @@ class DocImageCreator : public DearImGuiTest {
     std::unique_ptr<Yielder> m_yielder;
     std::map<std::string, bool> m_skip_sections;
     bool m_clean = false;
+
+    void Yield(unsigned n) {
+        for (unsigned i = 0; i < n; ++i) {
+            m_ctx->Yield();
+        }
+    }
 
     bool DoSection(const std::string &name) {
         auto &&it = m_skip_sections.find(name);
@@ -2549,6 +2586,22 @@ class DocImageCreator : public DearImGuiTest {
         if (flags & CaptureRectFlag_MoveMouseToOrigin) {
             m_ctx->MouseTeleportToPos(mouse_pos);
         }
+    }
+
+    void ItemAction(ImGuiTestAction action, ImGuiTestRef ref) {
+        ASSERT(ref.Path);
+        printf("ItemAction: action=%d; Path=\"%s\"\n", (int)action, ref.Path);
+
+        ImGuiTestItemInfo info = m_ctx->ItemInfo(ref);
+        ASSERT(info.ID != 0);
+
+        printf("ItemAction: info.ID=%" PRIu32 " (0x%" PRIx32 ")\n", info.ID, info.ID);
+        printf("ItemAction: info.Window=%p\n", (void *)info.Window);
+        if (info.Window) {
+            printf("ItemAction: info.Window->ParentWindow=%p\n", (void *)info.Window->ParentWindow);
+        }
+
+        m_ctx->ItemAction(action, ref);
     }
 
     void ScrollToWindow(ImGuiTestRef ref) {
@@ -2653,7 +2706,7 @@ class DocImageCreator : public DearImGuiTest {
             int status = client->SendRequest(request, &response);
             TEST_EQ_II(status, 200);
             if (expected_mime_type) {
-                TEST_EQ_SS(response.content_type, "application/vnd.acorn.disc-image.ssd");
+                TEST_EQ_SS(response.content_type, expected_mime_type);
             }
 
             TEST_TRUE(SaveFile(response.content, local_path, &g_stdio_logs, SaveFlag_CreateFolder));
