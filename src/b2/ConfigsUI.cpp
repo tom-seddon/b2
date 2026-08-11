@@ -258,7 +258,8 @@ static const char *GetADJIDIPSwitchesString(void *data, int index) {
 
 class ImGuiRegion {
   public:
-    explicit ImGuiRegion(const char *id);
+    explicit ImGuiRegion(const char *id, ImGuiChildFlags child_flags = ImGuiChildFlags_AutoResizeY);
+
     ~ImGuiRegion();
     ImGuiRegion(const ImGuiRegion &) = delete;
     ImGuiRegion &operator=(const ImGuiRegion &) = delete;
@@ -269,8 +270,9 @@ class ImGuiRegion {
   private:
 };
 
-ImGuiRegion::ImGuiRegion(const char *id) {
-    ImGui::BeginChild(id, {0.f, 0.f}, ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
+ImGuiRegion::ImGuiRegion(const char *id, ImGuiChildFlags child_flags) {
+    ASSERT((child_flags & ~(ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY)) == 0);
+    ImGui::BeginChild(id, {0.f, 0.f}, ImGuiChildFlags_AlwaysAutoResize | child_flags);
 }
 
 ImGuiRegion::~ImGuiRegion() {
@@ -489,7 +491,7 @@ bool ConfigsUI::DoEditConfigGui() {
     }
 
     if (HasCartridges(config->type_id)) {
-        //ImGuiRegion region("###adji");
+        //ImGuiRegion region("###adji", ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
 
         if (ImGui::Checkbox("Retro Hardware ADJI cartridge", &config->adji)) {
             edited = true;
@@ -1047,7 +1049,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_Master128SidewaysROMs, "MOS 3.20 Sideways ROM", MOS320_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_Master128OSROMs, "MOS 3.50 OS ROM", MOS350_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_Master128SidewaysROMs, "MOS 3.50 Sideways ROM", MOS350_SIDEWAYS_ROMS);
-        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ParasiteROMs, "Parasite ROM", PARASITE_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ParasiteROMs, "6502 second processor ROM", PARASITE_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.00 Sideways ROM", MOS500_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.10 Sideways ROM", MOS510_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "PC 128 S Sideways ROM", MOSI510C_SIDEWAYS_ROMS);

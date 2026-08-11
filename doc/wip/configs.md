@@ -105,6 +105,8 @@ this in mind when configuring your emulated BBC Micro.
 
 ### Video NuLA _(not Electron)_
 
+![Video NuLA option](./generated/config.nula.png)
+
 Tick the box to add a [Video
 NuLA](https://stardot.org.uk/forums/viewtopic.php?t=12150), providing
 4096 colour output, smooth scrolling, and some additional screen
@@ -122,9 +124,13 @@ ROM perspective, so you don't lose any ROM slots if enabling it.)
 
 ### Mouse _(B/B+/Master 128 only)_
 
+![Mouse option](./generated/config.mouse.png)
+
 Add an AMX-/Watford-type mouse, connected to the user port.
 
 ### ROM board _(B only)_
+
+![ROM board option](./generated/config.rom_board.png)
 
 Tick the box to add a 16 socket ROM board - which is the default
 setting, as it's much more useful.
@@ -136,20 +142,28 @@ sockets only.)
 
 ### Serial _(Master Compact only)_
 
+![Serial option](./generated/config.serial.png)
+
 Tick the box to add the optional serial hardware upgrade to the Master
 Compact.
 
 ### Plus 3 _(Electron only)_
 
+![Plus 3 option](./generated/config.plus3.png)
+
 Tick the box to add a Plus 3 disk interface.
 
 ### BeebLink
+
+![BeebLink option](./generated/config.beeblink.png)
 
 Enable support for BeebLink, a BBC file storage system with a PC-based
 file server designed to make it easy for BBC and PC to share files.
 See [the BeebLink docs](./beeblink.md).
 
 ### External memory _(B/B+/Master 128 only)_
+
+![External memory option](./generated/config.ext_mem.png)
 
 Add a 16 MByte paged RAM 1 MHz bus device.
 
@@ -161,6 +175,8 @@ includes the Opus Challenger.
 
 ### Extra debugging hardware _(b2 with debugger only)_
 
+![Debug hardware option](./generated/config.debug_hardware.png)
+
 Add extra debugging-related emulated hardware, accessible to code
 running in the emulator. For more info, see [the debugger
 documentation](./debugger.md).
@@ -169,35 +185,35 @@ documentation](./debugger.md).
 
 Select a second processor.
 
+![Tube options](./generated/config.tube.png)
+
 - `No second processor` - no second processor installed
 - `6502 Second Processor` - a 3 MHz external 6502 Second Processor
   will be installed
 - `Master Turbo` - a 4 MHz Master Turbo board will be installed
+  (internally, for Master 128; otherwise, externally)
 
-For the Master 128, the external 6502 Second Processor will be
-connected externally, and the Master Turbo will be connected
-internally.
+Use the `...` button to select the OS for the second processor. As
+with other types of ROM, you can pick a file (max 4 KB, loaded so its
+last byte ends up at address $ffff), a recent file, or one of the
+built-in 6502 second processor OS ROMs.
 
-For the B/B+/Electron, selecting the Master Turbo option corresponds
-to having an external [universal second
-processor](http://chrisacorns.computinghistory.org.uk/8bit_Upgrades/Acorn_ANC21_Uni2Proc.html)
-with a Master Turbo board fitted.
+Please note any notes provided in the UI regarding activating the
+second processor. For B/B+/Electron, a ROM with the Tube interface
+code needs to be installed; for the Master 128, support is built in to
+the MOS, but the relevant `*CONFIGURE` option must be set for it to
+activate the second processor. (See: Master Reference Manual, part 1,
+page C.5-2 and following; 65C102 Co-processor User Guide, p 6.)
 
-If selecting a second processor, of whatever kind, please note the
-notes provided in the UI: for B/B+/Electron, a ROM with the Tube
-interface code needs to be installed; for the Master 128, support is
-built in to the MOS, but the relevant `*CONFIGURE` option must be set
-for it to activate the second processor.
+### Powering on/off an external second processor
 
-### Powering on/off the external second processor
+This option doesn't apply to the Master 128 with Master Turbo. The
+Master Turbo is connected internally and is therefore always powered.
 
-(This option doesn't apply to the Master 128 with Master Turbo. The
-Master Turbo is connected internally and always powered.)
-
-If there's an external 6502 second processor present, the `File` >
-`Power-on reset` will gain 2 additional options: one to reset with the
-6502 second processor on, and one to reset with it off. (The ticked
-entry indicates the current state.)
+For all other cases, the `File` > `Power-on reset` will gain 2
+additional options: one to reset with the 6502 second processor on,
+and one to reset with it off. (The ticked entry indicates the current
+state.)
 
 ![Parasite reset menu](./generated/reset.second_processor.png)
 

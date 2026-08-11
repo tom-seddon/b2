@@ -7,5 +7,8 @@ EPN_BIT_FLAG(MoveMouseToOrigin, 0)
 // if set, don't inflate the rect slightly before taking the capture.
 EPN_BIT_FLAG(DontInflateRect, 1)
 
+// if set, add a border, picking the colour from the region.
+EPN_BIT_FLAG(AddBorder, 2)
+
 EEND()
 #undef ENAME

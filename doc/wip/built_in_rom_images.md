@@ -97,3 +97,14 @@ coexist)
 Sideways ROMs for the Plus 3:
 
 - `Plus 3 ADFS` - ADFS ROM for the Plus 3
+
+## 6502 second processor
+
+There are two 6502 second processor OS ROMs:
+
+- `6502 TUBE 1.10 (6502 Second Processor)` - as supplied with the
+  external 6502 second processor
+- `65C102 TUBE 1.10 (Master Turbo)` - as supplied with the Master
+  Turbo board
+  
+(Both ROMs are actually compatible with either second processor type.)

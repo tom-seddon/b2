@@ -2190,10 +2190,25 @@ class DocImageCreator : public DearImGuiTest {
         this->CaptureRect("configs.rom_popup.b.sideways_rom_type.png", this->GetPopupStackEntryRect(1), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
 
         this->ScrollToWindow("//Configs/###config/###tube");
-        this->CaptureRect("config.tube.png", this->GetWindowRect("//Configs/###config/###tube"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
+        this->CaptureRect("config.tube.png", this->GetWindowRect("//Configs/###config/###tube"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
 
         ctx->ScrollToItem("//Configs/**/###nula", ImGuiAxis_Y);
-        this->CaptureRect("config.nula.png", this->GetItemRect("//Configs/**/###nula"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
+        this->CaptureRect("config.nula.png", this->GetItemRect("//Configs/**/###nula"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+
+        ctx->ScrollToItem("//Configs/**/###mouse", ImGuiAxis_Y);
+        this->CaptureRect("config.mouse.png", this->GetItemRect("//Configs/**/###mouse"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+
+        ctx->ScrollToItem("//Configs/**/###rom_board", ImGuiAxis_Y);
+        this->CaptureRect("config.rom_board.png", this->GetItemRect("//Configs/**/###rom_board"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+
+        ctx->ScrollToItem("//Configs/**/###beeblink", ImGuiAxis_Y);
+        this->CaptureRect("config.beeblink.png", this->GetItemRect("//Configs/**/###beeblink"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+
+        ctx->ScrollToItem("//Configs/**/###ext_mem", ImGuiAxis_Y);
+        this->CaptureRect("config.ext_mem.png", this->GetItemRect("//Configs/**/###ext_mem"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+
+        ctx->ScrollToItem("//Configs/**/###debug_hardware", ImGuiAxis_Y);
+        this->CaptureRect("config.debug_hardware.png", this->GetItemRect("//Configs/**/###debug_hardware"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
 
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
 
@@ -2453,6 +2468,22 @@ class DocImageCreator : public DearImGuiTest {
             }
         }
 
+        {
+            ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Electron/Plus 1/Plus 3")).c_str());
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
+            ctx->ScrollToItem("//Configs/**/###plus3", ImGuiAxis_Y);
+            this->CaptureRect("config.plus3.png", this->GetItemRect("//Configs/**/###plus3"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+        }
+
+        {
+            ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Master Compact (MOS 5.10)")).c_str());
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
+            ctx->ScrollToItem("//Configs/**/###serial", ImGuiAxis_Y);
+            this->CaptureRect("config.serial.png", this->GetItemRect("//Configs/**/###serial"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+        }
+
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");
         //ASSERT(wi.Window);
         //ctx->SetRef(wi.Window);
@@ -2548,6 +2579,8 @@ class DocImageCreator : public DearImGuiTest {
             m_ctx->MouseTeleportToPos(ImVec2(0.f, 0.f));
         }
 
+        bool border = false;
+
         if (!(flags & CaptureRectFlag_DontInflateRect)) {
             if (!(flags & CaptureRectFlag_MoveMouseToOrigin)) {
                 // If not moving the mouse to the origin: inflate the rect a bit more so the whole cursor will end up visible inside the inflated area.
@@ -2560,7 +2593,16 @@ class DocImageCreator : public DearImGuiTest {
                 }
             }
 
-            this->InflateRect(&rect, 5.f);
+            border = true;
+        }
+
+        if (flags & CaptureRectFlag_AddBorder) {
+            border = true;
+        }
+
+        static constexpr float BORDER_SIZE = 5.f;
+        if (border) {
+            this->InflateRect(&rect, BORDER_SIZE);
         }
 
         SDLUniquePtr<SDL_Surface> full_surface = this->Capture();
@@ -2580,6 +2622,21 @@ class DocImageCreator : public DearImGuiTest {
 
         int blit_result = SDL_BlitSurface(full_surface.get(), &src_rect, subsurface.get(), &dest_rect);
         TEST_EQ_II(blit_result, 0);
+
+        if (flags & CaptureRectFlag_AddBorder) {
+            Uint32 colour = SDL_MapRGBA(subsurface->format, 0, 0, 0, 255);
+
+            // these do overlap.
+            SDL_Rect top = {0, 0, w, (int)BORDER_SIZE};
+            SDL_Rect left = {0, 0, (int)BORDER_SIZE, h};
+            SDL_Rect bottom = {0, h - (int)BORDER_SIZE, w, (int)BORDER_SIZE};
+            SDL_Rect right = {w - (int)BORDER_SIZE, 0, (int)BORDER_SIZE, h};
+
+            SDL_FillRect(subsurface.get(), &top, colour);
+            SDL_FillRect(subsurface.get(), &left, colour);
+            SDL_FillRect(subsurface.get(), &bottom, colour);
+            SDL_FillRect(subsurface.get(), &right, colour);
+        }
 
         TEST_TRUE(SaveSDLSurface(subsurface.get(), PathJoined(m_output_path, name), g_stdio_logs));
 

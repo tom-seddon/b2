@@ -49,3 +49,4 @@ selected. (The currently selected bank's entry is ticked.)
 
 The usual `Confirm` entry will do a power-on reset with the currently
 selected bank.
+
