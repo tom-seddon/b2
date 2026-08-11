@@ -623,16 +623,18 @@ bool ConfigsUI::DoEditConfigGui() {
                 ASSERT(hard_disk_index <= UINT32_MAX);
                 ImGuiIDPusher id_pusher((uint32_t)hard_disk_index);
 
+                if (ImGui::Button("...")) {
+                    ImGui::OpenPopup(SCSI_POPUP);
+                }
+
+                ImGui::SameLine();
+
                 char name[100];
                 snprintf(name, sizeof name, "SCSI HD %zu", hard_disk_index);
                 if (ImGuiInputText(&config->hard_disk_dat_paths[hard_disk_index],
                                    name,
                                    config->hard_disk_dat_paths[hard_disk_index])) {
                     edited = true;
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("...")) {
-                    ImGui::OpenPopup(SCSI_POPUP);
                 }
 
                 if (ImGui::BeginPopup(SCSI_POPUP)) {

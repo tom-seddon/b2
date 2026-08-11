@@ -382,7 +382,12 @@ void TranslateImRect(ImRect *rect, const ImVec2 &delta);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiInputText(const char *label, std::string *str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
+// always fills up to the right edge of the available content region.
+bool ImGuiInputText(const char *label,
+                    std::string *str,
+                    ImGuiInputTextFlags flags = 0,
+                    ImGuiInputTextCallback callback = nullptr,
+                    void *user_data = nullptr);
 
 // ImGuiInputText helper that only updates *new_str when returning true. Always
 // uses ImGuiInputTextFlags_EnterReturnsTrue and

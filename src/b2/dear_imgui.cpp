@@ -1490,6 +1490,12 @@ static int ImGuiStdStringInputTextCallback(ImGuiInputTextCallbackData *data) {
     }
 }
 
+//bool ImGui::InputText(const char* label, char* buf, size_t buf_size, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
+//{
+//    IM_ASSERT(!(flags & ImGuiInputTextFlags_Multiline)); // call InputTextMultiline()
+//    return InputTextEx(label, NULL, buf, (int)buf_size, ImVec2(0, 0), flags, callback, user_data);
+//}
+
 bool ImGuiInputText(const char *label, std::string *str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void *user_data) {
     ASSERT(!(flags & ImGuiInputTextFlags_CallbackResize));
     flags |= ImGuiInputTextFlags_CallbackResize;
@@ -1499,7 +1505,15 @@ bool ImGuiInputText(const char *label, std::string *str, ImGuiInputTextFlags fla
     u.next_callback = callback;
     u.next_callback_user_data = user_data;
 
-    bool result = ImGui::InputText(label, str->data(), str->size() + 1, flags, &ImGuiStdStringInputTextCallback, &u);
+    ImVec2 label_size = ImGui::CalcTextSize(label, nullptr, true);
+
+    ImVec2 size;
+    size.x = ImGui::GetContentRegionAvail().x - GImGui->Style.ItemInnerSpacing.x - label_size.x;
+    size.y = 0.f;
+
+    bool result = ImGui::InputTextEx(label, NULL, str->data(), (int)(str->size() + 1), size, flags, &ImGuiStdStringInputTextCallback, &u);
+
+    //bool result = ImGui::InputText(label, str->data(), str->size() + 1, flags, &ImGuiStdStringInputTextCallback, &u);
     return result;
 }
 
