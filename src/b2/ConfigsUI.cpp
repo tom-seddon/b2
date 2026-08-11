@@ -247,15 +247,6 @@ void ConfigsUI::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char *GetADJIDIPSwitchesString(void *data, int index) {
-    ASSERT(index >= 0 && index < 4);
-
-    auto tmp = (std::string *)data;
-    *tmp = strprintf("%d (&%04X) (DIP 1=%s, DIP 2=%s)", 1 + index, BBCMicro::ADJI_ADDRESSES[index], index & 1 ? "ON" : "OFF", index & 2 ? "ON" : "OFF");
-
-    return tmp->c_str();
-}
-
 class ImGuiRegion {
   public:
     explicit ImGuiRegion(const char *id, ImGuiChildFlags child_flags = ImGuiChildFlags_AutoResizeY);
@@ -271,8 +262,8 @@ class ImGuiRegion {
 };
 
 ImGuiRegion::ImGuiRegion(const char *id, ImGuiChildFlags child_flags) {
-    ASSERT((child_flags & ~(ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY)) == 0);
-    ImGui::BeginChild(id, {0.f, 0.f}, ImGuiChildFlags_AlwaysAutoResize | child_flags);
+    //ASSERT((child_flags & ~(ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY)) == 0);
+    ImGui::BeginChild(id, {-FLT_MIN, 0.f}, ImGuiChildFlags_AlwaysAutoResize | child_flags);
 }
 
 ImGuiRegion::~ImGuiRegion() {
@@ -491,18 +482,40 @@ bool ConfigsUI::DoEditConfigGui() {
     }
 
     if (HasCartridges(config->type_id)) {
-        //ImGuiRegion region("###adji", ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+        ImGuiRegion region("###adji_window", ImGuiChildFlags_AutoResizeY);
 
-        if (ImGui::Checkbox("Retro Hardware ADJI cartridge", &config->adji)) {
+        if (ImGui::Checkbox("Retro Hardware ADJI cartridge###adji", &config->adji)) {
             edited = true;
         }
 
         if (config->adji) {
-            std::string tmp;
             int adji_dip_switches = config->adji_dip_switches & 3;
-            if (ImGui::ListBox("Address", &adji_dip_switches, &GetADJIDIPSwitchesString, &tmp, 4)) {
-                config->adji_dip_switches = adji_dip_switches & 3;
-                edited = true;
+
+            static const char LABEL[] = "Addresses";
+
+            ImVec2 label_size = ImGui::CalcTextSize(LABEL, LABEL + sizeof LABEL - 1, true);
+
+            // logic for this copied from ImGui::BeginListBox.
+            ImVec2 size;
+            size.x = ImGui::GetContentRegionAvail().x - GImGui->Style.ItemInnerSpacing.x - label_size.x;
+            size.y = ImTrunc(ImGui::GetTextLineHeightWithSpacing() * 4 + GImGui->Style.FramePadding.y * 2.0f);
+
+            if (ImGui::BeginListBox(LABEL, size)) {
+                std::string str;
+                for (int i = 0; i < 4; ++i) {
+                    char text[100];
+                    snprintf(text, sizeof text, "%d (&%04X) (DIP 1=%s, DIP 2=%s)", 1 + i, BBCMicro::ADJI_ADDRESSES[i], i & 1 ? "ON" : "OFF", i & 2 ? "ON" : "OFF");
+
+                    bool selected = i == adji_dip_switches;
+                    if (ImGui::Selectable(text, selected)) {
+                        adji_dip_switches = i;
+                    }
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndListBox();
             }
 
             if (config->disc_interface) {
@@ -570,7 +583,7 @@ bool ConfigsUI::DoEditConfigGui() {
     if (HasTube(config->type_id)) {
         ImGui::Separator();
 
-        ImGuiRegion region("###tube");
+        ImGuiRegion region("###tube_window");
 
         ImGuiHeader("Tube");
 
@@ -614,9 +627,11 @@ bool ConfigsUI::DoEditConfigGui() {
     if (CanHaveSCSI(config->type_id)) {
         ImGui::Separator();
 
+        ImGuiRegion region("###scsi_window", ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+
         ImGuiHeader("SCSI##header");
 
-        ImGui::Checkbox("SCSI", &config->scsi);
+        ImGui::Checkbox("SCSI###scsi", &config->scsi);
 
         if (config->scsi) {
             for (size_t hard_disk_index = 0; hard_disk_index < config->hard_disk_dat_paths.size(); ++hard_disk_index) {

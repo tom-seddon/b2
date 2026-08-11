@@ -114,6 +114,8 @@ modes.
 
 ### Retro Hardware ADJI cartridge _(Electron/Master 128 only)_
 
+![ADJI options](./generated/config.adji.png)
+
 Tick the box to add a Retro Hardware joystick interface cartridge, a
 remake of the [Slogger Switched Joystick
 Interface](https://www.computinghistory.org.uk/det/32296/Slogger%20Switched%20Joystick%20Interface/).
@@ -222,15 +224,21 @@ state.
 
 ## SCSI _(B/B+/Master 128/Electron only)_
 
-Tick `SCSI` to add an emulated SCSI hard disk adapter, useable with
-Acorn ADFS.
+![SCSI options](./generated/config.scsi.png)
+
+Tick `SCSI` to add an emulated SCSI hard disk adapter, compatible with
+the Acorn ADFS in any of the default Master 128 or Master Turbo
+configs, or the Electron/Plus 1/Plus 3 config.
 
 Up to four hard disk images can be selected, corresponding to ADFS
 drives 0-4. See [the SCSI documentation](./scsi.md) for more about BBC
 hard disk images, including how to create new ones.
 
-Note: when using hard disks in the emulator, be sure to use
-`*DISMOUNT` or `*BYE` when necessary. The emulator will write data to
-the disk image file only when ADFS requests it!
+When using hard disks in the emulator, be sure to use `*BYE` (see
+Master Reference Manual J.7-4; Electron Plus 3 User Guide p 42),
+`*CLOSE` (see Master Reference Manual G.5-3; Electron Plus 3 User
+Guide p 42), or `*DISMOUNT` (see Master Reference Manual p J.7-7;
+Electron Plus 3 User Guide p 46) as required. The emulator will write
+data to the disk image file only when ADFS requests it!
 
 ## MMFS

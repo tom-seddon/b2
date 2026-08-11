@@ -2189,26 +2189,34 @@ class DocImageCreator : public DearImGuiTest {
 
         this->CaptureRect("configs.rom_popup.b.sideways_rom_type.png", this->GetPopupStackEntryRect(1), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_DontInflateRect);
 
-        this->ScrollToWindow("//Configs/###config/###tube");
-        this->CaptureRect("config.tube.png", this->GetWindowRect("//Configs/###config/###tube"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+        this->ScrollToWindow("//Configs/###config/###tube_window");
+        this->CaptureRect("config.tube.png", this->GetWindowRect("//Configs/###config/###tube_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
 
         ctx->ScrollToItem("//Configs/**/###nula", ImGuiAxis_Y);
         this->CaptureRect("config.nula.png", this->GetItemRect("//Configs/**/###nula"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
 
         ctx->ScrollToItem("//Configs/**/###mouse", ImGuiAxis_Y);
+        ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###mouse");
         this->CaptureRect("config.mouse.png", this->GetItemRect("//Configs/**/###mouse"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+        ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###mouse");
 
         ctx->ScrollToItem("//Configs/**/###rom_board", ImGuiAxis_Y);
         this->CaptureRect("config.rom_board.png", this->GetItemRect("//Configs/**/###rom_board"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
 
         ctx->ScrollToItem("//Configs/**/###beeblink", ImGuiAxis_Y);
+        ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###beeblink");
         this->CaptureRect("config.beeblink.png", this->GetItemRect("//Configs/**/###beeblink"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+        ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###beeblink");
 
         ctx->ScrollToItem("//Configs/**/###ext_mem", ImGuiAxis_Y);
+        ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###ext_mem");
         this->CaptureRect("config.ext_mem.png", this->GetItemRect("//Configs/**/###ext_mem"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+        ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###ext_mem");
 
         ctx->ScrollToItem("//Configs/**/###debug_hardware", ImGuiAxis_Y);
+        ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###debug_hardware");
         this->CaptureRect("config.debug_hardware.png", this->GetItemRect("//Configs/**/###debug_hardware"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+        ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###debug_hardware");
 
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
 
@@ -2480,7 +2488,34 @@ class DocImageCreator : public DearImGuiTest {
             ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Master Compact (MOS 5.10)")).c_str());
             ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
             ctx->ScrollToItem("//Configs/**/###serial", ImGuiAxis_Y);
+            ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###serial");
             this->CaptureRect("config.serial.png", this->GetItemRect("//Configs/**/###serial"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+            ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###serial");
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+        }
+
+        {
+            ctx->MenuAction(ImGuiTestAction_Click, strprintf("//##MainMenuBar/###hardware/###%zu", this->MustFindConfigIndex("Master 128 (MOS 3.20)")).c_str());
+
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
+
+            ctx->ScrollToItem("//Configs/**/###adji", ImGuiAxis_Y);
+            ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###adji");
+            this->ScrollToWindow("//Configs/###config/###adji_window");
+            this->CaptureRect("config.adji.png", this->GetWindowRect("//Configs/###config/###adji_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+            ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###adji");
+
+            ctx->Yield();
+            ctx->Yield();
+            ctx->Yield();
+
+            ctx->ScrollToItem("//Configs/**/###scsi", ImGuiAxis_Y);
+            this->ScrollToWindow("//Configs/###config/###scsi_window");
+            ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###scsi");
+            this->ScrollToWindow("//Configs/###config/###scsi_window");
+            this->CaptureRect("config.scsi.png", this->GetWindowRect("//Configs/###config/###scsi_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+            //            ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###scsi");
+            //
             ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
         }
 

@@ -5,24 +5,25 @@ B-em, so any existing files should hopefully work as-is.
 
 BBC hard disk images usually come as two files: a `.dat` with the disk
 contents, and a corresponding `.dsc` file defining the disk geometry.
-When choosing a hard disk image, select the `.dat` file, and b2 will
-find the accompanying `.dsc` file itself.
+Use the `...` > `File...` option for the hard disk of interest to
+select the `.dat` file, and b2 will find the accompanying `.dsc` file
+itself.
 
 (If there's no corresponding `.dsc`, b2 will assume a disk geometry
-that will probably work. You'll see a warning about the lack of .dsc
-file to alert you to this case.)
+that will probably work. You'll see a warning to alert you to this
+case.)
 
 # Creating new SCSI hard disk images
 
 To create a new hard disk image, use the `...` > `New` option - this
-creates a preformatted 10 MByte ADFS hard disk image.
+lets you use a file selector to create a new preformatted 10 MByte
+ADFS hard disk image.
 
 If 10 MBytes isn't enough, you can reformat it using the
-`$.FORMAT.SUPERFORM` that comes supplied - see Acorn's Winchester Disc
-Filing System User Guide (e.g,
-https://github.com/bitshifters/bbc-documents/blob/master/Hard%20Disk/Acorn_WinchesterDiscFilingSystemUG.pdf).
-Use the `C` option to set the drive parameters. The total disk size
-will be roughly (heads * cylinders * 33 - 135) * 256.
+`$.FORMAT.SUPERFORM` that comes supplied on the disk - see the
+Winchester Disc Filing System User Guide. Use the `C` option to set
+the drive parameters. The total disk size will be roughly (heads *
+cylinders * 33 - 135) * 256.
 
 (The -135 is unimportant for any realistic hard disk size, but if
 you're trying to create a tiny one then it might become noticeable.

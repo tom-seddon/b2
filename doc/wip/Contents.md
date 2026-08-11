@@ -28,28 +28,42 @@ The b2 documentation covers use of the emulator.
 
 # BBC documentation
 
-Remastered, updated versions of original manuals:
+## BBC B/B+
 
-* For BBC B/B+: [BBC Micro User Guide](https://stardot.org.uk/forums/viewtopic.php?t=14024)
-* For BBC Master 128: [BBC Master Reference Manual](https://stardot.org.uk/forums/viewtopic.php?f=42&t=20466)
+* [BBC Micro User Guide](https://stardot.org.uk/forums/viewtopic.php?t=14024)
+* [Disc Filing System User Guide](https://github.com/bitshifters/bbc-documents/blob/master/FS/Acorn_DiscSystemUGI2.pdf)
 
-Scans of original manuals:
+## BBC Master 128
 
-* For BBC Master Compact: [Master Compact Welcome Guide](https://8bs.com/othrdnld/manuals/hnooijen/Acorn/Master-Compact-Welcome-Guide.pdf)
-* For Olivetti PC 128 S: [Guida all'uso del sistema PC 128 S](https://github.com/bitshifters/bbc-documents/blob/master/MasterCompact/PC128S_welcome.pdf) (Italian)
-* For Electron: [Electron User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Electron%20User%20Guide.PDF)
-* For Electron: [Electron Plus 1 User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Acorn_Plus1UG.pdf)
-* For Electron: [Electron Plus 3 User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Acorn_Plus3UG.pdf)
-* For 6502 second processor: [6502 second processor User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Tube/Acorn_65022ndprocUG.pdf)
-* For Master Turbo: [65C102 Co-Processor User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Tube/Acorn_65C102CoProUG.pdf)
+* [BBC Master Reference Manual](https://stardot.org.uk/forums/viewtopic.php?f=42&t=20466)
 
-Remastered, updated versions of the widely-used unofficial programming
-manuals:
+## BBC Master Compact/Olivetti PC 128 S
 
-* For BBC B: [Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?f=42&t=17242)
-* For BBC B, B+ and Master: [New Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?f=42&t=17243)
-* For BBC Master: [Advanced Master Reference Manual](https://stardot.org.uk/forums/viewtopic.php?t=21734)
-* For Electron: [Electron Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?t=23193)
+* [Master Compact Welcome Guide](https://8bs.com/othrdnld/manuals/hnooijen/Acorn/Master-Compact-Welcome-Guide.pdf)
+* [Guida all'uso del sistema PC 128 S](https://github.com/bitshifters/bbc-documents/blob/master/MasterCompact/PC128S_welcome.pdf) (Italian)
+
+## Acorn Electron
+
+* [Electron User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Electron%20User%20Guide.PDF)
+* [Electron Plus 1 User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Acorn_Plus1UG.pdf)
+* [Electron Plus 3 User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Acorn_Plus3UG.pdf)
+
+## General
+
+Documentation applicable to multiple models.
+
+* [Winchester Disc Filing System User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Hard%20Disk/Acorn_WinchesterDiscFilingSystemUG.pdf) - hard disks in general
+* [6502 second processor User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Tube/Acorn_65022ndprocUG.pdf) - external 6502 second processor
+* [65C102 Co-Processor User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Tube/Acorn_65C102CoProUG.pdf) - Master Turbo
+
+## Programming manuals
+
+These were unofficial, but widely used. 
+
+* [Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?f=42&t=17242) (BBC B, but much of the info also applies to BBC B+/Master)
+* [New Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?f=42&t=17243) (BBC B/B+/Master)
+* [Advanced Master Reference Manual](https://stardot.org.uk/forums/viewtopic.php?t=21734) (BBC Master)
+* [Electron Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?t=23193) (Acorn Electron)
 
 # Running BBC games
 
