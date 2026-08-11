@@ -128,9 +128,9 @@ static std::string GetPathForStandardROM(StandardROM rom) {
         return "M128/3.50/viewsht.rom";
 
     case StandardROM_MasterTurboParasite:
-        return "MasterTurboParasite.rom";
+        return "tube/65C102 Second Processor v1.10.rom";
     case StandardROM_TUBE110:
-        return "TUBE110.rom";
+        return "tube/Tube 6502 64k v1.10.rom";
 
     case StandardROM_MOS500_ADFS:
         return "MCompact/5.00/adfs.rom";

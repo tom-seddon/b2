@@ -361,7 +361,7 @@ function(add_copy_assets_custom_commands TARGET ASSETS)
   add_custom_command(
     TARGET ${TARGET} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${TARGET}>/${ROMS}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different OS12.ROM B+MOS.rom BASIC2.ROM acorn/DFS-2.26.rom watford/DDFS-1.54T.rom watford/DDFS-1.53.rom opus/OPUS-DDOS-3.45.rom opus/challenger-1.01.rom MasterTurboParasite.rom TUBE110.rom ElectronMOS.rom AP6v134.rom acorn/Plus3ADFS.rom acorn/Plus1.rom $<TARGET_FILE_DIR:${TARGET}>/${ROMS}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different OS12.ROM B+MOS.rom BASIC2.ROM acorn/DFS-2.26.rom watford/DDFS-1.54T.rom watford/DDFS-1.53.rom opus/OPUS-DDOS-3.45.rom opus/challenger-1.01.rom "tube/65C102 Second Processor v1.10.rom" "tube/Tube 6502 64k v1.10.rom" ElectronMOS.rom AP6v134.rom acorn/Plus3ADFS.rom acorn/Plus1.rom $<TARGET_FILE_DIR:${TARGET}>/${ROMS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms
     VERBATIM)
 
