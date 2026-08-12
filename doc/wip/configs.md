@@ -242,3 +242,11 @@ Electron Plus 3 User Guide p 46) as required. The emulator will write
 data to the disk image file only when ADFS requests it!
 
 ## MMFS
+
+![MMFS options](./generated/config.mmfs.png)
+
+Tick `MMFS` to add an emulated MMFS SD card adapter, compatible with
+any of the emulated types of BBC Micro.
+
+See [the MMFS documentation](./mmfs.md) for more about MMFS and how to
+use it with b2.

@@ -438,13 +438,13 @@ void BeebWindow::ImGuiDebugUI::DoImGui() {
         // cheesy mechanism for specifying an exact ID.
         static const char ID_PREFIX[] = "!0x";
         static constexpr size_t ID_PREFIX_LENGTH = sizeof ID_PREFIX - 1;
-        
+
         if (m_ids[index].starts_with(ID_PREFIX)) {
             if (GetUInt32FromString(&id_with_seed, m_ids[index].c_str() + ID_PREFIX_LENGTH, 16)) {
                 id_without_seed = id_with_seed;
             }
         }
-        
+
         char label[100];
         snprintf(label, sizeof label, "%08X (%08X)", id_with_seed, id_without_seed);
 
@@ -464,7 +464,7 @@ void BeebWindow::ImGuiDebugUI::DoImGui() {
         }
 
         ImGui::SameLine();
-        
+
         {
             ImGuiStyleColourPusher style_pusher;
             style_pusher.PushDisabledButtonColours(!down_enabled);
@@ -474,29 +474,29 @@ void BeebWindow::ImGuiDebugUI::DoImGui() {
         }
 
         ImGui::SameLine();
-        
+
         if (ImGui::Button("+")) {
             m_ids.insert(m_ids.begin() + index, "");
         }
 
         ImGui::SameLine();
-        
+
         bool erase = false;
         {
             bool erase_enabled = m_ids.size() > 1;
 
             ImGuiStyleColourPusher style_pusher;
             style_pusher.PushDisabledButtonColours(!erase_enabled);
-            
+
             if (ImGui::Button("-")) {
                 if (erase_enabled) {
                     erase = true;
                 }
             }
         }
-        
+
         ImGui::SameLine();
-        
+
         ImGuiInputText(&m_ids[index], label, m_ids[index]);
 
         if (erase) {

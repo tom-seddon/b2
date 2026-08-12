@@ -26,6 +26,7 @@ The b2 documentation covers use of the emulator.
 * [Keyboard layouts](./keyboard.md)
 * [Configuring emulated hardware](./configs.md)
 
+
 # BBC documentation
 
 ## BBC B/B+
@@ -48,7 +49,7 @@ The b2 documentation covers use of the emulator.
 * [Electron Plus 1 User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Acorn_Plus1UG.pdf)
 * [Electron Plus 3 User Guide](https://github.com/bitshifters/bbc-documents/blob/master/Electron/Acorn_Plus3UG.pdf)
 
-## General
+## Peripherals
 
 Documentation applicable to multiple models.
 

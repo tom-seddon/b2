@@ -2499,42 +2499,69 @@ class DocImageCreator : public DearImGuiTest {
 
             ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //on
 
-            ctx->ScrollToItem("//Configs/**/###adji", ImGuiAxis_Y);
-            ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###adji");
-            this->ScrollToWindow("//Configs/###config/###adji_window");
-            this->CaptureRect("config.adji.png", this->GetWindowRect("//Configs/###config/###adji_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
-            ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###adji");
-
-            ctx->ScrollToItem("//Configs/**/###scsi", ImGuiAxis_Y);
-            this->ScrollToWindow("//Configs/###config/###scsi_window");
-            ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###scsi");
-            this->ScrollToWindow("//Configs/###config/###scsi_window");
-            this->CaptureRect("config.scsi.png", this->GetWindowRect("//Configs/###config/###scsi_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
-
-            ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/$$0/...");
-            ctx->MenuAction(ImGuiTestAction_Hover, "//$FOCUSED/File...");
-
+            // ADJI
             {
-                ImRect rect = this->GetItemRect("//Configs/**/$$0/...");
-                this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
-
-                this->CaptureRect("config.scsi.file.png", rect);
+                ctx->ScrollToItem("//Configs/**/###adji", ImGuiAxis_Y);
+                ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###adji");
+                this->ScrollToWindow("//Configs/###config/###adji_window");
+                this->CaptureRect("config.adji.png", this->GetWindowRect("//Configs/###config/###adji_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
+                ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###adji");
             }
 
-            ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/$$0/...");
-            ctx->MenuAction(ImGuiTestAction_Hover, "//$FOCUSED/New/###10MB");
-
+            // SCSI
             {
-                ImRect rect = this->GetItemRect("//Configs/**/$$0/...");
-                this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
-                this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+                ctx->ScrollToItem("//Configs/**/###scsi", ImGuiAxis_Y);
+                this->ScrollToWindow("//Configs/###config/###scsi_window");
+                ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###scsi");
+                this->ScrollToWindow("//Configs/###config/###scsi_window");
+                this->CaptureRect("config.scsi.png", this->GetWindowRect("//Configs/###config/###scsi_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
 
-                this->CaptureRect("config.scsi.new.png", rect);
+                {
+                    ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/$$0/###scsi_file_menu");
+                    ctx->MenuAction(ImGuiTestAction_Hover, "//$FOCUSED/File...");
+
+                    ImRect rect = this->GetItemRect("//Configs/**/$$0/###scsi_file_menu");
+                    this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
+
+                    this->CaptureRect("config.scsi.file.png", rect);
+                }
+
+                {
+                    ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/$$0/###scsi_file_menu");
+                    ctx->MenuAction(ImGuiTestAction_Hover, "//$FOCUSED/New/###10MB");
+
+                    ImRect rect = this->GetItemRect("//Configs/**/$$0/###scsi_file_menu");
+                    this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
+                    this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+
+                    this->CaptureRect("config.scsi.new.png", rect);
+                }
+
+                ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###scsi");
             }
 
-            ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###scsi");
+            // MMFS
+            {
+                ctx->ScrollToItem("//Configs/**/###mmfs", ImGuiAxis_Y);
+                this->ScrollToWindow("//Configs/###config/###mmfs_window");
+                ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###mmfs");
+                this->ScrollToWindow("//Configs/###config/###mmfs_window");
+                this->CaptureRect("config.mmfs.png", this->GetWindowRect("//Configs/###config/###mmfs_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
 
-            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+                {
+                    ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/###mmfs_file_menu");
+                    ctx->ItemAction(ImGuiTestAction_Hover, "//$FOCUSED/File...");
+
+                    ImRect rect = this->GetItemRect("//Configs/**/###mmfs_file_menu");
+                    this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
+
+                    this->CaptureRect("config.mmfs.file.png", rect);
+                }
+
+                //ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###mmfs");
+            }
+
+            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
         }
 
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");

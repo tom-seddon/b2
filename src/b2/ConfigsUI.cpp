@@ -627,9 +627,9 @@ bool ConfigsUI::DoEditConfigGui() {
     if (CanHaveSCSI(config->type_id)) {
         ImGui::Separator();
 
-        ImGuiRegion region("###scsi_window", ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+        ImGuiRegion region("###scsi_window", ImGuiChildFlags_AutoResizeY);
 
-        ImGuiHeader("SCSI##header");
+        ImGuiHeader("SCSI");
 
         ImGui::Checkbox("SCSI###scsi", &config->scsi);
 
@@ -638,7 +638,7 @@ bool ConfigsUI::DoEditConfigGui() {
                 ASSERT(hard_disk_index <= UINT32_MAX);
                 ImGuiIDPusher id_pusher((uint32_t)hard_disk_index);
 
-                if (ImGui::Button("...")) {
+                if (ImGui::Button("...###scsi_file_menu")) {
                     ImGui::OpenPopup(SCSI_POPUP);
                 }
 
@@ -692,45 +692,51 @@ bool ConfigsUI::DoEditConfigGui() {
 
     ImGui::Separator();
 
-    ImGuiHeader("MMFS##header");
+    {
+        ImGuiRegion region("###mmfs_window", ImGuiChildFlags_AutoResizeY);
 
-    if (ImGui::Checkbox("MMFS", &config->mmfs_enabled)) {
-        edited = true;
-    }
+        ImGuiHeader("MMFS");
 
-    if (config->mmfs_enabled) {
-        if (ImGuiInputText(&config->mmfs_config.image_path,
-                           "Image Path",
-                           config->mmfs_config.image_path)) {
+        if (ImGui::Checkbox("MMFS###mmfs", &config->mmfs_enabled)) {
             edited = true;
         }
-        ImGui::SameLine();
-        if (ImGui::Button("...##mmfs")) {
-            ImGui::OpenPopup(MMFS_POPUP);
-        }
 
-        if (ImGui::BeginPopup(MMFS_POPUP)) {
-            if (ImGui::MenuItem("File...")) {
-                if (m_mmfs_image_ofd.Open(m_beeb_window->GetSDLWindow(), &config->mmfs_config.image_path)) {
-                    m_mmfs_image_ofd.AddLastPathToRecentPaths(&g_mmfs_images_recent_paths);
-                    edited = true;
-                }
+        if (config->mmfs_enabled) {
+            if (ImGui::Button("...###mmfs_file_menu")) {
+                ImGui::OpenPopup(MMFS_POPUP);
             }
 
-            if (ImGuiRecentMenu(&config->mmfs_config.image_path, "Recent file", &g_mmfs_images_recent_paths)) {
+            ImGui::SameLine();
+
+            if (ImGuiInputText(&config->mmfs_config.image_path,
+                               "Image Path",
+                               config->mmfs_config.image_path)) {
                 edited = true;
             }
 
-            ImGui::EndPopup();
-        }
+            if (ImGui::BeginPopup(MMFS_POPUP)) {
+                if (ImGui::MenuItem("File...")) {
+                    if (m_mmfs_image_ofd.Open(m_beeb_window->GetSDLWindow(), &config->mmfs_config.image_path)) {
+                        m_mmfs_image_ofd.AddLastPathToRecentPaths(&g_mmfs_images_recent_paths);
+                        edited = true;
+                    }
+                }
 
-        if (ImGui::Checkbox("Enable debug logging", &config->mmfs_config.debug)) {
-            edited = true;
-        }
+                if (ImGuiRecentMenu(&config->mmfs_config.image_path, "Recent file", &g_mmfs_images_recent_paths)) {
+                    edited = true;
+                }
 
-        ImGuiStyleColourPusher pusher;
-        pusher.PushDefault(ImGuiCol_Text);
-        ImGui::TextWrapped("MMB files (MMFS v1) or FAT32 disk images (MMFS v2)");
+                ImGui::EndPopup();
+            }
+
+            if (ImGui::Checkbox("Enable debug logging", &config->mmfs_config.debug)) {
+                edited = true;
+            }
+
+            ImGuiStyleColourPusher pusher;
+            pusher.PushDefault(ImGuiCol_Text);
+            ImGui::TextWrapped("MMB files (MMFS v1) or FAT32 disk images (MMFS v2)");
+        }
     }
 
     return edited;
