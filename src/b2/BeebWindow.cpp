@@ -435,12 +435,18 @@ void BeebWindow::ImGuiDebugUI::DoImGui() {
         uint32_t id_with_seed = ImHashStr(m_ids[index].c_str(), 0, seed);
         uint32_t id_without_seed = ImHashStr(m_ids[index].c_str());
 
+        // cheesy mechanism for specifying an exact ID.
+        static const char ID_PREFIX[] = "!0x";
+        static constexpr size_t ID_PREFIX_LENGTH = sizeof ID_PREFIX - 1;
+        
+        if (m_ids[index].starts_with(ID_PREFIX)) {
+            if (GetUInt32FromString(&id_with_seed, m_ids[index].c_str() + ID_PREFIX_LENGTH, 16)) {
+                id_without_seed = id_with_seed;
+            }
+        }
+        
         char label[100];
         snprintf(label, sizeof label, "%08X (%08X)", id_with_seed, id_without_seed);
-
-        ImGuiInputText(&m_ids[index], label, m_ids[index]);
-
-        ImGui::SameLine();
 
         int move = 0;
         bool up_enabled = index > 0;
@@ -449,7 +455,7 @@ void BeebWindow::ImGuiDebugUI::DoImGui() {
         {
             ImGuiStyleColourPusher style_pusher;
             style_pusher.PushDisabledButtonColours(!up_enabled);
-            ImGui::SameLine();
+
             if (ImGui::ArrowButton("###up", ImGuiDir_Up)) {
                 if (up_enabled) {
                     move = -1;
@@ -457,34 +463,41 @@ void BeebWindow::ImGuiDebugUI::DoImGui() {
             }
         }
 
+        ImGui::SameLine();
+        
         {
             ImGuiStyleColourPusher style_pusher;
             style_pusher.PushDisabledButtonColours(!down_enabled);
-            ImGui::SameLine();
             if (ImGui::ArrowButton("###down", ImGuiDir_Down)) {
                 move = 1;
             }
         }
 
         ImGui::SameLine();
+        
         if (ImGui::Button("+")) {
             m_ids.insert(m_ids.begin() + index, "");
         }
 
+        ImGui::SameLine();
+        
         bool erase = false;
         {
             bool erase_enabled = m_ids.size() > 1;
 
             ImGuiStyleColourPusher style_pusher;
             style_pusher.PushDisabledButtonColours(!erase_enabled);
-
-            ImGui::SameLine();
+            
             if (ImGui::Button("-")) {
                 if (erase_enabled) {
                     erase = true;
                 }
             }
         }
+        
+        ImGui::SameLine();
+        
+        ImGuiInputText(&m_ids[index], label, m_ids[index]);
 
         if (erase) {
             m_ids.erase(m_ids.begin() + index);
@@ -5227,7 +5240,7 @@ SDLUniquePtr<SDL_Texture> BeebWindow::CreateCaptureRenderTarget() const {
 
 SDLUniquePtr<SDL_Surface> BeebWindow::CaptureRenderTarget() const {
     SDL_RenderFlush(m_renderer);
-    
+
     int w, h;
     if (SDL_Texture *render_target = SDL_GetRenderTarget(m_renderer)) {
         if (SDL_QueryTexture(render_target, nullptr, nullptr, &w, &h) != 0) {
