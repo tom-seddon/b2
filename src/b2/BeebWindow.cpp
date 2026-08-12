@@ -5226,6 +5226,8 @@ SDLUniquePtr<SDL_Texture> BeebWindow::CreateCaptureRenderTarget() const {
 //////////////////////////////////////////////////////////////////////////
 
 SDLUniquePtr<SDL_Surface> BeebWindow::CaptureRenderTarget() const {
+    SDL_RenderFlush(m_renderer);
+    
     int w, h;
     if (SDL_Texture *render_target = SDL_GetRenderTarget(m_renderer)) {
         if (SDL_QueryTexture(render_target, nullptr, nullptr, &w, &h) != 0) {
