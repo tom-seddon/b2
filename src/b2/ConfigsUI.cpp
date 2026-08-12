@@ -669,7 +669,8 @@ bool ConfigsUI::DoEditConfigGui() {
                     if (ImGui::BeginMenu("New")) {
                         for (size_t blank_hard_disk_index = 0; blank_hard_disk_index < NUM_BLANK_HARD_DISKS; ++blank_hard_disk_index) {
                             const HardDisk *disk = &BLANK_HARD_DISKS[blank_hard_disk_index];
-                            if (ImGui::MenuItem(disk->name.c_str())) {
+                            std::string label = disk->name + "###" + disk->path_stem; //TODO is this the best logic???
+                            if (ImGui::MenuItem(label.c_str())) {
                                 std::string dat_path;
                                 if (m_new_hard_disk_sfd.Open(m_beeb_window->GetSDLWindow(), &dat_path)) {
                                     if (this->CreateNewHardDiskImage(*disk, dat_path)) {

@@ -2505,17 +2505,35 @@ class DocImageCreator : public DearImGuiTest {
             this->CaptureRect("config.adji.png", this->GetWindowRect("//Configs/###config/###adji_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
             ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###adji");
 
-            ctx->Yield();
-            ctx->Yield();
-            ctx->Yield();
-
             ctx->ScrollToItem("//Configs/**/###scsi", ImGuiAxis_Y);
             this->ScrollToWindow("//Configs/###config/###scsi_window");
             ctx->ItemAction(ImGuiTestAction_Check, "//Configs/**/###scsi");
             this->ScrollToWindow("//Configs/###config/###scsi_window");
             this->CaptureRect("config.scsi.png", this->GetWindowRect("//Configs/###config/###scsi_window"), CaptureRectFlag_MoveMouseToOrigin | CaptureRectFlag_AddBorder);
-            //            ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###scsi");
-            //
+
+            ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/$$0/...");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//$FOCUSED/File...");
+
+            {
+                ImRect rect = this->GetItemRect("//Configs/**/$$0/...");
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
+
+                this->CaptureRect("config.scsi.file.png", rect);
+            }
+
+            ctx->ItemAction(ImGuiTestAction_Click, "//Configs/**/$$0/...");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//$FOCUSED/New/###10MB");
+
+            {
+                ImRect rect = this->GetItemRect("//Configs/**/$$0/...");
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+
+                this->CaptureRect("config.scsi.new.png", rect);
+            }
+
+            ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###scsi");
+
             ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
         }
 
