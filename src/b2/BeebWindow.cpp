@@ -2599,6 +2599,11 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
                 ImGui::EndMenu();
             }
+
+            std::string path_name = PathGetName(name);
+            if (path_name != name) {
+                ImGui::MenuItem(("Name: " + path_name).c_str(), nullptr, false, false);
+            }
         }
 
         std::string desc = disc_image->GetDescription();
@@ -2626,7 +2631,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
             }
         }
 
-        if (ImGui::BeginMenu("Eject")) {
+        if (ImGui::BeginMenu("Eject###eject")) {
             if (ImGui::MenuItem(COMMAND_CONFIRM_CAPTION)) {
                 m_beeb_thread->Send(std::make_shared<BeebThread::EjectDiscMessage>(drive));
             }
@@ -2779,7 +2784,8 @@ bool BeebWindow::DoDiscImageSubMenu2(std::string *path,
     if (recent_disk_image_caption) {
         if (ImGuiRecentMenu(path,
                             recent_disk_image_caption,
-                            &g_disk_image_recent_paths)) {
+                            &g_disk_image_recent_paths,
+                            m_init_arguments.app_handler)) {
             result = true;
         }
     }
@@ -2797,7 +2803,7 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
     if (this->DoDiscImageSubMenu2(&path,
                                   "Disc image...###open_file",
                                   boot ? nullptr : "New disc image###new_file",
-                                  "Recent disc image",
+                                  "Recent disc image###recent_file",
                                   false)) {
         disc_image = DirectDiscImage::CreateForFile(path, m_msg);
     }

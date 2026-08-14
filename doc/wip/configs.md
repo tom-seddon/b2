@@ -130,6 +130,10 @@ ROM perspective, so you don't lose any ROM slots if enabling it.)
 
 Add an AMX-/Watford-type mouse, connected to the user port.
 
+(The Master Compact mouse is not currently supported.)
+
+See the [mouse documentation](./mouse.md).
+
 ### ROM board _(B only)_
 
 ![ROM board option](./generated/config.rom_board.png)
@@ -198,7 +202,8 @@ Select a second processor.
 Use the `...` button to select the OS for the second processor. As
 with other types of ROM, you can pick a file (max 4 KB, loaded so its
 last byte ends up at address $ffff), a recent file, or one of the
-built-in 6502 second processor OS ROMs.
+[built-in 6502 second processor OS
+ROMs](./built_in_rom_images.md#6502-second-processor).
 
 Please note any notes provided in the UI regarding activating the
 second processor. For B/B+/Electron, a ROM with the Tube interface
@@ -209,13 +214,11 @@ page C.5-2 and following; 65C102 Co-processor User Guide, p 6.)
 
 ### Powering on/off an external second processor
 
-This option doesn't apply to the Master 128 with Master Turbo. The
-Master Turbo is connected internally and is therefore always powered.
-
-For all other cases, the `File` > `Power-on reset` will gain 2
-additional options: one to reset with the 6502 second processor on,
-and one to reset with it off. (The ticked entry indicates the current
-state.)
+For Master 128 with Master Turbo, the second processor is connected
+internally and always powered on. For all other cases, the `File` >
+`Power-on reset` will gain 2 additional options: one to reset with the
+6502 second processor on, and one to reset with it off. (The ticked
+entry indicates the current state.)
 
 ![Parasite reset menu](./generated/reset.second_processor.png)
 

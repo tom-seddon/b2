@@ -17,16 +17,22 @@ class CommandKeymapsUI : public SettingsUI {
   public:
     CommandKeymapsUI(ImGuiStuff *imgui_stuff)
         : m_imgui_stuff(imgui_stuff) {
-        this->SetDefaultSize(ImVec2(300, 300));
+        this->SetDefaultSize(ImVec2(750, 300));
 
         ForEachCommandTable2([this](CommandTable2 *table) {
             table->ForEachCommand([this](Command2 *command) {
-                std::string text = command->GetText();
+                ImVec2 size;
+
+                const std::string &text = command->GetText();
+
                 const std::string &extra_text = command->GetExtraText();
-                if (!extra_text.empty()) {
-                    text += " (" + extra_text + ")";
+                if (extra_text.empty()) {
+                    size = ImGui::CalcTextSize(text.c_str());
+                } else {
+                    std::string label = text + " (" + extra_text + ")";
+                    size = ImGui::CalcTextSize(label.c_str());
                 }
-                ImVec2 size = ImGui::CalcTextSize(text.c_str());
+
                 m_max_command_text_width = std::max(m_max_command_text_width, size.x);
             });
         });
@@ -43,8 +49,8 @@ class CommandKeymapsUI : public SettingsUI {
             table->ForEachCommand([this, table, &table_visible, &header_shown](Command2 *command) {
                 if (command->IsVisible()) {
                     if (!header_shown) {
-                        std::string title = table->GetDisplayText() + " shortcuts";
-                        table_visible = ImGui::CollapsingHeader(title.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+                        std::string title = table->GetDisplayText() + " shortcuts###" + table->GetName();
+                        table_visible = ImGui::CollapsingHeader(title.c_str(), 0); //ImGuiTreeNodeFlags_DefaultOpen);
                         header_shown = true;
                     }
 
@@ -68,14 +74,14 @@ class CommandKeymapsUI : public SettingsUI {
     float m_max_command_text_width = 0.f;
 
     void DoCommandKeymapsRowUI(CommandTable2 *table, Command2 *command) {
-        ImGuiIDPusher command_id_pusher(command);
+        ImGuiIDPusher command_id_pusher(command->GetName());
 
         bool default_shortcuts;
         const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&default_shortcuts, command);
 
         float left = ImGui::GetCursorPosX();
 
-        if (ImGui::Button(command->GetText().c_str())) {
+        if (ImGui::Button(command->GetLabel().c_str())) {
             ImGui::OpenPopup(SHORTCUT_KEYCODES_POPUP);
         }
 

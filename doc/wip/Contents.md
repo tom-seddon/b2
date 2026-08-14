@@ -17,14 +17,25 @@ instructions:
 * [Install on macOS](./install_on_macos.md)
 * [Install on Linux](./install_on_linux.md)
 
-# b2 documentation
-
-The b2 documentation covers use of the emulator.
+It'd then be worth going through the walkthrough of some of b2's
+feature.
 
 * [Walkthrough of some of b2's features](./walkthrough.md)
+
+b2's UI is hopefully not too difficult to figure out, but it is
+definitely non-standard, so there are a few notes about some of its
+features.
+
 * [Some notes about b2's UI](./ui.md)
+
+After that - a lot of it can hopefully be figured out by poking
+around. But a full description of everything follows.
+
+
+
 * [Keyboard layouts](./keyboard.md)
 * [Configuring emulated hardware](./configs.md)
+
 
 
 # BBC documentation
@@ -65,21 +76,3 @@ These were unofficial, but widely used.
 * [New Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?f=42&t=17243) (BBC B/B+/Master)
 * [Advanced Master Reference Manual](https://stardot.org.uk/forums/viewtopic.php?t=21734) (BBC Master)
 * [Electron Advanced User Guide](https://stardot.org.uk/forums/viewtopic.php?t=23193) (Acorn Electron)
-
-# Running BBC games
-
-BBC Micro games usually come as disk images, typically .ssd (single
-sided, single density) or .dsd (double sided, single density). Game
-disks are usually auto booting, and you can run them from b2 using
-`File` \> `Run` \> `Disc image...`.
-
-![File > Run > Disc image...](./file_run_disc_image.png)
-
-Select a disk image using the file selector. (A good place to find
-games would be https://bbcmicro.co.uk/)
-
-![Selecting Repton disk image file](./repton.ssd.png)
-
-The disk should boot, and the game should run.
-
-![Repton running](./repton.png)

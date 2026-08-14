@@ -463,6 +463,70 @@ class Yielder {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Paste text and wait for the paste to complete.
+static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &beeb_thread, const std::string &text_) {
+    std::vector<uint8_t> text;
+    for (char c : text_) {
+        TEST_TRUE((c >= 32 && c < 127) || c == 13);
+        text.push_back((uint8_t)c);
+    }
+
+    std::atomic<bool> pasted_status = false;
+    beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text, 0),
+                      [&pasted_status](const char *failure_reason, const char *failure_text) -> void {
+                          (void)failure_text;
+
+                          TEST_NULL(failure_reason);
+                          pasted_status = true;
+                      });
+
+    int state = 0;
+    yielder->Reset();
+    while (!pasted_status) {
+        yielder->Yield();
+
+        switch (state) {
+        case 0:
+            if (beeb_thread->IsPasting()) {
+                state = 1;
+            }
+            break;
+
+        case 1:
+            if (!beeb_thread->IsPasting()) {
+                state = 2;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class CountOSWORD0s : public OSWORD0Callback {
+  public:
+    uint64_t GetNumOSWORD0s() const {
+        return m_num_osword_0s.load(std::memory_order_acquire);
+    }
+
+    bool ThreadOnOSWORD0(BeebThread *, bool) override {
+        m_num_osword_0s.fetch_add(1, std::memory_order_acq_rel);
+
+        return true;
+    }
+
+  protected:
+  private:
+    std::atomic<uint64_t> m_num_osword_0s{0};
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class NullTest : public Test {
   public:
     NullTest(std::string full_name)
@@ -2059,6 +2123,23 @@ class DocImageCreator : public DearImGuiTest {
         return ui_flags;
     }
 
+    std::string GetDisplayedRecentPath(const std::string &path, const RecentPaths &paths) const override {
+        (void)paths;
+
+        // If the path is the cache path, strip it out, so the sub menus fit in the (not very wide) screen grabs.
+        //
+        // The cache path "API" was really not designed for this.
+
+        std::string folder = PathGetFolder(path);
+        std::string cache_folder = PathGetFolder(GetCachePath("dummy"));
+
+        if (PathCompare(folder, cache_folder) == 0) {
+            return PathGetName(path);
+        } else {
+            return path;
+        }
+    }
+
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {
         ASSERT(!m_beeb_window);
         m_beeb_window = beeb_window;
@@ -2092,20 +2173,26 @@ class DocImageCreator : public DearImGuiTest {
         if (this->DoSection("elite")) {
             ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###run/###open_file");
 
-            this->Capture("file_run_disk_image.png");
+            {
+                ImRect rect = this->GetPopupStackEntryRect(0);
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+                rect.Min.y = 0.f;
 
-            //ctx->SetRef("##MainMenuBar");
-            //ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
+                this->CaptureRect("file_run_disk_image.png", rect);
+            }
+
+            //            ctx->SetRef("##MainMenuBar");
+            //            ctx->MenuAction(ImGuiTestAction_Click, "###file/###run/###open_file");
 
             // https://github.com/mattgodbolt/jsbeeb/raw/refs/heads/8c46f43a7dcddb61ac2ae15504733c1d9b5633a0/public/discs/elite.ssd
 
-            //            std::string elite_ssd_path = this->DownloadFileFromURL("Disc021-EliteD.ssd",
-            //                                                                   "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd",
-            //                                                                   "application/vnd.acorn.disc-image.ssd");
+            std::string elite_ssd_path = this->DownloadFileFromURL("Disc021-EliteD.ssd",
+                                                                   "https://bbcmicro.co.uk/gameimg/discs/366/Disc021-EliteD.ssd",
+                                                                   "application/vnd.acorn.disc-image.ssd");
 
-            std::string elite_ssd_path = this->DownloadFileFromURL("elite.ssd",
-                                                                   "https://raw.githubusercontent.com/mattgodbolt/jsbeeb/refs/heads/main/public/discs/elite.ssd",
-                                                                   "application/octet-stream");
+            //            std::string elite_ssd_path = this->DownloadFileFromURL("elite.ssd",
+            //                                                                   "https://raw.githubusercontent.com/mattgodbolt/jsbeeb/refs/heads/main/public/discs/elite.ssd",
+            //                                                                   "application/octet-stream");
 
             this->SetNextSelectorDialogResult(OPEN_DISK_IMAGE_SELECTOR_GUID, elite_ssd_path);
             ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###run/###open_file");
@@ -2125,15 +2212,13 @@ class DocImageCreator : public DearImGuiTest {
 
             // it's impossible to guarantee a good screen grab of the opening screen, because the emulatorl doesn't run determinastically relative to the UI. So this bit is commented out - but there's a known good screen grab (that happened to come out right on my Mac...) in the doc folder.
 
-            //            {
-            //                this->WaitForDiskAccess();
-            //
-            //                this->HideMouse();
-            //
-            //                this->Yield(55);
-            //
-            //                this->Capture("running_elite.png");
-            //            }
+            {
+                this->WaitForDiskAccess();
+
+                this->HideMouse();
+
+                this->Capture("running_elite_2.png");
+            }
         }
 
         //std::string repton_ssd_path = this->DownloadFileFromURL("Disc015-ReptonP.ssd",
@@ -2145,9 +2230,94 @@ class DocImageCreator : public DearImGuiTest {
 
         //this->WaitForDiskAccess();
 
+        ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###hard_reset/###confirm");
+
+        {
+            ImRect rect0 = this->GetPopupStackEntryRect(0);
+            ImRect rect = this->GetPopupStackEntryRect(1);
+
+            rect.Min.x = rect0.Min.x;
+            rect.Min.y = 0.f; //bit cheesy
+
+            this->CaptureRect("file.hard_reset.confirm.png", rect);
+        }
+
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###hard_reset/###confirm");
 
         this->Yield(20);
+
+        {
+            std::string imgui_path = "//##MainMenuBar/###file/###drive0/###new_file/Blank DFS 80T SSD";
+            std::string file_path = GetCachePath("80.ssd");
+
+            ctx->MenuAction(ImGuiTestAction_Hover, imgui_path.c_str());
+
+            {
+                ImRect rect = this->GetPopupStackEntryRect(0);
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(2));
+                rect.Min.y = 0.f; //bit cheesy
+                this->CaptureRect("file.drive0.new_file.80.ssd.png", rect);
+            }
+
+            this->SetNextSelectorDialogResult(NEW_DISK_IMAGE_SELECTOR_GUID, file_path);
+            ctx->MenuAction(ImGuiTestAction_Click, imgui_path.c_str());
+
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###drive0");
+
+            {
+                ImRect rect = this->GetPopupStackEntryRect(0);
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+                rect.Min.y = 0.f; //bit cheesy
+                this->CaptureRect("file.drive0.info.png", rect);
+            }
+
+            std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
+
+            Yielder yielder(ctx, beeb_window, this);
+
+            PasteAndWait(&yielder, beeb_thread, "10MODE7\r20PRINTCHR$129\"Hello\"\r");
+
+            this->Capture("example_basic_program.code.png");
+
+            PasteAndWait(&yielder, beeb_thread, "RUN\r");
+
+            this->Capture("example_basic_program.result.png");
+
+            PasteAndWait(&yielder, beeb_thread, "SAVE\"TEST\"");
+
+            // TODO: this should probably be productized
+            {
+                auto &&osword_0_counter = std::make_shared<CountOSWORD0s>();
+                beeb_thread->Send(std::make_shared<BeebThread::AddOSWORD0CallbackMessage>(osword_0_counter));
+
+                // (strictly speaking, no need to wait - polling the OSWORD 0 count would cover it)
+                PasteAndWait(&yielder, beeb_thread, "\r");
+
+                yielder.Reset();
+                while (osword_0_counter->GetNumOSWORD0s() == 0) {
+                    yielder.Yield();
+                }
+
+                beeb_thread->Send(std::make_shared<BeebThread::RemoveOSWORD0CallbackMessage>(osword_0_counter));
+            }
+
+            this->Capture("example_basic_program.save.png");
+
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###drive0/###eject/###confirm");
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###hard_reset/###confirm");
+            this->Yield(20);
+            //ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###drive0/###recent_file");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###drive0/###recent_file/80.ssd");
+
+            {
+                ImRect rect = this->GetPopupStackEntryRect(0);
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(2));
+                rect.Min.y = 0.f; //bit cheesy
+                this->CaptureRect("file.drive0.recent_file.80.ssd.png", rect);
+            }
+        }
 
         ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###file/###hard_reset/###confirm");
 
@@ -2269,6 +2439,8 @@ class DocImageCreator : public DearImGuiTest {
             this->UnionRect(&rect, this->GetItemRect("//Keyboard Layouts/**/###confirm"));
             this->CaptureRect("confirm.button.png", rect);
         }
+
+        ctx->ItemAction(ImGuiTestAction_Click, "//Keyboard Layouts/**/###Default");
 
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_keyboard_layout");
 
@@ -2558,10 +2730,66 @@ class DocImageCreator : public DearImGuiTest {
                     this->CaptureRect("config.mmfs.file.png", rect);
                 }
 
-                //ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###mmfs");
+                ctx->ItemAction(ImGuiTestAction_Uncheck, "//Configs/**/###mmfs");
             }
 
-            //ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###hardware/###toggle_configurations"); //off
+        }
+
+        {
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_command_keymaps"); //on
+            this->CaptureRect("keyboard.command_keys.png", this->GetWindowRect("//Command Keys"), CaptureRectFlag_MoveMouseToOrigin);
+            ctx->ItemAction(ImGuiTestAction_Click, "//Command Keys/**/###beeb_window");
+            this->CaptureRect("keyboard.command_keys.beeb_window.png", this->GetWindowRect("//Command Keys"), CaptureRectFlag_MoveMouseToOrigin);
+            ctx->ScrollToItem("//Command Keys/**/###hard_reset_multi_os_bank_0", ImGuiAxis_Y);
+            ctx->ScrollToItem("//Command Keys/**/###copy_translation_none", ImGuiAxis_Y);
+            this->CaptureRect("keyboard.command_keys.ambiguous.png", this->GetWindowRect("//Command Keys"), CaptureRectFlag_MoveMouseToOrigin);
+            ctx->ItemAction(ImGuiTestAction_Click, "//Command Keys/**/###toggle_emulator_options");
+            {
+                ImRect rect = this->GetItemRect("//Command Keys/**/###toggle_emulator_options");
+                this->UnionRect(&rect, this->GetPopupStackEntryRect(0));
+
+                this->CaptureRect("keyboard.command_keys.choose_shortcut.png", rect);
+            }
+
+            static constexpr uint32_t SHORTCUT = PCKeyModifier_Shift | PCKeyModifier_Ctrl | SDLK_o;
+            bool done = false;
+            ForEachCommandTable2([&done](CommandTable2 *table) -> void {
+                table->ForEachCommand([table, &done](Command2 *command) -> void {
+                    if (!done) {
+                        if (command->GetName() == "toggle_emulator_options") {
+                            table->AddMapping(SHORTCUT, command);
+                            done = true;
+                        }
+                    }
+                });
+            });
+            ASSERT(done);
+
+            std::string id = strprintf("//Command Keys/**/$$%" PRIu32 "/x", SHORTCUT);
+            ctx->ItemAction(ImGuiTestAction_Hover, id.c_str());
+            {
+                ImRect wrect = this->GetWindowRect("//Command Keys");
+
+                ImRect rect = this->GetItemRect("//Command Keys/**/###toggle_emulator_options");
+                this->UnionRect(&rect, this->GetItemRect(id.c_str()));
+                rect.Max.x = wrect.Max.x; //bit cheesy
+
+                this->CaptureRect("keyboard.command_keys.remove_shortcut.png", rect);
+            }
+
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_command_keymaps"); //off
+        }
+
+        {
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_prioritize_shortcuts");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###keyboard/###toggle_prioritize_shortcuts");
+            {
+                ImRect rect = this->GetPopupStackEntryRect(0);
+                rect.Min.y = 0.f; //cheat
+                this->CaptureRect("keyboard.toggle_prioritize_shortcuts.png", rect);
+            }
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###keyboard/###toggle_prioritize_shortcuts");
         }
 
         //ImGuiTestItemInfo wi = ctx->WindowInfo("//Keyboard Layouts/###layouts");
@@ -2891,64 +3119,6 @@ static uint8_t GetMODEFromSTATUSOutput(const std::string &status_output) {
     TEST_TRUE(got_mode);
     return mode;
 }
-
-// Paste text and wait for the paste to complete.
-static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &beeb_thread, const std::string &text_) {
-    std::vector<uint8_t> text;
-    for (char c : text_) {
-        TEST_TRUE((c >= 32 && c < 127) || c == 13);
-        text.push_back((uint8_t)c);
-    }
-
-    std::atomic<bool> pasted_status = false;
-    beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text, 0),
-                      [&pasted_status](const char *failure_reason, const char *failure_text) -> void {
-                          (void)failure_text;
-
-                          TEST_NULL(failure_reason);
-                          pasted_status = true;
-                      });
-
-    int state = 0;
-    yielder->Reset();
-    while (!pasted_status) {
-        yielder->Yield();
-
-        switch (state) {
-        case 0:
-            if (beeb_thread->IsPasting()) {
-                state = 1;
-            }
-            break;
-
-        case 1:
-            if (!beeb_thread->IsPasting()) {
-                state = 2;
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
-}
-
-class CountOSWORD0s : public OSWORD0Callback {
-  public:
-    uint64_t GetNumOSWORD0s() const {
-        return m_num_osword_0s.load(std::memory_order_acquire);
-    }
-
-    bool ThreadOnOSWORD0(BeebThread *, bool) override {
-        m_num_osword_0s.fetch_add(1, std::memory_order_acq_rel);
-
-        return true;
-    }
-
-  protected:
-  private:
-    std::atomic<uint64_t> m_num_osword_0s{0};
-};
 
 // Do a *STATUS and retrieve the output.
 static std::string GetSTATUSOutput(ImGuiTestContext *ctx, BeebWindow *beeb_window, DearImGuiTest *test) {
