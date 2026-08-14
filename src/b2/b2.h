@@ -12,6 +12,7 @@ class ImGuiStuff;
 #endif
 struct Guid;
 struct ImVec2;
+class RecentPaths;
 
 #include <functional>
 #include <vector>
@@ -148,6 +149,11 @@ class AppHandler {
     //
     // Default impl does nothing.
     virtual void SetSelectorDialogResult(const Guid &guid, const std::string &result);
+
+    // Get actual path to display.
+    //
+    // Default impl returns path.
+    virtual std::string GetDisplayedRecentPath(const std::string &path, const RecentPaths &paths) const;
 
   protected:
   private:

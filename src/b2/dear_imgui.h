@@ -59,6 +59,7 @@ class RecentPaths;
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 struct ImGuiTestEngine;
 #endif
+class AppHandler;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -561,7 +562,8 @@ void ImGuiPlotHistogram(const char *label,
 // If none selected, return false.
 bool ImGuiRecentMenu(std::string *selected_path,
                      const char *title,
-                     RecentPaths *paths);
+                     RecentPaths *paths,
+                     const AppHandler *app_handler = nullptr);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

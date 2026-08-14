@@ -2003,14 +2003,18 @@ void ImGuiPlotHistogram(const char *label,
 
 bool ImGuiRecentMenu(std::string *selected_path,
                      const char *title,
-                     RecentPaths *paths) {
+                     RecentPaths *paths,
+                     const AppHandler *app_handler) {
     size_t num_paths = paths->GetNumPaths();
     bool selected = false;
 
     if (ImGui::BeginMenu(title, num_paths > 0)) {
         for (size_t path_index = 0; path_index < num_paths; ++path_index) {
             const std::string &path = paths->GetPathByIndex(path_index);
-            if (ImGui::MenuItem(path.c_str())) {
+
+            const std::string &displayed_path = app_handler->GetDisplayedRecentPath(path, *paths);
+
+            if (ImGui::MenuItem(displayed_path.c_str())) {
                 *selected_path = path;
                 selected = true;
             }
