@@ -2248,6 +2248,12 @@ class DocImageCreator : public DearImGuiTest {
         this->Yield(20);
 
         {
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file");
+
+            this->Yield(5);
+
+            this->CaptureRect("menu.file.save_screenshot.png", this->GetItemRect("//##MainMenuBar/**/###save_screenshot"), CaptureRectFlag_MoveMouseToOrigin);
+
             ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###edit");
 
             ImRect rect = this->GetPopupStackEntryRect(0);
