@@ -2833,7 +2833,7 @@ void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit###edit")) {
         m_cst.DoMenuItem(g_toggle_copy_oswrch_text_command);
         m_cst.DoMenuItem(g_copy_basic_command);
-        if (ImGui::BeginMenu("Copy options")) {
+        if (ImGui::BeginMenu("Copy text options###copy_options")) {
             m_cst.DoMenuItem(g_copy_translation_pass_through);
             m_cst.DoMenuItem(g_copy_translation_only_gbp);
             m_cst.DoMenuItem(g_copy_translation_SAA5050);
@@ -2842,10 +2842,11 @@ void BeebWindow::DoEditMenu() {
             ImGui::EndMenu();
         }
         ImGui::Separator();
-        m_cst.DoMenuItem(g_copy_screenshot_command);
-        ImGui::Separator();
         m_cst.DoMenuItem(g_paste_command);
         m_cst.DoMenuItem(g_paste_return_command);
+
+        ImGui::Separator();
+        m_cst.DoMenuItem(g_copy_screenshot_command);
 
         ImGui::EndMenu();
     }

@@ -5,8 +5,8 @@ Drop down the Hardware menu to get a list of other possible setups.
 
 ![hardware menu](./generated/hardware_menu.png)
 
-(See [the default configs list](./default_configs.md) for a description
-of exactly what each entry in the default list contains.)
+(See [the default configs list](./default_configs.md) for a
+description of exactly what each entry in the default list contains.)
 
 Select one to have the existing emulated machine replaced with a new
 one of the corresponding type.
@@ -23,7 +23,13 @@ Click `Configs` to bring up the hardware configuration dialog.
 
 The dialog is divided into two parts. On the left, a list of all the
 possible configurations, as seen in the `Hardware` menu; on the right,
-the settings for the selected configuration.
+the settings for the selected configuration - described below.
+
+Modifying a configuration's settings changes the settings for the next
+use, but the current emulated BBC is never affected, even if you're
+modifying its configuration. To apply the updated settings, you'll
+need to select the modified configuration from the `Hardware` menu,
+even if it was the same configuration you previously selected.
 
 # Modify the list
 
@@ -253,3 +259,4 @@ any of the emulated types of BBC Micro.
 
 See [the MMFS documentation](./mmfs.md) for more about MMFS and how to
 use it with b2.
+

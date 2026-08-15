@@ -40,6 +40,7 @@
 #include <http/http.h>
 #include <uv.h>
 #include <variant>
+#include <initializer_list>
 
 // the b2 code includes the stb_image_write implementation.
 #include <stb_image_write.h>
@@ -2247,6 +2248,31 @@ class DocImageCreator : public DearImGuiTest {
         this->Yield(20);
 
         {
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###edit");
+
+            ImRect rect = this->GetPopupStackEntryRect(0);
+            rect.Min.y = 0.f;
+            rect.Max.y = this->GetItemRect("//##MainMenuBar/**/###paste_return").Max.y;
+
+            this->CaptureRect("menu.edit.copy_text.png", rect, CaptureRectFlag_MoveMouseToOrigin);
+
+            //ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###edit/###copy_screenshot");
+
+            this->CaptureRect("menu.edit.toggle_copy_oswrch_text.png", this->GetItemRect("//##MainMenuBar/**/###toggle_copy_oswrch_text"), CaptureRectFlag_MoveMouseToOrigin);
+            this->CaptureRect("menu.edit.copy_basic.png", this->GetItemRect("//##MainMenuBar/**/###copy_basic"), CaptureRectFlag_MoveMouseToOrigin);
+            this->CaptureRect("menu.edit.copy_screenshot.png", this->GetItemRect("//##MainMenuBar/**/###copy_screenshot"), CaptureRectFlag_MoveMouseToOrigin);
+            this->CaptureRect("menu.edit.paste.png", this->GetItemRect("//##MainMenuBar/**/###paste"), CaptureRectFlag_MoveMouseToOrigin);
+            this->CaptureRect("menu.edit.paste_return.png", this->GetItemRect("//##MainMenuBar/**/###paste_return"), CaptureRectFlag_MoveMouseToOrigin);
+
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###edit/###copy_options");
+
+            rect = this->GetPopupStackEntryRect(0);
+            rect.Min.y = 0.f;
+            this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
+            this->CaptureRect("menu.edit.copy_options.png", rect);
+        }
+
+        {
             std::string imgui_path = "//##MainMenuBar/###file/###drive0/###new_file/Blank DFS 80T SSD";
             std::string file_path = GetCachePath("80.ssd");
 
@@ -3030,6 +3056,27 @@ class DocImageCreator : public DearImGuiTest {
             rect->Max.x = std::max(rect->Max.x, other.Max.x);
             rect->Max.y = std::max(rect->Max.y, other.Max.y);
         }
+    }
+
+    ImRect GetRectsUnion(const std::initializer_list<ImRect> &rects) {
+        ImRect rect;
+
+        if (rects.size() > 0) {
+            std::initializer_list<ImRect>::const_iterator it = rects.begin();
+
+            rect = *it++;
+
+            while (it != rects.end()) {
+                rect.Min.x = std::min(rect.Min.x, it->Min.x);
+                rect.Min.y = std::min(rect.Min.y, it->Min.y);
+                rect.Max.x = std::max(rect.Max.x, it->Max.x);
+                rect.Max.y = std::max(rect.Max.y, it->Max.y);
+
+                ++it;
+            }
+        }
+
+        return rect;
     }
 
     void InflateRect(ImRect *rect, float amt) {

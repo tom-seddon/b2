@@ -17,8 +17,7 @@ instructions:
 * [Install on macOS](./install_on_macos.md)
 * [Install on Linux](./install_on_linux.md)
 
-It'd then be worth going through the walkthrough of some of b2's
-feature.
+It'd then be worth going through the walkthrough of some of b2's feature.
 
 * [Walkthrough of some of b2's features](./walkthrough.md)
 
@@ -29,14 +28,15 @@ features.
 * [Some notes about b2's UI](./ui.md)
 
 After that - a lot of it can hopefully be figured out by poking
-around. But a full description of everything follows.
+around. But a full description of everything, hopefully, follows.
 
+* [Keyboard input and keyboard layouts](./keyboard.md)
+* [Copy and pasting text](./copy_and_paste.md)
+* [Taking screen grabs](./screengrabs.md)
 
+* [Printer](./printer.md)
 
-* [Keyboard layouts](./keyboard.md)
 * [Configuring emulated hardware](./configs.md)
-
-
 
 # BBC documentation
 
