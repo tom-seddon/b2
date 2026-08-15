@@ -686,9 +686,9 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGuiIDPusher pusher(1);
 
         ImGui::Checkbox("Correct aspect ratio", &settings->screenshot_correct_aspect_ratio);
-#if HAVE_SDL_SOFTSTRETCHLINEAR
-        ImGui::Checkbox("Bilinear filtering", &settings->screenshot_filter);
-#endif
+        //#if HAVE_SDL_SOFTSTRETCHLINEAR
+        //        ImGui::Checkbox("Bilinear filtering", &settings->screenshot_filter);
+        //#endif
         ImGui::Checkbox("Last completed frame", &settings->screenshot_last_vsync);
     }
 
@@ -4564,7 +4564,6 @@ SDLUniquePtr<SDL_Surface> BeebWindow::GetDisplayData(bool correct_aspect_ratio, 
     return this->CreateScreenshot(SDL_PIXELFORMAT_RGB24,
                                   true, //last vsync
                                   correct_aspect_ratio,
-                                  true, //filter
                                   logs);
 }
 
@@ -4946,11 +4945,10 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
     return this->CreateScreenshot(pixel_format,
                                   m_settings.screenshot_last_vsync,
                                   m_settings.screenshot_correct_aspect_ratio,
-                                  m_settings.screenshot_filter,
                                   m_msg);
 }
 
-SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, bool filter, const LogSet &logs) const {
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, const LogSet &logs) const {
     UniqueLock<Mutex> lock;
     uint32_t *tv_pixels;
     if (last_vsync) {
@@ -4978,18 +4976,13 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel
                                                                src_surface->format->Gmask,
                                                                src_surface->format->Bmask,
                                                                src_surface->format->Amask));
-        int blit_result;
-        if (filter) {
-            blit_result =
+        int blit_result =
 #if HAVE_SDL_SOFTSTRETCHLINEAR
-                SDL_SoftStretchLinear
+            SDL_SoftStretchLinear
 #else
-                SDL_BlitScaled
+            SDL_BlitScaled
 #endif
-                (src_surface.get(), nullptr, surface.get(), nullptr);
-        } else {
-            blit_result = SDL_BlitScaled(src_surface.get(), nullptr, surface.get(), nullptr);
-        }
+            (src_surface.get(), nullptr, surface.get(), nullptr);
 
         if (blit_result != 0) {
             logs.e.f("Failed to resize image: %s\n", SDL_GetError());

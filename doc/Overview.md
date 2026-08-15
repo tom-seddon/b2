@@ -272,8 +272,8 @@ keyboard input will go.
 
 ### Screenshot
 
-`Correct aspect ratio` and `Filter display` have the same effect as
-the corresponding Display options, but apply to screenshots only.
+`Correct aspect ratio` has the same effect as the corresponding
+Display options, but applies to screenshots only.
 
 ### Sound
 
