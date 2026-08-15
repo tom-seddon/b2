@@ -36,9 +36,9 @@ copies of the various Welcome disks.
 The default setup is a BBC Model B with Acorn 1770 DFS and 16K
 sideways RAM. The `Hardware` menu lets you select something different.
 (The default list includes several types of BBC B (with various disk
-interfaces); B+; B+128; Master 128 with MOS 3.20 or MOS 3.50; Master
-Compact with MOS 5.00, MOS 5.10, or MOS 5.11i+Arabic ROMs; and
-Olivetti PC 128 S.)
+interfaces); B+; B+128; Master 128 or Master Compact with various OS
+options; Olivetti PC 128 S; and **experimental** Acorn Electron with
+or without Plus 3 disk interface.)
 
 Changing hardware is equivalent to doing a power-on reset, and all
 state in the emulated BBC will be lost.
@@ -46,7 +46,10 @@ state in the emulated BBC will be lost.
 ## Change keyboard mapping ##
 
 The default keyboard layout tries to map PC keys to their BBC
-equivalent by position - typically what you want for games.
+equivalent by position - typically what you want for games. Note that
+using Shift (or Ctrl in the Electron case) gets you the shifted/ctrled
+character from the BBC keyboard rather than the PC one. They're not
+always the same.
 
 Use the `Keyboard` menu to select a different mapping. Some games
 might be better with the `Default (caps/ctrl)` layout, which sets PC
@@ -338,11 +341,15 @@ shortcut, that shortcut takes priority over any BBC input.)
 
 Click `Keyboard` > `Keyboard layouts...` to bring up the keyboard
 layout dialog. Select the keymap of interest in the left hand list,
-and use the BBC keyboard map to edit which PC keys map to which BBC
+and use the BBC keyboard maps to edit which PC keys map to which BBC
 keys.
 
-(Note that the BBC keyboard map always shows the Master 128 keypad,
-though the keypad is only active in Master 128 mode.)
+Four BBC keyboard maps are shown: BBC B/B+, Master 128, Master
+Compact, and Electron. Not all have exactly the same set of keys, but
+where appropriate, keys are shared, so the same keymap can work with
+all models. For example, configuring the `A` key for BBC B/B+ will
+also configure the `A` key for Master 128, Master Compact, and
+Electron.
 
 Hover over a BBC key to see a little `Edit PC Keys` popup, showing
 which PC keys correspond to it. While the popup is visible, press a
@@ -469,7 +476,10 @@ Optional items of additional hardware can be added, as follows.
   
 - (Master Compact/Olivetti PC 128 S only) Tick the `Serial` option to
   add the optional serial port upgrade
-  
+ 
+- (Electron only) Tick the `Plus 3` option to add an optional Plus 3
+  disk upgrade. (The corresponding Plus 3 ADFS ROM is required)
+ 
 There are also some second processor options, for B/B+/Master 128:
 
 - `None` for no second processor
