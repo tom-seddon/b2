@@ -4027,10 +4027,6 @@ bool BeebWindow::InitInternal() {
     m_sound_device = m_init_arguments.sound_device;
     ASSERT(m_sound_device == 0 || m_init_arguments.sound_spec.freq > 0);
 
-#if BUILD_TYPE_Debug
-    m_msg.i.f("%d popup types\n", BeebWindowPopupType_MaxValue);
-#endif
-
     bool reset_windows = m_init_arguments.reset_windows;
     m_init_arguments.reset_windows = false;
 
