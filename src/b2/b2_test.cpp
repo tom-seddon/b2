@@ -323,6 +323,10 @@ class DearImGuiTest : public Test, public AppHandler {
         return true;
     }
 
+    bool IsFlashingCursorAlwaysVisible() const override {
+        return false;
+    }
+
   protected:
     std::string GetLastSelectorDialogResult(const Guid &guid) {
         SelectorResults *results = &m_selector_results_by_guid[guid];
@@ -1575,6 +1579,10 @@ class TestHTTPAPI : public Test, public AppHandler {
         return false;
     }
 
+    bool IsFlashingCursorAlwaysVisible() const override {
+        return false;
+    }
+
   protected:
     struct ThreadArgs {
         int http_port = -1;
@@ -2139,6 +2147,10 @@ class DocImageCreator : public DearImGuiTest {
         } else {
             return path;
         }
+    }
+
+    bool IsFlashingCursorAlwaysVisible() const {
+        return true;
     }
 
     void DearImGuiTestFunc(ImGuiTestContext *ctx, BeebWindow *beeb_window) override {

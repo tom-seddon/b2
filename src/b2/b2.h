@@ -39,6 +39,10 @@ extern const char GAMECONTROLLER_DB_FILE_NAME[];
 //
 // The objective is that the b2 app proper won't need to have much logic in its
 // implementation, but the b2 test app might.
+//
+// TODO: as a policy for AppHandler, functions that return a value do not have
+// default implementations, unless it makes sense to return one of the arguments
+// verbatim. Perhaps this isn't the right thing though.
 class AppHandler {
   public:
     AppHandler() = default;
@@ -150,10 +154,15 @@ class AppHandler {
     // Default impl does nothing.
     virtual void SetSelectorDialogResult(const Guid &guid, const std::string &result);
 
-    // Get actual path to display.
+    // Get actual path to display in recent paths list.
     //
     // Default impl returns path.
     virtual std::string GetDisplayedRecentPath(const std::string &path, const RecentPaths &paths) const;
+
+    // Whether flashing cursor should always be visible.
+    //
+    // The result is ignored if !BBCMICRO_DEBUGGER.
+    virtual bool IsFlashingCursorAlwaysVisible() const = 0;
 
   protected:
   private:
@@ -187,6 +196,8 @@ class OrdinaryAppHandler : public AppHandler {
 #endif
     bool HandleSelectorDialogOpen(std::string *result, const Guid &guid) override; //returns false
     bool ShouldQuitWhenTestQueueEmpty() const override;                            //returns false
+    bool IsFlashingCursorAlwaysVisible() const override;                           //returns false
+
   protected:
   private:
     std::vector<std::string> m_argv;

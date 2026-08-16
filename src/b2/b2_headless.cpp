@@ -227,6 +227,10 @@ class HeadlessAppHandler : public AppHandler {
         return true;
     }
 
+    bool IsFlashingCursorAlwaysVisible() const override {
+        return false;
+    }
+
   protected:
   private:
     int m_http_port = -1;

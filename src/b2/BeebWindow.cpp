@@ -1155,6 +1155,10 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
             m_msg.w.f("Failed to load persistent symbol table data: %s\n", e.what());
         }
     }
+
+    if (m_init_arguments.app_handler->IsFlashingCursorAlwaysVisible()) {
+        m_beeb_thread->SetForcedCRTCCursorOverrideMode(CRTCCursorOverrideMode_DisableFlash);
+    }
 #endif
 
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume, m_settings.bbc_mute);

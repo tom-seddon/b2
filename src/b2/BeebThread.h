@@ -1275,6 +1275,13 @@ class BeebThread {
 
     bool TakeNVRAMChanged();
 
+#if BBCMICRO_DEBUGGER
+    // Rather janky mechanism for forcing the CRTC cursor override mode, even
+    // across hard resets. Intended to be called right after construction,
+    // before the first hard reset, and not to be changed thereafter.
+    void SetForcedCRTCCursorOverrideMode(CRTCCursorOverrideMode mode);
+#endif
+
   protected:
   private:
     struct AudioThreadData;
@@ -1404,6 +1411,11 @@ class BeebThread {
     std::shared_ptr<MetricSet> m_metric_set;
 
     Counter *m_mq_polls_counter = nullptr, *m_mq_waits_counter = nullptr;
+
+#if BBCMICRO_DEBUGGER
+    // Controlled by m_mutex.
+    std::optional<CRTCCursorOverrideMode> m_crtc_cursor_override_mode;
+#endif
 
 #if BBCMICRO_TRACE
     static bool ThreadHandleTraceInstructionConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);

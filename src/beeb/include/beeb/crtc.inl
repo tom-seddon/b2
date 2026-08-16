@@ -15,7 +15,7 @@ EEND()
 
 #define ENAME CRTCCursorOverrideMode
 EBEGIN_DERIVED(uint8_t)
-EPN(None)         //displayed as normal
+EPNV(None, 0)     //displayed as normal. Always 0x00.
 EPN(AlwaysHide)   //never displayed
 EPN(DisableFlash) //treat flashing as steady
 EEND()

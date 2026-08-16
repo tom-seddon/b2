@@ -821,6 +821,14 @@ void BeebThread::HardResetMessage::HardReset(CompletionFun *completion_fun,
         beeb->SetParasiteOS(ts->current_config.parasite_os);
     }
 
+#if BBCMICRO_DEBUGGER
+    // The cursor override mode is part of the state, so if there's no override,
+    // leave the existing value be, rather than setting None specifically.
+    if (ts->beeb_thread->m_crtc_cursor_override_mode.has_value()) {
+        beeb->SetCRTCCursorOverrideMode(*ts->beeb_thread->m_crtc_cursor_override_mode);
+    }
+#endif
+
     ts->beeb_thread->ThreadReplaceBeeb(ts, std::move(beeb), replace_flags);
 
     ts->beeb_thread->m_config = ts->current_config.config;
@@ -2808,6 +2816,17 @@ void BeebThread::GetConfig(std::string *config_name, BeebConfig *config, BeebCon
 bool BeebThread::TakeNVRAMChanged() {
     return m_nvram_changed.exchange(false, std::memory_order_acq_rel);
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BeebThread::SetForcedCRTCCursorOverrideMode(CRTCCursorOverrideMode mode) {
+    LockGuard<Mutex> lock(m_mutex);
+
+    m_crtc_cursor_override_mode = mode;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
