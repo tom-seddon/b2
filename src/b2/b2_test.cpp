@@ -2149,7 +2149,7 @@ class DocImageCreator : public DearImGuiTest {
         }
     }
 
-    bool IsFlashingCursorAlwaysVisible() const {
+    bool IsFlashingCursorAlwaysVisible() const override {
         return true;
     }
 
