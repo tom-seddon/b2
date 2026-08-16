@@ -1120,7 +1120,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     }
     m_msg.SetMessageList(m_message_list);
 
-    if (init_arguments.verbose) {
+    if (m_init_arguments.verbose) {
         m_message_list->SetFlags(m_message_list->GetFlags() | MessageListFlags_Stdio);
     }
 
@@ -1138,8 +1138,8 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
                                                  std::vector<BeebThread::TimelineEventList>(),
                                                  false);
 
-    if (init_arguments.use_settings) {
-        m_settings = init_arguments.settings;
+    if (m_init_arguments.use_settings) {
+        m_settings = m_init_arguments.settings;
     } else {
         m_settings = BeebWindows::defaults;
     }
