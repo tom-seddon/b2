@@ -1406,8 +1406,7 @@ class BeebThread {
     Counter *m_mq_polls_counter = nullptr, *m_mq_waits_counter = nullptr;
 
 #if BBCMICRO_TRACE
-    static bool
-    ThreadHandleTraceInstructionConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);
+    static bool ThreadHandleTraceInstructionConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);
     static bool ThreadHandleTraceWriteConditions(const BBCMicro *beeb, const M6502 *cpu, void *context);
 #endif
 
