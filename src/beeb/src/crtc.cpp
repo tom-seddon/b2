@@ -234,7 +234,7 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
 
                 if (m_st.cursor) {
                     if (m_registers.bits.r8.bits.c != 3) {
-                        switch ((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
+                        switch ((CRTCCursorMode)(m_registers.bits.ncstart.bits.mode)) {
                         case CRTCCursorMode_On:
                             m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
                             break;
@@ -244,18 +244,20 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
 
                         case CRTCCursorMode_Blink16:
                             // 8 frames on, 8 frames off
-                            if ((m_num_frames & 8) != 0) {
+                            if ((m_num_frames & m_cursor_flash_mask & 8) == 0) {
                                 m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
                             }
                             break;
 
                         case CRTCCursorMode_Blink32:
                             // 16 frames on, 16 frames off
-                            if ((m_num_frames & 16) != 0) {
+                            if ((m_num_frames & m_cursor_flash_mask & 16) == 0) {
                                 m_st.skewed_cudisp |= 1 << m_registers.bits.r8.bits.c;
                             }
                             break;
                         }
+
+                        m_st.skewed_cudisp &= m_cudisp_mask;
                     }
                 }
 
@@ -411,6 +413,45 @@ void CRTC::SetTrace(Trace *t,
     m_trace_scanlines_separators = trace_scanlines_separators;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CRTCCursorOverrideMode CRTC::GetCursorOverrideMode() const {
+    if (m_cudisp_mask == 0) {
+        return CRTCCursorOverrideMode_AlwaysHide;
+    } else {
+        if (m_cursor_flash_mask == 0) {
+            return CRTCCursorOverrideMode_DisableFlash;
+        } else {
+            return CRTCCursorOverrideMode_None;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CRTC::SetCursorOverrideMode(CRTCCursorOverrideMode override_mode) {
+    switch (override_mode) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case CRTCCursorOverrideMode_None:
+        m_cursor_flash_mask = 0xff;
+        m_cudisp_mask = 0xff;
+        break;
+
+    case CRTCCursorOverrideMode_AlwaysHide:
+        m_cudisp_mask = 0;
+        break;
+
+    case CRTCCursorOverrideMode_DisableFlash:
+        m_cursor_flash_mask = 0x00;
+        m_cudisp_mask = 0xff;
+        break;
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

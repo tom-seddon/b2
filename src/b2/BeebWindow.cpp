@@ -576,6 +576,26 @@ static void ImGuiVolume(const char *caption, float *volume, bool *mute, const st
     }
 }
 
+#if BBCMICRO_DEBUGGER
+static const char *GetCRTCCursorOverrideModeDisplayName(void *user_data, int index) {
+    (void)user_data;
+
+    switch ((CRTCCursorOverrideMode)index) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case CRTCCursorOverrideMode_None:
+        return "Default";
+
+    case CRTCCursorOverrideMode_AlwaysHide:
+        return "Disable";
+
+    case CRTCCursorOverrideMode_DisableFlash:
+        return "Disable flash";
+    }
+}
+#endif
+
 void BeebWindow::OptionsUI::DoImGui() {
     const std::shared_ptr<BeebThread> &beeb_thread = m_beeb_window->m_beeb_thread;
     BeebWindowSettings *settings = &m_beeb_window->m_settings;
@@ -781,20 +801,46 @@ void BeebWindow::OptionsUI::DoImGui() {
             std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
             m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
 
-            bool teletext_debug = beeb_state->saa5050.debug;
-            if (ImGui::Checkbox("Teletext debug", &teletext_debug)) {
-                m_beeb_window->m_beeb_thread->Send(
-                    std::make_shared<BeebThread::CallbackMessage>([teletext_debug](BBCMicro *m) -> void {
-                        m->SetTeletextDebug(teletext_debug);
-                    }));
+            {
+                const SAA5050 *saa5050 = beeb_state->DebugGetSAA5050();
+
+                ImGuiDisabledPusher disabled_pusher(!saa5050);
+
+                bool teletext_debug = saa5050 && saa5050->debug;
+                if (ImGui::Checkbox("Teletext debug", &teletext_debug)) {
+                    m_beeb_window->m_beeb_thread->Send(
+                        std::make_shared<BeebThread::CallbackMessage>([teletext_debug](BBCMicro *m) -> void {
+                            m->SetTeletextDebug(teletext_debug);
+                        }));
+                }
+
+                bool teletext_dim_flash = saa5050 && saa5050->dim_flash;
+                if (ImGui::Checkbox("Show teletext flash as dim", &teletext_dim_flash)) {
+                    m_beeb_window->m_beeb_thread->Send(
+                        std::make_shared<BeebThread::CallbackMessage>([teletext_dim_flash](BBCMicro *m) -> void {
+                            m->SetTeletextDimFlash(teletext_dim_flash);
+                        }));
+                }
             }
 
-            bool teletext_dim_flash = beeb_state->saa5050.dim_flash;
-            if (ImGui::Checkbox("Show teletext flash as dim", &teletext_dim_flash)) {
-                m_beeb_window->m_beeb_thread->Send(
-                    std::make_shared<BeebThread::CallbackMessage>([teletext_dim_flash](BBCMicro *m) -> void {
-                        m->SetTeletextDimFlash(teletext_dim_flash);
-                    }));
+            {
+                const CRTC *crtc = beeb_state->DebugGetCRTC();
+
+                ImGuiDisabledPusher disabled_pusher(!crtc);
+
+                int mode;
+                if (crtc) {
+                    mode = crtc->GetCursorOverrideMode();
+                } else {
+                    mode = -1;
+                }
+
+                if (ImGui::ListBox("CRTC Cursor", &mode, &GetCRTCCursorOverrideModeDisplayName, nullptr, 3)) {
+                    m_beeb_window->m_beeb_thread->Send(
+                        std::make_shared<BeebThread::CallbackMessage>([mode](BBCMicro *m) -> void {
+                            m->SetCRTCCursorOverrideMode((CRTCCursorOverrideMode)mode);
+                        }));
+                }
             }
 
             ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
@@ -810,9 +856,8 @@ void BeebWindow::OptionsUI::DoImGui() {
             ImGui::SameLine();
             ImGui::Checkbox("0.5 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_half_usec_markers);
 
-            ImGui::Checkbox("6845 rows", &m_beeb_window->m_tv.show_6845_row_markers);
-            ImGui::SameLine();
-            ImGui::Checkbox("6845 DISPEN", &m_beeb_window->m_tv.show_6845_dispen_markers);
+            ImGui::Checkbox("CRTC rows", &m_beeb_window->m_tv.show_6845_row_markers);
+            ImGui::Checkbox("Display enable", &m_beeb_window->m_tv.show_6845_dispen_markers);
 
             ImGui::TextUnformatted("RAM errors");
 

@@ -2019,6 +2019,8 @@ class TeletextTest : public Test {
 
         TestBBCMicro bbc(GetBTapeType());
 
+        bbc.SetCRTCCursorOverrideMode(CRTCCursorOverrideMode_AlwaysHide);
+
         bbc.RunUntilOSWORD0(10.0);
 
         bbc.LoadFile(GetTestFileName(beeblink_volume_path, m_drive, "$." + m_stem),
@@ -2990,6 +2992,7 @@ class Mode7demTest : public Test {
         bbc.unscaled_teletext = true;
         bbc.SetTeletextDimFlash(false);
         bbc.SetTeletextFlashVisibleOverride(&m_screen_flash);
+        bbc.SetCRTCCursorOverrideMode(CRTCCursorOverrideMode_AlwaysHide);
 
         bbc.RunUntilOSWORD0(10.0);
 

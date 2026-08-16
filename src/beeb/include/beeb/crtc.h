@@ -52,6 +52,11 @@ class CRTC {
                   bool trace_rows,
                   bool trace_scanlines_separators);
 #endif
+
+    // Force cursor to always be visible.
+    CRTCCursorOverrideMode GetCursorOverrideMode() const;
+    void SetCursorOverrideMode(CRTCCursorOverrideMode override_mode);
+
   protected:
   private:
 #include <shared/pushwarn_bitfields.h>
@@ -160,7 +165,9 @@ class CRTC {
     // timing, so wraparound is no problem
     uint8_t m_num_frames = 0;
 
-    //    int m_interlace_delay_counter=-1;
+    // used to force the cursor visibility state, one way or the other.
+    uint8_t m_cursor_flash_mask = 0xff;
+    uint8_t m_cudisp_mask = 0xff;
 
 #if BBCMICRO_TRACE
     Trace *m_trace = nullptr;

@@ -427,6 +427,19 @@ const SN76489 *BBCMicroState::DebugGetSN76489() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+const SAA5050 *BBCMicroState::DebugGetSAA5050() const {
+    if (IsBBCMicro(this->type->type_id)) {
+        return &this->saa5050;
+    } else {
+        return nullptr;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 #if ENABLE_TAPE
 std::shared_ptr<const UEFReader> BBCMicroState::DebugGetTape() const {
     return this->tape;

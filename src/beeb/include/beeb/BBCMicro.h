@@ -516,6 +516,7 @@ class BBCMicro : private WD1770Handler {
 #endif
     void SetTeletextDimFlash(bool dim_flash);
     void SetTeletextFlashVisibleOverride(const bool *overridden_state);
+    void SetCRTCCursorOverrideMode(CRTCCursorOverrideMode override_mode);
 
     // Result is a combination of BBCMicroUpdateResultFlag values.
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {

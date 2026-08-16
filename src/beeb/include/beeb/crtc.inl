@@ -2,11 +2,22 @@
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME CRTCCursorMode
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 EPNV(On, 0)
 EPNV(Off, 1)
 EPNV(Blink16, 2)
 EPNV(Blink32, 3)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME CRTCCursorOverrideMode
+EBEGIN_DERIVED(uint8_t)
+EPN(None)         //displayed as normal
+EPN(AlwaysHide)   //never displayed
+EPN(DisableFlash) //treat flashing as steady
 EEND()
 #undef ENAME
 

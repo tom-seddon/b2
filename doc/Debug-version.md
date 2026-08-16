@@ -674,6 +674,14 @@ session.
 `Teletext debug` will overlay the teletext display with the value of
 the character in each cell.
 
+`Show teletext flash as dim` shows flashing teletext chars as slightly
+dimmed versions, making it easier to take consistent screen grabs.
+
+`CRTC Cursor` overrides the display of the BBC Micro hardware cursor.
+Use `Disable` to hide it entirely, or `Disable flash` to have it
+always shown as steady when enabled - again, making it easier to take
+consistent screen grabs.
+
 `Show TV beam position` will indicate where the TV beam is, with a
 line starting just after its current position.
 
@@ -683,8 +691,8 @@ indicating each 0.5 microsecond.
 
 `6845 rows` shows yellow lines indicating CRTC row boundaries.
 
-`6845 DISPEN` shows purple shading for periods corresponding to CRTC
-display enable.
+`Display enable` shows purple shading for periods corresponding to
+CRTC display enable.
 
 `RAM errors` allows you to emulate RAM errors that manifest themselves
 as stuck bits. Click each button to set that bit's behaviour: `-` (the

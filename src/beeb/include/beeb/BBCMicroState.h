@@ -225,6 +225,7 @@ class BBCMicroState {
     const R6522 *DebugGetSystemVIA() const;
     const R6522 *DebugGetUserVIA() const;
     const SN76489 *DebugGetSN76489() const;
+    const SAA5050 *DebugGetSAA5050() const;
 #if ENABLE_TAPE
     std::shared_ptr<const UEFReader> DebugGetTape() const;
 #endif
@@ -248,10 +249,8 @@ class BBCMicroState {
     // Video output
     VideoULA video_ula;
 
-  public:
     SAA5050 saa5050;
 
-  protected:
     uint8_t ic15_byte = 0;
     uint8_t last_fetched_video_byte = 0;
 #if BBCMICRO_DEBUGGER
