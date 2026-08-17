@@ -372,7 +372,9 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
         case 0x18:
             // Conceal Display
             m_conceal = true;
-            goto display_non_control_char;
+            data0 = 0;
+            data1 = 0;
+            break;
 
         case 0x19:
             // Contiguous Graphics
@@ -420,17 +422,14 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
         data0 &= data0_mask;
         data1 &= data1_mask;
 
-        if (!m_hold) {
+        if (!m_hold && !m_conceal) {
             m_last_graphics_data0 = 0;
             m_last_graphics_data1 = 0;
         }
     } else {
-    display_non_control_char:;
-        //size_t offset=(value-32)*20+m_raster;
-        //ASSERT(offset<TELETEXT_CHARSET_SIZE);
         uint8_t glyph_raster = (m_raster + m_raster_offset) >> m_raster_shift;
 
-        if (glyph_raster < 20 && !m_conceal) {
+        if (glyph_raster < 20) {
             data0 = teletext_font[1][m_charset][value - 32][glyph_raster];
             data1 = teletext_font[1][m_charset][value - 32][glyph_raster + (1 >> m_raster_shift)];
         } else {
@@ -439,10 +438,13 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
         }
 
         if (value & 0x20 && m_charset != TeletextCharset_Alpha) {
-            if (!m_conceal) {
-                m_last_graphics_data0 = data0;
-                m_last_graphics_data1 = data1;
-            }
+            m_last_graphics_data0 = data0;
+            m_last_graphics_data1 = data1;
+        }
+
+        if (m_conceal) {
+            data0 = 0;
+            data1 = 0;
         }
 
         if (!m_text_visible) {
