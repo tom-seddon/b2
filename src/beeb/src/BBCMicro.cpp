@@ -3147,6 +3147,28 @@ void BBCMicro::SetMemoryAccessErrorMasks(uint8_t ram_and, uint8_t ram_or) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BBCMicro::HasMouse() const {
+    if (CanHaveMouse(m_state.type->type_id)) {
+        return m_state.mouse;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetMouse(bool mouse) {
+    if (CanHaveMouse(m_state.type->type_id)) {
+        m_state.mouse = mouse;
+
+        this->UpdateCPUDataBusFn();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer->size());
     m_state.ram_buffer->at(ram_buffer_index) = value;
@@ -4394,7 +4416,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
         update_flags |= BBCMicroUpdateFlag_ParallelPrinter;
     }
 
-    if (m_state.init_flags & BBCMicroInitFlag_Mouse) {
+    if (m_state.mouse) {
         update_flags |= BBCMicroUpdateFlag_Mouse;
     }
 

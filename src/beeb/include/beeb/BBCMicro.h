@@ -745,6 +745,9 @@ class BBCMicro : private WD1770Handler {
     void SetMemoryAccessErrorMasks(uint8_t ram_and, uint8_t ram_or);
 #endif
 
+    bool HasMouse() const;
+    void SetMouse(bool mouse);
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.

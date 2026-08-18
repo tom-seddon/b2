@@ -331,6 +331,9 @@ class BBCMicroState {
     int mouse_dx = 0;
     int mouse_dy = 0;
 
+    // Whether mouse is currently attached.
+    bool mouse = false;
+
   protected:
     // Parallel printer
     bool printer_enabled = false;

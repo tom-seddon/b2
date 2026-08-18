@@ -156,6 +156,7 @@ static Command2 g_clone_window_command = Command2(&g_beeb_window_command_table, 
 static Command2 g_close_window_command = Command2(&g_beeb_window_command_table, "close_window", "Close window");
 static Command2 g_load_window_layout_command = Command2(&g_beeb_window_command_table, "load_window_layout", "Load window layout...");
 static Command2 g_save_window_layout_command = Command2(&g_beeb_window_command_table, "save_window_layout", "Save window layout...");
+static Command2 g_toggle_mouse_command = Command2(&g_beeb_window_command_table, "toggle_mouse", "Mouse").WithTick();
 static Command2 g_toggle_capture_mouse_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse", "Capture mouse").WithTick().AlwaysPrioritized();
 static Command2 g_toggle_capture_mouse_on_click_command = Command2(&g_beeb_window_command_table, "toggle_capture_mouse_on_click", "Capture on click").WithTick();
 static Command2 g_clear_symbols_command = Command2(&g_beeb_window_command_table, "clear_symbols", "Clear symbols").MustConfirm().VisibleIf(BBCMICRO_DEBUGGER);
@@ -2075,6 +2076,13 @@ void BeebWindow::DoCommands(bool *close_window) {
         *close_window = true;
     }
 
+    m_cst.SetEnabled(g_toggle_mouse_command, CanHaveMouse(m_beeb_thread->GetBBCMicroTypeID()));
+    m_cst.SetTicked(g_toggle_mouse_command, m_beeb_thread->HasMouse());
+    if (m_cst.WasActioned(g_toggle_mouse_command)) {
+        bool mouse = !m_cst.GetTicked(g_toggle_mouse_command);
+        m_beeb_thread->Send(std::make_shared<BeebThread::SetMouseMessage>(mouse));
+    }
+
     m_cst.SetEnabled(g_toggle_capture_mouse_command, m_beeb_thread->HasMouse());
     m_cst.SetTicked(g_toggle_capture_mouse_command, m_is_mouse_captured);
     if (m_cst.WasActioned(g_toggle_capture_mouse_command)) {
@@ -2975,6 +2983,8 @@ void BeebWindow::DoKeyboardMenu() {
 
 void BeebWindow::DoMouseMenu() {
     if (ImGui::BeginMenu("Mouse###mouse")) {
+        m_cst.DoMenuItem(g_toggle_mouse_command);
+        ImGui::Separator();
         m_cst.DoMenuItem(g_toggle_capture_mouse_command);
         m_cst.DoMenuItem(g_toggle_capture_mouse_on_click_command);
         ImGui::EndMenu();

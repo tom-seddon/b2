@@ -118,10 +118,18 @@ the OS in the usual fashion.
 
 ## Mouse
 
-If the current setup includes an emulated mouse (see the Customize
-hardware section below), select `Capture mouse` to have mouse input go
-to the emulated BBC. The system mouse cursor will be hidden,
-indicating that mouse input is going to the BBC instead.
+For B/B+/Master 128, you can use the `Mouse` option on the `Mouse`
+menu to connect or disconnect an AMX-/Watford-type mouse=, as
+supported by AMX Art, Quest Paint, and so on. A tick indicates the
+mouse is currently connected.
+
+(If you'd like to have the mouse connected by default, see the
+Customize Hardware section below.)
+
+When the mouse is connected, select `Capture mouse` (another toggle -
+tick indicates active) to have mouse input go to the emulated BBC. The
+system mouse cursor will be hidden, indicating that mouse input is
+going to the BBC instead.
 
 To cancel mouse capture, switch away from the b2 window using the
 usual OS keyboard shortcut. You can also assign a keyboard shortcut to
@@ -129,11 +137,13 @@ the `Capture mouse` command - see the Customize keyboard keys section
 below.
 
 (Note that unlike other commands, `Capture mouse` is special, and its
-keyboard shortcut will always be handled even if it would overlap with
-ordinary BBC input.)
+keyboard shortcut will always be handled, even if it would overlap
+with ordinary BBC input. It's hopefully more useful this way, even if
+it's inconsistent.)
 
 If `Capture on click` is ticked, the mouse will be captured
-automatically if you click on the emulator display.
+automatically if you click on the emulator display. Cancel the capture
+as above.
 
 ## Save states
 
@@ -450,8 +460,9 @@ Optional items of additional hardware can be added, as follows.
   (The external RAM can't be enabled in conjunction with the Opus
   Challenger disc interface, as both devices use page &FD)
   
-- Tick the `Mouse` box to add a user port AMX/Watford mouse
-  (B/B+/Master 128), or a Compact mouse (Master Compact/PC 128 S)
+- (B/B+/Master 128 only) Tick the `Mouse` box to have an AMX/Watford
+  type mouse connected by default. (This only sets the default state.
+  You can still use the `Mouse` menu to connect one later)
   
 - (B/B+/Master 128 only) Tick the `BeebLink` box to enable support for
   [BeebLink](https://github.com/tom-seddon/beeblink). For more

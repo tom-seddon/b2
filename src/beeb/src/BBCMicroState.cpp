@@ -84,6 +84,12 @@ BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
         this->mmfs->SetImagePath(std::move(mmfs_image_path));
         this->mmfs->SetDebug(!!(this->init_flags & BBCMicroInitFlag_MMFSDebug));
     }
+
+    if (this->init_flags & BBCMicroInitFlag_Mouse) {
+        if (CanHaveMouse(this->type->type_id)) {
+            this->mouse = true;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -225,7 +231,7 @@ static uint8_t GetMouseButtons(bool l, bool m, bool r) {
 
 #if BBCMICRO_DEBUGGER
 uint8_t BBCMicroState::DebugGetMouseButtons() const {
-    if (this->init_flags & BBCMicroInitFlag_Mouse) {
+    if (this->mouse) {
         if (this->type->type_id == BBCMicroTypeID_MasterCompact) {
             return GetMouseButtons(this->mouse_data.compact_bits.l,
                                    this->mouse_data.compact_bits.m,

@@ -58,6 +58,7 @@ EPN_BIT_FLAG(ExtMem, 1)
 // (this ended up here because it's convenient, not because it makes sense).
 EPN_BIT_FLAG(PowerOnTone, 2)
 
+// Set if mouse attached on startup. (The emulated mouse is hot pluggable.)
 EPN_BIT_FLAG(Mouse, 3)
 
 // If set, ADJI inserted, available via IFJ.

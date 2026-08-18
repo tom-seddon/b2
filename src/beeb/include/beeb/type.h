@@ -341,6 +341,7 @@ bool CanHaveSCSI(BBCMicroTypeID type_id);
 inline bool IsElectron(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_Electron;
 }
+bool CanHaveMouse(BBCMicroTypeID type_id);
 
 bool IsInternalParasite(BBCMicroTypeID type_id, BBCMicroParasiteType parasite_type);
 bool IsExternalParasite(BBCMicroTypeID type_id, BBCMicroParasiteType parasite_type);

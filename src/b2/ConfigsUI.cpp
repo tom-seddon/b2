@@ -529,7 +529,7 @@ bool ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (HasUserPort(config->type_id)) {
+    if (CanHaveMouse(config->type_id)) {
         if (ImGui::Checkbox("Mouse###mouse", &config->mouse)) {
             edited = true;
         }

@@ -220,11 +220,13 @@ class BeebThread {
         // COMPLETION_FUN, if non-null, points to the completion fun to be
         // called when the message completes for the first time. ('completion'
         // is rather vaguely defined, and is message-dependent.) Leave this as
-        // it is to have the completion function called automatically when ThreadHandle returns, or move
-        // its contents for later calling to do it manually.
+        // it is to have the completion function called automatically when
+        // ThreadHandle returns, or move its contents for later calling to do it
+        // manually.
         //
-        // Default impl does nothing and returns true (completion_fun will be
-        // called straight away with no message).
+        // Default impl does nothing and returns true: completion_fun will be
+        // called straight away with no message, the ThreadHandle routine will
+        // be called, and the message will be added to the timeline.
         //
         // Return false to reject the message. The completion_fun will be called
         // with false, and the message will be discarded.
@@ -1112,6 +1114,18 @@ class BeebThread {
       protected:
       private:
         std::shared_ptr<BRKCallback> m_callback;
+    };
+
+    class SetMouseMessage : public Message {
+      public:
+        explicit SetMouseMessage(bool mouse);
+
+        void ThreadHandle(CompletionFun *completion_fun,
+                          ThreadState *ts) const override;
+
+      protected:
+      private:
+        const bool m_mouse = false;
     };
 
     struct AudioCallbackRecord {
