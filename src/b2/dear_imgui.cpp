@@ -2012,7 +2012,7 @@ bool ImGuiRecentMenu(std::string *selected_path,
         for (size_t path_index = 0; path_index < num_paths; ++path_index) {
             const std::string &path = paths->GetPathByIndex(path_index);
 
-            const std::string &displayed_path = app_handler->GetDisplayedRecentPath(path, *paths);
+            const std::string &displayed_path = app_handler ? app_handler->GetDisplayedRecentPath(path, *paths) : path;
 
             if (ImGui::MenuItem(displayed_path.c_str())) {
                 *selected_path = path;
