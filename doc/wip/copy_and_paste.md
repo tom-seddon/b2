@@ -8,9 +8,11 @@ clipboard, or pasting clipboard text into the BBC. Find them on the
 
 ## Copy text output
 
-Click `Copy OSWRCH text output` to start capturing characters copied by the `OSWRCH` OS routine.
+Click `Copy OSWRCH text output` to start capturing characters copied
+by the `OSWRCH` OS routine.
 
-![`Edit` > `Copy OSWRCH text output`](./generated/menu.edit.toggle_copy_oswrch_text.png)
+![`Edit` > `Copy OSWRCH text
+output`](./generated/menu.edit.toggle_copy_oswrch_text.png)
 
 Once started, the option will become ticked, indicating that the
 characters are being captured and stored. Click it again to end the
@@ -30,10 +32,11 @@ listing to the clipboard.
 
 ![`Edit` > `Copy BASIC listing`](./generated/menu.edit.copy_basic.png)
 
-(This facility only works at the BASIC prompt!)
+This facility only works at the BASIC prompt!
 
 This reuses the `Copy text output` mechanism (see above) - the same
-notes apply.
+notes apply. If the code has teletext control codes or VDU command
+codes embedded in strings, it won't copy correctly.
 
 ## Copy text options
 
@@ -44,18 +47,25 @@ Tick one of the character translation options:
 - `No translation` - characters are passed through as-is
 - `Translate £ only` - BBC ASCII 96 (`£`) will be converted to Unicode
   U+00A3 POUND SIGN
-- `Translate Mode 7 chars` - [convert chars so they resemble the Mode
-  7 character set](./mode_7_chars.md)
+- `Translate Mode 7 chars` - convert £ as above, and also [convert
+  chars so they resemble the Mode 7 character set](./mode_7_chars.md)
 
 When `Handle delete` is ticked (which is the default setting), the
-emulator will try to handle delete (ASCII 127) chars properly - this
-won't handle everything possible case, but it'll do the right thing
-for copying stuff that you're typing in at the BASIC prompt.
+emulator will try to handle delete (ASCII 127) chars properly, by
+removing the deleted char from the copied data. This can't handle
+every possible case perfectly, but it'll do the right thing for
+copying stuff typed in at the BASIC prompt.
+
+(With `Handle delete` unticked, the copied data will include every
+character, plus any ASCII 127 chars. This typically isn't what you
+want - but, if it is, you can have it.)
 
 # Paste text
 
 Click `OSRDCH Paste` to paste text from the clipboard into BASIC,
-either at the BASIC prompt or after doing `AUTO`.
+either at the BASIC prompt (if you're pasting in a program with line
+numbers, or a sequence of instructions), or after doing `AUTO` (if
+you're pasting in a program without line numbers).
 
 ![`Edit` > `OSRDCH Paste`](./generated/menu.edit.paste.png)
 
@@ -65,10 +75,10 @@ copying text, it doesn't end with a newline.
 
 ![`Edit` > `OSRDCH Paste (+Return)`](./generated/menu.edit.paste_return.png)
 
-(This is intended for pasting in BASIC listings at the BASIC prompt.
+This is intended for pasting in BASIC listings at the BASIC prompt.
 But it hooks into a standard OS routine for reading keyboard input
 (`OSRDCH` - hence the name), so you may find it works in other
-programs as well.)
+programs as well.
 
 The corresponding menu option will be ticked while the paste operation
 is ongoing. You can click it again to cancel the paste.
