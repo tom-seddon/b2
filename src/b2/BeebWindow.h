@@ -132,7 +132,6 @@ struct BeebWindowSettings {
     bool display_filter = true;       //json:called "filter_bbc"
     bool display_interlace = false;
 
-    bool screenshot_last_vsync = true;
     bool screenshot_correct_aspect_ratio = true;
 
     const BeebKeymap *keymap = nullptr; //json:annoying one-off data type
@@ -181,7 +180,7 @@ struct BeebWindowSettings {
     float speed_scale = 1.f;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings::CopySettings, convert_mode, handle_delete);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, config, popups, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_last_vsync, screenshot_correct_aspect_ratio, display_interlace, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data, extra_debug_ui, speed_scale);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebWindowSettings, config, popups, bbc_volume, bbc_mute, disc_volume, disc_mute, power_on_tone, correct_aspect_ratio, screenshot_correct_aspect_ratio, display_interlace, full_screen, prefer_shortcuts, leds_popup_mode, leds_popup_alpha, text_copy_settings, printer_copy_settings, capture_mouse_on_click, low_pass_filter, low_pass_filter_cutoff_hz, hide_cursor_when_unfocused, background_economy_mode, debugger_syntax, gui_scale, debugger_show_mmio, gui_pixel_font, symbol_table_data, extra_debug_ui, speed_scale);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -690,7 +689,9 @@ class BeebWindow {
 
     void SetCaptureMouse(bool capture_mouse);
 
-    SDLUniquePtr<SDL_Surface> CreateScreenshot(SDL_PixelFormatEnum pixel_format) const;
+    void ActionCopyScreenshotCommand(bool debug);
+    void ActionSaveScreenshotCommand(bool debug);
+    SDLUniquePtr<SDL_Surface> CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool debug) const;
     SDLUniquePtr<SDL_Surface> CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, const LogSet &logs) const;
 
 #if ENABLE_SDL_FULL_SCREEN

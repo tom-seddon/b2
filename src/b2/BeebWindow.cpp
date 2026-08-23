@@ -147,7 +147,9 @@ static Command2 g_reset_default_nvram_command = Command2(&g_beeb_window_command_
 static Command2 g_save_config_command = Command2(&g_beeb_window_command_table, "save_config", "Save config");
 static Command2 g_toggle_prioritize_shortcuts_command = Command2(&g_beeb_window_command_table, "toggle_prioritize_shortcuts", "Prioritize command keys").WithTick();
 static Command2 g_save_screenshot_command = Command2(&g_beeb_window_command_table, "save_screenshot", "Save screenshot");
+static Command2 g_save_debug_screenshot_command = Command2(&g_beeb_window_command_table, "save_debug_screenshot", "Save debug screenshot").VisibleIf(BBCMICRO_DEBUGGER);
 static Command2 g_copy_screenshot_command = Command2(&g_beeb_window_command_table, "copy_screenshot", "Copy screenshot");
+static Command2 g_copy_debug_screenshot_command = Command2(&g_beeb_window_command_table, "copy_debug_screenshot", "Copy debug screenshot").VisibleIf(BBCMICRO_DEBUGGER);
 #if ENABLE_SDL_FULL_SCREEN
 static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_table, "toggle_full_screen", "Full screen").WithTick();
 #endif
@@ -710,7 +712,6 @@ void BeebWindow::OptionsUI::DoImGui() {
         //#if HAVE_SDL_SOFTSTRETCHLINEAR
         //        ImGui::Checkbox("Bilinear filtering", &settings->screenshot_filter);
         //#endif
-        ImGui::Checkbox("Last completed frame", &settings->screenshot_last_vsync);
     }
 
     ImGui::NewLine();
@@ -2020,30 +2021,19 @@ void BeebWindow::DoCommands(bool *close_window) {
     }
 
     if (m_cst.WasActioned(g_save_screenshot_command)) {
-        SaveFileDialog fd(SAVE_SCREENSHOT_SELECTOR_GUID, m_init_arguments.app_handler);
+        this->ActionSaveScreenshotCommand(false);
+    }
 
-        fd.AddFilter("PNG", {".png"});
-
-        std::string path;
-        if (fd.Open(m_window, &path)) {
-            SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24);
-            if (!!screenshot) {
-                SaveSDLSurface(screenshot.get(), path, m_msg);
-            }
-        }
+    if (m_cst.WasActioned(g_save_debug_screenshot_command)) {
+        this->ActionSaveScreenshotCommand(true);
     }
 
     if (m_cst.WasActioned(g_copy_screenshot_command)) {
-        // TODO this constant should be in platform-specific code.
-#if SYSTEM_WINDOWS
-        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_XRGB8888;
-#else
-        const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_RGB24;
-#endif
-        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(ideal_clipboard_format);
-        if (!!screenshot) {
-            SetClipboardImage(screenshot.get(), m_msg);
-        }
+        this->ActionCopyScreenshotCommand(false);
+    }
+
+    if (m_cst.WasActioned(g_copy_debug_screenshot_command)) {
+        this->ActionCopyScreenshotCommand(true);
     }
 
 #if ENABLE_SDL_FULL_SCREEN
@@ -2633,6 +2623,7 @@ void BeebWindow::DoFileMenu() {
         ImGui::Separator();
         m_cst.DoMenuItem(g_save_config_command);
         m_cst.DoMenuItem(g_save_screenshot_command);
+        m_cst.DoMenuItem(g_save_debug_screenshot_command);
         ImGui::Separator();
         m_cst.DoMenuItem(g_exit_command);
         ImGui::EndMenu();
@@ -2904,6 +2895,7 @@ void BeebWindow::DoEditMenu() {
 
         ImGui::Separator();
         m_cst.DoMenuItem(g_copy_screenshot_command);
+        m_cst.DoMenuItem(g_copy_debug_screenshot_command);
 
         ImGui::EndMenu();
     }
@@ -4980,6 +4972,39 @@ void BeebWindow::SetCaptureMouse(bool capture_mouse) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::ActionCopyScreenshotCommand(bool debug) {
+    // TODO this constant should be in platform-specific code.
+#if SYSTEM_WINDOWS
+    const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_XRGB8888;
+#else
+    const SDL_PixelFormatEnum ideal_clipboard_format = SDL_PIXELFORMAT_RGB24;
+#endif
+    SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(ideal_clipboard_format, debug);
+    if (!!screenshot) {
+        SetClipboardImage(screenshot.get(), m_msg);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::ActionSaveScreenshotCommand(bool debug) {
+    SaveFileDialog fd(SAVE_SCREENSHOT_SELECTOR_GUID, m_init_arguments.app_handler);
+
+    fd.AddFilter("PNG", {".png"});
+
+    std::string path;
+    if (fd.Open(m_window, &path)) {
+        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot(SDL_PIXELFORMAT_RGB24, debug);
+        if (!!screenshot) {
+            SaveSDLSurface(screenshot.get(), path, m_msg);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Creates a 24 bpp R8_G8_B8 surface. This format coexists nicely with
 // stbi_image_write, which is a bit inflexible in terms of input format.
 //
@@ -4992,18 +5017,29 @@ void BeebWindow::SetCaptureMouse(bool capture_mouse) {
 //   bitmap. Not very compelling as there's an extra unnecessary 32 bpp->24 bpp
 //   step
 
-SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format) const {
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool debug) const {
+    bool last_vsync;
+    bool correct_aspect_ratio;
+
+    if (debug) {
+        // It's deliberate that you can't take a debug screen grab with correct
+        // aspect ratio. A debug screen grab is for debug purposes.
+        last_vsync = false;
+        correct_aspect_ratio = false;
+    } else {
+        last_vsync = true;
+        correct_aspect_ratio = m_settings.screenshot_correct_aspect_ratio;
+    }
+
+    SDLUniquePtr<SDL_Surface> surface = this->CreateScreenshot(pixel_format, last_vsync, correct_aspect_ratio, m_msg);
+    return surface;
+}
+
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, const LogSet &logs) const {
     ASSERT(pixel_format == SDL_PIXELFORMAT_RGB24 ||
            pixel_format == SDL_PIXELFORMAT_BGR24 ||
            pixel_format == SDL_PIXELFORMAT_XRGB8888);
 
-    return this->CreateScreenshot(pixel_format,
-                                  m_settings.screenshot_last_vsync,
-                                  m_settings.screenshot_correct_aspect_ratio,
-                                  m_msg);
-}
-
-SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot(SDL_PixelFormatEnum pixel_format, bool last_vsync, bool correct_aspect_ratio, const LogSet &logs) const {
     UniqueLock<Mutex> lock;
     uint32_t *tv_pixels;
     if (last_vsync) {
