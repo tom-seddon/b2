@@ -789,8 +789,10 @@ static const BeebROM *const BPLUS_SIDEWAYS_ROMS[] = {
 };
 
 static const BeebROM *const PARASITE_ROMS[] = {
-    &BEEB_ROM_TUBE110,
-    &BEEB_ROM_MASTER_TURBO_PARASITE,
+    &BEEB_ROM_TUBE_110,
+    &BEEB_ROM_TUBE_120,
+    &BEEB_ROM_MASTER_TURBO_PARASITE_110,
+    &BEEB_ROM_MASTER_TURBO_PARASITE_120,
     nullptr,
 };
 

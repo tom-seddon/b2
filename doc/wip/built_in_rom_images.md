@@ -100,11 +100,20 @@ Sideways ROMs for the Plus 3:
 
 ## 6502 second processor
 
-There are two 6502 second processor OS ROMs:
+There are four 6502 second processor OS ROMs:
 
 - `6502 TUBE 1.10 (6502 Second Processor)` - as supplied with the
   external 6502 second processor
+- `6502 TUBE 1.20 (6502 Second Processor)` - improved version of the
+  previous ROM, produced by Acorn but never released
 - `65C102 TUBE 1.10 (Master Turbo)` - as supplied with the Master
   Turbo board
+- `65C102 TUBE 1.20 (Master Turbo)` - improved version of the previous
+  ROM, supplied with some later Master Turbo boards
   
-(Both ROMs are actually compatible with either second processor type.)
+Despite the names, all four ROMs are actually compatible with both
+types of second processor.
+
+The default is to use the appropriate 1.20 ROM. (The 1.10 ROMs are
+supplied mainly for debugging purposes, in case you need to exactly
+match your real BBC setup.)

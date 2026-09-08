@@ -28,8 +28,17 @@ EPN(MOS350_MOS)
 EPN(MOS350_TERMINAL)
 EPN(MOS350_VIEW)
 EPN(MOS350_VIEWSHEET)
+
+// Version 1.10 of the parasite ROMs.
+EPN(MasterTurboParasite110)
+//EEXCLUDE_FROM_SERIALIZABLE_HASH()
+EPN(TUBE110_110)
+//EEXCLUDE_FROM_SERIALIZABLE_HASH()
+
+// Version 1.20 of the parasite ROMs. (The names are overly generic and/or simply incorrect. I didn't realise until too late.)
 EPN(MasterTurboParasite)
 EPN(TUBE110)
+
 EPN(MOS500_ADFS)
 EPN(MOS500_BASIC4)
 EPN(MOS500_UTILS)
@@ -53,7 +62,7 @@ EPN(Electron_MOS)
 EPN(Plus1)
 EPN(Plus3ADFS)
 EPN(AcornPlus1) //this is the original Acorn Plus 1 ROM
-EEND_SERIALIZABLE("7fde8cfcefb5c9a90ed445ec5fea2cf207e9e144")
+EEND_SERIALIZABLE("71eec8edabdbc17ee069a4816909c710bcf1f90d")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

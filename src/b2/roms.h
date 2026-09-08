@@ -86,8 +86,10 @@ extern const BeebROM BEEB_ROM_PLUS_3_ADFS;
 extern const BeebROM *const BEEB_ROMS[];
 
 // Non-sideways ROMs.
-extern const BeebROM BEEB_ROM_MASTER_TURBO_PARASITE;
-extern const BeebROM BEEB_ROM_TUBE110;
+extern const BeebROM BEEB_ROM_MASTER_TURBO_PARASITE_120;
+extern const BeebROM BEEB_ROM_TUBE_120;
+extern const BeebROM BEEB_ROM_MASTER_TURBO_PARASITE_110;
+extern const BeebROM BEEB_ROM_TUBE_110;
 
 const BeebROM *FindBeebROM(StandardROM rom);
 
