@@ -1244,8 +1244,22 @@ static void CheckAssetPath(const std::string &path_) {
 }
 
 static void CheckAssetPaths() {
-    for (size_t i = 0; BEEB_ROMS[i]; ++i) {
-        CheckAssetPath(BEEB_ROMS[i]->GetAssetPath());
+    // Also check that the BEEB_ROMS list contains every StandardROM.
+    {
+        std::set<StandardROM> roms_wanted;
+        for (const EnumValue *value = GetEnumTraits<StandardROM>()->first_value; value; value = value->next) {
+            if (value->value != StandardROM_None) {
+                roms_wanted.insert((StandardROM)value->value);
+            }
+        }
+
+        for (size_t i = 0; BEEB_ROMS[i]; ++i) {
+            CheckAssetPath(BEEB_ROMS[i]->GetAssetPath());
+            ASSERT(roms_wanted.find(BEEB_ROMS[i]->rom) != roms_wanted.end());
+            roms_wanted.erase(BEEB_ROMS[i]->rom);
+        }
+
+        ASSERT(roms_wanted.empty());
     }
 
     for (size_t i = 0; i < NUM_BLANK_DFS_DISCS; ++i) {
@@ -1260,8 +1274,6 @@ static void CheckAssetPaths() {
         CheckAssetPath(BLANK_HARD_DISKS[i].GetDATAssetPath());
         CheckAssetPath(BLANK_HARD_DISKS[i].GetDSCAssetPath());
     }
-
-    CheckAssetPath(BEEB_ROM_MASTER_TURBO_PARASITE.GetAssetPath());
 }
 
 //////////////////////////////////////////////////////////////////////////
