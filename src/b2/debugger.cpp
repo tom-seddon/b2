@@ -2872,7 +2872,7 @@ class SystemVIADebugWindow : public R6522DebugWindow {
   public:
   protected:
     void DoImGui2() override {
-        const R6522 *system_via = m_beeb_state->DebugGetUserVIA();
+        const R6522 *system_via = m_beeb_state->DebugGetSystemVIA();
         if (!system_via) {
             ImGui::TextUnformatted("No system VIA");
             return;
