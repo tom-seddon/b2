@@ -429,13 +429,16 @@ struct ApiSetGlobalsArgs {
     // to be relative to the read path. There is no attempt to provide any kind
     // of sandboxing, and you can easily use .. to access paths above the
     // specified read path.
+    //
+    // Absolute paths are permitted, and data will be road from the request path. The caller is assumed to know what they're doing in this case.
     std::optional<std::string> read_path;
 
-    // Specify the write path. Names of files to write to are assumed to be
+    // Specify the write path. Relative names of files to write are assumed to be relative to the write path.
     // relative to the write path. Since writes are destructive, unlike the read
-    // path, there is some very basic attempt at sandboxing: names with path
-    // separators are not permitted. Any files written to are written directly
-    // into the specified folder.
+    // path, there is some very basic attempt at avoiding surprises: relative names with path separators are not permitted.
+    // This doesn't really provide any protection, but it should at least help avoid overwriting the wrong file.
+    //
+    // Absolute paths are permitted, and data will be saved to the requested path. The caller is assumed to know what they're doing in this case.
     std::optional<std::string> write_path;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
