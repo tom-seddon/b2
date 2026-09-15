@@ -29,8 +29,8 @@ of the emulated machine, as per this page:
 https://github.com/hoglet67/MMFS/wiki/Release-structure
 
 **Note that you must use a ROM from the `MMFS/M` folder.** If you use
-MMFS on your real BBC Micro or Electron, you can't use the exact same
-ROM for b2. Only ROMs from the `M` folder will work.
+MMFSv1 on your real BBC Micro or Electron, you can't use the exact
+same ROM for b2. Only ROMs from the `M` folder will work.
 
 ## MMFSv2
 
@@ -48,6 +48,6 @@ the `MMFS2/M` folder in the release zip, according to the exact setup
 of the emulated machine, as per this page:
 https://github.com/hoglet67/MMFS/wiki/Release-structure
 
-**Note that you must use a ROM from the `MMFS/M` folder.** If you use
-MMFS on your real BBC Micro or Electron, you can't use the exact same
-ROM for b2. Only ROMs from the `M` folder will work.
+**Note that you must use a ROM from the `MMFS2/M` folder.** If you use
+MMFSv2 on your real BBC Micro or Electron, you can't use the exact
+same ROM for b2. Only ROMs from the `M` folder will work.

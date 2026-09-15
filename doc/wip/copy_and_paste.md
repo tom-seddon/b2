@@ -42,23 +42,8 @@ codes embedded in strings, it won't copy correctly.
 
 ![`Edit` > `Copy text options`](./generated/menu.edit.copy_options.png)
 
-Tick one of the character translation options:
-
-- `No translation` - characters are passed through as-is
-- `Translate £ only` - BBC ASCII 96 (`£`) will be converted to Unicode
-  U+00A3 POUND SIGN
-- `Translate Mode 7 chars` - convert £ as above, and also [convert
-  chars so they resemble the Mode 7 character set](./mode_7_chars.md)
-
-When `Handle delete` is ticked (which is the default setting), the
-emulator will try to handle delete (ASCII 127) chars properly, by
-removing the deleted char from the copied data. This can't handle
-every possible case perfectly, but it'll do the right thing for
-copying stuff typed in at the BASIC prompt.
-
-(With `Handle delete` unticked, the copied data will include every
-character, plus any ASCII 127 chars. This typically isn't what you
-want - but, if it is, you can have it.)
+Configure the [character translation
+options](./character_translation_options.md) for copying text.
 
 # Paste text
 

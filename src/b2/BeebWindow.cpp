@@ -138,7 +138,7 @@ static Command2 g_printer_translation_SAA5050 = Command2(&g_beeb_window_command_
 static Command2 g_printer_toggle_handle_delete = Command2(&g_beeb_window_command_table, "printer_toggle_handle_delete", "Handle delete").WithTick().WithExtraText("Copy printer");
 static Command2 g_parallel_printer_command = Command2(&g_beeb_window_command_table, "parallel_printer", "Parallel printer").WithTick();
 static Command2 g_reset_printer_buffer_command = Command2(&g_beeb_window_command_table, "reset_printer_buffer", "Reset printer buffer").MustConfirm();
-static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer");
+static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer text");
 static Command2 g_save_printer_buffer_command = Command2(&g_beeb_window_command_table, "save_printer_buffer", "Save printer buffer...");
 static Command2 g_debug_stop_command = Command2(&g_beeb_window_command_table, "debug_stop", "Stop").WithShortcut(SDLK_F5 | (uint32_t)PCKeyModifier_Shift).VisibleIf(BBCMICRO_DEBUGGER);
 static Command2 g_debug_run_command = Command2(&g_beeb_window_command_table, "debug_run", "Run").WithShortcut(SDLK_F5).VisibleIf(BBCMICRO_DEBUGGER);
@@ -2881,7 +2881,7 @@ void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit###edit")) {
         m_cst.DoMenuItem(g_toggle_copy_oswrch_text_command);
         m_cst.DoMenuItem(g_copy_basic_command);
-        if (ImGui::BeginMenu("Copy text options###copy_options")) {
+        if (ImGui::BeginMenu("Copy text options###edit_copy_options")) {
             m_cst.DoMenuItem(g_copy_translation_pass_through);
             m_cst.DoMenuItem(g_copy_translation_only_gbp);
             m_cst.DoMenuItem(g_copy_translation_SAA5050);
@@ -3006,7 +3006,7 @@ void BeebWindow::DoPrinterMenu() {
         GetThousandsString(size_str, m_beeb_thread->GetPrinterDataSizeBytes());
 
         char label[100];
-        snprintf(label, sizeof label, "Printer data: %s bytes", size_str);
+        snprintf(label, sizeof label, "Printer data: %s bytes###printer_data_size", size_str);
 
         ImGui::MenuItem(label, nullptr, nullptr, false);
 
@@ -3016,7 +3016,7 @@ void BeebWindow::DoPrinterMenu() {
 
         m_cst.DoMenuItem(g_copy_printer_buffer_command);
 
-        if (ImGui::BeginMenu("Copy options")) {
+        if (ImGui::BeginMenu("Copy options###printer_copy_options")) {
             m_cst.DoMenuItem(g_printer_translation_pass_through);
             m_cst.DoMenuItem(g_printer_translation_only_gbp);
             m_cst.DoMenuItem(g_printer_translation_SAA5050);

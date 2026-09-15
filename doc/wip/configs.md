@@ -115,8 +115,8 @@ this in mind when configuring your emulated BBC Micro.
 
 Tick the box to add a [Video
 NuLA](https://stardot.org.uk/forums/viewtopic.php?t=12150), providing
-4096 colour output, smooth scrolling, and some additional screen
-modes.
+4096 colour output, smooth scrolling, and additional screen modes, for
+software that supports it.
 
 ### Retro Hardware ADJI cartridge _(Electron/Master 128 only)_
 
@@ -158,6 +158,9 @@ sockets only.)
 
 Tick the box to add the optional serial hardware upgrade to the Master
 Compact.
+
+(Serial hardware emulation is currently quite limited, so this option
+is not terribly useful.)
 
 ### Plus 3 _(Electron only)_
 
