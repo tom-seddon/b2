@@ -2258,34 +2258,34 @@ class DocImageCreator : public DearImGuiTest {
         ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###file/###hard_reset/###confirm");
 
         this->Yield(20);
-        
+
         {
             std::shared_ptr<BeebThread> beeb_thread = beeb_window->GetBeebThread();
-            
-            ctx->MenuAction(ImGuiTestAction_Click,"//##MainMenuBar/###printer/###parallel_printer");
-            
-            ctx->MenuAction(ImGuiTestAction_Hover,"//##MainMenuBar/###printer/###parallel_printer");
+
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###printer/###parallel_printer");
+
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###printer/###parallel_printer");
             this->CaptureRect("menu.printer.parallel_printer.png", this->GetItemRect("//##MainMenuBar/**/###parallel_printer"), CaptureRectFlag_MoveMouseToOrigin);
 
             Yielder yielder(ctx, beeb_window, this);
             PasteAndWait(&yielder, beeb_thread, "VDU2\rPRINT\"HELLO\"\rVDU3\r");
 
-            ctx->MenuAction(ImGuiTestAction_Hover,"//##MainMenuBar/###printer/###printer_data_size");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###printer/###printer_data_size");
             this->CaptureRect("menu.printer.printer_data_size.png", this->GetItemRect("//##MainMenuBar/**/###printer_data_size"), CaptureRectFlag_MoveMouseToOrigin);
 
-            ctx->MenuAction(ImGuiTestAction_Hover,"//##MainMenuBar/###printer/###copy_printer_buffer");
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###printer/###copy_printer_buffer");
             this->CaptureRect("menu.printer.copy_printer_buffer.png", this->GetItemRect("//##MainMenuBar/**/###copy_printer_buffer"), CaptureRectFlag_MoveMouseToOrigin);
-            
-            ctx->MenuAction(ImGuiTestAction_Hover,"//##MainMenuBar/###printer/###save_printer_buffer");
+
+            ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###printer/###save_printer_buffer");
             this->CaptureRect("menu.printer.save_printer_buffer.png", this->GetItemRect("//##MainMenuBar/**/###save_printer_buffer"), CaptureRectFlag_MoveMouseToOrigin);
-            
+
             ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###printer/###printer_copy_options");
 
             ImRect rect = this->GetItemRect("//##MainMenuBar/**/###printer_copy_options");
             this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
             this->CaptureRect("menu.printer.printer_copy_options.png", rect);
-            
-            ctx->MenuAction(ImGuiTestAction_Click,"//##MainMenuBar/###printer/###parallel_printer");
+
+            ctx->MenuAction(ImGuiTestAction_Click, "//##MainMenuBar/###printer/###parallel_printer");
         }
 
         {
@@ -2313,7 +2313,7 @@ class DocImageCreator : public DearImGuiTest {
 
             ctx->MenuAction(ImGuiTestAction_Hover, "//##MainMenuBar/###edit/###edit_copy_options");
 
-            rect = this->GetItemRect("//##MainMenuBar/**/###edit_copy_options");//this->GetPopupStackEntryRect(0);
+            rect = this->GetItemRect("//##MainMenuBar/**/###edit_copy_options"); //this->GetPopupStackEntryRect(0);
             //rect.Min.y = 0.f;
             this->UnionRect(&rect, this->GetPopupStackEntryRect(1));
             this->CaptureRect("menu.edit.copy_options.png", rect);
