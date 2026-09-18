@@ -56,6 +56,8 @@ EPN_BIT_FLAG(6845DISPEN, 4)
 EPN_BIT_FLAG(6845CUDISP, 5)
 
 // If the HasAddress flag isn't set, the HasCRTCAddress flag is ignored.
+//
+// TODO: this is cleared/set based on Electron/not, and I don't remember why I decided this couldn't be handled some other way? So it could possibly be repurposed if the supply of spare bits actually runs out
 EPN_BIT_FLAG(HasCRTCAddress, 6)
 EEND()
 #undef ENAME

@@ -3618,6 +3618,47 @@ class PixelMetadataUI : public DebugUI {
                 const std::string *str = GetByteStringEscaped(x);
 
                 ImGui::Text("Value: %-4s %-3u (%s%02x) (%s%s)", str->c_str(), x, g_hex, x, g_bin, BINARY_BYTE_STRINGS[x]);
+
+                if (!IsTeletextData(*unit)) {
+                    // abcdefgh -> a b c d e f g h
+                    uint8_t p1[8] = {
+                        (uint8_t)(x >> 7),
+                        (uint8_t)(x >> 6 & 1),
+                        (uint8_t)(x >> 5 & 1),
+                        (uint8_t)(x >> 4 & 1),
+                        (uint8_t)(x >> 3 & 1),
+                        (uint8_t)(x >> 2 & 1),
+                        (uint8_t)(x >> 1 & 1),
+                        (uint8_t)(x & 1),
+                    };
+
+                    ImGui::Text("1 bpp: %u %u %u %u %u %u %u %u", p1[0], p1[1], p1[2], p1[3], p1[4], p1[5], p1[6], p1[7]);
+
+                    // abcdefgh
+                    //       ae
+                    //       bf
+                    //       cg
+                    //       dh
+
+                    uint8_t p2[4] = {
+                        (uint8_t)((x >> 6 & 2u) | (x >> 3 & 1u)),
+                        (uint8_t)((x >> 5 & 2u) | (x >> 2 & 1u)),
+                        (uint8_t)((x >> 4 & 2u) | (x >> 1 & 1u)),
+                        (uint8_t)((x >> 3 & 2u) | (x & 1u)),
+                    };
+
+                    ImGui::Text("2 bpp: %u %u %u %u", p2[0], p2[1], p2[2], p2[3]);
+
+                    // abcdefgh
+                    //     aceg
+                    //     bdfh
+                    uint8_t p4[2] = {
+                        (uint8_t)((x >> 4 & 8) | (x >> 3 & 4) | (x >> 2 & 2) | (x >> 1 & 1)),
+                        (uint8_t)((x >> 3 & 8) | (x >> 2 & 4) | (x >> 1 & 2) | (x & 1)),
+                    };
+                    ImGui::Text("4 bpp: %u %u", p4[0], p4[1]);
+                    ImGui::Text("4 bpp: %s%x %s%x", g_hex, p4[0], g_hex, p4[1]);
+                }
             } else {
                 ImGui::TextUnformatted("Value:");
             }
