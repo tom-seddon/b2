@@ -3576,22 +3576,22 @@ class PixelMetadataUI : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        if (const VideoDataUnit *unit = m_beeb_window->GetVideoDataUnitForMousePixel()) {
-            if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
+        if (const BeebWindow::MousePixel *mpixel = m_beeb_window->GetMousePixel()) {
+            if (mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
                 // The debug stuff is oriented around the CPU's view of memory,
                 // but the video unit's address is from the CRTC's perspective.
 
-                ImGui::Text("Display Address: %s%04x", g_hex, unit->metadata.address);
+                ImGui::Text("Display Address: %s%04x", g_hex, mpixel->unit.metadata.address);
 
                 // Find big page for the display fetch. The first 16 big pages
                 // are deliberately in the right order.
-                M6502Word display_addr{unit->metadata.address};
+                M6502Word display_addr{mpixel->unit.metadata.address};
                 const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[display_addr.p.p];
 
                 // Form the appropriate CPU address.
                 M6502Word cpu_addr{(uint16_t)(metadata->addr + display_addr.p.o)};
 
-                //M6502Word crtc_addr = {unit->metadata.address};
+                //M6502Word crtc_addr = {mpixel->unit.metadata.address};
                 //const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[crtc_addr.p.p];
 
                 m_dso &= metadata->dso_mask;
@@ -3602,8 +3602,8 @@ class PixelMetadataUI : public DebugUI {
                 const char *address_suffix = GetMinimalAddressSuffixForOffset(metadata, cpu_addr);
                 ImGui::Text("CPU Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
 
-                if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
-                    ImGui::Text("CRTC Address: %s%04x", g_hex, unit->metadata.crtc_address);
+                if (mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
+                    ImGui::Text("CRTC Address: %s%04x", g_hex, mpixel->unit.metadata.crtc_address);
                 }
 
                 const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);
@@ -3612,14 +3612,14 @@ class PixelMetadataUI : public DebugUI {
                 ImGui::TextUnformatted("Address:");
             }
 
-            if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasValue) {
-                uint8_t x = unit->metadata.value;
+            if (mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_HasValue) {
+                uint8_t x = mpixel->unit.metadata.value;
 
                 const std::string *str = GetByteStringEscaped(x);
 
                 ImGui::Text("Value: %-4s %-3u (%s%02x) (%s%s)", str->c_str(), x, g_hex, x, g_bin, BINARY_BYTE_STRINGS[x]);
 
-                if (!IsTeletextData(*unit)) {
+                if (!IsTeletextData(mpixel->unit)) {
                     // abcdefgh -> a b c d e f g h
                     uint8_t p1[8] = {
                         (uint8_t)(x >> 7),
@@ -3663,12 +3663,20 @@ class PixelMetadataUI : public DebugUI {
                 ImGui::TextUnformatted("Value:");
             }
 
-            ImGui::Text("%s cycle", unit->metadata.flags & VideoDataUnitMetadataFlag_OddCycle ? "Odd" : "Even");
+            ImGui::Text("%s cycle", mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_OddCycle ? "Odd" : "Even");
 
             ImGui::Text("6845:%s%s%s",
-                        unit->metadata.flags & VideoDataUnitMetadataFlag_6845DISPEN ? " DISPEN" : "",
-                        unit->metadata.flags & VideoDataUnitMetadataFlag_6845CUDISP ? " CUDISP" : "",
-                        unit->metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "");
+                        mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_6845DISPEN ? " DISPEN" : "",
+                        mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_6845CUDISP ? " CUDISP" : "",
+                        mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "");
+
+            float du = 5.f / TV_TEXTURE_WIDTH;
+            float dv = 5.f / TV_TEXTURE_HEIGHT;
+
+            ImGui::Image((ImTextureID)m_beeb_window->m_tv_texture,
+                         ImVec2(200.f, 200.f),
+                         ImVec2(mpixel->u - du, mpixel->v - dv),
+                         ImVec2(mpixel->u + du, mpixel->v + dv));
         }
     }
 

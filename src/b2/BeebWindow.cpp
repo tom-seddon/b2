@@ -3662,39 +3662,40 @@ bool BeebWindow::DoBeebDisplayUI() {
 
 #if VIDEO_TRACK_METADATA
 
-            m_got_mouse_pixel_unit = false;
+            m_got_mouse_pixel = false;
 
             if (ImGui::IsItemHovered()) {
                 ImVec2 mouse_pos = ImGui::GetMousePos();
                 mouse_pos -= screen_pos;
 
-                double tx = mouse_pos.x / size.x;
-                double ty = mouse_pos.y / size.y;
+                m_mouse_pixel.u = mouse_pos.x / size.x;
+                m_mouse_pixel.v = mouse_pos.y / size.y;
 
-                if (tx >= 0. && tx < 1. && ty >= 0. && ty < 1.) {
-                    int x = (int)(tx * TV_TEXTURE_WIDTH);
-                    int y = (int)(ty * TV_TEXTURE_HEIGHT);
+                if (m_mouse_pixel.u >= 0. && m_mouse_pixel.u < 1. &&
+                    m_mouse_pixel.v >= 0. && m_mouse_pixel.v < 1.) {
+                    m_mouse_pixel.x = (unsigned)(m_mouse_pixel.u * TV_TEXTURE_WIDTH);
+                    m_mouse_pixel.y = (unsigned)(m_mouse_pixel.v * TV_TEXTURE_HEIGHT);
 
-                    ASSERT(x >= 0 && x < TV_TEXTURE_WIDTH);
-                    ASSERT(y >= 0 && y < TV_TEXTURE_HEIGHT);
+                    ASSERT(m_mouse_pixel.x < TV_TEXTURE_WIDTH);
+                    ASSERT(m_mouse_pixel.y < TV_TEXTURE_HEIGHT);
 
                     const VideoDataUnit *units = m_tv.GetTextureUnits();
-                    units += y * TV_TEXTURE_WIDTH;
+                    units += m_mouse_pixel.y * TV_TEXTURE_WIDTH;
                     //const VideoDataUnit *mouse_unit = &units[y * TV_TEXTURE_WIDTH + x];
 
                     // Try to find a previous unit, if it has more interesting metadata. Make it easier to hover bytes in 1 MHz mode.
-                    int ux = x;
-                    while (ux >= 0 && (units[ux].metadata.flags & (VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_HasAddress)) == 0) {
-                        --ux;
+                    int unit_x = (int)m_mouse_pixel.x;
+                    while (unit_x >= 0 && (units[unit_x].metadata.flags & (VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_HasAddress)) == 0) {
+                        --unit_x;
                     }
 
-                    if (ux >= 0) {
-                        m_mouse_pixel_unit = units[ux];
+                    if (unit_x >= 0) {
+                        m_mouse_pixel.unit = units[unit_x];
                     } else {
-                        m_mouse_pixel_unit = units[x];
+                        m_mouse_pixel.unit = units[m_mouse_pixel.x];
                     }
 
-                    m_got_mouse_pixel_unit = true;
+                    m_got_mouse_pixel = true;
                 }
             }
 #else
@@ -4525,9 +4526,9 @@ void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-const VideoDataUnit *BeebWindow::GetVideoDataUnitForMousePixel() const {
-    if (m_got_mouse_pixel_unit) {
-        return &m_mouse_pixel_unit;
+const BeebWindow::MousePixel *BeebWindow::GetMousePixel() const {
+    if (m_got_mouse_pixel) {
+        return &m_mouse_pixel;
     } else {
         return nullptr;
     }

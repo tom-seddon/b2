@@ -316,6 +316,14 @@ class BeebWindow {
         size_t num_video_units = 0;
     };
 
+#if VIDEO_TRACK_METADATA
+    struct MousePixel {
+        unsigned x = 0, y = 0;
+        float u = 0.f, v = 0.f;
+        VideoDataUnit unit = {};
+    };
+#endif
+
     class OptionsUI;
     class ImGuiDebugUI;
     class CopyOSWRCHCallback;
@@ -389,7 +397,7 @@ class BeebWindow {
     void SetCurrentKeymap(const BeebKeymap *keymap);
 
 #if VIDEO_TRACK_METADATA
-    const VideoDataUnit *GetVideoDataUnitForMousePixel() const;
+    const MousePixel *GetMousePixel() const;
 #endif
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
@@ -449,6 +457,8 @@ class BeebWindow {
 
     void StartEchoOSWRCH();
     void StopEchoOSWRCH();
+    
+    
 
   protected:
   private:
@@ -567,8 +577,8 @@ class BeebWindow {
     uint64_t m_msg_last_num_messages_printed = 0;
     uint64_t m_msg_last_num_errors_printed = 0;
 #if VIDEO_TRACK_METADATA
-    bool m_got_mouse_pixel_unit = false;
-    VideoDataUnit m_mouse_pixel_unit = {};
+    bool m_got_mouse_pixel = false;
+    MousePixel m_mouse_pixel;
 #endif
 
     //struct HTTPPoke {
@@ -735,6 +745,7 @@ class BeebWindow {
     mutable Messages m_msg;
 
     friend class DocImageCreator;
+    friend class PixelMetadataUI;
 };
 
 //////////////////////////////////////////////////////////////////////////
