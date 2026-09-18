@@ -52,6 +52,8 @@ class TVOutput {
     bool show_6845_row_markers = false;
     bool show_6845_dispen_markers = false;
     bool show_beam_position = false;
+    bool show_data_markers = false;
+    bool show_address_markers = false;
 
     TVOutput();
     ~TVOutput();

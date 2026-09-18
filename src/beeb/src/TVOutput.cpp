@@ -660,6 +660,18 @@ void TVOutput::CopyTexturePixels(void *dest_pixels, size_t dest_pitch_bytes) con
                              this->show_6845_dispen_markers,
                              VideoDataUnitMetadataFlag_6845DISPEN,
                              m_6845_dispen_marker_xor);
+
+    this->AddMetadataMarkers(dest_pixels,
+                             dest_pitch_bytes,
+                             this->show_data_markers,
+                             VideoDataUnitMetadataFlag_HasValue,
+                             m_6845_dispen_marker_xor);
+
+    this->AddMetadataMarkers(dest_pixels,
+                             dest_pitch_bytes,
+                             this->show_address_markers,
+                             VideoDataUnitMetadataFlag_HasAddress,
+                             m_6845_dispen_marker_xor);
 #endif
 
     if (this->show_usec_markers ||

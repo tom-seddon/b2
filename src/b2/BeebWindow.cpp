@@ -860,6 +860,8 @@ void BeebWindow::OptionsUI::DoImGui() {
 
             ImGui::Checkbox("CRTC rows", &m_beeb_window->m_tv.show_6845_row_markers);
             ImGui::Checkbox("Display enable", &m_beeb_window->m_tv.show_6845_dispen_markers);
+            ImGui::Checkbox("Data", &m_beeb_window->m_tv.show_data_markers);
+            ImGui::Checkbox("Address", &m_beeb_window->m_tv.show_address_markers);
 
             ImGui::TextUnformatted("RAM errors");
 
