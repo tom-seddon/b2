@@ -90,7 +90,7 @@ class TVOutput {
 
 #if VIDEO_TRACK_METADATA
     // Will look leftwards (if possible) to find a VideoDataUnit with address or value flags.
-    bool GetTextureUnit(VideoDataUnit *unit, int x, int y) const;
+    bool GetTextureUnit(VideoDataUnit *unit, unsigned x, unsigned y) const;
 #endif
 
     // returns false, *X and *Y untouched, if beam is outside the
