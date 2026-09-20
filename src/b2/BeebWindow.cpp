@@ -665,9 +665,7 @@ void BeebWindow::OptionsUI::DoImGui() {
 
         ImGui::Checkbox("Correct aspect ratio", &settings->correct_aspect_ratio);
 
-        if (ImGui::Checkbox("Filter display", &settings->display_filter)) {
-            m_beeb_window->RequestRecreateTexture();
-        }
+        ImGui::Checkbox("Filter display", &settings->display_filter);
 
         ImGui::Checkbox("Auto scale", &settings->display_auto_scale);
 
@@ -3612,11 +3610,6 @@ bool BeebWindow::DoBeebDisplayUI() {
 
         focus = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
-        if (m_recreate_tv_texture) {
-            this->RecreateTexture();
-            m_recreate_tv_texture = false;
-        }
-
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
         if (m_tv_texture.value != 0) {
 #if BBCMICRO_DEBUGGER
@@ -3652,7 +3645,15 @@ bool BeebWindow::DoBeebDisplayUI() {
 
             ImGui::SetCursorPos(pos);
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
-            ImGui::Image(m_imgui_stuff->GetImTextureID(m_tv_texture), size);
+
+            ImGuiTextureFilter filter;
+            if (m_settings.display_filter) {
+                filter = ImGuiTextureFilter_Linear;
+            } else {
+                filter = ImGuiTextureFilter_Point;
+            }
+
+            ImGui::Image(m_imgui_stuff->GetImTextureID(m_tv_texture, filter), size);
 
             if (m_settings.capture_mouse_on_click) {
                 if (ImGui::IsItemClicked()) {
@@ -4211,8 +4212,13 @@ bool BeebWindow::InitInternal() {
 
     m_imgui_stuff->SetPixelFont(m_settings.gui_pixel_font);
 
-    if (!this->RecreateTexture()) {
-        return false;
+    if (m_imgui_stuff->CanCreateTexture()) {
+        std::string error;
+        SetRenderScaleQualityHint(true); //most likely value
+        if (!m_imgui_stuff->CreateTexture(&m_tv_texture, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, &error)) {
+            m_msg.e.f("Failed to create TV texture: %s\n", error.c_str());
+            return false;
+        }
     }
 
     if (!m_beeb_thread->Start()) {
@@ -4810,35 +4816,6 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
     //ia.parent_timeline_event_id=0;//m_beeb_thread->GetParentTimelineEventId();
 
     return ia;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::RequestRecreateTexture() {
-    m_recreate_tv_texture = true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::RecreateTexture() {
-    if (m_tv_texture.value != 0) {
-        m_imgui_stuff->DestroyTexture(m_tv_texture);
-        m_tv_texture = {};
-    }
-
-    SetRenderScaleQualityHint(m_settings.display_filter);
-
-    if (m_imgui_stuff->CanCreateTexture()) {
-        std::string error;
-        if (!m_imgui_stuff->CreateTexture(&m_tv_texture, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, &error)) {
-            m_msg.e.f("Failed to create TV texture: %s\n", error.c_str());
-            return false;
-        }
-    }
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
