@@ -3988,7 +3988,9 @@ void BBCMicro::InitStuff() {
     m_host_cpu_metadata.dso = 0;
 #endif
     m_host_cpu_metadata.beeb = this;
-    ASSERT(!m_state.cpu.context);
+
+    // m_state.cpu.context might already be set, but that's fine - it'll be a
+    // remnant from whichever BBCMicro was last running it.
     m_state.cpu.context = &m_host_cpu_metadata;
 
     m_parasite_cpu_metadata.name = "parasite";
@@ -3996,7 +3998,8 @@ void BBCMicro::InitStuff() {
     m_parasite_cpu_metadata.dso = BBCMicroDebugStateOverride_Parasite;
 #endif
     m_parasite_cpu_metadata.beeb = this;
-    ASSERT(!m_state.parasite_cpu.context);
+
+    // (See comment for m_state.cpu.context)
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
     m_state.adc.SetHandler(&ReadAnalogueChannel, this);
