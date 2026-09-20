@@ -3576,22 +3576,24 @@ class PixelMetadataUI : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        if (const BeebWindow::MousePixel *mpixel = m_beeb_window->GetMousePixel()) {
-            if (mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
+        if (m_beeb_window->m_is_mouse_captured) {
+            ImGui::TextUnformatted("Mouse is captured");
+        } else if (const BeebWindow::MouseVideoDataUnit *munit = m_beeb_window->GetMouseVideoDataUnit()) {
+            if (munit->unit.metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
                 // The debug stuff is oriented around the CPU's view of memory,
                 // but the video unit's address is from the CRTC's perspective.
 
-                ImGui::Text("Display Address: %s%04x", g_hex, mpixel->unit.metadata.address);
+                ImGui::Text("Display Address: %s%04x", g_hex, munit->unit.metadata.address);
 
                 // Find big page for the display fetch. The first 16 big pages
                 // are deliberately in the right order.
-                M6502Word display_addr{mpixel->unit.metadata.address};
+                M6502Word display_addr{munit->unit.metadata.address};
                 const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[display_addr.p.p];
 
                 // Form the appropriate CPU address.
                 M6502Word cpu_addr{(uint16_t)(metadata->addr + display_addr.p.o)};
 
-                //M6502Word crtc_addr = {mpixel->unit.metadata.address};
+                //M6502Word crtc_addr = {munit->unit.metadata.address};
                 //const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[crtc_addr.p.p];
 
                 m_dso &= metadata->dso_mask;
@@ -3602,8 +3604,8 @@ class PixelMetadataUI : public DebugUI {
                 const char *address_suffix = GetMinimalAddressSuffixForOffset(metadata, cpu_addr);
                 ImGui::Text("CPU Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
 
-                if (mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
-                    ImGui::Text("CRTC Address: %s%04x", g_hex, mpixel->unit.metadata.crtc_address);
+                if (munit->unit.metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
+                    ImGui::Text("CRTC Address: %s%04x", g_hex, munit->unit.metadata.crtc_address);
                 }
 
                 const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);
@@ -3612,14 +3614,15 @@ class PixelMetadataUI : public DebugUI {
                 ImGui::TextUnformatted("Address:");
             }
 
-            if (mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_HasValue) {
-                uint8_t x = mpixel->unit.metadata.value;
+            if (munit->unit.metadata.flags & VideoDataUnitMetadataFlag_HasValue) {
+                uint8_t x = munit->unit.metadata.value;
 
                 const std::string *str = GetByteStringEscaped(x);
 
                 ImGui::Text("Value: %-4s %-3u (%s%02x) (%s%s)", str->c_str(), x, g_hex, x, g_bin, BINARY_BYTE_STRINGS[x]);
 
-                if (!IsTeletextData(mpixel->unit)) {
+                if (!IsTeletextData(munit->unit)) {
+                    // <pre>
                     // abcdefgh -> a b c d e f g h
                     uint8_t p1[8] = {
                         (uint8_t)(x >> 7),
@@ -3634,12 +3637,7 @@ class PixelMetadataUI : public DebugUI {
 
                     ImGui::Text("1 bpp: %u %u %u %u %u %u %u %u", p1[0], p1[1], p1[2], p1[3], p1[4], p1[5], p1[6], p1[7]);
 
-                    // abcdefgh
-                    //       ae
-                    //       bf
-                    //       cg
-                    //       dh
-
+                    // abcdefgh -> ae bf cg dh
                     uint8_t p2[4] = {
                         (uint8_t)((x >> 6 & 2u) | (x >> 3 & 1u)),
                         (uint8_t)((x >> 5 & 2u) | (x >> 2 & 1u)),
@@ -3649,13 +3647,12 @@ class PixelMetadataUI : public DebugUI {
 
                     ImGui::Text("2 bpp: %u %u %u %u", p2[0], p2[1], p2[2], p2[3]);
 
-                    // abcdefgh
-                    //     aceg
-                    //     bdfh
+                    // abcdefgh -> aceg bdfh
                     uint8_t p4[2] = {
                         (uint8_t)((x >> 4 & 8) | (x >> 3 & 4) | (x >> 2 & 2) | (x >> 1 & 1)),
                         (uint8_t)((x >> 3 & 8) | (x >> 2 & 4) | (x >> 1 & 2) | (x & 1)),
                     };
+
                     ImGui::Text("4 bpp: %u %u", p4[0], p4[1]);
                     ImGui::Text("4 bpp: %s%x %s%x", g_hex, p4[0], g_hex, p4[1]);
                 }
@@ -3663,20 +3660,86 @@ class PixelMetadataUI : public DebugUI {
                 ImGui::TextUnformatted("Value:");
             }
 
-            ImGui::Text("%s cycle", mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_OddCycle ? "Odd" : "Even");
+            ImGui::Text("%s cycle", munit->unit.metadata.flags & VideoDataUnitMetadataFlag_OddCycle ? "Odd" : "Even");
 
             ImGui::Text("6845:%s%s%s",
-                        mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_6845DISPEN ? " DISPEN" : "",
-                        mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_6845CUDISP ? " CUDISP" : "",
-                        mpixel->unit.metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "");
+                        munit->unit.metadata.flags & VideoDataUnitMetadataFlag_6845DISPEN ? " DISPEN" : "",
+                        munit->unit.metadata.flags & VideoDataUnitMetadataFlag_6845CUDISP ? " CUDISP" : "",
+                        munit->unit.metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "");
 
-            float du = 5.f / TV_TEXTURE_WIDTH;
-            float dv = 5.f / TV_TEXTURE_HEIGHT;
+            // Size of zoomed-in view. The highlight is 8x1 Mode 0 pixels, so,
+            // ideally, width should be even and height should be odd.
+            static constexpr unsigned w = 24;
+            static constexpr unsigned h = 9;
+            static_assert(w >= 8);
 
-            ImGui::Image((ImTextureID)m_beeb_window->m_tv_texture,
-                         ImVec2(200.f, 200.f),
-                         ImVec2(mpixel->u - du, mpixel->v - dv),
-                         ImVec2(mpixel->u + du, mpixel->v + dv));
+            ImVec2 pixel_size(20.f, 20.f);
+
+            unsigned x = munit->unit_loc.x - (w - 8) / 2;
+            unsigned y = munit->unit_loc.y - h / 2;
+
+            ImRect uv;
+            uv.Min.x = x * TV_TEXTURE_PIXEL_DU;
+            uv.Min.y = y * TV_TEXTURE_PIXEL_DV;
+
+            uv.Max.x = uv.Min.x + w * TV_TEXTURE_PIXEL_DU;
+            uv.Max.y = uv.Min.y + h * TV_TEXTURE_PIXEL_DV;
+
+            ImGui::Image(m_beeb_window->m_imgui_stuff->GetImTextureID(m_beeb_window->m_tv_texture,
+                                                                      ImGuiTextureFilter_Point),
+                         ImVec2(w * pixel_size.x, h * pixel_size.y),
+                         uv.Min,
+                         uv.Max);
+
+            ImRect image_rect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+
+            ImVec2 image_centre = image_rect.GetCenter();
+
+            ImU32 colour = ImGui::GetColorU32(ImU32(0xffff00ff));
+            ImGuiWindow *window = ImGui::GetCurrentWindow();
+
+            ImVec2 unit_half_size(4.f, .5f);
+            unit_half_size *= pixel_size;
+
+            window->DrawList->AddRect(image_centre - unit_half_size,
+                                      image_centre + unit_half_size,
+                                      colour);
+
+            //unsigned x = munit->x / 8 * 8;
+            //unsigned y = munit->y;
+            //unsigned w = 24;
+            //unsigned h = 12;
+
+            //float u = (float)x / TV_TEXTURE_WIDTH;
+            //float v = (float)y / TV_TEXTURE_HEIGHT;
+
+            //float du = (w * .5f) / TV_TEXTURE_WIDTH;
+            //float dv = (h * .5f) / TV_TEXTURE_HEIGHT;
+
+            //ImGui::Image(m_beeb_window->m_imgui_stuff->GetImTextureID(m_beeb_window->m_tv_texture,
+            //                                                          ImGuiTextureFilter_Point),
+            //             ImVec2(w * 10.f, h * 10.f),
+            //             ImVec2(u - du, v - dv),
+            //             ImVec2(u + du, v + dv));
+
+            //ImRect rect;
+            //rect.Min = ImGui::GetItemRectMin();
+            //rect.Max = ImGui::GetItemRectMax();
+
+            //ImVec2 centre;
+            //centre.x = (rect.Min.x + rect.Max.x) * .5f;
+            //centre.y = (rect.Min.y + rect.Max.y) * .5f;
+
+            //ImU32 colour = ImGui::GetColorU32(ImU32(0xffff00ff));
+
+            //ImGuiWindow *window = ImGui::GetCurrentWindow();
+            //window->DrawList->AddRect(ImVec2(centre.x - w * .5f,
+            //                                 centre.y - h * .5f),
+            //                          ImVec2(centre.x + w * .5f,
+            //                                 centre.y + h * .5f),
+            //                          colour);
+        } else {
+            ImGui::TextUnformatted("Not hovering over BBC display");
         }
     }
 

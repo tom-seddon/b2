@@ -3663,24 +3663,30 @@ bool BeebWindow::DoBeebDisplayUI() {
 
 #if VIDEO_TRACK_METADATA
 
-            m_got_mouse_pixel = false;
+            m_got_mouse_unit = false;
 
             if (ImGui::IsItemHovered()) {
                 ImVec2 mouse_pos = ImGui::GetMousePos();
                 mouse_pos -= screen_pos;
 
-                m_mouse_pixel.u = mouse_pos.x / size.x;
-                m_mouse_pixel.v = mouse_pos.y / size.y;
+                m_mouse_unit.pixel_loc.u = mouse_pos.x / size.x;
+                m_mouse_unit.pixel_loc.v = mouse_pos.y / size.y;
 
-                if (m_mouse_pixel.u >= 0. && m_mouse_pixel.u < 1. &&
-                    m_mouse_pixel.v >= 0. && m_mouse_pixel.v < 1.) {
-                    m_mouse_pixel.x = (unsigned)(m_mouse_pixel.u * TV_TEXTURE_WIDTH);
-                    m_mouse_pixel.y = (unsigned)(m_mouse_pixel.v * TV_TEXTURE_HEIGHT);
+                if (m_mouse_unit.pixel_loc.u >= 0. && m_mouse_unit.pixel_loc.u < 1. &&
+                    m_mouse_unit.pixel_loc.v >= 0. && m_mouse_unit.pixel_loc.v < 1.) {
+                    m_mouse_unit.pixel_loc.x = (unsigned)(m_mouse_unit.pixel_loc.u * TV_TEXTURE_WIDTH);
+                    m_mouse_unit.pixel_loc.y = (unsigned)(m_mouse_unit.pixel_loc.v * TV_TEXTURE_HEIGHT);
 
-                    ASSERT(m_mouse_pixel.x < TV_TEXTURE_WIDTH);
-                    ASSERT(m_mouse_pixel.y < TV_TEXTURE_HEIGHT);
+                    ASSERT(m_mouse_unit.pixel_loc.x < TV_TEXTURE_WIDTH);
+                    ASSERT(m_mouse_unit.pixel_loc.y < TV_TEXTURE_HEIGHT);
 
-                    m_got_mouse_pixel = m_tv.GetTextureUnit(&m_mouse_pixel.unit, m_mouse_pixel.x, m_mouse_pixel.y);
+                    m_mouse_unit.unit_loc.x = m_mouse_unit.pixel_loc.x / 8 * 8;
+                    m_mouse_unit.unit_loc.y = m_mouse_unit.pixel_loc.y;
+
+                    m_mouse_unit.unit_loc.u = (float)m_mouse_unit.unit_loc.x / TV_TEXTURE_WIDTH;
+                    m_mouse_unit.unit_loc.v = (float)m_mouse_unit.unit_loc.y / TV_TEXTURE_HEIGHT;
+
+                    m_got_mouse_unit = m_tv.GetTextureUnit(&m_mouse_unit.unit, m_mouse_unit.pixel_loc.x, m_mouse_unit.pixel_loc.y);
                 }
             }
 #else
@@ -4520,9 +4526,9 @@ void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-const BeebWindow::MousePixel *BeebWindow::GetMousePixel() const {
-    if (m_got_mouse_pixel) {
-        return &m_mouse_pixel;
+const BeebWindow::MouseVideoDataUnit *BeebWindow::GetMouseVideoDataUnit() const {
+    if (m_got_mouse_unit) {
+        return &m_mouse_unit;
     } else {
         return nullptr;
     }

@@ -317,9 +317,13 @@ class BeebWindow {
     };
 
 #if VIDEO_TRACK_METADATA
-    struct MousePixel {
-        unsigned x = 0, y = 0;
-        float u = 0.f, v = 0.f;
+    struct MouseVideoDataUnit {
+        struct Location {
+            unsigned x = 0, y = 0;  //in pixels
+            float u = 0.f, v = 0.f; //UV coordinates
+        };
+        Location pixel_loc; //the pixel the mouse is hovering over
+        Location unit_loc;  //the corresponding unit
         VideoDataUnit unit = {};
     };
 #endif
@@ -397,7 +401,7 @@ class BeebWindow {
     void SetCurrentKeymap(const BeebKeymap *keymap);
 
 #if VIDEO_TRACK_METADATA
-    const MousePixel *GetMousePixel() const;
+    const MouseVideoDataUnit *GetMouseVideoDataUnit() const;
 #endif
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
@@ -574,8 +578,8 @@ class BeebWindow {
     uint64_t m_msg_last_num_messages_printed = 0;
     uint64_t m_msg_last_num_errors_printed = 0;
 #if VIDEO_TRACK_METADATA
-    bool m_got_mouse_pixel = false;
-    MousePixel m_mouse_pixel;
+    bool m_got_mouse_unit = false;
+    MouseVideoDataUnit m_mouse_unit;
 #endif
 
     //struct HTTPPoke {

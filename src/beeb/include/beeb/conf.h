@@ -123,6 +123,9 @@ static constexpr int TV_TEXTURE_HEIGHT = 288 * 2;
 
 static_assert(TV_TEXTURE_WIDTH % 8 == 0, "");
 
+static constexpr float TV_TEXTURE_PIXEL_DU = 1.f / TV_TEXTURE_WIDTH;
+static constexpr float TV_TEXTURE_PIXEL_DV = 1.f / TV_TEXTURE_HEIGHT;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
