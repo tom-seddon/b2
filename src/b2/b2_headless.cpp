@@ -206,7 +206,7 @@ class HeadlessAppHandler : public AppHandler {
         return UIFlag_HideAllPopups;
     }
 
-#if IMGUI_ENABLE_TEST_ENGINE
+#ifdef IMGUI_ENABLE_TEST_ENGINE
     bool IsDearImGuiTestEngineEnabled() const override {
         return false;
     }
