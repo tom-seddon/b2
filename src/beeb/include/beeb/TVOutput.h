@@ -89,7 +89,8 @@ class TVOutput {
     void CopyTexturePixels(void *dest_pixels, size_t dest_pitch) const;
 
 #if VIDEO_TRACK_METADATA
-    const VideoDataUnit *GetTextureUnits() const;
+    // Will look leftwards (if possible) to find a VideoDataUnit with address or value flags.
+    bool GetTextureUnit(VideoDataUnit *unit, int x, int y) const;
 #endif
 
     // returns false, *X and *Y untouched, if beam is outside the

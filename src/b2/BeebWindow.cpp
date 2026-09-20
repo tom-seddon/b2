@@ -3680,23 +3680,7 @@ bool BeebWindow::DoBeebDisplayUI() {
                     ASSERT(m_mouse_pixel.x < TV_TEXTURE_WIDTH);
                     ASSERT(m_mouse_pixel.y < TV_TEXTURE_HEIGHT);
 
-                    const VideoDataUnit *units = m_tv.GetTextureUnits();
-                    units += m_mouse_pixel.y * TV_TEXTURE_WIDTH;
-                    //const VideoDataUnit *mouse_unit = &units[y * TV_TEXTURE_WIDTH + x];
-
-                    // Try to find a previous unit, if it has more interesting metadata. Make it easier to hover bytes in 1 MHz mode.
-                    int unit_x = (int)m_mouse_pixel.x;
-                    while (unit_x >= 0 && (units[unit_x].metadata.flags & (VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_HasAddress)) == 0) {
-                        --unit_x;
-                    }
-
-                    if (unit_x >= 0) {
-                        m_mouse_pixel.unit = units[unit_x];
-                    } else {
-                        m_mouse_pixel.unit = units[m_mouse_pixel.x];
-                    }
-
-                    m_got_mouse_pixel = true;
+                    m_got_mouse_pixel = m_tv.GetTextureUnit(&m_mouse_pixel.unit, m_mouse_pixel.x, m_mouse_pixel.y);
                 }
             }
 #else

@@ -34,9 +34,11 @@ static_assert(MIN_UNITS_BETWEEN_VERTICAL_RETRACE < MAX_UNITS_BETWEEN_VERTICAL_RE
 TVOutput::TVOutput() {
     // +1 to accommodate writing an extra row when emulating interlace. (This
     // extra row is ignored.)
-    m_texture_pixels.resize(TV_TEXTURE_WIDTH * (TV_TEXTURE_HEIGHT + 1));
+    static constexpr size_t num_texture_pixels = TV_TEXTURE_WIDTH * (TV_TEXTURE_HEIGHT + 1);
+    static_assert(num_texture_pixels % 8 == 0);
+    m_texture_pixels.resize(num_texture_pixels);
 #if VIDEO_TRACK_METADATA
-    m_texture_units.resize(m_texture_pixels.size());
+    m_texture_units.resize(num_texture_pixels / 8);
 #endif
     m_last_vsync_texture_pixels.resize(TV_TEXTURE_WIDTH * (TV_TEXTURE_HEIGHT + 1));
 
@@ -160,7 +162,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
             m_x = 0;
             m_pixels_line = m_texture_pixels.data() + m_y * TV_TEXTURE_WIDTH;
 #if VIDEO_TRACK_METADATA
-            m_units_line = m_texture_units.data() + m_y * TV_TEXTURE_WIDTH;
+            m_units_line = m_texture_units.data() + m_y * (TV_TEXTURE_WIDTH / 8);
 #endif
             m_state_timer = 1;
             break;
@@ -256,11 +258,8 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             EXPAND_16MHZ(7);
 
 #if VIDEO_TRACK_METADATA
-                            VideoDataUnit *units0 = m_units_line + m_x;
-                            units0[7] = units0[6] = units0[5] = units0[4] = units0[3] = units0[2] = units0[1] = units0[0] = *unit;
-
-                            VideoDataUnit *units1 = units0 + TV_TEXTURE_WIDTH;
-                            units1[7] = units1[6] = units1[5] = units1[4] = units1[3] = units1[2] = units1[1] = units1[0] = *unit;
+                            VideoDataUnit *units0 = m_units_line + (m_x >> 3);
+                            units0[TV_TEXTURE_WIDTH >> 3] = *units0 = *unit;
 #endif
                         }
                         m_x += 8;
@@ -366,11 +365,8 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             pixels1[7] = EXPAND_12MHZ_VDP(p51);
 
 #if VIDEO_TRACK_METADATA
-                            VideoDataUnit *units0 = m_units_line + m_x;
-                            units0[7] = units0[6] = units0[5] = units0[4] = units0[3] = units0[2] = units0[1] = units0[0] = *unit;
-
-                            VideoDataUnit *units1 = units0 + TV_TEXTURE_WIDTH;
-                            units1[7] = units1[6] = units1[5] = units1[4] = units1[3] = units1[2] = units1[1] = units1[0] = *unit;
+                            VideoDataUnit *units0 = m_units_line + (m_x >> 3);
+                            units0[TV_TEXTURE_WIDTH >> 3] = *units0 = *unit;
 #endif
                         }
                         m_x += 8;
@@ -439,11 +435,8 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             pixels1[7] = pixels0[7] = EXPAND_12MHZ_VDP(p5);
 
 #if VIDEO_TRACK_METADATA
-                            VideoDataUnit *units0 = m_units_line + m_x;
-                            units0[7] = units0[6] = units0[5] = units0[4] = units0[3] = units0[2] = units0[1] = units0[0] = *unit;
-
-                            VideoDataUnit *units1 = units0 + TV_TEXTURE_WIDTH;
-                            units1[7] = units1[6] = units1[5] = units1[4] = units1[3] = units1[2] = units1[1] = units1[0] = *unit;
+                            VideoDataUnit *units0 = m_units_line + (m_x >> 3);
+                            units0[TV_TEXTURE_WIDTH >> 3] = *units0 = *unit;
 #endif
                         }
                         m_x += 8;
@@ -470,7 +463,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
                 m_pixels_line += TV_TEXTURE_WIDTH * 2;
 #if VIDEO_TRACK_METADATA
-                m_units_line += TV_TEXTURE_WIDTH * 2;
+                m_units_line += TV_TEXTURE_WIDTH >> 2; //>>3, *2
 #endif
                 m_state_timer = 2; //+1 for Scanout; +1 for this state
                 m_state = TVOutputState_HorizontalRetraceWait;
@@ -731,8 +724,26 @@ void TVOutput::CopyTexturePixels(void *dest_pixels, size_t dest_pitch_bytes) con
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-const VideoDataUnit *TVOutput::GetTextureUnits() const {
-    return m_texture_units.data();
+bool TVOutput::GetTextureUnit(VideoDataUnit *unit, int x, int y) const {
+    if (y >= 0 && y < TV_TEXTURE_HEIGHT) {
+        if (x >= 0 && x < TV_TEXTURE_WIDTH) {
+            const VideoDataUnit *units_row = &m_texture_units[y * (TV_TEXTURE_WIDTH / 8)];
+            int unit_x = x / 8;
+            while (unit_x >= 0 && (units_row[unit_x].metadata.flags & (VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_HasAddress)) == 0) {
+                --unit_x;
+            }
+
+            if (unit_x < 0) {
+                *unit = units_row[x / 8];
+            } else {
+                *unit = units_row[unit_x];
+            }
+
+            return true;
+        }
+    }
+
+    return false;
 }
 #endif
 
@@ -854,11 +865,18 @@ void TVOutput::AddMetadataMarkers(void *dest_pixels,
     for (size_t y = 0; y < TV_TEXTURE_HEIGHT; y += 2) {
         auto dest = (uint32_t *)((char *)dest_pixels + y * dest_pitch_bytes);
         const uint32_t *src = m_texture_pixels.data() + y * TV_TEXTURE_WIDTH;
-        const VideoDataUnit *unit = m_texture_units.data() + y * TV_TEXTURE_WIDTH;
+        const VideoDataUnit *unit = m_texture_units.data() + y * (TV_TEXTURE_WIDTH / 8);
 
-        for (size_t x = 0; x < TV_TEXTURE_WIDTH; ++x) {
+        for (size_t x = 0; x < TV_TEXTURE_WIDTH; x += 8) {
             if (unit++->metadata.flags & metadata_flag) {
-                dest[x] = src[x] ^ xor_value;
+                dest[x + 0] = src[x + 0] ^ xor_value;
+                dest[x + 1] = src[x + 1] ^ xor_value;
+                dest[x + 2] = src[x + 2] ^ xor_value;
+                dest[x + 3] = src[x + 3] ^ xor_value;
+                dest[x + 4] = src[x + 4] ^ xor_value;
+                dest[x + 5] = src[x + 5] ^ xor_value;
+                dest[x + 6] = src[x + 6] ^ xor_value;
+                dest[x + 7] = src[x + 7] ^ xor_value;
             }
         }
     }
