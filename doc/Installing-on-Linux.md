@@ -92,8 +92,8 @@ It is quite normal for this to take longer than you'd expect.
 The build and test will make use of as many CPU cores/threads as
 `nproc` reports. If this awakens the OOM killer, supply `NPROC=N` on
 the command line to have it do only `N` jobs at once. (For example'
-`make NPROC=1`. It will It will be quite normal for this to take even
-longer than you'd expect.)
+`make NPROC=1`. It will be quite normal for this to take even longer
+than you'd expect.)
 
 ## Install
 
@@ -127,8 +127,8 @@ To uninstall, manually delete the files and folders above.
   building
   
 - the source distribution is entirely self-contained, and not
-  upgradeable. Each distribution quite deliberately creates an
-  entirely separate folder structure
+  upgradeable. The source release for each new version of b2 quite
+  deliberately includes an entirely separate folder structure
   
 - once the thing is installed, there is no need for the source
   distribution any more, and you can delete it

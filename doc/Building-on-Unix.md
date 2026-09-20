@@ -24,7 +24,7 @@ issue](https://github.com/tom-seddon/b2/issues) if necessary.)
 Suitable versions of cmake and ninja are available from MacPorts:
 
     sudo port install cmake
-	sudo port install ninja
+    sudo port install ninja
 	
 You can optionally install the FFmpeg libs - b2 will build without
 these, but compressed video writing won't be available. Suitable
