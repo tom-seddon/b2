@@ -1209,12 +1209,12 @@ BeebWindow::~BeebWindow() {
         m_popups[i] = nullptr;
     }
 
+    if (m_tv_texture.value != 0) {
+        m_imgui_stuff->DestroyTexture(m_tv_texture);
+    }
+
     delete m_imgui_stuff;
     m_imgui_stuff = nullptr;
-
-    if (m_tv_texture) {
-        SDL_DestroyTexture(m_tv_texture);
-    }
 
     if (m_renderer) {
         SDL_DestroyRenderer(m_renderer);
@@ -3618,7 +3618,7 @@ bool BeebWindow::DoBeebDisplayUI() {
         }
 
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-        if (m_tv_texture) {
+        if (m_tv_texture.value != 0) {
 #if BBCMICRO_DEBUGGER
             if (m_display_fill) {
                 pos = {0.f, 0.f};
@@ -3652,7 +3652,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 
             ImGui::SetCursorPos(pos);
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
-            ImGui::Image((ImTextureID)m_tv_texture, size);
+            ImGui::Image(m_imgui_stuff->GetImTextureID(m_tv_texture), size);
 
             if (m_settings.capture_mouse_on_click) {
                 if (ImGui::IsItemClicked()) {
@@ -3831,10 +3831,12 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
         VBlankRecord *vblank_record = this->NewVBlankRecord(ticks);
 
+        SDL_Texture *sdl_tv_texture = m_imgui_stuff->GetSDLTexture(m_tv_texture);
+
         void *dest_pixels = nullptr;
         int dest_pitch = 0;
-        if (m_tv_texture) {
-            SDL_LockTexture(m_tv_texture, nullptr, &dest_pixels, &dest_pitch);
+        if (sdl_tv_texture) {
+            SDL_LockTexture(sdl_tv_texture, nullptr, &dest_pixels, &dest_pitch);
         }
 
         this->BeginUpdateTVTexture(threaded_update, dest_pixels, dest_pitch);
@@ -3862,7 +3864,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         this->EndUpdateTVTexture(threaded_update, vblank_record, dest_pixels, dest_pitch);
 
         if (dest_pixels) {
-            SDL_UnlockTexture(m_tv_texture);
+            SDL_UnlockTexture(sdl_tv_texture);
         }
 
         //        {
@@ -4189,10 +4191,6 @@ bool BeebWindow::InitInternal() {
     }
 #endif
 
-    if (!this->RecreateTexture()) {
-        return false;
-    }
-
 #ifdef IMGUI_ENABLE_TEST_ENGINE
     bool imgui_enable_test_engine = m_init_arguments.app_handler->IsDearImGuiTestEngineEnabled();
 #else
@@ -4212,6 +4210,10 @@ bool BeebWindow::InitInternal() {
 #endif
 
     m_imgui_stuff->SetPixelFont(m_settings.gui_pixel_font);
+
+    if (!this->RecreateTexture()) {
+        return false;
+    }
 
     if (!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n"); //: %s",BeebThread_GetError(m_beeb_thread));
@@ -4303,9 +4305,11 @@ bool BeebWindow::InitInternal() {
             return false;
         }
 
+        SDL_Texture *sdl_tv_texture = m_imgui_stuff->GetSDLTexture(m_tv_texture);
+
         Uint32 format;
         int width, height;
-        SDL_QueryTexture(m_tv_texture, &format, nullptr, &width, &height);
+        SDL_QueryTexture(sdl_tv_texture, &format, nullptr, &width, &height);
         m_msg.i.f("Renderer: %s, %dx%d %s\n",
                   renderer_info.name,
                   width,
@@ -4571,14 +4575,14 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
-    return ::CreateTimelineUI(beeb_window, beeb_window->m_renderer);
+    return ::CreateTimelineUI(beeb_window, beeb_window->m_imgui_stuff);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_window) {
-    return ::CreateSavedStatesUI(beeb_window, beeb_window->m_renderer);
+    return ::CreateSavedStatesUI(beeb_window, beeb_window->m_imgui_stuff);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -4819,17 +4823,17 @@ void BeebWindow::RequestRecreateTexture() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::RecreateTexture() {
-    if (m_tv_texture) {
-        SDL_DestroyTexture(m_tv_texture);
-        m_tv_texture = nullptr;
+    if (m_tv_texture.value != 0) {
+        m_imgui_stuff->DestroyTexture(m_tv_texture);
+        m_tv_texture = {};
     }
 
     SetRenderScaleQualityHint(m_settings.display_filter);
 
-    if (m_renderer) {
-        m_tv_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT);
-        if (!m_tv_texture) {
-            m_msg.e.f("Failed to create TV texture: %s\n", SDL_GetError());
+    if (m_imgui_stuff->CanCreateTexture()) {
+        std::string error;
+        if (!m_imgui_stuff->CreateTexture(&m_tv_texture, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT, &error)) {
+            m_msg.e.f("Failed to create TV texture: %s\n", error.c_str());
             return false;
         }
     }

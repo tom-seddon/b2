@@ -45,6 +45,7 @@
 #include <string>
 #include <vector>
 #include "keys.h"
+#include "misc.h"
 
 #include <shared/enum_decl.h>
 #include "dear_imgui.inl"
@@ -69,6 +70,14 @@ extern const ImVec4 &DISABLED_BUTTON_HOVERED_COLOUR;
 extern const ImVec4 &DISABLED_BUTTON_ACTIVE_COLOUR;
 
 extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// only exists to provide some type safety.
+struct ImGuiTexture {
+    uint64_t value = 0;
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -120,9 +129,6 @@ class ImGuiStuff {
 #endif
     void DoDebugGui();
 
-    float GetFontScale() const;
-    void SetFontScale(float scale);
-
     float GetScale() const;
     void SetScale(float scale);
 
@@ -134,12 +140,30 @@ class ImGuiStuff {
 
     ImVec2 GetDisplaySize() const;
 
+    bool CanCreateTexture() const;
+    bool CreateTexture(ImGuiTexture *texture, uint32_t sdl_format, int sdl_access, int w, int h, std::string *error = nullptr);
+    void DestroyTexture(ImGuiTexture imgui_texture);
+    SDL_Texture *GetSDLTexture(ImGuiTexture imgui_texture) const;
+
+    ImTextureID GetImTextureID(SDL_Texture *sdl_texture);
+    ImTextureID GetImTextureID(ImGuiTexture imgui_texture, ImGuiTextureFilter filter = ImGuiTextureFilter_Default);
+
   protected:
   private:
     enum ConsumePressedKeycodeState {
         ConsumePressedKeycodeState_Off,
         ConsumePressedKeycodeState_Waiting,
         ConsumePressedKeycodeState_Consumed,
+    };
+    struct Texture {
+        SDLUniquePtr<SDL_Texture> sdl_texture;
+
+        //static constexpr uint64_t TEXTURE_ID_BITS_MASK = ((ImTextureIDBits_IsImGuiTextureMask << ImTextureIDBits_IsImGuiTextureShift) |
+        //                                                  (ImTextureIDBits_IndexMask << ImTextureIDBits_IndexShift) |
+        //                                                  (ImTextureIDBits_UniqueMask << ImTextureIDBits_UniqueShift));
+        uint32_t unique = 1;
+
+        int next_free = -1;
     };
 
     SDL_Window *m_window = nullptr;
@@ -195,10 +219,18 @@ class ImGuiStuff {
     bool m_got_display_size = false;
     ImVec2 m_display_size{};
 
+    static constexpr int MAX_NUM_TEXTURES = 1 << ImTextureIDBits_IndexWidth;
+    static_assert(MAX_NUM_TEXTURES >= 0);
+    int m_first_free_texture = -1;
+    Texture m_textures[MAX_NUM_TEXTURES] = {};
+
     ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
 
     void UpdateImTextureData(ImTextureData *texture);
     void EnsureFontsReady();
+
+    Texture *GetTexture(ImGuiTexture imgui_texture);
+    const Texture *GetTexture(ImGuiTexture imgui_texture) const;
 
     friend class ImGuiContextSetter;
 };

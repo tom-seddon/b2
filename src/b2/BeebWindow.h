@@ -29,7 +29,6 @@ struct SDL_ControllerAxisEvent;
 struct SDL_ControllerButtonEvent;
 struct JoystickResult;
 class BeebKeymap;
-class ImGuiStuff;
 class SymbolTable;
 struct Disc;
 enum BBCMicroHaltReason : uint8_t;
@@ -61,6 +60,7 @@ struct LogSet;
 #include "json.h"
 #include "http_api.h"
 #include <bitset>
+#include "dear_imgui.h"
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -457,8 +457,6 @@ class BeebWindow {
 
     void StartEchoOSWRCH();
     void StopEchoOSWRCH();
-    
-    
 
   protected:
   private:
@@ -493,7 +491,7 @@ class BeebWindow {
 
     // TV output.
     TVOutput m_tv;
-    SDL_Texture *m_tv_texture = nullptr;
+    ImGuiTexture m_tv_texture;
     bool m_recreate_tv_texture = false;
 
     float m_blend_amt = 0.f;

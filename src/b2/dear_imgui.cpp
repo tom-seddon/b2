@@ -124,6 +124,14 @@ ImGuiStuff::ImGuiStuff(SDL_Window *window, SDL_Renderer *renderer, bool enable_t
 #if SYSTEM_WINDOWS
     FindProcAddress("user32.dll", "GetDpiForWindow", &g_GetDpiForWindow);
 #endif
+
+    {
+        int *next = &m_first_free_texture;
+        for (int i = 0; i < MAX_NUM_TEXTURES; ++i) {
+            *next = i;
+            next = &m_textures[i].next_free;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -496,6 +504,141 @@ ImVec2 ImGuiStuff::GetDisplaySize() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+inline ImGuiStuff::Texture *ImGuiStuff::GetTexture(ImGuiTexture imgui_texture) {
+    ASSERT(imgui_texture.value & ImTextureIDBits_IsImGuiTexture);
+
+    int index = (imgui_texture.value >> ImTextureIDBits_IndexShift) & ImTextureIDBits_IndexMask;
+
+    Texture *texture = &m_textures[index];
+
+    uint32_t unique = (uint32_t)(imgui_texture.value >> ImTextureIDBits_UniqueShift);
+    if (texture->unique != unique) {
+        return nullptr;
+    }
+
+    return texture;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const ImGuiStuff::Texture *ImGuiStuff::GetTexture(ImGuiTexture imgui_texture) const {
+    return const_cast<ImGuiStuff *>(this)->GetTexture(imgui_texture);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool ImGuiStuff::CanCreateTexture() const {
+    if (m_renderer) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool ImGuiStuff::CreateTexture(ImGuiTexture *imgui_texture, Uint32 sdl_format, int sdl_access, int w, int h, std::string *error) {
+    *imgui_texture = {};
+
+    if (m_first_free_texture < 0) {
+        if (error) {
+            *error = "ImGuiTexture list is full";
+        }
+
+        return false;
+    }
+
+    SDLUniquePtr<SDL_Texture> sdl_texture(SDL_CreateTexture(m_renderer, sdl_format, sdl_access, w, h));
+    if (!sdl_texture) {
+        if (error) {
+            *error = SDL_GetError();
+        }
+
+        return false;
+    }
+
+    int index = m_first_free_texture;
+    Texture *texture = &m_textures[index];
+    m_first_free_texture = texture->next_free;
+    texture->next_free = -1;
+
+    imgui_texture->value = ImTextureIDBits_IsImGuiTexture;
+
+    ASSERT(index >= 0 && index < (1 << ImTextureIDBits_IndexWidth));
+    imgui_texture->value |= (uint64_t)index << ImTextureIDBits_IndexShift;
+
+    static_assert(sizeof texture->unique == ImTextureIDBits_UniqueWidth / 8);
+    imgui_texture->value |= (uint64_t)texture->unique << ImTextureIDBits_UniqueShift;
+
+    texture->sdl_texture = std::move(sdl_texture);
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::DestroyTexture(ImGuiTexture imgui_texture) {
+    Texture *texture = this->GetTexture(imgui_texture);
+    ASSERT(texture);
+
+    texture->sdl_texture.reset();
+    ++texture->unique;
+
+    texture->next_free = m_first_free_texture;
+
+    ASSERT(texture >= m_textures && texture < m_textures + MAX_NUM_TEXTURES);
+    m_first_free_texture = (int)(texture - m_textures);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SDL_Texture *ImGuiStuff::GetSDLTexture(ImGuiTexture imgui_texture) const {
+    if (imgui_texture.value == 0) {
+        return nullptr;
+    }
+
+    const Texture *texture = this->GetTexture(imgui_texture);
+    if (!texture) {
+        return nullptr;
+    }
+
+    return texture->sdl_texture.get();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+ImTextureID ImGuiStuff::GetImTextureID(SDL_Texture *sdl_texture) {
+    ASSERT(!((uintptr_t)sdl_texture & ImTextureIDBits_IsImGuiTexture));
+
+    return (ImTextureID)sdl_texture; //permitted instance of this cast
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+ImTextureID ImGuiStuff::GetImTextureID(ImGuiTexture imgui_texture, ImGuiTextureFilter filter) {
+    ASSERT(imgui_texture.value & ImTextureIDBits_IsImGuiTexture);
+    ASSERT((imgui_texture.value & ~(ImTextureIDBits_IsImGuiTexture |
+                                    (ImTextureIDBits_IndexMask << ImTextureIDBits_IndexShift) |
+                                    (ImTextureIDBits_UniqueMask << ImTextureIDBits_UniqueShift))) == 0);
+
+    ImTextureID texture_id = imgui_texture.value;
+
+    ASSERT(filter >= 0 && (uint64_t)filter <= ImTextureIDBits_FilterMask);
+    texture_id |= filter << ImTextureIDBits_FilterShift;
+
+    return texture_id;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void ImGuiStuff::NewFrame() {
     ASSERT(!g_in_frame);
 
@@ -673,12 +816,48 @@ void ImGuiStuff::RenderSDL() {
 
                 (*cmd.UserCallback)(draw_list, &cmd);
             } else {
-                SDL_Texture *texture = (SDL_Texture *)cmd.TexRef.GetTexID();
-                SDL_GL_BindTexture(texture, nullptr, nullptr);
+                ImTextureID texture_id = cmd.TexRef.GetTexID();
+
+                SDL_Texture *sdl_texture;
+                ImGuiTextureFilter filter;
+                if (texture_id & ImTextureIDBits_IsImGuiTexture) {
+                    size_t index = (texture_id >> ImTextureIDBits_IndexShift) & ImTextureIDBits_IndexMask;
+                    Texture *texture = &m_textures[index];
+
+                    uint32_t unique = (texture_id >> ImTextureIDBits_UniqueShift) & ImTextureIDBits_UniqueMask;
+                    if (texture->unique == unique) {
+                        sdl_texture = texture->sdl_texture.get();
+                    } else {
+                        sdl_texture = nullptr;
+                    }
+
+                    filter = (ImGuiTextureFilter)(texture_id >> ImTextureIDBits_FilterShift & ImTextureIDBits_FilterMask);
+                } else {
+                    sdl_texture = (SDL_Texture *)texture_id;
+                    filter = ImGuiTextureFilter_Default;
+                }
+
+                SDL_GL_BindTexture(sdl_texture, nullptr, nullptr);
+
+                SDL_ScaleMode scale_mode;
+                switch (filter) {
+                default:
+                    ASSERT(false);
+                    [[fallthrough]];
+                case ImGuiTextureFilter_Default:
+                    SDL_GetTextureScaleMode(sdl_texture, &scale_mode);
+                    break;
+
+                case ImGuiTextureFilter_Point:
+                    scale_mode = SDL_ScaleModeNearest;
+                    break;
+
+                case ImGuiTextureFilter_Linear:
+                    scale_mode = SDL_ScaleModeLinear;
+                    break;
+                }
 
                 GLint gl_scale_mode;
-                SDL_ScaleMode scale_mode;
-                SDL_GetTextureScaleMode(texture, &scale_mode);
                 switch (scale_mode) {
                 default:
                 case SDL_ScaleModeNearest:
@@ -694,7 +873,7 @@ void ImGuiStuff::RenderSDL() {
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_scale_mode);
 
                 SDL_BlendMode blend_mode;
-                SDL_GetTextureBlendMode(texture, &blend_mode);
+                SDL_GetTextureBlendMode(sdl_texture, &blend_mode);
                 switch (blend_mode) {
                 default:
                 case SDL_BLENDMODE_NONE:
@@ -710,8 +889,8 @@ void ImGuiStuff::RenderSDL() {
 #if STORE_DRAWLISTS
                 stored_cmd->callback = false;
 
-                if (texture) {
-                    SDL_QueryTexture(texture, nullptr, nullptr, &stored_cmd->texture_width, &stored_cmd->texture_height);
+                if (sdl_texture) {
+                    SDL_QueryTexture(sdl_texture, nullptr, nullptr, &stored_cmd->texture_width, &stored_cmd->texture_height);
                 }
 
                 stored_cmd->num_indices = cmd.ElemCount;
@@ -1076,7 +1255,7 @@ void ImGuiStuff::UpdateImTextureData(ImTextureData *im_texture) {
                 int pitch = im_texture->GetPitch();
                 SDL_UpdateTexture(sdl_texture, nullptr, pixels, pitch);
 
-                im_texture->SetTexID((ImTextureID)(intptr_t)sdl_texture);
+                im_texture->SetTexID(this->GetImTextureID(sdl_texture));
                 im_texture->SetStatus(ImTextureStatus_OK);
             }
         }

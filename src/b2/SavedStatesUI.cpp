@@ -15,9 +15,9 @@
 class SavedStatesUI : public SettingsUI {
   public:
     explicit SavedStatesUI(BeebWindow *beeb_window,
-                           SDL_Renderer *renderer)
+                           ImGuiStuff *imgui_stuff)
         : m_beeb_window(beeb_window)
-        , m_thumbnails(renderer) {
+        , m_thumbnails(imgui_stuff) {
         this->SetDefaultSize(ImVec2(350, 400));
     }
 
@@ -124,6 +124,6 @@ class SavedStatesUI : public SettingsUI {
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window, SDL_Renderer *renderer) {
-    return std::make_unique<SavedStatesUI>(beeb_window, renderer);
+std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
+    return std::make_unique<SavedStatesUI>(beeb_window, imgui_stuff);
 }

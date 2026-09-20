@@ -8,9 +8,9 @@
 
 class BeebWindow;
 class SettingsUI;
-struct SDL_Renderer;
+class ImGuiStuff;
 
-std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window, SDL_Renderer *renderer);
+std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -18,7 +18,7 @@ struct SDL_Renderer;
 
 class ThumbnailsUI {
   public:
-    explicit ThumbnailsUI(SDL_Renderer *renderer);
+    explicit ThumbnailsUI(ImGuiStuff *imgui_stuff);
     ~ThumbnailsUI();
 
     ThumbnailsUI(const ThumbnailsUI &) = delete;
@@ -38,13 +38,13 @@ class ThumbnailsUI {
   private:
     struct Thumbnail;
 
-    SDL_Renderer *m_renderer;
+    ImGuiStuff *m_imgui_stuff = nullptr;
 
     std::map<std::shared_ptr<const BeebState>, struct Thumbnail> m_thumbnails;
-    std::vector<SDLUniquePtr<SDL_Texture>> m_textures;
+    std::vector<ImGuiTexture> m_textures;
 
-    SDLUniquePtr<SDL_Texture> GetTexture();
-    void ReturnTexture(SDLUniquePtr<SDL_Texture> texture);
+    ImGuiTexture GetTexture();
+    void ReturnTexture(ImGuiTexture texture);
 };
 
 ////////////////////////////////////////////////////////////////////////////

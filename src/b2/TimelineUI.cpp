@@ -25,9 +25,9 @@ const Guid SAVE_VIDEO_FILE_SELECTOR_GUID{0x19, 0xDF, 0x9B, 0x1A, 0x43, 0xC6, 0x4
 class TimelineUI : public SettingsUI {
   public:
     explicit TimelineUI(BeebWindow *beeb_window,
-                        SDL_Renderer *renderer)
+                        ImGuiStuff *imgui_stuff)
         : m_beeb_window(beeb_window)
-        , m_thumbnails(renderer) {
+        , m_thumbnails(imgui_stuff) {
         this->SetDefaultSize(ImVec2(350, 400));
     }
 
@@ -285,6 +285,6 @@ class TimelineUI : public SettingsUI {
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window, SDL_Renderer *renderer) {
-    return std::make_unique<TimelineUI>(beeb_window, renderer);
+std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
+    return std::make_unique<TimelineUI>(beeb_window, imgui_stuff);
 }

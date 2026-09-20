@@ -24,21 +24,24 @@ struct ThumbnailsUI::Thumbnail {
     ThumbnailState state = ThumbnailState_Start;
     std::shared_ptr<GenerateThumbnailJob> job;
     bool in_use = false;
-    SDLUniquePtr<SDL_Texture> texture;
+    ImGuiTexture imgui_texture;
     std::string error;
 };
 
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-ThumbnailsUI::ThumbnailsUI(SDL_Renderer *renderer)
-    : m_renderer(renderer) {
+ThumbnailsUI::ThumbnailsUI(ImGuiStuff *imgui_stuff)
+    : m_imgui_stuff(imgui_stuff) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
 ThumbnailsUI::~ThumbnailsUI() {
+    for (ImGuiTexture texture : m_textures) {
+        m_imgui_stuff->DestroyTexture(texture);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -100,20 +103,21 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
             const void *texture_data = job->GetTexturePixels();
             ASSERT(texture_data);
 
-            SDLUniquePtr<SDL_Texture> texture = this->GetTexture();
-            if (!texture) {
+            ImGuiTexture imgui_texture = this->GetTexture();
+            SDL_Texture *sdl_texture = m_imgui_stuff->GetSDLTexture(imgui_texture);
+            if (!sdl_texture) {
                 t->state = ThumbnailState_Error;
                 t->error = std::string("Failed to create texture: ") + SDL_GetError();
                 break;
             }
 
-            if (SDL_UpdateTexture(texture.get(), nullptr, texture_data, TV_TEXTURE_WIDTH * 4) < 0) {
+            if (SDL_UpdateTexture(sdl_texture, nullptr, texture_data, TV_TEXTURE_WIDTH * 4) < 0) {
                 t->state = ThumbnailState_Error;
                 t->error = std::string("Failed to initialise texture: ") + SDL_GetError();
                 break;
             }
 
-            t->texture = std::move(texture);
+            t->imgui_texture = imgui_texture;
             t->state = ThumbnailState_Ready;
         }
         break;
@@ -137,8 +141,7 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
 
             ImGuiIDPusher pusher(t);
 
-            auto texture_id = (ImTextureID)t->texture.get();
-
+            ImTextureID texture_id = m_imgui_stuff->GetImTextureID(t->imgui_texture);
             ImGui::Image(texture_id, this->GetThumbnailSize());
 
             if (ImGui::IsItemClicked()) {
@@ -146,9 +149,7 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
             }
 
             if (ImGui::BeginPopup(THUMBNAIL_POPUP)) {
-                int w, h;
-                SDL_QueryTexture(t->texture.get(), nullptr, nullptr, &w, &h);
-                ImGui::Image(texture_id, ImVec2((float)w, (float)h));
+                ImGui::Image(texture_id, ImVec2((float)TV_TEXTURE_WIDTH, (float)TV_TEXTURE_HEIGHT));
                 ImGui::EndPopup();
             }
         }
@@ -178,8 +179,8 @@ void ThumbnailsUI::Update() {
                 t->job->Cancel();
             }
 
-            if (!!t->texture) {
-                this->ReturnTexture(std::move(t->texture));
+            if (t->imgui_texture.value != 0) {
+                this->ReturnTexture(t->imgui_texture);
             }
 
             m_thumbnails.erase(it);
@@ -192,21 +193,19 @@ void ThumbnailsUI::Update() {
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-SDLUniquePtr<SDL_Texture> ThumbnailsUI::GetTexture() {
-    SDLUniquePtr<SDL_Texture> texture;
+ImGuiTexture ThumbnailsUI::GetTexture() {
+    ImGuiTexture texture;
 
     if (m_textures.empty()) {
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-        texture = SDLUniquePtr<SDL_Texture>(SDL_CreateTexture(m_renderer,
-                                                              SDL_PIXELFORMAT_ARGB8888,
-                                                              SDL_TEXTUREACCESS_STATIC,
-                                                              TV_TEXTURE_WIDTH,
-                                                              TV_TEXTURE_HEIGHT));
-        if (!texture) {
-            return nullptr;
-        }
+        SetRenderScaleQualityHint(true);
+
+        m_imgui_stuff->CreateTexture(&texture,
+                                     SDL_PIXELFORMAT_ARGB8888,
+                                     SDL_TEXTUREACCESS_STATIC,
+                                     TV_TEXTURE_WIDTH,
+                                     TV_TEXTURE_HEIGHT);
     } else {
-        texture = std::move(m_textures.back());
+        texture = m_textures.back();
         m_textures.pop_back();
     }
 
@@ -216,6 +215,6 @@ SDLUniquePtr<SDL_Texture> ThumbnailsUI::GetTexture() {
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-void ThumbnailsUI::ReturnTexture(SDLUniquePtr<SDL_Texture> texture) {
-    m_textures.push_back(std::move(texture));
+void ThumbnailsUI::ReturnTexture(ImGuiTexture texture) {
+    m_textures.push_back(texture);
 }
