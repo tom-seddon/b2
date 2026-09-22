@@ -3663,30 +3663,65 @@ bool BeebWindow::DoBeebDisplayUI() {
 
 #if VIDEO_TRACK_METADATA
 
-            m_got_mouse_unit = false;
+            {
+                bool got_unit = false;
+                MouseVideoDataUnit unit;
 
-            if (ImGui::IsItemHovered()) {
-                ImVec2 mouse_pos = ImGui::GetMousePos();
-                mouse_pos -= screen_pos;
+                if (ImGui::IsItemHovered()) {
+                    ImVec2 mouse_pos = ImGui::GetMousePos();
+                    mouse_pos -= screen_pos;
 
-                m_mouse_unit.pixel_loc.u = mouse_pos.x / size.x;
-                m_mouse_unit.pixel_loc.v = mouse_pos.y / size.y;
+                    unit.pixel_loc.u = mouse_pos.x / size.x;
+                    unit.pixel_loc.v = mouse_pos.y / size.y;
 
-                if (m_mouse_unit.pixel_loc.u >= 0. && m_mouse_unit.pixel_loc.u < 1. &&
-                    m_mouse_unit.pixel_loc.v >= 0. && m_mouse_unit.pixel_loc.v < 1.) {
-                    m_mouse_unit.pixel_loc.x = (unsigned)(m_mouse_unit.pixel_loc.u * TV_TEXTURE_WIDTH);
-                    m_mouse_unit.pixel_loc.y = (unsigned)(m_mouse_unit.pixel_loc.v * TV_TEXTURE_HEIGHT);
+                    if (unit.pixel_loc.u >= 0. && unit.pixel_loc.u < 1. &&
+                        unit.pixel_loc.v >= 0. && unit.pixel_loc.v < 1.) {
+                        unit.pixel_loc.x = (unsigned)(unit.pixel_loc.u * TV_TEXTURE_WIDTH);
+                        unit.pixel_loc.y = (unsigned)(unit.pixel_loc.v * TV_TEXTURE_HEIGHT);
 
-                    ASSERT(m_mouse_unit.pixel_loc.x < TV_TEXTURE_WIDTH);
-                    ASSERT(m_mouse_unit.pixel_loc.y < TV_TEXTURE_HEIGHT);
+                        ASSERT(unit.pixel_loc.x < TV_TEXTURE_WIDTH);
+                        ASSERT(unit.pixel_loc.y < TV_TEXTURE_HEIGHT);
 
-                    m_mouse_unit.unit_loc.x = m_mouse_unit.pixel_loc.x / 8 * 8;
-                    m_mouse_unit.unit_loc.y = m_mouse_unit.pixel_loc.y;
+                        unit.unit_loc.x = unit.pixel_loc.x / 8 * 8;
+                        unit.unit_loc.y = unit.pixel_loc.y;
 
-                    m_mouse_unit.unit_loc.u = (float)m_mouse_unit.unit_loc.x / TV_TEXTURE_WIDTH;
-                    m_mouse_unit.unit_loc.v = (float)m_mouse_unit.unit_loc.y / TV_TEXTURE_HEIGHT;
+                        unit.unit_loc.u = (float)unit.unit_loc.x / TV_TEXTURE_WIDTH;
+                        unit.unit_loc.v = (float)unit.unit_loc.y / TV_TEXTURE_HEIGHT;
 
-                    m_got_mouse_unit = m_tv.GetTextureUnit(&m_mouse_unit.unit, m_mouse_unit.pixel_loc.x, m_mouse_unit.pixel_loc.y);
+                        got_unit = m_tv.GetTextureUnit(&unit.unit, unit.pixel_loc.x, unit.pixel_loc.y);
+                    }
+                }
+
+                switch (m_mouse_unit_state) {
+                default:
+                    ASSERT(false);
+                    [[fallthrough]];
+                case MouseVideoDataUnitState_Invalid:
+                    if (got_unit) {
+                        m_mouse_unit_state = MouseVideoDataUnitState_Valid;
+                        m_mouse_unit = unit;
+                    }
+                    break;
+
+                case MouseVideoDataUnitState_Valid:
+                    if (!got_unit) {
+                        m_mouse_unit_state = MouseVideoDataUnitState_Invalid;
+                    } else {
+                        m_mouse_unit = unit;
+
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                            m_mouse_unit_state = MouseVideoDataUnitState_ValidLocked;
+                        }
+                    }
+                    break;
+
+                case MouseVideoDataUnitState_ValidLocked:
+                    if (got_unit) {
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                            m_mouse_unit = unit;
+                        }
+                    }
+                    break;
                 }
             }
 #else
@@ -4521,19 +4556,6 @@ void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
     m_settings.keymap = keymap;
     m_settings.prefer_shortcuts = m_settings.keymap->GetPreferShortcuts();
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if VIDEO_TRACK_METADATA
-const BeebWindow::MouseVideoDataUnit *BeebWindow::GetMouseVideoDataUnit() const {
-    if (m_got_mouse_unit) {
-        return &m_mouse_unit;
-    } else {
-        return nullptr;
-    }
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

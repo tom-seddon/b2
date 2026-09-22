@@ -400,10 +400,6 @@ class BeebWindow {
     const BeebKeymap *GetCurrentKeymap() const;
     void SetCurrentKeymap(const BeebKeymap *keymap);
 
-#if VIDEO_TRACK_METADATA
-    const MouseVideoDataUnit *GetMouseVideoDataUnit() const;
-#endif
-
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 
 #if BBCMICRO_DEBUGGER
@@ -578,7 +574,7 @@ class BeebWindow {
     uint64_t m_msg_last_num_messages_printed = 0;
     uint64_t m_msg_last_num_errors_printed = 0;
 #if VIDEO_TRACK_METADATA
-    bool m_got_mouse_unit = false;
+    MouseVideoDataUnitState m_mouse_unit_state = MouseVideoDataUnitState_Invalid;
     MouseVideoDataUnit m_mouse_unit;
 #endif
 

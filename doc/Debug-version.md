@@ -352,8 +352,24 @@ repeated information on the line.
 
 ## `System` > `Pixel metadata` ##
 
-Show a window that displays the RAM address of the pixel the mouse
-cursor is over.
+Show a window that displays some info about the screen area the mouse
+cursor is hovering over: address, char value, possible interpretation
+as bitmap data. 
+
+The screen area corresponds to a single 2 MHz CRTC cycle (8 Mode 0/3
+pixels; 4 Mode 1 pixels; 2 Mode 2 pixels). This is half a 1 MHz CRTC
+cycle (4 Mode 4/6 pixels; 2 Mode 5 pixels; 1 "Mode 8" pixel; 0.5 Mode
+7 characters) - so if using this in a 1 MHz CRTC mode, you'll see the
+same value for both halves.
+
+Click the left mouse button to lock the view to the hovered area..
+When locked, click again to select a different area, or click the
+`Unlock` button to go back to hovering mode.
+
+(A known issue: this window isn't currently super useful in teletext
+mode, as it doesn't account for some of the internal processing delays
+that b2 does otherwise try to emulate, meaning the info and the
+hovered area won't actually match up...)
 
 ## `System` > `System Debug`
 
