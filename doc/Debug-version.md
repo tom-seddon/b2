@@ -352,19 +352,23 @@ repeated information on the line.
 
 ## `System` > `Pixel metadata` ##
 
-Show a window that displays some info about the screen area the mouse
-cursor is hovering over: address, char value, possible interpretation
-as bitmap data. 
+A window that shows a zoomed-in area of the screen surrounding the
+mouse cursor when it's hovering over the BBC display, plus some
+additional info: addresses, char value, possible interpretation as
+bitmap data.
 
-The screen area corresponds to a single 2 MHz CRTC cycle (8 Mode 0/3
-pixels; 4 Mode 1 pixels; 2 Mode 2 pixels). This is half a 1 MHz CRTC
-cycle (4 Mode 4/6 pixels; 2 Mode 5 pixels; 1 "Mode 8" pixel; 0.5 Mode
-7 characters) - so if using this in a 1 MHz CRTC mode, you'll see the
-same value for both halves.
+The highlighted region indicates the point the mouse cursor is
+hovering over, corresponding to a single 2 MHz CRTC cycle: 8 Mode 0/3
+pixels, 4 Mode 1 pixels, 2 Mode 2 pixels, 4 Mode 4/6 pixels, 2 Mode 5
+pixels, 1 "Mode 8" pixel, or 0.5 Mode 7 characters.
 
-Click the left mouse button to lock the view to the hovered area..
-When locked, click again to select a different area, or click the
-`Unlock` button to go back to hovering mode.
+(If using this in a 1 MHz CRTC mode, you'll see the same values for
+the odd and even halves of the 1 MHz cycle.)
+
+Click the left mouse button on the BBC display to lock the view to the
+hovered area.. When locked: click again on the BBC display to select a
+different area; click the `Unlock` button to go back to hovering mode;
+or click the arrow buttons to move the area.
 
 (A known issue: this window isn't currently super useful in teletext
 mode, as it doesn't account for some of the internal processing delays

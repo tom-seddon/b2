@@ -38,7 +38,6 @@ class TimerDef;
 struct ImGuiTestEngine;
 #endif
 class AppHandler;
-struct ImVec2;
 struct LogSet;
 
 #include "keys.h"
@@ -316,18 +315,6 @@ class BeebWindow {
         size_t num_video_units = 0;
     };
 
-#if VIDEO_TRACK_METADATA
-    struct MouseVideoDataUnit {
-        struct Location {
-            unsigned x = 0, y = 0;  //in pixels
-            float u = 0.f, v = 0.f; //UV coordinates
-        };
-        Location pixel_loc; //the pixel the mouse is hovering over
-        Location unit_loc;  //the corresponding unit
-        VideoDataUnit unit = {};
-    };
-#endif
-
     class OptionsUI;
     class ImGuiDebugUI;
     class CopyOSWRCHCallback;
@@ -458,6 +445,14 @@ class BeebWindow {
     void StartEchoOSWRCH();
     void StopEchoOSWRCH();
 
+#if VIDEO_TRACK_METADATA
+    // The positions are in TV coordinates: x>=0&&x<TV_TEXTURE_WIDTH, and
+    // y>=0&&y<TV_TEXTURE_HEIGHT.
+    std::optional<ImVec2> GetMouseHoverTVPos() const;
+    std::optional<ImVec2> TakeMouseClickTVPos();
+    bool GetVideoDataUnit(VideoDataUnit *unit, const ImVec2 &pos) const;
+#endif
+
   protected:
   private:
     BeebWindowInitArguments m_init_arguments;
@@ -574,8 +569,8 @@ class BeebWindow {
     uint64_t m_msg_last_num_messages_printed = 0;
     uint64_t m_msg_last_num_errors_printed = 0;
 #if VIDEO_TRACK_METADATA
-    MouseVideoDataUnitState m_mouse_unit_state = MouseVideoDataUnitState_Invalid;
-    MouseVideoDataUnit m_mouse_unit;
+    std::optional<ImVec2> m_mouse_hover_pos{};
+    std::optional<ImVec2> m_mouse_click_pos{};
 #endif
 
     //struct HTTPPoke {

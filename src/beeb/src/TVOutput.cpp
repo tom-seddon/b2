@@ -724,11 +724,11 @@ void TVOutput::CopyTexturePixels(void *dest_pixels, size_t dest_pitch_bytes) con
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-bool TVOutput::GetTextureUnit(VideoDataUnit *unit, unsigned x, unsigned y) const {
-    if (y < TV_TEXTURE_HEIGHT) {
-        if (x < TV_TEXTURE_WIDTH) {
-            const VideoDataUnit *units_row = &m_texture_units[y * (TV_TEXTURE_WIDTH / 8u)];
-            int unit_x = (int)x / 8;
+bool TVOutput::GetTextureUnit(VideoDataUnit *unit, int x, int y) const {
+    if (y >= 0 && y < TV_TEXTURE_HEIGHT) {
+        if (x >= 0 && x < TV_TEXTURE_WIDTH) {
+            const VideoDataUnit *units_row = &m_texture_units[(unsigned)y * (TV_TEXTURE_WIDTH / 8u)];
+            int unit_x = x / 8;
             while (unit_x >= 0 && (units_row[unit_x].metadata.flags & (VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_HasAddress)) == 0) {
                 --unit_x;
             }

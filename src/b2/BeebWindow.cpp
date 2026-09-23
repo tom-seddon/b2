@@ -3663,67 +3663,25 @@ bool BeebWindow::DoBeebDisplayUI() {
 
 #if VIDEO_TRACK_METADATA
 
-            {
-                bool got_unit = false;
-                MouseVideoDataUnit unit;
+            m_mouse_hover_pos.reset();
+            m_mouse_click_pos.reset();
 
-                if (ImGui::IsItemHovered()) {
-                    ImVec2 mouse_pos = ImGui::GetMousePos();
-                    mouse_pos -= screen_pos;
+            if (ImGui::IsItemHovered()) {
+                ImVec2 mouse_pos = ImGui::GetMousePos();
+                mouse_pos -= screen_pos;
 
-                    unit.pixel_loc.u = mouse_pos.x / size.x;
-                    unit.pixel_loc.v = mouse_pos.y / size.y;
+                float u = mouse_pos.x / size.x;
+                float v = mouse_pos.y / size.y;
 
-                    if (unit.pixel_loc.u >= 0. && unit.pixel_loc.u < 1. &&
-                        unit.pixel_loc.v >= 0. && unit.pixel_loc.v < 1.) {
-                        unit.pixel_loc.x = (unsigned)(unit.pixel_loc.u * TV_TEXTURE_WIDTH);
-                        unit.pixel_loc.y = (unsigned)(unit.pixel_loc.v * TV_TEXTURE_HEIGHT);
-
-                        ASSERT(unit.pixel_loc.x < TV_TEXTURE_WIDTH);
-                        ASSERT(unit.pixel_loc.y < TV_TEXTURE_HEIGHT);
-
-                        unit.unit_loc.x = unit.pixel_loc.x / 8 * 8;
-                        unit.unit_loc.y = unit.pixel_loc.y;
-
-                        unit.unit_loc.u = (float)unit.unit_loc.x / TV_TEXTURE_WIDTH;
-                        unit.unit_loc.v = (float)unit.unit_loc.y / TV_TEXTURE_HEIGHT;
-
-                        got_unit = m_tv.GetTextureUnit(&unit.unit, unit.pixel_loc.x, unit.pixel_loc.y);
-                    }
+                if (u >= 0.f && u < 1.f && v >= 0.f && v < 1.f) {
+                    m_mouse_hover_pos.emplace(u * TV_TEXTURE_WIDTH, v * TV_TEXTURE_HEIGHT);
                 }
 
-                switch (m_mouse_unit_state) {
-                default:
-                    ASSERT(false);
-                    [[fallthrough]];
-                case MouseVideoDataUnitState_Invalid:
-                    if (got_unit) {
-                        m_mouse_unit_state = MouseVideoDataUnitState_Valid;
-                        m_mouse_unit = unit;
-                    }
-                    break;
-
-                case MouseVideoDataUnitState_Valid:
-                    if (!got_unit) {
-                        m_mouse_unit_state = MouseVideoDataUnitState_Invalid;
-                    } else {
-                        m_mouse_unit = unit;
-
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                            m_mouse_unit_state = MouseVideoDataUnitState_ValidLocked;
-                        }
-                    }
-                    break;
-
-                case MouseVideoDataUnitState_ValidLocked:
-                    if (got_unit) {
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                            m_mouse_unit = unit;
-                        }
-                    }
-                    break;
+                if (focus && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    m_mouse_click_pos = m_mouse_hover_pos;
                 }
             }
+
 #else
             (void)screen_pos;
 #endif
@@ -4764,6 +4722,35 @@ void BeebWindow::StopEchoOSWRCH() {
         m_expiring_echo_oswrch_callbacks.push_back(std::move(m_echo_oswrch_callback));
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if VIDEO_TRACK_METADATA
+std::optional<ImVec2> BeebWindow::GetMouseHoverTVPos() const {
+    return m_mouse_hover_pos;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if VIDEO_TRACK_METADATA
+std::optional<ImVec2> BeebWindow::TakeMouseClickTVPos() {
+    std::optional<ImVec2> result;
+    m_mouse_click_pos.swap(result);
+    return result;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if VIDEO_TRACK_METADATA
+bool BeebWindow::GetVideoDataUnit(VideoDataUnit *unit, const ImVec2 &pos) const {
+    return m_tv.GetTextureUnit(unit, (int)pos.x, (int)pos.y);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

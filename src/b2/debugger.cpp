@@ -3577,161 +3577,243 @@ class PixelMetadataUI : public DebugUI {
   protected:
     void DoImGui2() override {
         // do UI
-        switch (m_beeb_window->m_mouse_unit_state) {
-        default:
-            ASSERT(false);
-            [[fallthrough]];
-        case MouseVideoDataUnitState_Invalid:
+        ImVec2 pos;
+
+        // Take new clicked pos, if there is one.
+        {
+            std::optional<ImVec2> new_clicked_pos = m_beeb_window->TakeMouseClickTVPos();
+            if (new_clicked_pos.has_value()) {
+                m_clicked_pos = new_clicked_pos;
+            }
+        }
+
+        // Get position to use. Bail if no useful position available.
+        if (m_clicked_pos.has_value()) {
+            pos = *m_clicked_pos;
+        } else {
+            std::optional<ImVec2> hover_pos = m_beeb_window->GetMouseHoverTVPos();
+            if (hover_pos.has_value()) {
+                pos = *hover_pos;
+            } else {
+                ImGui::TextUnformatted("No mouse position available");
+                return;
+            }
+        }
+
+        VideoDataUnit u;
+        if (!m_beeb_window->GetVideoDataUnit(&u, pos)) {
             ImGui::TextUnformatted("No metadata available");
-            break;
+            return;
+        }
 
-        case MouseVideoDataUnitState_Valid:
-        case MouseVideoDataUnitState_ValidLocked:
+        if (u.metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
+            // The debug stuff is oriented around the CPU's view of memory,
+            // but the video unit's address is from the CRTC's perspective.
+
+            ImGui::Text("Display Address: %s%04x", g_hex, u.metadata.address);
+
+            // Find big page for the display fetch. The first 16 big pages
+            // are deliberately in the right order.
+            M6502Word display_addr{u.metadata.address};
+            const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[display_addr.p.p];
+
+            // Form the appropriate CPU address.
+            M6502Word cpu_addr{(uint16_t)(metadata->addr + display_addr.p.o)};
+
+            //M6502Word crtc_addr = {munit->unit.metadata.address};
+            //const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[crtc_addr.p.p];
+
+            m_dso &= metadata->dso_mask;
+            m_dso |= metadata->dso_value;
+
+            //M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
+
+            const char *address_suffix = GetMinimalAddressSuffixForOffset(metadata, cpu_addr);
+            ImGui::Text("CPU Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
+
+            if (u.metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
+                ImGui::Text("CRTC Address: %s%04x", g_hex, u.metadata.crtc_address);
+            }
+
+            const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);
+            this->DoBytePopupGui(cpu_dbp, cpu_addr);
+        } else {
+            ImGui::TextUnformatted("Address:");
+        }
+
+        if (u.metadata.flags & VideoDataUnitMetadataFlag_HasValue) {
+            uint8_t x = u.metadata.value;
+
+            const std::string *str = GetByteStringEscaped(x);
+
+            ImGui::Text("Value: %-4s %-3u (%s%02x) (%s%s)", str->c_str(), x, g_hex, x, g_bin, BINARY_BYTE_STRINGS[x]);
+
+            // <pre>
+            // abcdefgh -> a b c d e f g h
+            uint8_t p1[8] = {
+                (uint8_t)(x >> 7),
+                (uint8_t)(x >> 6 & 1),
+                (uint8_t)(x >> 5 & 1),
+                (uint8_t)(x >> 4 & 1),
+                (uint8_t)(x >> 3 & 1),
+                (uint8_t)(x >> 2 & 1),
+                (uint8_t)(x >> 1 & 1),
+                (uint8_t)(x & 1),
+            };
+
+            ImGui::Text("1 bpp: %u %u %u %u %u %u %u %u", p1[0], p1[1], p1[2], p1[3], p1[4], p1[5], p1[6], p1[7]);
+
+            // abcdefgh -> ae bf cg dh
+            uint8_t p2[4] = {
+                (uint8_t)((x >> 6 & 2u) | (x >> 3 & 1u)),
+                (uint8_t)((x >> 5 & 2u) | (x >> 2 & 1u)),
+                (uint8_t)((x >> 4 & 2u) | (x >> 1 & 1u)),
+                (uint8_t)((x >> 3 & 2u) | (x & 1u)),
+            };
+
+            ImGui::Text("2 bpp: %u %u %u %u", p2[0], p2[1], p2[2], p2[3]);
+
+            // abcdefgh -> aceg bdfh
+            uint8_t p4[2] = {
+                (uint8_t)((x >> 4 & 8) | (x >> 3 & 4) | (x >> 2 & 2) | (x >> 1 & 1)),
+                (uint8_t)((x >> 3 & 8) | (x >> 2 & 4) | (x >> 1 & 2) | (x & 1)),
+            };
+
+            ImGui::Text("4 bpp: %u %u", p4[0], p4[1]);
+            ImGui::Text("4 bpp: %s%x %s%x", g_hex, p4[0], g_hex, p4[1]);
+            //} else {
+            ImGui::TextUnformatted("Value:");
+        }
+
+        ImGui::Text("%s cycle", u.metadata.flags & VideoDataUnitMetadataFlag_OddCycle ? "Odd" : "Even");
+
+        ImGui::Text("6845:%s%s%s",
+                    u.metadata.flags & VideoDataUnitMetadataFlag_6845DISPEN ? " DISPEN" : "",
+                    u.metadata.flags & VideoDataUnitMetadataFlag_6845CUDISP ? " CUDISP" : "",
+                    u.metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "");
+
+        // Size of zoomed-in view. The highlight is 8x1 Mode 0 pixels, so,
+        // ideally, width should be even and height should be odd.
+        static constexpr int w = 24;
+        static constexpr int h = 9;
+        static_assert(w >= 8);
+
+        ImVec2 pixel_size(20.f, 20.f);
+
+        int pos_x = (int)pos.x / 8 * 8 - (w - 8) / 2;
+        int pos_y = (int)pos.y - h / 2;
+
+        ImRect uv;
+        uv.Min.x = pos_x * TV_TEXTURE_PIXEL_DU;
+        uv.Min.y = pos_y * TV_TEXTURE_PIXEL_DV;
+
+        uv.Max.x = uv.Min.x + w * TV_TEXTURE_PIXEL_DU;
+        uv.Max.y = uv.Min.y + h * TV_TEXTURE_PIXEL_DV;
+
+        ImVec2 image_size(w * pixel_size.x, h * pixel_size.y);
+
+        bool disable_arrows = !m_clicked_pos.has_value();
+
+        const ImVec2 *spacing = &ImGui::GetStyle().ItemSpacing;
+        float frame_height = ImGui::GetFrameHeight(); //width and height of (square) arrow button
+
+        float y_arrows_x = spacing->x + frame_height + spacing->x + image_size.x * .5f - frame_height * .5f;
+        float x_arrows_dy = image_size.y * .5f - ImGui::GetFrameHeight() * .5f;
+
+        ImVec2 arrow_delta(8.f, 1.f);
+
+        {
+            ImGuiDisabledPusher pusher(disable_arrows);
+            //ImGui::SetCursorPosX((image_size.x - ImGui::GetFrameHeight()) * .5f);
+            ImGui::SetCursorPosX(y_arrows_x);
+
+            if (ImGui::ArrowButton("###up", ImGuiDir_Up)) {
+                if (m_clicked_pos->y - arrow_delta.y >= 0.f) {
+                    m_clicked_pos->y -= arrow_delta.y;
+                }
+            }
+        }
+
+        ImRect image_rect;
+
+        {
+            float y = ImGui::GetCursorPosY();
+
+            ImGui::SetCursorPosY(y + x_arrows_dy);
+
             {
-                const VideoDataUnit *u = &m_beeb_window->m_mouse_unit.unit;
-                if (u->metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
-                    // The debug stuff is oriented around the CPU's view of memory,
-                    // but the video unit's address is from the CRTC's perspective.
-
-                    ImGui::Text("Display Address: %s%04x", g_hex, u->metadata.address);
-
-                    // Find big page for the display fetch. The first 16 big pages
-                    // are deliberately in the right order.
-                    M6502Word display_addr{u->metadata.address};
-                    const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[display_addr.p.p];
-
-                    // Form the appropriate CPU address.
-                    M6502Word cpu_addr{(uint16_t)(metadata->addr + display_addr.p.o)};
-
-                    //M6502Word crtc_addr = {munit->unit.metadata.address};
-                    //const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[crtc_addr.p.p];
-
-                    m_dso &= metadata->dso_mask;
-                    m_dso |= metadata->dso_value;
-
-                    //M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
-
-                    const char *address_suffix = GetMinimalAddressSuffixForOffset(metadata, cpu_addr);
-                    ImGui::Text("CPU Address: %s%04x%c%s", g_hex, cpu_addr.w, ADDRESS_SUFFIX_SEPARATOR, address_suffix);
-
-                    if (u->metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
-                        ImGui::Text("CRTC Address: %s%04x", g_hex, u->metadata.crtc_address);
-                    }
-
-                    const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);
-                    this->DoBytePopupGui(cpu_dbp, cpu_addr);
-                } else {
-                    ImGui::TextUnformatted("Address:");
-                }
-
-                if (u->metadata.flags & VideoDataUnitMetadataFlag_HasValue) {
-                    uint8_t x = u->metadata.value;
-
-                    const std::string *str = GetByteStringEscaped(x);
-
-                    ImGui::Text("Value: %-4s %-3u (%s%02x) (%s%s)", str->c_str(), x, g_hex, x, g_bin, BINARY_BYTE_STRINGS[x]);
-
-                    // <pre>
-                    // abcdefgh -> a b c d e f g h
-                    uint8_t p1[8] = {
-                        (uint8_t)(x >> 7),
-                        (uint8_t)(x >> 6 & 1),
-                        (uint8_t)(x >> 5 & 1),
-                        (uint8_t)(x >> 4 & 1),
-                        (uint8_t)(x >> 3 & 1),
-                        (uint8_t)(x >> 2 & 1),
-                        (uint8_t)(x >> 1 & 1),
-                        (uint8_t)(x & 1),
-                    };
-
-                    ImGui::Text("1 bpp: %u %u %u %u %u %u %u %u", p1[0], p1[1], p1[2], p1[3], p1[4], p1[5], p1[6], p1[7]);
-
-                    // abcdefgh -> ae bf cg dh
-                    uint8_t p2[4] = {
-                        (uint8_t)((x >> 6 & 2u) | (x >> 3 & 1u)),
-                        (uint8_t)((x >> 5 & 2u) | (x >> 2 & 1u)),
-                        (uint8_t)((x >> 4 & 2u) | (x >> 1 & 1u)),
-                        (uint8_t)((x >> 3 & 2u) | (x & 1u)),
-                    };
-
-                    ImGui::Text("2 bpp: %u %u %u %u", p2[0], p2[1], p2[2], p2[3]);
-
-                    // abcdefgh -> aceg bdfh
-                    uint8_t p4[2] = {
-                        (uint8_t)((x >> 4 & 8) | (x >> 3 & 4) | (x >> 2 & 2) | (x >> 1 & 1)),
-                        (uint8_t)((x >> 3 & 8) | (x >> 2 & 4) | (x >> 1 & 2) | (x & 1)),
-                    };
-
-                    ImGui::Text("4 bpp: %u %u", p4[0], p4[1]);
-                    ImGui::Text("4 bpp: %s%x %s%x", g_hex, p4[0], g_hex, p4[1]);
-                    //} else {
-                    ImGui::TextUnformatted("Value:");
-                }
-
-                ImGui::Text("%s cycle", u->metadata.flags & VideoDataUnitMetadataFlag_OddCycle ? "Odd" : "Even");
-
-                ImGui::Text("6845:%s%s%s",
-                            u->metadata.flags & VideoDataUnitMetadataFlag_6845DISPEN ? " DISPEN" : "",
-                            u->metadata.flags & VideoDataUnitMetadataFlag_6845CUDISP ? " CUDISP" : "",
-                            u->metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "");
-
-                // Size of zoomed-in view. The highlight is 8x1 Mode 0 pixels, so,
-                // ideally, width should be even and height should be odd.
-                static constexpr unsigned w = 24;
-                static constexpr unsigned h = 9;
-                static_assert(w >= 8);
-
-                ImVec2 pixel_size(20.f, 20.f);
-
-                unsigned x = m_beeb_window->m_mouse_unit.unit_loc.x - (w - 8) / 2;
-                unsigned y = m_beeb_window->m_mouse_unit.unit_loc.y - h / 2;
-
-                ImRect uv;
-                uv.Min.x = x * TV_TEXTURE_PIXEL_DU;
-                uv.Min.y = y * TV_TEXTURE_PIXEL_DV;
-
-                uv.Max.x = uv.Min.x + w * TV_TEXTURE_PIXEL_DU;
-                uv.Max.y = uv.Min.y + h * TV_TEXTURE_PIXEL_DV;
-
-                ImGui::Image(m_beeb_window->m_imgui_stuff->GetImTextureID(m_beeb_window->m_tv_texture,
-                                                                          ImGuiTextureFilter_Point),
-                             ImVec2(w * pixel_size.x, h * pixel_size.y),
-                             uv.Min,
-                             uv.Max);
-
-                ImRect image_rect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
-
-                ImVec2 image_centre = image_rect.GetCenter();
-
-                ImU32 colour = ImGui::GetColorU32(ImU32(0xff800080));
-                ImGuiWindow *window = ImGui::GetCurrentWindow();
-
-                ImVec2 unit_half_size(4.f, .5f);
-                unit_half_size *= pixel_size;
-
-                window->DrawList->AddRect(image_centre - unit_half_size,
-                                          image_centre + unit_half_size,
-                                          colour);
-
-                if (m_beeb_window->m_mouse_unit_state == MouseVideoDataUnitState_ValidLocked) {
-                    ImGui::TextUnformatted("Position locked");
-                    if (ImGui::Button("Unlock")) {
-                        m_beeb_window->m_mouse_unit_state = MouseVideoDataUnitState_Invalid;
+                ImGuiDisabledPusher pusher(disable_arrows);
+                if (ImGui::ArrowButton("###left", ImGuiDir_Left)) {
+                    if (m_clicked_pos->x - arrow_delta.x >= 0.f) {
+                        m_clicked_pos->x -= arrow_delta.x;
                     }
                 }
             }
-            break;
+
+            ImGui::SameLine();
+
+            ImGui::SetCursorPosY(y);
+
+            ImGui::Image(m_beeb_window->m_imgui_stuff->GetImTextureID(m_beeb_window->m_tv_texture,
+                                                                      ImGuiTextureFilter_Point),
+                         image_size,
+                         uv.Min,
+                         uv.Max);
+
+            image_rect = ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+
+            ImGui::SameLine();
+
+            ImGui::SetCursorPosY(y + x_arrows_dy);
+
+            {
+                ImGuiDisabledPusher pusher(disable_arrows);
+
+                if (ImGui::ArrowButton("###right", ImGuiDir_Right)) {
+                    if (m_clicked_pos->x + arrow_delta.x < TV_TEXTURE_WIDTH) {
+                        m_clicked_pos->x += arrow_delta.x;
+                    }
+                }
+            }
         }
 
-        // TODO: flesh this out...!
+        {
+            ImGuiDisabledPusher pusher(disable_arrows);
+            ImGui::SetCursorPosX(y_arrows_x);
 
-        //if (ImGui::ArrowButton("###left", ImGuiDir_Left)) {
-        //if (ImGui::ArrowButton("###right", ImGuiDir_Right)) {
-        //if (ImGui::ArrowButton("###up", ImGuiDir_Up)) {
-        //if (ImGui::ArrowButton("###down", ImGuiDir_Down)) {
+            if (ImGui::ArrowButton("###down", ImGuiDir_Down)) {
+                if (m_clicked_pos->y + arrow_delta.y < TV_TEXTURE_HEIGHT) {
+                    m_clicked_pos->y += arrow_delta.y;
+                }
+            }
+        }
+
+        ImVec2 image_centre = image_rect.GetCenter();
+
+        ImU32 colour = ImGui::GetColorU32(ImU32(0xff800080));
+        ImGuiWindow *window = ImGui::GetCurrentWindow();
+
+        ImVec2 unit_half_size(4.f, .5f);
+        unit_half_size *= pixel_size;
+
+        window->DrawList->AddRect(image_centre - unit_half_size,
+                                  image_centre + unit_half_size,
+                                  colour);
+
+        // TODO: pixel position from main display currently not very useful!
+        // Should be driven by mouse hovering over the zoomed-in image.
+
+        //ImGui::Text("Pixel position: (%.1f,%.1f)", pos.x, pos.y);
+
+        if (m_clicked_pos.has_value()) {
+            if (ImGui::Button("Unlock position")) {
+                m_clicked_pos.reset();
+            }
+        }
     }
 
   private:
+    std::optional<ImVec2> m_clicked_pos;
 };
 #endif
 
