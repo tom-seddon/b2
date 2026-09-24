@@ -2882,6 +2882,9 @@ void M6502_Init(M6502 *s, const M6502Config *config) {
 void M6502_Reset(M6502 *s) {
     s->d1x1 = 1;
 
+    // Ensure M6502_IsAboutToExecute isn't spuriously true.
+    s->read = M6502ReadType_Instruction;
+
     if (s->config) {
         s->tfn = s->config->reset_tfn;
     } else {
