@@ -809,14 +809,10 @@ static const std::map<std::string, std::string> ADDR_EXPRS = {
     {"ia+1", "s->ia.w+1"},
     {"ial+x", "(uint8_t)(s->ia.b.l+s->x)"},
     {"ial+x+1", "(uint8_t)(s->ia.b.l+s->x+1)"},
-    {"nmil", "0xfffa"},
-    {"nmih", "0xfffb"},
-    {"resl", "0xfffc"},
-    {"resh", "0xfffd"},
-    {"irql", "0xfffe"},
     {"irqh", "0xffff"},
     {"FF00|adl", "0xff00+s->ad.b.l"}, //oddity used in the 8-cycle CMOS NOP
 };
+static std::set<std::string> g_addr_exprs_used;
 
 static const std::map<std::string, std::string> WHAT_EXPRS = {
     {"adl", "ad.b.l"},
@@ -829,6 +825,27 @@ static const std::map<std::string, std::string> WHAT_EXPRS = {
     {"pcl", "pc.b.l"},
     {"p", "p.value"},
 };
+static std::set<std::string> g_what_exprs_used;
+
+static const std::string &GetWhatExpr(const std::string &what) {
+    auto &&it = WHAT_EXPRS.find(what);
+    ASSERT(it != WHAT_EXPRS.end());
+
+    g_what_exprs_used.insert(what);
+
+    return it->second;
+}
+
+static void PrintUnusedExprWarnings(const std::set<std::string> &exprs_used, const std::map<std::string, std::string> &exprs, const char *type_name) {
+    for (const auto &name_and_expr : exprs) {
+        if (!exprs_used.contains(name_and_expr.first)) {
+            fprintf(stderr, "WARNING: %s expr never used: %s\n", type_name, name_and_expr.first.c_str());
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 struct Cycle {
     enum class Type {
@@ -986,13 +1003,12 @@ class InstrGen {
         } else {
             auto &&it = ADDR_EXPRS.find(c->addr);
             ASSERT(it != ADDR_EXPRS.end());
+            g_addr_exprs_used.insert(c->addr);
             P("s->abus.w=%s;\n", it->second.c_str());
         }
 
         if (c->type == Cycle::Type::Write) {
-            auto &&it = WHAT_EXPRS.find(c->what);
-            ASSERT(it != WHAT_EXPRS.end());
-            P("s->dbus=s->%s;\n", it->second.c_str());
+            P("s->dbus=s->%s;\n", GetWhatExpr(c->what).c_str());
         }
 
         switch (c->type) {
@@ -1041,9 +1057,7 @@ class InstrGen {
             if (c->what.empty()) {
                 P("/* ignore dummy read */\n");
             } else {
-                auto &&it = WHAT_EXPRS.find(c->what);
-                ASSERT(it != WHAT_EXPRS.end());
-                P("s->%s=s->dbus;\n", it->second.c_str());
+                P("s->%s=s->dbus;\n", GetWhatExpr(c->what).c_str());
             }
         }
 
@@ -1342,8 +1356,6 @@ static std::vector<InstrGen> GetAll() {
     // Special cases.
     {
         G("JSR", "JSR", {Ri("pc++", "adl", nullptr), Ru("sp", "data!", nullptr), W("sp--", "pch", nullptr), W("sp--", "pcl", nullptr), Ri("pc++", "adh", "jmp")});
-
-        G("Reset", "Interrupts", {Ri("pc", "data!", nullptr), Rd("sp--", "pch", nullptr), Rd("sp--", "pcl", nullptr), Rd("sp--", "data", nullptr), Ra("resl", "pcl", nullptr), Ra("resh", "pch", nullptr)});
 
         G("RTI", "RTI", {
                             Ri("pc", "data!", nullptr),
@@ -1749,4 +1761,7 @@ int main(int argc, char *argv[]) {
         fclose(of);
         of = nullptr;
     }
+
+    PrintUnusedExprWarnings(g_addr_exprs_used, ADDR_EXPRS, "addr");
+    PrintUnusedExprWarnings(g_what_exprs_used, WHAT_EXPRS, "what");
 }

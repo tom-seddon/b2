@@ -1524,6 +1524,137 @@ static void Cycle1_HLT(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void Cycle1_Reset(M6502 *);
+static void Cycle2_Reset(M6502 *);
+static void Cycle3_Reset(M6502 *);
+static void Cycle4_Reset(M6502 *);
+static void Cycle5_Reset(M6502 *);
+static void Cycle6_Reset(M6502 *);
+
+static void Cycle0_Reset(M6502 *s) {
+    /* (called from Cycle0_All) */
+    s->abus.w = s->pc.w;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_Reset;
+}
+
+static void Cycle1_Reset(M6502 *s) {
+    s->data = s->dbus;
+    s->abus = s->s;
+    --s->s.b.l;
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle2_Reset;
+}
+
+static void Cycle2_Reset(M6502 *s) {
+    s->pc.b.h = s->dbus;
+    s->abus = s->s;
+    --s->s.b.l;
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle3_Reset;
+}
+
+static void Cycle3_Reset(M6502 *s) {
+    s->pc.b.l = s->dbus;
+    s->abus = s->s;
+    --s->s.b.l;
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle4_Reset;
+}
+
+static void Cycle4_Reset(M6502 *s) {
+    s->data = s->dbus;
+    s->abus.w = 0xfffc;
+
+    s->p.bits.i = 1;
+
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle5_Reset;
+}
+
+static void Cycle5_Reset(M6502 *s) {
+    s->pc.b.l = s->dbus;
+    s->abus.w = 0xfffd;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle6_Reset;
+    CheckForInterrupts(s);
+}
+
+static void Cycle6_Reset(M6502 *s) {
+    s->pc.b.h = s->dbus;
+    M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void Cycle1_ResetCMOS(M6502 *);
+static void Cycle2_ResetCMOS(M6502 *);
+static void Cycle3_ResetCMOS(M6502 *);
+static void Cycle4_ResetCMOS(M6502 *);
+static void Cycle5_ResetCMOS(M6502 *);
+static void Cycle6_ResetCMOS(M6502 *);
+
+static void Cycle0_ResetCMOS(M6502 *s) {
+    /* (called from Cycle0_All) */
+    s->abus.w = s->pc.w;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_Reset;
+}
+
+static void Cycle1_ResetCMOS(M6502 *s) {
+    s->data = s->dbus;
+    s->abus = s->s;
+    --s->s.b.l;
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle2_Reset;
+}
+
+static void Cycle2_ResetCMOS(M6502 *s) {
+    s->pc.b.h = s->dbus;
+    s->abus = s->s;
+    --s->s.b.l;
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle3_Reset;
+}
+
+static void Cycle3_ResetCMOS(M6502 *s) {
+    s->pc.b.l = s->dbus;
+    s->abus = s->s;
+    --s->s.b.l;
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle4_Reset;
+}
+
+static void Cycle4_ResetCMOS(M6502 *s) {
+    s->data = s->dbus;
+    s->abus.w = 0xfffc;
+
+    s->p.bits.i = 1;
+    s->p.bits.d = 0;
+
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle5_Reset;
+}
+
+static void Cycle5_ResetCMOS(M6502 *s) {
+    s->pc.b.l = s->dbus;
+
+    s->abus.w = 0xfffd;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle6_Reset;
+    CheckForInterrupts(s);
+}
+
+static void Cycle6_ResetCMOS(M6502 *s) {
+    s->pc.b.h = s->dbus;
+
+    M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void Cycle1_Interrupt(M6502 *);
 static void Cycle2_Interrupt(M6502 *);
 static void Cycle3_Interrupt(M6502 *);
@@ -2667,6 +2798,7 @@ const M6502Config M6502_defined_config = {
     .description = "6502 (defined instructions only)",
     .fns = g_defined_fns,
     .interrupt_tfn = &Cycle0_Interrupt,
+    .reset_tfn = &Cycle0_Reset,
     .disassembly_info = g_defined_disassembly_info,
 };
 
@@ -2676,6 +2808,7 @@ const M6502Config M6502_nmos6502_config = {
     .xaa_magic = 0xee,
     .fns = g_nmos6502_fns,
     .interrupt_tfn = &Cycle0_Interrupt,
+    .reset_tfn = &Cycle0_Reset,
     .disassembly_info = g_nmos6502_disassembly_info,
 };
 
@@ -2684,6 +2817,7 @@ const M6502Config M6502_cmos6502_config = {
     .description = "CMOS 65C02",
     .fns = g_cmos6502_fns,
     .interrupt_tfn = &Cycle0_InterruptCMOS,
+    .reset_tfn = &Cycle0_ResetCMOS,
     .disassembly_info = g_cmos6502_disassembly_info,
 };
 
@@ -2692,6 +2826,7 @@ const M6502Config M6502_rockwell65c02_config = {
     .description = "Rockwell 65C02",
     .fns = g_rockwell65c02_fns,
     .interrupt_tfn = &Cycle0_InterruptCMOS,
+    .reset_tfn = &Cycle0_ResetCMOS,
     .disassembly_info = g_rockwell65c02_disassembly_info,
 };
 
@@ -2746,7 +2881,12 @@ void M6502_Init(M6502 *s, const M6502Config *config) {
 
 void M6502_Reset(M6502 *s) {
     s->d1x1 = 1;
-    s->tfn = &Cycle0_Reset;
+
+    if (s->config) {
+        s->tfn = s->config->reset_tfn;
+    } else {
+        s->tfn = NULL;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

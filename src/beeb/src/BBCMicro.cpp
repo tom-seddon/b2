@@ -1684,13 +1684,16 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
         if (new_state != m_state.resetting) {
             m_state.resetting = new_state;
 
-            // If the parasite CPU is disabled,these calls are benign.
             if (new_state) {
                 M6502_Halt(&m_state.cpu);
-                M6502_Halt(&m_state.parasite_cpu);
+                if (m_state.parasite_cpu.config) {
+                    M6502_Halt(&m_state.parasite_cpu);
+                }
             } else {
                 M6502_Reset(&m_state.cpu);
-                M6502_Reset(&m_state.parasite_cpu);
+                if (m_state.parasite_cpu.config) {
+                    M6502_Reset(&m_state.parasite_cpu);
+                }
                 ResetTube(&m_state.parasite_tube);
                 m_state.parasite_boot_mode = true;
                 this->StopPaste();

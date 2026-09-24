@@ -251,6 +251,9 @@ struct M6502Config {
     /* Function to call to start interrupt processing. */
     M6502Fn interrupt_tfn;
 
+    /* Function to call to reset the CPU. */
+    M6502Fn reset_tfn;
+
     /* Value to use for the XAA and LXA instructions, for CPUs that
      * support them.
      */
@@ -413,7 +416,9 @@ struct M6502 {
 
     // (57-58)
 
-    /* Pointer to the config object this 6502 was initialised with. */
+    /* Pointer to the config object this 6502 was initialised with. This will
+     * never be NULL for a M6502 that's had M6502_Init called on it.
+     */
     const M6502Config *config;
 
     /* Callback called when an illegal instruction is encountered.
@@ -434,8 +439,12 @@ typedef struct M6502 M6502;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+/* Initialize the 6502 object. s->config will be set to point to the given
+ * config.
+ */
 void M6502_Init(M6502 *s, const M6502Config *config);
 
+/* Immediately put the 6502 in the reset state. */
 void M6502_Reset(M6502 *s);
 
 /* Immediately puts the 6502 in a state as if the HLT instruction were
