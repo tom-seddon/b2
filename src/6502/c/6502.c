@@ -1599,7 +1599,7 @@ static void Cycle0_ResetCMOS(M6502 *s) {
     /* (called from Cycle0_All) */
     s->abus.w = s->pc.w;
     s->read = M6502ReadType_Instruction;
-    s->tfn = &Cycle1_Reset;
+    s->tfn = &Cycle1_ResetCMOS;
 }
 
 static void Cycle1_ResetCMOS(M6502 *s) {
@@ -1607,7 +1607,7 @@ static void Cycle1_ResetCMOS(M6502 *s) {
     s->abus = s->s;
     --s->s.b.l;
     s->read = M6502ReadType_Data;
-    s->tfn = &Cycle2_Reset;
+    s->tfn = &Cycle2_ResetCMOS;
 }
 
 static void Cycle2_ResetCMOS(M6502 *s) {
@@ -1615,7 +1615,7 @@ static void Cycle2_ResetCMOS(M6502 *s) {
     s->abus = s->s;
     --s->s.b.l;
     s->read = M6502ReadType_Data;
-    s->tfn = &Cycle3_Reset;
+    s->tfn = &Cycle3_ResetCMOS;
 }
 
 static void Cycle3_ResetCMOS(M6502 *s) {
@@ -1623,7 +1623,7 @@ static void Cycle3_ResetCMOS(M6502 *s) {
     s->abus = s->s;
     --s->s.b.l;
     s->read = M6502ReadType_Data;
-    s->tfn = &Cycle4_Reset;
+    s->tfn = &Cycle4_ResetCMOS;
 }
 
 static void Cycle4_ResetCMOS(M6502 *s) {
@@ -1634,7 +1634,7 @@ static void Cycle4_ResetCMOS(M6502 *s) {
     s->p.bits.d = 0;
 
     s->read = M6502ReadType_Address;
-    s->tfn = &Cycle5_Reset;
+    s->tfn = &Cycle5_ResetCMOS;
 }
 
 static void Cycle5_ResetCMOS(M6502 *s) {
@@ -1642,7 +1642,7 @@ static void Cycle5_ResetCMOS(M6502 *s) {
 
     s->abus.w = 0xfffd;
     s->read = M6502ReadType_Address;
-    s->tfn = &Cycle6_Reset;
+    s->tfn = &Cycle6_ResetCMOS;
     CheckForInterrupts(s);
 }
 
