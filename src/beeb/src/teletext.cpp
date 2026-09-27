@@ -243,14 +243,19 @@ SAA5050::SAA5050() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SAA5050::Byte(uint8_t value, uint8_t dispen) {
+void SAA5050::Byte(uint8_t value, uint16_t addr, uint8_t dispen) {
     value &= 0x7f;
 
     ASSERT((m_write_index & 1) == 0);
     Output *output = &m_output[m_write_index];
 
     output[0].fg = m_fg;
+    output[0].value = value;
+    output[0].addr = addr;
+
     output[1].fg = m_fg;
+    output[1].value = value;
+    output[1].addr = addr;
 
     uint16_t data0, data1;
 
@@ -491,17 +496,23 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SAA5050::EmitPixels(VideoDataUnitPixels *pixels,
-                         const VideoDataPixel *palette) {
+void SAA5050::EmitVideoDataUnit(VideoDataUnit *unit, const VideoDataPixel *palette) {
     Output *output = &m_output[m_read_index];
 
-    pixels->pixels[0] = palette[output->bg];
-    pixels->pixels[0].bits.x = VideoDataType_Teletext;
+    unit->pixels.pixels[0] = palette[output->bg];
+    unit->pixels.pixels[0].bits.x = VideoDataType_Teletext;
 
-    pixels->pixels[1] = palette[output->fg];
+    unit->pixels.pixels[1] = palette[output->fg];
 
-    pixels->pixels[2].all = output->data0;
-    pixels->pixels[3].all = output->data1;
+    unit->pixels.pixels[2].all = output->data0;
+    unit->pixels.pixels[3].all = output->data1;
+
+#if VIDEO_TRACK_METADATA
+    // TODO: would be nice to include the CRTC address too...
+    unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_HasAddress;
+    unit->metadata.value = output->value;
+    unit->metadata.address = output->addr;
+#endif
 
     m_read_index = (m_read_index + 1) & 7;
 }

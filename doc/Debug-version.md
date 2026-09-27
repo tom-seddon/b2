@@ -354,8 +354,9 @@ repeated information on the line.
 
 A window that shows a zoomed-in area of the screen surrounding the
 mouse cursor when it's hovering over the BBC display, plus some
-additional info: addresses, char value, possible interpretation as
-bitmap data.
+additional info: address in RAM, address as the CRTC saw it (for
+bitmap modes only), char value, possible interpretation as bitmap
+data.
 
 The highlighted region indicates the point the mouse cursor is
 hovering over, corresponding to a single 2 MHz CRTC cycle: 8 Mode 0/3
@@ -369,11 +370,6 @@ Click the left mouse button on the BBC display to lock the view to the
 hovered area.. When locked: click again on the BBC display to select a
 different area; click the `Unlock` button to go back to hovering mode;
 or click the arrow buttons to move the area.
-
-(A known issue: this window isn't currently super useful in teletext
-mode, as it doesn't account for some of the internal processing delays
-that b2 does otherwise try to emulate, meaning the info and the
-hovered area won't actually match up...)
 
 ## `System` > `System Debug`
 

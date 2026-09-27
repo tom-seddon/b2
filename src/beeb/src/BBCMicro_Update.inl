@@ -1078,10 +1078,11 @@ parasite_update_done:
                         }
                     }
 
-                    m_state.saa5050.Byte(m_state.ic15_byte, output.display);
+                    m_state.saa5050.Byte(m_state.ic15_byte, m_state.ic15_byte_addr, output.display);
 
                     if (output.address & 0x2000) {
                         m_state.ic15_byte = m_ram[addr];
+                        m_state.ic15_byte_addr = addr;
                         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_RareNonFastPath) != 0) {
 #if BBCMICRO_DEBUGGER
                             m_state.ic15_byte = (m_state.ic15_byte & m_state.ram_and) | m_state.ram_or;
@@ -1091,10 +1092,10 @@ parasite_update_done:
                         m_state.ic15_byte = 0;
                     }
 
-#if VIDEO_TRACK_METADATA
-                    video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
-                    video_unit->metadata.value = m_state.ic15_byte;
-#endif
+                    //#if VIDEO_TRACK_METADATA
+                    //                    video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
+                    //                    video_unit->metadata.value = m_state.ic15_byte;
+                    //#endif
                 }
 
                 uint8_t value = m_ram[addr];
@@ -1115,8 +1116,10 @@ parasite_update_done:
                     }
 
 #if VIDEO_TRACK_METADATA
-                    video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue;
+                    video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasValue | VideoDataUnitMetadataFlag_HasAddress | VideoDataUnitMetadataFlag_HasCRTCAddress;
                     video_unit->metadata.value = value;
+                    video_unit->metadata.address = addr;
+                    video_unit->metadata.crtc_address = output.address;
 #endif
                 }
 
@@ -1125,11 +1128,11 @@ parasite_update_done:
                 // in doing it.
                 m_state.video_ula.Byte(value, output.cudisp & m_cursor_mask);
 
-#if VIDEO_TRACK_METADATA
-                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress | VideoDataUnitMetadataFlag_HasCRTCAddress;
-                video_unit->metadata.address = addr;
-                video_unit->metadata.crtc_address = output.address;
-#endif
+                //#if VIDEO_TRACK_METADATA
+                //                video_unit->metadata.flags |= VideoDataUnitMetadataFlag_HasAddress | VideoDataUnitMetadataFlag_HasCRTCAddress;
+                //                video_unit->metadata.address = addr;
+                //                video_unit->metadata.crtc_address = output.address;
+                //#endif
 
                 m_state.crtc_last_output = output;
             }
@@ -1151,7 +1154,7 @@ parasite_update_done:
 #endif
 
             if (m_state.video_ula.control.bits.teletext) {
-                m_state.saa5050.EmitPixels(&video_unit->pixels, m_state.video_ula.output_palette);
+                m_state.saa5050.EmitVideoDataUnit(video_unit, m_state.video_ula.output_palette);
 
                 if (m_state.video_ula.cursor_pattern & 1) {
                     video_unit->pixels.pixels[0].all ^= 0x0fff;

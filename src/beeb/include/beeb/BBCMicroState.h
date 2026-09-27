@@ -252,6 +252,7 @@ class BBCMicroState {
     SAA5050 saa5050;
 
     uint8_t ic15_byte = 0;
+    uint16_t ic15_byte_addr = 0;
     uint8_t last_fetched_video_byte = 0;
 #if BBCMICRO_DEBUGGER
     uint8_t ram_and = 0xff;

@@ -33,10 +33,10 @@ class SAA5050 {
 
     SAA5050();
 
-    void Byte(uint8_t byte, uint8_t dispen);
+    void Byte(uint8_t byte, uint16_t addr, uint8_t dispen);
 
     // One char is 2 units wide.
-    void EmitPixels(VideoDataUnitPixels *pixels, const VideoDataPixel *palette);
+    void EmitVideoDataUnit(VideoDataUnit *unit, const VideoDataPixel *palette);
 
     void StartOfLine();
     void EndOfLine();
@@ -47,7 +47,10 @@ class SAA5050 {
   private:
     struct Output {
         uint8_t fg, bg, data0, data1;
+        uint8_t value;
+        uint16_t addr;
     };
+    CHECK_SIZEOF(Output, 8);
 
     // Teletext
     uint8_t m_raster = 0;
