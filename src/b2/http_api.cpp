@@ -11,6 +11,23 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const ApiFailureReason API_FAILURE_REASON_LOAD_FAILED{(int)ApiFailureReasonCode::LoadFailed, "file load failed"};
+const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_HALTED{(int)ApiFailureReasonCode::NotValidWhenHalted, "not valid when halted"};
+const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_REPLAYING{(int)ApiFailureReasonCode::NotValidWhenReplaying, "not valid when replaying"};
+const ApiFailureReason API_FAILURE_REASON_DISCARDED{(int)ApiFailureReasonCode::Discarded, "discarded"};
+const ApiFailureReason API_FAILURE_REASON_PREPARE_FAILED{(int)ApiFailureReasonCode::PrepareFailed, "message prepare failed"};
+const ApiFailureReason API_FAILURE_REASON_NOT_CAPTURING{(int)ApiFailureReasonCode::NotCapturing, "not currently capturing"};
+const ApiFailureReason API_FAILURE_REASON_REQUEST_ERROR{(int)ApiFailureReasonCode::RequestError, "request error"};
+const ApiFailureReason API_FAILURE_REASON_SAVE_FAILED{(int)ApiFailureReasonCode::SaveFailed, "file save failed"};
+const ApiFailureReason API_FAILURE_REASON_CONDITION_FALSE{(int)ApiFailureReasonCode::ConditionFalse, "the specified condition was false"};
+const ApiFailureReason API_FAILURE_REASON_SCREEN_GRAB_FAILED{(int)ApiFailureReasonCode::ScreenGrabFailed, "failed to get screen grab"};
+const ApiFailureReason API_FAILURE_REASON_WINDOW_NOT_FOUND{(int)ApiFailureReasonCode::WindowNotFound, "window not found"};
+const ApiFailureReason API_FAILURE_REASON_TIMED_OUT{(int)ApiFailureReasonCode::TimedOut, "timed out"};
+const ApiFailureReason API_FAILURE_REASON_CANCELLED{(int)ApiFailureReasonCode::Cancelled, "cancelled"};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void from_json(const nlohmann::json &j, ApiBBCString &s) {
     if (!j.is_array()) {
         throw nlohmann::json::type_error::create(302, strprintf("invalid ApiBBCString value: must be an array"), nullptr);

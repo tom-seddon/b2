@@ -77,3 +77,18 @@ EBEGIN_DERIVED(uint32_t)
 EPN_BIT_FLAG(WaitForOSWORD0, 0)
 EEND()
 #undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME BeebThreadCompletionFunResult
+EBEGIN_DERIVED(uint32_t)
+EPNV(Success, 0)
+EPN(NotValidWhenHalted)
+EPN(NotValidWhenReplaying)
+EPN(Discarded)
+EPN(PrepareFailed)
+EPN(TimedOut)
+EPN(Cancelled)
+EEND()
+#undef ENAME

@@ -80,6 +80,42 @@ struct ApiExecuteArgs {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+
+static const ApiFailureReason *GetApiFailureReason(BeebThreadCompletionFunResult result) {
+    switch (result) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BeebThreadCompletionFunResult_Success:
+        return nullptr;
+
+    case BeebThreadCompletionFunResult_NotValidWhenHalted:
+        return &API_FAILURE_REASON_NOT_VALID_WHEN_HALTED;
+        break;
+
+    case BeebThreadCompletionFunResult_NotValidWhenReplaying:
+        return &API_FAILURE_REASON_NOT_VALID_WHEN_REPLAYING;
+
+    case BeebThreadCompletionFunResult_Discarded:
+        return &API_FAILURE_REASON_DISCARDED;
+
+    case BeebThreadCompletionFunResult_PrepareFailed:
+        return &API_FAILURE_REASON_PREPARE_FAILED;
+
+    case BeebThreadCompletionFunResult_TimedOut:
+        return &API_FAILURE_REASON_TIMED_OUT;
+
+    case BeebThreadCompletionFunResult_Cancelled:
+        return &API_FAILURE_REASON_CANCELLED;
+    }
+}
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //namespace nlohmann {
 //    template <>
 //    struct adl_serializer<std::variant<uint8_t, std::string>> {
@@ -273,12 +309,12 @@ static void GetResetArguments(uint32_t *flags, double *osword_0_timeout_seconds,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
                              ApiConfigArgs &&request_args,
-                             std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                             std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     ASSERT(IsMainThread());
 
     BeebLoadedConfig loaded_config;
     if (!Load(&loaded_config, execute_args.beeb_window->api_globals, request_args, *execute_args.messages)) {
-        completion_fun("load_failure", nullptr);
+        completion_fun(&API_FAILURE_REASON_LOAD_FAILED, nullptr);
         return;
     }
 
@@ -290,11 +326,12 @@ static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
                                                                                                  flags,
                                                                                                  osword_0_timeout_seconds),
                                    [completion_fun,
-                                    messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
-                                       if (failure_text) {
+                                    messages = execute_args.messages](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
+                                       if (result != BeebThreadCompletionFunResult_Success) {
                                            messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_CONFIG, failure_text);
                                        }
-                                       completion_fun(failure_reason, nullptr);
+
+                                       completion_fun(GetApiFailureReason(result), nullptr);
                                    });
 }
 #endif
@@ -305,7 +342,7 @@ static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
                             ApiResetArgs &&request_args,
-                            std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                            std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     uint32_t flags;
     double osword_0_timeout_seconds;
     GetResetArguments(&flags, &osword_0_timeout_seconds, request_args);
@@ -313,11 +350,11 @@ static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(flags,
                                                                                                  osword_0_timeout_seconds),
                                    [completion_fun,
-                                    messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
-                                       if (failure_text) {
+                                    messages = execute_args.messages](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
+                                       if (result != BeebThreadCompletionFunResult_Success) {
                                            messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_RESET, failure_text);
                                        }
-                                       completion_fun(failure_reason, nullptr);
+                                       completion_fun(GetApiFailureReason(result), nullptr);
                                    });
 }
 #endif
@@ -328,7 +365,7 @@ static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecutePaste(const ApiExecuteArgs &execute_args,
                             ApiPasteArgs &&request_args,
-                            std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                            std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
 
     uint32_t flags = 0;
@@ -343,12 +380,12 @@ static void ApiExecutePaste(const ApiExecuteArgs &execute_args,
                                                                                    flags,
                                                                                    osword_0_timeout_seconds),
                                    [completion_fun,
-                                    messages = execute_args.messages](const char *failure_reason, const char *failure_text) -> void {
+                                    messages = execute_args.messages](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
                                        ASSERT(!!messages);
-                                       if (failure_text) {
+                                       if (result != BeebThreadCompletionFunResult_Success) {
                                            messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_PASTE, failure_text);
                                        }
-                                       completion_fun(failure_reason, nullptr);
+                                       completion_fun(GetApiFailureReason(result), nullptr);
                                    });
 }
 #endif
@@ -359,7 +396,7 @@ static void ApiExecutePaste(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteStartCaptureOSWRCH(const ApiExecuteArgs &execute_args,
                                          std::nullptr_t &&,
-                                         std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                                         std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     execute_args.beeb_window->StartCaptureOSWRCH();
     completion_fun(nullptr, nullptr);
 }
@@ -371,11 +408,11 @@ static void ApiExecuteStartCaptureOSWRCH(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteStopCaptureOSWRCH(const ApiExecuteArgs &execute_args,
                                         std::nullptr_t &&,
-                                        std::function<void(const char *, ApiStopCaptureOSWRCHResult &&)> completion_fun) {
+                                        std::function<void(const ApiFailureReason *, ApiStopCaptureOSWRCHResult &&)> completion_fun) {
     ApiStopCaptureOSWRCHResult result;
     if (!execute_args.beeb_window->StopCaptureOSWRCH(&result.output.bytes)) {
         execute_args.messages->e.f("Not capturing\n");
-        completion_fun("not_capturing", {});
+        completion_fun(&API_FAILURE_REASON_NOT_CAPTURING, {});
         return;
     }
 
@@ -422,7 +459,7 @@ static std::vector<std::string> GetBeebConfigNames(size_t (*get_num_configs_fn)(
 
 static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
                                  ApiListValuesArgs &&request_args,
-                                 std::function<void(const char *, ApiListValuesResult &&)> completion_fun) {
+                                 std::function<void(const ApiFailureReason *, ApiListValuesResult &&)> completion_fun) {
     ApiListValuesResult result;
     if (request_args.name == "StandardROM") {
         result.values = ListOrdinaryEnumValues(&GetStandardROMEnumName);
@@ -443,7 +480,7 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
         }
     } else {
         execute_args.messages->e.f("unknown value: %s\n", request_args.name.c_str());
-        completion_fun("unknown_value", {});
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
         return;
     }
 
@@ -458,7 +495,7 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteListKeysAndValues(const ApiExecuteArgs &execute_args,
                                         ApiListKeysAndValuesArgs &&request_args,
-                                        std::function<void(const char *, ApiListKeysAndValuesResult &&)> completion_fun) {
+                                        std::function<void(const ApiFailureReason *, ApiListKeysAndValuesResult &&)> completion_fun) {
     ApiListKeysAndValuesResult result;
     if (request_args.name == "DebugCommand") {
         for (int i = 0; i < 256; ++i) {
@@ -473,7 +510,7 @@ static void ApiExecuteListKeysAndValues(const ApiExecuteArgs &execute_args,
         }
     } else {
         execute_args.messages->e.f("unknown keys/values name: %s\n", request_args.name.c_str());
-        completion_fun("unknown_value", {});
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
         return;
     }
 
@@ -487,10 +524,11 @@ static void ApiExecuteListKeysAndValues(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
                                  ApiSetGlobalsArgs &&request_args,
-                                 std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                                 std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     if (request_args.read_path.has_value()) {
         if (!PathIsFullySpecified(*request_args.read_path)) {
-            completion_fun("read_path not fully specified", {});
+            execute_args.messages->e.f("read_path is not fully specified: %s\n", request_args.read_path->c_str());
+            completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
             return;
         }
 
@@ -499,7 +537,8 @@ static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
 
     if (request_args.write_path.has_value()) {
         if (!PathIsFullySpecified(*request_args.write_path)) {
-            completion_fun("write_path not fully specified", {});
+            execute_args.messages->e.f("write_path is not fully specified: %s\n", request_args.write_path->c_str());
+            completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
             return;
         }
 
@@ -516,16 +555,16 @@ static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
                                         ApiScreenGrabPNGDataArgs &&request_args,
-                                        std::function<void(const char *, ApiScreenGrabPNGDataResult &&)> completion_fun) {
+                                        std::function<void(const ApiFailureReason *, ApiScreenGrabPNGDataResult &&)> completion_fun) {
     SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, *execute_args.messages);
     if (!screenshot) {
-        completion_fun("screenshot_error", {});
+        completion_fun(&API_FAILURE_REASON_SCREEN_GRAB_FAILED, {});
         return;
     }
 
     ApiScreenGrabPNGDataResult result;
     if (!SaveSDLSurfaceToPNGData(&result.data.bytes, screenshot.get(), *execute_args.messages)) {
-        completion_fun("screenshot_error", {});
+        completion_fun(&API_FAILURE_REASON_SCREEN_GRAB_FAILED, {});
         return;
     }
 
@@ -539,16 +578,16 @@ static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
                                         ApiScreenGrabPNGFileArgs &&request_args,
-                                        std::function<void(const char *, ApiScreenGrabPNGFileResult &&)> completion_fun) {
+                                        std::function<void(const ApiFailureReason *, ApiScreenGrabPNGFileResult &&)> completion_fun) {
     SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, *execute_args.messages);
     if (!screenshot) {
-        completion_fun("screenshot_error", {});
+        completion_fun(&API_FAILURE_REASON_SCREEN_GRAB_FAILED, {});
         return;
     }
 
     std::vector<uint8_t> png_data;
     if (!SaveSDLSurfaceToPNGData(&png_data, screenshot.get(), *execute_args.messages)) {
-        completion_fun("screenshot_error", {});
+        completion_fun(&API_FAILURE_REASON_SCREEN_GRAB_FAILED, {});
         return;
     }
 
@@ -558,13 +597,13 @@ static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
     } else {
         if (std::find_if(path.begin(), path.end(), &PathIsSeparatorChar) != path.end()) {
             execute_args.messages->e.f("Name includes path separator: %s\n", request_args.path.c_str());
-            completion_fun("screenshot_error", {});
+            completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
             return;
         }
 
         if (!execute_args.beeb_window->api_globals.write_path.has_value()) {
             execute_args.messages->e.f("API global write_path not set for name: %s\n", request_args.path.c_str());
-            completion_fun("screenshot_error", {});
+            completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
             return;
         }
 
@@ -572,7 +611,7 @@ static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
     }
 
     if (!SaveFile(png_data, path, execute_args.messages.get())) {
-        completion_fun("screenshot_error", {});
+        completion_fun(&API_FAILURE_REASON_SAVE_FAILED, {});
         return;
     }
 
@@ -588,7 +627,7 @@ static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteStartCountingBRKs(const ApiExecuteArgs &execute_args,
                                         std::nullptr_t &&,
-                                        std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                                        std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     execute_args.beeb_window->StartCountingBRKs();
 
     completion_fun(nullptr, {});
@@ -601,18 +640,18 @@ static void ApiExecuteStartCountingBRKs(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteStopCountingBRKs(const ApiExecuteArgs &execute_args,
                                        ApiStopCountingBRKsArgs &&request_args,
-                                       std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                                       std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     uint64_t num_brks;
     if (!execute_args.beeb_window->StopCountingBRKs(&num_brks)) {
         execute_args.messages->e.f("not currently counting BRKs");
-        completion_fun("request_error", {});
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
         return;
     }
 
     if (request_args.expected_brk_count.has_value()) {
         if (*request_args.expected_brk_count != num_brks) {
             execute_args.messages->e.f("expected BRK count mismatch: expected %" PRIu64 ", got %" PRIu64, *request_args.expected_brk_count, num_brks);
-            completion_fun("test_failed", {});
+            completion_fun(&API_FAILURE_REASON_CONDITION_FALSE, {});
             return;
         }
     }
@@ -627,33 +666,33 @@ static void ApiExecuteStopCountingBRKs(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
                                     ApiLoadDiskImageArgs &&request_args,
-                                    std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                                    std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     if (request_args.drive < 0 || request_args.drive >= NUM_DRIVES) {
         execute_args.messages->e.f("Invalid drive: %d\n", request_args.drive);
-        completion_fun("request_error", {});
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
         return;
     }
 
     std::string path;
     if (!GetFilePathForRead(&path, request_args.path, execute_args.beeb_window->api_globals, *execute_args.messages)) {
-        completion_fun("load_failed", {});
+        completion_fun(&API_FAILURE_REASON_LOAD_FAILED, {});
         return;
     }
 
     std::shared_ptr<MemoryDiscImage> disc_image = LoadMemoryDiscImage(path, *execute_args.messages);
     if (!disc_image) {
-        completion_fun("load_failed", {});
+        completion_fun(&API_FAILURE_REASON_LOAD_FAILED, {});
         return;
     }
 
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(request_args.drive, std::move(disc_image), true),
                                    [messages = execute_args.messages,
-                                    completion_fun](const char *failure_reason, const char *failure_text) -> void {
-                                       if (failure_text) {
+                                    completion_fun](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
+                                       if (result != BeebThreadCompletionFunResult_Success) {
                                            messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_LOAD_DISK_IMAGE, failure_text);
                                        }
 
-                                       completion_fun(failure_reason, {});
+                                       completion_fun(GetApiFailureReason(result), {});
                                    });
 }
 #endif
@@ -664,10 +703,10 @@ static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
                            ApiPeekArgs &&request_args,
-                           std::function<void(const char *, ApiPeekResult &&)> completion_fun) {
+                           std::function<void(const ApiFailureReason *, ApiPeekResult &&)> completion_fun) {
     if (request_args.end.has_value() == request_args.size.has_value()) {
         execute_args.messages->e.f("Must specify exactly one of size or value\n");
-        completion_fun("request_error", {});
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
         return;
     }
 
@@ -676,7 +715,7 @@ static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
         end = *request_args.end;
         if (end < request_args.begin) {
             execute_args.messages->e.f("end must be >= begin\n");
-            completion_fun("request_error", {});
+            completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
             return;
         }
     } else {
@@ -686,7 +725,7 @@ static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
     uint32_t dso;
     std::shared_ptr<const BBCMicroType> type = execute_args.beeb_thread->GetBBCMicroType();
     if (!ParseAddressSuffix(&dso, type, request_args.suffix.c_str(), &execute_args.messages->e)) {
-        completion_fun("request_error", {});
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
         return;
     }
 
@@ -710,7 +749,7 @@ static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteClearSymbols(const ApiExecuteArgs &execute_args,
                                    std::nullptr_t &&,
-                                   std::function<void(const char *, std::nullptr_t &&)> completion_fun) {
+                                   std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     SymbolTable *symbol_table = execute_args.beeb_window->GetMutableSymbolTable();
     symbol_table->Clear();
 
@@ -724,17 +763,17 @@ static void ApiExecuteClearSymbols(const ApiExecuteArgs &execute_args,
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
                                   ApiLoadSymbolsArgs &&request_args,
-                                  std::function<void(const char *, ApiLoadSymbolsResult &&)> completion_fun) {
+                                  std::function<void(const ApiFailureReason *, ApiLoadSymbolsResult &&)> completion_fun) {
     const SymbolTable::SymbolParser *parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName(request_args.format_name);
     if (!parser) {
         execute_args.messages->e.f("Unrecognised format name: %s\n", request_args.format_name.c_str());
-        completion_fun("request_error", {});
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
         return;
     }
 
     std::string path;
     if (!GetFilePathForRead(&path, request_args.path, execute_args.beeb_window->api_globals, *execute_args.messages)) {
-        completion_fun("load_failed", {});
+        completion_fun(&API_FAILURE_REASON_LOAD_FAILED, {});
         return;
     }
 
@@ -742,7 +781,7 @@ static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
 
     SymbolTable *symbol_table = execute_args.beeb_window->GetMutableSymbolTable();
     if (!symbol_table->LoadFromFile(path, parser, execute_args.messages.get(), &result.file_index)) {
-        completion_fun("load_failed", {});
+        completion_fun(&API_FAILURE_REASON_LOAD_FAILED, {});
         return;
     }
 
@@ -774,15 +813,15 @@ static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
 template <class ArgsType, class ResultType>
 static void HandleApiExecute(const ApiExecuteArgs &execute_args,
                              const ApiRequest &request,
-                             std::function<void(const char *, nlohmann::json)> completion_fun,
+                             std::function<void(const ApiFailureReason *, nlohmann::json)> completion_fun,
                              void (*execute_fn)(const ApiExecuteArgs &,
                                                 ArgsType &&,
-                                                std::function<void(const char *, ResultType &&)>),
+                                                std::function<void(const ApiFailureReason *, ResultType &&)>),
                              bool requires_beeb_window) {
     if (requires_beeb_window) {
         if (!execute_args.beeb_window) {
             execute_args.messages->e.f("Must specify window\n");
-            completion_fun("request_error", nullptr);
+            completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
             return;
         }
     }
@@ -792,13 +831,13 @@ static void HandleApiExecute(const ApiExecuteArgs &execute_args,
 
     if (!LoadJSON(&request_args, request.args, &exc_what)) {
         execute_args.messages->e.f("Args parse failed: %s\n", exc_what.c_str());
-        completion_fun("request_error", nullptr);
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
         return;
     }
 
     (*execute_fn)(execute_args,
                   std::move(request_args),
-                  [completion_fun](const char *failure_reason, ResultType &&result) -> void {
+                  [completion_fun](const ApiFailureReason *failure_reason, ResultType &&result) -> void {
                       completion_fun(failure_reason, std::move(result));
                   });
 }
@@ -811,7 +850,7 @@ static void HandleApiExecute(const ApiExecuteArgs &execute_args,
 
 static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
                                  ApiRequest request,
-                                 std::function<void(const char *, nlohmann::json)> completion_fun) {
+                                 std::function<void(const ApiFailureReason *, nlohmann::json)> completion_fun) {
     if (request.type == API_REQUEST_TYPE_CONFIG) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteConfig, true);
     } else if (request.type == API_REQUEST_TYPE_PASTE) {
@@ -846,7 +885,7 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteLoadSymbols, true);
     } else {
         execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
-        completion_fun("request_error", nullptr);
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
     }
 }
 
@@ -879,7 +918,7 @@ static std::shared_ptr<Messages> CreateMessages() {
     return std::make_shared<Messages>(std::make_shared<MessageList>("API request"));
 }
 
-static ApiResponse GetApiResponse(const char *failure_reason, nlohmann::json j, const std::shared_ptr<Messages> &messages) {
+static ApiResponse GetApiResponse(const ApiFailureReason *failure_reason, nlohmann::json j, const std::shared_ptr<Messages> &messages) {
     ApiResponse response;
 
     if (!failure_reason) {
@@ -890,7 +929,7 @@ static ApiResponse GetApiResponse(const char *failure_reason, nlohmann::json j, 
 
         ApiFailureResult result;
 
-        result.reason = failure_reason;
+        result.reason = *failure_reason;
 
         messages->i.Flush();
         messages->w.Flush();
@@ -931,7 +970,7 @@ static void ExecuteSingleRequest(BeebWindow *beeb_window,
 
     ExecuteSingleRequest(std::move(execute_args),
                          std::move(request),
-                         [messages, completion_fun](const char *failure_reason, nlohmann::json j) -> void {
+                         [messages, completion_fun](const ApiFailureReason *failure_reason, nlohmann::json j) -> void {
                              ASSERT(!!messages);
                              completion_fun(GetApiResponse(failure_reason, std::move(j), messages));
                          });
@@ -998,7 +1037,7 @@ static void ExecuteNextRequest(const std::shared_ptr<MultipleRequestsState> &sta
             }
 
             if (!state->beeb_window) {
-                state->response.responses.push_back(GetApiResponse("window_not_found", nullptr, state->messages));
+                state->response.responses.push_back(GetApiResponse(&API_FAILURE_REASON_WINDOW_NOT_FOUND, nullptr, state->messages));
                 CallOverallCompletionFun(state);
                 return;
             }
@@ -1009,7 +1048,7 @@ static void ExecuteNextRequest(const std::shared_ptr<MultipleRequestsState> &sta
             if (!beeb_thread || !beeb_thread->IsStarted()) {
                 // Ugh. Have to abandon the whole thing.
                 state->messages->e.f("Window has gone\n");
-                state->response.responses.push_back(GetApiResponse("discarded", nullptr, state->messages));
+                state->response.responses.push_back(GetApiResponse(&API_FAILURE_REASON_DISCARDED, nullptr, state->messages));
                 CallOverallCompletionFun(state);
                 return;
             }
@@ -1918,7 +1957,7 @@ class HTTPMethodsHandler : public HTTPHandler {
                                     std::move(request_args),
                                     [server,
                                      response_data = request.response_data,
-                                     messages = execute_args.messages](const char *failure_reason, ApiScreenGrabPNGDataResult &&result) -> void {
+                                     messages = execute_args.messages](const ApiFailureReason *failure_reason, ApiScreenGrabPNGDataResult &&result) -> void {
                                         HTTPResponse response;
 
                                         if (failure_reason) {
@@ -1927,7 +1966,7 @@ class HTTPMethodsHandler : public HTTPHandler {
                                             response.content_type = HTTP_TEXT_CONTENT_TYPE;
                                             response.content_type_charset = HTTP_UTF8_CHARSET;
 
-                                            std::string content_str = failure_reason;
+                                            std::string content_str = failure_reason->error;
                                             content_str += "\n";
 
                                             std::shared_ptr<MessageList> message_list = messages->GetMessageList();
@@ -1998,7 +2037,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         bool completed = false;
         ApiExecuteSetGlobals(execute_args,
                              std::move(request_args),
-                             [&completed](const char *failure_reason, std::nullptr_t &&) -> void {
+                             [&completed](const ApiFailureReason *failure_reason, std::nullptr_t &&) -> void {
                                  // early warning stuff, in case I change something later and forget to fix this bit.
                                  (void)failure_reason;
                                  ASSERT(!failure_reason);
@@ -2148,18 +2187,25 @@ class HTTPMethodsHandler : public HTTPHandler {
                      HTTPServer *server,
                      const HTTPRequest &request,
                      std::shared_ptr<BeebThread::Message> message) {
-        auto completion_fun = [server, response_data = request.response_data](const char *failure_reason, const char *failure_text) -> void {
+        auto completion_fun = [server, response_data = request.response_data](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
             LOGF(OUTPUT, "SendMessage completion_fun: connected ID=%" PRIu64 "\n", response_data.connection_id);
 
             HTTPResponse response;
-            if (failure_reason) {
+            if (result != BeebThreadCompletionFunResult_Success) {
                 response = HTTPResponse::InternalServerError("The request did not succeed");
 
+                response.content_type = HTTP_TEXT_CONTENT_TYPE;
+                response.content_type_charset = HTTP_UTF8_CHARSET;
+
+                std::string content = "Failure reason: ";
+                content += GetBeebThreadCompletionFunResultEnumName(result);
+                content += "\r\n";
+
                 if (failure_text) {
-                    response.content_type = HTTP_TEXT_CONTENT_TYPE;
-                    response.content_type_charset = HTTP_UTF8_CHARSET;
-                    response.SetContentString(failure_text);
+                    content += failure_text;
                 }
+
+                response.SetContentString(std::move(content));
             } else {
                 response = HTTPResponse::OK();
             }

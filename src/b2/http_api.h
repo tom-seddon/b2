@@ -134,6 +134,16 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiKeyAndValue, key, value);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct ApiFailureReason {
+    int code = 0;
+
+    std::string error{"no error"};
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureReason, code, error);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // A few calls give you the option of waiting for the next OSWORD 0 (line input)
 // call before continuing.
 //
@@ -196,10 +206,43 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+enum class ApiFailureReasonCode : int {
+    None = 0,
+    LoadFailed = 1,
+    NotValidWhenHalted = 2,
+    NotValidWhenReplaying = 3,
+    Discarded = 4,
+    PrepareFailed = 5,
+    NotCapturing = 6,
+    RequestError = 7,
+    SaveFailed = 8,
+    ConditionFalse = 9,
+    ScreenGrabFailed = 10,
+    WindowNotFound = 11,
+    TimedOut = 12,
+    Cancelled = 13,
+};
+
+extern const ApiFailureReason API_FAILURE_REASON_LOAD_FAILED;
+extern const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_HALTED;
+extern const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_REPLAYING;
+extern const ApiFailureReason API_FAILURE_REASON_DISCARDED;
+extern const ApiFailureReason API_FAILURE_REASON_PREPARE_FAILED;
+extern const ApiFailureReason API_FAILURE_REASON_NOT_CAPTURING;
+extern const ApiFailureReason API_FAILURE_REASON_REQUEST_ERROR;
+extern const ApiFailureReason API_FAILURE_REASON_SAVE_FAILED;
+extern const ApiFailureReason API_FAILURE_REASON_CONDITION_FALSE;
+extern const ApiFailureReason API_FAILURE_REASON_SCREEN_GRAB_FAILED;
+extern const ApiFailureReason API_FAILURE_REASON_WINDOW_NOT_FOUND;
+extern const ApiFailureReason API_FAILURE_REASON_TIMED_OUT;
+extern const ApiFailureReason API_FAILURE_REASON_CANCELLED;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Result struct for a request that failed.
 struct ApiFailureResult {
-    // Short string indicating reason for failure.
-    std::string reason;
+    ApiFailureReason reason;
 
     // Any log messages that were printed during the execution, intended for human consumption.
     std::vector<std::string> messages;

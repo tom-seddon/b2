@@ -274,7 +274,7 @@ BeebThread::Message::~Message() = default;
 
 void BeebThread::Message::CallCompletionFunSuccess(CompletionFun &&completion_fun) {
     if (!!completion_fun) {
-        completion_fun(nullptr, nullptr);
+        completion_fun(BeebThreadCompletionFunResult_Success, nullptr);
         completion_fun = nullptr;
     }
 }
@@ -282,10 +282,10 @@ void BeebThread::Message::CallCompletionFunSuccess(CompletionFun &&completion_fu
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::Message::CallCompletionFunFailure(CompletionFun &&completion_fun, const char *reason, const char *text) {
-    ASSERT(reason);
+void BeebThread::Message::CallCompletionFunFailure(CompletionFun &&completion_fun, BeebThreadCompletionFunResult result, const char *text) {
+    ASSERT(result != BeebThreadCompletionFunResult_Success);
     if (!!completion_fun) {
-        completion_fun(reason, text);
+        completion_fun(result, text);
         completion_fun = nullptr;
     }
 }
@@ -302,9 +302,10 @@ void BeebThread::Message::CallCompletionFunSuccess(CompletionFun *completion_fun
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::Message::CallCompletionFunFailure(CompletionFun *completion_fun, const char *reason, const char *text) {
+void BeebThread::Message::CallCompletionFunFailure(CompletionFun *completion_fun, BeebThreadCompletionFunResult result, const char *text) {
+    ASSERT(result != BeebThreadCompletionFunResult_Success);
     if (completion_fun) {
-        CallCompletionFunFailure(std::move(*completion_fun), reason, text);
+        CallCompletionFunFailure(std::move(*completion_fun), result, text);
     }
 }
 
@@ -340,7 +341,7 @@ bool BeebThread::Message::PrepareUnlessReplayingOrHalted(std::shared_ptr<Message
 #if BBCMICRO_DEBUGGER
     if (ts->beeb) {
         if (ts->beeb->DebugGetHaltReason() != BBCMicroHaltReason_None) {
-            CallCompletionFunFailure(std::move(*completion_fun), "halted", "not valid while halted");
+            CallCompletionFunFailure(std::move(*completion_fun), BeebThreadCompletionFunResult_NotValidWhenHalted, nullptr);
             return false;
         }
     }
@@ -358,7 +359,7 @@ bool BeebThread::Message::PrepareUnlessReplaying(std::shared_ptr<Message> *ptr,
     (void)ptr;
 
     if (ts->timeline_mode == BeebThreadTimelineMode_Replay) {
-        CallCompletionFunFailure(completion_fun, "replaying", "not valid while replaying");
+        CallCompletionFunFailure(completion_fun, BeebThreadCompletionFunResult_NotValidWhenReplaying, nullptr);
         return false;
     }
 
@@ -1523,7 +1524,7 @@ bool BeebThread::StartPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    ThreadCallSharedCompletionFunFailure(ts, std::move(ts->paste_completion_fun), "discarded", "paste was stopped by a new paste starting");
+    ThreadCallSharedCompletionFunFailure(ts, std::move(ts->paste_completion_fun), BeebThreadCompletionFunResult_Discarded, "paste was stopped by a new paste starting");
 
     return true;
 }
@@ -1549,16 +1550,16 @@ void BeebThread::StartPasteMessage::ThreadHandle(CompletionFun *completion_fun,
             // It's safe to capture ts, as this is ts->completion_fun. It won't get called once ts is destroyed.
             ts->paste_completion_fun = std::make_shared<CompletionFun>([ts,
                                                                         osword_0_timeout_seconds = m_osword_0_timeout_seconds,
-                                                                        paste_completion_fun](const char *failure_reason, const char *failure_text) mutable -> void {
-                if (failure_reason) {
-                    ThreadCallSharedCompletionFunFailure(ts, std::move(paste_completion_fun), failure_reason, failure_text);
-                } else {
+                                                                        paste_completion_fun](BeebThreadCompletionFunResult result, const char *failure_text) mutable -> void {
+                if (result == BeebThreadCompletionFunResult_Success) {
                     // TODO: feels most useful to skip OSWORD 0s during *EXEC. But maybe it's arguable.
                     ts->beeb_thread->ThreadAddOSWORD0Callback(ts, std::make_shared<CallSharedCompletionFunOSWORD0Callback>(paste_completion_fun, false));
 
                     if (osword_0_timeout_seconds > 0.) {
                         ts->beeb_thread->ThreadAddCompletionTimeout(ts, paste_completion_fun, osword_0_timeout_seconds);
                     }
+                } else {
+                    ThreadCallSharedCompletionFunFailure(ts, std::move(paste_completion_fun), result, failure_text);
                 }
             });
         }
@@ -1586,7 +1587,7 @@ void BeebThread::StopPasteMessage::ThreadHandle(CompletionFun *completion_fun,
 
     ts->beeb->StopPaste();
     ts->beeb_thread->m_is_pasting.store(false, std::memory_order_release);
-    ThreadCallSharedCompletionFunFailure(ts, std::move(ts->paste_completion_fun), "cancelled", "paste was stopped explicitly");
+    ThreadCallSharedCompletionFunFailure(ts, std::move(ts->paste_completion_fun), BeebThreadCompletionFunResult_Cancelled, "paste was stopped explicitly");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3106,10 +3107,10 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     // this cancels any callbacks.
     if (ts->beeb) {
         for (CompletionTimeout &timeout : ts->completion_timeouts) {
-            Message::CallCompletionFunFailure(std::move(*timeout.shared_completion_fun), "discarded", "Emulated system is being replaced");
+            Message::CallCompletionFunFailure(std::move(*timeout.shared_completion_fun), BeebThreadCompletionFunResult_Discarded, "Emulated system is being replaced");
         }
 
-        ThreadCallSharedCompletionFunFailure(ts, std::move(ts->paste_completion_fun), "discarded", "Emulated system is being replaced");
+        ThreadCallSharedCompletionFunFailure(ts, std::move(ts->paste_completion_fun), BeebThreadCompletionFunResult_Discarded, "Emulated system is being replaced");
 
         for (std::shared_ptr<OSWRCHCallback> &callback : ts->oswrch_callbacks) {
             if (callback) {
@@ -3625,7 +3626,7 @@ void BeebThread::ThreadMain(void) {
             for (auto &&m : messages) {
                 bool prepared = m.message->ThreadPrepare(&m.message, &m.completion_fun, &ts);
                 if (!prepared) {
-                    Message::CallCompletionFunFailure(std::move(m.completion_fun), "failed", "message Prepare failed");
+                    Message::CallCompletionFunFailure(std::move(m.completion_fun), BeebThreadCompletionFunResult_PrepareFailed, nullptr);
                     continue;
                 }
 
@@ -3795,7 +3796,7 @@ void BeebThread::ThreadMain(void) {
 
                 ThreadCallSharedCompletionFunFailure(&ts,
                                                      std::move(timeout->shared_completion_fun),
-                                                     "timeout",
+                                                     BeebThreadCompletionFunResult_TimedOut,
                                                      strprintf("timed out after ~%.1f emulated seconds", timeout->relative_seconds).c_str());
             }
 
@@ -4404,11 +4405,11 @@ void BeebThread::ThreadCallSharedCompletionFunSuccess(ThreadState *ts, std::shar
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadCallSharedCompletionFunFailure(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, const char *reason, const char *text) {
-    ASSERT(reason);
+void BeebThread::ThreadCallSharedCompletionFunFailure(ThreadState *ts, std::shared_ptr<Message::CompletionFun> &&completion_fun, BeebThreadCompletionFunResult result, const char *text) {
+    ASSERT(result != BeebThreadCompletionFunResult_Success);
 
     if (!!completion_fun) {
-        Message::CallCompletionFunFailure(std::move(*completion_fun), reason, text);
+        Message::CallCompletionFunFailure(std::move(*completion_fun), result, text);
         completion_fun.reset();
 
         ts->update_callbacks = true;

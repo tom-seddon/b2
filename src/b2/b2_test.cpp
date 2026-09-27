@@ -478,10 +478,10 @@ static void PasteAndWait(Yielder *yielder, const std::shared_ptr<BeebThread> &be
 
     std::atomic<bool> pasted_status = false;
     beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(text, 0),
-                      [&pasted_status](const char *failure_reason, const char *failure_text) -> void {
+                      [&pasted_status](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
                           (void)failure_text;
 
-                          TEST_NULL(failure_reason);
+                          TEST_EQ_II(result, BeebThreadCompletionFunResult_Success);
                           pasted_status = true;
                       });
 
@@ -1779,7 +1779,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_PASTE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
-            TEST_EQ_SS(result.reason, "timeout");
+            TEST_EQ_II(result.reason.code, (int)ApiFailureReasonCode::TimedOut);
         }
 #else
         (void)args;
@@ -1866,7 +1866,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
-            TEST_EQ_SS(result.reason, "timeout");
+            TEST_EQ_II(result.reason.code, (int)ApiFailureReasonCode::TimedOut);
         }
 #else
         (void)args;
