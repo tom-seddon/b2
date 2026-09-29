@@ -11,19 +11,19 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const ApiFailureReason API_FAILURE_REASON_LOAD_FAILED{(int)ApiFailureReasonCode::LoadFailed, "file load failed"};
-const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_HALTED{(int)ApiFailureReasonCode::NotValidWhenHalted, "not valid when halted"};
-const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_REPLAYING{(int)ApiFailureReasonCode::NotValidWhenReplaying, "not valid when replaying"};
-const ApiFailureReason API_FAILURE_REASON_DISCARDED{(int)ApiFailureReasonCode::Discarded, "discarded"};
-const ApiFailureReason API_FAILURE_REASON_PREPARE_FAILED{(int)ApiFailureReasonCode::PrepareFailed, "message prepare failed"};
-const ApiFailureReason API_FAILURE_REASON_NOT_CAPTURING{(int)ApiFailureReasonCode::NotCapturing, "not currently capturing"};
-const ApiFailureReason API_FAILURE_REASON_REQUEST_ERROR{(int)ApiFailureReasonCode::RequestError, "request error"};
-const ApiFailureReason API_FAILURE_REASON_SAVE_FAILED{(int)ApiFailureReasonCode::SaveFailed, "file save failed"};
-const ApiFailureReason API_FAILURE_REASON_CONDITION_FALSE{(int)ApiFailureReasonCode::ConditionFalse, "the specified condition was false"};
-const ApiFailureReason API_FAILURE_REASON_SCREEN_GRAB_FAILED{(int)ApiFailureReasonCode::ScreenGrabFailed, "failed to get screen grab"};
-const ApiFailureReason API_FAILURE_REASON_WINDOW_NOT_FOUND{(int)ApiFailureReasonCode::WindowNotFound, "window not found"};
-const ApiFailureReason API_FAILURE_REASON_TIMED_OUT{(int)ApiFailureReasonCode::TimedOut, "timed out"};
-const ApiFailureReason API_FAILURE_REASON_CANCELLED{(int)ApiFailureReasonCode::Cancelled, "cancelled"};
+const ApiFailureReason API_FAILURE_REASON_LOAD_FAILED{ApiFailureReasonCode_LoadFailed, "file load failed"};
+const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_HALTED{ApiFailureReasonCode_NotValidWhenHalted, "not valid when halted"};
+const ApiFailureReason API_FAILURE_REASON_NOT_VALID_WHEN_REPLAYING{ApiFailureReasonCode_NotValidWhenReplaying, "not valid when replaying"};
+const ApiFailureReason API_FAILURE_REASON_DISCARDED{ApiFailureReasonCode_Discarded, "discarded"};
+const ApiFailureReason API_FAILURE_REASON_PREPARE_FAILED{ApiFailureReasonCode_PrepareFailed, "message prepare failed"};
+const ApiFailureReason API_FAILURE_REASON_NOT_CAPTURING{ApiFailureReasonCode_NotCapturing, "not currently capturing"};
+const ApiFailureReason API_FAILURE_REASON_REQUEST_ERROR{ApiFailureReasonCode_RequestError, "request error"};
+const ApiFailureReason API_FAILURE_REASON_SAVE_FAILED{ApiFailureReasonCode_SaveFailed, "file save failed"};
+const ApiFailureReason API_FAILURE_REASON_CONDITION_FALSE{ApiFailureReasonCode_ConditionFalse, "the specified condition was false"};
+const ApiFailureReason API_FAILURE_REASON_SCREEN_GRAB_FAILED{ApiFailureReasonCode_ScreenGrabFailed, "failed to get screen grab"};
+const ApiFailureReason API_FAILURE_REASON_WINDOW_NOT_FOUND{ApiFailureReasonCode_WindowNotFound, "window not found"};
+const ApiFailureReason API_FAILURE_REASON_TIMED_OUT{ApiFailureReasonCode_TimedOut, "timed out"};
+const ApiFailureReason API_FAILURE_REASON_CANCELLED{ApiFailureReasonCode_Cancelled, "cancelled"};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

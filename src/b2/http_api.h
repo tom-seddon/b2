@@ -36,13 +36,14 @@
 // - bool - JSON bool
 // - uint8_t - JSON number, integer 0-255
 // - uint16_t - JSON number, integer 0-65535
+// - C++ enum - JSON number, integer, corresponding to the C++ enum value. (This
+//   is not used much. The C++ enums in question have their values explicitly
+//   specified so it's hopefully easy to figure out)
 // - std::vector<T> - JSON array of T
 // - nlohmann::json - JSON of any kind (probably depending on some other value)
-// - Enum<T> - JSON string, the name of one of the enum values of T, an enum
-//   type from the b2 code. Use the list_values endpoint to list the valid JSON
-//   values for the enum. (If looking at the C++ code to find names: note that the valid JSON values exclude the prefix;
-//   so, for example, for the StandardROM enum, StandardROM_None in C++ maps to
-//   "None" in JSON.
+// - Enum<T> - JSON string, the name of one of the enum values of T (an enum in
+//   this file), excluding any prefix. (So, for example, for Enum<ApiROMType>:
+//   the name for ApiROMType_16KB would be "16KB")
 // - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
 // - BBCString - JSON array of strings and numbers. See the BBCString struct
 
@@ -206,21 +207,21 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-enum class ApiFailureReasonCode : int {
-    None = 0,
-    LoadFailed = 1,
-    NotValidWhenHalted = 2,
-    NotValidWhenReplaying = 3,
-    Discarded = 4,
-    PrepareFailed = 5,
-    NotCapturing = 6,
-    RequestError = 7,
-    SaveFailed = 8,
-    ConditionFalse = 9,
-    ScreenGrabFailed = 10,
-    WindowNotFound = 11,
-    TimedOut = 12,
-    Cancelled = 13,
+enum ApiFailureReasonCode : int {
+    ApiFailureReasonCode_None = 0,
+    ApiFailureReasonCode_LoadFailed = 1,
+    ApiFailureReasonCode_NotValidWhenHalted = 2,
+    ApiFailureReasonCode_NotValidWhenReplaying = 3,
+    ApiFailureReasonCode_Discarded = 4,
+    ApiFailureReasonCode_PrepareFailed = 5,
+    ApiFailureReasonCode_NotCapturing = 6,
+    ApiFailureReasonCode_RequestError = 7,
+    ApiFailureReasonCode_SaveFailed = 8,
+    ApiFailureReasonCode_ConditionFalse = 9,
+    ApiFailureReasonCode_ScreenGrabFailed = 10,
+    ApiFailureReasonCode_WindowNotFound = 11,
+    ApiFailureReasonCode_TimedOut = 12,
+    ApiFailureReasonCode_Cancelled = 13,
 };
 
 extern const ApiFailureReason API_FAILURE_REASON_LOAD_FAILED;

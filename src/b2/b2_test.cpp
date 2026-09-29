@@ -1779,7 +1779,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_PASTE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
-            TEST_EQ_II(result.reason.code, (int)ApiFailureReasonCode::TimedOut);
+            TEST_EQ_II(result.reason.code, ApiFailureReasonCode_TimedOut);
         }
 #else
         (void)args;
@@ -1866,7 +1866,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
-            TEST_EQ_II(result.reason.code, (int)ApiFailureReasonCode::TimedOut);
+            TEST_EQ_II(result.reason.code, ApiFailureReasonCode_TimedOut);
         }
 #else
         (void)args;
