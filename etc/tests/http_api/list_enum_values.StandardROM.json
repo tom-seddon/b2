@@ -1,0 +1,10 @@
+{
+    "requests":[
+	{
+	    "type":"list_enum_values",
+	    "args":{
+		"name":"StandardROM"
+	    }
+	}
+    ]
+}

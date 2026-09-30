@@ -457,19 +457,20 @@ static std::vector<std::string> GetBeebConfigNames(size_t (*get_num_configs_fn)(
     return names;
 }
 
+static bool ShouldExposeEnum(const EnumTraitsBase *traits) {
+    if (traits->is_bitfield) {
+        return false;
+    }
+
+    return true;
+}
+
 static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
                                  ApiListValuesArgs &&request_args,
                                  std::function<void(const ApiFailureReason *, ApiListValuesResult &&)> completion_fun) {
     ApiListValuesResult result;
-    if (request_args.name == "StandardROM") {
-        result.values = ListOrdinaryEnumValues(&GetStandardROMEnumName);
-    } else if (request_args.name == "ROMType") {
-        result.values = ListOrdinaryEnumValues(&GetROMTypeEnumName);
-    } else if (request_args.name == "OSROMType") {
-        result.values = ListOrdinaryEnumValues(&GetOSROMTypeEnumName);
-    } else if (request_args.name == "SymbolFileAddressSuffixMode") {
-        result.values = ListOrdinaryEnumValues(&GetSymbolFileAddressSuffixModeEnumName);
-    } else if (request_args.name == "default_configs") {
+
+    if (request_args.name == "default_configs") {
         result.values = GetBeebConfigNames(&GetNumDefaultBeebConfigs, &GetDefaultBeebConfigByIndex);
         //    } else if (request_args.name == "configs") {
         //        result.values = GetBeebConfigNames(&BeebWindows::GetNumConfigs, &BeebWindows::GetConfigByIndex);
@@ -477,6 +478,12 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
         const std::vector<std::unique_ptr<const SymbolTable::SymbolParser>> &parsers = SymbolTable::SymbolParserRegistry::GetParsers();
         for (const std::unique_ptr<const SymbolTable::SymbolParser> &parser : parsers) {
             result.values.push_back(parser->GetFormatName());
+        }
+    } else if (request_args.name == "enums") {
+        for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
+            if (ShouldExposeEnum(traits)) {
+                result.values.push_back(traits->name);
+            }
         }
     } else {
         execute_args.messages->e.f("unknown value: %s\n", request_args.name.c_str());
@@ -487,6 +494,33 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
     completion_fun(nullptr, std::move(result));
 }
 
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+static void ApiExecuteListEnumValues(const ApiExecuteArgs &execute_args,
+                                     ApiListEnumValuesArgs &&request_args,
+                                     std::function<void(const ApiFailureReason *, ApiListEnumValuesResult &&)> completion_fun) {
+
+    for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
+        if (ShouldExposeEnum(traits)) {
+            if (traits->name == request_args.name) {
+                ApiListEnumValuesResult result;
+                for (const EnumValue *value = traits->first_value; value; value = value->next) {
+                    result.values.push_back(value->name);
+                }
+
+                completion_fun(nullptr, std::move(result));
+                return;
+            }
+        }
+    }
+
+    execute_args.messages->e.f("enum not found: %s\n", request_args.name.c_str());
+    completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, {});
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -861,6 +895,8 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCH, true);
     } else if (request.type == API_REQUEST_TYPE_LIST_VALUES) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
+    } else if (request.type == API_REQUEST_TYPE_LIST_ENUM_VALUES) {
+        HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListEnumValues, false);
     } else if (request.type == API_REQUEST_TYPE_LIST_KEYS_AND_VALUES) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListKeysAndValues, false);
     } else if (request.type == API_REQUEST_TYPE_SET_GLOBALS) {

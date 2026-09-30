@@ -41,9 +41,11 @@
 //   specified so it's hopefully easy to figure out)
 // - std::vector<T> - JSON array of T
 // - nlohmann::json - JSON of any kind (probably depending on some other value)
-// - Enum<T> - JSON string, the name of one of the enum values of T (an enum in
-//   this file), excluding any prefix. (So, for example, for Enum<ApiROMType>:
-//   the name for ApiROMType_16KB would be "16KB")
+// - Enum<T> - JSON string, the name of one of the enum values of T, an enum
+//   type from the b2 code. Use the list_enum_values endpoint to list the valid
+//   JSON values for the enum. (If looking at the C++ code to find names: note
+//   that the valid JSON values exclude the prefix; so, for example, for the
+//   StandardROM enum, StandardROM_None in C++ maps to "None" in JSON.)
 // - std::variant<T0,T1...Tn> - JSON for either T0, or T1 - and so on
 // - BBCString - JSON array of strings and numbers. See the BBCString struct
 
@@ -115,7 +117,8 @@ void to_json(nlohmann::json &j, const ApiBBCString &s);
 
 // ApiBinaryData binary data: a sequence of arbitrary bytes.
 //
-// The encoding is always base64. This is not really ideal, but everything supports it.
+// The encoding is always base64. This is not really ideal, but everything
+// supports it.
 struct ApiBinaryData {
     std::vector<uint8_t> bytes;
 };
@@ -158,10 +161,12 @@ static constexpr double API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 15.;
 
 // A single API request.
 struct ApiRequest {
-    // The type of request. Use the value of the API_REQUEST_TYPE_XXX value, where XXX is the request type name in upper case snake_case format.
+    // The type of request. Use the value of the API_REQUEST_TYPE_XXX value,
+    // where XXX is the request type name in upper case snake_case format.
     std::string type;
 
-    // The args for the request. Use the ApiXXXArgs struct, where XXX is the request type name in PascalCase format - or null if no such.
+    // The args for the request. Use the ApiXXXArgs struct, where XXX is the
+    // request type name in PascalCase format - or null if no such.
     nlohmann::json args;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, type, args);
@@ -171,7 +176,9 @@ struct ApiResponse {
     // Success flag. True if the request succeeded; false if it didn't.
     bool success = false;
 
-    // The result struct. If the request failed, this will be an ApiFailureResult; otherwise, this will be the ApiXXXResult struct, where XXX is the name of th request in PascalCase format.
+    // The result struct. If the request failed, this will be an
+    // ApiFailureResult; otherwise, this will be the ApiXXXResult struct, where
+    // XXX is the name of th request in PascalCase format.
     nlohmann::json result;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResponse, success, result);
@@ -181,7 +188,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResponse, success, result);
 
 // Batch of API requests.
 //
-// This is deliberately its own special thing, rather than a special type of ApiRequest.
+// This is deliberately its own special thing, rather than a special type of
+// ApiRequest.
+//
+// Most commands are window-specific, and only affect or query the specified
+// window, though there are exceptions.
 struct ApiMultipleRequests {
     // The window to send the requests to. If not provided, pick the MRU window.
     std::string window;
@@ -258,7 +269,8 @@ struct ApiROMContents {
     // The StandardROM to use, if any. If StandardROM_None, try the path.
     Enum<StandardROM> standard_rom{StandardROM_None};
 
-    // Path to ROM on disk, somewhere the target b2 can find it, relative to the api path. If empty, assume the bank is empty.
+    // Path to ROM on disk, somewhere the target b2 can find it, relative to the
+    // api path. If empty, assume the bank is empty.
     std::string path;
 
     // TODO: ROM contents? base64 encoded?
@@ -279,7 +291,8 @@ struct ApiSidewaysROM {
     // If true, this bank is sideways RAM.
     bool writeable = false;
 
-    // The ROM type. Only relevant if the OS is being loaded from disk; the standard ROMs are all 16 KB.
+    // The ROM type. Only relevant if the OS is being loaded from disk; the
+    // standard ROMs are all 16 KB.
     Enum<ROMType> rom_type{ROMType_16KB};
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSidewaysROM, bank, contents, writeable, rom_type);
@@ -289,7 +302,8 @@ struct ApiOSROM {
     // The contents of the ROM.
     ApiROMContents contents;
 
-    // The OS ROM type. Only relevant if the OS is being loaded from disk; the standard ROMs are all 16 KB.
+    // The OS ROM type. Only relevant if the OS is being loaded from disk; the
+    // standard ROMs are all 16 KB.
     Enum<OSROMType> os_rom_type{OSROMType_16KB};
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiOSROM, contents, os_rom_type);
@@ -416,22 +430,24 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, outp
 
 // Use the list_values command to list values of whatever sort.
 //
-// The set of values of may grow in future versions of b2, but the intent is that existing values will remain valid.
+// The set of values of may grow in future versions of b2, but the intent is
+// that existing values will remain valid.
+//
+// The values will be the same for every window.
 
 static const char API_REQUEST_TYPE_LIST_VALUES[] = "list_values";
 
 struct ApiListValuesArgs {
-    // One of the b2 enum types:
-    //
-    // - "StandardROM" - list StandardROM enum values
-    // - "OSROMType" - list OSROMType enum values
-    // - "ROMType" - list ROMType enum values
-    //
-    // Or, one of b2's internal lists of things:
+    // The name of one of b2's internal lists of things:
     //
     // - "default_configs" - list stock config names, for possible use as
     //   base_default_config for the config request type
-    // - "symbol_format_name" - list types of symbol parser
+    // - "symbol_format_name" - list types of symbol parser, for possible use as
+    //   format_name for the load symbols request type
+    // - "enums" - list names of enums that can be queried with the
+    //   list_enum_values command. This is intended for enums mentioned in this
+    //   file - but it's data-driven, based on b2's internal tables, and so it
+    //   lists everything, even stuff that isn't useful
     std::string name;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesArgs, name);
@@ -444,9 +460,35 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Use the list_keys_and_values command to list key/value pairs of whatever sort.
+// Use the list_enum_values command to list valid names for enums.
 //
-// The set may grow in future versions of b2, but the intent is that existing key/value pairs will remain valid.
+// The set of enums and their values may grow in future versions of b2, but the
+// intent is that existing values will remain valid.
+//
+// The values will be the same for every window.
+
+static const char API_REQUEST_TYPE_LIST_ENUM_VALUES[] = "list_enum_values";
+
+struct ApiListEnumValuesArgs {
+    std::string name;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListEnumValuesArgs, name);
+
+struct ApiListEnumValuesResult {
+    std::vector<std::string> values;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListEnumValuesResult, values);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Use the list_keys_and_values command to list key/value pairs of whatever
+// sort.
+//
+// The set may grow in future versions of b2, but the intent is that existing
+// key/value pairs will remain valid.
+//
+// The values will be the same for every window.
 
 static const char API_REQUEST_TYPE_LIST_KEYS_AND_VALUES[] = "list_keys_and_values";
 
@@ -474,15 +516,19 @@ struct ApiSetGlobalsArgs {
     // of sandboxing, and you can easily use .. to access paths above the
     // specified read path.
     //
-    // Absolute paths are permitted, and data will be road from the request path. The caller is assumed to know what they're doing in this case.
+    // Absolute paths are permitted, and data will be road from the request
+    // path. The caller is assumed to know what they're doing in this case.
     std::optional<std::string> read_path;
 
-    // Specify the write path. Relative names of files to write are assumed to be relative to the write path.
-    // relative to the write path. Since writes are destructive, unlike the read
-    // path, there is some very basic attempt at avoiding surprises: relative names with path separators are not permitted.
-    // This doesn't really provide any protection, but it should at least help avoid overwriting the wrong file.
+    // Specify the write path. Relative names of files to write are assumed to
+    // be relative to the write path. relative to the write path. Since writes
+    // are destructive, unlike the read path, there is some very basic attempt
+    // at avoiding surprises: relative names with path separators are not
+    // permitted. This doesn't really provide any protection, but it should at
+    // least help avoid overwriting the wrong file.
     //
-    // Absolute paths are permitted, and data will be saved to the requested path. The caller is assumed to know what they're doing in this case.
+    // Absolute paths are permitted, and data will be saved to the requested
+    // path. The caller is assumed to know what they're doing in this case.
     std::optional<std::string> write_path;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,

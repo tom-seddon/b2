@@ -11376,6 +11376,12 @@ Some half-baked stuff.
 
 *EXEC file handle: $0256
 
+** use test file from =etc/tests/http_api=
+
+#+begin_example
+  curl --fail-with-body https://localhost:48075/api -H "Content-Type: application/json" --data-binary "@list_values.enums.json"
+#+end_example
+
 * Debug hardware addresses in FRED
 
 $fc5x is where BeebEm seems to put its emulator-specific ports, so b2

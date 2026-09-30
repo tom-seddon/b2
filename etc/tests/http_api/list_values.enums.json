@@ -1,0 +1,10 @@
+{
+    "requests":[
+	{
+	    "type":"list_values",
+	    "args":{
+		"name":"enums"
+	    }
+	}
+    ]
+}
