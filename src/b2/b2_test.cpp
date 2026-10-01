@@ -1631,18 +1631,39 @@ static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::strin
 #endif
 
 #if BBCMICRO_DEBUGGER
-template <class T>
-static T GetSingleApiResultFromHTTPResponse(const HTTPResponse &http_response) {
+static ApiResponse GetSingleApiResponseFromHTTPResponse(const HTTPResponse &http_response) {
     TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
 
     ApiMultipleResponses api_response;
     TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
 
     TEST_EQ_UU(api_response.responses.size(), 1);
+    return api_response.responses[0];
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+static ApiFailureResult GetSingleApiFailureResultFromHTTPResponse(const HTTPResponse &http_response) {
+    const ApiResponse &response = GetSingleApiResponseFromHTTPResponse(http_response);
+
+    TEST_FALSE(response.result.has_value());
+    TEST_TRUE(response.error.has_value());
+
+    return *response.error;
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+template <class T>
+static T GetSingleApiResultFromHTTPResponse(const HTTPResponse &http_response) {
+    const ApiResponse &response = GetSingleApiResponseFromHTTPResponse(http_response);
+
+    TEST_TRUE(response.result.has_value());
+    TEST_FALSE(response.error.has_value());
 
     T api_result;
     std::string exc_what;
-    TEST_TRUE(LoadJSON(&api_result, api_response.responses[0].result, &exc_what));
+    TEST_TRUE(LoadJSON(&api_result, *response.result, &exc_what));
 
     return api_result;
 }
@@ -1778,7 +1799,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             HTTPResponse http_response;
             int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_PASTE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
-            ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
+            ApiFailureResult result = GetSingleApiFailureResultFromHTTPResponse(http_response);
             TEST_EQ_II(result.reason.code, ApiFailureReasonCode_TimedOut);
         }
 #else
@@ -1865,7 +1886,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             HTTPResponse http_response;
             int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 500);
-            ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
+            ApiFailureResult result = GetSingleApiFailureResultFromHTTPResponse(http_response);
             TEST_EQ_II(result.reason.code, ApiFailureReasonCode_TimedOut);
         }
 #else

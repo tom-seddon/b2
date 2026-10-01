@@ -116,9 +116,47 @@ void to_json(nlohmann::json &j, const ApiBinaryData &s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void from_json(const nlohmann::json &j, ApiResponse &r) {
+    if (j.contains("result")) {
+        r.result = j["result"];
+    }
+
+    if (j.contains("error")) {
+        if (r.result.has_value()) {
+            throw nlohmann::json::type_error::create(302, strprintf("invalid ApiResponse value: has both result and error"), nullptr);
+        }
+
+        r.error = j["error"];
+    }
+}
+
+void to_json(nlohmann::json &j, const ApiResponse &r) {
+    if (r.result.has_value()) {
+        j["result"] = *r.result;
+    }
+
+    if (r.error.has_value()) {
+        j["error"] = *r.error;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool WasSuccessful(const ApiResponse &r) {
+    if (r.error.has_value()) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool WasSuccessful(const ApiMultipleResponses &response) {
     for (const ApiResponse &r : response.responses) {
-        if (!r.success) {
+        if (!WasSuccessful(r)) {
             return false;
         }
     }

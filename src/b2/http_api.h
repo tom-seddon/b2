@@ -27,9 +27,13 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(T,...) means struct T is part
-// of the JSON API. Only structs tagged this way are part of the API.
+// If struct T is part of the JSON API, it will have one of the following:
 //
+// - serialization macro: NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(T,...)
+// - serialization functions, one or both of:
+//   - void from_json(const nlohmann::json &, T &)
+//   - void to_json(nlohmann::json &, const T &)
+
 // C++ types used, and how they map to JSON.
 //
 // - std::string - JSON string
@@ -148,6 +152,18 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureReason, code, error);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Result struct for a request that failed.
+struct ApiFailureResult {
+    ApiFailureReason reason;
+
+    // Any log messages that were printed during the execution, intended for human consumption.
+    std::vector<std::string> messages;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureResult, reason, messages);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // A few calls give you the option of waiting for the next OSWORD 0 (line input)
 // call before continuing.
 //
@@ -174,15 +190,18 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, method, params);
 
 // The response to a ApiRequest.
 struct ApiResponse {
-    // Success flag. True if the request succeeded; false if it didn't.
-    bool success = false;
+    // If the error field is present, the method failed, and there is no result
+    // field. See the ApiFailureResult for more details.
+    std::optional<ApiFailureResult> error;
 
-    // The result struct. If the request failed, this will be an
-    // ApiFailureResult; otherwise, this will be the ApiXXXResult struct, where
-    // XXX is the name of th request in PascalCase format.
-    nlohmann::json result;
+    // If the error field is not present, the method succeeded, and the result
+    // field (if present) holds the result (if any).
+    std::optional<nlohmann::json> result;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResponse, success, result);
+void from_json(const nlohmann::json &j, ApiResponse &r);
+void to_json(nlohmann::json &j, const ApiResponse &r);
+
+bool WasSuccessful(const ApiResponse &r);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -247,18 +266,6 @@ extern const ApiFailureReason API_FAILURE_REASON_SCREEN_GRAB_FAILED;
 extern const ApiFailureReason API_FAILURE_REASON_WINDOW_NOT_FOUND;
 extern const ApiFailureReason API_FAILURE_REASON_TIMED_OUT;
 extern const ApiFailureReason API_FAILURE_REASON_CANCELLED;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Result struct for a request that failed.
-struct ApiFailureResult {
-    ApiFailureReason reason;
-
-    // Any log messages that were printed during the execution, intended for human consumption.
-    std::vector<std::string> messages;
-};
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureResult, reason, messages);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -958,29 +958,26 @@ static ApiResponse GetApiResponse(const ApiFailureReason *failure_reason, nlohma
     ApiResponse response;
 
     if (!failure_reason) {
-        response.success = true;
         response.result = std::move(j);
     } else {
-        response.success = false;
+        ApiFailureResult error;
 
-        ApiFailureResult result;
-
-        result.reason = *failure_reason;
+        error.reason = *failure_reason;
 
         messages->i.Flush();
         messages->w.Flush();
         messages->e.Flush();
 
         std::shared_ptr<MessageList> message_list = messages->GetMessageList();
-        message_list->ForEachMessage([&result](MessageList::Message *message) -> void {
+        message_list->ForEachMessage([&error](MessageList::Message *message) -> void {
             std::string str = GetMessagePrefix(message);
             str += ": ";
             str += message->text;
 
-            result.messages.push_back(std::move(str));
+            error.messages.push_back(std::move(str));
         });
 
-        response.result = std::move(result);
+        response.error = std::move(error);
     }
 
     return response;
@@ -1095,12 +1092,12 @@ static void HandleRequestCompletion(const std::shared_ptr<MultipleRequestsState>
 
     state->response.responses.push_back(std::move(response));
 
-    if (!state->response.responses.back().success) {
-        // break out of the loop.
-        state->index = state->request.requests.size();
-    } else {
+    if (WasSuccessful(state->response.responses.back())) {
         // next request.
         ++state->index;
+    } else {
+        // break out of the loop.
+        state->index = state->request.requests.size();
     }
 
     PushMainThreadMessage(std::make_unique<FunctionMessage>([state]() -> void {
