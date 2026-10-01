@@ -1608,14 +1608,14 @@ class TestHTTPAPI : public Test, public AppHandler {
 
 #if BBCMICRO_DEBUGGER
 template <class T>
-static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::string type, const T &body) {
+static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::string method, const T &body) {
     HTTPRequest http_request;
 
     ApiMultipleRequests api_multiple_requests;
 
     {
         ApiRequest api_request;
-        api_request.type = std::move(type);
+        api_request.method = std::move(method);
         api_request.args = body;
 
         api_multiple_requests.requests.push_back(std::move(api_request));
@@ -1696,13 +1696,13 @@ class TestHTTPConfig : public TestHTTPAPI {
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_START_CAPTURE_OSWRCH, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_START_CAPTURE_OSWRCH, nullptr), &http_response);
             TEST_EQ_II(status, 200);
         }
 
@@ -1711,13 +1711,13 @@ class TestHTTPConfig : public TestHTTPAPI {
             ApiPasteArgs paste_args;
             TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "REM DUMMY LINE\rREM TIME=0:REPEAT:UNTILTIME>200\r*FX0\r", nullptr, nullptr, nullptr));
             paste_args.wait_for_osword_0 = true;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_PASTE, paste_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_PASTE, paste_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_STOP_CAPTURE_OSWRCH, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_STOP_CAPTURE_OSWRCH, nullptr), &http_response);
             TEST_EQ_II(status, 200);
 
             ApiStopCaptureOSWRCHResult result = GetSingleApiResultFromHTTPResponse<ApiStopCaptureOSWRCHResult>(http_response);
@@ -1765,7 +1765,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             config_args.wait_for_osword_0 = true;
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 200);
         }
 
@@ -1776,7 +1776,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
             paste_args.wait_for_osword_0_timeout_seconds = .5;
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_PASTE, paste_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_PASTE, paste_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
             TEST_EQ_II(result.reason.code, ApiFailureReasonCode_TimedOut);
@@ -1863,7 +1863,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
             }
 
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_REQUEST_TYPE_CONFIG, config_args), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_CONFIG, config_args), &http_response);
             TEST_EQ_II(status, 500);
             ApiFailureResult result = GetSingleApiResultFromHTTPResponse<ApiFailureResult>(http_response);
             TEST_EQ_II(result.reason.code, ApiFailureReasonCode_TimedOut);
@@ -1908,7 +1908,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             args.wait_for_osword_0_timeout_seconds = 10.;
 
             ApiRequest request;
-            request.type = API_REQUEST_TYPE_CONFIG;
+            request.method = API_METHOD_CONFIG;
             request.args = args;
 
             requests.requests.push_back(std::move(request));
@@ -1916,7 +1916,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
 
         {
             ApiRequest request;
-            request.type = API_REQUEST_TYPE_START_COUNTING_BRKS;
+            request.method = API_METHOD_START_COUNTING_BRKS;
             requests.requests.push_back(std::move(request));
         }
 
@@ -1926,7 +1926,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             args.wait_for_osword_0 = true;
 
             ApiRequest request;
-            request.type = API_REQUEST_TYPE_PASTE;
+            request.method = API_METHOD_PASTE;
             request.args = std::move(args);
 
             requests.requests.push_back(std::move(request));
@@ -1937,7 +1937,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             args.expected_brk_count = m_do_brk ? 1 : 0;
 
             ApiRequest request;
-            request.type = API_REQUEST_TYPE_STOP_COUNTING_BRKS;
+            request.method = API_METHOD_STOP_COUNTING_BRKS;
             request.args = std::move(args);
 
             requests.requests.push_back(std::move(request));
@@ -2007,7 +2007,7 @@ class TestHTTPPeek : public TestHTTPAPI {
             args.wait_for_osword_0_timeout_seconds = 10.;
 
             ApiRequest request;
-            request.type = API_REQUEST_TYPE_CONFIG;
+            request.method = API_METHOD_CONFIG;
             request.args = args;
 
             requests.requests.push_back(std::move(request));
@@ -2020,7 +2020,7 @@ class TestHTTPPeek : public TestHTTPAPI {
             args.suffix = "f";
 
             ApiRequest request;
-            request.type = API_REQUEST_TYPE_PEEK;
+            request.method = API_METHOD_PEEK;
             request.args = args;
 
             requests.requests.push_back(std::move(request));
@@ -2033,7 +2033,7 @@ class TestHTTPPeek : public TestHTTPAPI {
             args.suffix = "e";
 
             ApiRequest request;
-            request.type = API_REQUEST_TYPE_PEEK;
+            request.method = API_METHOD_PEEK;
             request.args = args;
 
             requests.requests.push_back(std::move(request));

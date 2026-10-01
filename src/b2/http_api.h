@@ -161,15 +161,15 @@ static constexpr double API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 15.;
 
 // A single API request.
 struct ApiRequest {
-    // The type of request. Use the value of the API_REQUEST_TYPE_XXX value,
-    // where XXX is the request type name in upper case snake_case format.
-    std::string type;
+    // The requested method. Use the value of the API_METHOD_XXX value, where XXX
+    // is the method name in upper case snake_case format.
+    std::string method;
 
     // The args for the request. Use the ApiXXXArgs struct, where XXX is the
-    // request type name in PascalCase format - or null if no such.
+    // request method in PascalCase format - or null if no such.
     nlohmann::json args;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, type, args);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, method, args);
 
 // The response to a ApiRequest.
 struct ApiResponse {
@@ -330,7 +330,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigNVRAMByte,
 
 // Specify a new BBC config.
 
-static const char API_REQUEST_TYPE_CONFIG[] = "config";
+static const char API_METHOD_CONFIG[] = "config";
 
 struct ApiConfigArgs {
     std::string base_default_config;
@@ -375,7 +375,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_RESET[] = "reset";
+static const char API_METHOD_RESET[] = "reset";
 
 struct ApiResetArgs {
     bool boot = false;
@@ -390,7 +390,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResetArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_PASTE[] = "paste";
+static const char API_METHOD_PASTE[] = "paste";
 
 struct ApiPasteArgs {
     ApiBBCString input;
@@ -411,12 +411,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input, wait_for_os
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_START_CAPTURE_OSWRCH[] = "start_capture_oswrch";
+static const char API_METHOD_START_CAPTURE_OSWRCH[] = "start_capture_oswrch";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_STOP_CAPTURE_OSWRCH[] = "stop_capture_oswrch";
+static const char API_METHOD_STOP_CAPTURE_OSWRCH[] = "stop_capture_oswrch";
 
 struct ApiStopCaptureOSWRCHResult {
     ApiBBCString output;
@@ -433,7 +433,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, outp
 //
 // The values will be the same for every window.
 
-static const char API_REQUEST_TYPE_LIST_VALUES[] = "list_values";
+static const char API_METHOD_LIST_VALUES[] = "list_values";
 
 struct ApiListValuesArgs {
     // The name of one of b2's internal lists of things:
@@ -465,7 +465,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 //
 // The values will be the same for every window.
 
-static const char API_REQUEST_TYPE_LIST_ENUM_VALUES[] = "list_enum_values";
+static const char API_METHOD_LIST_ENUM_VALUES[] = "list_enum_values";
 
 struct ApiListEnumValuesArgs {
     std::string name;
@@ -488,7 +488,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListEnumValuesResult, values)
 //
 // The values will be the same for every window.
 
-static const char API_REQUEST_TYPE_LIST_KEYS_AND_VALUES[] = "list_keys_and_values";
+static const char API_METHOD_LIST_KEYS_AND_VALUES[] = "list_keys_and_values";
 
 struct ApiListKeysAndValuesArgs {
     // One of the b2 enum types:
@@ -506,7 +506,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListKeysAndValuesResult, keys
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_SET_GLOBALS[] = "set_globals";
+static const char API_METHOD_SET_GLOBALS[] = "set_globals";
 
 struct ApiSetGlobalsArgs {
     // Specify the read path. Relative names of files to read from are assumed
@@ -536,7 +536,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_SCREEN_GRAB_PNG_DATA[] = "screen_grab_png_data";
+static const char API_METHOD_SCREEN_GRAB_PNG_DATA[] = "screen_grab_png_data";
 
 struct ApiScreenGrabPNGDataArgs {
     // If true, output will be resized (possibly with filtering) to match the aspect ratio of output from a real BBC Micro.
@@ -554,7 +554,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataResult,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_SCREEN_GRAB_PNG_FILE[] = "screen_grab_png_file";
+static const char API_METHOD_SCREEN_GRAB_PNG_FILE[] = "screen_grab_png_file";
 
 struct ApiScreenGrabPNGFileArgs {
     // If true, output will be resized (possibly with filtering) to match the aspect ratio of output from a real BBC Micro.
@@ -584,14 +584,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileResult,
 //
 // The counter starts at 0.
 
-static const char API_REQUEST_TYPE_START_COUNTING_BRKS[] = "start_counting_brks";
+static const char API_METHOD_START_COUNTING_BRKS[] = "start_counting_brks";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // Stop counting BRK instructions.
 
-static const char API_REQUEST_TYPE_STOP_COUNTING_BRKS[] = "stop_counting_brks";
+static const char API_METHOD_STOP_COUNTING_BRKS[] = "stop_counting_brks";
 
 struct ApiStopCountingBRKsArgs {
     // If not supplied, the request always succeeds.
@@ -606,7 +606,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCountingBRKsArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_LOAD_DISK_IMAGE[] = "load_disk_image";
+static const char API_METHOD_LOAD_DISK_IMAGE[] = "load_disk_image";
 
 struct ApiLoadDiskImageArgs {
     std::string path;
@@ -619,7 +619,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadDiskImageArgs,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_TYPE_PEEK[] = "peek";
+static const char API_METHOD_PEEK[] = "peek";
 
 struct ApiPeekArgs {
     uint32_t begin = 0;
@@ -644,7 +644,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekResult,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//static const char API_REQUEST_TYPE_WAIT_FOR_EVENT[] = "wait_for_event";
+//static const char API_METHOD_WAIT_FOR_EVENT[] = "wait_for_event";
 //
 //struct ApiWaitForEventArgs {
 //    std::optional<uint8_t> event;
@@ -657,12 +657,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekResult,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_CLEAR_SYMBOLS[] = "clear_symbols";
+static const char API_METHOD_CLEAR_SYMBOLS[] = "clear_symbols";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char API_REQUEST_LOAD_SYMBOLS[] = "load_symbols";
+static const char API_METHOD_LOAD_SYMBOLS[] = "load_symbols";
 
 struct ApiLoadSymbolsArgs {
     std::string path;

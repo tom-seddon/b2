@@ -328,7 +328,7 @@ static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
                                    [completion_fun,
                                     messages = execute_args.messages](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
                                        if (result != BeebThreadCompletionFunResult_Success) {
-                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_CONFIG, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_METHOD_CONFIG, failure_text);
                                        }
 
                                        completion_fun(GetApiFailureReason(result), nullptr);
@@ -352,7 +352,7 @@ static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
                                    [completion_fun,
                                     messages = execute_args.messages](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
                                        if (result != BeebThreadCompletionFunResult_Success) {
-                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_RESET, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_METHOD_RESET, failure_text);
                                        }
                                        completion_fun(GetApiFailureReason(result), nullptr);
                                    });
@@ -383,7 +383,7 @@ static void ApiExecutePaste(const ApiExecuteArgs &execute_args,
                                     messages = execute_args.messages](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
                                        ASSERT(!!messages);
                                        if (result != BeebThreadCompletionFunResult_Success) {
-                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_PASTE, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_METHOD_PASTE, failure_text);
                                        }
                                        completion_fun(GetApiFailureReason(result), nullptr);
                                    });
@@ -723,7 +723,7 @@ static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
                                    [messages = execute_args.messages,
                                     completion_fun](BeebThreadCompletionFunResult result, const char *failure_text) -> void {
                                        if (result != BeebThreadCompletionFunResult_Success) {
-                                           messages->e.f("%s failed: %s\n", API_REQUEST_TYPE_LOAD_DISK_IMAGE, failure_text);
+                                           messages->e.f("%s failed: %s\n", API_METHOD_LOAD_DISK_IMAGE, failure_text);
                                        }
 
                                        completion_fun(GetApiFailureReason(result), {});
@@ -885,42 +885,42 @@ static void HandleApiExecute(const ApiExecuteArgs &execute_args,
 static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
                                  ApiRequest request,
                                  std::function<void(const ApiFailureReason *, nlohmann::json)> completion_fun) {
-    if (request.type == API_REQUEST_TYPE_CONFIG) {
+    if (request.method == API_METHOD_CONFIG) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteConfig, true);
-    } else if (request.type == API_REQUEST_TYPE_PASTE) {
+    } else if (request.method == API_METHOD_PASTE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePaste, true);
-    } else if (request.type == API_REQUEST_TYPE_START_CAPTURE_OSWRCH) {
+    } else if (request.method == API_METHOD_START_CAPTURE_OSWRCH) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCaptureOSWRCH, true);
-    } else if (request.type == API_REQUEST_TYPE_STOP_CAPTURE_OSWRCH) {
+    } else if (request.method == API_METHOD_STOP_CAPTURE_OSWRCH) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCaptureOSWRCH, true);
-    } else if (request.type == API_REQUEST_TYPE_LIST_VALUES) {
+    } else if (request.method == API_METHOD_LIST_VALUES) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListValues, false);
-    } else if (request.type == API_REQUEST_TYPE_LIST_ENUM_VALUES) {
+    } else if (request.method == API_METHOD_LIST_ENUM_VALUES) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListEnumValues, false);
-    } else if (request.type == API_REQUEST_TYPE_LIST_KEYS_AND_VALUES) {
+    } else if (request.method == API_METHOD_LIST_KEYS_AND_VALUES) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteListKeysAndValues, false);
-    } else if (request.type == API_REQUEST_TYPE_SET_GLOBALS) {
+    } else if (request.method == API_METHOD_SET_GLOBALS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteSetGlobals, true);
-    } else if (request.type == API_REQUEST_TYPE_SCREEN_GRAB_PNG_DATA) {
+    } else if (request.method == API_METHOD_SCREEN_GRAB_PNG_DATA) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGData, true);
-    } else if (request.type == API_REQUEST_TYPE_SCREEN_GRAB_PNG_FILE) {
+    } else if (request.method == API_METHOD_SCREEN_GRAB_PNG_FILE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteScreenGrabPNGFile, true);
-    } else if (request.type == API_REQUEST_TYPE_START_COUNTING_BRKS) {
+    } else if (request.method == API_METHOD_START_COUNTING_BRKS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStartCountingBRKs, true);
-    } else if (request.type == API_REQUEST_TYPE_STOP_COUNTING_BRKS) {
+    } else if (request.method == API_METHOD_STOP_COUNTING_BRKS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteStopCountingBRKs, true);
-    } else if (request.type == API_REQUEST_TYPE_LOAD_DISK_IMAGE) {
+    } else if (request.method == API_METHOD_LOAD_DISK_IMAGE) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteLoadDiskImage, true);
-    } else if (request.type == API_REQUEST_TYPE_RESET) {
+    } else if (request.method == API_METHOD_RESET) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteReset, true);
-    } else if (request.type == API_REQUEST_TYPE_PEEK) {
+    } else if (request.method == API_METHOD_PEEK) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecutePeek, true);
-    } else if (request.type == API_REQUEST_CLEAR_SYMBOLS) {
+    } else if (request.method == API_METHOD_CLEAR_SYMBOLS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteClearSymbols, true);
-    } else if (request.type == API_REQUEST_LOAD_SYMBOLS) {
+    } else if (request.method == API_METHOD_LOAD_SYMBOLS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteLoadSymbols, true);
     } else {
-        execute_args.messages->e.f("Unsupported request type: %s\n", request.type.c_str());
+        execute_args.messages->e.f("Unsupported method: %s\n", request.method.c_str());
         completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
     }
 }
