@@ -251,15 +251,17 @@ class HeadlessAppHandler : public AppHandler {
             }
         }
 
+        bool success = WasSuccessful(response);
+
         // TODO: this output can get mixed in with any buffered-up echo-oswrch output that hasn't been flushed yet. The official b2_headless stdout policy is that it's for eyeballing purposes only, but it'd be nice to fix this if it would be easy.
         if (!this->IsHeadless() || m_options.api_output_path.empty()) {
-            printf("JSON result (success=%s):\n", BOOL_STR(response.success));
+            printf("JSON result (success=%s):\n", BOOL_STR(success));
             printf("---8<---\n");
             puts(nlohmann::json(response).dump(4).c_str());
             printf("---8<---\n");
         }
 
-        this->QuitIfHeadless(response.success ? 0 : 1);
+        this->QuitIfHeadless(success ? 0 : 1);
     }
 };
 

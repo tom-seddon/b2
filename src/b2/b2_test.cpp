@@ -2053,7 +2053,7 @@ class TestHTTPPeek : public TestHTTPAPI {
         TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
         TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
 
-        TEST_TRUE(api_response.success);
+        TEST_TRUE(WasSuccessful(api_response));
         TEST_EQ_UU(api_response.responses.size(), 3);
 
         std::string exc_what;

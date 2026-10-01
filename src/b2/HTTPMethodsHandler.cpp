@@ -1041,14 +1041,6 @@ static void CallOverallCompletionFun(const std::shared_ptr<MultipleRequestsState
     // break the refcount cycle.
     state->request_completion_fun = nullptr;
 
-    state->response.success = true;
-    for (const ApiResponse &response : state->response.responses) {
-        if (!response.success) {
-            state->response.success = false;
-            break;
-        }
-    }
-
     state->overall_completion_fun(std::move(state->response));
 }
 
@@ -2086,21 +2078,22 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    static void HandleGenericRequestCompletion(bool success,
-                                               nlohmann::json j,
+    static void HandleGenericRequestCompletion(ApiMultipleResponses &&api_response,
                                                HTTPServer *server,
-                                               const HTTPResponseData &response_data) {
-        HTTPResponse response;
+                                               const HTTPResponseData &http_response_data) {
+        bool success = WasSuccessful(api_response);
+
+        HTTPResponse http_response;
         if (success) {
-            response = HTTPResponse::OK();
+            http_response = HTTPResponse::OK();
         } else {
-            response = HTTPResponse::InternalServerError();
+            http_response = HTTPResponse::InternalServerError();
         }
 
-        response.content_type = HTTP_JSON_CONTENT_TYPE;
-        response.content = SaveJSONData(std::move(j));
+        http_response.content_type = HTTP_JSON_CONTENT_TYPE;
+        http_response.content = SaveJSONData(std::move(api_response));
 
-        server->SendResponse(response_data, std::move(response));
+        server->SendResponse(http_response_data, std::move(http_response));
     }
 #endif
 
@@ -2125,8 +2118,8 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         ApiExecuteMultipleRequests(std::move(api_request),
                                    [response_data = request.response_data,
-                                    server](ApiMultipleResponses response) -> void {
-                                       HandleGenericRequestCompletion(response.success, std::move(response), server, response_data);
+                                    server](ApiMultipleResponses &&response) -> void {
+                                       HandleGenericRequestCompletion(std::move(response), server, response_data);
                                    });
     }
 

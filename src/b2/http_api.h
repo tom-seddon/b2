@@ -204,16 +204,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleRequests, requests);
 
 // The response to a ApiMultipleRequests.
 struct ApiMultipleResponses {
-    // Success flag for the multiple requests as a whole. True if all requests
-    // succeeded.
-    bool success = true;
-
     // The responses to the requests that were processed. There may be fewer
     // responses than requests; if a request fails, its response is included,
     // but the remaining requests are discarded.
     std::vector<ApiResponse> responses;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses);
+
+bool WasSuccessful(const ApiMultipleResponses &response);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
