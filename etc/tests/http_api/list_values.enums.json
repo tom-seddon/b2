@@ -1,8 +1,8 @@
 {
     "requests":[
 	{
-	    "type":"list_values",
-	    "args":{
+	    "method":"list_values",
+	    "params":{
 		"name":"enums"
 	    }
 	}

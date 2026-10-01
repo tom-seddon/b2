@@ -151,7 +151,7 @@ static const ApiFailureReason *GetApiFailureReason(BeebThreadCompletionFunResult
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static bool GetFilePathForRead(std::string *full_path, const std::string &path, const ApiSetGlobalsArgs &api_globals, const LogSet &logs) {
+static bool GetFilePathForRead(std::string *full_path, const std::string &path, const ApiSetGlobalsParams &api_globals, const LogSet &logs) {
     if (PathIsFullySpecified(path)) {
         *full_path = path;
         return true;
@@ -172,7 +172,7 @@ static bool GetFilePathForRead(std::string *full_path, const std::string &path, 
 
 #if BBCMICRO_DEBUGGER
 
-static bool CopyROM(BeebConfig::ROM *dest, const ApiSetGlobalsArgs &api_globals, const ApiROMContents &src, const LogSet &logs) {
+static bool CopyROM(BeebConfig::ROM *dest, const ApiSetGlobalsParams &api_globals, const ApiROMContents &src, const LogSet &logs) {
     if (src.standard_rom != StandardROM_None) {
         dest->standard_rom = FindBeebROM(src.standard_rom);
         if (!dest->standard_rom) {
@@ -197,7 +197,7 @@ static void SetOptional(T *dest, const std::optional<T> &src) {
     }
 }
 
-static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsArgs &api_globals, const ApiConfigArgs &src, const LogSet &logs) {
+static bool Load(BeebLoadedConfig *loaded_config, const ApiSetGlobalsParams &api_globals, const ApiConfigParams &src, const LogSet &logs) {
     BeebConfig dest;
 
     if (!src.base_default_config.empty()) {
@@ -308,7 +308,7 @@ static void GetResetArguments(uint32_t *flags, double *osword_0_timeout_seconds,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
-                             ApiConfigArgs &&request_args,
+                             ApiConfigParams &&request_args,
                              std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     ASSERT(IsMainThread());
 
@@ -341,7 +341,7 @@ static void ApiExecuteConfig(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
-                            ApiResetArgs &&request_args,
+                            ApiResetParams &&request_args,
                             std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     uint32_t flags;
     double osword_0_timeout_seconds;
@@ -364,7 +364,7 @@ static void ApiExecuteReset(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecutePaste(const ApiExecuteArgs &execute_args,
-                            ApiPasteArgs &&request_args,
+                            ApiPasteParams &&request_args,
                             std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     execute_args.beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
 
@@ -466,7 +466,7 @@ static bool ShouldExposeEnum(const EnumTraitsBase *traits) {
 }
 
 static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
-                                 ApiListValuesArgs &&request_args,
+                                 ApiListValuesParams &&request_args,
                                  std::function<void(const ApiFailureReason *, ApiListValuesResult &&)> completion_fun) {
     ApiListValuesResult result;
 
@@ -501,7 +501,7 @@ static void ApiExecuteListValues(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteListEnumValues(const ApiExecuteArgs &execute_args,
-                                     ApiListEnumValuesArgs &&request_args,
+                                     ApiListEnumValuesParams &&request_args,
                                      std::function<void(const ApiFailureReason *, ApiListEnumValuesResult &&)> completion_fun) {
 
     for (const EnumTraitsBase *traits = EnumTraitsBase::GetFirst(); traits; traits = traits->next) {
@@ -528,7 +528,7 @@ static void ApiExecuteListEnumValues(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteListKeysAndValues(const ApiExecuteArgs &execute_args,
-                                        ApiListKeysAndValuesArgs &&request_args,
+                                        ApiListKeysAndValuesParams &&request_args,
                                         std::function<void(const ApiFailureReason *, ApiListKeysAndValuesResult &&)> completion_fun) {
     ApiListKeysAndValuesResult result;
     if (request_args.name == "DebugCommand") {
@@ -557,7 +557,7 @@ static void ApiExecuteListKeysAndValues(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
-                                 ApiSetGlobalsArgs &&request_args,
+                                 ApiSetGlobalsParams &&request_args,
                                  std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     if (request_args.read_path.has_value()) {
         if (!PathIsFullySpecified(*request_args.read_path)) {
@@ -588,7 +588,7 @@ static void ApiExecuteSetGlobals(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
-                                        ApiScreenGrabPNGDataArgs &&request_args,
+                                        ApiScreenGrabPNGDataParams &&request_args,
                                         std::function<void(const ApiFailureReason *, ApiScreenGrabPNGDataResult &&)> completion_fun) {
     SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, *execute_args.messages);
     if (!screenshot) {
@@ -611,7 +611,7 @@ static void ApiExecuteScreenGrabPNGData(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteScreenGrabPNGFile(const ApiExecuteArgs &execute_args,
-                                        ApiScreenGrabPNGFileArgs &&request_args,
+                                        ApiScreenGrabPNGFileParams &&request_args,
                                         std::function<void(const ApiFailureReason *, ApiScreenGrabPNGFileResult &&)> completion_fun) {
     SDLUniquePtr<SDL_Surface> screenshot = execute_args.beeb_window->GetDisplayData(request_args.correct_aspect_ratio, *execute_args.messages);
     if (!screenshot) {
@@ -673,7 +673,7 @@ static void ApiExecuteStartCountingBRKs(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteStopCountingBRKs(const ApiExecuteArgs &execute_args,
-                                       ApiStopCountingBRKsArgs &&request_args,
+                                       ApiStopCountingBRKsParams &&request_args,
                                        std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     uint64_t num_brks;
     if (!execute_args.beeb_window->StopCountingBRKs(&num_brks)) {
@@ -699,7 +699,7 @@ static void ApiExecuteStopCountingBRKs(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
-                                    ApiLoadDiskImageArgs &&request_args,
+                                    ApiLoadDiskImageParams &&request_args,
                                     std::function<void(const ApiFailureReason *, std::nullptr_t &&)> completion_fun) {
     if (request_args.drive < 0 || request_args.drive >= NUM_DRIVES) {
         execute_args.messages->e.f("Invalid drive: %d\n", request_args.drive);
@@ -736,7 +736,7 @@ static void ApiExecuteLoadDiskImage(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecutePeek(const ApiExecuteArgs &execute_args,
-                           ApiPeekArgs &&request_args,
+                           ApiPeekParams &&request_args,
                            std::function<void(const ApiFailureReason *, ApiPeekResult &&)> completion_fun) {
     if (request_args.end.has_value() == request_args.size.has_value()) {
         execute_args.messages->e.f("Must specify exactly one of size or value\n");
@@ -796,7 +796,7 @@ static void ApiExecuteClearSymbols(const ApiExecuteArgs &execute_args,
 
 #if BBCMICRO_DEBUGGER
 static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
-                                  ApiLoadSymbolsArgs &&request_args,
+                                  ApiLoadSymbolsParams &&request_args,
                                   std::function<void(const ApiFailureReason *, ApiLoadSymbolsResult &&)> completion_fun) {
     const SymbolTable::SymbolParser *parser = SymbolTable::SymbolParserRegistry::FindParserByFormatName(request_args.format_name);
     if (!parser) {
@@ -863,7 +863,7 @@ static void HandleApiExecute(const ApiExecuteArgs &execute_args,
     std::string exc_what;
     ArgsType request_args;
 
-    if (!LoadJSON(&request_args, request.args, &exc_what)) {
+    if (!LoadJSON(&request_args, request.params, &exc_what)) {
         execute_args.messages->e.f("Args parse failed: %s\n", exc_what.c_str());
         completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
         return;
@@ -1970,7 +1970,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         const PathParameter pps[] = {
             {&ParseWindow, &beeb_window},
         };
-        ApiScreenGrabPNGDataArgs request_args;
+        ApiScreenGrabPNGDataParams request_args;
         const QueryParameter qps[] = {
             {"correct_aspect_ratio", &ParseBool, &request_args.correct_aspect_ratio},
         };
@@ -2047,7 +2047,7 @@ class HTTPMethodsHandler : public HTTPHandler {
 #if BBCMICRO_DEBUGGER
     void HandleSetGlobalsRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
-        ApiSetGlobalsArgs request_args;
+        ApiSetGlobalsParams request_args;
         const PathParameter pps[] = {
             {&ParseWindow, &beeb_window},
         };

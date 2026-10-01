@@ -1,8 +1,8 @@
 {
     "requests":[
 	{
-	    "type":"list_enum_values",
-	    "args":{
+	    "method":"list_enum_values",
+	    "params":{
 		"name":"StandardROM"
 	    }
 	}

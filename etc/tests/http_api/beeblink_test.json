@@ -1,8 +1,8 @@
 {
     "requests":[
         {
-            "type":"config",
-            "args":{
+            "method":"config",
+            "params":{
                 "base_default_config":"B/Acorn 1770",
                 "sideways_roms":[
                     {
@@ -17,12 +17,12 @@
             }
         },
         {
-            "type":"start_counting_brks",
-            "args":null
+            "method":"start_counting_brks",
+            "params":null
         },
         {
-            "type":"paste",
-            "args":{
+            "method":"paste",
+            "params":{
                 "input":["*HELP\r",
                          "*BLFS\r",
                          "*VOL BEEBLINK_DFS_TESTS\r",
@@ -32,8 +32,8 @@
             }
         },
         {
-            "type":"stop_counting_brks",
-            "args":{
+            "method":"stop_counting_brks",
+            "params":{
                 "expected_brk_count":8
             }
         }

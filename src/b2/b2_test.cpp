@@ -1616,7 +1616,7 @@ static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::strin
     {
         ApiRequest api_request;
         api_request.method = std::move(method);
-        api_request.args = body;
+        api_request.params = body;
 
         api_multiple_requests.requests.push_back(std::move(api_request));
     }
@@ -1690,7 +1690,7 @@ class TestHTTPConfig : public TestHTTPAPI {
 
         std::string url = strprintf("http://localhost:%d/api", args->http_port);
 
-        ApiConfigArgs config_args;
+        ApiConfigParams config_args;
         config_args.base_default_config = m_mos_type.default_config_name;
         config_args.wait_for_osword_0 = true;
 
@@ -1708,7 +1708,7 @@ class TestHTTPConfig : public TestHTTPAPI {
 
         {
             HTTPResponse http_response;
-            ApiPasteArgs paste_args;
+            ApiPasteParams paste_args;
             TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "REM DUMMY LINE\rREM TIME=0:REPEAT:UNTILTIME>200\r*FX0\r", nullptr, nullptr, nullptr));
             paste_args.wait_for_osword_0 = true;
             int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_PASTE, paste_args), &http_response);
@@ -1760,7 +1760,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
         std::string url = strprintf("http://localhost:%d/api", args->http_port);
 
         {
-            ApiConfigArgs config_args;
+            ApiConfigParams config_args;
             config_args.base_default_config = m_mos_type.default_config_name;
             config_args.wait_for_osword_0 = true;
 
@@ -1770,7 +1770,7 @@ class TestHTTPPasteOSWORD0Timeout : public TestHTTPAPI {
         }
 
         {
-            ApiPasteArgs paste_args;
+            ApiPasteParams paste_args;
             TEST_TRUE(GetBBCASCIIFromUTF8(&paste_args.input.bytes, "TIME=0:REPEAT:UNTILTIME>100\r", nullptr, nullptr, nullptr));
             paste_args.wait_for_osword_0 = true;
             paste_args.wait_for_osword_0_timeout_seconds = .5;
@@ -1816,7 +1816,7 @@ class TestHTTPConfigOSWORD0Timeout : public TestHTTPAPI {
         std::string problem_rom_path = PathJoined(b2_SOURCE_DIR, "etc/tests/roms/Wordwise Plus v1.49 [variant 5].rom");
 
         {
-            ApiConfigArgs config_args;
+            ApiConfigParams config_args;
             config_args.base_default_config = m_mos_type.default_config_name;
             config_args.wait_for_osword_0 = true;
             config_args.wait_for_osword_0_timeout_seconds = .5;
@@ -1902,14 +1902,14 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
         ApiMultipleRequests requests;
 
         {
-            ApiConfigArgs args;
+            ApiConfigParams args;
             args.base_default_config = "B/Acorn 1770";
             args.wait_for_osword_0 = true;
             args.wait_for_osword_0_timeout_seconds = 10.;
 
             ApiRequest request;
             request.method = API_METHOD_CONFIG;
-            request.args = args;
+            request.params = args;
 
             requests.requests.push_back(std::move(request));
         }
@@ -1921,24 +1921,24 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
         }
 
         if (m_do_brk) {
-            ApiPasteArgs args;
+            ApiPasteParams args;
             args.input.bytes = {'S', 'T', 'O', 'P', '\r'};
             args.wait_for_osword_0 = true;
 
             ApiRequest request;
             request.method = API_METHOD_PASTE;
-            request.args = std::move(args);
+            request.params = std::move(args);
 
             requests.requests.push_back(std::move(request));
         }
 
         {
-            ApiStopCountingBRKsArgs args;
+            ApiStopCountingBRKsParams args;
             args.expected_brk_count = m_do_brk ? 1 : 0;
 
             ApiRequest request;
             request.method = API_METHOD_STOP_COUNTING_BRKS;
-            request.args = std::move(args);
+            request.params = std::move(args);
 
             requests.requests.push_back(std::move(request));
         }
@@ -2001,40 +2001,40 @@ class TestHTTPPeek : public TestHTTPAPI {
         ApiMultipleRequests requests;
 
         {
-            ApiConfigArgs args;
+            ApiConfigParams args;
             args.base_default_config = "B/Acorn 1770";
             args.wait_for_osword_0 = true;
             args.wait_for_osword_0_timeout_seconds = 10.;
 
             ApiRequest request;
             request.method = API_METHOD_CONFIG;
-            request.args = args;
+            request.params = args;
 
             requests.requests.push_back(std::move(request));
         }
 
         {
-            ApiPeekArgs args;
+            ApiPeekParams args;
             args.begin = 0x8000;
             args.size = 0x4000;
             args.suffix = "f";
 
             ApiRequest request;
             request.method = API_METHOD_PEEK;
-            request.args = args;
+            request.params = args;
 
             requests.requests.push_back(std::move(request));
         }
 
         {
-            ApiPeekArgs args;
+            ApiPeekParams args;
             args.begin = 0x8000;
             args.end = 0xc000;
             args.suffix = "e";
 
             ApiRequest request;
             request.method = API_METHOD_PEEK;
-            request.args = args;
+            request.params = args;
 
             requests.requests.push_back(std::move(request));
         }

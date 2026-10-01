@@ -11379,7 +11379,7 @@ Some half-baked stuff.
 ** use test file from =etc/tests/http_api=
 
 #+begin_example
-  curl --fail-with-body https://localhost:48075/api -H "Content-Type: application/json" --data-binary "@list_values.enums.json"
+  curl --fail-with-body http://localhost:48075/api -H "Content-Type: application/json" --data-binary "@list_values.enums.json"
 #+end_example
 
 * Debug hardware addresses in FRED

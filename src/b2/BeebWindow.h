@@ -325,7 +325,7 @@ class BeebWindow {
 
 #if BBCMICRO_DEBUGGER
     // Some state for the benefit of the HTTP API, because HTTP is stateless. Not much point (at least, not currently?) having accessors.
-    ApiSetGlobalsArgs api_globals;
+    ApiSetGlobalsParams api_globals;
 #endif
 
     BeebWindow(BeebWindowInitArguments init_arguments);

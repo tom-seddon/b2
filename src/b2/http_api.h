@@ -165,11 +165,12 @@ struct ApiRequest {
     // is the method name in upper case snake_case format.
     std::string method;
 
-    // The args for the request. Use the ApiXXXArgs struct, where XXX is the
+    // The arguments - or "parameter values" as JSON-RPC has it, hence the
+    // naming - for the request. Use the ApiXXXParams struct, where XXX is the
     // request method in PascalCase format - or null if no such.
-    nlohmann::json args;
+    nlohmann::json params;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, method, args);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, method, params);
 
 // The response to a ApiRequest.
 struct ApiResponse {
@@ -332,7 +333,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigNVRAMByte,
 
 static const char API_METHOD_CONFIG[] = "config";
 
-struct ApiConfigArgs {
+struct ApiConfigParams {
     std::string base_default_config;
 
     std::optional<ApiOSROM> os_rom;
@@ -360,7 +361,7 @@ struct ApiConfigArgs {
     // If wait_for_osword_0 is false: ignored.
     std::optional<double> wait_for_osword_0_timeout_seconds;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigParams,
                                                 base_default_config,
                                                 os_rom,
                                                 sideways_roms,
@@ -377,12 +378,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiConfigArgs,
 
 static const char API_METHOD_RESET[] = "reset";
 
-struct ApiResetArgs {
+struct ApiResetParams {
     bool boot = false;
     bool wait_for_osword_0 = false;
     std::optional<double> wait_for_osword_0_timeout_seconds;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResetArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResetParams,
                                                 boot,
                                                 wait_for_osword_0,
                                                 wait_for_osword_0_timeout_seconds);
@@ -392,7 +393,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiResetArgs,
 
 static const char API_METHOD_PASTE[] = "paste";
 
-struct ApiPasteArgs {
+struct ApiPasteParams {
     ApiBBCString input;
 
     // If true, after the last character is pasted, wait for the next OSWORD 0
@@ -406,7 +407,7 @@ struct ApiPasteArgs {
     // If not provided, a default will be used.
     std::optional<double> wait_for_osword_0_timeout_seconds;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteArgs, input, wait_for_osword_0, wait_for_osword_0_timeout_seconds);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPasteParams, input, wait_for_osword_0, wait_for_osword_0_timeout_seconds);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -435,7 +436,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCaptureOSWRCHResult, outp
 
 static const char API_METHOD_LIST_VALUES[] = "list_values";
 
-struct ApiListValuesArgs {
+struct ApiListValuesParams {
     // The name of one of b2's internal lists of things:
     //
     // - "default_configs" - list stock config names, for possible use as
@@ -448,7 +449,7 @@ struct ApiListValuesArgs {
     //   lists everything, even stuff that isn't useful
     std::string name;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesArgs, name);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesParams, name);
 
 struct ApiListValuesResult {
     std::vector<std::string> values;
@@ -467,10 +468,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListValuesResult, values);
 
 static const char API_METHOD_LIST_ENUM_VALUES[] = "list_enum_values";
 
-struct ApiListEnumValuesArgs {
+struct ApiListEnumValuesParams {
     std::string name;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListEnumValuesArgs, name);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListEnumValuesParams, name);
 
 struct ApiListEnumValuesResult {
     std::vector<std::string> values;
@@ -490,13 +491,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListEnumValuesResult, values)
 
 static const char API_METHOD_LIST_KEYS_AND_VALUES[] = "list_keys_and_values";
 
-struct ApiListKeysAndValuesArgs {
+struct ApiListKeysAndValuesParams {
     // One of the b2 enum types:
     //
     // - "DebugCommand" - list names, and corresponding values that can be written to the debug command ports
     std::string name;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListKeysAndValuesArgs, name);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListKeysAndValuesParams, name);
 
 struct ApiListKeysAndValuesResult {
     std::vector<ApiKeyAndValue> keys_and_values;
@@ -508,7 +509,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiListKeysAndValuesResult, keys
 
 static const char API_METHOD_SET_GLOBALS[] = "set_globals";
 
-struct ApiSetGlobalsArgs {
+struct ApiSetGlobalsParams {
     // Specify the read path. Relative names of files to read from are assumed
     // to be relative to the read path. There is no attempt to provide any kind
     // of sandboxing, and you can easily use .. to access paths above the
@@ -529,7 +530,7 @@ struct ApiSetGlobalsArgs {
     // path. The caller is assumed to know what they're doing in this case.
     std::optional<std::string> write_path;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsParams,
                                                 read_path,
                                                 write_path);
 
@@ -538,11 +539,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiSetGlobalsArgs,
 
 static const char API_METHOD_SCREEN_GRAB_PNG_DATA[] = "screen_grab_png_data";
 
-struct ApiScreenGrabPNGDataArgs {
+struct ApiScreenGrabPNGDataParams {
     // If true, output will be resized (possibly with filtering) to match the aspect ratio of output from a real BBC Micro.
     bool correct_aspect_ratio = false;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataParams,
                                                 correct_aspect_ratio);
 
 struct ApiScreenGrabPNGDataResult {
@@ -556,7 +557,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGDataResult,
 
 static const char API_METHOD_SCREEN_GRAB_PNG_FILE[] = "screen_grab_png_file";
 
-struct ApiScreenGrabPNGFileArgs {
+struct ApiScreenGrabPNGFileParams {
     // If true, output will be resized (possibly with filtering) to match the aspect ratio of output from a real BBC Micro.
     bool correct_aspect_ratio = false;
 
@@ -565,7 +566,7 @@ struct ApiScreenGrabPNGFileArgs {
     // saved relative to the API write path.
     std::string path;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiScreenGrabPNGFileParams,
                                                 correct_aspect_ratio,
                                                 path);
 
@@ -593,14 +594,14 @@ static const char API_METHOD_START_COUNTING_BRKS[] = "start_counting_brks";
 
 static const char API_METHOD_STOP_COUNTING_BRKS[] = "stop_counting_brks";
 
-struct ApiStopCountingBRKsArgs {
+struct ApiStopCountingBRKsParams {
     // If not supplied, the request always succeeds.
     //
     // Otherwise, specifies expected number of BRKs counted. The request will fail
     // if the actual number counted is different.
     std::optional<uint64_t> expected_brk_count;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCountingBRKsArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCountingBRKsParams,
                                                 expected_brk_count);
 
 //////////////////////////////////////////////////////////////////////////
@@ -608,11 +609,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiStopCountingBRKsArgs,
 
 static const char API_METHOD_LOAD_DISK_IMAGE[] = "load_disk_image";
 
-struct ApiLoadDiskImageArgs {
+struct ApiLoadDiskImageParams {
     std::string path;
     int drive = 0;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadDiskImageArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadDiskImageParams,
                                                 path,
                                                 drive);
 
@@ -621,14 +622,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadDiskImageArgs,
 
 static const char API_METHOD_PEEK[] = "peek";
 
-struct ApiPeekArgs {
+struct ApiPeekParams {
     uint32_t begin = 0;
     std::optional<uint32_t> end;
     std::optional<uint32_t> size;
     std::string suffix;
     bool mos = false;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekParams,
                                                 begin,
                                                 end,
                                                 size,
@@ -646,11 +647,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiPeekResult,
 
 //static const char API_METHOD_WAIT_FOR_EVENT[] = "wait_for_event";
 //
-//struct ApiWaitForEventArgs {
+//struct ApiWaitForEventParams {
 //    std::optional<uint8_t> event;
 //    std::optional<double> timeout_seconds;
 //};
-//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiWaitForEventArgs,
+//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiWaitForEventParams,
 //                                                event,
 //                                                timeout_seconds);
 
@@ -664,7 +665,7 @@ static const char API_METHOD_CLEAR_SYMBOLS[] = "clear_symbols";
 
 static const char API_METHOD_LOAD_SYMBOLS[] = "load_symbols";
 
-struct ApiLoadSymbolsArgs {
+struct ApiLoadSymbolsParams {
     std::string path;
     std::string format_name;
     std::vector<std::string> suffixes;
@@ -681,7 +682,7 @@ struct ApiLoadSymbolsArgs {
     // (There's not yet a separate way to set the group name.)
     std::optional<std::string> group_name;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadSymbolsArgs,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiLoadSymbolsParams,
                                                 path,
                                                 format_name,
                                                 suffixes,
