@@ -1,7 +1,12 @@
 project(test_nlohmann_json)
 add_executable(test_nlohmann_json
   test_nlohmann_json.cpp
-  test_nlohmann_json.inl)
+  test_nlohmann_json.inl
+  struct_decl.h
+  struct_def.h
+  struct_end.h
+  structs.cpp
+  structs.h)
 b2_target_boilerplate(test_nlohmann_json SANITIZERS)
 target_link_libraries(test_nlohmann_json PRIVATE shared_lib nlohmann_json::nlohmann_json)
 target_compile_definitions(test_nlohmann_json PRIVATE

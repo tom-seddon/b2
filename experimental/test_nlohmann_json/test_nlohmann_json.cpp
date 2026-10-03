@@ -27,13 +27,17 @@
 #include <shared/debug.h>
 #include <inttypes.h>
 
+#include "struct_decl.h"
 #include <shared/enum_decl.h>
 #include "test_nlohmann_json.inl"
 #include <shared/enum_end.h>
+#include "struct_end.h"
 
+#include "struct_def.h"
 #include <shared/enum_def.h>
 #include "test_nlohmann_json.inl"
 #include <shared/enum_end.h>
+#include "struct_end.h"
 
 // https://github.com/nlohmann/json/issues/975 - unique_ptr/shared_ptr
 
@@ -507,6 +511,25 @@ static void TestString() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct StdOptionalTest1 {
+    std::optional<std::string> s;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StdOptionalTest1, s);
+
+static void TestStdOptional() {
+    std::string test1_str = "{}";
+
+    {
+        StdOptionalTest1 test1 = LoadJSONString<StdOptionalTest1>(test1_str, __func__);
+        TEST_FALSE(test1.s.has_value());
+
+        printf("%s\n", nlohmann::json(test1).dump(4).c_str());
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char *argv[]) {
     (void)argc, (void)argv;
 
@@ -608,6 +631,8 @@ int main(int argc, char *argv[]) {
     TestVariant();
 
     TestString();
+
+    TestStdOptional();
 
     return 0;
 }

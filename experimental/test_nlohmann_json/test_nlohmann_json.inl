@@ -85,3 +85,12 @@ EQPNV(End, 1 << 30)
 // Don't use 1<<30 - it's SDLK_SCANCODE_MASK
 EEND()
 #undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define STRUCT_NAME StructTest1
+STRUCT_BEGIN()
+STRUCT_FIELD(name, std::string)
+STRUCT_END()
+#undef STRUCT_NAME
