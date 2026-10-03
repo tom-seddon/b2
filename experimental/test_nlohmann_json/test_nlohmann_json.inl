@@ -3,7 +3,7 @@ EBEGIN()
 EPN(None)
 EPN(Type1)
 EPN(Type2)
-EEND_SERIALIZABLE("73e3919a30b220148a020fdc877bdd25b5542d5a")
+EEND_SERIALIZABLE("e9ca08ab8513d455dda83045089f31f0d6bc8420")
 #undef ENAME
 
 #define ENAME StandardROM
@@ -47,7 +47,7 @@ EPN(MOSI510C_ADFS)
 EPN(MOSI510C_BASIC4)
 EPN(MOSI510C_UTILS)
 EPN(MOSI510C_MOS)
-EEND_SERIALIZABLE("1918df602d5bdc1932fd143c8450da882777ac44")
+EEND_SERIALIZABLE("333a02fdac64506d524ac8dbda56e4f5fbb00f21")
 #undef ENAME
 
 #define ENAME TraceOutputFlags
@@ -64,7 +64,7 @@ EPNV(AbsoluteCycles, 4)
 // Extra ROM mapper verbosity
 EPNV(ROMMapper, 8)
 
-EEND_SERIALIZABLE("fc92168d09a3a01e3d99e73781af6c5dd07cf1ac")
+EEND_SERIALIZABLE("37559ebfc25c71b62ff0787fd93aaf4dcdc3a200")
 #undef ENAME
 
 #define ENAME PCKeyModifier
@@ -77,7 +77,7 @@ EPN_BIT_FLAG(AltGr, 28)
 
 // not sure if I'm going to bother to support this, since it's
 // effectively got 3 states (on/off/don't care)
-EPNV(NumLock, 29)
+EPN_BIT_FLAG(NumLock, 29)
 
 // these are actual masks
 EQPNV(Begin, 1 << 24)
