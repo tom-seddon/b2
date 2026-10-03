@@ -1052,11 +1052,11 @@ struct MultipleRequestsState {
     BeebWindow *beeb_window = nullptr;
     std::weak_ptr<BeebThread> beeb_thread;
     std::shared_ptr<Messages> messages;
-    ApiMultipleRequests request;
-    ApiMultipleResponses response;
+    std::vector<ApiRequest> requests;
+    std::vector<ApiResponse> responses;
     size_t index = 0;
     std::function<void(ApiResponse)> request_completion_fun;
-    std::function<void(ApiMultipleResponses)> overall_completion_fun;
+    std::function<void(std::vector<ApiResponse> &&)> overall_completion_fun;
 
     MultipleRequestsState() = default;
     ~MultipleRequestsState();
@@ -1070,66 +1070,44 @@ static void CallOverallCompletionFun(const std::shared_ptr<MultipleRequestsState
     // break the refcount cycle.
     state->request_completion_fun = nullptr;
 
-    state->overall_completion_fun(std::move(state->response));
+    state->overall_completion_fun(std::move(state->responses));
 }
 
 static void ExecuteNextRequest(const std::shared_ptr<MultipleRequestsState> &state) {
     ASSERT(IsMainThread());
-    ASSERT(state->index <= state->request.requests.size());
+    ASSERT(state->index <= state->requests.size());
 
-    if (state->index == state->request.requests.size()) {
+    if (state->index == state->requests.size()) {
         CallOverallCompletionFun(state);
     } else {
-        if (state->index == 0) {
-            if (state->request.window.empty()) {
-                state->beeb_window = BeebWindows::FindMRUBeebWindow();
-                if (!state->beeb_window) {
-                    state->messages->e.f("No recently used window\n");
-                }
-            } else {
-                state->beeb_window = BeebWindows::FindBeebWindowByName(state->request.window);
-                if (!state->beeb_window) {
-                    state->messages->e.f("Window not found: %s\n", state->request.window.c_str());
-                }
-            }
-
-            if (!state->beeb_window) {
-                state->response.responses.push_back(GetApiResponse(&API_FAILURE_REASON_WINDOW_NOT_FOUND, nullptr, state->messages));
-                CallOverallCompletionFun(state);
-                return;
-            }
-
-            state->beeb_thread = state->beeb_window->GetBeebThread();
-        } else {
-            std::shared_ptr<BeebThread> beeb_thread = state->beeb_thread.lock();
-            if (!beeb_thread || !beeb_thread->IsStarted()) {
-                // Ugh. Have to abandon the whole thing.
-                state->messages->e.f("Window has gone\n");
-                state->response.responses.push_back(GetApiResponse(&API_FAILURE_REASON_DISCARDED, nullptr, state->messages));
-                CallOverallCompletionFun(state);
-                return;
-            }
+        std::shared_ptr<BeebThread> beeb_thread = state->beeb_thread.lock();
+        if (!beeb_thread || !beeb_thread->IsStarted()) {
+            // Ugh. Have to abandon the whole thing.
+            state->messages->e.f("Window has gone\n");
+            state->responses.push_back(GetApiResponse(&API_FAILURE_REASON_DISCARDED, nullptr, state->messages));
+            CallOverallCompletionFun(state);
+            return;
         }
 
         // TODO: could move the request? But that might end up a pain for debugging purposes.
         ExecuteSingleRequest(state->beeb_window,
                              state->messages,
-                             state->request.requests[state->index],
+                             state->requests[state->index],
                              state->request_completion_fun);
     }
 }
 
 static void HandleRequestCompletion(const std::shared_ptr<MultipleRequestsState> &state, ApiResponse &&response) {
-    ASSERT(state->index < state->request.requests.size());
+    ASSERT(state->index < state->requests.size());
 
-    state->response.responses.push_back(std::move(response));
+    state->responses.push_back(std::move(response));
 
-    if (WasSuccessful(state->response.responses.back())) {
+    if (WasSuccessful(state->responses.back())) {
         // next request.
         ++state->index;
     } else {
         // break out of the loop.
-        state->index = state->request.requests.size();
+        state->index = state->requests.size();
     }
 
     PushMainThreadMessage(std::make_unique<FunctionMessage>([state]() -> void {
@@ -1137,21 +1115,22 @@ static void HandleRequestCompletion(const std::shared_ptr<MultipleRequestsState>
     }));
 }
 
-void ApiExecuteMultipleRequests(ApiMultipleRequests &&request,
-                                std::function<void(ApiMultipleResponses &&)> completion_fun) {
+void ApiExecuteMultipleRequests(BeebWindow *beeb_window,
+                                std::vector<ApiRequest> &&requests,
+                                std::function<void(std::vector<ApiResponse> &&)> completion_fun) {
     ASSERT(IsMainThread());
 
-    if (request.requests.empty()) {
+    if (requests.empty()) {
         completion_fun({});
         return;
     }
 
     auto state = std::make_shared<MultipleRequestsState>();
 
-    //    state->beeb_window = runtime_args.beeb_window;
-    //    state->beeb_thread = GetBeebThread(state->beeb_window);
+    state->beeb_window = beeb_window;
+    state->beeb_thread = beeb_window->GetBeebThread();
     state->messages = CreateMessages();
-    state->request = std::move(request);
+    state->requests = std::move(requests);
     //state->response.responses.resize(state->request.requests.size());
     state->overall_completion_fun = std::move(completion_fun);
 
@@ -1161,6 +1140,16 @@ void ApiExecuteMultipleRequests(ApiMultipleRequests &&request,
     };
 
     ExecuteNextRequest(state);
+}
+
+bool WereAllSuccessful(const std::vector<ApiResponse> &responses) {
+    for (const ApiResponse &response : responses) {
+        if (!WasSuccessful(response)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 #endif
@@ -1385,7 +1374,13 @@ class HTTPMethodsHandler : public HTTPHandler {
         void *fn_context = nullptr;
     };
 
-    static bool ParseArgsOrSendResponse2(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const PathParameter *path_parameters, size_t num_path_parameters, const QueryParameter *query_parameters, size_t num_query_parameters) {
+    static bool ParseArgsOrSendResponse2(HTTPServer *server,
+                                         const HTTPRequest &request,
+                                         const std::vector<std::string> &parts,
+                                         size_t command_index,
+                                         const PathParameter *required_path_parameters, size_t num_required_path_parameters,
+                                         const PathParameter *optional_path_parameters, size_t num_optional_path_parameters,
+                                         const QueryParameter *query_parameters, size_t num_query_parameters) {
         ParseArgsState pas;
         pas.implicit_beeb_window = nullptr;
         pas.server = server;
@@ -1393,15 +1388,29 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         // Parse path args.
         size_t num_path_args = parts.size() - (command_index + 1);
-        if (num_path_args != num_path_parameters) {
-            server->SendResponse(request, HTTPResponse::BadRequest(request, "%zu arguments supplied; %zu required", num_path_args, num_path_parameters));
+        if (num_path_args < num_required_path_parameters) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "%zu arguments supplied; %zu required", num_path_args, num_required_path_parameters));
             return false;
         }
 
-        for (size_t i = 0; i < num_path_parameters; ++i) {
-            const PathParameter *p = &path_parameters[i];
+        size_t arg_index = command_index + 1;
 
-            if (!(*p->fn)(&pas, parts[command_index + 1 + i], p->fn_context)) {
+        for (size_t i = 0; i < num_required_path_parameters; ++i) {
+            const PathParameter *p = &required_path_parameters[i];
+
+            if (!(*p->fn)(&pas, parts[arg_index++], p->fn_context)) {
+                return false;
+            }
+        }
+
+        for (size_t i = 0; i < num_optional_path_parameters; ++i) {
+            if (arg_index >= parts.size()) {
+                break;
+            }
+
+            const PathParameter *p = &optional_path_parameters[i];
+
+            if (!(*p->fn)(&pas, parts[arg_index++], p->fn_context)) {
                 return false;
             }
         }
@@ -1434,18 +1443,52 @@ class HTTPMethodsHandler : public HTTPHandler {
         return true;
     }
 
-    template <size_t NUM_PATH_PARAMETERS, size_t NUM_QUERY_PARAMETERS>
-    static bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const PathParameter (&path_parameters)[NUM_PATH_PARAMETERS], const QueryParameter (&query_parameters)[NUM_QUERY_PARAMETERS]) {
-        return ParseArgsOrSendResponse2(server, request, parts, command_index, path_parameters, NUM_PATH_PARAMETERS, query_parameters, NUM_QUERY_PARAMETERS);
+    template <size_t NUM_REQUIRED_PATH_PARAMETERS, size_t NUM_QUERY_PARAMETERS>
+    static bool ParseArgsOrSendResponse(HTTPServer *server,
+                                        const HTTPRequest &request,
+                                        const std::vector<std::string> &parts,
+                                        size_t command_index,
+                                        const PathParameter (&required_path_parameters)[NUM_REQUIRED_PATH_PARAMETERS],
+                                        const QueryParameter (&query_parameters)[NUM_QUERY_PARAMETERS]) {
+        return ParseArgsOrSendResponse2(server, request, parts, command_index,
+                                        required_path_parameters, NUM_REQUIRED_PATH_PARAMETERS,
+                                        nullptr, 0,
+                                        query_parameters, NUM_QUERY_PARAMETERS);
     }
 
-    template <size_t NUM_PATH_PARAMETERS>
-    static bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const PathParameter (&path_parameters)[NUM_PATH_PARAMETERS]) {
-        return ParseArgsOrSendResponse2(server, request, parts, command_index, path_parameters, NUM_PATH_PARAMETERS, nullptr, 0);
+    template <size_t NUM_OPTIONAL_PATH_PARAMETERS>
+    static bool ParseArgsOrSendResponse(HTTPServer *server,
+                                        const HTTPRequest &request,
+                                        const std::vector<std::string> &parts,
+                                        size_t command_index,
+                                        std::nullptr_t,
+                                        const PathParameter (&optional_path_parameters)[NUM_OPTIONAL_PATH_PARAMETERS]) {
+        return ParseArgsOrSendResponse2(server, request, parts, command_index,
+                                        nullptr, 0,
+                                        optional_path_parameters, NUM_OPTIONAL_PATH_PARAMETERS,
+                                        nullptr, 0);
     }
 
-    static bool ParseArgsOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index) {
-        return ParseArgsOrSendResponse2(server, request, parts, command_index, nullptr, 0, nullptr, 0);
+    template <size_t NUM_REQUIRED_PATH_PARAMETERS>
+    static bool ParseArgsOrSendResponse(HTTPServer *server,
+                                        const HTTPRequest &request,
+                                        const std::vector<std::string> &parts,
+                                        size_t command_index,
+                                        const PathParameter (&required_path_parameters)[NUM_REQUIRED_PATH_PARAMETERS]) {
+        return ParseArgsOrSendResponse2(server, request, parts, command_index,
+                                        required_path_parameters, NUM_REQUIRED_PATH_PARAMETERS,
+                                        nullptr, 0,
+                                        nullptr, 0);
+    }
+
+    static bool ParseArgsOrSendResponse(HTTPServer *server,
+                                        const HTTPRequest &request,
+                                        const std::vector<std::string> &parts,
+                                        size_t command_index) {
+        return ParseArgsOrSendResponse2(server, request, parts, command_index,
+                                        nullptr, 0,
+                                        nullptr, 0,
+                                        nullptr, 0);
     }
 
 #if BBCMICRO_DEBUGGER
@@ -2107,10 +2150,10 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    static void HandleGenericRequestCompletion(ApiMultipleResponses &&api_response,
+    static void HandleGenericRequestCompletion(std::vector<ApiResponse> &&api_responses,
                                                HTTPServer *server,
                                                const HTTPResponseData &http_response_data) {
-        bool success = WasSuccessful(api_response);
+        bool success = WereAllSuccessful(api_responses);
 
         HTTPResponse http_response;
         if (success) {
@@ -2120,7 +2163,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         }
 
         http_response.content_type = HTTP_JSON_CONTENT_TYPE;
-        http_response.content = SaveJSONData(std::move(api_response));
+        http_response.content = SaveJSONData(std::move(api_responses));
 
         server->SendResponse(http_response_data, std::move(http_response));
     }
@@ -2128,8 +2171,11 @@ class HTTPMethodsHandler : public HTTPHandler {
 
 #if BBCMICRO_DEBUGGER
     void HandleGenericMultipleRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
-        // this doesn't take any URL or query args - but still do this, so that any supplied become an error.
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index)) {
+        BeebWindow *beeb_window = BeebWindows::FindMRUBeebWindow();
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, nullptr, pps)) {
             return;
         }
 
@@ -2138,17 +2184,18 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        ApiMultipleRequests api_request;
+        std::vector<ApiRequest> api_requests;
         std::string exc_what;
-        if (!LoadJSON(&api_request, body_j, &exc_what)) {
+        if (!LoadJSON(&api_requests, body_j, &exc_what)) {
             server->SendResponse(request, HTTPResponse::BadRequest("JSON parse error: %s", exc_what.c_str()));
             return;
         }
 
-        ApiExecuteMultipleRequests(std::move(api_request),
+        ApiExecuteMultipleRequests(beeb_window,
+                                   std::move(api_requests),
                                    [response_data = request.response_data,
-                                    server](ApiMultipleResponses &&response) -> void {
-                                       HandleGenericRequestCompletion(std::move(response), server, response_data);
+                                    server](std::vector<ApiResponse> &&responses) -> void {
+                                       HandleGenericRequestCompletion(std::move(responses), server, response_data);
                                    });
     }
 

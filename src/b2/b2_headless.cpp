@@ -105,12 +105,13 @@ static bool ParseCommandLineOptions(HeadlessOptions *options, int argc, char *ar
 
 class HeadlessAppHandler : public AppHandler {
   public:
-    explicit HeadlessAppHandler(const HeadlessOptions &options, std::unique_ptr<ApiMultipleRequests> api_request)
+    explicit HeadlessAppHandler(const HeadlessOptions &options, std::vector<ApiRequest> api_requests)
         : m_options(options)
-        , m_api_request(std::move(api_request)) {
+        , m_api_requests(std::move(api_requests)) {
     }
 
-    std::string GetProductName() const override {
+    std::string
+    GetProductName() const override {
         return PRODUCT_NAME;
     }
 
@@ -193,11 +194,11 @@ class HeadlessAppHandler : public AppHandler {
             beeb_window->StartEchoOSWRCH();
         }
 
-        if (!!m_api_request) {
-            std::unique_ptr<ApiMultipleRequests> api_request = std::move(m_api_request);
-            ApiExecuteMultipleRequests(std::move(*api_request),
-                                       [this](ApiMultipleResponses &&response) -> void {
-                                           this->HandleApiRequestComplete(std::move(response));
+        if (!m_api_requests.empty()) {
+            ApiExecuteMultipleRequests(beeb_window,
+                                       std::move(m_api_requests),
+                                       [this](std::vector<ApiResponse> &&responses) -> void {
+                                           this->HandleApiRequestComplete(std::move(responses));
                                        });
         }
     }
@@ -235,7 +236,7 @@ class HeadlessAppHandler : public AppHandler {
   private:
     int m_http_port = -1;
     HeadlessOptions m_options;
-    std::unique_ptr<ApiMultipleRequests> m_api_request;
+    std::vector<ApiRequest> m_api_requests;
 
     void QuitIfHeadless(int exit_code) {
         if (this->IsHeadless()) {
@@ -243,21 +244,24 @@ class HeadlessAppHandler : public AppHandler {
         }
     }
 
-    void HandleApiRequestComplete(ApiMultipleResponses &&response) {
+    void HandleApiRequestComplete(std::vector<ApiResponse> &&responses) {
         if (!m_options.api_output_path.empty()) {
-            if (!SaveJSONFile(response, m_options.api_output_path, &g_stdio_logs, SaveFlag_CreateFolder)) {
+            if (!SaveJSONFile(responses, m_options.api_output_path, &g_stdio_logs, SaveFlag_CreateFolder)) {
                 this->QuitIfHeadless(1);
                 return;
             }
         }
 
-        bool success = WasSuccessful(response);
+        bool success = WereAllSuccessful(responses);
 
-        // TODO: this output can get mixed in with any buffered-up echo-oswrch output that hasn't been flushed yet. The official b2_headless stdout policy is that it's for eyeballing purposes only, but it'd be nice to fix this if it would be easy.
+        // TODO: this output can get mixed in with any buffered-up echo-oswrch
+        // output that hasn't been flushed yet. The official b2_headless stdout
+        // policy is that it's for eyeballing purposes only, but it'd be nice to
+        // fix this if it would be easy.
         if (!this->IsHeadless() || m_options.api_output_path.empty()) {
             printf("JSON result (success=%s):\n", BOOL_STR(success));
             printf("---8<---\n");
-            puts(nlohmann::json(response).dump(4).c_str());
+            puts(nlohmann::json(responses).dump(4).c_str());
             printf("---8<---\n");
         }
 
@@ -269,7 +273,6 @@ class HeadlessAppHandler : public AppHandler {
 //////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[]) {
-
     HeadlessOptions options;
     if (!ParseCommandLineOptions(&options, argc, argv)) {
         if (options.help) {
@@ -284,22 +287,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    std::unique_ptr<ApiMultipleRequests> api_request;
+    std::vector<ApiRequest> requests;
     if (!options.api_input_path.empty()) {
-        api_request = std::make_unique<ApiMultipleRequests>();
-        if (!LoadJSONFile(api_request.get(), options.api_input_path, &g_stdio_logs)) {
+        if (!LoadJSONFile(&requests, options.api_input_path, &g_stdio_logs)) {
             fprintf(stderr, "FATAL: failed to load API input file\n");
-            return 1;
-        }
-
-        // TODO: bit janky, this.
-        if (!api_request->window.empty()) {
-            fprintf(stderr, "FATAL: API request window name must be empty\n");
             return 1;
         }
     }
 
-    HeadlessAppHandler app_handler(options, std::move(api_request));
+    HeadlessAppHandler app_handler(options, std::move(requests));
 
     int result = b2_main(&app_handler);
     return result;

@@ -116,14 +116,14 @@ void to_json(nlohmann::json &j, const ApiBinaryData &s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string ID_KEY{"id"};
+//static const std::string ID_KEY{"id"};
 static const std::string METHOD_KEY{"method"};
 static const std::string PARAMS_KEY{"params"};
 
 void from_json(const nlohmann::json &j, ApiRequest &r) {
-    if (j.contains(ID_KEY)) {
-        r.id = j[ID_KEY];
-    }
+    //if (j.contains(ID_KEY)) {
+    //    r.id = j[ID_KEY];
+    //}
 
     r.method = j[METHOD_KEY].template get<std::string>();
 
@@ -133,9 +133,11 @@ void from_json(const nlohmann::json &j, ApiRequest &r) {
 }
 
 void to_json(nlohmann::json &j, const ApiRequest &r) {
-    if (r.id.has_value()) {
-        j[ID_KEY] = r.id;
-    }
+    j = nlohmann::json::object();
+
+    //if (r.id.has_value()) {
+    //    j[ID_KEY] = r.id;
+    //}
 
     j[METHOD_KEY] = r.method;
 
@@ -165,6 +167,8 @@ void from_json(const nlohmann::json &j, ApiResponse &r) {
 }
 
 void to_json(nlohmann::json &j, const ApiResponse &r) {
+    j = nlohmann::json::object();
+
     if (r.result.has_value()) {
         j[RESULT_KEY] = *r.result;
     }
@@ -183,19 +187,6 @@ bool WasSuccessful(const ApiResponse &r) {
     } else {
         return true;
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool WasSuccessful(const ApiMultipleResponses &response) {
-    for (const ApiResponse &r : response.responses) {
-        if (!WasSuccessful(r)) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

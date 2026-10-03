@@ -62,9 +62,9 @@
 
 // If a field is std::optional<T>, its type is T (see above), but it doesn't
 // have a default value, and there is some specific handling when the field is
-// absent. (Which could be that its absence is an error! Don't read too much
-// into the specific term "optional" - that's just what C++ calls this concept.
-// An "optional" value could actually be mandatory.)
+// absent or set to null. (Which could be that this case is an error! Don't read
+// too much into the specific term "optional" - that's just what C++ calls this
+// concept. An "optional" value could actually be mandatory.)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -177,8 +177,6 @@ static constexpr double API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 15.;
 
 // A single API request.
 struct ApiRequest {
-    std::optional<nlohmann::json> id;
-
     // The requested method. Use the value of the API_METHOD_XXX value, where XXX
     // is the method name in upper case snake_case format.
     std::string method;
@@ -208,36 +206,6 @@ void from_json(const nlohmann::json &j, ApiResponse &r);
 void to_json(nlohmann::json &j, const ApiResponse &r);
 
 bool WasSuccessful(const ApiResponse &r);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Batch of API requests.
-//
-// This is deliberately its own special thing, rather than a special type of
-// ApiRequest.
-//
-// Most commands are window-specific, and only affect or query the specified
-// window, though there are exceptions.
-struct ApiMultipleRequests {
-    // The window to send the requests to. If not provided, pick the MRU window.
-    std::string window;
-
-    // The sequence of requests to make.
-    std::vector<ApiRequest> requests;
-};
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleRequests, requests);
-
-// The response to a ApiMultipleRequests.
-struct ApiMultipleResponses {
-    // The responses to the requests that were processed. There may be fewer
-    // responses than requests; if a request fails, its response is included,
-    // but the remaining requests are discarded.
-    std::vector<ApiResponse> responses;
-};
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiMultipleResponses, responses);
-
-bool WasSuccessful(const ApiMultipleResponses &response);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

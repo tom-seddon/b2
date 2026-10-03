@@ -11,9 +11,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BeebWindow;
 class HTTPHandler;
-struct ApiMultipleRequests;
-struct ApiMultipleResponses;
+struct ApiRequest;
+struct ApiResponse;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -28,8 +29,11 @@ std::shared_ptr<HTTPHandler> CreateHTTPMethodsHandler();
 // There must be a better place for this stuff.
 
 // Execute a JSON API request.
-void ApiExecuteMultipleRequests(ApiMultipleRequests &&request,
-                                std::function<void(ApiMultipleResponses &&response)> completion_fun);
+void ApiExecuteMultipleRequests(BeebWindow *beeb_window,
+                                std::vector<ApiRequest> &&requests,
+                                std::function<void(std::vector<ApiResponse> &&)> completion_fun);
+
+bool WereAllSuccessful(const std::vector<ApiResponse> &responses);
 
 #endif
 

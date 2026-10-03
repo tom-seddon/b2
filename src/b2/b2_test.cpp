@@ -41,6 +41,7 @@
 #include <uv.h>
 #include <variant>
 #include <initializer_list>
+#include "HTTPMethodsHandler.h"
 
 // the b2 code includes the stb_image_write implementation.
 #include <stb_image_write.h>
@@ -1611,20 +1612,20 @@ template <class T>
 static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::string method, const T &body) {
     HTTPRequest http_request;
 
-    ApiMultipleRequests api_multiple_requests;
+    std::vector<ApiRequest> api_requests;
 
     {
         ApiRequest api_request;
         api_request.method = std::move(method);
         api_request.params = body;
 
-        api_multiple_requests.requests.push_back(std::move(api_request));
+        api_requests.push_back(std::move(api_request));
     }
 
     http_request.url = std::move(url);
     http_request.method = "POST";
     http_request.content_type = HTTP_JSON_CONTENT_TYPE;
-    http_request.body = SaveJSONData(api_multiple_requests);
+    http_request.body = SaveJSONData(api_requests);
 
     return http_request;
 }
@@ -1634,11 +1635,11 @@ static HTTPRequest GetHTTPRequestForSingleApiRequest(std::string url, std::strin
 static ApiResponse GetSingleApiResponseFromHTTPResponse(const HTTPResponse &http_response) {
     TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
 
-    ApiMultipleResponses api_response;
-    TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
+    std::vector<ApiResponse> api_responses;
+    TEST_TRUE(LoadJSONData(&api_responses, http_response.content, &g_stdio_logs));
 
-    TEST_EQ_UU(api_response.responses.size(), 1);
-    return api_response.responses[0];
+    TEST_EQ_UU(api_responses.size(), 1);
+    return api_responses[0];
 }
 #endif
 
@@ -1920,7 +1921,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
 
         std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
 
-        ApiMultipleRequests requests;
+        std::vector<ApiRequest> requests;
 
         {
             ApiConfigParams args;
@@ -1932,13 +1933,13 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             request.method = API_METHOD_CONFIG;
             request.params = args;
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         {
             ApiRequest request;
             request.method = API_METHOD_START_COUNTING_BRKS;
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         if (m_do_brk) {
@@ -1950,7 +1951,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             request.method = API_METHOD_PASTE;
             request.params = std::move(args);
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         {
@@ -1961,7 +1962,7 @@ class TestHTTPBRKTracking : public TestHTTPAPI {
             request.method = API_METHOD_STOP_COUNTING_BRKS;
             request.params = std::move(args);
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         HTTPRequest http_request;
@@ -2019,7 +2020,7 @@ class TestHTTPPeek : public TestHTTPAPI {
 
         std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
 
-        ApiMultipleRequests requests;
+        std::vector<ApiRequest> requests;
 
         {
             ApiConfigParams args;
@@ -2031,7 +2032,7 @@ class TestHTTPPeek : public TestHTTPAPI {
             request.method = API_METHOD_CONFIG;
             request.params = args;
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         {
@@ -2044,7 +2045,7 @@ class TestHTTPPeek : public TestHTTPAPI {
             request.method = API_METHOD_PEEK;
             request.params = args;
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         {
@@ -2057,7 +2058,7 @@ class TestHTTPPeek : public TestHTTPAPI {
             request.method = API_METHOD_PEEK;
             request.params = args;
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         HTTPRequest http_request;
@@ -2070,21 +2071,21 @@ class TestHTTPPeek : public TestHTTPAPI {
         int status = client->SendRequest(http_request, &http_response);
         TEST_EQ_II(status, 200);
 
-        ApiMultipleResponses api_response;
+        std::vector<ApiResponse> api_responses;
         TEST_EQ_SS(http_response.content_type, HTTP_JSON_CONTENT_TYPE);
-        TEST_TRUE(LoadJSONData(&api_response, http_response.content, &g_stdio_logs));
+        TEST_TRUE(LoadJSONData(&api_responses, http_response.content, &g_stdio_logs));
 
-        TEST_TRUE(WasSuccessful(api_response));
-        TEST_EQ_UU(api_response.responses.size(), 3);
+        TEST_TRUE(WereAllSuccessful(api_responses));
+        TEST_EQ_UU(api_responses.size(), 3);
 
         std::string exc_what;
 
         ApiPeekResult basic2_result;
-        TEST_TRUE(LoadJSON(&basic2_result, api_response.responses[1].result, &exc_what));
+        TEST_TRUE(LoadJSON(&basic2_result, api_responses[1].result, &exc_what));
         TEST_EQ_UU(basic2_result.data.bytes.size(), 16384);
 
         ApiPeekResult acorn_dfs_result;
-        TEST_TRUE(LoadJSON(&acorn_dfs_result, api_response.responses[2].result, &exc_what));
+        TEST_TRUE(LoadJSON(&acorn_dfs_result, api_responses[2].result, &exc_what));
         TEST_EQ_UU(acorn_dfs_result.data.bytes.size(), 16384);
 
         std::vector<uint8_t> basic2;
@@ -2125,13 +2126,13 @@ class TestHTTPMissingArgs : public TestHTTPAPI {
 
         std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
 
-        ApiMultipleRequests requests;
+        std::vector<ApiRequest> requests;
 
         {
             ApiRequest request;
             request.method = API_METHOD_CONFIG;
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         HTTPRequest http_request;
@@ -2172,14 +2173,14 @@ class TestHTTPPresentArgs : public TestHTTPAPI {
 
         std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
 
-        ApiMultipleRequests requests;
+        std::vector<ApiRequest> requests;
 
         {
             ApiRequest request;
             request.method = API_METHOD_START_CAPTURE_OSWRCH;
             request.params = nlohmann::json{};
 
-            requests.requests.push_back(std::move(request));
+            requests.push_back(std::move(request));
         }
 
         HTTPRequest http_request;
