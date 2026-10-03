@@ -1723,7 +1723,7 @@ class TestHTTPConfig : public TestHTTPAPI {
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_START_CAPTURE_OSWRCH, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_START_CAPTURE_OSWRCH, std::nullopt), &http_response);
             TEST_EQ_II(status, 200);
         }
 
@@ -1738,7 +1738,7 @@ class TestHTTPConfig : public TestHTTPAPI {
 
         {
             HTTPResponse http_response;
-            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_STOP_CAPTURE_OSWRCH, nullptr), &http_response);
+            int status = client->SendRequest(GetHTTPRequestForSingleApiRequest(url, API_METHOD_STOP_CAPTURE_OSWRCH, std::nullopt), &http_response);
             TEST_EQ_II(status, 200);
 
             ApiStopCaptureOSWRCHResult result = GetSingleApiResultFromHTTPResponse<ApiStopCaptureOSWRCHResult>(http_response);
@@ -2096,6 +2096,101 @@ class TestHTTPPeek : public TestHTTPAPI {
         TEST_TRUE(LoadFile(&acorn_dfs, BEEB_ROM_ACORN_DFS.GetAssetPath(), &g_stdio_logs));
         TEST_EQ_UU(acorn_dfs.size(), 16384);
         TEST_EQ_AA(acorn_dfs_result.data.bytes.data(), acorn_dfs.data(), 16384);
+
+#else
+        (void)thread_args;
+#endif
+    }
+
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TestHTTPMissingArgs : public TestHTTPAPI {
+  public:
+    TestHTTPMissingArgs() = default;
+
+    std::string GetFullName() const override {
+        return "b2.http.missing_args";
+    }
+
+  protected:
+    void Thread(ThreadArgs *thread_args) override {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+        client->SetLogs(&g_stdio_logs);
+        client->SetVerbose(true);
+
+        std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
+
+        ApiMultipleRequests requests;
+
+        {
+            ApiRequest request;
+            request.method = API_METHOD_CONFIG;
+
+            requests.requests.push_back(std::move(request));
+        }
+
+        HTTPRequest http_request;
+        http_request.url = url;
+        http_request.method = "POST";
+        http_request.content_type = HTTP_JSON_CONTENT_TYPE;
+        http_request.body = SaveJSONData(requests);
+
+        HTTPResponse http_response;
+        int status = client->SendRequest(http_request, &http_response);
+        TEST_EQ_II(status, 500);
+
+#else
+        (void)thread_args;
+#endif
+    }
+
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TestHTTPPresentArgs : public TestHTTPAPI {
+  public:
+    TestHTTPPresentArgs() = default;
+
+    std::string GetFullName() const override {
+        return "b2.http.present_args";
+    }
+
+  protected:
+    void Thread(ThreadArgs *thread_args) override {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+        client->SetLogs(&g_stdio_logs);
+        client->SetVerbose(true);
+
+        std::string url = strprintf("http://localhost:%d/api", thread_args->http_port);
+
+        ApiMultipleRequests requests;
+
+        {
+            ApiRequest request;
+            request.method = API_METHOD_START_CAPTURE_OSWRCH;
+            request.params = nlohmann::json{};
+
+            requests.requests.push_back(std::move(request));
+        }
+
+        HTTPRequest http_request;
+        http_request.url = url;
+        http_request.method = "POST";
+        http_request.content_type = HTTP_JSON_CONTENT_TYPE;
+        http_request.body = SaveJSONData(requests);
+
+        HTTPResponse http_response;
+        int status = client->SendRequest(http_request, &http_response);
+        TEST_EQ_II(status, 500);
 
 #else
         (void)thread_args;
@@ -3821,6 +3916,9 @@ int main(int argc, char *argv[]) {
     all_tests.push_back(std::make_unique<TestPreserveConfigJSON>());
     all_tests.push_back(std::make_unique<TestPreserveConfigJSONHelper1>());
     all_tests.push_back(std::make_unique<TestPreserveConfigJSONHelper2>());
+
+    all_tests.push_back(std::make_unique<TestHTTPMissingArgs>());
+    all_tests.push_back(std::make_unique<TestHTTPPresentArgs>());
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////

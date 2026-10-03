@@ -116,27 +116,61 @@ void to_json(nlohmann::json &j, const ApiBinaryData &s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void from_json(const nlohmann::json &j, ApiResponse &r) {
-    if (j.contains("result")) {
-        r.result = j["result"];
+static const std::string ID_KEY{"id"};
+static const std::string METHOD_KEY{"method"};
+static const std::string PARAMS_KEY{"params"};
+
+void from_json(const nlohmann::json &j, ApiRequest &r) {
+    if (j.contains(ID_KEY)) {
+        r.id = j[ID_KEY];
     }
 
-    if (j.contains("error")) {
+    r.method = j[METHOD_KEY].template get<std::string>();
+
+    if (j.contains(PARAMS_KEY)) {
+        r.params = j[PARAMS_KEY];
+    }
+}
+
+void to_json(nlohmann::json &j, const ApiRequest &r) {
+    if (r.id.has_value()) {
+        j[ID_KEY] = r.id;
+    }
+
+    j[METHOD_KEY] = r.method;
+
+    if (r.params.has_value()) {
+        j[PARAMS_KEY] = r.params;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const std::string RESULT_KEY{"result"};
+static const std::string ERROR_KEY{"error"};
+
+void from_json(const nlohmann::json &j, ApiResponse &r) {
+    if (j.contains(RESULT_KEY)) {
+        r.result = j[RESULT_KEY];
+    }
+
+    if (j.contains(ERROR_KEY)) {
         if (r.result.has_value()) {
-            throw nlohmann::json::type_error::create(302, strprintf("invalid ApiResponse value: has both result and error"), nullptr);
+            throw nlohmann::json::type_error::create(302, strprintf("invalid ApiResponse value: has both %s and %s", RESULT_KEY.c_str(), ERROR_KEY.c_str()), nullptr);
         }
 
-        r.error = j["error"];
+        r.error = j[ERROR_KEY];
     }
 }
 
 void to_json(nlohmann::json &j, const ApiResponse &r) {
     if (r.result.has_value()) {
-        j["result"] = *r.result;
+        j[RESULT_KEY] = *r.result;
     }
 
     if (r.error.has_value()) {
-        j["error"] = *r.error;
+        j[ERROR_KEY] = *r.error;
     }
 }
 

@@ -516,6 +516,8 @@ endforeach()
 
 add_b2_test_literal_category(b2.http.peek)
 add_b2_test_literal_category(b2ui.preserve_config_json)
+add_b2_test_literal_category(b2.http.missing_args)
+add_b2_test_literal_category(b2.http.present_args)
 
 ##########################################################################
 ##########################################################################

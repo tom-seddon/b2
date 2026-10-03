@@ -31,6 +31,21 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Regarding std::nullptr_t: std::nullopt_t might make a bit more sense to
+// represent the no-arguments case, since it can be assigned to the
+// std::optional<nlohmann::json> and there it is. But this type seems to be a
+// bit annoying if you're trying to have moveable values - so std::nullptr_t
+// (and it is very easy to construct instances of this type) is used to
+// represent the case where the params field must be absent.
+//
+// Something similar applies to the result type.
+//
+// This does mean that a result of null is currently impossible to represent.
+// But this is surely fixable should the need arise.
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const std::string HTTP_DISC_IMAGE_LOAD_METHOD = "http";
 
 //////////////////////////////////////////////////////////////////////////
@@ -844,6 +859,7 @@ static void ApiExecuteLoadSymbols(const ApiExecuteArgs &execute_args,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+
 template <class ArgsType, class ResultType>
 static void HandleApiExecute(const ApiExecuteArgs &execute_args,
                              const ApiRequest &request,
@@ -858,6 +874,20 @@ static void HandleApiExecute(const ApiExecuteArgs &execute_args,
             completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
             return;
         }
+    }
+
+    constexpr bool want_params = !std::is_same<ArgsType, std::nullptr_t>::value;
+    bool got_params = request.params.has_value();
+
+    if (want_params != got_params) {
+        if (!want_params) {
+            execute_args.messages->e.f("Method has no parameters: %s\n", request.method.c_str());
+        } else {
+            execute_args.messages->e.f("Method requires parameters: %s\n", request.method.c_str());
+        }
+
+        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
+        return;
     }
 
     std::string exc_what;
@@ -958,7 +988,9 @@ static ApiResponse GetApiResponse(const ApiFailureReason *failure_reason, nlohma
     ApiResponse response;
 
     if (!failure_reason) {
-        response.result = std::move(j);
+        if (!j.is_null()) {
+            response.result = std::move(j);
+        }
     } else {
         ApiFailureResult error;
 

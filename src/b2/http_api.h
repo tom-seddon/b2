@@ -177,6 +177,8 @@ static constexpr double API_DEFAULT_OSWORD_0_TIMEOUT_SECONDS = 15.;
 
 // A single API request.
 struct ApiRequest {
+    std::optional<nlohmann::json> id;
+
     // The requested method. Use the value of the API_METHOD_XXX value, where XXX
     // is the method name in upper case snake_case format.
     std::string method;
@@ -184,9 +186,13 @@ struct ApiRequest {
     // The arguments - or "parameter values" as JSON-RPC has it, hence the
     // naming - for the request. Use the ApiXXXParams struct, where XXX is the
     // request method in PascalCase format - or null if no such.
-    nlohmann::json params;
+    std::optional<nlohmann::json> params;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiRequest, method, params);
+void from_json(const nlohmann::json &j, ApiRequest &r);
+void to_json(nlohmann::json &j, const ApiRequest &r);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 // The response to a ApiRequest.
 struct ApiResponse {
