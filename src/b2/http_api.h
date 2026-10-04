@@ -145,9 +145,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiKeyAndValue, key, value);
 struct ApiFailureReason {
     int code = 0;
 
-    std::string error{"no error"};
+    std::string message{"no error"};
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureReason, code, error);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApiFailureReason, code, message);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

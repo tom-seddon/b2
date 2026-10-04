@@ -2066,7 +2066,7 @@ class HTTPMethodsHandler : public HTTPHandler {
                                             response.content_type = HTTP_TEXT_CONTENT_TYPE;
                                             response.content_type_charset = HTTP_UTF8_CHARSET;
 
-                                            std::string content_str = failure_reason->error;
+                                            std::string content_str = failure_reason->message;
                                             content_str += "\n";
 
                                             std::shared_ptr<MessageList> message_list = messages->GetMessageList();
