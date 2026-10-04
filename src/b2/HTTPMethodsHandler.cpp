@@ -1156,6 +1156,205 @@ bool WereAllSuccessful(const std::vector<ApiResponse> &responses) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+
+static const std::string JSONRPC_KEY{"jsonrpc"};
+static const std::string JSONRPC_VALUE{"2.0"};
+static const std::string ID_KEY{"id"};
+static const std::string METHOD_KEY{"method"};
+static const std::string ERROR_KEY{"error"};
+static const std::string RESULT_KEY{"result"};
+static const std::string PARAMS_KEY{"params"};
+static const std::string CODE_KEY{"code"};
+static const std::string MESSAGE_KEY{"message"};
+static const std::string DATA_KEY{"data"};
+
+static constexpr int JSON_RPC_PARSE_ERROR = -32700;
+static constexpr int JSON_RPC_INVALID_REQUEST = -32600;
+static constexpr int JSON_RPC_METHOD_NOT_FOUND = -32601;
+static constexpr int JSON_RPC_INVALID_PARAMS = -32602;
+static constexpr int JSON_RPC_INTERNAL_ERROR = -32603;
+
+static bool MakeJSONRPCError(nlohmann::json *error_j, int code, const std::optional<nlohmann::json> *id, std::string message, const std::vector<std::string> *error_messages) {
+    *error_j = nlohmann::json::object();
+
+    (*error_j)[JSONRPC_KEY] = JSONRPC_VALUE;
+    (*error_j)[ID_KEY] = id && id->has_value() ? *id : nullptr;
+
+    // Translate codes as required.
+    switch (code) {
+    case ApiFailureReasonCode_UnknownMethod:
+        code = JSON_RPC_METHOD_NOT_FOUND;
+        break;
+    }
+
+    nlohmann::json *error2_j = &(*error_j)[ERROR_KEY];
+    (*error2_j)[CODE_KEY] = code;
+    (*error2_j)[MESSAGE_KEY] = std::move(message);
+
+    if (error_messages) {
+        if (!error_messages->empty()) {
+            (*error2_j)[DATA_KEY] = *error_messages;
+        }
+    }
+
+    return false;
+}
+
+static bool LoadJSONRPCRequest(std::optional<nlohmann::json> *id, ApiRequest *request, nlohmann::json &&j, nlohmann::json *error) {
+    nlohmann::json::iterator it;
+
+    if (!j.is_object()) {
+        return MakeJSONRPCError(error, JSON_RPC_INVALID_REQUEST, nullptr, "must be object", nullptr);
+    }
+
+    it = j.find(ID_KEY);
+    if (it == j.end()) {
+        id->reset();
+    } else {
+        if (!(it->is_string() || it->is_number() || it->is_null())) {
+            return MakeJSONRPCError(error, JSON_RPC_INVALID_REQUEST, nullptr, "invalid " + ID_KEY + " value (must be string/number/null)", nullptr);
+        }
+
+        *id = std::move(*it);
+    }
+
+    it = j.find(JSONRPC_KEY);
+    if (it == j.end() || *it != JSONRPC_VALUE) {
+        return MakeJSONRPCError(error, JSON_RPC_INVALID_REQUEST, id, "missing/invalid " + JSONRPC_KEY + " value (must be \"" + JSONRPC_VALUE + "\")", nullptr);
+    }
+
+    it = j.find(METHOD_KEY);
+    if (it == j.end() || !it->is_string()) {
+        return MakeJSONRPCError(error, JSON_RPC_INVALID_REQUEST, id, "missing/invalid " + METHOD_KEY + " value (must be a string)", nullptr);
+    }
+
+    request->method = it->get<std::string>();
+
+    it = j.find(PARAMS_KEY);
+    if (it == j.end()) {
+        request->params.reset();
+    } else {
+        if (!it->is_object()) {
+            return MakeJSONRPCError(error, JSON_RPC_INVALID_REQUEST, id, "invalid " + PARAMS_KEY + " value (must be an object)", nullptr);
+        }
+
+        request->params = std::move(*it);
+    }
+
+    return true;
+}
+
+static void HandleJSONRPCResponse(std::function<void(nlohmann::json &&response)> &&completion_fun,
+                                  std::vector<std::optional<nlohmann::json>> &&rpc_ids,
+                                  bool was_array,
+                                  std::vector<ApiResponse> &&api_responses) {
+    ASSERT(api_responses.size() <= rpc_ids.size());
+    if (was_array) {
+        ASSERT(rpc_ids.size() == 1);
+    }
+
+    nlohmann::json responses_j(rpc_ids.size());
+
+    for (size_t i = 0; i < api_responses.size(); ++i) {
+        const std::optional<nlohmann::json> *rpc_id = &rpc_ids[i];
+        ApiResponse *api_response = &api_responses[i];
+        nlohmann::json *response_j = &responses_j[i];
+
+        if (api_response->error.has_value()) {
+            ApiFailureResult *error = &*api_response->error;
+
+            MakeJSONRPCError(response_j, error->reason.code, rpc_id, std::move(error->reason.message), &error->messages);
+        } else {
+            (*response_j)[JSONRPC_KEY] = JSONRPC_VALUE;
+            (*response_j)[RESULT_KEY] = api_response->result.value_or(nullptr);
+            (*response_j)[ID_KEY] = rpc_id->value_or(nullptr);
+        }
+    }
+
+    for (size_t i = api_responses.size(); i < rpc_ids.size(); ++i) {
+        MakeJSONRPCError(&responses_j[i], JSON_RPC_INTERNAL_ERROR, &rpc_ids[i], "Failed due to error in another request", nullptr);
+    }
+
+    if (!was_array) {
+        responses_j = responses_j[0];
+    }
+
+    return completion_fun(std::move(responses_j));
+}
+
+void ApiExecuteJSONRPCRequest(BeebWindow *beeb_window,
+                              nlohmann::json &&request,
+                              std::function<void(nlohmann::json &&response)> completion_fun) {
+    ASSERT(IsMainThread());
+
+    nlohmann::json error;
+
+    std::vector<std::optional<nlohmann::json>> rpc_ids;
+    std::vector<ApiRequest> api_requests;
+    std::vector<nlohmann::json> errors; //null means no error
+    bool was_array;
+    bool any_errors;
+    if (request.is_object()) {
+        was_array = false;
+
+        rpc_ids.resize(1);
+        api_requests.resize(1);
+        errors.resize(1);
+
+        any_errors = LoadJSONRPCRequest(&rpc_ids[0], &api_requests[0], std::move(request), &errors[0]);
+    } else if (request.is_array()) {
+        was_array = true;
+
+        rpc_ids.resize(request.size());
+        api_requests.resize(request.size());
+        errors.resize(request.size());
+
+        any_errors = false;
+        for (size_t i = 0; i < request.size(); ++i) {
+            if (!LoadJSONRPCRequest(&rpc_ids[i], &api_requests[i], std::move(request[i]), &errors[i])) {
+                any_errors = true;
+            }
+        }
+    } else {
+        nlohmann::json error_j;
+        MakeJSONRPCError(&error_j, JSON_RPC_INVALID_REQUEST, nullptr, "Invalid request - must be an object/array", nullptr);
+        return completion_fun(std::move(error_j));
+    }
+
+    if (any_errors) {
+        // Any errors at this stage are an immediate fail.
+        if (was_array) {
+            nlohmann::json errors_j(errors.size());
+            for (size_t i = 0; i < errors.size(); ++i) {
+                if (errors[i].is_null()) {
+                    MakeJSONRPCError(&errors_j[i], JSON_RPC_INTERNAL_ERROR, &rpc_ids[i], "Failed due to error in another request", nullptr);
+                } else {
+                    errors_j[i] = std::move(errors[i]);
+                }
+            }
+
+            return completion_fun(std::move(errors_j));
+        } else {
+            ASSERT(errors.size() == 1);
+            ASSERT(errors[0].is_object());
+
+            return completion_fun(std::move(errors[0]));
+        }
+    }
+
+    ApiExecuteMultipleRequests(beeb_window,
+                               std::move(api_requests),
+                               [completion_fun, rpc_ids, was_array](std::vector<ApiResponse> &&responses) mutable -> void {
+                                   HandleJSONRPCResponse(std::move(completion_fun), std::move(rpc_ids), was_array, std::move(responses));
+                               });
+}
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class HTTPMethodsHandler : public HTTPHandler {
     struct HandleRequestData {
         HTTPServer *server;
@@ -1212,7 +1411,8 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"screenshot", &HTTPMethodsHandler::HandleScreenshotRequest},
         {"b2_constants.asm", &HTTPMethodsHandler::HandleConstantsAsm},
         {"api-set-globals", &HTTPMethodsHandler::HandleSetGlobalsRequest},
-        {"api", &HTTPMethodsHandler::HandleGenericMultipleRequest},
+        {"api", &HTTPMethodsHandler::HandleAPIRequest},
+    //{"rpc", &HTTPMethodsHandler::HandleJSONRPCRequest},
 #endif
         {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
@@ -2149,9 +2349,9 @@ class HTTPMethodsHandler : public HTTPHandler {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    static void HandleGenericRequestCompletion(std::vector<ApiResponse> &&api_responses,
-                                               HTTPServer *server,
-                                               const HTTPResponseData &http_response_data) {
+    static void HandleAPIRequestCompletion(std::vector<ApiResponse> &&api_responses,
+                                           HTTPServer *server,
+                                           const HTTPResponseData &http_response_data) {
         bool success = WereAllSuccessful(api_responses);
 
         HTTPResponse http_response;
@@ -2166,10 +2366,8 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         server->SendResponse(http_response_data, std::move(http_response));
     }
-#endif
 
-#if BBCMICRO_DEBUGGER
-    void HandleGenericMultipleRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+    void HandleAPIRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window = BeebWindows::FindMRUBeebWindow();
         const PathParameter pps[] = {
             {&ParseWindow, &beeb_window},
@@ -2194,10 +2392,59 @@ class HTTPMethodsHandler : public HTTPHandler {
                                    std::move(api_requests),
                                    [response_data = request.response_data,
                                     server](std::vector<ApiResponse> &&responses) -> void {
-                                       HandleGenericRequestCompletion(std::move(responses), server, response_data);
+                                       HandleAPIRequestCompletion(std::move(responses), server, response_data);
                                    });
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
+    static void HandleJSONRPCRequestCompletion(nlohmann::json &&response,
+                                               HTTPServer *server,
+                                               const HTTPResponseData &http_response_data) {
+        HTTPResponse http_response = HTTPResponse::OK();
+
+        http_response.content_type = HTTP_JSON_CONTENT_TYPE;
+        http_response.content = SaveJSONData(std::move(response));
+
+        server->SendResponse(http_response_data, std::move(http_response));
+    }
+
+    void HandleJSONRPCRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        BeebWindow *beeb_window = BeebWindows::FindMRUBeebWindow();
+        const PathParameter pps[] = {
+            {&ParseWindow, &beeb_window},
+        };
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index, nullptr, pps)) {
+            return;
+        }
+
+        if (request.content_type != HTTP_JSON_CONTENT_TYPE) {
+            server->SendResponse(request, HTTPResponse::UnsupportedMediaType(request));
+            return;
+        }
+
+        nlohmann::json body_j;
+        try {
+            body_j = nlohmann::json::parse(request.body.begin(), request.body.end());
+        } catch (const nlohmann::json::exception &exc) {
+            nlohmann::json error_j;
+            MakeJSONRPCError(&error_j, JSON_RPC_PARSE_ERROR, nullptr, std::string("Parse error: ") + exc.what(), nullptr);
+
+            HTTPResponse http_response = HTTPResponse::OK();
+
+            http_response.content_type = HTTP_JSON_CONTENT_TYPE;
+            http_response.content = SaveJSONData(error_j);
+
+            server->SendResponse(request, std::move(http_response));
+            return;
+        }
+
+        ApiExecuteJSONRPCRequest(beeb_window,
+                                 std::move(body_j),
+                                 [response_data = request.response_data, server](nlohmann::json &&response) -> void {
+                                     HandleJSONRPCRequestCompletion(std::move(response), server, response_data);
+                                 });
+    }
 #endif
 
     void HandleLaunchRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {

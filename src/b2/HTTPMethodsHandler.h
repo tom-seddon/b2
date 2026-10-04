@@ -26,7 +26,9 @@ std::shared_ptr<HTTPHandler> CreateHTTPMethodsHandler();
 
 #if BBCMICRO_DEBUGGER
 
-// There must be a better place for this stuff.
+void ApiExecuteJSONRPCRequest(BeebWindow *beeb_window,
+                              nlohmann::json &&request,
+                              std::function<void(nlohmann::json &&response)> completion_fun);
 
 // Execute a JSON API request.
 void ApiExecuteMultipleRequests(BeebWindow *beeb_window,
