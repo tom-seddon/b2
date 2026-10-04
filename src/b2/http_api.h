@@ -225,6 +225,7 @@ enum ApiFailureReasonCode : int {
     ApiFailureReasonCode_WindowNotFound = 11,
     ApiFailureReasonCode_TimedOut = 12,
     ApiFailureReasonCode_Cancelled = 13,
+    ApiFailureReasonCode_UnknownMethod = 14,
 };
 
 extern const ApiFailureReason API_FAILURE_REASON_LOAD_FAILED;
@@ -240,6 +241,7 @@ extern const ApiFailureReason API_FAILURE_REASON_SCREEN_GRAB_FAILED;
 extern const ApiFailureReason API_FAILURE_REASON_WINDOW_NOT_FOUND;
 extern const ApiFailureReason API_FAILURE_REASON_TIMED_OUT;
 extern const ApiFailureReason API_FAILURE_REASON_CANCELLED;
+extern const ApiFailureReason API_FAILURE_REASON_UNKNOWN_METHOD;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

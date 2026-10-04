@@ -950,8 +950,8 @@ static void ExecuteSingleRequest(ApiExecuteArgs execute_args,
     } else if (request.method == API_METHOD_LOAD_SYMBOLS) {
         HandleApiExecute(execute_args, request, completion_fun, &ApiExecuteLoadSymbols, true);
     } else {
-        execute_args.messages->e.f("Unsupported method: %s\n", request.method.c_str());
-        completion_fun(&API_FAILURE_REASON_REQUEST_ERROR, nullptr);
+        execute_args.messages->e.f("Unknown method: %s\n", request.method.c_str());
+        completion_fun(&API_FAILURE_REASON_UNKNOWN_METHOD, nullptr);
     }
 }
 

@@ -24,6 +24,7 @@ const ApiFailureReason API_FAILURE_REASON_SCREEN_GRAB_FAILED{ApiFailureReasonCod
 const ApiFailureReason API_FAILURE_REASON_WINDOW_NOT_FOUND{ApiFailureReasonCode_WindowNotFound, "window not found"};
 const ApiFailureReason API_FAILURE_REASON_TIMED_OUT{ApiFailureReasonCode_TimedOut, "timed out"};
 const ApiFailureReason API_FAILURE_REASON_CANCELLED{ApiFailureReasonCode_Cancelled, "cancelled"};
+const ApiFailureReason API_FAILURE_REASON_UNKNOWN_METHOD(ApiFailureReasonCode_UnknownMethod, "unknown method");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
