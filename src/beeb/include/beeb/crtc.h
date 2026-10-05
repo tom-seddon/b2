@@ -19,11 +19,14 @@ class Trace;
 class CRTC {
   public:
     struct Output {
-        // Value of hsync output.
-        uint32_t hsync : 1;
+        // Whether interlaced mode is set or not.
+        uint32_t interlace : 1;
 
         // Value of vsync output.
         uint32_t vsync : 1;
+
+        // Value of hsync output.
+        uint32_t hsync : 1;
 
         // If display, fetch from ADDRESS/RASTER and use as display data.
         uint32_t display : 1;

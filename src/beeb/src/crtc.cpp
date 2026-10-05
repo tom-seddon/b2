@@ -291,6 +291,7 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
     output.cudisp = m_st.skewed_cudisp & 1;
     m_st.skewed_cudisp >>= 1;
 
+    output.interlace = m_registers.bits.r8.bits.s;
     output.hsync = m_st.hsync_counter >= 0;
     output.vsync = m_st.vsync_counter >= 0;
 

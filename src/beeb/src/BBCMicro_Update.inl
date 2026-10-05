@@ -1180,6 +1180,10 @@ parasite_update_done:
                 video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_VSync;
             }
 
+            if (m_state.crtc_last_output.interlace) {
+                video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_Interlace;
+            }
+
             result |= BBCMicroUpdateResultFlag_VideoUnit;
         }
 

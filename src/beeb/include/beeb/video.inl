@@ -2,7 +2,9 @@
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME VideoDataType
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
+EMETA_SIZE_BITS(4)
+
 // Bitmap modes, blank/cursor-only areas
 EPNV(Bitmap16MHz, 0)
 
@@ -34,11 +36,17 @@ static_assert(VideoDataType_Bitmap16MHz == 0, "");
 EBEGIN_DERIVED(uint8_t)
 EMETA_SIZE_BITS(4)
 
+// Set if interlaced mode was in effect when this unit was produced.
+//
+// This is completely not how interlacing works. It's just a shady hack to make non-interlaced Mode 7 look kind of roughly right.
+EPN_BIT_FLAG(Interlace, 0)
+
 // VSync is on.
-EPN_BIT_FLAG(VSync, 0)
+EPN_BIT_FLAG(VSync, 1)
 
 // HSync is on.
-EPN_BIT_FLAG(HSync, 1)
+EPN_BIT_FLAG(HSync, 2)
+
 EEND()
 #undef ENAME
 

@@ -273,25 +273,13 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             pixels1 = pixels0 + TV_TEXTURE_WIDTH;
 
                             uint16_t p_0 = unit->pixels.pixels[2].all;
-                            uint16_t p_1 = unit->pixels.pixels[3].all;
 
                             const VideoDataPixel p00 = unit->pixels.pixels[p_0 & 1];
-                            const VideoDataPixel p01 = unit->pixels.pixels[p_1 & 1];
-
                             const VideoDataPixel p10 = unit->pixels.pixels[p_0 >> 1 & 1];
-                            const VideoDataPixel p11 = unit->pixels.pixels[p_1 >> 1 & 1];
-
                             const VideoDataPixel p20 = unit->pixels.pixels[p_0 >> 2 & 1];
-                            const VideoDataPixel p21 = unit->pixels.pixels[p_1 >> 2 & 1];
-
                             const VideoDataPixel p30 = unit->pixels.pixels[p_0 >> 3 & 1];
-                            const VideoDataPixel p31 = unit->pixels.pixels[p_1 >> 3 & 1];
-
                             const VideoDataPixel p40 = unit->pixels.pixels[p_0 >> 4 & 1];
-                            const VideoDataPixel p41 = unit->pixels.pixels[p_1 >> 4 & 1];
-
                             const VideoDataPixel p50 = unit->pixels.pixels[p_0 >> 5 & 1];
-                            const VideoDataPixel p51 = unit->pixels.pixels[p_1 >> 5 & 1];
 
 #define EXPAND_12MHZ_VDP(VAR) ((uint32_t)(VAR).bits.b << 0u | (uint32_t)(VAR).bits.b << 4u | (uint32_t)(VAR).bits.g << 8u | (uint32_t)(VAR).bits.g << 12u | (uint32_t)(VAR).bits.r << 16u | (uint32_t)(VAR).bits.r << 20u)
 #define EXPAND_12MHZ_VARS(SUFFIX) ((uint32_t)(b##SUFFIX) << 0u | (uint32_t)(g##SUFFIX) << 8u | (uint32_t)(r##SUFFIX) << 16u)
@@ -318,51 +306,75 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             uint8_t r011_0 = m_blend[p00.bits.r][p10.bits.r];
                             uint8_t g011_0 = m_blend[p00.bits.g][p10.bits.g];
                             uint8_t b011_0 = m_blend[p00.bits.b][p10.bits.b];
-                            uint8_t r011_1 = m_blend[p01.bits.r][p11.bits.r];
-                            uint8_t g011_1 = m_blend[p01.bits.g][p11.bits.g];
-                            uint8_t b011_1 = m_blend[p01.bits.b][p11.bits.b];
 
                             // 112
                             uint8_t r112_0 = m_blend[p20.bits.r][p10.bits.r];
                             uint8_t g112_0 = m_blend[p20.bits.g][p10.bits.g];
                             uint8_t b112_0 = m_blend[p20.bits.b][p10.bits.b];
-                            uint8_t r112_1 = m_blend[p21.bits.r][p11.bits.r];
-                            uint8_t g112_1 = m_blend[p21.bits.g][p11.bits.g];
-                            uint8_t b112_1 = m_blend[p21.bits.b][p11.bits.b];
 
                             // 344
                             uint8_t r344_0 = m_blend[p30.bits.r][p40.bits.r];
                             uint8_t g344_0 = m_blend[p30.bits.g][p40.bits.g];
                             uint8_t b344_0 = m_blend[p30.bits.b][p40.bits.b];
-                            uint8_t r344_1 = m_blend[p31.bits.r][p41.bits.r];
-                            uint8_t g344_1 = m_blend[p31.bits.g][p41.bits.g];
-                            uint8_t b344_1 = m_blend[p31.bits.b][p41.bits.b];
 
                             // 445
                             uint8_t r445_0 = m_blend[p50.bits.r][p40.bits.r];
                             uint8_t g445_0 = m_blend[p50.bits.g][p40.bits.g];
                             uint8_t b445_0 = m_blend[p50.bits.b][p40.bits.b];
-                            uint8_t r445_1 = m_blend[p51.bits.r][p41.bits.r];
-                            uint8_t g445_1 = m_blend[p51.bits.g][p41.bits.g];
-                            uint8_t b445_1 = m_blend[p51.bits.b][p41.bits.b];
 
-                            pixels0[0] = EXPAND_12MHZ_VDP(p00);    //000
-                            pixels0[1] = EXPAND_12MHZ_VARS(011_0); //011
-                            pixels0[2] = EXPAND_12MHZ_VARS(112_0); //112
-                            pixels0[3] = EXPAND_12MHZ_VDP(p20);    //222
-                            pixels0[4] = EXPAND_12MHZ_VDP(p30);    //333
-                            pixels0[5] = EXPAND_12MHZ_VARS(344_0); //344
-                            pixels0[6] = EXPAND_12MHZ_VARS(445_0); //445
-                            pixels0[7] = EXPAND_12MHZ_VDP(p50);    //555
+                            if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_Interlace) {
+                                uint16_t p_1 = unit->pixels.pixels[3].all;
 
-                            pixels1[0] = EXPAND_12MHZ_VDP(p01);
-                            pixels1[1] = EXPAND_12MHZ_VARS(011_1);
-                            pixels1[2] = EXPAND_12MHZ_VARS(112_1);
-                            pixels1[3] = EXPAND_12MHZ_VDP(p21);
-                            pixels1[4] = EXPAND_12MHZ_VDP(p31);
-                            pixels1[5] = EXPAND_12MHZ_VARS(344_1);
-                            pixels1[6] = EXPAND_12MHZ_VARS(445_1);
-                            pixels1[7] = EXPAND_12MHZ_VDP(p51);
+                                const VideoDataPixel p01 = unit->pixels.pixels[p_1 & 1];
+                                const VideoDataPixel p11 = unit->pixels.pixels[p_1 >> 1 & 1];
+                                const VideoDataPixel p21 = unit->pixels.pixels[p_1 >> 2 & 1];
+                                const VideoDataPixel p31 = unit->pixels.pixels[p_1 >> 3 & 1];
+                                const VideoDataPixel p41 = unit->pixels.pixels[p_1 >> 4 & 1];
+                                const VideoDataPixel p51 = unit->pixels.pixels[p_1 >> 5 & 1];
+
+                                uint8_t r011_1 = m_blend[p01.bits.r][p11.bits.r];
+                                uint8_t g011_1 = m_blend[p01.bits.g][p11.bits.g];
+                                uint8_t b011_1 = m_blend[p01.bits.b][p11.bits.b];
+
+                                uint8_t r112_1 = m_blend[p21.bits.r][p11.bits.r];
+                                uint8_t g112_1 = m_blend[p21.bits.g][p11.bits.g];
+                                uint8_t b112_1 = m_blend[p21.bits.b][p11.bits.b];
+
+                                uint8_t r344_1 = m_blend[p31.bits.r][p41.bits.r];
+                                uint8_t g344_1 = m_blend[p31.bits.g][p41.bits.g];
+                                uint8_t b344_1 = m_blend[p31.bits.b][p41.bits.b];
+
+                                uint8_t r445_1 = m_blend[p51.bits.r][p41.bits.r];
+                                uint8_t g445_1 = m_blend[p51.bits.g][p41.bits.g];
+                                uint8_t b445_1 = m_blend[p51.bits.b][p41.bits.b];
+
+                                pixels0[0] = EXPAND_12MHZ_VDP(p00);    //000
+                                pixels0[1] = EXPAND_12MHZ_VARS(011_0); //011
+                                pixels0[2] = EXPAND_12MHZ_VARS(112_0); //112
+                                pixels0[3] = EXPAND_12MHZ_VDP(p20);    //222
+                                pixels0[4] = EXPAND_12MHZ_VDP(p30);    //333
+                                pixels0[5] = EXPAND_12MHZ_VARS(344_0); //344
+                                pixels0[6] = EXPAND_12MHZ_VARS(445_0); //445
+                                pixels0[7] = EXPAND_12MHZ_VDP(p50);    //555
+
+                                pixels1[0] = EXPAND_12MHZ_VDP(p01);
+                                pixels1[1] = EXPAND_12MHZ_VARS(011_1);
+                                pixels1[2] = EXPAND_12MHZ_VARS(112_1);
+                                pixels1[3] = EXPAND_12MHZ_VDP(p21);
+                                pixels1[4] = EXPAND_12MHZ_VDP(p31);
+                                pixels1[5] = EXPAND_12MHZ_VARS(344_1);
+                                pixels1[6] = EXPAND_12MHZ_VARS(445_1);
+                                pixels1[7] = EXPAND_12MHZ_VDP(p51);
+                            } else {
+                                pixels1[0] = pixels0[0] = EXPAND_12MHZ_VDP(p00);    //000
+                                pixels1[1] = pixels0[1] = EXPAND_12MHZ_VARS(011_0); //011
+                                pixels1[2] = pixels0[2] = EXPAND_12MHZ_VARS(112_0); //112
+                                pixels1[3] = pixels0[3] = EXPAND_12MHZ_VDP(p20);    //222
+                                pixels1[4] = pixels0[4] = EXPAND_12MHZ_VDP(p30);    //333
+                                pixels1[5] = pixels0[5] = EXPAND_12MHZ_VARS(344_0); //344
+                                pixels1[6] = pixels0[6] = EXPAND_12MHZ_VARS(445_0); //445
+                                pixels1[7] = pixels0[7] = EXPAND_12MHZ_VDP(p50);    //555
+                            }
 
 #if VIDEO_TRACK_METADATA
                             VideoDataUnit *units0 = m_units_line + (m_x >> 3);
