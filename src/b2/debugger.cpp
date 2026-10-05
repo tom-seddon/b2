@@ -3633,6 +3633,8 @@ class PixelMetadataUI : public DebugUI {
 
             if (u.metadata.flags & VideoDataUnitMetadataFlag_HasCRTCAddress) {
                 ImGui::Text("CRTC Address: %s%04x", g_hex, u.metadata.crtc_address);
+            } else {
+                ImGui::Text("CRTC Address: -");
             }
 
             const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);
@@ -3681,16 +3683,19 @@ class PixelMetadataUI : public DebugUI {
 
             ImGui::Text("4 bpp: %u %u", p4[0], p4[1]);
             ImGui::Text("4 bpp: %s%x %s%x", g_hex, p4[0], g_hex, p4[1]);
-            //} else {
-            ImGui::TextUnformatted("Value:");
+
+            ImGui::Text("Data type: %s", GetVideoDataTypeEnumName(u.pixels.pixels[0].bits.x));
         }
 
         ImGui::Text("%s cycle", u.metadata.flags & VideoDataUnitMetadataFlag_OddCycle ? "Odd" : "Even");
 
-        ImGui::Text("6845:%s%s%s",
+        ImGui::Text("6845:%s%s%s%s%s%s",
                     u.metadata.flags & VideoDataUnitMetadataFlag_6845DISPEN ? " DISPEN" : "",
                     u.metadata.flags & VideoDataUnitMetadataFlag_6845CUDISP ? " CUDISP" : "",
-                    u.metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "");
+                    u.metadata.flags & VideoDataUnitMetadataFlag_6845Raster0 ? " Raster0" : "",
+                    u.pixels.pixels[1].bits.x & VideoDataUnitFlag_HSync ? " HSync" : "",
+                    u.pixels.pixels[1].bits.x & VideoDataUnitFlag_VSync ? " VSync" : "",
+                    u.pixels.pixels[1].bits.x & VideoDataUnitFlag_Interlace ? " Interlace" : "");
 
         // Size of zoomed-in view. The highlight is 8x1 Mode 0 pixels, so,
         // ideally, width should be even and height should be odd.
