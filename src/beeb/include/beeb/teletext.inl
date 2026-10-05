@@ -2,7 +2,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME TeletextCharset
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 EPN(Alpha)
 EPN(ContiguousGraphics)
 EPN(SeparatedGraphics)
