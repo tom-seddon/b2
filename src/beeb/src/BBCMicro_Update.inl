@@ -1045,7 +1045,7 @@ parasite_update_done:
                         }
                     }
 
-                    if (m_state.video_ula.control.bits.teletext) {
+                    if (output.address & 0x2000) {
                         // Teletext line boundary stuff.
                         //
                         // The hsync output is linked up to the SAA505's GLR
