@@ -202,7 +202,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                 m_x += 8;
 
                 if (m_state_timer++ >= SCAN_OUT_CYCLES) {
-                    m_state = TVOutputState_HorizontalRetrace;
+                    m_state = TVOutputState_HorizontalRetraceWithoutSync;
                 }
             }
             break;
@@ -457,11 +457,13 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                 }
 
                 if (m_state_timer++ >= SCAN_OUT_CYCLES) {
-                    m_state = TVOutputState_HorizontalRetrace;
+                    m_state = TVOutputState_HorizontalRetraceWithoutSync;
                 }
             }
             break;
 
+        case TVOutputState_HorizontalRetraceWithoutSync:
+            // TODO: maybe some different handling for this?
         case TVOutputState_HorizontalRetrace:
             {
                 m_x = 0;
