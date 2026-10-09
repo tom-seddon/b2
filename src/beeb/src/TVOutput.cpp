@@ -22,6 +22,21 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
+
+// If defined, always optimize TVOutput::Update. VC++ -O0 codegen is pretty
+// terrible, and TVOutput::Update happens on the main thread so it can interfere
+// with general input responsiveness.
+//
+// TODO: doesn't seem to be a problem on my desktop PC, and/or maybe VC++
+// improved.
+#define MSVC_ALWAYS_OPTIMIZE_UPDATE 0
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const uint64_t NUM_UNITS_PER_SECOND = (uint64_t)2e6;
 
 static constexpr uint64_t MIN_UNITS_BETWEEN_VERTICAL_RETRACE = NUM_UNITS_PER_SECOND / 65;
@@ -104,11 +119,11 @@ static const int VERTICAL_RETRACE_SCANLINES = 12;
 // output...
 static const int MAX_NUM_SCANNED_LINES = 500;
 
-#if BUILD_TYPE_Debug
 #ifdef _MSC_VER
-// VC++ -O0 codegen is pretty terrible, and TVOutput::Update happens on the main
-// thread so it can interfere with general input responsiveness.
+#if MSVC_ALWAYS_OPTIMIZE_UPDATE
+#if BUILD_TYPE_Debug
 #pragma optimize("tsg", on)
+#endif
 #endif
 #endif
 
@@ -509,9 +524,11 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
     m_total.n += num_units;
 }
 
-#if BUILD_TYPE_Debug
 #ifdef _MSC_VER
+#if MSVC_ALWAYS_OPTIMIZE_UPDATE
+#if BUILD_TYPE_Debug
 #pragma optimize("", on)
+#endif
 #endif
 #endif
 
