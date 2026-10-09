@@ -104,8 +104,6 @@ static const int VERTICAL_RETRACE_SCANLINES = 12;
 // output...
 static const int MAX_NUM_SCANNED_LINES = 500;
 
-#define NOTHING_PALETTE_INDEX (0)
-
 #if BUILD_TYPE_Debug
 #ifdef _MSC_VER
 // VC++ -O0 codegen is pretty terrible, and TVOutput::Update happens on the main
