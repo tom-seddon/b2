@@ -162,6 +162,8 @@ class TVOutput {
 #if VIDEO_TRACK_METADATA
     void AddMetadataMarkers(void *dest_pixels, size_t dest_pitch_bytes, bool add, uint8_t metadata_flag, uint32_t xor_value) const;
 #endif
+
+    friend class TVDebugWindow;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -5631,6 +5631,35 @@ std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TVDebugWindow : public DebugUI {
+  public:
+    void DoImGui2() override {
+        TVOutput *tv = m_beeb_window->GetMutableTV();
+
+        ImGuiHeader("Debug display");
+
+        ImGui::Checkbox("1.0 " MICROSECONDS_UTF8, &tv->show_usec_markers);
+        ImGui::SameLine();
+        ImGui::Checkbox("0.5 " MICROSECONDS_UTF8, &tv->show_half_usec_markers);
+
+        ImGui::Checkbox("CRTC rows", &tv->show_6845_row_markers);
+        ImGui::Checkbox("Display enable", &tv->show_6845_dispen_markers);
+        ImGui::Checkbox("Data", &tv->show_data_markers);
+        ImGui::Checkbox("Address", &tv->show_address_markers);
+        ImGui::Checkbox("Show TV beam position", &tv->show_beam_position);
+    }
+
+  protected:
+  private:
+};
+
+std::unique_ptr<SettingsUI> CreateTVDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<TVDebugWindow>(beeb_window, ImVec2(400.f, 250.f));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> CreateSystemDebugWindow(BeebWindow *) {
@@ -5770,6 +5799,10 @@ std::unique_ptr<SettingsUI> CreateTapeDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateTVDebugWindow(BeebWindow *) {
     return nullptr;
 }
 

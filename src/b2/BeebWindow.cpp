@@ -295,6 +295,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_TapeDebug, "toggle_tape_debug", "Tape Debug", &CreateTapeDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_Plus1Debug, "toggle_plus1_debug", "Plus 1 Debug", &CreatePlus1DebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_Enums, "toggle_enums", "Enums", &CreateEnumsUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_TVDebug, "toggle_tv_debug", "TV Debug", &CreateTVDebugWindow);
     return true;
 }
 
@@ -843,7 +844,6 @@ void BeebWindow::OptionsUI::DoImGui() {
                 }
             }
 
-            ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
             if (ImGui::Checkbox("Test pattern", &m_beeb_window->m_test_pattern)) {
                 if (m_beeb_window->m_test_pattern) {
                     m_beeb_window->m_tv.FillWithTestPattern();
@@ -851,15 +851,6 @@ void BeebWindow::OptionsUI::DoImGui() {
             }
 
             ImGui::Checkbox("Fill window (overrides auto scale/correct aspect ratio)", &m_beeb_window->m_display_fill);
-
-            ImGui::Checkbox("1.0 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_usec_markers);
-            ImGui::SameLine();
-            ImGui::Checkbox("0.5 " MICROSECONDS_UTF8, &m_beeb_window->m_tv.show_half_usec_markers);
-
-            ImGui::Checkbox("CRTC rows", &m_beeb_window->m_tv.show_6845_row_markers);
-            ImGui::Checkbox("Display enable", &m_beeb_window->m_tv.show_6845_dispen_markers);
-            ImGui::Checkbox("Data", &m_beeb_window->m_tv.show_data_markers);
-            ImGui::Checkbox("Address", &m_beeb_window->m_tv.show_address_markers);
 
             ImGui::TextUnformatted("RAM errors");
 
@@ -3135,6 +3126,7 @@ void BeebWindow::DoDebugMenu() {
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SerialDebug].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TapeDebug].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Plus1Debug].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TVDebug].command);
             if (ImGui::BeginMenu("External Memory Debug")) {
                 m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command);
                 m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command);
@@ -4751,6 +4743,13 @@ bool BeebWindow::GetVideoDataUnit(VideoDataUnit *unit, const ImVec2 &pos) const 
     return m_tv.GetTextureUnit(unit, (int)pos.x, (int)pos.y);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TVOutput *BeebWindow::GetMutableTV() {
+    return &m_tv;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

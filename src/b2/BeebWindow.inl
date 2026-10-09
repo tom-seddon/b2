@@ -88,10 +88,11 @@ EPN(ElectronULADebug)
 EPN(TapeDebug)
 EPN(Plus1Debug)
 EPN(Enums)
+EPN(TVDebug)
 
 // must be last
 EQPN(MaxValue)
-EEND_SERIALIZABLE("c5f417840763725a716013a34fc04441ba375d5f")
+EEND_SERIALIZABLE("8730e72fae270535c55c176fd2738911c230c476")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

@@ -453,6 +453,8 @@ class BeebWindow {
     bool GetVideoDataUnit(VideoDataUnit *unit, const ImVec2 &pos) const;
 #endif
 
+    TVOutput *GetMutableTV();
+
   protected:
   private:
     BeebWindowInitArguments m_init_arguments;

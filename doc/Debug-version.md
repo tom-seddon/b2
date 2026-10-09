@@ -1,19 +1,19 @@
-# Debug version
+# b2 with debugger
 
-The debug version has a range of extra debug-related functionality,
-accessible from the `Debug` menu.
+b2 has a version with an integrated debugger, adding a range of extra
+debug-related functionality, accessible from the `Debug` menu.
 
 ## Using Windows?
 
-Run the debug version on Windows by running `b2_Debug.exe`, as
+Run b2 with debugger on Windows by running `b2_Debug.exe`, as
 extracted from the distribution zip file.
 
 ## Using macOS?
 
-Run the debug version on macOS by copying `b2 Debug` from the dmg file
+Run b2 with debugger on macOS by copying `b2 Debug` from the dmg file
 to your Applications folder and running it.
 
-The debug version shares most settings with the ordinary version, but
+b2 with debugger shares most settings with the ordinary version, but
 it is a separate app from the point of view of macOS, meaning you'll
 need to manage its Caps Lock access separately (see [the installation
 instructions](./Installing-on-OSX.md). (It also has a separate
@@ -22,13 +22,12 @@ persistent window position and size.)
 ## Building from source?
 
 When building from source - your only option on Linux, sorry about
-that - get the debug version by building `Debug` (unoptimized) or
-`RelWithDebInfo` (optimized).
+that - build b2 with debugger by building `RelWithDebInfo`.
 
-(As might be obvious, despite the slightly confusing naming:
-`RelWithDebInfo` will be more efficient, and `Debug` will be slower,
-but easier to step through in a debugger. But either should maintain
-100% BBC Micro speed on any decent modern PC.)
+(You may notice it is possible to build `Debug` - this will also build
+b2 with debugger, but with compiler optimization disabled. This is
+probably not what you want (though it might be relevant if you're
+working on the C++ code for b2). Apologies for the non-ideal naming.)
 
 # Integrated debugger
 
@@ -463,6 +462,24 @@ Activate a debug window for the corresponding piece of BBC hardware
 (if present), showing current state and any other additional useful
 info.
 
+## `Devices` > `TV Debug`
+
+Show some options for debugging the display output.
+
+`Show TV beam position` will indicate where the TV beam is, with a
+line starting just after its current position.
+
+`1.0 microsec` and `0.5 microsec` display blue lines on the display
+indicating each 1.0 microsecond of display output and red lines
+indicating each 0.5 microsecond.
+
+`6845 rows` shows yellow lines indicating CRTC row boundaries.
+
+`Display enable` shows purple shading for periods corresponding to
+CRTC display enable.
+
+There may also be some undocumented options.
+
 ## `System` > `Paging debug`
 
 Shows current paging settings for the host system.
@@ -697,18 +714,6 @@ dimmed versions, making it easier to take consistent screen grabs.
 Use `Disable` to hide it entirely, or `Disable flash` to have it
 always shown as steady when enabled - again, making it easier to take
 consistent screen grabs.
-
-`Show TV beam position` will indicate where the TV beam is, with a
-line starting just after its current position.
-
-`1.0 microsec` and `0.5 microsec` display blue lines on the display
-indicating each 1.0 microsecond of display output and red lines
-indicating each 0.5 microsecond.
-
-`6845 rows` shows yellow lines indicating CRTC row boundaries.
-
-`Display enable` shows purple shading for periods corresponding to
-CRTC display enable.
 
 `RAM errors` allows you to emulate RAM errors that manifest themselves
 as stuck bits. Click each button to set that bit's behaviour: `-` (the

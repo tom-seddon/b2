@@ -55,6 +55,7 @@ std::unique_ptr<SettingsUI> CreateSymbolBrowserWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateElectronULADebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateTapeDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreatePlus1DebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateTVDebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
