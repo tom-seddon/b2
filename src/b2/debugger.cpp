@@ -2768,11 +2768,11 @@ class R6522DebugWindow : public DebugUI {
 
         ImGui::Text("T1 : %s%04x %05d %s%s%s", g_hex, via.m_t1, via.m_t1, g_bin, BINARY_BYTE_STRINGS[via.m_t1 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t1 & 0xff]);
         ImGui::Text("T1L: %s%04x %05d %s%s%s", g_hex, t1l.w, t1l.w, g_bin, BINARY_BYTE_STRINGS[t1l.b.h], BINARY_BYTE_STRINGS[t1l.b.l]);
-        ImGui::Text("T2 : %s%04x %05d %s%s%s", g_hex, via.m_t2, via.m_t2, g_bin, BINARY_BYTE_STRINGS[via.m_t2 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t2 & 0xff]);
+        ImGui::Text("T2 : %s%04x %05d %s%s%s", g_hex, via.m_t2.w, via.m_t2.w, g_bin, BINARY_BYTE_STRINGS[via.m_t2.b.h], BINARY_BYTE_STRINGS[via.m_t2.b.l]);
         ImGui::Text("SR : %s%02x %03d %s%s", g_hex, via.m_sr, via.m_sr, g_bin, BINARY_BYTE_STRINGS[via.m_sr]);
         ImGui::Text("ACR: PA latching = %s", BOOL_STR(via.m_acr.bits.pa_latching));
         ImGui::Text("ACR: PB latching = %s", BOOL_STR(via.m_acr.bits.pb_latching));
-        ImGui::Text("ACR: Shift mode = %s", ACR_SHIFT_MODES[via.m_acr.bits.sr]);
+        ImGui::Text("ACR: Shift mode = %s (%u)", ACR_SHIFT_MODES[via.m_acr.bits.sr], via.m_acr.bits.sr);
         ImGui::Text("ACR: T2 mode = %s", via.m_acr.bits.t2_count_pb6 ? "Count PB6 pulses" : "Timed interrupt");
         ImGui::Text("ACR: T1 continuous = %s, output PB7 = %s", BOOL_STR(via.m_acr.bits.t1_continuous), BOOL_STR(via.m_acr.bits.t1_output_pb7));
         ImGui::Text("PCR: CA1 = %cve edge", via.m_pcr.bits.ca1_pos_irq ? '+' : '-');

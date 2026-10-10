@@ -8,10 +8,11 @@
 
 class Trace;
 class TraceEventType;
-union M6502Word;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#include <6502/6502.h>
 
 #include <shared/enum_decl.h>
 #include "6522.inl"
@@ -25,9 +26,9 @@ class R6522 {
 #include <shared/pushwarn_bitfields.h>
     struct PCRBits {
         uint8_t ca1_pos_irq : 1;
-        uint8_t ca2_mode : 3;
+        R6522Cx2Control ca2_mode : 3;
         uint8_t cb1_pos_irq : 1;
-        uint8_t cb2_mode : 3;
+        R6522Cx2Control cb2_mode : 3;
     };
 #include <shared/popwarn.h>
 
@@ -35,12 +36,13 @@ class R6522 {
         uint8_t value;
         PCRBits bits;
     };
+    CHECK_SIZEOF(PCR, 1);
 
 #include <shared/pushwarn_bitfields.h>
     struct ACRBits {
         uint8_t pa_latching : 1;
         uint8_t pb_latching : 1;
-        uint8_t sr : 3;
+        R6522SRControl sr : 3;
         uint8_t t2_count_pb6 : 1;
         uint8_t t1_continuous : 1;
         uint8_t t1_output_pb7 : 1;
@@ -51,7 +53,7 @@ class R6522 {
         uint8_t value;
         ACRBits bits;
     };
-    typedef union R6522ACR R6522ACR;
+    CHECK_SIZEOF(ACR, 1);
 
 #include <shared/pushwarn_bitfields.h>
     struct IRQBits {
@@ -70,6 +72,7 @@ class R6522 {
         uint8_t value;
         IRQBits bits;
     };
+    CHECK_SIZEOF(IRQ, 1);
 
 #if BBCMICRO_TRACE
 #include <shared/pshpack1.h>
@@ -227,7 +230,7 @@ class R6522 {
     bool m_t1_pending = false;
     bool m_t1_timeout = false;
 
-    uint16_t m_t2 = 0;
+    M6502Word m_t2 = 0;
     bool m_t2_reload = false;
     bool m_t2_pending = false;
     bool m_t2_timeout = false;
