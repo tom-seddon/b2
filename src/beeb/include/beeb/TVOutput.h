@@ -118,7 +118,8 @@ class TVOutput {
 #if VIDEO_TRACK_METADATA
     VideoDataUnit *m_units_line = nullptr;
 #endif
-    size_t m_x = 0;
+    float m_left_x = 0.f;
+    int m_x = 0;
     size_t m_y = 0;
     int m_state_timer = 0;
     size_t m_num_fields = 0;
@@ -128,7 +129,11 @@ class TVOutput {
 #endif
 
     VideoDataUnitCount m_total{0};
-    VideoDataUnitCount m_last_retrace_start_time{0};
+    VideoDataUnitCount m_last_vretrace_start_time{0};
+    bool m_in_hsync = false;
+    VideoDataUnitCount m_last_hretrace_start_time{0};
+    int64_t m_scanline_time = 0;
+    int64_t m_old_scanline_time = 0;
 
     // TV - output texture and its properties
     mutable std::vector<uint32_t> m_texture_pixels;
@@ -146,6 +151,7 @@ class TVOutput {
 #endif
 
     double m_gamma = 2.2;
+    float m_left_x_scale = .75f;
 
     // m_blend[i][j] is gamma-corrected 8-bit blend of 1/3 i<<4|i and
     // 2/3 j<<4|j.

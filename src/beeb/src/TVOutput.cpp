@@ -105,6 +105,9 @@ static const int SCANLINE_CYCLES = HORIZONTAL_RETRACE_CYCLES + BACK_PORCH_CYCLES
 static_assert(SCANLINE_CYCLES == 128, "one scanline must be 64us");
 static const int VERTICAL_RETRACE_SCANLINES = 12;
 
+// max cycles in scan out state before forced hsync.
+static const int MAX_SCAN_OUT_CYCLES = 64 * 2;
+
 // If this many lines are scanned without a vertical retrace, the TV
 // retraces anyway.
 //
@@ -131,6 +134,21 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
     const VideoDataUnit *unit = units;
 
     for (size_t i = 0; i < num_units; ++i, ++unit) {
+        const bool hsync = !!(unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_HSync);
+
+        if (hsync) {
+            if (!m_in_hsync) {
+                uint64_t total = m_total.n + i;
+                int64_t scanline_time = total - m_last_hretrace_start_time.n;
+                m_old_scanline_time = m_scanline_time;
+                m_scanline_time = scanline_time;
+                m_last_hretrace_start_time.n = total;
+                m_in_hsync = true;
+            }
+        } else {
+            m_in_hsync = false;
+        }
+
         switch (m_state) {
         default:
             ASSERT(0);
@@ -146,7 +164,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                        m_texture_pixels.size() * sizeof m_texture_pixels[0]);
             }
 
-            m_last_retrace_start_time.n = m_total.n + i;
+            m_last_vretrace_start_time.n = m_total.n + i;
 
             // With interlaced output, odd fields start 1 scanline lower.
             //
@@ -196,10 +214,10 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                 if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_VSync) {
                     // If it's the first vsync ever, assume it's a good one.
                     // GenerateThumbnailJob needs this.
-                    uint64_t units_since_last_last_retrace = m_total.n + i - m_last_retrace_start_time.n;
+                    uint64_t units_since_last_last_retrace = m_total.n + i - m_last_vretrace_start_time.n;
                     if ((units_since_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE &&
                          units_since_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE) ||
-                        m_last_retrace_start_time.n == 0) {
+                        m_last_vretrace_start_time.n == 0) {
                         m_state = TVOutputState_VerticalRetrace;
                         break;
                     }
@@ -207,14 +225,14 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                     // Otherwise - the sync didn't take. Better luck next time.
                 }
 
-                if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_HSync) {
+                if (hsync) {
                     m_state = TVOutputState_HorizontalRetrace;
                     break;
                 }
 
                 m_x += 8;
 
-                if (m_state_timer++ >= SCAN_OUT_CYCLES) {
+                if (m_state_timer++ >= MAX_SCAN_OUT_CYCLES) {
                     m_state = TVOutputState_HorizontalRetraceWithoutSync;
                 }
             }
@@ -225,10 +243,10 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                 if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_VSync) {
                     // If it's the first vsync ever, assume it's a good one.
                     // GenerateThumbnailJob needs this.
-                    uint64_t units_since_last_last_retrace = m_total.n + i - m_last_retrace_start_time.n;
+                    uint64_t units_since_last_last_retrace = m_total.n + i - m_last_vretrace_start_time.n;
                     if ((units_since_last_last_retrace >= MIN_UNITS_BETWEEN_VERTICAL_RETRACE &&
                          units_since_last_last_retrace <= MAX_UNITS_BETWEEN_VERTICAL_RETRACE) ||
-                        m_last_retrace_start_time.n == 0) {
+                        m_last_vretrace_start_time.n == 0) {
                         m_state = TVOutputState_VerticalRetrace;
                         break;
                     }
@@ -236,7 +254,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                     // Otherwise - the sync didn't take. Better luck next time.
                 }
 
-                if (unit->pixels.pixels[1].bits.x & VideoDataUnitFlag_HSync) {
+                if (hsync) {
                     m_state = TVOutputState_HorizontalRetrace;
                     break;
                 }
@@ -253,7 +271,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
                 case VideoDataType_Bitmap16MHz:
                     {
-                        if (m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
+                        if (m_x >= 0 && m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
                             pixels0 = m_pixels_line + m_x;
                             pixels1 = pixels0 + TV_TEXTURE_WIDTH;
 
@@ -281,7 +299,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
                 case VideoDataType_Teletext:
                     {
-                        if (m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
+                        if (m_x >= 0 && m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
                             pixels0 = m_pixels_line + m_x;
                             pixels1 = pixels0 + TV_TEXTURE_WIDTH;
 
@@ -401,7 +419,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                 case VideoDataType_TeletextUnscaled:
                     // Only used for tests. Performance is not a goal.
                     {
-                        if (m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
+                        if (m_x >= 0 && m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
                             pixels0 = m_pixels_line + m_x;
                             pixels1 = pixels0 + TV_TEXTURE_WIDTH;
 
@@ -423,7 +441,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
                 case VideoDataType_Bitmap12MHz:
                     {
-                        if (m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
+                        if (m_x >= 0 && m_x < TV_TEXTURE_WIDTH && m_y < TV_TEXTURE_HEIGHT) {
                             pixels0 = m_pixels_line + m_x;
                             pixels1 = pixels0 + TV_TEXTURE_WIDTH;
 
@@ -469,7 +487,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                     break;
                 }
 
-                if (m_state_timer++ >= SCAN_OUT_CYCLES) {
+                if (m_state_timer++ >= MAX_SCAN_OUT_CYCLES) {
                     m_state = TVOutputState_HorizontalRetraceWithoutSync;
                 }
             }
@@ -479,7 +497,20 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
             // TODO: maybe some different handling for this?
         case TVOutputState_HorizontalRetrace:
             {
-                m_x = 0;
+                if (m_old_scanline_time != m_scanline_time) {
+                    m_left_x = (m_old_scanline_time - m_scanline_time) * 8.f;
+                } else {
+                    m_left_x *= m_left_x_scale;
+                }
+
+                // flush to zero.
+                if (m_left_x != 0.f) {
+                    if (fabsf(m_left_x) < std::numeric_limits<decltype(m_left_x)>::min()) {
+                        m_left_x = copysignf(0.f, m_left_x);
+                    }
+                }
+
+                m_x = (int)m_left_x;
                 m_y += 2;
 
                 if (m_y >= 2 * MAX_NUM_SCANNED_LINES) {
@@ -610,7 +641,7 @@ void TVOutput::FillWithTestPattern() {
 
 uint32_t *TVOutput::GetTexturePixels(VideoDataUnitCount *vsync_time_ptr) const {
     if (vsync_time_ptr) {
-        *vsync_time_ptr = m_last_retrace_start_time;
+        *vsync_time_ptr = m_last_vretrace_start_time;
     }
 
     return m_texture_pixels.data();
@@ -741,7 +772,7 @@ void TVOutput::CopyTexturePixels(void *dest_pixels, size_t dest_pitch_bytes) con
             auto dest = (uint32_t *)((char *)dest_pixels + m_y * (size_t)dest_pitch_bytes);
             auto src = (const uint32_t *)((const char *)m_texture_pixels.data() + m_y * src_pitch_bytes);
 
-            for (size_t i = m_x; i < TV_TEXTURE_WIDTH; ++i) {
+            for (int i = std::max(m_x, 0); i < TV_TEXTURE_WIDTH; ++i) {
                 dest[i] = src[i] ^ m_beam_marker_xor;
             }
         }

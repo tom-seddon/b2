@@ -11913,4 +11913,10 @@ VideoNuLAModeFlag: size=32 signed=false serializable=false
     LogicalPalette: bit=6 width=1 (mask=0x40)
 #+end_example
 
+* tv timing
+
+52 us scanout
+4 us hsync
+8 us back porch
+
 * eof.

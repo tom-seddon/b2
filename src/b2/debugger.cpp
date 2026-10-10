@@ -5636,6 +5636,8 @@ class TVDebugWindow : public DebugUI {
     void DoImGui2() override {
         TVOutput *tv = m_beeb_window->GetMutableTV();
 
+        ImGui::Text("Scanline time: %.3f", tv->m_scanline_time);
+
         ImGuiHeader("Debug display");
 
         ImGui::Checkbox("1.0 " MICROSECONDS_UTF8, &tv->show_usec_markers);
@@ -5647,6 +5649,12 @@ class TVDebugWindow : public DebugUI {
         ImGui::Checkbox("Data", &tv->show_data_markers);
         ImGui::Checkbox("Address", &tv->show_address_markers);
         ImGui::Checkbox("Show TV beam position", &tv->show_beam_position);
+
+#if BUILD_TYPE_Debug
+        ImGuiHeader("Tweakables");
+
+        ImGui::SliderFloat("Left X", &tv->m_left_x_scale, 0.f, 1.f);
+#endif
     }
 
   protected:
