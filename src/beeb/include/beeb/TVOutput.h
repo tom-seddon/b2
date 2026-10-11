@@ -93,10 +93,6 @@ class TVOutput {
     bool GetTextureUnit(VideoDataUnit *unit, int x, int y) const;
 #endif
 
-    // returns false, *X and *Y untouched, if beam is outside the
-    // visible area.
-    bool GetBeamPosition(size_t *x, size_t *y) const;
-
     bool IsInVerticalBlank() const;
 
     // TODO - nothing actually uses this! There should probably be a slider

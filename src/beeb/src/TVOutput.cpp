@@ -810,20 +810,6 @@ bool TVOutput::GetTextureUnit(VideoDataUnit *unit, int x, int y) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool TVOutput::GetBeamPosition(size_t *x, size_t *y) const {
-    if (m_x >= TV_TEXTURE_WIDTH || m_y >= TV_TEXTURE_HEIGHT) {
-        return false;
-    } else {
-        *x = m_x;
-        *y = m_y;
-
-        return true;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool TVOutput::IsInVerticalBlank() const {
     return m_state == TVOutputState_VerticalRetrace || m_state == TVOutputState_VerticalRetraceWait;
 }
