@@ -143,6 +143,9 @@ void R6522::Write0(void *via_, M6502Word addr, uint8_t value) {
 
     // Write handshaking.
     switch (via->m_pcr.bits.cb2_mode) {
+    default:
+        break;
+
     case R6522Cx2Control_Output_Handshake:
         TRACEF(via->m_trace, "%s - Write ORB, output handshake. CB2=0 (was %u). (FYI: CB1=%u)",
                via->m_name,
@@ -201,6 +204,9 @@ uint8_t R6522::Read1(void *via_, M6502Word addr) {
 
     // Read handshaking.
     switch (via->m_pcr.bits.ca2_mode) {
+    default:
+        break;
+
     case R6522Cx2Control_Output_Handshake:
         via->a.c2 = 0;
         break;
@@ -242,6 +248,9 @@ void R6522::Write1(void *via_, M6502Word addr, uint8_t value) {
 
     // Write handshaking.
     switch (via->m_pcr.bits.ca2_mode) {
+    default:
+        break;
+
     case R6522Cx2Control_Output_Handshake:
         via->a.c2 = 0;
         break;
@@ -767,7 +776,7 @@ uint8_t R6522::UpdatePhi2TrailingEdge() {
     if (m_t2_reload) {
         m_t2.w = m_t2ll | m_t2lh << 8;
         m_t2_reload = false;
-        TRACEF(m_trace, "%s - T2 reload: T2=$%04x (%u)", m_name, m_t2, m_t2);
+        TRACEF(m_trace, "%s - T2 reload: T2=$%04x (%u)", m_name, m_t2.w, m_t2.w);
     } else {
         if (m_t2_count) {
             --m_t2.w;

@@ -139,7 +139,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
         if (hsync) {
             if (!m_in_hsync) {
                 uint64_t total = m_total.n + i;
-                int64_t scanline_time = total - m_last_hretrace_start_time.n;
+                int64_t scanline_time = (int64_t)(total - m_last_hretrace_start_time.n);
                 m_old_scanline_time = m_scanline_time;
                 m_scanline_time = scanline_time;
                 m_last_hretrace_start_time.n = total;

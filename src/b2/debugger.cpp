@@ -3,6 +3,7 @@
 #include "commands.h"
 #include <SDL.h>
 #include "SettingsUI.h"
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -5636,7 +5637,7 @@ class TVDebugWindow : public DebugUI {
     void DoImGui2() override {
         TVOutput *tv = m_beeb_window->GetMutableTV();
 
-        ImGui::Text("Scanline time: %.3f", tv->m_scanline_time);
+        ImGui::Text("Scanline time: %" PRId64, tv->m_scanline_time);
 
         ImGuiHeader("Debug display");
 
