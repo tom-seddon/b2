@@ -1,0 +1,2517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeebEm UEF save state format</title>
+<style>
+:root { --fg:#1f2328; --bg:#ffffff; --muted:#59636e; --border:#d1d9e0; --code-bg:#f6f8fa; --link:#0969da; --stripe:#f6f8fa; }
+@media (prefers-color-scheme: dark) { :root { --fg:#e6edf3; --bg:#0d1117; --muted:#9198a1; --border:#3d444d; --code-bg:#151b23; --link:#4493f8; --stripe:#151b23; } }
+body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 64px; }
+h1, h2, h3 { line-height:1.25; margin-top:1.6em; }
+h1 { border-bottom:1px solid var(--border); padding-bottom:.3em; }
+h2 { border-bottom:1px solid var(--border); padding-bottom:.3em; }
+a { color:var(--link); text-decoration:none; } a:hover { text-decoration:underline; }
+code { font:0.88em/1.4 ui-monospace, Consolas, "Cascadia Mono", monospace; background:var(--code-bg); padding:.15em .35em; border-radius:4px; }
+pre { background:var(--code-bg); padding:12px; border-radius:6px; overflow-x:auto; }
+pre code { padding:0; background:none; }
+table { border-collapse:collapse; margin:1em 0; display:block; overflow-x:auto; max-width:100%; }
+th, td { border:1px solid var(--border); padding:4px 10px; vertical-align:top; text-align:left; }
+th { background:var(--code-bg); }
+tr:nth-child(even) td { background:var(--stripe); }
+blockquote { margin:1em 0; padding:0 1em; color:var(--muted); border-left:4px solid var(--border); }
+hr { border:0; border-top:1px solid var(--border); margin:2em 0; }
+</style>
+</head>
+<body>
+<main>
+<h1 id="beebem-uef-save-state-format">BeebEm UEF save state format</h1>
+<p>How BeebEm (Windows) writes and reads its UEF save state files, <code>.uefstate</code> (or <code>.uef</code>). Everything here comes from the BeebEm source code.</p>
+<ul>
+<li><strong>Source analysed:</strong> <a href="https://codeberg.org/chrisn/beebem-windows">https://codeberg.org/chrisn/beebem-windows</a>, <code>master</code> at commit
+<code>763539a120d1dc90c49be0d0af55193a5e109ce9</code> (11 Oct 2026). <code>UEFSTATE_VERSION = 17</code>.</li>
+<li>All source links point to that commit on Codeberg, with line anchors.</li>
+</ul>
+<hr>
+<h2 id="1-conventions">1. Conventions</h2>
+<table>
+<thead>
+<tr>
+<th>Notation</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>u8</code> / <code>u16</code> / <code>u32</code> / <code>u64</code></td>
+<td>Unsigned little-endian integer. Written by <code>UEFWrite8/16/32/64</code> (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L56">UefState.cpp:56-121</a>)</td>
+</tr>
+<tr>
+<td><code>s32</code></td>
+<td>Same bytes as <code>u32</code>, but BeebEm holds the value in an <code>int</code>, so it can be negative</td>
+</tr>
+<tr>
+<td><code>bool</code></td>
+<td>1 byte. BeebEm writes <code>0</code> or <code>1</code> and reads any non-zero value as true (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L125">UefState.cpp:125</a>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L240">:240</a>)</td>
+</tr>
+<tr>
+<td><code>str</code></td>
+<td><strong>v14+:</strong> <code>u32</code> length followed by that many bytes, with <strong>no NUL terminator</strong> (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L137">UefState.cpp:137</a>). The reader truncates to a 256-byte buffer (<code>UEFSTATE_MAX_PATH</code>) and discards any excess (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L247">UefState.cpp:247</a>). <strong>v≤13:</strong> a fixed 256-byte NUL-padded buffer (but see §6, item 6).</td>
+</tr>
+<tr>
+<td><code>raw[n]</code></td>
+<td><code>n</code> bytes copied straight from memory. Where the source is an array of multi-byte ints, the bytes come out in x86 order, which is little-endian.</td>
+</tr>
+<tr>
+<td>&quot;cycles&quot;</td>
+<td>2 MHz 6502 cycles</td>
+</tr>
+<tr>
+<td><code>TMAX</code></td>
+<td><code>0x7FFFFFFF</code> (<code>CycleCountTMax = INT_MAX</code>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Port.h#L38">Port.h:38</a>). Means &quot;no event scheduled&quot;.</td>
+</tr>
+</tbody></table>
+<p><strong>&quot;Version&quot;</strong> in this document is the save-state version number BeebEm stores in the UEF header (see §2). This one number is the only versioning. No chunk carries its own version byte. Each load function receives the header&#39;s version and changes its parsing to match.</p>
+<h3 id="version-history">Version history</h3>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Written by</th>
+<th>Layout changes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>≤8</td>
+<td>very old builds</td>
+<td>In 0x046A, machine type <code>1</code> meant Master 128</td>
+</tr>
+<tr>
+<td>10</td>
+<td>(by 3.7, 2007)</td>
+<td>1770 chunk gained a separate <code>DiskDensity[1]</code> (v≤9 reused drive 0&#39;s)</td>
+</tr>
+<tr>
+<td>11</td>
+<td></td>
+<td>0x046A gained the keyboard-mapping fields</td>
+</tr>
+<tr>
+<td>12</td>
+<td>BeebEm 4.12 – 4.15</td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>BeebEm 4.16 – 4.19</td>
+<td>0x0468 video gained the full raster state. 0x0477 Music 5000 gained the JIM page register, replacing the separate chunk 0x0476.</td>
+</tr>
+<tr>
+<td>14</td>
+<td>development builds only (Dec 2023 – Aug 2024)</td>
+<td>Strings became length-prefixed. 8271 gained FSD and head-timing fields. Serial/tape gained carrier, play state and CSW fields. Co-processor chunks 0x0478 – 0x047B were added. PAL ROM chunk 0x047C was added in Mar 2024 with no version bump.</td>
+</tr>
+<tr>
+<td>15</td>
+<td>BeebEm 4.20</td>
+<td>0x0479 ARM gained an <code>armModel</code> byte</td>
+</tr>
+<tr>
+<td>16</td>
+<td>BeebEm 4.21 – 4.23</td>
+<td>0x0467 VIA timer counters became <code>s32</code> at 2 MHz, plus <code>SRTrigger</code>. Speech chunk 0x047D was added in Apr 2026 with no version bump.</td>
+</tr>
+<tr>
+<td>17</td>
+<td>current <code>master</code> (unreleased)</td>
+<td><strong>No byte-layout change.</strong> The video byte that held <code>DoCA1Int</code> is now always written as 0 and ignored.</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Compatibility tip:</strong> BeebEm refuses any file whose version is greater than its own (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L426">UefState.cpp:426</a>). Version 16 and version 17 files are byte-identical in layout. Write <strong>16</strong> to stay loadable by released BeebEm 4.21 – 4.23.</p>
+</blockquote>
+<hr>
+<h2 id="2-file-header-and-chunk-framing">2. File header and chunk framing</h2>
+<p>Save: <code>SaveUEFState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L291">UefState.cpp:291</a>. Load: <code>LoadUEFState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L398">UefState.cpp:398</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Offset</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>10</td>
+<td><code>&quot;UEF File!&quot;</code> followed by <code>0x00</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>1</td>
+<td>&quot;minor version&quot; = save-state version (currently 17)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>1</td>
+<td>&quot;major version&quot; = 0</td>
+</tr>
+<tr>
+<td>12</td>
+<td>…</td>
+<td>Chunks</td>
+</tr>
+</tbody></table>
+<p>The reader reads offsets 10–11 as one <code>u16</code> (minor | major &lt;&lt; 8) and rejects the file if that value is greater than <code>UEFSTATE_VERSION</code>.</p>
+<p>Each chunk is <code>u16 id</code>, <code>u32 length</code>, then <code>length</code> bytes. The writer uses a generic helper that writes the header with a placeholder length and back-patches it afterwards (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L274">UefState.cpp:274</a>). The exception is the memory chunks, which <code>SaveMemUEF</code> writes with hard-coded lengths.</p>
+<p>Reader loop (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L432">UefState.cpp:432-574</a>):</p>
+<ul>
+<li>Repeat while <code>ftell &lt; file length</code>: read the id and length, dispatch to a handler, then <code>fseek(start_of_body + length)</code>.</li>
+<li>Unknown chunks are skipped. Handlers that read fewer bytes than the chunk holds are fine.</li>
+<li><strong>There are no bounds checks.</strong> A handler that reads more than <code>length</code> bytes reads into the next chunk&#39;s header and body, and the loop then seeks back. If that over-read runs past end-of-file, the whole load fails with <code>ReadFailed</code>.</li>
+<li>Loading is not transactional. Chunks are applied in file order as they are read.</li>
+</ul>
+<h3 id="save-state-detection">Save-state detection</h3>
+<p>When the file extension is <code>.uefstate</code>, BeebEm always treats the file as a save state. When the extension is <code>.uef</code>, <code>IsUEFSaveState</code> (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L590">UefState.cpp:590</a>, called from <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebWin.cpp#L5784">BeebWin.cpp:5784</a>) decides: the file is a save state only if bytes 12–13 are <code>6C 04</code>. In other words, <strong>chunk 0x046C must be the first chunk</strong>. Otherwise BeebEm loads the file as a tape.</p>
+<h3 id="chunk-order-written-by-beebem">Chunk order written by BeebEm</h3>
+<ol>
+<li><code>0x046C</code> BeebEm ID</li>
+<li><code>0x046A</code> emulator/machine config</li>
+<li><code>0x0460</code> 6502</li>
+<li>Memory chunks, in this order: <code>0x0461</code>, <code>0x0462</code>, then model-specific chunks from <code>0x0463</code>/<code>0x0464</code>/<code>0x0465</code>/<code>0x046D</code>, then 16 bank chunks, one per bank 0..15, each <code>0x0466</code>, <code>0x0475</code> or <code>0x047C</code></li>
+<li><code>0x0468</code> video</li>
+<li><code>0x0467</code> System VIA</li>
+<li><code>0x0467</code> User VIA</li>
+<li><code>0x046B</code> sound</li>
+<li>Disc: <code>0x046E</code> (8271) when <code>MachineType != Master128 &amp;&amp; NativeFDC</code>, otherwise <code>0x046F</code> (1770)</li>
+<li><code>0x0470</code> Tube ULA, when a co-processor is enabled</li>
+<li>Co-processor: <code>0x0471</code> + <code>0x0472</code> (65C02), <code>0x047B</code> (Master 512), <code>0x0478</code> (Acorn or Torch Z80), <code>0x0479</code> (ARM Evaluation System), or <code>0x047A</code> (Sprow ARM)</li>
+<li><code>0x0473</code> serial/tape, <strong>only when a tape is loaded</strong></li>
+<li><code>0x0474</code> A/D converter (always written)</li>
+<li><code>0x0477</code> Music 5000, when enabled</li>
+<li><code>0x047D</code> speech, when speech is enabled</li>
+</ol>
+<p><strong>Order matters on load.</strong> The 0x046A handler calls <code>ResetBeebSystem()</code>, which reloads ROMs from BeebEm&#39;s own configuration and resets every device. The memory loaders branch on <code>MachineType</code>. So 0x046A must come before every other state chunk.</p>
+<hr>
+<h2 id="3-chunk-summary">3. Chunk summary</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Written</th>
+<th>Read</th>
+<th>Length written</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0x046C</td>
+<td>BeebEm ID</td>
+<td>✓</td>
+<td>✗ (detection only)</td>
+<td>16</td>
+</tr>
+<tr>
+<td>0x046A</td>
+<td>Emulator/machine config</td>
+<td>✓</td>
+<td>✓</td>
+<td>262, or 10 + n (user keymap)</td>
+</tr>
+<tr>
+<td>0x0460</td>
+<td>6502 CPU</td>
+<td>✓</td>
+<td>✓</td>
+<td>16</td>
+</tr>
+<tr>
+<td>0x0461</td>
+<td>Memory control (ROMSEL/ACCCON)</td>
+<td>✓</td>
+<td>✓</td>
+<td>2 (Integra-B: 3)</td>
+</tr>
+<tr>
+<td>0x0462</td>
+<td>Main RAM</td>
+<td>✓</td>
+<td>✓</td>
+<td>32768</td>
+</tr>
+<tr>
+<td>0x0463</td>
+<td>Shadow RAM</td>
+<td>B+/Integra-B/Master</td>
+<td>✓</td>
+<td>32768 / 20480 / 32770</td>
+</tr>
+<tr>
+<td>0x0464</td>
+<td>Private RAM</td>
+<td>B+/Integra-B/Master</td>
+<td>✓</td>
+<td>12288 / 12288 / 4096</td>
+</tr>
+<tr>
+<td>0x0465</td>
+<td>Master filing-system RAM</td>
+<td>Master</td>
+<td>✓</td>
+<td>8192</td>
+</tr>
+<tr>
+<td>0x046D</td>
+<td>Integra-B hidden RAM</td>
+<td>Integra-B</td>
+<td>✓</td>
+<td>256</td>
+</tr>
+<tr>
+<td>0x0466</td>
+<td>Sideways RAM bank</td>
+<td>per RAM bank</td>
+<td>✓</td>
+<td>16385</td>
+</tr>
+<tr>
+<td>0x0475</td>
+<td>Sideways ROM / empty bank</td>
+<td>per ROM or empty bank</td>
+<td>✓</td>
+<td>16386 or 2</td>
+</tr>
+<tr>
+<td>0x047C</td>
+<td>PAL (banked) sideways ROM</td>
+<td>per PAL ROM bank</td>
+<td>✓</td>
+<td>131076</td>
+</tr>
+<tr>
+<td>0x0476</td>
+<td>JIM page register (legacy)</td>
+<td>✗ (written before Nov 2019)</td>
+<td>✓</td>
+<td>1</td>
+</tr>
+<tr>
+<td>0x0467</td>
+<td>6522 VIA (Sys or User)</td>
+<td>✓ ×2</td>
+<td>✓</td>
+<td>Sys 26, User 30 (v&lt;16: 22)</td>
+</tr>
+<tr>
+<td>0x0468</td>
+<td>CRTC + Video ULA + raster state</td>
+<td>✓</td>
+<td>✓</td>
+<td>112 (v≤12: 43)</td>
+</tr>
+<tr>
+<td>0x046B</td>
+<td>SN76489 sound</td>
+<td>✓</td>
+<td>✓</td>
+<td>20</td>
+</tr>
+<tr>
+<td>0x046E</td>
+<td>Intel 8271 FDC</td>
+<td>✓</td>
+<td>✓</td>
+<td>126 + n0 + n1 (v≤13: 613)</td>
+</tr>
+<tr>
+<td>0x046F</td>
+<td>WD1770 FDC</td>
+<td>✓</td>
+<td>✓</td>
+<td>101 + n0 + n1 + n_dll</td>
+</tr>
+<tr>
+<td>0x0470</td>
+<td>Tube ULA</td>
+<td>✓</td>
+<td>✓</td>
+<td>45</td>
+</tr>
+<tr>
+<td>0x0471</td>
+<td>65C02 co-processor CPU</td>
+<td>✓</td>
+<td>✓</td>
+<td>16</td>
+</tr>
+<tr>
+<td>0x0472</td>
+<td>65C02 co-processor RAM</td>
+<td>✓</td>
+<td>✓</td>
+<td>65536</td>
+</tr>
+<tr>
+<td>0x0473</td>
+<td>Serial ULA / ACIA / tape</td>
+<td>✓</td>
+<td>✓</td>
+<td>61 + n (+19 for CSW)</td>
+</tr>
+<tr>
+<td>0x0474</td>
+<td>uPD7002 A/D converter</td>
+<td>✓</td>
+<td>✓</td>
+<td>8</td>
+</tr>
+<tr>
+<td>0x0477</td>
+<td>Music 5000</td>
+<td>✓</td>
+<td>✓</td>
+<td>2125</td>
+</tr>
+<tr>
+<td>0x0478</td>
+<td>Z80 co-processor (Acorn or Torch)</td>
+<td>✓</td>
+<td>✓</td>
+<td>65573</td>
+</tr>
+<tr>
+<td>0x0479</td>
+<td>ARM Evaluation System</td>
+<td>✓</td>
+<td>✓</td>
+<td>4194578</td>
+</tr>
+<tr>
+<td>0x047A</td>
+<td>Sprow ARM7TDMI co-processor</td>
+<td>✓</td>
+<td>✓</td>
+<td>67109511 + 8·k</td>
+</tr>
+<tr>
+<td>0x047B</td>
+<td>Master 512 (80186)</td>
+<td>✓</td>
+<td>✓</td>
+<td>1048710</td>
+</tr>
+<tr>
+<td>0x047D</td>
+<td>TMS5220 speech + PHROM</td>
+<td>✓</td>
+<td>✓</td>
+<td>262348 (or 0, see §6)</td>
+</tr>
+</tbody></table>
+<p>Offsets in the tables below are from the start of the chunk <strong>body</strong>.</p>
+<hr>
+<h2 id="4-chunk-layouts">4. Chunk layouts</h2>
+<h3 id="0x046c-beebem-id">0x046C — BeebEm ID</h3>
+<p>Save: <code>BeebWin::SaveBeebEmID</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebWinIo.cpp#L1454">BeebWinIo.cpp:1454</a>. There is no load function.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>14</td>
+<td><code>&quot;BeebEm&quot;</code>, NUL-padded</td>
+</tr>
+<tr>
+<td>14</td>
+<td>u8</td>
+<td><code>VERSION_MAJOR</code> (currently 4)</td>
+</tr>
+<tr>
+<td>15</td>
+<td>u8</td>
+<td><code>VERSION_MINOR</code> (currently 23 = 0x17)</td>
+</tr>
+</tbody></table>
+<h3 id="0x046a-emulator-machine-config">0x046A — Emulator / machine config</h3>
+<p>Save: <code>BeebWin::SaveEmuUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebWinIo.cpp#L1466">BeebWinIo.cpp:1466</a>. Load: <code>BeebWin::LoadEmuUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebWinIo.cpp#L1490">BeebWinIo.cpp:1490</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td>Machine: 0 = Model B, 1 = B + Integra-B, 2 = B+, 3 = Master 128, 4 = Master ET (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Model.h">Model.h</a>). If version ≤ 8, the value 1 means Master 128.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>bool</td>
+<td>1 = <strong>not</strong> native FDC: Model B / B+ / Integra-B using a 1770 board. 0 = 8271.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>u8</td>
+<td>Tube device: 0 none, 1 Acorn 65C02, 2 Master 512, 3 Acorn Z80, 4 Torch Z80, 5 Acorn ARM, 6 Sprow ARM (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Tube.h#L29">Tube.h:29</a>). v≤12 builds stored a <code>TubeEnabled</code> bool here, and 1 still means 65C02.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>u16</td>
+<td><em>(v11+)</em> Keyboard mapping: 0 user, 1 default, 2 logical. The legacy value 40060 (an old menu ID) also means user.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>str or raw[256]</td>
+<td><em>(v11+)</em> If the mapping is user: the key-map file path (<code>str</code> for v14+, 256 bytes for v11–13). Otherwise BeebEm writes <strong>256 zero bytes, not a <code>str</code></strong>. The reader skips them because it only reads this field when the mapping is user.</td>
+</tr>
+<tr>
+<td>…</td>
+<td>u8</td>
+<td>0 (unused trailer)</td>
+</tr>
+</tbody></table>
+<p>When loading, BeebEm calls <code>ResetBeebSystem(MachineType)</code>.</p>
+<h3 id="0x0460-6502-cpu-and-0x0471-65c02-co-processor-cpu">0x0460 — 6502 CPU (and 0x0471 — 65C02 co-processor CPU)</h3>
+<p>Host CPU: Save <code>Save6502UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/6502core.cpp#L3376">6502core.cpp:3376</a>, Load <code>Load6502UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/6502core.cpp#L3391">6502core.cpp:3391</a>.
+Co-processor CPU (identical layout): Save <code>Save65C02UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Tube.cpp#L2699">Tube.cpp:2699</a>, Load <code>Load65C02UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Tube.cpp#L2745">Tube.cpp:2745</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u16</td>
+<td>PC</td>
+</tr>
+<tr>
+<td>2</td>
+<td>u8</td>
+<td>A</td>
+</tr>
+<tr>
+<td>3</td>
+<td>u8</td>
+<td>X</td>
+</tr>
+<tr>
+<td>4</td>
+<td>u8</td>
+<td>Y</td>
+</tr>
+<tr>
+<td>5</td>
+<td>u8</td>
+<td>S</td>
+</tr>
+<tr>
+<td>6</td>
+<td>u8</td>
+<td>P. Standard 6502 layout: C=0x01, Z=0x02, I=0x04, D=0x08, B=0x10, V=0x40, N=0x80.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>u32</td>
+<td><code>TotalCycles</code> (or <code>TotalTubeCycles</code>). Written but <strong>ignored on load</strong>.</td>
+</tr>
+<tr>
+<td>11</td>
+<td>u8</td>
+<td>IRQ sources (<code>IntStatus</code>): 0x01 Sys VIA, 0x02 User VIA, 0x04 serial, 0x08 Tube, 0x10 teletext, 0x20 hard disc, 0x80 Master ACCCON IRR (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/6502core.h#L32">6502core.h:32</a>)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>u8</td>
+<td>NMI sources (<code>NMIStatus</code>): 0x01 floppy, 0x02 Econet</td>
+</tr>
+<tr>
+<td>13</td>
+<td>bool</td>
+<td><code>NMILock</code>: an NMI is being serviced, and the lock is released by RTI</td>
+</tr>
+<tr>
+<td>14</td>
+<td>u16</td>
+<td>0 (padding, not read)</td>
+</tr>
+</tbody></table>
+<h3 id="0x0461-memory-control">0x0461 — Memory control</h3>
+<p>Save: <code>SaveMemUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1434">BeebMem.cpp:1434</a>. Load: <code>LoadRomRegsUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1554">BeebMem.cpp:1554</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Byte 0</th>
+<th>Byte 1</th>
+<th>Byte 2</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>B</td>
+<td>ROMSEL (bank 0–15)</td>
+<td>ACCCON (always 0)</td>
+<td>–</td>
+</tr>
+<tr>
+<td>Master 128 / ET</td>
+<td>ROMSEL as written to &amp;FE30. Bit 7 = ANDY (private RAM) select, bits 0–3 = bank.</td>
+<td>ACCCON (&amp;FE34) with bit 7 (IRR) masked off. Bit 0 = D, bit 1 = E, bit 2 = X, bit 3 = Y.</td>
+<td>–</td>
+</tr>
+<tr>
+<td>B+</td>
+<td>bits 0–3 bank, bit 7 = <code>MemSel</code> (paged RAM)</td>
+<td>bit 7 = <code>Sh_Display</code> (shadow display)</td>
+<td>–</td>
+</tr>
+<tr>
+<td>Integra-B</td>
+<td>bits 0–3 bank, bit 7 <code>MemSel</code>, bit 6 <code>PrvEn</code></td>
+<td>bit 7 <code>ShEn</code>, bit 6 <code>Prvs8</code>, bit 5 <code>Prvs4</code>, bit 4 <code>Prvs1</code></td>
+<td><code>HidAdd</code></td>
+</tr>
+</tbody></table>
+<h3 id="0x0462-0x0465-0x046d-ram-blocks">0x0462 – 0x0465, 0x046D — RAM blocks</h3>
+<p>Save: <code>SaveMemUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1434">BeebMem.cpp:1434</a>. Loaders: <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1594"><code>LoadMainMemUEF</code> :1594</a>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1599"><code>LoadShadMemUEF</code> :1599</a>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1625"><code>LoadPrivMemUEF</code> :1625</a>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1648"><code>LoadFileMemUEF</code> :1648</a>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1653"><code>LoadIntegraBHiddenMemUEF</code> :1653</a>.</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Model</th>
+<th>Body</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0x0462</td>
+<td>all</td>
+<td>raw[32768]: main RAM &amp;0000–&amp;7FFF</td>
+</tr>
+<tr>
+<td>0x0463</td>
+<td>Integra-B</td>
+<td>raw[20480]: shadow RAM (&amp;3000–&amp;7FFF)</td>
+</tr>
+<tr>
+<td>0x0463</td>
+<td>B+</td>
+<td>raw[32768]: shadow RAM buffer</td>
+</tr>
+<tr>
+<td>0x0463</td>
+<td>Master</td>
+<td>u16 offset (always 0, read and ignored), then raw[32768]: LYNNE shadow RAM</td>
+</tr>
+<tr>
+<td>0x0464</td>
+<td>Integra-B</td>
+<td>raw[12288]: private RAM</td>
+</tr>
+<tr>
+<td>0x0464</td>
+<td>B+</td>
+<td>raw[12288]: paged RAM at &amp;8000–&amp;AFFF</td>
+</tr>
+<tr>
+<td>0x0464</td>
+<td>Master</td>
+<td>raw[4096]: ANDY (&amp;8000–&amp;8FFF)</td>
+</tr>
+<tr>
+<td>0x0465</td>
+<td>Master</td>
+<td>raw[8192]: HAZEL (&amp;C000–&amp;DFFF)</td>
+</tr>
+<tr>
+<td>0x046D</td>
+<td>Integra-B</td>
+<td>raw[256]: hidden RAM</td>
+</tr>
+</tbody></table>
+<p>The loaders interpret 0x0463 and 0x0464 according to the current <code>MachineType</code>. A Model B ignores them.</p>
+<h3 id="0x0466-0x0475-0x047c-sideways-banks-one-chunk-per-bank-16-total">0x0466 / 0x0475 / 0x047C — Sideways banks (one chunk per bank, 16 total)</h3>
+<p>Save: <code>SaveMemUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1511">BeebMem.cpp:1511</a>. Loaders: <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1658"><code>LoadSWRamMemUEF</code> :1658</a>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1666"><code>LoadSWRomMemUEF</code> :1666</a>, <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/BeebMem.cpp#L1688"><code>LoadPALRomUEF</code> :1688</a>.</p>
+<p><strong>0x0466 — RAM bank:</strong> u8 bank, raw[16384]. The loader marks the bank as writable RAM.</p>
+<p><strong>0x0475 — ROM or empty bank:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td>bank 0–15</td>
+</tr>
+<tr>
+<td>1</td>
+<td>u8</td>
+<td>type: 0 = ROM, 2 = empty (1 = RAM is never written)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>raw[16384]</td>
+<td>ROM image, <strong>only if type = 0</strong></td>
+</tr>
+</tbody></table>
+<p>If the type is empty, the loader zeroes the bank. If the type is 1, the loader reads no data and keeps the bank&#39;s current contents as RAM.</p>
+<p><strong>0x047C — PAL-banked ROM</strong> (InterWord, Spellmaster and similar):</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td>bank 0–15</td>
+</tr>
+<tr>
+<td>1</td>
+<td>u8</td>
+<td>type (0 = ROM)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>u8</td>
+<td>PAL type: 0 None, 1 InterWord, 2 InterBase, 3 SpellMaster, 4 ViewTrilogy, 5 AdvancedBasicEditor, 6 AdvancedBasicEditorPlus, 7 Quest, 8 WappingEditor, 9 TeletextEditor, 10 WordwisePlus2 (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/PALRom.h#L33">PALRom.h:33</a>)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>u8</td>
+<td>Currently selected 16K sub-bank</td>
+</tr>
+<tr>
+<td>4</td>
+<td>raw[131072]</td>
+<td>Full ROM image, always 128 KB, padded for 32K or 64K ROMs</td>
+</tr>
+</tbody></table>
+<p>The loader only reads the image if the chunk length is exactly 131076. It updates the bank type and the PAL type/bank fields before it checks the length.</p>
+<h3 id="0x0476-jim-page-register-legacy-read-only">0x0476 — JIM page register (legacy, read only)</h3>
+<p>Load: <code>LoadMusic5000JIMPageRegUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Music5000.cpp#L353">Music5000.cpp:353</a>. Body: u8, the last value written to &amp;FCFF. Since v13 this value lives in 0x0477 instead.</p>
+<h3 id="0x0467-6522-via">0x0467 — 6522 VIA</h3>
+<p>Save: <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/SysVia.cpp#L965"><code>SaveSysVIAUEF</code> SysVia.cpp:965</a> and <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UserVia.cpp#L772"><code>SaveUserVIAUEF</code> UserVia.cpp:772</a>, both through <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Via.cpp#L91"><code>SaveVIAUEF</code> Via.cpp:91</a>.
+Load: the dispatcher reads byte 0 (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UefState.cpp#L478">UefState.cpp:478</a>), then calls <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/SysVia.cpp#L974"><code>LoadSysVIAUEF</code> SysVia.cpp:974</a> or <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/UserVia.cpp#L783"><code>LoadUserVIAUEF</code> UserVia.cpp:783</a>, both through <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Via.cpp#L113"><code>LoadVIAUEF</code> Via.cpp:113</a>.</p>
+<p><strong>v16+ (and v17):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td>0 = System VIA, 1 = User VIA (the reader treats any non-zero value as User)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>u8</td>
+<td>ORB</td>
+</tr>
+<tr>
+<td>2</td>
+<td>u8</td>
+<td>IRB</td>
+</tr>
+<tr>
+<td>3</td>
+<td>u8</td>
+<td>ORA</td>
+</tr>
+<tr>
+<td>4</td>
+<td>u8</td>
+<td>IRA</td>
+</tr>
+<tr>
+<td>5</td>
+<td>u8</td>
+<td>DDRB</td>
+</tr>
+<tr>
+<td>6</td>
+<td>u8</td>
+<td>DDRA</td>
+</tr>
+<tr>
+<td>7</td>
+<td>s32</td>
+<td>T1 counter in <strong>2 MHz</strong> ticks (BeebEm&#39;s internal counter: 1 MHz value × 2, plus the phase)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>u16</td>
+<td>T1 latch (1 MHz value)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>s32</td>
+<td>T2 counter, 2 MHz ticks</td>
+</tr>
+<tr>
+<td>17</td>
+<td>u16</td>
+<td>T2 latch</td>
+</tr>
+<tr>
+<td>19</td>
+<td>u8</td>
+<td>ACR</td>
+</tr>
+<tr>
+<td>20</td>
+<td>u8</td>
+<td>PCR</td>
+</tr>
+<tr>
+<td>21</td>
+<td>u8</td>
+<td>IFR</td>
+</tr>
+<tr>
+<td>22</td>
+<td>u8</td>
+<td>IER</td>
+</tr>
+<tr>
+<td>23</td>
+<td>bool</td>
+<td>T1 has already fired in one-shot mode</td>
+</tr>
+<tr>
+<td>24</td>
+<td>bool</td>
+<td>T2 has already fired</td>
+</tr>
+<tr>
+<td>25</td>
+<td>u8</td>
+<td>System VIA: IC32 addressable-latch state. User VIA: 0 (unused).</td>
+</tr>
+<tr>
+<td>26</td>
+<td>u32</td>
+<td><strong>User VIA only:</strong> shift-register <code>SRTrigger</code>, an <strong>absolute</strong> cycle count (see §6, item 1)</td>
+</tr>
+</tbody></table>
+<p>Lengths: System 26, User 30.</p>
+<p><strong>v≤15:</strong> offsets 0–6 as above. Then: 7 u16 T1 counter (1 MHz, i.e. internal ÷ 2), 9 u16 T1 latch, 11 u16 T2 counter (1 MHz), 13 u16 T2 latch, 15 ACR, 16 PCR, 17 IFR, 18 IER, 19 bool T1 fired, 20 bool T2 fired, 21 u8 IC32 or 0. Length 22 for both VIAs.</p>
+<p>The loader derives the CA2/CB2 output levels and the shift-register mode from PCR and ACR.</p>
+<h3 id="0x0468-video-6845-crtc-video-ula">0x0468 — Video (6845 CRTC + Video ULA)</h3>
+<p>Save: <code>SaveVideoUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Video.cpp#L1790">Video.cpp:1790</a>. Load: <code>LoadVideoUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Video.cpp#L1846">Video.cpp:1846</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0–17</td>
+<td>18×u8</td>
+<td>CRTC R0–R17 in register order (R0 H total … R12/R13 start address high/low, R14/R15 cursor high/low, R16/R17 light pen high/low)</td>
+</tr>
+<tr>
+<td>18</td>
+<td>u8</td>
+<td>Video ULA control register (&amp;FE20)</td>
+</tr>
+<tr>
+<td>19–34</td>
+<td>16×u8</td>
+<td>Palette. Entry <em>i</em> = the low nibble last written to &amp;FE21 for logical colour <em>i</em>: bits 0–2 = physical colour XOR 7, bit 3 = flash. BeebEm stores <code>internal ^ 7</code>, which is the real ULA value.</td>
+</tr>
+<tr>
+<td>35</td>
+<td>u16</td>
+<td><code>ActualScreenWidth</code> (BeebEm render width in host pixels)</td>
+</tr>
+<tr>
+<td>37</td>
+<td>u32</td>
+<td><code>ScreenAdjust</code> (BeebEm bitmap offset)</td>
+</tr>
+<tr>
+<td>41</td>
+<td>u8</td>
+<td>CRTC address register (last value written to &amp;FE00)</td>
+</tr>
+<tr>
+<td>42</td>
+<td>u8</td>
+<td><code>TeletextStyle</code> (1 or 2, a BeebEm rendering mode)</td>
+</tr>
+<tr>
+<td><em>v13+:</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>43</td>
+<td>s32</td>
+<td><code>Addr</code>: 6845 address of the next character row</td>
+</tr>
+<tr>
+<td>47</td>
+<td>s32</td>
+<td><code>StartAddr</code>: address of the first character row this frame</td>
+</tr>
+<tr>
+<td>51</td>
+<td>s32</td>
+<td><code>PixmapLine</code> (host bitmap line)</td>
+</tr>
+<tr>
+<td>55</td>
+<td>s32</td>
+<td><code>FirstPixmapLine</code></td>
+</tr>
+<tr>
+<td>59</td>
+<td>s32</td>
+<td><code>PreviousFirstPixmapLine</code></td>
+</tr>
+<tr>
+<td>63</td>
+<td>s32</td>
+<td><code>LastPixmapLine</code></td>
+</tr>
+<tr>
+<td>67</td>
+<td>s32</td>
+<td><code>PreviousLastPixmapLine</code></td>
+</tr>
+<tr>
+<td>71</td>
+<td>s32</td>
+<td><code>CharLine</code>: character row counter, −1 before the display starts</td>
+</tr>
+<tr>
+<td>75</td>
+<td>s32</td>
+<td><code>InCharLineUp</code>: scanline within the character row</td>
+</tr>
+<tr>
+<td>79</td>
+<td>s32</td>
+<td><code>VSyncState</code>: &gt; 0 while VSync is high</td>
+</tr>
+<tr>
+<td>83</td>
+<td>bool</td>
+<td><code>IsNewTVFrame</code></td>
+</tr>
+<tr>
+<td>84</td>
+<td>bool</td>
+<td><code>InterlaceFrame</code> (odd/even field)</td>
+</tr>
+<tr>
+<td>85</td>
+<td>bool</td>
+<td>Was <code>DoCA1Int</code>. Always 0 since v17, ignored on load.</td>
+</tr>
+<tr>
+<td>86</td>
+<td>s32</td>
+<td><code>ova</code>: memory address used for the current row&#39;s data pointer</td>
+</tr>
+<tr>
+<td>90</td>
+<td>s32</td>
+<td><code>ovn</code>: byte count for the same pointer</td>
+</tr>
+<tr>
+<td>94</td>
+<td>s32</td>
+<td><code>CursorFieldCount</code>: cursor blink countdown in fields</td>
+</tr>
+<tr>
+<td>98</td>
+<td>bool</td>
+<td><code>CursorOnState</code></td>
+</tr>
+<tr>
+<td>99</td>
+<td>s32</td>
+<td><code>CurY</code>: pixmap line of the cursor, −1 if none</td>
+</tr>
+<tr>
+<td>103</td>
+<td>s32</td>
+<td><code>Mode7FlashTrigger</code>: fields until the next teletext flash toggle</td>
+</tr>
+<tr>
+<td>107</td>
+<td>bool</td>
+<td><code>Mode7FlashOn</code></td>
+</tr>
+<tr>
+<td>108</td>
+<td>s32</td>
+<td>Cycles until the next video (scanline) event, relative to now</td>
+</tr>
+</tbody></table>
+<p>Version ≤12 files end at offset 43. Their loader calls <code>VideoInit()</code> after offset 43, so for those files BeebEm rebuilds the raster state itself.</p>
+<h3 id="0x046b-sn76489-sound">0x046B — SN76489 sound</h3>
+<p>Save: <code>SaveSoundUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Sound.cpp#L891">Sound.cpp:891</a>. Load: <code>LoadSoundUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Sound.cpp#L848">Sound.cpp:848</a>. On load, BeebEm replays the values as latch/data writes into <code>Sound_RegWrite</code>.</p>
+<p>&quot;Tone 0&quot; is the channel latched with <code>&amp;80</code>/<code>&amp;90</code>, &quot;tone 1&quot; with <code>&amp;A0</code>/<code>&amp;B0</code>, and &quot;tone 2&quot; with <code>&amp;C0</code>/<code>&amp;D0</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u16</td>
+<td>Tone 0 period (10-bit)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>u16</td>
+<td>Tone 1 period</td>
+</tr>
+<tr>
+<td>4</td>
+<td>u16</td>
+<td>Tone 2 period</td>
+</tr>
+<tr>
+<td>6</td>
+<td>u8</td>
+<td>Tone 0 attenuation (0 = loud … 15 = off)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>u8</td>
+<td>Tone 1 attenuation</td>
+</tr>
+<tr>
+<td>8</td>
+<td>u8</td>
+<td>Tone 2 attenuation</td>
+</tr>
+<tr>
+<td>9</td>
+<td>u8</td>
+<td>Noise control: bits 0–1 rate, bit 2 FB (white noise)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>u8</td>
+<td>Noise attenuation</td>
+</tr>
+<tr>
+<td>11</td>
+<td>u8</td>
+<td><code>LastToneFreqSet</code>: the channel latched last, for data bytes. <strong>Internal encoding:</strong> 2 = tone 0, 1 = tone 1, 0 = tone 2, 3 = noise.</td>
+</tr>
+<tr>
+<td>12</td>
+<td>4×u16</td>
+<td><code>GenIndex[0..3]</code>: host-sample-rate waveform phase counters. Index 0 = noise, 1 = tone 2, 2 = tone 1, 3 = tone 0. BeebEm-specific. Writing 0 is safe.</td>
+</tr>
+</tbody></table>
+<p>The noise LFSR state is not saved.</p>
+<h3 id="0x046e-intel-8271-fdc">0x046E — Intel 8271 FDC</h3>
+<p>Save: <code>Save8271UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Disc8271.cpp#L2871">Disc8271.cpp:2871</a>. Load: <code>Load8271UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Disc8271.cpp#L2960">Disc8271.cpp:2960</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>str</td>
+<td>Drive 0 disc image path (absolute host path). Empty if no disc.</td>
+</tr>
+<tr>
+<td>…</td>
+<td>str</td>
+<td>Drive 1 disc image path</td>
+</tr>
+</tbody></table>
+<p>Then, relative to the end of the strings:</p>
+<table>
+<thead>
+<tr>
+<th>Rel</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>s32</td>
+<td><code>Disc8271Trigger</code>: cycles until the next FDC event, or <code>TMAX</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>u8</td>
+<td>Result register</td>
+</tr>
+<tr>
+<td>5</td>
+<td>u8</td>
+<td>Status register</td>
+</tr>
+<tr>
+<td>6</td>
+<td>u8</td>
+<td>Data register</td>
+</tr>
+<tr>
+<td>7</td>
+<td>u8</td>
+<td><code>ScanSectorNum</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>u32</td>
+<td><code>ScanCount</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td>u8</td>
+<td>Mode register</td>
+</tr>
+<tr>
+<td>13</td>
+<td>u8</td>
+<td>Current track, surface 0</td>
+</tr>
+<tr>
+<td>14</td>
+<td>u8</td>
+<td>Current track, surface 1</td>
+</tr>
+<tr>
+<td>15</td>
+<td>u8</td>
+<td>Drive control output port</td>
+</tr>
+<tr>
+<td>16</td>
+<td>u8</td>
+<td>Drive control input port</td>
+</tr>
+<tr>
+<td>17–20</td>
+<td>4×u8</td>
+<td>Bad tracks [0][0], [0][1], [1][0], [1][1]</td>
+</tr>
+<tr>
+<td>21</td>
+<td>u32</td>
+<td>Command (low byte used)</td>
+</tr>
+<tr>
+<td>25</td>
+<td>u32</td>
+<td>Command parameter count</td>
+</tr>
+<tr>
+<td>29</td>
+<td>u32</td>
+<td>Current parameter index</td>
+</tr>
+<tr>
+<td>33</td>
+<td>raw[16]</td>
+<td>Parameter bytes</td>
+</tr>
+<tr>
+<td>49</td>
+<td>2×u32</td>
+<td>NumHeads for drives 0 and 1</td>
+</tr>
+<tr>
+<td>57</td>
+<td>2×u32</td>
+<td>Drive select 0/1 (0 or 1)</td>
+</tr>
+<tr>
+<td>65</td>
+<td>2×u32</td>
+<td>Disc writeable 0/1 (0 or 1)</td>
+</tr>
+<tr>
+<td>73</td>
+<td>u32</td>
+<td><code>FirstWriteInt</code> (0 or 1)</td>
+</tr>
+<tr>
+<td>77</td>
+<td>u32</td>
+<td><code>NextInterruptIsErr</code> (low byte used)</td>
+</tr>
+<tr>
+<td>81</td>
+<td>u32</td>
+<td><code>TrackAddr</code> (low byte used)</td>
+</tr>
+<tr>
+<td>85</td>
+<td>u32</td>
+<td><code>CurrentSector</code> (low byte used)</td>
+</tr>
+<tr>
+<td>89</td>
+<td>u32</td>
+<td><code>SectorLength</code></td>
+</tr>
+<tr>
+<td>93</td>
+<td>u32</td>
+<td><code>SectorsToGo</code></td>
+</tr>
+<tr>
+<td>97</td>
+<td>u32</td>
+<td><code>ByteWithinSector</code></td>
+</tr>
+<tr>
+<td><em>v14+:</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>101</td>
+<td>u8</td>
+<td>Step rate</td>
+</tr>
+<tr>
+<td>102</td>
+<td>u8</td>
+<td>Head settling time</td>
+</tr>
+<tr>
+<td>103</td>
+<td>u8</td>
+<td>Index count before head unload</td>
+</tr>
+<tr>
+<td>104</td>
+<td>u8</td>
+<td>Head load time</td>
+</tr>
+<tr>
+<td>105</td>
+<td>bool</td>
+<td>Drive head loaded</td>
+</tr>
+<tr>
+<td>106</td>
+<td>bool</td>
+<td>Drive head unload pending</td>
+</tr>
+<tr>
+<td>107</td>
+<td>2×u8</td>
+<td>Drive head position 0/1 (FSD)</td>
+</tr>
+<tr>
+<td>109</td>
+<td>2×u8</td>
+<td>Position in track 0/1 (FSD)</td>
+</tr>
+<tr>
+<td>111</td>
+<td>bool</td>
+<td><code>SectorOverRead</code></td>
+</tr>
+<tr>
+<td>112</td>
+<td>bool</td>
+<td><code>UsingSpecial</code></td>
+</tr>
+<tr>
+<td>113</td>
+<td>u8</td>
+<td><code>DRDSC</code></td>
+</tr>
+<tr>
+<td>114</td>
+<td>2×u8</td>
+<td>FSD logical track 0/1</td>
+</tr>
+<tr>
+<td>116</td>
+<td>2×u8</td>
+<td>FSD physical track 0/1</td>
+</tr>
+</tbody></table>
+<p>On load, BeebEm reopens the named images and picks the format from the file extension (<code>.dsd</code>, <code>.fsd</code>, else SSD). It reads everything after the strings <strong>only if at least one disc was named and the load reported success</strong>. Only the last attempted drive&#39;s result is checked.</p>
+<h3 id="0x046f-wd1770-fdc-master-or-model-b-b-integra-b-with-a-1770-board">0x046F — WD1770 FDC (Master, or Model B / B+ / Integra-B with a 1770 board)</h3>
+<p>Save: <code>Save1770UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Disc1770.cpp#L1285">Disc1770.cpp:1285</a>. Load: <code>Load1770UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Disc1770.cpp#L1355">Disc1770.cpp:1355</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td>Drive 0 disc type: 0 SSD, 1 DSD, 2 ADFS, 3 IMG, 4 DOS, 5 FSD (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/DiscType.h">DiscType.h</a>)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>u8</td>
+<td>Drive 1 disc type</td>
+</tr>
+<tr>
+<td>2</td>
+<td>str</td>
+<td>Drive 0 image path (&quot;&quot; if none)</td>
+</tr>
+<tr>
+<td>…</td>
+<td>str</td>
+<td>Drive 1 image path</td>
+</tr>
+</tbody></table>
+<p>Then, relative to the end of the strings:</p>
+<table>
+<thead>
+<tr>
+<th>Rel</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td>Status register</td>
+</tr>
+<tr>
+<td>1</td>
+<td>u8</td>
+<td>Data register</td>
+</tr>
+<tr>
+<td>2</td>
+<td>u8</td>
+<td>Track register</td>
+</tr>
+<tr>
+<td>3</td>
+<td>u8</td>
+<td><code>ATrack</code>: actual head track</td>
+</tr>
+<tr>
+<td>4</td>
+<td>u8</td>
+<td>Sector register</td>
+</tr>
+<tr>
+<td>5</td>
+<td>bool</td>
+<td><code>HeadDir</code>: 1 = step in</td>
+</tr>
+<tr>
+<td>6</td>
+<td>u8</td>
+<td>Current command</td>
+</tr>
+<tr>
+<td>7</td>
+<td>u8</td>
+<td>Next command (pending after spin-up or settle)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>s32</td>
+<td><code>LoadingCycles</code>: spin-up/settle countdown, in cycles</td>
+</tr>
+<tr>
+<td>12</td>
+<td>2×s32</td>
+<td><code>SpinDown[0..1]</code>: per-drive spin-down countdown</td>
+</tr>
+<tr>
+<td>20</td>
+<td>bool</td>
+<td><code>UpdateTrack</code> (command flag)</td>
+</tr>
+<tr>
+<td>21</td>
+<td>bool</td>
+<td><code>MultiSect</code></td>
+</tr>
+<tr>
+<td>22</td>
+<td>u8</td>
+<td>Step rate in <strong>ms</strong> (6/12/20/30)</td>
+</tr>
+<tr>
+<td>23</td>
+<td>bool</td>
+<td><code>SpinUp</code></td>
+</tr>
+<tr>
+<td>24</td>
+<td>bool</td>
+<td><code>Verify</code></td>
+</tr>
+<tr>
+<td>25</td>
+<td>2×bool</td>
+<td>Drive LEDs 0/1</td>
+</tr>
+<tr>
+<td>27</td>
+<td>s32</td>
+<td><code>ByteCount</code> (bytes remaining in the transfer)</td>
+</tr>
+<tr>
+<td>31</td>
+<td>u32</td>
+<td>0 (was <code>DataPos</code>, ignored)</td>
+</tr>
+<tr>
+<td>35</td>
+<td>u8</td>
+<td>Board drive-control register (<code>ExtControl</code>)</td>
+</tr>
+<tr>
+<td>36</td>
+<td>u8</td>
+<td>Current drive</td>
+</tr>
+<tr>
+<td>37</td>
+<td>2×s32</td>
+<td><code>HeadPos[0..1]</code>: file offset of the head for each drive</td>
+</tr>
+<tr>
+<td>45</td>
+<td>2×u8</td>
+<td>Current head (side) for each drive</td>
+</tr>
+<tr>
+<td>47</td>
+<td>2×s32</td>
+<td><code>DiscStep[0..1]</code>: image track stride (single- or double-sided)</td>
+</tr>
+<tr>
+<td>55</td>
+<td>2×s32</td>
+<td><code>DiscStrt[0..1]</code>: image side start offset</td>
+</tr>
+<tr>
+<td>63</td>
+<td>2×u8</td>
+<td>Sectors per track</td>
+</tr>
+<tr>
+<td>65</td>
+<td>2×u32</td>
+<td><code>DefStart</code>: offset of side 1</td>
+</tr>
+<tr>
+<td>73</td>
+<td>2×u32</td>
+<td><code>TrkLen</code>: track length in bytes</td>
+</tr>
+<tr>
+<td>81</td>
+<td>2×bool</td>
+<td>Writeable</td>
+</tr>
+<tr>
+<td>83</td>
+<td>bool</td>
+<td>Disc density, drive 0 (1 = double)</td>
+</tr>
+<tr>
+<td>84</td>
+<td>bool</td>
+<td>Disc density, drive 1 <em>(v10+; absent in v≤9)</em></td>
+</tr>
+<tr>
+<td>85</td>
+<td>bool</td>
+<td>Selected density</td>
+</tr>
+<tr>
+<td>86</td>
+<td>u8</td>
+<td><code>RotSect</code> (fake rotating sector counter for Read Address)</td>
+</tr>
+<tr>
+<td>87</td>
+<td>str</td>
+<td>FDC board DLL: <code>&quot;None&quot;</code> or a path relative to BeebEm&#39;s folder, such as <code>Hardware\Acorn1770.dll</code></td>
+</tr>
+</tbody></table>
+<p>As with the 8271, everything after the strings is applied <strong>only if a disc was named and both reopened successfully</strong>. On non-Master machines the board DLL is then reloaded from the stored name.</p>
+<h3 id="0x0470-tube-ula">0x0470 — Tube ULA</h3>
+<p>Save: <code>SaveTubeUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Tube.cpp#L2673">Tube.cpp:2673</a>. Load: <code>LoadTubeUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Tube.cpp#L2719">Tube.cpp:2719</a>.</p>
+<p>Status bytes use 0x80 = data available, 0x40 = not full. <code>R1Status</code> holds the control flags Q=1, I=2, J=4, M=8, V=16, P=32.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td><code>R1Status</code> (control flags)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>raw[24]</td>
+<td>R1 parasite→host FIFO</td>
+</tr>
+<tr>
+<td>25</td>
+<td>u8</td>
+<td>R1 P→H FIFO pointer</td>
+</tr>
+<tr>
+<td>26</td>
+<td>u8</td>
+<td>R1 host status</td>
+</tr>
+<tr>
+<td>27</td>
+<td>u8</td>
+<td>R1 H→P data</td>
+</tr>
+<tr>
+<td>28</td>
+<td>u8</td>
+<td>R1 parasite status</td>
+</tr>
+<tr>
+<td>29</td>
+<td>u8</td>
+<td>R2 P→H data</td>
+</tr>
+<tr>
+<td>30</td>
+<td>u8</td>
+<td>R2 host status</td>
+</tr>
+<tr>
+<td>31</td>
+<td>u8</td>
+<td>R2 H→P data</td>
+</tr>
+<tr>
+<td>32</td>
+<td>u8</td>
+<td>R2 parasite status</td>
+</tr>
+<tr>
+<td>33</td>
+<td>2×u8</td>
+<td>R3 P→H data</td>
+</tr>
+<tr>
+<td>35</td>
+<td>u8</td>
+<td>R3 P→H pointer</td>
+</tr>
+<tr>
+<td>36</td>
+<td>u8</td>
+<td>R3 host status</td>
+</tr>
+<tr>
+<td>37</td>
+<td>2×u8</td>
+<td>R3 H→P data</td>
+</tr>
+<tr>
+<td>39</td>
+<td>u8</td>
+<td>R3 H→P pointer</td>
+</tr>
+<tr>
+<td>40</td>
+<td>u8</td>
+<td>R3 parasite status</td>
+</tr>
+<tr>
+<td>41</td>
+<td>u8</td>
+<td>R4 P→H data</td>
+</tr>
+<tr>
+<td>42</td>
+<td>u8</td>
+<td>R4 host status</td>
+</tr>
+<tr>
+<td>43</td>
+<td>u8</td>
+<td>R4 H→P data</td>
+</tr>
+<tr>
+<td>44</td>
+<td>u8</td>
+<td>R4 parasite status</td>
+</tr>
+</tbody></table>
+<h3 id="0x0472-65c02-co-processor-ram">0x0472 — 65C02 co-processor RAM</h3>
+<p>Save: <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Tube.cpp#L2714"><code>Save65C02MemUEF</code> Tube.cpp:2714</a>. Load: <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Tube.cpp#L2760"><code>Load65C02MemUEF</code> Tube.cpp:2760</a>. Body: raw[65536].</p>
+<h3 id="0x0473-serial-ula-6850-acia-and-tape">0x0473 — Serial ULA, 6850 ACIA and tape</h3>
+<p>Save: <code>SaveSerialUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Serial.cpp#L1259">Serial.cpp:1259</a>. Load: <code>LoadSerialUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Serial.cpp#L1304">Serial.cpp:1304</a>. CSW sub-block: <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Csw.cpp#L593"><code>SaveCSWState</code>/<code>LoadCSWState</code> Csw.cpp:593</a>.</p>
+<p>BeebEm writes this chunk only when a tape is loaded. The loader closes the current tape, then reads the rest <strong>only if the file name is non-empty</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>bool</td>
+<td>Serial ULA: 1 = RS423 selected, 0 = cassette</td>
+</tr>
+<tr>
+<td>1</td>
+<td>str</td>
+<td>Tape image path (absolute host path)</td>
+</tr>
+</tbody></table>
+<p>Then, relative to the end of the string:</p>
+<table>
+<thead>
+<tr>
+<th>Rel</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>bool</td>
+<td>Cassette motor relay</td>
+</tr>
+<tr>
+<td>1</td>
+<td>u32</td>
+<td>ACIA Tx baud rate</td>
+</tr>
+<tr>
+<td>5</td>
+<td>u32</td>
+<td>ACIA Rx baud rate</td>
+</tr>
+<tr>
+<td>9</td>
+<td>u8</td>
+<td>ACIA clock divide</td>
+</tr>
+<tr>
+<td>10</td>
+<td>u8</td>
+<td>Parity</td>
+</tr>
+<tr>
+<td>11</td>
+<td>u8</td>
+<td>Stop bits</td>
+</tr>
+<tr>
+<td>12</td>
+<td>u8</td>
+<td>Data bits</td>
+</tr>
+<tr>
+<td>13</td>
+<td>bool</td>
+<td>RIE</td>
+</tr>
+<tr>
+<td>14</td>
+<td>bool</td>
+<td>TIE</td>
+</tr>
+<tr>
+<td>15</td>
+<td>u8</td>
+<td>TxD (transmit destination)</td>
+</tr>
+<tr>
+<td>16</td>
+<td>u8</td>
+<td>RxD</td>
+</tr>
+<tr>
+<td>17</td>
+<td>u8</td>
+<td>RDR</td>
+</tr>
+<tr>
+<td>18</td>
+<td>u8</td>
+<td>TDR</td>
+</tr>
+<tr>
+<td>19</td>
+<td>u8</td>
+<td>RDSR (Rx shift register)</td>
+</tr>
+<tr>
+<td>20</td>
+<td>u8</td>
+<td>TDSR</td>
+</tr>
+<tr>
+<td>21</td>
+<td>u8</td>
+<td>ACIA status register</td>
+</tr>
+<tr>
+<td>22</td>
+<td>u8</td>
+<td>ACIA control register</td>
+</tr>
+<tr>
+<td>23</td>
+<td>u8</td>
+<td>Serial ULA control register (&amp;FE10)</td>
+</tr>
+<tr>
+<td>24</td>
+<td>3×bool + u8</td>
+<td>0, 0, 0, 0 (old DCD fields, ignored)</td>
+</tr>
+<tr>
+<td>28</td>
+<td>s32</td>
+<td>Tape clock (position)</td>
+</tr>
+<tr>
+<td>32</td>
+<td>s32</td>
+<td>Tape clock speed at save time. The loader rescales the position if its own speed differs.</td>
+</tr>
+<tr>
+<td><em>v14+:</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>36</td>
+<td>bool</td>
+<td>Tape carrier tone detected</td>
+</tr>
+<tr>
+<td>37</td>
+<td>s32</td>
+<td>Carrier cycle countdown (to assert DCD)</td>
+</tr>
+<tr>
+<td>41</td>
+<td>bool</td>
+<td>Playing</td>
+</tr>
+<tr>
+<td>42</td>
+<td>bool</td>
+<td>Recording</td>
+</tr>
+<tr>
+<td>43</td>
+<td>bool</td>
+<td>Unlock (tape protection-bypass option)</td>
+</tr>
+<tr>
+<td>44</td>
+<td>s32</td>
+<td><code>UEFBuf</code> (current tape bit buffer)</td>
+</tr>
+<tr>
+<td>48</td>
+<td>s32</td>
+<td><code>OldUEFBuf</code></td>
+</tr>
+<tr>
+<td>52</td>
+<td>s32</td>
+<td><code>OldClock</code></td>
+</tr>
+<tr>
+<td>56</td>
+<td></td>
+<td><strong>CSW only.</strong> Present if the reopened tape is a <code>.csw</code> file; the chunk length is not checked.</td>
+</tr>
+<tr>
+<td>56</td>
+<td>u8</td>
+<td><code>csw_state</code>: 0 waiting for tone, 1 tone, 2 data, 3 undefined</td>
+</tr>
+<tr>
+<td>57</td>
+<td>u8</td>
+<td><code>csw_datastate</code>: 0 receiving data, 1 stop bits, 2 tone or start bit</td>
+</tr>
+<tr>
+<td>58</td>
+<td>u8</td>
+<td><code>csw_bit</code></td>
+</tr>
+<tr>
+<td>59</td>
+<td>s32</td>
+<td><code>csw_pulselen</code></td>
+</tr>
+<tr>
+<td>63</td>
+<td>s32</td>
+<td><code>csw_ptr</code></td>
+</tr>
+<tr>
+<td>67</td>
+<td>s32</td>
+<td><code>csw_byte</code></td>
+</tr>
+<tr>
+<td>71</td>
+<td>s32</td>
+<td><code>bit_count</code></td>
+</tr>
+</tbody></table>
+<h3 id="0x0474-upd7002-ad-converter">0x0474 — uPD7002 A/D converter</h3>
+<p>Save: <code>SaveAtoDUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/AtoDConv.cpp#L127">AtoDConv.cpp:127</a>. Load: <code>LoadAtoDUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/AtoDConv.cpp#L141">AtoDConv.cpp:141</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u8</td>
+<td>Data latch (last value written to &amp;FEC0)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>u8</td>
+<td>Status register</td>
+</tr>
+<tr>
+<td>2</td>
+<td>u8</td>
+<td>Result high byte</td>
+</tr>
+<tr>
+<td>3</td>
+<td>u8</td>
+<td>Result low byte</td>
+</tr>
+<tr>
+<td>4</td>
+<td>s32</td>
+<td>Cycles until conversion completes, or <code>TMAX</code></td>
+</tr>
+</tbody></table>
+<h3 id="0x0477-music-5000">0x0477 — Music 5000</h3>
+<p>Save: <code>SaveMusic5000UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Music5000.cpp#L323">Music5000.cpp:323</a>. Load: <code>LoadMusic5000UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Music5000.cpp#L336">Music5000.cpp:336</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>raw[2048]</td>
+<td>Wave RAM (wavetables plus both register sets)</td>
+</tr>
+<tr>
+<td>2048</td>
+<td>16×u32</td>
+<td>Phase accumulators, one per channel</td>
+</tr>
+<tr>
+<td>2112</td>
+<td>u8</td>
+<td>Current channel</td>
+</tr>
+<tr>
+<td>2113</td>
+<td>u8</td>
+<td>Cycle counter</td>
+</tr>
+<tr>
+<td>2114</td>
+<td>u8</td>
+<td>Active register set</td>
+</tr>
+<tr>
+<td>2115</td>
+<td>u8</td>
+<td>0 (padding)</td>
+</tr>
+<tr>
+<td>2116</td>
+<td>s32</td>
+<td>Left sample accumulator</td>
+</tr>
+<tr>
+<td>2120</td>
+<td>s32</td>
+<td>Right sample accumulator</td>
+</tr>
+<tr>
+<td>2124</td>
+<td>u8</td>
+<td><em>(v13+)</em> JIM page select register (&amp;FCFF)</td>
+</tr>
+</tbody></table>
+<h3 id="0x0478-z80-co-processor-acorn-z80-and-torch-z80-share-this-id">0x0478 — Z80 co-processor (Acorn Z80 and Torch Z80 share this ID)</h3>
+<p>Save: <code>SaveZ80UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Z80Support.cpp#L323">Z80Support.cpp:323</a>. Load: <code>LoadZ80UEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Z80Support.cpp#L354">Z80Support.cpp:354</a>. The tube device byte in 0x046A tells the two machines apart.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>raw[65536]</td>
+<td>Z80 RAM</td>
+</tr>
+<tr>
+<td>65536</td>
+<td>u16</td>
+<td>AF bank 0 (A in the high byte)</td>
+</tr>
+<tr>
+<td>65538</td>
+<td>u16</td>
+<td>AF bank 1</td>
+</tr>
+<tr>
+<td>65540</td>
+<td>u8</td>
+<td>Active AF bank (0 or 1)</td>
+</tr>
+<tr>
+<td>65541</td>
+<td>3×u16</td>
+<td>BC, DE, HL bank 0</td>
+</tr>
+<tr>
+<td>65547</td>
+<td>3×u16</td>
+<td>BC, DE, HL bank 1</td>
+</tr>
+<tr>
+<td>65553</td>
+<td>u8</td>
+<td>Active BC/DE/HL bank</td>
+</tr>
+<tr>
+<td>65554</td>
+<td>u16</td>
+<td>IR (I in the high byte, R in the low byte)</td>
+</tr>
+<tr>
+<td>65556</td>
+<td>u16</td>
+<td>IX</td>
+</tr>
+<tr>
+<td>65558</td>
+<td>u16</td>
+<td>IY</td>
+</tr>
+<tr>
+<td>65560</td>
+<td>u16</td>
+<td>SP</td>
+</tr>
+<tr>
+<td>65562</td>
+<td>u16</td>
+<td>PC</td>
+</tr>
+<tr>
+<td>65564</td>
+<td>u16</td>
+<td>IFF1</td>
+</tr>
+<tr>
+<td>65566</td>
+<td>u16</td>
+<td>IFF2</td>
+</tr>
+<tr>
+<td>65568</td>
+<td>u16</td>
+<td>PC again (a duplicate; the loader uses this value)</td>
+</tr>
+<tr>
+<td>65570</td>
+<td>u16</td>
+<td><code>PreZPC</code> (previous PC)</td>
+</tr>
+<tr>
+<td>65572</td>
+<td>bool</td>
+<td><code>inROM</code>: the boot ROM is paged in</td>
+</tr>
+</tbody></table>
+<p>The interrupt mode is not saved.</p>
+<h3 id="0x0479-acorn-arm-evaluation-system">0x0479 — Acorn ARM Evaluation System</h3>
+<p>Save: <code>CArm::SaveState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Arm.cpp#L4678">Arm.cpp:4678</a>. Load: <code>CArm::LoadState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Arm.cpp#L4714">Arm.cpp:4714</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>u32</td>
+<td>PC</td>
+</tr>
+<tr>
+<td>4</td>
+<td>u8</td>
+<td>Processor mode (0 USR, 1 FIQ, 2 IRQ, 3 SVC)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>u8</td>
+<td>I flag. <strong>Always 0</strong> because of truncation (§6, item 3).</td>
+</tr>
+<tr>
+<td>6</td>
+<td>u8</td>
+<td>F flag. <strong>Always 0</strong>.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>u8</td>
+<td>NZCV in bits 3..0</td>
+</tr>
+<tr>
+<td>8</td>
+<td>bool</td>
+<td>Prefetch invalid</td>
+</tr>
+<tr>
+<td>9</td>
+<td>u32</td>
+<td>Prefetched instruction</td>
+</tr>
+<tr>
+<td>13</td>
+<td>u32</td>
+<td>Current instruction</td>
+</tr>
+<tr>
+<td>17</td>
+<td>16×u32</td>
+<td>Current register bank <code>r[0..15]</code></td>
+</tr>
+<tr>
+<td>81</td>
+<td>16×u32</td>
+<td>User-mode registers</td>
+</tr>
+<tr>
+<td>145</td>
+<td>16×u32</td>
+<td>SVC-mode registers</td>
+</tr>
+<tr>
+<td>209</td>
+<td>16×u32</td>
+<td>IRQ-mode registers</td>
+</tr>
+<tr>
+<td>273</td>
+<td>raw[4194304]</td>
+<td>4 MB RAM</td>
+</tr>
+<tr>
+<td>4194577</td>
+<td>u8</td>
+<td><em>(v15+)</em> <code>armModel</code>: 1 = ARM1 only, ≥2 enables ARM2 extensions, ≥3 enables ARM3 extensions. Defaults to 1 when absent.</td>
+</tr>
+</tbody></table>
+<p>FIQ-mode registers are not saved.</p>
+<h3 id="0x047a-sprow-arm7tdmi-co-processor">0x047A — Sprow ARM7TDMI co-processor</h3>
+<p>Save: <code>CSprowCoPro::SaveState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/SprowCoPro.cpp#L843">SprowCoPro.cpp:843</a>. Load: <code>CSprowCoPro::LoadState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/SprowCoPro.cpp#L916">SprowCoPro.cpp:916</a>. The fields are an ARMulator <code>ARMul_State</code> dump (<a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/ARMulator/armdefs.h">ARMulator/armdefs.h</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>s32</td>
+<td><code>m_CycleCount</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>u8</td>
+<td><code>Emulate</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>u32</td>
+<td><code>EndCondition</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>16×u32</td>
+<td><code>Reg[16]</code></td>
+</tr>
+<tr>
+<td>73</td>
+<td>7×16×u32</td>
+<td><code>RegBank[7][16]</code></td>
+</tr>
+<tr>
+<td>521</td>
+<td>u64</td>
+<td><code>Accumulator</code></td>
+</tr>
+<tr>
+<td>529</td>
+<td>u32</td>
+<td><code>Cpsr</code></td>
+</tr>
+<tr>
+<td>533</td>
+<td>7×u32</td>
+<td><code>Spsr[7]</code></td>
+</tr>
+<tr>
+<td>561</td>
+<td>9×u8</td>
+<td>NFlag, ZFlag, CFlag, VFlag, IFFlags, SFlag, TFlag, Bank, Mode</td>
+</tr>
+<tr>
+<td>570</td>
+<td>11×u32</td>
+<td>instr, pc, temp, loaded, decoded, NumScycles, NumNcycles, NumIcycles, NumCcycles, NumFcycles, NextInstr</td>
+</tr>
+<tr>
+<td>614</td>
+<td>raw[67108864]</td>
+<td>64 MB memory</td>
+</tr>
+<tr>
+<td>67109478</td>
+<td>5×u32</td>
+<td>remapControlRegister, romSelectRegister, LastTime, CP14R0_CCD, Now</td>
+</tr>
+<tr>
+<td>67109498</td>
+<td>9×u8</td>
+<td>Exception, NresetSig, NfiqSig, NirqSig, abortSig, NtransSig, Aborted, Base, AbortAddr (truncated, §6)</td>
+</tr>
+<tr>
+<td>67109507</td>
+<td>u32</td>
+<td><em>k</em>: number of peripheral registers</td>
+</tr>
+<tr>
+<td>67109511</td>
+<td><em>k</em>×(u32,u32)</td>
+<td>ML675001 peripheral I/O registers as (address, value) pairs</td>
+</tr>
+</tbody></table>
+<h3 id="0x047b-master-512-80186">0x047B — Master 512 (80186)</h3>
+<p>Save: <code>Master512CoPro::SaveState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Master512CoPro.cpp#L3838">Master512CoPro.cpp:3838</a>. Load: <code>Master512CoPro::LoadState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Master512CoPro.cpp#L3905">Master512CoPro.cpp:3905</a>. The CPU core is derived from MAME&#39;s i186.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>raw[1048576]</td>
+<td>1 MB RAM</td>
+</tr>
+<tr>
+<td>1048576</td>
+<td>8×u16</td>
+<td>AX, CX, DX, BX, SP, BP, SI, DI</td>
+</tr>
+<tr>
+<td>1048592</td>
+<td>4×u16</td>
+<td>ES, CS, SS, DS</td>
+</tr>
+<tr>
+<td>1048600</td>
+<td>6×u8</td>
+<td>TF, IF, DF, IOPL, NT, MF</td>
+</tr>
+<tr>
+<td>1048606</td>
+<td>u16</td>
+<td>IP</td>
+</tr>
+<tr>
+<td>1048608</td>
+<td>u16</td>
+<td>Previous IP</td>
+</tr>
+<tr>
+<td>1048610</td>
+<td>6×u32</td>
+<td>Lazy flag values: SignVal, AuxVal, OverVal, ZeroVal, CarryVal, ParityVal</td>
+</tr>
+<tr>
+<td>1048634</td>
+<td>3×u32</td>
+<td>pending_irq, nmi_state, irq_state</td>
+</tr>
+<tr>
+<td>1048646</td>
+<td>3×u8</td>
+<td>no_interrupt, fire_trap, test_state</td>
+</tr>
+<tr>
+<td>1048649</td>
+<td>u32</td>
+<td>icount</td>
+</tr>
+<tr>
+<td>1048653</td>
+<td>u32</td>
+<td>prefix_seg</td>
+</tr>
+<tr>
+<td>1048657</td>
+<td>2×bool</td>
+<td>seg_prefix, seg_prefix_next</td>
+</tr>
+<tr>
+<td>1048659</td>
+<td>u32</td>
+<td>ea</td>
+</tr>
+<tr>
+<td>1048663</td>
+<td>u16</td>
+<td>eo</td>
+</tr>
+<tr>
+<td>1048665</td>
+<td>u32</td>
+<td>easeg</td>
+</tr>
+<tr>
+<td>1048669</td>
+<td>u8</td>
+<td>modrm</td>
+</tr>
+<tr>
+<td>1048670</td>
+<td>3×u32</td>
+<td>dst, src, pc (linear)</td>
+</tr>
+<tr>
+<td>1048682</td>
+<td>bool</td>
+<td>halt</td>
+</tr>
+<tr>
+<td>1048683</td>
+<td>2×(bool, u32, u32, u16, u16)</td>
+<td>DMA channels 0 and 1: drq_state, source, dest, count, control</td>
+</tr>
+<tr>
+<td>1048709</td>
+<td>bool</td>
+<td>last_dma</td>
+</tr>
+</tbody></table>
+<h3 id="0x047d-tms5220-speech-system-with-phrom-contents">0x047D — TMS5220 speech system (with PHROM contents)</h3>
+<p>Save: <code>SaveSpeechUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Speech.cpp#L2263">Speech.cpp:2263</a> → <code>TMS5220StreamState::SaveState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Speech.cpp#L2020">Speech.cpp:2020</a> → <code>TMS5220::SaveState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Speech.cpp#L1842">Speech.cpp:1842</a>.
+Load: <code>LoadSpeechUEF</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Speech.cpp#L2253">Speech.cpp:2253</a> → <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Speech.cpp#L2008">Speech.cpp:2008</a> → <code>TMS5220::LoadState</code> <a href="https://codeberg.org/chrisn/beebem-windows/src/commit/763539a120d1dc90c49be0d0af55193a5e109ce9/Src/Speech.cpp#L1777">Speech.cpp:1777</a>. The core is derived from MAME&#39;s tms5220.</p>
+<table>
+<thead>
+<tr>
+<th>Off</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>raw[16]</td>
+<td>FIFO</td>
+</tr>
+<tr>
+<td>16</td>
+<td>4×u8</td>
+<td>fifo_head, fifo_tail, fifo_count, fifo_bits_taken</td>
+</tr>
+<tr>
+<td>20</td>
+<td>9×bool</td>
+<td>previous_TALK_STATUS, SPEN, DDIS, TALK, TALKD, buffer_low, buffer_empty, irq_pin, ready_pin</td>
+</tr>
+<tr>
+<td>29</td>
+<td>2×bool</td>
+<td>OLDE, OLDP</td>
+</tr>
+<tr>
+<td>31</td>
+<td>u8</td>
+<td>new_frame_energy_idx</td>
+</tr>
+<tr>
+<td>32</td>
+<td>u8</td>
+<td>new_frame_pitch_idx</td>
+</tr>
+<tr>
+<td>33</td>
+<td>raw[10]</td>
+<td>new_frame_k_idx[10]</td>
+</tr>
+<tr>
+<td>43</td>
+<td>s16</td>
+<td>current_energy</td>
+</tr>
+<tr>
+<td>45</td>
+<td>s16</td>
+<td>current_pitch</td>
+</tr>
+<tr>
+<td>47</td>
+<td>10×s16</td>
+<td>current_k</td>
+</tr>
+<tr>
+<td>67</td>
+<td>u16</td>
+<td>previous_energy</td>
+</tr>
+<tr>
+<td>69</td>
+<td>3×u8</td>
+<td>subcycle, subc_reload, PC</td>
+</tr>
+<tr>
+<td>72</td>
+<td>u8</td>
+<td>IP</td>
+</tr>
+<tr>
+<td>73</td>
+<td>bool</td>
+<td>inhibit</td>
+</tr>
+<tr>
+<td>74</td>
+<td>u8</td>
+<td>uv_zpar</td>
+</tr>
+<tr>
+<td>75</td>
+<td>bool</td>
+<td>pitch_zero</td>
+</tr>
+<tr>
+<td>76</td>
+<td>u16</td>
+<td>pitch_count</td>
+</tr>
+<tr>
+<td>78</td>
+<td>11×s32</td>
+<td>u[11] (lattice filter)</td>
+</tr>
+<tr>
+<td>122</td>
+<td>10×s32</td>
+<td>x[10]</td>
+</tr>
+<tr>
+<td>162</td>
+<td>u16</td>
+<td>RNG</td>
+</tr>
+<tr>
+<td>164</td>
+<td>s16</td>
+<td>excitation_data</td>
+</tr>
+<tr>
+<td>166</td>
+<td>bool</td>
+<td>schedule_dummy_read</td>
+</tr>
+<tr>
+<td>167</td>
+<td>u8</td>
+<td>data_register</td>
+</tr>
+<tr>
+<td>168</td>
+<td>bool</td>
+<td>RDB_flag</td>
+</tr>
+<tr>
+<td>169</td>
+<td>bool</td>
+<td>digital_select</td>
+</tr>
+<tr>
+<td>170</td>
+<td>bool</td>
+<td>io_ready</td>
+</tr>
+<tr>
+<td>171</td>
+<td>s32</td>
+<td>ready_count</td>
+</tr>
+<tr>
+<td>175</td>
+<td>u32</td>
+<td>262144 (PHROM length; ignored on load)</td>
+</tr>
+<tr>
+<td>179</td>
+<td>u32</td>
+<td>speechROMaddr</td>
+</tr>
+<tr>
+<td>183</td>
+<td>s32</td>
+<td>load_pointer</td>
+</tr>
+<tr>
+<td>187</td>
+<td>u8</td>
+<td>ROM_bits_count</td>
+</tr>
+<tr>
+<td>188</td>
+<td>raw[262144]</td>
+<td>Speech PHROM data: 16 slots × 16 KB</td>
+</tr>
+<tr>
+<td>262332</td>
+<td>4×s32</td>
+<td>Stream resampler state: last_sample, curr_sample, source_step, source_pos</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-departures-from-the-uef-specification-010">5. Departures from the UEF specification (0.10)</h2>
+<p>The UEF spec is at <a href="http://electrem.emuunlim.com/UEFSpecs.html">http://electrem.emuunlim.com/UEFSpecs.html</a>.</p>
+<ol>
+<li><strong>The header version field holds the save-state version, not the spec version.</strong> BeebEm writes minor = 17, major = 0 (&quot;UEF 0.17&quot;), which is a UEF version that doesn&#39;t exist. On load it compares the 16-bit value against its own save-state version. A strict UEF reader may reject these files or misinterpret them. When reading, treat bytes 10–11 as BeebEm&#39;s save-state version once you&#39;ve identified the file as a BeebEm state (first chunk 0x046C).</li>
+<li><strong>The chunk IDs are BeebEm-private.</strong> 0x0460 – 0x047D sit inside the spec&#39;s <code>&amp;04xx</code> &quot;state snapshot&quot; range, but the spec doesn&#39;t define them; it defines only &amp;0400 – &amp;0403, &amp;0410 – &amp;0412 and &amp;0420. BeebEm neither writes nor reads the standard chunks: &amp;0400 6502, &amp;0402 WD1770, &amp;0403 JIM, &amp;0410 memory. So a BeebEm state isn&#39;t usable by another UEF-snapshot reader, and the reverse is also true.</li>
+<li><strong>No &quot;update byte&quot;.</strong> Spec <code>&amp;04xx</code> chunks start with an update byte. BeebEm chunks don&#39;t.</li>
+<li><strong>Strings.</strong> The spec says strings are NUL-terminated. BeebEm v14+ uses a <code>u32</code> length prefix with no terminator, and v≤13 used fixed 256-byte fields.</li>
+<li><strong>No gzip.</strong> The spec allows the whole file to be gzip-compressed. BeebEm&#39;s save-state loader uses plain <code>fopen</code>/<code>fread</code> and rejects a gzipped state as &quot;not a UEF file&quot;. (Gzip is only handled on the separate tape-UEF path.) Write save states uncompressed.</li>
+<li><strong>No origin chunk (&amp;0000).</strong> BeebEm identifies itself with private chunk 0x046C instead. For <code>.uef</code> files, 0x046C must be the very first chunk, or BeebEm loads the file as a tape.</li>
+<li><strong>Repeated IDs with a discriminator.</strong> 0x0467 appears twice; its first byte selects the System or User VIA. 0x0466, 0x0475 and 0x047C appear once per sideways bank, with the bank number in the first byte. The spec has no such convention, though nothing forbids it.</li>
+<li><strong>Chunk order is significant.</strong> 0x046A resets the machine and must precede the other chunks. The meanings of 0x0461 – 0x0464 depend on the machine type set by 0x046A. The spec&#39;s model is order-independent.</li>
+<li><strong>Host-specific content.</strong> Disc and tape images are referenced by absolute host path, not embedded. Several fields are BeebEm renderer or audio internals: the <code>ActualScreenWidth</code>, <code>ScreenAdjust</code>, <code>TeletextStyle</code> and <code>*PixmapLine</code> fields in 0x0468, and <code>GenIndex</code> in 0x046B.</li>
+</ol>
+<hr>
+<h2 id="6-beebem-bugs-and-quirks-to-accommodate">6. BeebEm bugs and quirks to accommodate</h2>
+<ol>
+<li><strong>The VIA shift-register trigger (<code>SRTrigger</code>, v16+) is broken.</strong> Only applies when the version is ≥ 16.<ul>
+<li><strong>System VIA:</strong> the writer never writes <code>SRTrigger</code> (the chunk is 26 bytes), but the reader reads a <code>u32</code> after IC32. That read takes the first four bytes of the following chunk&#39;s header. In practice the following chunk is the User VIA, so the value is <code>67 04 1E 00</code> = 0x001E0467. The reader adds <code>TotalCycles</code>, which schedules a spurious SR event about 1 s later. If the System VIA chunk were the last chunk in the file, the load would fail.</li>
+<li><strong>User VIA:</strong> the writer writes a padding byte (offset 25) <strong>and then</strong> an <strong>absolute</strong> <code>SRTrigger</code> (offset 26). The reader doesn&#39;t skip the padding byte, so it reads offsets 25–28 as the value, then adds <code>TotalCycles</code> as if it were relative. When the trigger is idle (<code>TMAX</code>, bytes <code>FF FF FF 7F</code>), the misaligned read gives <code>0xFFFFFF00</code> (−256), which is not <code>TMAX</code>. So the trigger always appears active.</li>
+<li><strong>To be read correctly by BeebEm:</strong> write exactly BeebEm&#39;s layout (System 26 bytes, User 30 bytes). Your <code>SRTrigger</code> value will be misread whatever you write, so <code>TMAX</code> is fine.</li>
+<li><strong>When reading:</strong> ignore the System VIA&#39;s missing field. For the User VIA, read <code>SRTrigger</code> at offset 26. If it isn&#39;t <code>TMAX</code>, you can turn it into a relative delay with <code>SRTrigger − TotalCycles</code>, using the <code>TotalCycles</code> stored in 0x0460 (both are 32-bit <code>int</code> values that wrap). Or just recompute it from ACR/SR state.</li>
+</ul>
+</li>
+<li><strong>0x0460&#39;s <code>TotalCycles</code> is written but ignored on load.</strong> All other timers are stored relative to it, except the User VIA <code>SRTrigger</code> (item 1). You can write any value, but writing your current cycle count keeps the relationship with <code>SRTrigger</code> meaningful.</li>
+<li><strong>The ARM (0x0479) I and F interrupt-disable flags are always 0.</strong> BeebEm holds them at bit positions 27 and 26 but writes them with <code>UEFWrite8</code>, which truncates them. FIQ-bank registers are not saved. When reading a BeebEm file, you can&#39;t recover I and F; assume both are clear, as BeebEm does.</li>
+<li><strong>Sprow <code>AbortAddr</code> is truncated to 8 bits.</strong> It is a word address in ARMulator.</li>
+<li><strong>Disc and tape state is conditional.</strong><ul>
+<li>8271 and 1770 controller state is only applied if at least one image path is non-empty and the images reopen successfully. For the 8271 only the last attempted drive&#39;s result is checked.</li>
+<li>On a Model B with a 1770 board and no disc loaded, the board choice (FDC DLL name) is <strong>not</strong> restored from the file. It comes from BeebEm&#39;s preferences, plus the &quot;not native FDC&quot; byte in 0x046A.</li>
+<li>Serial/tape state is only written when a tape is loaded, and only read when the stored path is non-empty. The CSW tail is read according to the type of the reopened tape, not the chunk length.</li>
+<li>A Master ET with <code>NativeFDC</code> set writes an 8271 chunk.</li>
+</ul>
+</li>
+<li><strong>v≤13 FDC DLL field:</strong> the old writer wrote 256 bytes, but the current reader reads <code>MAX_PATH</code> = 260 bytes, so it reads 4 bytes past the chunk end. This is harmless unless 0x046F is the last chunk in the file.</li>
+<li><strong>Speech:</strong> when speech is enabled but the PHROMs failed to start, the writer emits a <strong>zero-length</strong> 0x047D chunk. If the loading BeebEm has speech running, it will read into the next chunk.</li>
+<li><strong>0x047C:</strong> when the length isn&#39;t exactly 131076, the loader skips the ROM image but still sets that bank&#39;s type and PAL fields.</li>
+<li><strong>0x046A key map:</strong> for non-user mappings the writer emits 256 zero bytes rather than a <code>str</code>. Legacy pre-v14 keyboard-mapping values other than 0 or 40060 (old menu IDs) are passed through unvalidated.</li>
+<li><strong>Z80:</strong> PC appears twice and the second copy wins. The interrupt mode is not saved.</li>
+<li><strong>Version 17 files won&#39;t load in released BeebEm (≤ 4.23, version 16)</strong>, even though the layout is identical. Version 15 (BeebEm 4.20) uses the old 16-bit VIA timer layout.</li>
+</ol>
+<hr>
+<h2 id="7-checklist-for-a-beebem-compatible-writer">7. Checklist for a BeebEm-compatible writer</h2>
+<ul>
+<li>Header: <code>&quot;UEF File!\0&quot;</code>, then <code>0x10 0x00</code> (version 16) for the widest compatibility.</li>
+<li>First chunk: 0x046C (16 bytes: <code>&quot;BeebEm&quot;</code>, padding, then two version bytes; any values are accepted).</li>
+<li>Then 0x046A, then 0x0460, then 0x0461, 0x0462 and the model&#39;s RAM chunks, then all 16 bank chunks.</li>
+<li>Then 0x0468, 0x0467 (System, 26 bytes), 0x0467 (User, 30 bytes), 0x046B, and 0x046E or 0x046F.</li>
+<li>Then any tube/co-processor chunks, 0x0473 if a tape is loaded, 0x0474, and optionally 0x0477 and 0x047D.</li>
+<li>All scheduled-event fields (8271 trigger, A/D trigger, video trigger) are cycles <strong>relative to now</strong>, with <code>0x7FFFFFFF</code> meaning none. The 1770 <code>LoadingCycles</code> and <code>SpinDown</code> fields are already countdowns.</li>
+<li>VIA counters (v16) are 2 MHz ticks; latches are 1 MHz values.</li>
+<li>Palette bytes are the raw <code>&amp;FE21</code> low nibbles.</li>
+<li>Disc and tape fields hold host paths; BeebEm tries to open them.</li>
+</ul>
+
+</main>
+</body>
+</html>
