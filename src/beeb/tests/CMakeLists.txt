@@ -171,4 +171,8 @@ foreach(TYPE b bplus electron master compact)
   endforeach()
 endforeach()
 
+foreach(VIA user system)
+  add_test_beeb_literal_category(via.t2_shift_test.${VIA})
+endforeach()
+
 add_test_beeb_literal_category(electron.rom_unlock)

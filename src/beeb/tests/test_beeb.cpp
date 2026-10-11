@@ -1471,6 +1471,10 @@ void TestSpooledOutput(const TestBBCMicro &bbc,
 
 static bool g_infer_wanted_images = false;
 
+// wanted_png_src_path is full path to src PNG. png_name is the name stem for
+// the output PNG; path is the test output folder, and it will have
+// ".wanted.png" and ".got.png" appended as required to generate actual paths
+// for the PNGs.
 void RunImageTest(const std::string &wanted_png_src_path,
                   const std::string &png_name,
                   TestBBCMicro *beeb,
@@ -1610,7 +1614,8 @@ class Test {
     virtual std::string GetFullName() const = 0;
     virtual void Run() = 0;
 
-    // Called after a successful run. Remove any large files that are only interesting after a failed run.
+    // Called after a successful run. Remove any large files that are only
+    // interesting after a failed run.
     //
     // Default impl does nothing.
     virtual void TidyUp();
@@ -3226,6 +3231,51 @@ class Mode7demTest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class VIAT2ShiftTest : public Test {
+  public:
+    VIAT2ShiftTest(std::string name, bool is_system_via)
+        : m_name(std::move(name))
+        , m_is_system_via(is_system_via) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        TestBBCMicro bbc(GetBBCBDiskType(&DISC_INTERFACE_ACORN_1770));
+
+        bbc.RunUntilOSWORD0(10.0);
+
+        std::string path = PathJoined(b2_SOURCE_DIR, "etc/via_t2_shift_test");
+
+        bbc.LoadFile(PathJoined(path, "0/$.VIATEST"), 0x1900);
+
+        int num_frames = 25;
+        std::string text = "CALL &1900\r";
+        if (!m_is_system_via) {
+            text += " ";
+            num_frames += 25;
+        }
+
+        bbc.Paste(text);
+
+        bbc.RunForNFrames(num_frames);
+
+        RunImageTest(PathJoined(path, this->GetFullName() + ".png"),
+                     this->GetFullName(),
+                     &bbc);
+    }
+
+  protected:
+  private:
+    std::string m_name;
+    bool m_is_system_via = true;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 
 #define DEBUGGER_ONLY(T) T
@@ -3652,6 +3702,9 @@ int main(int argc, char *argv[]) {
 
         all_tests.push_back(std::make_unique<BasicTest>("electron.rom_unlock", type, PathJoined(b2_SOURCE_DIR, "etc/b2_tests/8/$.SWRWP")));
     }
+
+    all_tests.push_back(std::make_unique<VIAT2ShiftTest>("via.t2_shift_test.system", true));
+    all_tests.push_back(std::make_unique<VIAT2ShiftTest>("via.t2_shift_test.user", false));
 
     //
     // all tests must be added by this point!
