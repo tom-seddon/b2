@@ -232,6 +232,7 @@ class R6522 {
 
     M6502Word m_t2{0};
     bool m_t2_reload = false;
+    bool m_t2_reload_lsb = false;
     bool m_t2_pending = false;
     bool m_t2_timeout = false;
     bool m_t2_count = true;

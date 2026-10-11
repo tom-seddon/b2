@@ -773,7 +773,10 @@ uint8_t R6522::UpdatePhi2TrailingEdge() {
 
     /* T2 */
     m_t2_timeout = false;
-    if (m_t2_reload) {
+    if (m_t2_reload_lsb) {
+        m_t2.b.l = m_t2ll;
+        m_t2_reload_lsb = false;
+    } else if (m_t2_reload) {
         m_t2.w = m_t2ll | m_t2lh << 8;
         m_t2_reload = false;
         TRACEF(m_trace, "%s - T2 reload: T2=$%04x (%u)", m_name, m_t2.w, m_t2.w);
@@ -781,18 +784,17 @@ uint8_t R6522::UpdatePhi2TrailingEdge() {
         if (m_t2_count) {
             --m_t2.w;
 
-            if (m_t2.b.l == 0xff) {
-                if (m_acr.bits.sr == R6522SRControl_ShiftOut_FreeT2) {
-                    m_t2.b.l = m_t2ll;
-                }
-            }
-
 #if BBCMICRO_TRACE
             if (tick_event) {
                 tick_event->t2_ticked = 1;
                 tick_event->new_t2 = m_t2.w;
             }
 #endif
+            switch (m_acr.bits.sr) {
+            case R6522SRControl_ShiftOut_FreeT2:
+                m_t2_reload_lsb = m_t2.b.l == 0xff;
+                break;
+            }
 
             m_t2_timeout = m_t2_pending && m_t2.w == 0xffff;
 
