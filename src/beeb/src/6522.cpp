@@ -791,6 +791,9 @@ uint8_t R6522::UpdatePhi2TrailingEdge() {
             }
 #endif
             switch (m_acr.bits.sr) {
+            default:
+                break;
+
             case R6522SRControl_ShiftOut_FreeT2:
                 m_t2_reload_lsb = m_t2.b.l == 0xff;
                 break;

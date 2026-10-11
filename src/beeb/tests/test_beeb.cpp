@@ -3251,7 +3251,7 @@ class VIAT2ShiftTest : public Test {
 
         bbc.LoadFile(PathJoined(path, "0/$.VIATEST"), 0x1900);
 
-        int num_frames = 25;
+        size_t num_frames = 25;
         std::string text = "CALL &1900\r";
         if (!m_is_system_via) {
             text += " ";
