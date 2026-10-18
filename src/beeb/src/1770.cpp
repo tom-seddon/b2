@@ -76,9 +76,7 @@ LOG_TAGGED_DEFINE(1770nd, "1770", "1770", &log_printer_stdout, false);
 const uint8_t WD1770::STEP_RATES_MS_1770[] = {6, 12, 20, 30};
 static const int SETTLE_uS_1770 = 30000;
 
-// The data sheet has these as (2,3,5,6), but just about every other
-// reference has 2,3,6,12.
-const uint8_t WD1770::STEP_RATES_MS_1772[] = {2, 3, 6, 12};
+const uint8_t WD1770::STEP_RATES_MS_1772[] = {6, 12, 2, 3};
 //static const int SETTLE_uS_1772=30000;
 
 // Assuming 300rpm.
