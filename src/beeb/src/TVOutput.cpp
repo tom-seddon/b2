@@ -164,6 +164,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                        m_texture_pixels.size() * sizeof m_texture_pixels[0]);
             }
 
+            m_last_last_vretrace_start_time = m_last_vretrace_start_time;
             m_last_vretrace_start_time.n = m_total.n + i;
 
             // With interlaced output, odd fields start 1 scanline lower.

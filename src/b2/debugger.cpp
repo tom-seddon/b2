@@ -5637,7 +5637,18 @@ class TVDebugWindow : public DebugUI {
     void DoImGui2() override {
         TVOutput *tv = m_beeb_window->GetMutableTV();
 
-        ImGui::Text("Scanline time: %" PRId64, tv->m_scanline_time);
+        {
+            uint64_t vretrace_time = tv->m_last_vretrace_start_time.n - tv->m_last_last_vretrace_start_time.n;
+
+            double scanline_microsec = tv->m_scanline_time * .5;
+            double frame_microsec = vretrace_time * .5;
+
+            double scanline_hz = 1e6 / scanline_microsec;
+            double frame_hz = 1e6 / frame_microsec;
+
+            ImGui::Text("Scanline time: %.1f " MICROSECONDS_UTF8 " (%.1f Hz)", scanline_microsec, scanline_hz);
+            ImGui::Text("Frame time: %.1f " MICROSECONDS_UTF8 " (%.1f Hz)", frame_microsec, frame_hz);
+        }
 
         ImGuiHeader("Debug display");
 

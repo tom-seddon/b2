@@ -125,6 +125,7 @@ class TVOutput {
 #endif
 
     VideoDataUnitCount m_total{0};
+    VideoDataUnitCount m_last_last_vretrace_start_time{0};
     VideoDataUnitCount m_last_vretrace_start_time{0};
     bool m_in_hsync = false;
     VideoDataUnitCount m_last_hretrace_start_time{0};
