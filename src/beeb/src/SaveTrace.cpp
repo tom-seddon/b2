@@ -285,7 +285,7 @@ class TraceSaver {
         for (size_t opcode = 0; opcode < 256; ++opcode) {
             char *padded_mnemonic = &buffer->at(opcode * (PADDED_MNEMONIC_SIZE + 1));
 
-            const char *mnemonic = config ? config->disassembly_info[opcode].mnemonic : "???";
+            const char *mnemonic = config ? config->instructions[opcode].mnemonic : "???";
             ASSERT(strlen(mnemonic) <= PADDED_MNEMONIC_SIZE);
 
             snprintf(padded_mnemonic, PADDED_MNEMONIC_SIZE + 1, "%-*s", (int)PADDED_MNEMONIC_SIZE, mnemonic);
@@ -367,7 +367,7 @@ class TraceSaver {
 
     [[nodiscard]] char *AddAddress(const TraceEvent *ev,
                                    char *c,
-                                   const M6502DisassemblyInfo *instr,
+                                   const M6502Instruction *instr,
                                    uint16_t pc_,
                                    uint16_t value,
                                    bool align) {
@@ -405,7 +405,7 @@ class TraceSaver {
         return c;
     }
 
-    int32_t GetStackEA(const BBCMicro::InstructionTraceEvent *ev, const M6502DisassemblyInfo *i) {
+    int32_t GetStackEA(const BBCMicro::InstructionTraceEvent *ev, const M6502Instruction *i) {
         switch ((M6502StackOperation)i->stack_operation) {
         default:
             ASSERT(false);
@@ -674,7 +674,7 @@ class TraceSaver {
 
         m_last_instruction_time = e->time;
 
-        const M6502DisassemblyInfo *instr = &m_m6502_config->disassembly_info[ev->opcode];
+        const M6502Instruction *instr = &m_m6502_config->instructions[ev->opcode];
 
         // This buffer size has been carefully selected to be Big
         // Enough(tm).

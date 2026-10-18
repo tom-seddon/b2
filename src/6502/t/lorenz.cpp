@@ -400,7 +400,7 @@ int main(int argc, char *argv[]) {
 
                 uint16_t pc = s.abus.w;
                 uint8_t opcode = g_mem[pc];
-                const M6502DisassemblyInfo *di = &s.config->disassembly_info[opcode];
+                const M6502Instruction *instr = &s.config->instructions[opcode];
 
                 // Print registers FIRST...
                 M6502P p = M6502_GetP(&s);
@@ -409,18 +409,18 @@ int main(int argc, char *argv[]) {
                      p.bits.n ? 'N' : '_', p.bits.v ? 'V' : '_', p.bits._ ? '_' : '_', p.bits.b ? 'B' : '_',
                      p.bits.d ? 'D' : '_', p.bits.i ? 'I' : '_', p.bits.z ? 'Z' : '_', p.bits.c ? 'C' : '_');
 
-                if (di->mode == M6502AddrMode_REL) {
+                if (instr->mode == M6502AddrMode_REL) {
                     snprintf(next_instr, sizeof next_instr, "%s $%04x",
-                             di->mnemonic,
+                             instr->mnemonic,
                              pc + 2 + (int8_t)g_mem[(uint16_t)(pc + 1)]);
                 } else {
-                    AddrModeDisassemblyInfo amdi = GetDisassemblyInfoForAddrMode((M6502AddrMode)di->mode);
+                    AddrModeDisassemblyInfo amdi = GetDisassemblyInfoForAddrMode((M6502AddrMode)instr->mode);
                     ASSERT(amdi.prefix);
                     ASSERT(amdi.suffix);
 
                     if (amdi.num_operand_bytes == 0) {
                         snprintf(next_instr, sizeof next_instr, "%s%s%s",
-                                 di->mnemonic, amdi.prefix, amdi.suffix);
+                                 instr->mnemonic, amdi.prefix, amdi.suffix);
                     } else {
                         unsigned operand = 0;
 
@@ -429,7 +429,7 @@ int main(int argc, char *argv[]) {
                         }
 
                         snprintf(next_instr, sizeof next_instr, "%s %s$%0*x%s",
-                                 di->mnemonic,
+                                 instr->mnemonic,
                                  amdi.prefix,
                                  (int)(amdi.num_operand_bytes * 2),
                                  operand,

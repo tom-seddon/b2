@@ -2672,9 +2672,9 @@ void BBCMicro::DebugStepOver(uint32_t dso) {
     }
 
     uint8_t opcode = M6502_GetOpcode(s);
-    const M6502DisassemblyInfo *di = &s->config->disassembly_info[opcode];
+    const M6502Instruction *instr = &s->config->instructions[opcode];
 
-    if (di->always_step_in) {
+    if (instr->always_step_in) {
         this->DebugStepIn(dso);
     } else {
         // More work than required here - but it's not a massive problem, just
@@ -2684,7 +2684,7 @@ void BBCMicro::DebugStepOver(uint32_t dso) {
 
         // Try to put a breakpoint on the actual next instruction, rather than
         // its address.
-        M6502Word next_pc = {(uint16_t)(s->opcode_pc.w + di->num_bytes)};
+        M6502Word next_pc = {(uint16_t)(s->opcode_pc.w + instr->num_bytes)};
         const BBCMicro::BigPage *big_page = this->DebugGetBigPageForAddress(next_pc,
                                                                             !!pc_is_mos[s->pc.p.p],
                                                                             dso | DebugGetCurrentStateOverride(&m_state));

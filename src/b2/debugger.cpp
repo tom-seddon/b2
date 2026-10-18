@@ -1259,8 +1259,8 @@ class M6502DebugWindow : public DebugUI {
         ImGui::Text("PC = %s%04x", g_hex, cpu->opcode_pc.w);
         ImGui::Text("S = %s01%02x", g_hex, cpu->s.b.l);
         uint8_t opcode = M6502_GetOpcode(cpu);
-        const char *mnemonic = cpu->config->disassembly_info[opcode].mnemonic;
-        const char *mode_name = M6502AddrMode_GetName(cpu->config->disassembly_info[opcode].mode);
+        const char *mnemonic = cpu->config->instructions[opcode].mnemonic;
+        const char *mode_name = M6502AddrMode_GetName(cpu->config->instructions[opcode].mode);
 
         M6502P p = M6502_GetP(cpu);
         char pstr[9];
@@ -1913,25 +1913,25 @@ class DisassemblyDebugWindow : public DebugUI,
 
                 ascii.clear();
 
-                const M6502DisassemblyInfo *di;
+                const M6502Instruction *instr;
                 if (opcode_read_result.bits.got_value) {
-                    di = &cpu->config->disassembly_info[opcode];
+                    instr = &cpu->config->instructions[opcode];
                 } else {
-                    di = &M6502_invalid_instruction;
+                    instr = &M6502_invalid_instruction;
                 }
 
                 M6502Word operand = {};
                 M6502Word operand_addr_flags = {};
                 M6502Word operand_byte_flags = {};
                 ReadByteResult operand_l_read_result, operand_h_read_result;
-                if (di->num_bytes >= 2) {
+                if (instr->num_bytes >= 2) {
                     operand_l_read_result = this->ReadByte(&operand.b.l,
                                                            &operand_addr_flags.b.l,
                                                            &operand_byte_flags.b.l,
                                                            addr++,
                                                            false);
                 }
-                if (di->num_bytes >= 3) {
+                if (instr->num_bytes >= 3) {
                     operand_h_read_result = this->ReadByte(&operand.b.h,
                                                            &operand_addr_flags.b.h,
                                                            &operand_byte_flags.b.h,
@@ -2035,7 +2035,7 @@ class DisassemblyDebugWindow : public DebugUI,
                 this->DoBytePopupGui(line_dbp, line_addr);
                 ascii += *GetByteStringBBC(opcode, &STRING_1_SPACE);
 
-                if (di->num_bytes >= 2) {
+                if (instr->num_bytes >= 2) {
                     ImGui::SameLine(0, 2);
                     this->ByteWithBreakpointBackground(operand_addr_flags.b.l, operand_byte_flags.b.l, operand.b.l, operand_l_read_result);
 
@@ -2045,7 +2045,7 @@ class DisassemblyDebugWindow : public DebugUI,
                     ascii += *GetByteStringBBC(operand.b.l, &STRING_1_SPACE);
                 }
 
-                if (di->num_bytes >= 3) {
+                if (instr->num_bytes >= 3) {
                     ImGui::SameLine(0, 2);
                     this->ByteWithBreakpointBackground(operand_addr_flags.b.h, operand_byte_flags.b.h, operand.b.h, operand_h_read_result);
 
@@ -2061,9 +2061,9 @@ class DisassemblyDebugWindow : public DebugUI,
 
                 // Column: Instruction
                 ImGui::TableSetColumnIndex(3 + col_offset);
-                ImGui::Text("%s ", di->mnemonic);
+                ImGui::Text("%s ", instr->mnemonic);
 
-                switch (di->mode) {
+                switch (instr->mode) {
                 default:
                     ASSERT(0);
                     [[fallthrough]];
@@ -2075,7 +2075,7 @@ class DisassemblyDebugWindow : public DebugUI,
                         M6502Word dest;
                         dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.l;
                         this->AddWord("", dest.w, false, "");
-                        this->AddBranchTakenIndicator(IsBranchTaken((M6502Condition)di->branch_condition, p));
+                        this->AddBranchTakenIndicator(IsBranchTaken((M6502Condition)instr->branch_condition, p));
                     }
                     break;
 
@@ -2161,12 +2161,12 @@ class DisassemblyDebugWindow : public DebugUI,
                         if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false).bits.got_value) {
                             uint8_t bit;
                             bool set;
-                            if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
-                                bit = (uint8_t)(di->branch_condition - M6502Condition_BR0);
+                            if (instr->branch_condition >= M6502Condition_BR0 && instr->branch_condition <= M6502Condition_BR7) {
+                                bit = (uint8_t)(instr->branch_condition - M6502Condition_BR0);
                                 set = false;
                             } else {
-                                ASSERT(di->branch_condition >= M6502Condition_BS0 && di->branch_condition <= M6502Condition_BS7);
-                                bit = (uint8_t)(di->branch_condition - M6502Condition_BS0);
+                                ASSERT(instr->branch_condition >= M6502Condition_BS0 && instr->branch_condition <= M6502Condition_BS7);
+                                bit = (uint8_t)(instr->branch_condition - M6502Condition_BS0);
                                 set = true;
                             }
 
@@ -2412,7 +2412,7 @@ class DisassemblyDebugWindow : public DebugUI,
                 continue;
             }
 
-            if (config->disassembly_info[opcode].num_bytes == 1) {
+            if (config->instructions[opcode].num_bytes == 1) {
                 --m_addr;
                 continue;
             }
@@ -2422,7 +2422,7 @@ class DisassemblyDebugWindow : public DebugUI,
                 continue;
             }
 
-            if (config->disassembly_info[opcode].num_bytes == 2) {
+            if (config->instructions[opcode].num_bytes == 2) {
                 m_addr -= 2;
                 continue;
             }
@@ -2437,7 +2437,7 @@ class DisassemblyDebugWindow : public DebugUI,
             if (!this->ReadByte(&opcode, nullptr, nullptr, m_addr, false).bits.got_value) {
                 ++m_addr;
             } else {
-                m_addr += config->disassembly_info[opcode].num_bytes;
+                m_addr += config->instructions[opcode].num_bytes;
             }
         }
     }

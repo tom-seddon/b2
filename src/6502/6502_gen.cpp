@@ -945,10 +945,11 @@ class InstrGen {
 
         // fns table. Include cycle 0 in this case, as it'll be needed for the
         // tfns table.
-        P("static const M6502Fn g_%s_fns[%zu]={\n", this->stem.c_str(), 1 + this->cycles.size());
+        P("static const M6502Fn g_%s_tfns[]={\n", this->stem.c_str());
         for (size_t i = 0; i <= this->cycles.size(); ++i) {
             P("&Cycle%zu_%s,\n", i, this->stem.c_str());
         }
+        P("NULL,\n");
         P("};\n");
 
         P("\n");
@@ -1422,8 +1423,7 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
         ASSERT(instrs[i]);
     }
 
-    std::string fns_name = "g_" + stem + "_fns";
-    std::string di_name = "g_" + stem + "_disassembly_info";
+    std::string instructions_name = "g_" + stem + "_instructions";
     std::string config_name = "M6502_" + stem + "_config";
     //std::string get_fn_name_name="GetFnName_"+stem;
 
@@ -1431,7 +1431,7 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
     Sep();
     P("\n");
 
-    P("static const M6502Fns %s[256]={\n", fns_name.c_str());
+    P("static const M6502Fns g_%s_fns[256]={\n", stem.c_str());
     for (size_t i = 0; i < 256; ++i) {
         std::string suffix, ifun;
         instrs[i]->GetSuffixAndIFun(&suffix, &ifun);
@@ -1505,9 +1505,11 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
         stack_operations["pl" + reg] = "Pop";
     }
 
-    P("static const M6502DisassemblyInfo %s[256]={\n", di_name.c_str());
+    P("static const M6502Instruction %s[256]={\n", instructions_name.c_str());
     for (size_t i = 0; i < 256; ++i) {
         const Instr *instr = instrs[i];
+        std::string suffix, ifun;
+        instr->GetSuffixAndIFun(&suffix, &ifun);
 
         std::string mode = "M6502AddrMode_" + ToUpper(GetModeEnumName(instr->GetDisassemblyMode()));
 
@@ -1558,16 +1560,25 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
         }
 
         ASSERT(mnemonic.size() <= 4);
-        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch_condition=M6502Condition_%s,.stack_operation=M6502StackOperation_%s,.instruction_category=M6502InstructionCategory_%s},\n",
-          i,
-          mnemonic.c_str(),
-          mode.c_str(),
-          instr->GetNumBytes(),
-          instr->undocumented,
-          always_step_in,
-          condition.c_str(),
-          stack_operation.c_str(),
-          instruction_category.c_str());
+        P("[0x%02zx]={\n", i);
+        P(".tfns=%s,\n", ("g_" + suffix + "_tfns").c_str());
+        P(".ifn=");
+        if (ifun.empty()) {
+            P("NULL");
+        } else {
+            P("%s", ifun.c_str());
+            ifuns->insert(ifun);
+        }
+        P(",\n");
+        P(".mnemonic=\"%s\",\n", mnemonic.c_str());
+        P(".mode=%s,\n", mode.c_str());
+        P(".num_bytes=%u,\n", instr->GetNumBytes());
+        P(".undocumented=%d,\n", instr->undocumented);
+        P(".always_step_in=%d,\n", always_step_in);
+        P(".branch_condition=M6502Condition_%s,\n", condition.c_str());
+        P(".stack_operation=M6502StackOperation_%s,\n", stack_operation.c_str());
+        P(".instruction_category=M6502InstructionCategory_%s,\n", instruction_category.c_str());
+        P("},\n");
     }
     P("};\n");
     P("\n");

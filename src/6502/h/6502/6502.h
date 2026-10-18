@@ -201,18 +201,10 @@ typedef void (*M6502Fn)(struct M6502 *);
 typedef void (*M6502Callback)(struct M6502 *, void *);
 
 struct M6502Instruction {
-    const M6502Fn *tfns;
-    uint8_t num_tfns;
+    const M6502Fn *tfns; //last entry must be NULL
+
     M6502Fn ifn;
-};
-typedef struct M6502Instruction M6502Instruction;
 
-struct M6502Fns {
-    M6502Fn t0fn, ifn;
-};
-typedef struct M6502Fns M6502Fns;
-
-struct M6502DisassemblyInfo {
     // M6502AddrMode.
     uint8_t mode;
 
@@ -240,10 +232,18 @@ struct M6502DisassemblyInfo {
     // Mnemonic.
     char mnemonic[5];
 };
-typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
+typedef struct M6502Instruction M6502Instruction;
 
 // Generic invalid instruction disassembly info.
-extern const M6502DisassemblyInfo M6502_invalid_instruction;
+extern const M6502Instruction M6502_invalid_instruction;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct M6502Fns {
+    M6502Fn t0fn, ifn;
+};
+typedef struct M6502Fns M6502Fns;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -266,11 +266,11 @@ struct M6502Config {
      */
     uint8_t xaa_magic;
 
-    /* The 256 opcode function pairs. */
-    const M6502Fns *fns;
+    /* Instruction info for each instruction. */
+    const M6502Instruction *instructions;
 
-    /* A DisassemblyInfo for each opcode. */
-    const M6502DisassemblyInfo *disassembly_info;
+    /* Instruction fns table. */
+    const M6502Fns *fns;
 };
 typedef struct M6502Config M6502Config;
 
@@ -447,7 +447,7 @@ typedef struct M6502 M6502;
 //////////////////////////////////////////////////////////////////////////
 
 /* Initialize the 6502 object. s->config will be set to point to the given
- * config.
+ * config. s->fns will be set to point to the given InstructionFns' table.
  */
 void M6502_Init(M6502 *s, const M6502Config *config);
 

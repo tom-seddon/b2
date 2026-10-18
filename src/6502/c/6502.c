@@ -215,7 +215,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const M6502DisassemblyInfo M6502_invalid_instruction = {
+const M6502Instruction M6502_invalid_instruction = {
+    .tfns = NULL,
+    .ifn = NULL,
     .mode = M6502AddrMode_IMP,
     .num_bytes = 1,
     .undocumented = 0,
@@ -1091,6 +1093,14 @@ static void Cycle3_Branch(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_Branch_tfns[] = {
+    &Cycle0_Branch,
+    &Cycle1_Branch,
+    &Cycle2_Branch,
+    &Cycle3_Branch,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1125,10 +1135,17 @@ static void Cycle3_Branch_ZPG_REL_ROCKWELL(M6502 *s) {
     s->tfn = &Cycle1_Branch;
 }
 
+static const M6502Fn g_Branch_ZPG_REL_ROCKWELL_tfns[] = {
+    &Cycle0_Branch_ZPG_REL_ROCKWELL,
+    &Cycle1_Branch_ZPG_REL_ROCKWELL,
+    &Cycle2_Branch_ZPG_REL_ROCKWELL,
+    &Cycle3_Branch_ZPG_REL_ROCKWELL,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void Cycle0_R_ABX_CMOS(M6502 *s);
 static void Cycle1_R_ABX_CMOS(M6502 *s);
 static void Cycle2_R_ABX_CMOS(M6502 *s);
 static void Cycle3_R_ABX_CMOS_AC0(M6502 *s);
@@ -1186,10 +1203,19 @@ static void Cycle4_R_ABX_CMOS_AC1(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_R_ABX_CMOS_tfns[] = {
+    &Cycle0_R_ABX_CMOS,
+    &Cycle1_R_ABX_CMOS,
+    &Cycle2_R_ABX_CMOS,
+    &Cycle3_R_ABX_CMOS_AC0,
+    &Cycle3_R_ABX_CMOS_AC1,
+    &Cycle4_R_ABX_CMOS_AC1,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void Cycle0_R_ABY_CMOS(M6502 *s);
 static void Cycle1_R_ABY_CMOS(M6502 *s);
 static void Cycle2_R_ABY_CMOS(M6502 *s);
 static void Cycle3_R_ABY_CMOS_AC0(M6502 *s);
@@ -1246,6 +1272,16 @@ static void Cycle4_R_ABY_CMOS_AC1(M6502 *s) {
 #endif
     M6502_NextInstruction(s);
 }
+
+static const M6502Fn g_R_ABY_CMOS_tfns[] = {
+    &Cycle0_R_ABY_CMOS,
+    &Cycle1_R_ABY_CMOS,
+    &Cycle2_R_ABY_CMOS,
+    &Cycle3_R_ABY_CMOS_AC0,
+    &Cycle3_R_ABY_CMOS_AC1,
+    &Cycle4_R_ABY_CMOS_AC1,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1307,6 +1343,17 @@ static void Cycle5_RMW_ABX_CMOS(M6502 *s) {
 static void Cycle6_RMW_ABX_CMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
+
+static const M6502Fn g_RMW_ABX_CMOS_tfns[] = {
+    &Cycle0_RMW_ABX_CMOS,
+    &Cycle1_RMW_ABX_CMOS,
+    &Cycle2_RMW_ABX_CMOS,
+    &Cycle3_RMW_ABX_CMOS,
+    &Cycle4_RMW_ABX_CMOS,
+    &Cycle5_RMW_ABX_CMOS,
+    &Cycle6_RMW_ABX_CMOS,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1400,6 +1447,20 @@ static void Cycle6_RMW_ABX2_CMOS_AC1(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_RMW_ABX2_CMOS_tfns[] = {
+    &Cycle0_RMW_ABX2_CMOS,
+    &Cycle1_RMW_ABX2_CMOS,
+    &Cycle2_RMW_ABX2_CMOS,
+    &Cycle3_RMW_ABX2_CMOS_AC0,
+    &Cycle3_RMW_ABX2_CMOS_AC1,
+    &Cycle4_RMW_ABX2_CMOS_AC0,
+    &Cycle4_RMW_ABX2_CMOS_AC1,
+    &Cycle5_RMW_ABX2_CMOS_AC0,
+    &Cycle5_RMW_ABX2_CMOS_AC1,
+    &Cycle6_RMW_ABX2_CMOS_AC1,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1447,6 +1508,15 @@ static void Cycle3_W_ABX_CMOS(M6502 *s) {
 static void Cycle4_W_ABX_CMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
+
+static const M6502Fn g_W_ABX_CMOS_tfns[] = {
+    &Cycle0_W_ABX_CMOS,
+    &Cycle1_W_ABX_CMOS,
+    &Cycle2_W_ABX_CMOS,
+    &Cycle3_W_ABX_CMOS,
+    &Cycle4_W_ABX_CMOS,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1496,6 +1566,15 @@ static void Cycle4_W_ABY_CMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_W_ABY_CMOS_tfns[] = {
+    &Cycle0_W_ABY_CMOS,
+    &Cycle1_W_ABY_CMOS,
+    &Cycle2_W_ABY_CMOS,
+    &Cycle3_W_ABY_CMOS,
+    &Cycle4_W_ABY_CMOS,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1520,6 +1599,12 @@ static void Cycle1_HLT(M6502 *s) {
     s->read = M6502ReadType_Instruction;
     s->tfn = &Cycle1_HLT;
 }
+
+static const M6502Fn g_HLT_tfns[] = {
+    &Cycle0_HLT,
+    &Cycle1_HLT,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1761,6 +1846,17 @@ static void Cycle6_Interrupt(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static M6502Fn g_Interrupt_tfns[] = {
+    &Cycle0_Interrupt,
+    &Cycle1_Interrupt,
+    &Cycle2_Interrupt,
+    &Cycle3_Interrupt,
+    &Cycle4_Interrupt,
+    &Cycle5_Interrupt,
+    &Cycle6_Interrupt,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1970,6 +2066,17 @@ static void Cycle6_BRK_CMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_BRK_CMOS_tfns[] = {
+    &Cycle0_BRK_CMOS,
+    &Cycle1_BRK_CMOS,
+    &Cycle2_BRK_CMOS,
+    &Cycle3_BRK_CMOS,
+    &Cycle4_BRK_CMOS,
+    &Cycle5_BRK_CMOS,
+    &Cycle6_BRK_CMOS,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -2113,6 +2220,22 @@ static void Cycle5_R_ABX_BCD_CMOS_D1_AC1(M6502 *s) {
 
     M6502_NextInstruction(s);
 }
+
+static const M6502Fn g_R_ABX_BCD_CMOS_tfns[] = {
+    &Cycle0_R_ABX_BCD_CMOS,
+    &Cycle1_R_ABX_BCD_CMOS,
+    &Cycle2_R_ABX_BCD_CMOS_D1,
+    &Cycle2_R_ABX_BCD_CMOS_D0,
+    &Cycle3_R_ABX_BCD_CMOS_D0_AC1,
+    &Cycle3_R_ABX_BCD_CMOS_D0_AC0,
+    &Cycle4_R_ABX_BCD_CMOS_D0_AC1,
+    &Cycle3_R_ABX_BCD_CMOS_D1_AC1,
+    &Cycle3_R_ABX_BCD_CMOS_D1_AC0,
+    &Cycle4_R_ABX_BCD_CMOS_D1_AC0,
+    &Cycle4_R_ABX_BCD_CMOS_D1_AC1,
+    &Cycle5_R_ABX_BCD_CMOS_D1_AC1,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2260,6 +2383,22 @@ static void Cycle5_R_ABY_BCD_CMOS_D1_AC1(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_R_ABY_BCD_CMOS_tfns[] = {
+    &Cycle0_R_ABY_BCD_CMOS,
+    &Cycle1_R_ABY_BCD_CMOS,
+    &Cycle2_R_ABY_BCD_CMOS_D1,
+    &Cycle2_R_ABY_BCD_CMOS_D0,
+    &Cycle3_R_ABY_BCD_CMOS_D0_AC1,
+    &Cycle3_R_ABY_BCD_CMOS_D0_AC0,
+    &Cycle4_R_ABY_BCD_CMOS_D0_AC1,
+    &Cycle3_R_ABY_BCD_CMOS_D1_AC1,
+    &Cycle3_R_ABY_BCD_CMOS_D1_AC0,
+    &Cycle4_R_ABY_BCD_CMOS_D1_AC0,
+    &Cycle4_R_ABY_BCD_CMOS_D1_AC1,
+    &Cycle5_R_ABY_BCD_CMOS_D1_AC1,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -2328,6 +2467,17 @@ static void Cycle5_R_INY_CMOS_AC1(M6502 *s) {
 #endif
     M6502_NextInstruction(s);
 }
+
+static const M6502Fn g_R_INY_CMOS_tfns[] = {
+    &Cycle0_R_INY_CMOS,
+    &Cycle1_R_INY_CMOS,
+    &Cycle2_R_INY_CMOS,
+    &Cycle3_R_INY_CMOS,
+    &Cycle4_R_INY_CMOS_AC0,
+    &Cycle4_R_INY_CMOS_AC1,
+    &Cycle5_R_INY_CMOS_AC1,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2472,6 +2622,23 @@ static void Cycle6_R_INY_BCD_CMOS_D1_AC1(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_R_INY_BCD_CMOS_tfns[] = {
+    &Cycle0_R_INY_BCD_CMOS,
+    &Cycle1_R_INY_BCD_CMOS,
+    &Cycle2_R_INY_BCD_CMOS,
+    &Cycle3_R_INY_BCD_CMOS_D1,
+    &Cycle3_R_INY_BCD_CMOS_D0,
+    &Cycle4_R_INY_BCD_CMOS_D0_AC0,
+    &Cycle4_R_INY_BCD_CMOS_D0_AC1,
+    &Cycle4_R_INY_BCD_CMOS_D1_AC0,
+    &Cycle4_R_INY_BCD_CMOS_D1_AC1,
+    &Cycle5_R_INY_BCD_CMOS_D0_AC1,
+    &Cycle5_R_INY_BCD_CMOS_D1_AC0,
+    &Cycle5_R_INY_BCD_CMOS_D1_AC1,
+    &Cycle6_R_INY_BCD_CMOS_D1_AC1,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -2519,6 +2686,16 @@ static void Cycle4_W_INY_CMOS(M6502 *s) {
 static void Cycle5_W_INY_CMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
+
+static const M6502Fn g_W_INY_CMOS_tfns[] = {
+    &Cycle0_W_INY_CMOS,
+    &Cycle1_W_INY_CMOS,
+    &Cycle2_W_INY_CMOS,
+    &Cycle3_W_INY_CMOS,
+    &Cycle4_W_INY_CMOS,
+    &Cycle5_W_INY_CMOS,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2584,6 +2761,16 @@ static void Cycle5_W_INY_BROKEN_NMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_W_INY_BROKEN_NMOS_tfns[] = {
+    &Cycle0_W_INY_BROKEN_NMOS,
+    &Cycle1_W_INY_BROKEN_NMOS,
+    &Cycle2_W_INY_BROKEN_NMOS,
+    &Cycle3_W_INY_BROKEN_NMOS,
+    &Cycle4_W_INY_BROKEN_NMOS,
+    &Cycle5_W_INY_BROKEN_NMOS,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -2638,6 +2825,15 @@ static void Cycle4_W_ABX_BROKEN_NMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
+static const M6502Fn g_W_ABX_BROKEN_NMOS_tfns[] = {
+    &Cycle0_W_ABX_BROKEN_NMOS,
+    &Cycle1_W_ABX_BROKEN_NMOS,
+    &Cycle2_W_ABX_BROKEN_NMOS,
+    &Cycle3_W_ABX_BROKEN_NMOS,
+    &Cycle4_W_ABX_BROKEN_NMOS,
+    NULL,
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -2691,6 +2887,15 @@ static void Cycle3_W_ABY_BROKEN_NMOS(M6502 *s) {
 static void Cycle4_W_ABY_BROKEN_NMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
+
+static const M6502Fn g_W_ABY_BROKEN_NMOS_tfns[] = {
+    &Cycle0_W_ABY_BROKEN_NMOS,
+    &Cycle1_W_ABY_BROKEN_NMOS,
+    &Cycle2_W_ABY_BROKEN_NMOS,
+    &Cycle3_W_ABY_BROKEN_NMOS,
+    &Cycle4_W_ABY_BROKEN_NMOS,
+    NULL,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2793,41 +2998,45 @@ static const char *FindNameByFn(const NamedFn *named_fns, M6502Fn fn) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//static M6502InstructionFns g_defined_fns;
 const M6502Config M6502_defined_config = {
     .id = "defined",
     .description = "6502 (defined instructions only)",
-    .fns = g_defined_fns,
+    .instructions = g_defined_instructions,
     .interrupt_tfn = &Cycle0_Interrupt,
     .reset_tfn = &Cycle0_Reset,
-    .disassembly_info = g_defined_disassembly_info,
+    .fns = g_defined_fns,
 };
 
+//static M6502InstructionFns g_nmos6502_fns;
 const M6502Config M6502_nmos6502_config = {
     .id = "nmos",
     .description = "NMOS 6502",
     .xaa_magic = 0xee,
-    .fns = g_nmos6502_fns,
+    .instructions = g_nmos6502_instructions,
     .interrupt_tfn = &Cycle0_Interrupt,
     .reset_tfn = &Cycle0_Reset,
-    .disassembly_info = g_nmos6502_disassembly_info,
+    .fns = g_nmos6502_fns,
 };
 
+//static M6502InstructionFns g_cmos6502_fns;
 const M6502Config M6502_cmos6502_config = {
     .id = "cmos",
     .description = "CMOS 65C02",
-    .fns = g_cmos6502_fns,
+    .instructions = g_cmos6502_instructions,
     .interrupt_tfn = &Cycle0_InterruptCMOS,
     .reset_tfn = &Cycle0_ResetCMOS,
-    .disassembly_info = g_cmos6502_disassembly_info,
+    .fns = g_cmos6502_fns,
 };
 
+//static M6502InstructionFns g_rockwell65c02_fns;
 const M6502Config M6502_rockwell65c02_config = {
     .id = "rockw",
     .description = "Rockwell 65C02",
-    .fns = g_rockwell65c02_fns,
+    .instructions = g_rockwell65c02_instructions,
     .interrupt_tfn = &Cycle0_InterruptCMOS,
     .reset_tfn = &Cycle0_ResetCMOS,
-    .disassembly_info = g_rockwell65c02_disassembly_info,
+    .fns = g_rockwell65c02_fns,
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -2869,9 +3078,12 @@ void M6502_Init(M6502 *s, const M6502Config *config) {
     s->s.b.h = 1;
 
     s->config = config;
-
     s->fns = s->config->fns;
     s->interrupt_tfn = s->config->interrupt_tfn;
+
+    for (int i = 0; i < 256; ++i) {
+        assert(s->fns[i].t0fn);
+    }
 
     M6502_Reset(s);
 }
@@ -2904,20 +3116,20 @@ void M6502_Halt(M6502 *s) {
 
 static void DisassembleByte(char *buf,
                             size_t buf_size,
-                            const M6502DisassemblyInfo *di,
+                            const M6502Instruction *instr,
                             const char *prefix,
                             uint8_t value,
                             const char *suffix) {
-    snprintf(buf, buf_size, "%s %s$%02x%s", di->mnemonic, prefix, value, suffix);
+    snprintf(buf, buf_size, "%s %s$%02x%s", instr->mnemonic, prefix, value, suffix);
 }
 
 static void DisassembleWord(char *buf,
                             size_t buf_size,
-                            const M6502DisassemblyInfo *di,
+                            const M6502Instruction *instr,
                             const char *prefix,
                             uint16_t value,
                             const char *suffix) {
-    snprintf(buf, buf_size, "%s %s$%04x%s", di->mnemonic, prefix, value, suffix);
+    snprintf(buf, buf_size, "%s %s$%04x%s", instr->mnemonic, prefix, value, suffix);
 }
 
 //uint16_t M6502Config_DisassembleInstruction(const M6502Config *config,char *buf,size_t buf_size,uint16_t pc,uint8_t a,uint8_t b,uint8_t c) {
@@ -2991,7 +3203,7 @@ static void DisassembleWord(char *buf,
 //}
 
 void M6502_DisassembleLastInstruction(M6502 *s, char *buf, size_t buf_size, int *ia, int *ad) {
-    const M6502DisassemblyInfo *di = &s->config->disassembly_info[s->opcode];
+    const M6502Instruction *instr = &s->config->instructions[s->opcode];
     int ia_tmp, ad_tmp;
 
     if (!ia) {
@@ -3005,16 +3217,16 @@ void M6502_DisassembleLastInstruction(M6502 *s, char *buf, size_t buf_size, int 
     *ia = -1;
     *ad = -1;
 
-    switch (di->mode) {
+    switch (instr->mode) {
     default:
         assert(0);
         /* fall through */
     case M6502AddrMode_IMP:
-        snprintf(buf, buf_size, "%s", di->mnemonic);
+        snprintf(buf, buf_size, "%s", instr->mnemonic);
         break;
 
     case M6502AddrMode_IMM:
-        DisassembleByte(buf, buf_size, di, "#", s->data, "");
+        DisassembleByte(buf, buf_size, instr, "#", s->data, "");
         break;
 
     case M6502AddrMode_REL:
@@ -3033,65 +3245,65 @@ void M6502_DisassembleLastInstruction(M6502 *s, char *buf, size_t buf_size, int 
                 tmp = s->ad.w;
             }
 
-            DisassembleWord(buf, buf_size, di, "", tmp, "");
+            DisassembleWord(buf, buf_size, instr, "", tmp, "");
         }
         break;
 
     case M6502AddrMode_ZPG:
-        DisassembleByte(buf, buf_size, di, "", s->ad.b.l, "");
+        DisassembleByte(buf, buf_size, instr, "", s->ad.b.l, "");
         break;
 
     case M6502AddrMode_ZPX:
-        DisassembleByte(buf, buf_size, di, "", s->ad.b.l, ",x");
+        DisassembleByte(buf, buf_size, instr, "", s->ad.b.l, ",x");
         *ad = (uint8_t)(s->ad.b.l + s->x);
         break;
 
     case M6502AddrMode_ZPY:
-        DisassembleByte(buf, buf_size, di, "", s->ad.b.l, ",y");
+        DisassembleByte(buf, buf_size, instr, "", s->ad.b.l, ",y");
         *ad = (uint8_t)(s->ad.b.l + s->y);
         break;
 
     case M6502AddrMode_INX:
-        DisassembleByte(buf, buf_size, di, "(", s->ia.b.l, ",x)");
+        DisassembleByte(buf, buf_size, instr, "(", s->ia.b.l, ",x)");
         *ia = (uint8_t)(s->ia.b.l + s->x);
         *ad = s->ad.w;
         break;
 
     case M6502AddrMode_INY:
-        DisassembleByte(buf, buf_size, di, "(", s->ia.b.l, "),y");
+        DisassembleByte(buf, buf_size, instr, "(", s->ia.b.l, "),y");
         *ad = (uint16_t)(s->ad.w + s->y);
         break;
 
     case M6502AddrMode_ABS:
-        DisassembleWord(buf, buf_size, di, "", s->ad.w, "");
+        DisassembleWord(buf, buf_size, instr, "", s->ad.w, "");
         break;
 
     case M6502AddrMode_ABX:
-        DisassembleWord(buf, buf_size, di, "", s->ad.w, ",x");
+        DisassembleWord(buf, buf_size, instr, "", s->ad.w, ",x");
         *ad = (uint16_t)(s->ad.w + s->x);
         break;
 
     case M6502AddrMode_ABY:
-        DisassembleWord(buf, buf_size, di, "", s->ad.w, ",y");
+        DisassembleWord(buf, buf_size, instr, "", s->ad.w, ",y");
         *ad = (uint16_t)(s->ad.w + s->y);
         break;
 
     case M6502AddrMode_IND:
-        DisassembleWord(buf, buf_size, di, "(", s->ia.w, ")");
+        DisassembleWord(buf, buf_size, instr, "(", s->ia.w, ")");
         *ad = s->ad.w;
         break;
 
     case M6502AddrMode_ACC:
-        snprintf(buf, buf_size, "%s A", di->mnemonic);
+        snprintf(buf, buf_size, "%s A", instr->mnemonic);
         break;
 
     case M6502AddrMode_INZ:
-        DisassembleByte(buf, buf_size, di, "(", s->ia.b.l, ")");
+        DisassembleByte(buf, buf_size, instr, "(", s->ia.b.l, ")");
         *ad = s->ad.b.l;
         break;
 
     case M6502AddrMode_INDX:
-        DisassembleWord(buf, buf_size, di, "(", s->ad.w, ",x)");
+        DisassembleWord(buf, buf_size, instr, "(", s->ad.w, ",x)");
         *ad = s->ad.w + s->x;
         break;
     }

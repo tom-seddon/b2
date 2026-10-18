@@ -1227,9 +1227,9 @@ uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic) const {
 
     int opcode = -1;
     for (int i = 0; i < 256; ++i) {
-        const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[i];
+        const M6502Instruction *instr = &cpu->config->instructions[i];
 
-        if (strcasecmp(di->mnemonic, mnemonic) == 0) {
+        if (strcasecmp(instr->mnemonic, mnemonic) == 0) {
             if (opcode >= 0) {
                 TEST_FAIL("ambiguous by-name opcode search for: %s", mnemonic);
             }
@@ -1245,9 +1245,9 @@ uint8_t TestBBCMicro::MustFindOpcode(const char *mnemonic, M6502AddrMode mode) c
     const M6502 *cpu = this->GetM6502();
 
     for (int i = 0; i < 256; ++i) {
-        const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[i];
+        const M6502Instruction *instr = &cpu->config->instructions[i];
 
-        if (di->mode == mode && strcasecmp(di->mnemonic, mnemonic) == 0) {
+        if (instr->mode == mode && strcasecmp(instr->mnemonic, mnemonic) == 0) {
             return (uint8_t)i;
         }
     }

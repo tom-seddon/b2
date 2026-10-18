@@ -14,7 +14,7 @@ LOG_DEFINE(OUTPUT, "", &log_printer_stdout_and_debugger);
 //////////////////////////////////////////////////////////////////////////
 
 static std::vector<uint8_t> LoadFile(const std::string &dname, const std::string &prefix, uint8_t op, int c, int d) {
-    std::string fname = prefix + M6502_cmos6502_config.disassembly_info[op].mnemonic + "C" + std::to_string(c) + "D" + std::to_string(d);
+    std::string fname = prefix + M6502_cmos6502_config.instructions[op].mnemonic + "C" + std::to_string(c) + "D" + std::to_string(d);
     for (char &x : fname) {
         x = (char)toupper(x);
     }
@@ -34,7 +34,7 @@ static void TestOp2(const std::string &dname, uint8_t op, int c, int d) {
     std::vector<uint8_t> aresults = LoadFile(dname, "A", op, c, d);
     std::vector<uint8_t> presults = LoadFile(dname, "P", op, c, d);
 
-    M6502Fn fn = M6502_cmos6502_config.fns[op].ifn;
+    M6502Fn fn = M6502_cmos6502_config.instructions[op].ifn;
 
     M6502 tmp;
 
