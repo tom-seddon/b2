@@ -317,44 +317,41 @@ class Instr {
         return 0;
     }
 
-    void GetTFunAndIFun(std::string *tfun, std::string *ifun) const {
+    void GetSuffixAndIFun(std::string *suffix, std::string *ifun) const {
         if (this->mnemonic == "brk") {
             if (this->cmos) {
-                *tfun = GetFnNameForCycle(0, "BRK_CMOS");
+                *suffix = "BRK_CMOS";
             } else {
-                *tfun = GetFnNameForCycle(0, "Interrupt");
+                *suffix = "Interrupt";
             }
             ifun->clear();
         } else {
             InstrType type = this->GetInstrType();
 
             if (type == InstrType_Unknown) {
-                std::string suffix;
-
                 if (this->mnemonic == "rts" || this->mnemonic == "rti" || this->mnemonic == "jsr") {
-                    suffix = ToUpper(this->mnemonic);
+                    *suffix = ToUpper(this->mnemonic);
                 } else if (this->mnemonic == "jmp") {
                     // All the JMPs are special-cased.
-                    suffix = ToUpper(this->mnemonic) + "_" + ToUpper(GetModeEnumName(this->mode));
+                    *suffix = ToUpper(this->mnemonic) + "_" + ToUpper(GetModeEnumName(this->mode));
 
                     if (this->cmos && this->mode == Mode_Ind) {
-                        suffix += CMOS_FUNCTION_SUFFIX;
+                        *suffix += CMOS_FUNCTION_SUFFIX;
                     }
                 } else if (this->mnemonic == "hlt") {
-                    suffix = "HLT";
+                    *suffix = "HLT";
                 } else {
                     ASSERT(false);
                 }
 
-                *tfun = GetFnNameForCycle(0, suffix);
                 ifun->clear();
             } else {
                 *ifun = ToUpper(this->mnemonic);
 
                 if (this->mode == Mode_Imp || this->mode == Mode_Rel) {
-                    *tfun = GetFnNameForCycle(0, GetInstrTypeEnumName(type));
+                    *suffix = GetInstrTypeEnumName(type);
                 } else if (this->mode == Mode_Acc) {
-                    *tfun = GetFnNameForCycle(0, "IMP");
+                    *suffix = "IMP";
                     *ifun += "A";
                 } else {
                     Mode m = this->mode;
@@ -372,7 +369,7 @@ class Instr {
                             m = Mode_Abx2_CMOS;
                         } else if (this->IsBCDInstruction()) {
                             // 1 cycle extra when in BCD mode.
-                            *tfun = BCD_CMOS_FUNCTION_SUFFIX;
+                            *suffix = BCD_CMOS_FUNCTION_SUFFIX;
 
                             // The ifun is different too. The flags are
                             // set differently.
@@ -380,15 +377,14 @@ class Instr {
                         } else if ((type == InstrType_RMW) ||
                                    (type == InstrType_W && (m == Mode_Abx || m == Mode_Aby || m == Mode_Iny)) ||
                                    (type == InstrType_R && (m == Mode_Abx || m == Mode_Aby || m == Mode_Iny))) {
-                            *tfun = CMOS_FUNCTION_SUFFIX;
+                            *suffix = CMOS_FUNCTION_SUFFIX;
                         }
                     }
 
-                    *tfun = GetFnNameForCycle(0,
-                                              (std::string(GetInstrTypeEnumName(type)) +
-                                               "_" +
-                                               ToUpper(GetModeEnumName(m)))) +
-                            *tfun;
+                    *suffix = std::string(GetInstrTypeEnumName(type)) +
+                              "_" +
+                              ToUpper(GetModeEnumName(m)) +
+                              *suffix;
                 }
             }
 
@@ -946,6 +942,16 @@ class InstrGen {
             }
             P("}\n\n");
         }
+
+        // fns table. Include cycle 0 in this case, as it'll be needed for the
+        // tfns table.
+        P("static const M6502Fn g_%s_fns[%zu]={\n", this->stem.c_str(), 1 + this->cycles.size());
+        for (size_t i = 0; i <= this->cycles.size(); ++i) {
+            P("&Cycle%zu_%s,\n", i, this->stem.c_str());
+        }
+        P("};\n");
+
+        P("\n");
     }
 
     std::vector<std::string> GetFnNames() const {
@@ -1427,8 +1433,11 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
 
     P("static const M6502Fns %s[256]={\n", fns_name.c_str());
     for (size_t i = 0; i < 256; ++i) {
-        std::string tfun, ifun;
-        instrs[i]->GetTFunAndIFun(&tfun, &ifun);
+        std::string suffix, ifun;
+        instrs[i]->GetSuffixAndIFun(&suffix, &ifun);
+
+        std::string tfun = GetFnNameForCycle(0, suffix);
+
         P("[0x%02zx]={&%s,", i, tfun.c_str());
         if (ifun.empty()) {
             P("NULL");

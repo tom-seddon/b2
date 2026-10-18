@@ -200,6 +200,13 @@ typedef void (*M6502Fn)(struct M6502 *);
 
 typedef void (*M6502Callback)(struct M6502 *, void *);
 
+struct M6502Instruction {
+    const M6502Fn *tfns;
+    uint8_t num_tfns;
+    M6502Fn ifn;
+};
+typedef struct M6502Instruction M6502Instruction;
+
 struct M6502Fns {
     M6502Fn t0fn, ifn;
 };
