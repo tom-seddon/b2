@@ -400,8 +400,7 @@ class Instr {
         }
     }
 
-    bool
-    IsShiftInstruction() const {
+    bool IsShiftInstruction() const {
         return this->mnemonic == "asl" || this->mnemonic == "lsr" || this->mnemonic == "rol" || this->mnemonic == "ror";
     }
 
