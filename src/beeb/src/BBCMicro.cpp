@@ -2462,23 +2462,6 @@ void BBCMicro::DebugModifyWriteByteDebugFlags(BigPageIndex big_page_index,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const {
-    if (m_debug) {
-        if (dso & BBCMicroDebugStateOverride_Parasite) {
-            return m_debug->m_debug_flags[BBCMicroDebugState::PARASITE_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
-        } else {
-            return m_debug->m_debug_flags[BBCMicroDebugState::HOST_ADDRESS_DEBUG_FLAGS_INDEX + addr.w];
-        }
-    } else {
-        return 0;
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t clear_flags, uint8_t set_flags) {
     if (m_debug) {
         uint32_t debug_flags_index;
@@ -3339,18 +3322,11 @@ void BBCMicro::DebugHandleStep() {
             ASSERT(m_debug->m_step_cpu);
             auto metadata = (const BBCMicroM6502Metadata *)m_debug->m_step_cpu->context;
 
-            if (m_debug->m_step_cpu->read == M6502ReadType_Opcode) {
+            if (M6502_IsAboutToExecute(m_debug->m_step_cpu)) {
                 // Done.
                 this->DebugHalt(BBCMicroHaltReason_SingleStep, metadata, -1);
             } else if (m_debug->m_step_cpu->read == M6502ReadType_Interrupt) {
                 this->DebugModifyAddressDebugFlags(m_debug->m_step_cpu->pc, metadata->dso, 0, BBCMicroByteDebugFlag_TempBreakExecute);
-                //// The instruction was interrupted, so set a temp
-                //// breakpoint in the right place.
-                //uint8_t flags = this->DebugGetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso);
-
-                //flags |= BBCMicroByteDebugFlag_TempBreakExecute;
-
-                //this->DebugSetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso, flags);
                 this->SetDebugStepType(BBCMicroStepType_None, nullptr);
             }
         }
@@ -3364,7 +3340,7 @@ void BBCMicro::DebugHandleStep() {
             // TODO: not sure this assert is correct? Just keep going until the opcode fetch occurs, and that'll inevitably be the start of the IRQ handler.
             //ASSERT(m_debug->m_step_cpu->read == M6502ReadType_Opcode || m_debug->m_step_cpu->read == M6502ReadType_Interrupt);
 
-            if (m_debug->m_step_cpu->read == M6502ReadType_Opcode) {
+            if (M6502_IsAboutToExecute(m_debug->m_step_cpu)) {
                 this->DebugHalt(BBCMicroHaltReason_Interrupt, metadata, -1);
             }
         }

@@ -673,7 +673,6 @@ class BBCMicro : private WD1770Handler {
     void DebugModifyWriteByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t clear_flags, uint8_t set_flags);
 
     // Get/set per-address byte debug flags for one address.
-    uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
     void DebugModifyAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t clear_flags, uint8_t set_flags);
 
     void DebugResetAllAddressAndByteDebugFlags();
