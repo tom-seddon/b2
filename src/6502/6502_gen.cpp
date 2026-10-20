@@ -1663,7 +1663,8 @@ static bool ReadAdditionalFuns(std::map<std::string, std::map<std::string, std::
         return false;
     }
 
-    std::regex ifn_re("->tfn[ ]*=[ ]*&[ ]*([A-Za-z_][A-Za-z0-9_]*);", std::regex_constants::extended);
+    unsigned group_index = 4;
+    std::regex ifn_re("((->tfn)|(\\.reset_tfn))[ ]*=[ ]*&[ ]*([A-Za-z_][A-Za-z0-9_]*)[;,]", std::regex_constants::extended);
 
     size_t line_number = 1;
 
@@ -1679,7 +1680,7 @@ static bool ReadAdditionalFuns(std::map<std::string, std::map<std::string, std::
 
         std::match_results<std::string::const_iterator> match;
         while (std::regex_search(line, match, ifn_re)) {
-            std::string tfn(match[1].first, match[1].second);
+            std::string tfn(match[group_index].first, match[group_index].second);
             (*tfns)[tfn][fname].insert(line_number);
 
             // This is a bit stupid, but the regex_iterator stuff

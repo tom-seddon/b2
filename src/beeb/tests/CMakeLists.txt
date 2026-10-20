@@ -175,4 +175,8 @@ foreach(VIA user system)
   add_test_beeb_literal_category(via.t2_shift_test.${VIA})
 endforeach()
 
+foreach(CPU nmos6502 cmos6502 rockwell65c02)
+  add_test_beeb_literal_category(6502.fn_tables.${CPU})
+endforeach()
+
 add_test_beeb_literal_category(electron.rom_unlock)

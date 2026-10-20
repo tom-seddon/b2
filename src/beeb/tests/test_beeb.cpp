@@ -3276,6 +3276,297 @@ class VIAT2ShiftTest : public Test {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class M6502FnTables : public Test {
+  public:
+    explicit M6502FnTables(std::string name, const M6502Config *config)
+        : m_name(std::move(name))
+        , m_config(config) {
+    }
+
+    std::string GetFullName() const override {
+        return m_name;
+    }
+
+    void Run() override {
+        std::map<M6502Fn, std::string> name_by_fn;
+        M6502_ForEachFn(
+            [](const char *name, M6502Fn fn, void *context) {
+                auto name_by_fn = (std::map<M6502Fn, std::string> *)context;
+
+                ASSERT(name_by_fn->count(fn) == 0);
+                (*name_by_fn)[fn] = name;
+            },
+            &name_by_fn);
+
+        // find all the tfn tables, and instruction(s) that use them.
+        std::map<const M6502Fn *, std::vector<uint8_t>> opcodes_by_tfns;
+        for (int opcode = 0; opcode < 256; ++opcode) {
+            opcodes_by_tfns[m_config->instructions[opcode].tfns].push_back((uint8_t)opcode);
+        }
+
+        // find all the tfns.
+        std::set<M6502Fn> all_tfns;
+        for (const auto &tfns_and_opcodes : opcodes_by_tfns) {
+
+            // the 0th tfn is never seen. It's called directly by Cycle0_All.
+            size_t i = 1;
+            while (tfns_and_opcodes.first[i]) {
+                all_tfns.insert(tfns_and_opcodes.first[i]);
+                ++i;
+            }
+        }
+
+        uint8_t mem[65536] = {};
+
+        std::set<M6502Fn> tfns_seen;
+
+        for (int opcode_ = 0; opcode_ < 256; ++opcode_) {
+            auto opcode = (uint8_t)opcode_; //tedious
+            const M6502Instruction *instr = &m_config->instructions[opcode];
+
+            printf("opcode=%d\n", opcode);
+
+            std::vector<TestCase> test_cases;
+
+            M6502Word addr{0x1080};
+            uint8_t zaddr = 0x70;
+
+            auto mode = (M6502AddrMode)instr->mode;
+            switch (mode) {
+            default:
+                ASSERT(false);
+                break;
+
+            case M6502AddrMode_IMP:
+                test_cases = {{{opcode}}};
+                break;
+
+            case M6502AddrMode_IMM:
+                test_cases = {{{opcode, 0}}};
+                break;
+
+            case M6502AddrMode_REL:
+                for (uint8_t offset : {1, 0x7f}) {
+                    std::vector<uint8_t> bytes = {opcode, offset};
+                    switch (instr->branch_condition) {
+                    default:
+                        TEST_FAIL("unexpected REL condition: %u", instr->branch_condition);
+                        break;
+
+                    case M6502Condition_Always:
+                        test_cases = {{bytes}};
+                        break;
+
+                    case M6502Condition_CC:
+                    case M6502Condition_CS:
+                        test_cases = GetFlagTestCases(bytes, &TestCase::c);
+                        break;
+
+                    case M6502Condition_VC:
+                    case M6502Condition_VS:
+                        test_cases = GetFlagTestCases(bytes, &TestCase::v);
+                        break;
+
+                    case M6502Condition_NE:
+                    case M6502Condition_EQ:
+                        test_cases = GetFlagTestCases(bytes, &TestCase::z);
+                        break;
+
+                    case M6502Condition_PL:
+                    case M6502Condition_MI:
+                        test_cases = GetFlagTestCases(bytes, &TestCase::n);
+                        break;
+                    }
+                }
+                break;
+
+            case M6502AddrMode_ZPG:
+            case M6502AddrMode_ZPX:
+            case M6502AddrMode_ZPY:
+                test_cases = {{{opcode, zaddr}}};
+                break;
+
+            case M6502AddrMode_INX:
+                test_cases = {{{opcode, zaddr}}};
+                break;
+
+            case M6502AddrMode_INY:
+                test_cases = GetIndexedTestCases({opcode, zaddr}, &TestCase::y);
+                break;
+
+            case M6502AddrMode_ABS:
+                test_cases = {{{opcode, addr.b.l, addr.b.h}}};
+                break;
+
+            case M6502AddrMode_ABX:
+                test_cases = GetIndexedTestCases({opcode, addr.b.l, addr.b.h}, &TestCase::x);
+                break;
+
+            case M6502AddrMode_ABY:
+                test_cases = GetIndexedTestCases({opcode, addr.b.l, addr.b.h}, &TestCase::y);
+                break;
+
+            case M6502AddrMode_IND:
+                test_cases = {{{opcode, addr.b.l, addr.b.h}}};
+                break;
+
+            case M6502AddrMode_ACC:
+                test_cases = {{{opcode}}};
+                break;
+
+            case M6502AddrMode_INZ:
+                test_cases = {{{opcode, zaddr}}};
+                break;
+
+            case M6502AddrMode_INDX:
+                test_cases = {{{opcode, zaddr}}};
+                break;
+
+            case M6502AddrMode_ZPG_REL_ROCKWELL:
+                for (uint8_t offset : {1, 0x7f}) {
+                    unsigned bit;
+                    if (instr->branch_condition >= M6502Condition_BR0 && instr->branch_condition <= M6502Condition_BR7) {
+                        bit = instr->branch_condition - M6502Condition_BR0;
+                    } else if (instr->branch_condition >= M6502Condition_BS0 && instr->branch_condition <= M6502Condition_BS7) {
+                        bit = instr->branch_condition - M6502Condition_BS0;
+                    } else {
+                        TEST_FAIL("unexpected ZPG_REL_ROCKWELL condition: %u", instr->branch_condition);
+                    }
+
+                    test_cases = GetTestCases({opcode, zaddr, offset}, &TestCase::zaddr_value, 0, 1 << bit);
+                }
+                break;
+            }
+
+            TEST_FALSE(test_cases.empty());
+
+            for (const TestCase &test_case : test_cases) {
+                memset(mem, 0, sizeof mem);
+
+                if (test_case.zaddr_value.has_value()) {
+                    mem[zaddr] = *test_case.zaddr_value;
+                } else {
+                    mem[zaddr + 0] = addr.b.l;
+                    mem[(zaddr + 1) & 0xff] = addr.b.h;
+                }
+
+                M6502Word irq{0x2000};
+
+                mem[0xfffe] = irq.b.l;
+                mem[0xffff] = irq.b.h;
+
+                mem[irq.w] = 0x40;
+
+                M6502Word pc{0x2c0};
+
+                mem[0xfffc] = pc.b.l;
+                mem[0xfffd] = pc.b.h;
+
+                TEST_FALSE(test_case.bytes.empty());
+                for (size_t i = 0; i < test_case.bytes.size(); ++i) {
+                    mem[pc.w + i] = test_case.bytes[i];
+                }
+
+                M6502 cpu;
+                M6502_Init(&cpu, m_config);
+                M6502_Reset(&cpu);
+
+                bool hlt = strcmp(instr->mnemonic, "hlt") == 0;
+
+                uint64_t num_cycles = 0;
+                uint64_t num_executes = 0;
+                for (;;) {
+                    tfns_seen.insert(cpu.tfn);
+                    (*cpu.tfn)(&cpu);
+
+                    if (M6502_IsAboutToExecute(&cpu)) {
+                        ++num_executes;
+                        if (num_executes == 1) {
+                            // prepare for instruction
+                            cpu.x = test_case.x;
+                            cpu.y = test_case.y;
+                            cpu.p.bits.n = test_case.n;
+                            cpu.p.bits.v = test_case.v;
+                            cpu.p.bits.z = test_case.z;
+                            cpu.p.bits.c = test_case.c;
+                        } else if (num_executes == 2) {
+                            break;
+                        }
+                    }
+
+                    if (hlt) {
+                        if (num_cycles > 50) {
+                            break;
+                        }
+                    }
+
+                    if (cpu.read) {
+                        cpu.dbus = mem[cpu.abus.w];
+                    } else {
+                        mem[cpu.abus.w] = cpu.dbus;
+                    }
+
+                    ++num_cycles;
+                }
+            }
+        }
+
+        for (const M6502Fn tfn : all_tfns) {
+            if (tfns_seen.count(tfn) == 0) {
+                printf("table tfn never seen: %s\n", name_by_fn[tfn].c_str());
+            }
+        }
+
+        for (const M6502Fn tfn : tfns_seen) {
+            if (all_tfns.count(tfn) == 0) {
+                printf("non-table tfn seen: %s (%p)\n", name_by_fn[tfn].c_str(), (void *)tfn);
+            }
+        }
+
+        printf("done\n");
+    }
+
+  protected:
+  private:
+    struct TestCase {
+        std::vector<uint8_t> bytes;
+        std::optional<uint8_t> zaddr_value;
+        uint8_t x = 0, y = 0;
+        bool n = false, v = false, z = false, c = false;
+    };
+
+    std::string m_name;
+    const M6502Config *m_config = nullptr;
+
+    template <class MemberType, class ValueType>
+    static TestCase GetTestCase(const std::vector<uint8_t> &bytes, MemberType TestCase::*mptr, ValueType v) {
+        TestCase test_case;
+        test_case.bytes = bytes;
+        test_case.*mptr = v;
+
+        return test_case;
+    }
+
+    template <class MemberType, class ValueType>
+    static std::vector<TestCase> GetTestCases(const std::vector<uint8_t> &bytes, MemberType TestCase::*mptr, ValueType v0, ValueType v1) {
+        return {
+            GetTestCase(bytes, mptr, v0),
+            GetTestCase(bytes, mptr, v1),
+        };
+    }
+
+    static std::vector<TestCase> GetIndexedTestCases(const std::vector<uint8_t> &bytes, uint8_t TestCase::*reg_mptr) {
+        return GetTestCases(bytes, reg_mptr, 0, 255);
+    }
+
+    static std::vector<TestCase> GetFlagTestCases(const std::vector<uint8_t> &bytes, bool TestCase::*flag_mptr) {
+        return GetTestCases(bytes, flag_mptr, false, true);
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 
 #define DEBUGGER_ONLY(T) T
@@ -3705,6 +3996,10 @@ int main(int argc, char *argv[]) {
 
     all_tests.push_back(std::make_unique<VIAT2ShiftTest>("via.t2_shift_test.system", true));
     all_tests.push_back(std::make_unique<VIAT2ShiftTest>("via.t2_shift_test.user", false));
+
+    all_tests.push_back(std::make_unique<M6502FnTables>("6502.fn_tables.nmos6502", &M6502_nmos6502_config));
+    all_tests.push_back(std::make_unique<M6502FnTables>("6502.fn_tables.cmos6502", &M6502_cmos6502_config));
+    all_tests.push_back(std::make_unique<M6502FnTables>("6502.fn_tables.rockwell65c02", &M6502_rockwell65c02_config));
 
     //
     // all tests must be added by this point!
