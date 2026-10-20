@@ -23,6 +23,7 @@
 #include <beeb/DiscGeometry.h>
 #include <beeb/HardDiskImage.h>
 #include <unordered_set>
+#include <optional>
 
 #include <shared/enum_decl.h>
 #include "test_beeb.inl"
@@ -3307,16 +3308,16 @@ class M6502FnTables : public Test {
         // find all the tfns.
         std::set<M6502Fn> all_tfns;
         for (const auto &tfns_and_opcodes : opcodes_by_tfns) {
-
-            // the 0th tfn is never seen. It's called directly by Cycle0_All.
-            size_t i = 1;
-            while (tfns_and_opcodes.first[i]) {
-                all_tfns.insert(tfns_and_opcodes.first[i]);
-                ++i;
-            }
+            AddTFns(&all_tfns, tfns_and_opcodes.first);
         }
+        AddTFns(&all_tfns, m_config->interrupt_tfns);
+        AddTFns(&all_tfns, m_config->reset_tfns);
+        all_tfns.insert(m_config->reset_tfn);
+        all_tfns.insert(m_config->cycle0_tfn);
 
         uint8_t mem[65536] = {};
+
+        static const uint8_t RELATIVE_OFFSETS[] = {1, 0x7f};
 
         std::set<M6502Fn> tfns_seen;
 
@@ -3346,7 +3347,7 @@ class M6502FnTables : public Test {
                 break;
 
             case M6502AddrMode_REL:
-                for (uint8_t offset : {1, 0x7f}) {
+                for (uint8_t offset : RELATIVE_OFFSETS) {
                     std::vector<uint8_t> bytes = {opcode, offset};
                     switch (instr->branch_condition) {
                     default:
@@ -3423,8 +3424,8 @@ class M6502FnTables : public Test {
                 break;
 
             case M6502AddrMode_ZPG_REL_ROCKWELL:
-                for (uint8_t offset : {1, 0x7f}) {
-                    unsigned bit;
+                for (uint8_t offset : RELATIVE_OFFSETS) {
+                    int bit;
                     if (instr->branch_condition >= M6502Condition_BR0 && instr->branch_condition <= M6502Condition_BR7) {
                         bit = instr->branch_condition - M6502Condition_BR0;
                     } else if (instr->branch_condition >= M6502Condition_BS0 && instr->branch_condition <= M6502Condition_BS7) {
@@ -3433,9 +3434,28 @@ class M6502FnTables : public Test {
                         TEST_FAIL("unexpected ZPG_REL_ROCKWELL condition: %u", instr->branch_condition);
                     }
 
-                    test_cases = GetTestCases({opcode, zaddr, offset}, &TestCase::zaddr_value, 0, 1 << bit);
+                    std::vector<uint8_t> bytes = {opcode, zaddr, offset};
+                    int a = 0;
+                    int b = 1 << bit;
+                    test_cases = GetTestCases(bytes, &TestCase::zaddr_value, a, b);
                 }
                 break;
+            }
+
+            if (strcmp(instr->mnemonic, "adc") == 0 || strcmp(instr->mnemonic, "sbc") == 0) {
+                // add all combinations of D and C as well.
+                for (size_t i = 0; i < 2; ++i) {
+                    for (int d = 0; d < 2; ++d) {
+                        for (int c = 0; c < 2; ++c) {
+                            TestCase test_case = test_cases[i];
+
+                            test_case.d = d != 0;
+                            test_case.c = c != 0;
+
+                            test_cases.push_back(std::move(test_case));
+                        }
+                    }
+                }
             }
 
             TEST_FALSE(test_cases.empty());
@@ -3443,8 +3463,9 @@ class M6502FnTables : public Test {
             for (const TestCase &test_case : test_cases) {
                 memset(mem, 0, sizeof mem);
 
-                if (test_case.zaddr_value.has_value()) {
-                    mem[zaddr] = *test_case.zaddr_value;
+                if (test_case.zaddr_value >= 0) {
+                    TEST_LE_UU(test_case.zaddr_value, 255);
+                    mem[zaddr] = (uint8_t)test_case.zaddr_value;
                 } else {
                     mem[zaddr + 0] = addr.b.l;
                     mem[(zaddr + 1) & 0xff] = addr.b.h;
@@ -3474,24 +3495,49 @@ class M6502FnTables : public Test {
                 bool hlt = strcmp(instr->mnemonic, "hlt") == 0;
 
                 uint64_t num_cycles = 0;
-                uint64_t num_executes = 0;
+                bool is_executing = false;
                 for (;;) {
+                    bool was_about_to_execute = M6502_IsAboutToExecute(&cpu);
+                    if (was_about_to_execute) {
+                        __nop();
+                    }
+
                     tfns_seen.insert(cpu.tfn);
                     (*cpu.tfn)(&cpu);
 
-                    if (M6502_IsAboutToExecute(&cpu)) {
-                        ++num_executes;
-                        if (num_executes == 1) {
-                            // prepare for instruction
-                            cpu.x = test_case.x;
-                            cpu.y = test_case.y;
-                            cpu.p.bits.n = test_case.n;
-                            cpu.p.bits.v = test_case.v;
-                            cpu.p.bits.z = test_case.z;
-                            cpu.p.bits.c = test_case.c;
-                        } else if (num_executes == 2) {
+                    if (was_about_to_execute) {
+                        ASSERT(!is_executing);
+                        // prepare for instruction
+                        cpu.x = test_case.x;
+                        cpu.y = test_case.y;
+                        cpu.p.bits.n = test_case.n;
+                        cpu.p.bits.v = test_case.v;
+                        cpu.p.bits.z = test_case.z;
+                        cpu.p.bits.c = test_case.c;
+                        cpu.p.bits.d = test_case.d;
+                        is_executing = true;
+                    }
+
+                    if (is_executing) {
+                        if (M6502_IsAboutToExecute(&cpu)) {
+                            // instruction is over.
                             break;
                         }
+
+                        // Ensure every tfn used executing this opcode is
+                        // present in the table.
+                        bool found = false;
+                        size_t i = 0;
+                        while (M6502Fn tfn = cpu.config->instructions[opcode].tfns[i]) {
+                            if (tfn == cpu.tfn) {
+                                found = true;
+                                break;
+                            }
+
+                            ++i;
+                        }
+
+                        TEST_TRUE(found);
                     }
 
                     if (hlt) {
@@ -3530,9 +3576,9 @@ class M6502FnTables : public Test {
   private:
     struct TestCase {
         std::vector<uint8_t> bytes;
-        std::optional<uint8_t> zaddr_value;
+        int zaddr_value = -1; //<0 if unused... too annoying to make std::optional work here
         uint8_t x = 0, y = 0;
-        bool n = false, v = false, z = false, c = false;
+        bool n = false, v = false, z = false, c = false, d = false;
     };
 
     std::string m_name;
@@ -3540,9 +3586,11 @@ class M6502FnTables : public Test {
 
     template <class MemberType, class ValueType>
     static TestCase GetTestCase(const std::vector<uint8_t> &bytes, MemberType TestCase::*mptr, ValueType v) {
+        static_assert(std::is_fundamental_v<ValueType>);
+
         TestCase test_case;
         test_case.bytes = bytes;
-        test_case.*mptr = v;
+        test_case.*mptr = (MemberType)v;
 
         return test_case;
     }
@@ -3561,6 +3609,14 @@ class M6502FnTables : public Test {
 
     static std::vector<TestCase> GetFlagTestCases(const std::vector<uint8_t> &bytes, bool TestCase::*flag_mptr) {
         return GetTestCases(bytes, flag_mptr, false, true);
+    }
+
+    static void AddTFns(std::set<M6502Fn> *set, const M6502Fn *list) {
+        size_t i = 0;
+        while (list[i]) {
+            set->insert(list[i]);
+            ++i;
+        }
     }
 };
 

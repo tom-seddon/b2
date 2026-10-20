@@ -201,8 +201,11 @@ typedef void (*M6502Fn)(struct M6502 *);
 typedef void (*M6502Callback)(struct M6502 *, void *);
 
 struct M6502Instruction {
-    const M6502Fn *tfns; //last entry must be NULL
+    // tfns for this instruction. First entry is always Cycle0_All. The order is
+    // arbitrary but fixed.
+    const M6502Fn *tfns;
 
+    // ifn for this instruction, if any.
     M6502Fn ifn;
 
     // M6502AddrMode.
@@ -255,10 +258,10 @@ struct M6502Config {
     /* User-facing description of this type of 6502. */
     const char *description;
 
-    /* Function to call to start interrupt processing. */
+    /* tfn for cycle 0 of hardware interrupt. */
     M6502Fn interrupt_tfn;
 
-    /* Function to call to reset the CPU. */
+    /* tfn for cycle 0 of CPU reset. */
     M6502Fn reset_tfn;
 
     /* Value to use for the XAA and LXA instructions, for CPUs that
@@ -271,6 +274,11 @@ struct M6502Config {
 
     /* Instruction fns table. */
     const M6502Fns *fns;
+
+    /* Other possible tfn values. */
+    const M6502Fn *interrupt_tfns; //cycle 1... of interrupt handling
+    const M6502Fn *reset_tfns;     //cycle 1... of reset
+    M6502Fn cycle0_tfn;            //cycle 0 of any instruction
 };
 typedef struct M6502Config M6502Config;
 

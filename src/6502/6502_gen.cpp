@@ -946,7 +946,7 @@ class InstrGen {
         // fns table. Include cycle 0 in this case, as it'll be needed for the
         // tfns table.
         P("static const M6502Fn g_%s_tfns[]={\n", this->stem.c_str());
-        for (size_t i = 0; i <= this->cycles.size(); ++i) {
+        for (size_t i = 1; i <= this->cycles.size(); ++i) {
             P("&Cycle%zu_%s,\n", i, this->stem.c_str());
         }
         P("NULL,\n");

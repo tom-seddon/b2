@@ -1094,7 +1094,6 @@ static void Cycle3_Branch(M6502 *s) {
 }
 
 static const M6502Fn g_Branch_tfns[] = {
-    &Cycle0_Branch,
     &Cycle1_Branch,
     &Cycle2_Branch,
     &Cycle3_Branch,
@@ -1136,10 +1135,12 @@ static void Cycle3_Branch_ZPG_REL_ROCKWELL(M6502 *s) {
 }
 
 static const M6502Fn g_Branch_ZPG_REL_ROCKWELL_tfns[] = {
-    &Cycle0_Branch_ZPG_REL_ROCKWELL,
     &Cycle1_Branch_ZPG_REL_ROCKWELL,
     &Cycle2_Branch_ZPG_REL_ROCKWELL,
     &Cycle3_Branch_ZPG_REL_ROCKWELL,
+    &Cycle1_Branch,
+    &Cycle2_Branch,
+    &Cycle3_Branch,
     NULL,
 };
 
@@ -1204,7 +1205,6 @@ static void Cycle4_R_ABX_CMOS_AC1(M6502 *s) {
 }
 
 static const M6502Fn g_R_ABX_CMOS_tfns[] = {
-    &Cycle0_R_ABX_CMOS,
     &Cycle1_R_ABX_CMOS,
     &Cycle2_R_ABX_CMOS,
     &Cycle3_R_ABX_CMOS_AC0,
@@ -1274,7 +1274,6 @@ static void Cycle4_R_ABY_CMOS_AC1(M6502 *s) {
 }
 
 static const M6502Fn g_R_ABY_CMOS_tfns[] = {
-    &Cycle0_R_ABY_CMOS,
     &Cycle1_R_ABY_CMOS,
     &Cycle2_R_ABY_CMOS,
     &Cycle3_R_ABY_CMOS_AC0,
@@ -1345,7 +1344,6 @@ static void Cycle6_RMW_ABX_CMOS(M6502 *s) {
 }
 
 static const M6502Fn g_RMW_ABX_CMOS_tfns[] = {
-    &Cycle0_RMW_ABX_CMOS,
     &Cycle1_RMW_ABX_CMOS,
     &Cycle2_RMW_ABX_CMOS,
     &Cycle3_RMW_ABX_CMOS,
@@ -1448,7 +1446,6 @@ static void Cycle6_RMW_ABX2_CMOS_AC1(M6502 *s) {
 }
 
 static const M6502Fn g_RMW_ABX2_CMOS_tfns[] = {
-    &Cycle0_RMW_ABX2_CMOS,
     &Cycle1_RMW_ABX2_CMOS,
     &Cycle2_RMW_ABX2_CMOS,
     &Cycle3_RMW_ABX2_CMOS_AC0,
@@ -1510,7 +1507,6 @@ static void Cycle4_W_ABX_CMOS(M6502 *s) {
 }
 
 static const M6502Fn g_W_ABX_CMOS_tfns[] = {
-    &Cycle0_W_ABX_CMOS,
     &Cycle1_W_ABX_CMOS,
     &Cycle2_W_ABX_CMOS,
     &Cycle3_W_ABX_CMOS,
@@ -1567,7 +1563,6 @@ static void Cycle4_W_ABY_CMOS(M6502 *s) {
 }
 
 static const M6502Fn g_W_ABY_CMOS_tfns[] = {
-    &Cycle0_W_ABY_CMOS,
     &Cycle1_W_ABY_CMOS,
     &Cycle2_W_ABY_CMOS,
     &Cycle3_W_ABY_CMOS,
@@ -1601,7 +1596,6 @@ static void Cycle1_HLT(M6502 *s) {
 }
 
 static const M6502Fn g_HLT_tfns[] = {
-    &Cycle0_HLT,
     &Cycle1_HLT,
     NULL,
 };
@@ -1847,7 +1841,6 @@ static void Cycle6_Interrupt(M6502 *s) {
 }
 
 static M6502Fn g_Interrupt_tfns[] = {
-    &Cycle0_Interrupt,
     &Cycle1_Interrupt,
     &Cycle2_Interrupt,
     &Cycle3_Interrupt,
@@ -2067,7 +2060,6 @@ static void Cycle6_BRK_CMOS(M6502 *s) {
 }
 
 static const M6502Fn g_BRK_CMOS_tfns[] = {
-    &Cycle0_BRK_CMOS,
     &Cycle1_BRK_CMOS,
     &Cycle2_BRK_CMOS,
     &Cycle3_BRK_CMOS,
@@ -2222,7 +2214,6 @@ static void Cycle5_R_ABX_BCD_CMOS_D1_AC1(M6502 *s) {
 }
 
 static const M6502Fn g_R_ABX_BCD_CMOS_tfns[] = {
-    &Cycle0_R_ABX_BCD_CMOS,
     &Cycle1_R_ABX_BCD_CMOS,
     &Cycle2_R_ABX_BCD_CMOS_D1,
     &Cycle2_R_ABX_BCD_CMOS_D0,
@@ -2384,7 +2375,6 @@ static void Cycle5_R_ABY_BCD_CMOS_D1_AC1(M6502 *s) {
 }
 
 static const M6502Fn g_R_ABY_BCD_CMOS_tfns[] = {
-    &Cycle0_R_ABY_BCD_CMOS,
     &Cycle1_R_ABY_BCD_CMOS,
     &Cycle2_R_ABY_BCD_CMOS_D1,
     &Cycle2_R_ABY_BCD_CMOS_D0,
@@ -2469,7 +2459,6 @@ static void Cycle5_R_INY_CMOS_AC1(M6502 *s) {
 }
 
 static const M6502Fn g_R_INY_CMOS_tfns[] = {
-    &Cycle0_R_INY_CMOS,
     &Cycle1_R_INY_CMOS,
     &Cycle2_R_INY_CMOS,
     &Cycle3_R_INY_CMOS,
@@ -2623,7 +2612,6 @@ static void Cycle6_R_INY_BCD_CMOS_D1_AC1(M6502 *s) {
 }
 
 static const M6502Fn g_R_INY_BCD_CMOS_tfns[] = {
-    &Cycle0_R_INY_BCD_CMOS,
     &Cycle1_R_INY_BCD_CMOS,
     &Cycle2_R_INY_BCD_CMOS,
     &Cycle3_R_INY_BCD_CMOS_D1,
@@ -2688,7 +2676,6 @@ static void Cycle5_W_INY_CMOS(M6502 *s) {
 }
 
 static const M6502Fn g_W_INY_CMOS_tfns[] = {
-    &Cycle0_W_INY_CMOS,
     &Cycle1_W_INY_CMOS,
     &Cycle2_W_INY_CMOS,
     &Cycle3_W_INY_CMOS,
@@ -2762,7 +2749,6 @@ static void Cycle5_W_INY_BROKEN_NMOS(M6502 *s) {
 }
 
 static const M6502Fn g_W_INY_BROKEN_NMOS_tfns[] = {
-    &Cycle0_W_INY_BROKEN_NMOS,
     &Cycle1_W_INY_BROKEN_NMOS,
     &Cycle2_W_INY_BROKEN_NMOS,
     &Cycle3_W_INY_BROKEN_NMOS,
@@ -2826,7 +2812,6 @@ static void Cycle4_W_ABX_BROKEN_NMOS(M6502 *s) {
 }
 
 static const M6502Fn g_W_ABX_BROKEN_NMOS_tfns[] = {
-    &Cycle0_W_ABX_BROKEN_NMOS,
     &Cycle1_W_ABX_BROKEN_NMOS,
     &Cycle2_W_ABX_BROKEN_NMOS,
     &Cycle3_W_ABX_BROKEN_NMOS,
@@ -2889,7 +2874,6 @@ static void Cycle4_W_ABY_BROKEN_NMOS(M6502 *s) {
 }
 
 static const M6502Fn g_W_ABY_BROKEN_NMOS_tfns[] = {
-    &Cycle0_W_ABY_BROKEN_NMOS,
     &Cycle1_W_ABY_BROKEN_NMOS,
     &Cycle2_W_ABY_BROKEN_NMOS,
     &Cycle3_W_ABY_BROKEN_NMOS,
@@ -2998,6 +2982,49 @@ static const char *FindNameByFn(const NamedFn *named_fns, M6502Fn fn) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const M6502Fn g_interrupt_tfns[] = {
+    &Cycle1_Interrupt,
+    &Cycle2_Interrupt,
+    &Cycle3_Interrupt,
+    &Cycle4_Interrupt,
+    &Cycle5_Interrupt,
+    &Cycle6_Interrupt,
+    NULL,
+};
+
+static const M6502Fn g_reset_tfns[] = {
+    &Cycle1_Reset,
+    &Cycle2_Reset,
+    &Cycle3_Reset,
+    &Cycle4_Reset,
+    &Cycle5_Reset,
+    &Cycle6_Reset,
+    NULL,
+};
+
+static const M6502Fn g_interrupt_cmos_tfns[] = {
+    &Cycle1_ResetCMOS,
+    &Cycle2_ResetCMOS,
+    &Cycle3_ResetCMOS,
+    &Cycle4_ResetCMOS,
+    &Cycle5_ResetCMOS,
+    &Cycle6_ResetCMOS,
+    NULL,
+};
+
+static const M6502Fn g_reset_cmos_tfns[] = {
+    &Cycle1_ResetCMOS,
+    &Cycle2_ResetCMOS,
+    &Cycle3_ResetCMOS,
+    &Cycle4_ResetCMOS,
+    &Cycle5_ResetCMOS,
+    &Cycle6_ResetCMOS,
+    NULL,
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //static M6502InstructionFns g_defined_fns;
 const M6502Config M6502_defined_config = {
     .id = "defined",
@@ -3006,6 +3033,9 @@ const M6502Config M6502_defined_config = {
     .interrupt_tfn = &Cycle0_Interrupt,
     .reset_tfn = &Cycle0_Reset,
     .fns = g_defined_fns,
+    .interrupt_tfns = g_interrupt_tfns,
+    .reset_tfns = g_reset_tfns,
+    .cycle0_tfn = &Cycle0_All,
 };
 
 //static M6502InstructionFns g_nmos6502_fns;
@@ -3017,6 +3047,9 @@ const M6502Config M6502_nmos6502_config = {
     .interrupt_tfn = &Cycle0_Interrupt,
     .reset_tfn = &Cycle0_Reset,
     .fns = g_nmos6502_fns,
+    .interrupt_tfns = g_interrupt_tfns,
+    .reset_tfns = g_reset_tfns,
+    .cycle0_tfn = &Cycle0_All,
 };
 
 //static M6502InstructionFns g_cmos6502_fns;
@@ -3027,6 +3060,9 @@ const M6502Config M6502_cmos6502_config = {
     .interrupt_tfn = &Cycle0_InterruptCMOS,
     .reset_tfn = &Cycle0_ResetCMOS,
     .fns = g_cmos6502_fns,
+    .interrupt_tfns = g_interrupt_cmos_tfns,
+    .reset_tfns = g_reset_cmos_tfns,
+    .cycle0_tfn = &Cycle0_All,
 };
 
 //static M6502InstructionFns g_rockwell65c02_fns;
@@ -3037,6 +3073,9 @@ const M6502Config M6502_rockwell65c02_config = {
     .interrupt_tfn = &Cycle0_InterruptCMOS,
     .reset_tfn = &Cycle0_ResetCMOS,
     .fns = g_rockwell65c02_fns,
+    .interrupt_tfns = g_interrupt_cmos_tfns,
+    .reset_tfns = g_reset_cmos_tfns,
+    .cycle0_tfn = &Cycle0_All,
 };
 
 //////////////////////////////////////////////////////////////////////////
