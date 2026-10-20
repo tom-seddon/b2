@@ -3464,7 +3464,7 @@ class M6502FnTables : public Test {
                 memset(mem, 0, sizeof mem);
 
                 if (test_case.zaddr_value >= 0) {
-                    TEST_LE_UU(test_case.zaddr_value, 255);
+                    TEST_LE_II(test_case.zaddr_value, 255);
                     mem[zaddr] = (uint8_t)test_case.zaddr_value;
                 } else {
                     mem[zaddr + 0] = addr.b.l;
@@ -3498,9 +3498,6 @@ class M6502FnTables : public Test {
                 bool is_executing = false;
                 for (;;) {
                     bool was_about_to_execute = M6502_IsAboutToExecute(&cpu);
-                    if (was_about_to_execute) {
-                        __nop();
-                    }
 
                     tfns_seen.insert(cpu.tfn);
                     (*cpu.tfn)(&cpu);
