@@ -155,6 +155,15 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
             break;
 
         case TVOutputState_VerticalRetrace:
+            if (m_y < TV_TEXTURE_HEIGHT) {
+                uint32_t *data = m_texture_pixels.data();
+                uint32_t *begin = data + m_y * TV_TEXTURE_WIDTH;
+                uint32_t *end = data + TV_TEXTURE_HEIGHT * TV_TEXTURE_WIDTH;
+                size_t n = (uint8_t *)end - (uint8_t *)begin;
+
+                memset(begin, 0, n);
+            }
+
             {
                 LockGuard<Mutex> lock(m_last_vsync_texture_pixels_mutex);
 
