@@ -57,7 +57,12 @@ def main2(options):
 
     good=True
     for name,count in tests_run.items():
-        if name in tests_available_but_hidden: bad_count=count>1
+        if name in tests_available_but_hidden:
+            # allow hidden tests to be run as many times as necessary
+            # - a couple of them are helpers that are run multiple
+            # times in a run. (Or maybe there should be a different
+            # category for helpers...?)
+            bad_count=False
         else: bad_count=count!=1
         
         if bad_count:
