@@ -774,6 +774,12 @@ def _init_vs_cmd(options):
                                     options.output_path)]
         argv+=['-B','.']
         ret=run_subprocess(argv,options,close_fds=False)
+
+    copyfile(os.path.join(options.g_working_copy_path,
+                          "etc/b2.ChildProcessDbgSettings"),
+             os.path.join(options.output_path,
+                          'b2.ChildProcessDbgSettings'))
+        
     if ret.returncode!=0:
         rmtree(options.output_path)
         fatal('init failed')
