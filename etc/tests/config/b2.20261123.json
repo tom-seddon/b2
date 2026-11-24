@@ -1,0 +1,4892 @@
+{
+    "globals": {
+        "feature_flags": [
+            "MasterTurbo",
+            "6502SecondProcessor",
+            "MasterCompact",
+            "OlivettiPC128S",
+            "MasterCompactArabic",
+            "Electron"
+        ],
+        "vsync": true
+    },
+    "recent_paths": {
+        "disc_image": {
+            "paths": [
+                "D:\\tom\\github\\fnf-beeb\\build\\fnf-beeb.ssd",
+                "E:\\download\\p15k4v_cream_v6.ssd",
+                "D:\\tom\\github\\beeb-files\\beebgames\\alphabetical\\L\\Labyrinth.ssd",
+                "E:\\download\\antattack.ssd",
+                "E:\\download\\cleo_modelb_230926.ssd",
+                "D:\\tom\\not-my\\beebjit\\test\\display\\teletest_v1.ssd",
+                "D:\\tom\\not-my\\thrust-disassembly\\thrust.ssd",
+                "E:\\download\\Disc999-RtEfin.ssd",
+                "D:\\temp\\bs-beeb-niccc.dsd",
+                "D:\\temp\\Plus3Welcome.adm",
+                "E:\\download\\cgf.ssd",
+                "D:\\tom\\github\\beeb-files\\beebgames\\publisher\\Aardvark\\Frak.ssd",
+                "D:\\tom\\github\\beeb-files\\beebgames\\alphabetical\\0-9\\3DWars.ssd",
+                "D:\\tom\\github\\beeb-files\\beebgames\\alphabetical\\0-9\\747-Doctorsoft.ssd",
+                "D:\\tom\\github\\beeb-files\\beebgames\\alphabetical\\0-9\\3DBombAlley.ssd"
+            ]
+        },
+        "tape": {
+            "paths": [
+                "D:\\tom\\github\\b2\\etc\\tests\\uef\\Acornsoft Desk Diary (198x)(Acornsoft).uef"
+            ]
+        },
+        "hard_disks": {
+            "paths": [
+                "D:\\temp\\beeb_.dat",
+                "C:\\Users\\tom\\Documents\\BeebEm\\DiscIms\\ide0.dat",
+                "D:\\tom\\not-my\\beebem-windows\\UserData\\DiscIms\\scsi0.dat",
+                "D:\\tom\\not-my\\beebem-windows\\UserData\\DiscIms\\ide0.dat"
+            ]
+        },
+        "roms": {
+            "paths": [
+                "D:\\tom\\github\\beeb-files\\stuff\\65boot\\0\\R.UPURS51R",
+                "D:\\tom\\github\\basic_editor\\build\\basiced.rom",
+                "E:\\download\\QuestPaint v1.10 [variant 2].rom",
+                "D:\\temp\\plus1.bin",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\Ransack-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\Impact-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\Quest-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\StarPort-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\ExplodingFist-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\Gauntlet-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\SpyVsSpy-2.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\SpyVsSpy-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\SouthernBelle-2.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\SouthernBelle-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\JoeBlade-2.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\JoeBlade-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\EliteFlickerFree-2.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\EliteFlickerFree-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\Firetrack-2.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\Firetrack-1.rom",
+                "D:\\tom\\github\\beeb-files\\elkgames_roms\\CybertronMission.rom"
+            ]
+        },
+        "mmfs_images": {
+            "paths": [
+                "D:\\temp\\ADJI_problem_games\\elkgames.mmb",
+                "D:\\tom\\github\\beeb-files\\mmb\\higgy_mmbeeb-v1.2\\BEEB.MMB"
+            ]
+        }
+    },
+    "selector_dialog_persistent_data": null,
+    "new_keymaps": [
+        {
+            "name": "Default",
+            "keysyms": false,
+            "prefer_shortcuts": false,
+            "show_bbc_keyboard_ui": true,
+            "show_master_keyboard_ui": true,
+            "show_compact_keyboard_ui": true,
+            "show_electron_keyboard_ui": true,
+            "keys": {
+                "Shift": [
+                    "Left Shift",
+                    "Right Shift"
+                ],
+                "Ctrl": [
+                    "Left Ctrl",
+                    "Right Ctrl"
+                ],
+                "Q": [
+                    "Q"
+                ],
+                "3": [
+                    "3"
+                ],
+                "4": [
+                    "4"
+                ],
+                "5": [
+                    "5"
+                ],
+                "f4": [
+                    "F4"
+                ],
+                "8": [
+                    "8"
+                ],
+                "f7": [
+                    "F7"
+                ],
+                "Minus": [
+                    "-"
+                ],
+                "Caret": [
+                    "`"
+                ],
+                "Left": [
+                    "Left"
+                ],
+                "Keypad6": [
+                    "Keypad 6"
+                ],
+                "Keypad7": [
+                    "Keypad 7"
+                ],
+                "f0": [
+                    "F10"
+                ],
+                "W": [
+                    "W"
+                ],
+                "E": [
+                    "E"
+                ],
+                "T": [
+                    "T"
+                ],
+                "7": [
+                    "7"
+                ],
+                "I": [
+                    "I"
+                ],
+                "9": [
+                    "9"
+                ],
+                "0": [
+                    "0"
+                ],
+                "Underline": [
+                    "="
+                ],
+                "Down": [
+                    "Down"
+                ],
+                "Keypad8": [
+                    "Keypad 8"
+                ],
+                "Keypad9": [
+                    "Keypad 9"
+                ],
+                "1": [
+                    "1"
+                ],
+                "2": [
+                    "2"
+                ],
+                "D": [
+                    "D"
+                ],
+                "R": [
+                    "R"
+                ],
+                "6": [
+                    "6"
+                ],
+                "U": [
+                    "U"
+                ],
+                "O": [
+                    "O"
+                ],
+                "P": [
+                    "P"
+                ],
+                "LeftSquareBracket": [
+                    "["
+                ],
+                "Up": [
+                    "Up"
+                ],
+                "KeypadPlus": [
+                    "Keypad +"
+                ],
+                "KeypadMinus": [
+                    "Keypad -"
+                ],
+                "KeypadReturn": [
+                    "Keypad Enter"
+                ],
+                "CapsLock": [
+                    "CapsLock",
+                    "PageUp"
+                ],
+                "A": [
+                    "A"
+                ],
+                "X": [
+                    "X"
+                ],
+                "F": [
+                    "F"
+                ],
+                "Y": [
+                    "Y"
+                ],
+                "J": [
+                    "J"
+                ],
+                "K": [
+                    "K"
+                ],
+                "At": [
+                    "\\"
+                ],
+                "Colon": [
+                    "'"
+                ],
+                "Return": [
+                    "Return"
+                ],
+                "KeypadSlash": [
+                    "Keypad /"
+                ],
+                "KeypadStop": [
+                    "Keypad ."
+                ],
+                "ShiftLock": [
+                    "ScrollLock"
+                ],
+                "S": [
+                    "S"
+                ],
+                "C": [
+                    "C"
+                ],
+                "G": [
+                    "G"
+                ],
+                "H": [
+                    "H"
+                ],
+                "N": [
+                    "N"
+                ],
+                "L": [
+                    "L"
+                ],
+                "Semicolon": [
+                    ";"
+                ],
+                "RightSquareBracket": [
+                    "]"
+                ],
+                "Delete": [
+                    "Backspace"
+                ],
+                "KeypadStar": [
+                    "Keypad *"
+                ],
+                "Tab": [
+                    "Tab"
+                ],
+                "Z": [
+                    "Z"
+                ],
+                "Space": [
+                    "Space"
+                ],
+                "V": [
+                    "V"
+                ],
+                "B": [
+                    "B"
+                ],
+                "M": [
+                    "M"
+                ],
+                "Comma": [
+                    ","
+                ],
+                "Stop": [
+                    "."
+                ],
+                "Slash": [
+                    "/"
+                ],
+                "Copy": [
+                    "End"
+                ],
+                "Keypad0": [
+                    "Keypad 0"
+                ],
+                "Keypad1": [
+                    "Keypad 1"
+                ],
+                "Keypad3": [
+                    "Keypad 3"
+                ],
+                "Escape": [
+                    "Escape"
+                ],
+                "f1": [
+                    "F1"
+                ],
+                "f2": [
+                    "F2"
+                ],
+                "f3": [
+                    "F3"
+                ],
+                "f5": [
+                    "F5"
+                ],
+                "f6": [
+                    "F6"
+                ],
+                "f8": [
+                    "F8"
+                ],
+                "f9": [
+                    "F9"
+                ],
+                "Backslash": [
+                    "Home",
+                    100
+                ],
+                "Right": [
+                    "Right"
+                ],
+                "Keypad4": [
+                    "Keypad 4"
+                ],
+                "Keypad5": [
+                    "Keypad 5"
+                ],
+                "Keypad2": [
+                    "Keypad 2"
+                ],
+                "Break": [
+                    "F11",
+                    "F12"
+                ]
+            }
+        },
+        {
+            "name": "Default (caps/ctrl)",
+            "keysyms": false,
+            "prefer_shortcuts": false,
+            "show_bbc_keyboard_ui": true,
+            "show_master_keyboard_ui": true,
+            "show_compact_keyboard_ui": true,
+            "show_electron_keyboard_ui": true,
+            "keys": {
+                "Shift": [
+                    "Left Shift",
+                    "Right Shift"
+                ],
+                "Ctrl": [
+                    "CapsLock",
+                    "Left Alt",
+                    "Right Ctrl"
+                ],
+                "Q": [
+                    "Q"
+                ],
+                "3": [
+                    "3"
+                ],
+                "4": [
+                    "4"
+                ],
+                "5": [
+                    "5"
+                ],
+                "f4": [
+                    "F4"
+                ],
+                "8": [
+                    "8"
+                ],
+                "f7": [
+                    "F7"
+                ],
+                "Minus": [
+                    "-"
+                ],
+                "Caret": [
+                    "`"
+                ],
+                "Left": [
+                    "Left"
+                ],
+                "Keypad6": [
+                    "Keypad 6"
+                ],
+                "Keypad7": [
+                    "Keypad 7"
+                ],
+                "f0": [
+                    "F10"
+                ],
+                "W": [
+                    "W"
+                ],
+                "E": [
+                    "E"
+                ],
+                "T": [
+                    "T"
+                ],
+                "7": [
+                    "7"
+                ],
+                "I": [
+                    "I"
+                ],
+                "9": [
+                    "9"
+                ],
+                "0": [
+                    "0"
+                ],
+                "Underline": [
+                    "="
+                ],
+                "Down": [
+                    "Down"
+                ],
+                "Keypad8": [
+                    "Keypad 8"
+                ],
+                "Keypad9": [
+                    "Keypad 9"
+                ],
+                "1": [
+                    "1"
+                ],
+                "2": [
+                    "2"
+                ],
+                "D": [
+                    "D"
+                ],
+                "R": [
+                    "R"
+                ],
+                "6": [
+                    "6"
+                ],
+                "U": [
+                    "U"
+                ],
+                "O": [
+                    "O"
+                ],
+                "P": [
+                    "P"
+                ],
+                "LeftSquareBracket": [
+                    "["
+                ],
+                "Up": [
+                    "Up"
+                ],
+                "KeypadPlus": [
+                    "Keypad +"
+                ],
+                "KeypadMinus": [
+                    "Keypad -"
+                ],
+                "KeypadReturn": [
+                    "Keypad Enter"
+                ],
+                "CapsLock": [
+                    "PageUp",
+                    "Left Ctrl"
+                ],
+                "A": [
+                    "A"
+                ],
+                "X": [
+                    "X"
+                ],
+                "F": [
+                    "F"
+                ],
+                "Y": [
+                    "Y"
+                ],
+                "J": [
+                    "J"
+                ],
+                "K": [
+                    "K"
+                ],
+                "At": [
+                    "\\"
+                ],
+                "Colon": [
+                    "'"
+                ],
+                "Return": [
+                    "Return"
+                ],
+                "KeypadSlash": [
+                    "Keypad /"
+                ],
+                "KeypadStop": [
+                    "Keypad ."
+                ],
+                "ShiftLock": [
+                    "ScrollLock"
+                ],
+                "S": [
+                    "S"
+                ],
+                "C": [
+                    "C"
+                ],
+                "G": [
+                    "G"
+                ],
+                "H": [
+                    "H"
+                ],
+                "N": [
+                    "N"
+                ],
+                "L": [
+                    "L"
+                ],
+                "Semicolon": [
+                    ";"
+                ],
+                "RightSquareBracket": [
+                    "]"
+                ],
+                "Delete": [
+                    "Backspace"
+                ],
+                "KeypadStar": [
+                    "Keypad *"
+                ],
+                "Tab": [
+                    "Tab"
+                ],
+                "Z": [
+                    "Z"
+                ],
+                "Space": [
+                    "Space"
+                ],
+                "V": [
+                    "V"
+                ],
+                "B": [
+                    "B"
+                ],
+                "M": [
+                    "M"
+                ],
+                "Comma": [
+                    ","
+                ],
+                "Stop": [
+                    "."
+                ],
+                "Slash": [
+                    "/"
+                ],
+                "Copy": [
+                    "End"
+                ],
+                "Keypad0": [
+                    "Keypad 0"
+                ],
+                "Keypad1": [
+                    "Keypad 1"
+                ],
+                "Keypad3": [
+                    "Keypad 3"
+                ],
+                "Escape": [
+                    "Escape"
+                ],
+                "f1": [
+                    "F1"
+                ],
+                "f2": [
+                    "F2"
+                ],
+                "f3": [
+                    "F3"
+                ],
+                "f5": [
+                    "F5"
+                ],
+                "f6": [
+                    "F6"
+                ],
+                "f8": [
+                    "F8"
+                ],
+                "f9": [
+                    "F9"
+                ],
+                "Backslash": [
+                    "Home",
+                    100
+                ],
+                "Right": [
+                    "Right"
+                ],
+                "Keypad4": [
+                    "Keypad 4"
+                ],
+                "Keypad5": [
+                    "Keypad 5"
+                ],
+                "Keypad2": [
+                    "Keypad 2"
+                ],
+                "Break": [
+                    "F11",
+                    "F12"
+                ]
+            }
+        },
+        {
+            "name": "Default UK",
+            "keysyms": true,
+            "prefer_shortcuts": false,
+            "show_bbc_keyboard_ui": true,
+            "show_master_keyboard_ui": true,
+            "show_compact_keyboard_ui": true,
+            "show_electron_keyboard_ui": true,
+            "keys": {
+                "f0": [
+                    {
+                        "keycode": "F10"
+                    }
+                ],
+                "f1": [
+                    {
+                        "keycode": "F1"
+                    }
+                ],
+                "f2": [
+                    {
+                        "keycode": "F2"
+                    }
+                ],
+                "f3": [
+                    {
+                        "keycode": "F3"
+                    }
+                ],
+                "f4": [
+                    {
+                        "keycode": "F4"
+                    }
+                ],
+                "f5": [
+                    {
+                        "keycode": "F5"
+                    }
+                ],
+                "f6": [
+                    {
+                        "keycode": "F6"
+                    }
+                ],
+                "f7": [
+                    {
+                        "keycode": "F7"
+                    }
+                ],
+                "f8": [
+                    {
+                        "keycode": "F8"
+                    }
+                ],
+                "f9": [
+                    {
+                        "keycode": "F9"
+                    }
+                ],
+                "Escape": [
+                    {
+                        "keycode": "Escape"
+                    }
+                ],
+                "1": [
+                    {
+                        "keycode": "1"
+                    }
+                ],
+                "ExclamationMark": [
+                    {
+                        "Shift": true,
+                        "keycode": "1"
+                    }
+                ],
+                "2": [
+                    {
+                        "keycode": "2"
+                    }
+                ],
+                "Quotes": [
+                    {
+                        "Shift": true,
+                        "keycode": "2"
+                    }
+                ],
+                "3": [
+                    {
+                        "keycode": "3"
+                    }
+                ],
+                "Hash": [
+                    {
+                        "keycode": "#"
+                    }
+                ],
+                "4": [
+                    {
+                        "keycode": "4"
+                    }
+                ],
+                "Dollar": [
+                    {
+                        "Shift": true,
+                        "keycode": "4"
+                    }
+                ],
+                "5": [
+                    {
+                        "keycode": "5"
+                    }
+                ],
+                "Percent": [
+                    {
+                        "Shift": true,
+                        "keycode": "5"
+                    }
+                ],
+                "6": [
+                    {
+                        "keycode": "6"
+                    }
+                ],
+                "Ampersand": [
+                    {
+                        "Shift": true,
+                        "keycode": "7"
+                    }
+                ],
+                "7": [
+                    {
+                        "keycode": "7"
+                    }
+                ],
+                "Apostrophe": [
+                    {
+                        "keycode": "'"
+                    }
+                ],
+                "8": [
+                    {
+                        "keycode": "8"
+                    }
+                ],
+                "LeftBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "9"
+                    }
+                ],
+                "9": [
+                    {
+                        "keycode": "9"
+                    }
+                ],
+                "RightBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "0"
+                    }
+                ],
+                "0": [
+                    {
+                        "keycode": "0"
+                    }
+                ],
+                "Minus": [
+                    {
+                        "keycode": "-"
+                    }
+                ],
+                "Equals": [
+                    {
+                        "keycode": "="
+                    }
+                ],
+                "Caret": [
+                    {
+                        "Shift": true,
+                        "keycode": "6"
+                    }
+                ],
+                "Tilde": [
+                    {
+                        "Shift": true,
+                        "keycode": "#"
+                    }
+                ],
+                "Backslash": [
+                    {
+                        "keycode": "\\"
+                    }
+                ],
+                "Pipe": [
+                    {
+                        "Shift": true,
+                        "keycode": "\\"
+                    }
+                ],
+                "Tab": [
+                    {
+                        "keycode": "Tab"
+                    }
+                ],
+                "Q": [
+                    {
+                        "keycode": "Q"
+                    }
+                ],
+                "W": [
+                    {
+                        "keycode": "W"
+                    }
+                ],
+                "E": [
+                    {
+                        "keycode": "E"
+                    }
+                ],
+                "R": [
+                    {
+                        "keycode": "R"
+                    }
+                ],
+                "T": [
+                    {
+                        "keycode": "T"
+                    }
+                ],
+                "Y": [
+                    {
+                        "keycode": "Y"
+                    }
+                ],
+                "U": [
+                    {
+                        "keycode": "U"
+                    }
+                ],
+                "I": [
+                    {
+                        "keycode": "I"
+                    }
+                ],
+                "O": [
+                    {
+                        "keycode": "O"
+                    }
+                ],
+                "P": [
+                    {
+                        "keycode": "P"
+                    }
+                ],
+                "At": [
+                    {
+                        "Shift": true,
+                        "keycode": "'"
+                    }
+                ],
+                "LeftSquareBracket": [
+                    {
+                        "keycode": "["
+                    }
+                ],
+                "LeftCurlyBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "["
+                    }
+                ],
+                "Underline": [
+                    {
+                        "Shift": true,
+                        "keycode": "-"
+                    }
+                ],
+                "Pound": [
+                    {
+                        "Shift": true,
+                        "keycode": "3"
+                    }
+                ],
+                "CapsLock": [
+                    {
+                        "keycode": "CapsLock"
+                    }
+                ],
+                "Ctrl": [
+                    {
+                        "keycode": "Left Ctrl"
+                    },
+                    {
+                        "keycode": "Right Ctrl"
+                    }
+                ],
+                "A": [
+                    {
+                        "keycode": "A"
+                    }
+                ],
+                "S": [
+                    {
+                        "keycode": "S"
+                    }
+                ],
+                "D": [
+                    {
+                        "keycode": "D"
+                    }
+                ],
+                "F": [
+                    {
+                        "keycode": "F"
+                    }
+                ],
+                "G": [
+                    {
+                        "keycode": "G"
+                    }
+                ],
+                "H": [
+                    {
+                        "keycode": "H"
+                    }
+                ],
+                "J": [
+                    {
+                        "keycode": "J"
+                    }
+                ],
+                "K": [
+                    {
+                        "keycode": "K"
+                    }
+                ],
+                "L": [
+                    {
+                        "keycode": "L"
+                    }
+                ],
+                "Semicolon": [
+                    {
+                        "keycode": ";"
+                    }
+                ],
+                "Plus": [
+                    {
+                        "Shift": true,
+                        "keycode": "="
+                    }
+                ],
+                "Colon": [
+                    {
+                        "Shift": true,
+                        "keycode": ";"
+                    }
+                ],
+                "Star": [
+                    {
+                        "Shift": true,
+                        "keycode": "8"
+                    }
+                ],
+                "RightSquareBracket": [
+                    {
+                        "keycode": "]"
+                    }
+                ],
+                "RightCurlyBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "]"
+                    }
+                ],
+                "Return": [
+                    {
+                        "keycode": "Return"
+                    }
+                ],
+                "Shift": [
+                    {
+                        "keycode": "Left Shift"
+                    },
+                    {
+                        "keycode": "Right Shift"
+                    }
+                ],
+                "Z": [
+                    {
+                        "keycode": "Z"
+                    }
+                ],
+                "X": [
+                    {
+                        "keycode": "X"
+                    }
+                ],
+                "C": [
+                    {
+                        "keycode": "C"
+                    }
+                ],
+                "V": [
+                    {
+                        "keycode": "V"
+                    }
+                ],
+                "B": [
+                    {
+                        "keycode": "B"
+                    }
+                ],
+                "N": [
+                    {
+                        "keycode": "N"
+                    }
+                ],
+                "M": [
+                    {
+                        "keycode": "M"
+                    }
+                ],
+                "Comma": [
+                    {
+                        "keycode": ","
+                    }
+                ],
+                "LessThan": [
+                    {
+                        "Shift": true,
+                        "keycode": ","
+                    }
+                ],
+                "Stop": [
+                    {
+                        "keycode": "."
+                    }
+                ],
+                "GreaterThan": [
+                    {
+                        "Shift": true,
+                        "keycode": "."
+                    }
+                ],
+                "Slash": [
+                    {
+                        "keycode": "/"
+                    }
+                ],
+                "QuestionMarke": [
+                    {
+                        "Shift": true,
+                        "keycode": "/"
+                    }
+                ],
+                "Delete": [
+                    {
+                        "keycode": "Backspace"
+                    }
+                ],
+                "Copy": [
+                    {
+                        "keycode": "End"
+                    }
+                ],
+                "Up": [
+                    {
+                        "keycode": "Up"
+                    }
+                ],
+                "Down": [
+                    {
+                        "keycode": "Down"
+                    }
+                ],
+                "Left": [
+                    {
+                        "keycode": "Left"
+                    }
+                ],
+                "Right": [
+                    {
+                        "keycode": "Right"
+                    }
+                ],
+                "KeypadPlus": [
+                    {
+                        "keycode": "Keypad +"
+                    }
+                ],
+                "KeypadMinus": [
+                    {
+                        "keycode": "Keypad -"
+                    }
+                ],
+                "KeypadSlash": [
+                    {
+                        "keycode": "Keypad /"
+                    }
+                ],
+                "KeypadStar": [
+                    {
+                        "keycode": "Keypad *"
+                    }
+                ],
+                "Keypad7": [
+                    {
+                        "keycode": "Keypad 7"
+                    }
+                ],
+                "Keypad8": [
+                    {
+                        "keycode": "Keypad 8"
+                    }
+                ],
+                "Keypad9": [
+                    {
+                        "keycode": "Keypad 9"
+                    }
+                ],
+                "KeypadHash": [
+                    {
+                        "keycode": "Keypad #"
+                    }
+                ],
+                "Keypad4": [
+                    {
+                        "keycode": "Keypad 4"
+                    }
+                ],
+                "Keypad5": [
+                    {
+                        "keycode": "Keypad 5"
+                    }
+                ],
+                "Keypad6": [
+                    {
+                        "keycode": "Keypad 6"
+                    }
+                ],
+                "KeypadDelete": [
+                    {
+                        "keycode": "Keypad Backspace"
+                    }
+                ],
+                "Keypad1": [
+                    {
+                        "keycode": "Keypad 1"
+                    }
+                ],
+                "Keypad2": [
+                    {
+                        "keycode": "Keypad 2"
+                    }
+                ],
+                "Keypad3": [
+                    {
+                        "keycode": "Keypad 3"
+                    }
+                ],
+                "KeypadComma": [
+                    {
+                        "keycode": "Keypad ,"
+                    }
+                ],
+                "Keypad0": [
+                    {
+                        "keycode": "Keypad 0"
+                    }
+                ],
+                "KeypadStop": [
+                    {
+                        "keycode": "Keypad ."
+                    }
+                ],
+                "KeypadReturn": [
+                    {
+                        "keycode": "Keypad Enter"
+                    }
+                ],
+                "Space": [
+                    {
+                        "keycode": "Space"
+                    }
+                ],
+                "Break": [
+                    {
+                        "keycode": "F11"
+                    },
+                    {
+                        "keycode": "F12"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Default US",
+            "keysyms": true,
+            "prefer_shortcuts": false,
+            "show_bbc_keyboard_ui": true,
+            "show_master_keyboard_ui": true,
+            "show_compact_keyboard_ui": true,
+            "show_electron_keyboard_ui": true,
+            "keys": {
+                "f0": [
+                    {
+                        "keycode": "F10"
+                    }
+                ],
+                "f1": [
+                    {
+                        "keycode": "F1"
+                    }
+                ],
+                "f2": [
+                    {
+                        "keycode": "F2"
+                    }
+                ],
+                "f3": [
+                    {
+                        "keycode": "F3"
+                    }
+                ],
+                "f4": [
+                    {
+                        "keycode": "F4"
+                    }
+                ],
+                "f5": [
+                    {
+                        "keycode": "F5"
+                    }
+                ],
+                "f6": [
+                    {
+                        "keycode": "F6"
+                    }
+                ],
+                "f7": [
+                    {
+                        "keycode": "F7"
+                    }
+                ],
+                "f8": [
+                    {
+                        "keycode": "F8"
+                    }
+                ],
+                "f9": [
+                    {
+                        "keycode": "F9"
+                    }
+                ],
+                "Escape": [
+                    {
+                        "keycode": "Escape"
+                    }
+                ],
+                "1": [
+                    {
+                        "keycode": "1"
+                    }
+                ],
+                "ExclamationMark": [
+                    {
+                        "Shift": true,
+                        "keycode": "1"
+                    }
+                ],
+                "2": [
+                    {
+                        "keycode": "2"
+                    }
+                ],
+                "Quotes": [
+                    {
+                        "Shift": true,
+                        "keycode": "'"
+                    }
+                ],
+                "3": [
+                    {
+                        "keycode": "3"
+                    }
+                ],
+                "Hash": [
+                    {
+                        "Shift": true,
+                        "keycode": "3"
+                    }
+                ],
+                "4": [
+                    {
+                        "keycode": "4"
+                    }
+                ],
+                "Dollar": [
+                    {
+                        "Shift": true,
+                        "keycode": "4"
+                    }
+                ],
+                "5": [
+                    {
+                        "keycode": "5"
+                    }
+                ],
+                "Percent": [
+                    {
+                        "Shift": true,
+                        "keycode": "5"
+                    }
+                ],
+                "6": [
+                    {
+                        "keycode": "6"
+                    }
+                ],
+                "Ampersand": [
+                    {
+                        "Shift": true,
+                        "keycode": "7"
+                    }
+                ],
+                "7": [
+                    {
+                        "keycode": "7"
+                    }
+                ],
+                "Apostrophe": [
+                    {
+                        "keycode": "'"
+                    }
+                ],
+                "8": [
+                    {
+                        "keycode": "8"
+                    }
+                ],
+                "LeftBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "9"
+                    }
+                ],
+                "9": [
+                    {
+                        "keycode": "9"
+                    }
+                ],
+                "RightBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "0"
+                    }
+                ],
+                "0": [
+                    {
+                        "keycode": "0"
+                    }
+                ],
+                "Minus": [
+                    {
+                        "keycode": "-"
+                    }
+                ],
+                "Equals": [
+                    {
+                        "keycode": "="
+                    }
+                ],
+                "Caret": [
+                    {
+                        "Shift": true,
+                        "keycode": "6"
+                    }
+                ],
+                "Tilde": [
+                    {
+                        "Shift": true,
+                        "keycode": "`"
+                    }
+                ],
+                "Backslash": [
+                    {
+                        "keycode": "\\"
+                    }
+                ],
+                "Pipe": [
+                    {
+                        "Shift": true,
+                        "keycode": "\\"
+                    }
+                ],
+                "Tab": [
+                    {
+                        "keycode": "Tab"
+                    }
+                ],
+                "Q": [
+                    {
+                        "keycode": "Q"
+                    }
+                ],
+                "W": [
+                    {
+                        "keycode": "W"
+                    }
+                ],
+                "E": [
+                    {
+                        "keycode": "E"
+                    }
+                ],
+                "R": [
+                    {
+                        "keycode": "R"
+                    }
+                ],
+                "T": [
+                    {
+                        "keycode": "T"
+                    }
+                ],
+                "Y": [
+                    {
+                        "keycode": "Y"
+                    }
+                ],
+                "U": [
+                    {
+                        "keycode": "U"
+                    }
+                ],
+                "I": [
+                    {
+                        "keycode": "I"
+                    }
+                ],
+                "O": [
+                    {
+                        "keycode": "O"
+                    }
+                ],
+                "P": [
+                    {
+                        "keycode": "P"
+                    }
+                ],
+                "At": [
+                    {
+                        "Shift": true,
+                        "keycode": "2"
+                    }
+                ],
+                "LeftSquareBracket": [
+                    {
+                        "keycode": "["
+                    }
+                ],
+                "LeftCurlyBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "["
+                    }
+                ],
+                "Underline": [
+                    {
+                        "Shift": true,
+                        "keycode": "-"
+                    }
+                ],
+                "Pound": [
+                    {
+                        "keycode": "`"
+                    }
+                ],
+                "CapsLock": [
+                    {
+                        "keycode": "CapsLock"
+                    }
+                ],
+                "Ctrl": [
+                    {
+                        "keycode": "Left Ctrl"
+                    },
+                    {
+                        "keycode": "Right Ctrl"
+                    }
+                ],
+                "A": [
+                    {
+                        "keycode": "A"
+                    }
+                ],
+                "S": [
+                    {
+                        "keycode": "S"
+                    }
+                ],
+                "D": [
+                    {
+                        "keycode": "D"
+                    }
+                ],
+                "F": [
+                    {
+                        "keycode": "F"
+                    }
+                ],
+                "G": [
+                    {
+                        "keycode": "G"
+                    }
+                ],
+                "H": [
+                    {
+                        "keycode": "H"
+                    }
+                ],
+                "J": [
+                    {
+                        "keycode": "J"
+                    }
+                ],
+                "K": [
+                    {
+                        "keycode": "K"
+                    }
+                ],
+                "L": [
+                    {
+                        "keycode": "L"
+                    }
+                ],
+                "Semicolon": [
+                    {
+                        "keycode": ";"
+                    }
+                ],
+                "Plus": [
+                    {
+                        "Shift": true,
+                        "keycode": "="
+                    }
+                ],
+                "Colon": [
+                    {
+                        "Shift": true,
+                        "keycode": ";"
+                    }
+                ],
+                "Star": [
+                    {
+                        "Shift": true,
+                        "keycode": "8"
+                    }
+                ],
+                "RightSquareBracket": [
+                    {
+                        "keycode": "]"
+                    }
+                ],
+                "RightCurlyBracket": [
+                    {
+                        "Shift": true,
+                        "keycode": "]"
+                    }
+                ],
+                "Return": [
+                    {
+                        "keycode": "Return"
+                    }
+                ],
+                "Shift": [
+                    {
+                        "keycode": "Left Shift"
+                    },
+                    {
+                        "keycode": "Right Shift"
+                    }
+                ],
+                "Z": [
+                    {
+                        "keycode": "Z"
+                    }
+                ],
+                "X": [
+                    {
+                        "keycode": "X"
+                    }
+                ],
+                "C": [
+                    {
+                        "keycode": "C"
+                    }
+                ],
+                "V": [
+                    {
+                        "keycode": "V"
+                    }
+                ],
+                "B": [
+                    {
+                        "keycode": "B"
+                    }
+                ],
+                "N": [
+                    {
+                        "keycode": "N"
+                    }
+                ],
+                "M": [
+                    {
+                        "keycode": "M"
+                    }
+                ],
+                "Comma": [
+                    {
+                        "keycode": ","
+                    }
+                ],
+                "LessThan": [
+                    {
+                        "Shift": true,
+                        "keycode": ","
+                    }
+                ],
+                "Stop": [
+                    {
+                        "keycode": "."
+                    }
+                ],
+                "GreaterThan": [
+                    {
+                        "Shift": true,
+                        "keycode": "."
+                    }
+                ],
+                "Slash": [
+                    {
+                        "keycode": "/"
+                    }
+                ],
+                "QuestionMarke": [
+                    {
+                        "Shift": true,
+                        "keycode": "/"
+                    }
+                ],
+                "Delete": [
+                    {
+                        "keycode": "Backspace"
+                    }
+                ],
+                "Copy": [
+                    {
+                        "keycode": "End"
+                    }
+                ],
+                "Up": [
+                    {
+                        "keycode": "Up"
+                    }
+                ],
+                "Down": [
+                    {
+                        "keycode": "Down"
+                    }
+                ],
+                "Left": [
+                    {
+                        "keycode": "Left"
+                    }
+                ],
+                "Right": [
+                    {
+                        "keycode": "Right"
+                    }
+                ],
+                "KeypadPlus": [
+                    {
+                        "keycode": "Keypad +"
+                    }
+                ],
+                "KeypadMinus": [
+                    {
+                        "keycode": "Keypad -"
+                    }
+                ],
+                "KeypadSlash": [
+                    {
+                        "keycode": "Keypad /"
+                    }
+                ],
+                "KeypadStar": [
+                    {
+                        "keycode": "Keypad *"
+                    }
+                ],
+                "Keypad7": [
+                    {
+                        "keycode": "Keypad 7"
+                    }
+                ],
+                "Keypad8": [
+                    {
+                        "keycode": "Keypad 8"
+                    }
+                ],
+                "Keypad9": [
+                    {
+                        "keycode": "Keypad 9"
+                    }
+                ],
+                "KeypadHash": [
+                    {
+                        "keycode": "Keypad #"
+                    }
+                ],
+                "Keypad4": [
+                    {
+                        "keycode": "Keypad 4"
+                    }
+                ],
+                "Keypad5": [
+                    {
+                        "keycode": "Keypad 5"
+                    }
+                ],
+                "Keypad6": [
+                    {
+                        "keycode": "Keypad 6"
+                    }
+                ],
+                "KeypadDelete": [
+                    {
+                        "keycode": "Keypad Backspace"
+                    }
+                ],
+                "Keypad1": [
+                    {
+                        "keycode": "Keypad 1"
+                    }
+                ],
+                "Keypad2": [
+                    {
+                        "keycode": "Keypad 2"
+                    }
+                ],
+                "Keypad3": [
+                    {
+                        "keycode": "Keypad 3"
+                    }
+                ],
+                "KeypadComma": [
+                    {
+                        "keycode": "Keypad ,"
+                    }
+                ],
+                "Keypad0": [
+                    {
+                        "keycode": "Keypad 0"
+                    }
+                ],
+                "KeypadStop": [
+                    {
+                        "keycode": "Keypad ."
+                    }
+                ],
+                "KeypadReturn": [
+                    {
+                        "keycode": "Keypad Enter"
+                    }
+                ],
+                "Space": [
+                    {
+                        "keycode": "Space"
+                    }
+                ],
+                "Break": [
+                    {
+                        "keycode": "F11"
+                    },
+                    {
+                        "keycode": "F12"
+                    }
+                ]
+            }
+        }
+    ],
+    "shortcuts": {
+        "Beeb Window": {
+            "copy_debug_screenshot": [
+                {
+                    "Shift": true,
+                    "Ctrl": true,
+                    "keycode": "PrintScreen"
+                }
+            ]
+        },
+        "Messages Window": {},
+        "Disassembly Window": {},
+        "6502 Window": {}
+    },
+    "windows": {
+        "auto_scale": true,
+        "background_economy_mode": false,
+        "bbc_mute": false,
+        "bbc_volume": -16.5,
+        "capture_mouse_on_click": true,
+        "config": "B/Acorn 1770",
+        "correct_aspect_ratio": true,
+        "debugger_show_mmio": false,
+        "debugger_syntax": 0,
+        "disc_mute": false,
+        "disc_volume": 0.0,
+        "display_interlace": false,
+        "extra_debug_ui": true,
+        "filter_bbc": true,
+        "full_screen": false,
+        "gui_pixel_font": false,
+        "gui_scale": 1.0,
+        "hide_cursor_when_unfocused": false,
+        "keymap": "Default",
+        "leds_popup_alpha": 0.800000011920929,
+        "leds_popup_mode": "On",
+        "low_pass_filter": true,
+        "low_pass_filter_cutoff_hz": 8000,
+        "manual_scale": 1.0,
+        "popup_persistent_data": {
+            "DisassemblyDebugger1": {
+                "show_column_lines": false,
+                "show_symbols": true,
+                "track_pc": false
+            },
+            "DisassemblyDebugger2": {
+                "show_column_lines": false,
+                "show_symbols": true,
+                "track_pc": false
+            },
+            "Keymaps": {
+                "divider_position": 224.99998474121097
+            },
+            "MemoryDebugger1": {
+                "hex_editor_options": {
+                    "ascii": true,
+                    "grey_00s": false,
+                    "grey_nonprintables": true,
+                    "headers": true,
+                    "hex": true,
+                    "upper_case": true
+                },
+                "num_columns": 16,
+                "save_begin": "",
+                "save_end": "",
+                "scroll_y": 500.0,
+                "specify_end": false
+            }
+        },
+        "popups": [
+            "Options",
+            "Trace",
+            "AudioCallback",
+            "PixelMetadata",
+            "6502Debugger",
+            "MemoryDebugger1",
+            "DisassemblyDebugger1",
+            "DisassemblyDebugger2",
+            "CRTCDebugger",
+            "VideoULADebugger",
+            "SystemVIADebugger",
+            "BreakpointsDebugger",
+            "ADCDebugger",
+            "SystemDebug",
+            "SymbolGroupManagement",
+            "ElectronULADebug",
+            "TapeDebug",
+            "Plus1Debug",
+            "TVDebug"
+        ],
+        "power_on_tone": false,
+        "prefer_shortcuts": false,
+        "printer_copy_settings": {
+            "convert_mode": "OnlyGBP",
+            "handle_delete": true
+        },
+        "screenshot_correct_aspect_ratio": true,
+        "speed_scale": 1.0,
+        "symbol_table_data": {
+            "groups": [
+                {
+                    "address_suffix_mode": "Exclusive",
+                    "address_suffixes": [
+                        "4"
+                    ],
+                    "enabled": false,
+                    "file_format_name": "64tass_vice_labels",
+                    "file_path": "D:\\tom\\github\\fdload_dfs\\build\\screens1.mode1.sym",
+                    "group_index": 1
+                },
+                {
+                    "address_suffix_mode": "Exclusive",
+                    "address_suffixes": [
+                        "4"
+                    ],
+                    "enabled": false,
+                    "file_format_name": "64tass_vice_labels",
+                    "file_path": "D:\\tom\\github\\fdload_dfs\\build\\screens1.mode5.sym",
+                    "group_index": 2
+                },
+                {
+                    "address_suffix_mode": "Inclusive",
+                    "address_suffixes": [
+                        "7"
+                    ],
+                    "enabled": false,
+                    "file_format_name": "64tass_labels",
+                    "file_path": "D:\\tom\\github\\fdload_dfs\\build\\framework_bank.loader.sym",
+                    "group_index": 200
+                },
+                {
+                    "address_suffix_mode": "Exclusive",
+                    "address_suffixes": [],
+                    "enabled": false,
+                    "file_format_name": "64tass_labels",
+                    "file_path": "D:\\tom\\github\\fdload_dfs\\build\\framework_bank.loader.main_ram.sym",
+                    "group_index": 201
+                },
+                {
+                    "address_suffix_mode": "Inclusive",
+                    "address_suffixes": [
+                        "7"
+                    ],
+                    "enabled": false,
+                    "file_format_name": "BeebAsm",
+                    "file_path": "D:\\tom\\github\\fdload_dfs\\build\\framework_bank.labels",
+                    "group_index": 200
+                },
+                {
+                    "address_suffix_mode": "Exclusive",
+                    "address_suffixes": [],
+                    "enabled": false,
+                    "file_format_name": "64tass_vice_labels",
+                    "file_path": "D:\\tom\\github\\fdload_dfs\\build\\boot.sym",
+                    "group_index": 202
+                },
+                {
+                    "address_suffix_mode": "Exclusive",
+                    "address_suffixes": [
+                        "6"
+                    ],
+                    "enabled": false,
+                    "file_format_name": "BeebAsm",
+                    "file_path": "D:\\tom\\github\\fdload_dfs\\build\\music_bank.labels",
+                    "group_index": 203
+                }
+            ],
+            "groups2": [
+                {
+                    "name": ""
+                },
+                {
+                    "name": "screens1.mode1.sym"
+                },
+                {
+                    "name": "screens1.mode5.sym"
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": "framework_bank.loader.sym; framework_bank.labels"
+                },
+                {
+                    "name": "framework_bank.loader.main_ram.sym"
+                },
+                {
+                    "name": "boot.sym"
+                },
+                {
+                    "name": "music_bank.labels"
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                },
+                {
+                    "name": ""
+                }
+            ]
+        },
+        "text_copy_settings": {
+            "convert_mode": "OnlyGBP",
+            "handle_delete": true
+        },
+        "window_placement": "2c0000000000000001000000ffffffffffffffffffffffffffffffff7917000000ffffffe91f00005c060000"
+    },
+    "trace": {
+        "auto_save": true,
+        "auto_save_path": "D:\\temp\\shift.txt",
+        "flags": [
+            "6845",
+            "6845Scanlines",
+            "6845ScanlinesSeparators",
+            "6845Rows",
+            "6845Columns"
+        ],
+        "is_other_traces_ui_visible": true,
+        "output_flags": [
+            "Cycles",
+            "SymbolsAnnotations",
+            "SymbolGroups",
+            "SymbolGroupsVerbose"
+        ],
+        "start": "Return",
+        "start_instruction_address": 0,
+        "start_write_address": 65535,
+        "stop": "OSWORD0",
+        "stop_num_2MHz_cycles": 2000000,
+        "stop_write_address": 0,
+        "unix_line_endings": true,
+        "unlimited": false
+    },
+    "beeblink": {
+        "urls": []
+    },
+    "new_configs": [
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B/Acorn 1770",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Acorn 1770",
+            "roms": [
+                {
+                    "writeable": true
+                },
+                {
+                    "file_name": "D:\\tom\\github\\beeb-files\\stuff\\65boot\\0\\R.UPURS51R",
+                    "type": "16KB"
+                },
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                null,
+                null,
+                null,
+                null,
+                {
+                    "file_name": "D:\\tom\\github\\basic_editor\\build\\basiced.rom",
+                    "type": "16KB"
+                },
+                null,
+                {
+                    "standard_rom": "Acorn1770DFS"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B/Watford 1770 (DDB2)",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Watford 1770 (DDB2)",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "WatfordDDFS_DDB2"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B/Watford 1770 (DDB3)",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Watford 1770 (DDB3)",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "WatfordDDFS_DDB3"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B/Opus 1770",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Opus 1770",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "OpusDDOS"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B/Opus CHALLENGER 256K",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Opus CHALLENGER 256K",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "OpusChallenger"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B/Opus CHALLENGER 512K",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Opus CHALLENGER 512K",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "OpusChallenger"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B+",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "BPlusMOS"
+            },
+            "type": "BPlus",
+            "disc_interface": "Acorn 1770",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "Acorn1770DFS"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B+128",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "BPlusMOS"
+            },
+            "type": "BPlus",
+            "disc_interface": "Acorn 1770",
+            "roms": [
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "Acorn1770DFS"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master 128 (MOS 3.20)",
+            "nvram_type": "Master128",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS320_MOS"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                {
+                    "standard_rom": "MOS320_DFS"
+                },
+                {
+                    "standard_rom": "MOS320_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS320_EDIT"
+                },
+                {
+                    "standard_rom": "MOS320_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS320_ADFS"
+                },
+                {
+                    "standard_rom": "MOS320_VIEW"
+                },
+                {
+                    "standard_rom": "MOS320_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017803703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master 128 (MOS 3.50)",
+            "nvram_type": "Master128",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS350_MOS"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                {
+                    "standard_rom": "MOS350_DFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS350_EDIT"
+                },
+                {
+                    "standard_rom": "MOS350_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS350_ADFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEW"
+                },
+                {
+                    "standard_rom": "MOS350_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017823703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master Turbo (MOS 3.20)",
+            "nvram_type": "Master128",
+            "os_rom_type": "16KB",
+            "parasite_type": "MasterTurbo",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS320_MOS"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                {
+                    "standard_rom": "MOS320_DFS"
+                },
+                {
+                    "standard_rom": "MOS320_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS320_EDIT"
+                },
+                {
+                    "standard_rom": "MOS320_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS320_ADFS"
+                },
+                {
+                    "standard_rom": "MOS320_VIEW"
+                },
+                {
+                    "standard_rom": "MOS320_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017803703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master Turbo (MOS 3.50)",
+            "nvram_type": "Master128",
+            "os_rom_type": "16KB",
+            "parasite_type": "MasterTurbo",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS350_MOS"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                {
+                    "standard_rom": "MOS350_DFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS350_EDIT"
+                },
+                {
+                    "standard_rom": "MOS350_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS350_ADFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEW"
+                },
+                {
+                    "standard_rom": "MOS350_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017803703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "B/Acorn 1770 + 6502 second processor",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "External3MHz6502",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Acorn 1770",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "Acorn1770DFS"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master Compact (MOS 5.00)",
+            "nvram_type": "MasterCompact",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS500_MOS"
+            },
+            "type": "MasterCompact",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "MOS500_ADFS"
+                },
+                {
+                    "standard_rom": "MOS500_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS500_UTILS"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000edffff000017c037030001020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b0"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master Compact (MOS 5.10)",
+            "nvram_type": "MasterCompact",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS510_MOS"
+            },
+            "type": "MasterCompact",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "MOS510_ADFS"
+                },
+                {
+                    "standard_rom": "MOS510_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS510_UTILS"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000edffff000017c037030001020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b0"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master Compact (MOS 5.11i+Arabic)",
+            "nvram_type": "MasterCompactInternational",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS511i_MOS"
+            },
+            "type": "MasterCompact",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                {
+                    "standard_rom": "MOS511i_INTERNATIONAL"
+                },
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "MOS511i_ARABIC"
+                },
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "MOS511i_ADFS"
+                },
+                {
+                    "standard_rom": "MOS511i_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS511i_UTILS"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000edffff0000f9e320080a2c800003040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b2"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Olivetti PC 128 S",
+            "nvram_type": "MasterCompactInternational",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOSI510C_MOS"
+            },
+            "type": "MasterCompact",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "MOSI510C_ADFS"
+                },
+                {
+                    "standard_rom": "MOSI510C_BASIC4"
+                },
+                {
+                    "standard_rom": "MOSI510C_UTILS"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000edffff0000f9e320080a2c800003040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b2"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "BASIC Editor Test",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Acorn 1770",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "file_name": "D:\\tom\\github\\basic_editor\\.build\\BET.32KB.rom",
+                    "type": "ABEP"
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "standard_rom": "Acorn1770DFS"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "ROM Mappers Test",
+            "nvram_type": "Master128",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS350_MOS"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                {
+                    "file_name": "D:\\tom\\not-my\\beebem-windows\\UserData\\BeebFile\\QuestPaint-1.10.rom",
+                    "type": "PALQST"
+                },
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                {
+                    "standard_rom": "MOS350_DFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS350_EDIT"
+                },
+                {
+                    "standard_rom": "MOS350_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS350_ADFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEW"
+                },
+                {
+                    "standard_rom": "MOS350_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017803703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "C:\\Users\\tom\\Documents\\BeebEm\\DiscIms\\ide0.dat",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "IDE Hard Disk Test",
+            "nvram_type": "Master128",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": true,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "MOS350_MOS"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                {
+                    "standard_rom": "MOS350_DFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS350_EDIT"
+                },
+                {
+                    "standard_rom": "MOS350_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS350_ADFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEW"
+                },
+                {
+                    "standard_rom": "MOS350_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017003703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": "D:\\tom\\github\\beeb-files\\mmb\\higgy_mmbeeb-v1.2\\BEEB.MMB"
+            },
+            "mmfs_enabled": true,
+            "mouse": false,
+            "name": "MMFS Test",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "OS12"
+            },
+            "type": "B",
+            "disc_interface": "Acorn 1770",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "file_name": "D:\\tom\\github\\beeb-files\\mmb\\mmfs_1_59_20250720_1149\\MMFS\\M\\MMFS.rom",
+                    "type": "16KB"
+                },
+                {
+                    "standard_rom": "BASIC2"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Multi-OS Test",
+            "nvram_type": "Master128",
+            "os_rom_type": "MultiOSBank1",
+            "parasite_type": "External3MHz6502",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "file_name": "D:\\tom\\github\\acorn_mos_disassembly\\build\\multios.bin",
+                "type": "16KB"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                null,
+                {
+                    "standard_rom": "MOS350_DFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS350_EDIT"
+                },
+                {
+                    "standard_rom": "MOS350_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS350_ADFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEW"
+                },
+                {
+                    "standard_rom": "MOS350_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017803703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Electron",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "Electron_MOS"
+            },
+            "type": "Electron",
+            "disc_interface": null,
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "file_name": "D:\\tom\\github\\beeb-files\\elkgames_roms\\Firetrack-2.rom",
+                    "type": "16KB"
+                },
+                {
+                    "file_name": "D:\\tom\\github\\beeb-files\\elkgames_roms\\Firetrack-1.rom",
+                    "type": "16KB"
+                },
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "BASIC2"
+                },
+                {
+                    "file_name": "D:\\temp\\plus1.bin",
+                    "type": "16KB"
+                },
+                null,
+                null,
+                null
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": true,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": true,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Electron+BeebLink",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "Electron_MOS"
+            },
+            "type": "Electron",
+            "disc_interface": null,
+            "roms": [
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "file_name": "D:\\tom\\github\\beeblink\\beeb\\build\\beeblink_b2_electron.rom",
+                    "type": "16KB"
+                },
+                {
+                    "file_name": "D:\\tom\\github\\ADJI\\build\\ADJIROM_debug.bin",
+                    "type": "16KB"
+                },
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "BASIC2"
+                },
+                {
+                    "standard_rom": "Plus1"
+                },
+                null,
+                null,
+                null
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": true,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master 128 MOS 3.50r+BeebLink",
+            "nvram_type": "Master128",
+            "os_rom_type": "MegaROM",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "file_name": "D:\\tom\\github\\acorn_mos_disassembly\\build\\350r\\350r.bin",
+                "type": "16KB"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "file_name": "D:\\tom\\github\\beeblink\\beeb\\build\\beeblink_b2.rom",
+                    "type": "16KB"
+                },
+                {
+                    "standard_rom": "MOS350_DFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS350_EDIT"
+                },
+                {
+                    "standard_rom": "MOS350_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS350_ADFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEW"
+                },
+                {
+                    "standard_rom": "MOS350_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c8ffff000017803703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": true,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Master 128 MOS 3.50r+BeebLink+cheese wedge",
+            "nvram_type": "Master128",
+            "os_rom_type": "MegaROM",
+            "parasite_type": "External3MHz6502",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "file_name": "D:\\tom\\github\\acorn_mos_disassembly\\build\\350r\\350r.bin",
+                "type": "16KB"
+            },
+            "type": "Master",
+            "disc_interface": "Master 128",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "writeable": true
+                },
+                {
+                    "file_name": "D:\\tom\\github\\beeblink\\beeb\\build\\beeblink_b2.rom",
+                    "type": "16KB"
+                },
+                {
+                    "standard_rom": "MOS350_DFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEWSHEET"
+                },
+                {
+                    "standard_rom": "MOS350_EDIT"
+                },
+                {
+                    "standard_rom": "MOS350_BASIC4"
+                },
+                {
+                    "standard_rom": "MOS350_ADFS"
+                },
+                {
+                    "standard_rom": "MOS350_VIEW"
+                },
+                {
+                    "standard_rom": "MOS350_TERMINAL"
+                }
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            },
+            "nvram": "0000000000c9ffff000017803703000102000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "adji": true,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": "D:\\temp\\ADJI_problem_games\\elkgames.mmb"
+            },
+            "mmfs_enabled": true,
+            "mouse": false,
+            "name": "Electron+MMFS",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "Electron_MOS"
+            },
+            "type": "Electron",
+            "disc_interface": null,
+            "roms": [
+                {
+                    "writeable": true
+                },
+                {
+                    "file_name": "D:\\tom\\github\\MMFS\\build\\MMFS\\M\\ZEMMFS.rom",
+                    "type": "16KB"
+                },
+                {
+                    "file_name": "D:\\tom\\github\\ADJI\\build\\ADJIROM_debug.bin",
+                    "type": "16KB"
+                },
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "BASIC2"
+                },
+                {
+                    "standard_rom": "Plus1"
+                },
+                null,
+                null,
+                null
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Electron/Plus 1/Plus 3",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "None",
+            "rom_board": true,
+            "scsi": false,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "Electron_MOS"
+            },
+            "type": "Electron",
+            "disc_interface": "Plus 3",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "BASIC2"
+                },
+                {
+                    "standard_rom": "Plus1"
+                },
+                {
+                    "standard_rom": "Plus3ADFS"
+                },
+                null,
+                null
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        },
+        {
+            "adji": false,
+            "adji_dip_switches": 0,
+            "base_default_config_name": "",
+            "beeblink": false,
+            "ext_mem": false,
+            "extra_debugging_hardware": false,
+            "hard_disk_dat_paths": [
+                "D:\\temp\\beeb_.dat",
+                "",
+                "",
+                ""
+            ],
+            "mmfs_config": {
+                "debug": false,
+                "image_path": ""
+            },
+            "mmfs_enabled": false,
+            "mouse": false,
+            "name": "Electron/Plus 1/Plus 3/2nd processor",
+            "nvram_type": "Unknown",
+            "os_rom_type": "16KB",
+            "parasite_type": "External3MHz6502",
+            "rom_board": true,
+            "scsi": true,
+            "serial": false,
+            "video_nula": true,
+            "os": {
+                "standard_rom": "Electron_MOS"
+            },
+            "type": "Electron",
+            "disc_interface": "Plus 3",
+            "roms": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                {
+                    "standard_rom": "BASIC2"
+                },
+                {
+                    "standard_rom": "Plus1"
+                },
+                {
+                    "standard_rom": "Plus3ADFS"
+                },
+                null,
+                null
+            ],
+            "parasite_os_master_turbo": {
+                "standard_rom": "MasterTurboParasite"
+            },
+            "parasite_os_external_3MHz_65c02": {
+                "standard_rom": "TUBE110"
+            }
+        }
+    ],
+    "joysticks": {
+        "device_names": [
+            "XInput Controller",
+            "XInput Controller",
+            "XInput Controller"
+        ],
+        "swap_joysticks_when_shared": false
+    }
+}

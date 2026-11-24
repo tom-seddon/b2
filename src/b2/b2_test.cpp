@@ -364,6 +364,10 @@ class DearImGuiTest : public Test, public AppHandler {
                     // Though it doesn't really matter either way, as b2 only uses
                     // files immediately under the config folder.
                 } else {
+                    TestFailFnAdder fn_adder([&path](const TestFailArgs *) -> void {
+                        LOGF(TESTING, "path=\"%s\"\n", path.c_str());
+                    });
+
                     TEST_TRUE(PathDeleteFile(path));
                 }
             });
@@ -371,7 +375,12 @@ class DearImGuiTest : public Test, public AppHandler {
 
         int result = b2_main(this);
         if (this->IsHeadless()) {
-            TEST_TRUE(m_test_was_run);
+            if (result == 0) {
+                TEST_TRUE(m_test_was_run);
+            } else {
+                // In the failure case, the test may not have run. Just pass the
+                // result on.
+            }
         } else {
             // In interactive mode, the user is under no obligation to run the test.
         }
@@ -3444,84 +3453,6 @@ class TestNVRAMUpdate : public DearImGuiTest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//static void PRINTF_LIKE(3, 4) PrintLibUVError(Log *log, int rc, const char *fmt, ...) {
-//    va_list v;
-//
-//    va_start(v, fmt);
-//    log->v(fmt, v);
-//    va_end(v);
-//
-//    log->f(": %s (%s)\n", uv_strerror(rc), uv_err_name(rc));
-//}
-
-struct RerunState {
-    int64_t exit_status = -1;
-    int term_signal = -1;
-};
-
-static void HandleRerunExit(uv_process_t *process, int64_t exit_status, int term_signal) {
-    auto rerun_state = (RerunState *)process->data;
-
-    rerun_state->exit_status = exit_status;
-    rerun_state->term_signal = term_signal;
-}
-
-static void Rerun(const std::string &name) {
-    int rc;
-
-    std::vector<std::string> args;
-    args.push_back(PathGetEXEFileName());
-    args.push_back("-t");
-    args.push_back(name);
-
-    std::vector<char *> args2;
-    for (std::string &arg : args) {
-        args2.push_back(arg.data());
-    }
-    args2.push_back(nullptr);
-
-    std::vector<uv_stdio_container_t> stdios;
-    for (int i = 0; i < 3; ++i) {
-        uv_stdio_container_t stdio;
-        stdio.flags = UV_INHERIT_FD;
-        stdio.data.fd = i;
-        stdios.push_back(stdio);
-    }
-
-    RerunState rerun_state;
-
-    uv_loop_t loop{};
-    rc = uv_loop_init(&loop);
-    if (rc != 0) {
-        TEST_FAIL("uv_loop_init failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
-    }
-
-    uv_process_options_t options = {};
-    options.exit_cb = &HandleRerunExit;
-    options.file = args[0].c_str();
-    options.args = args2.data();
-    ASSERT(stdios.size() <= INT_MAX);
-    options.stdio_count = (int)stdios.size();
-    options.stdio = stdios.data();
-
-    uv_process_t subprocess = {};
-    subprocess.data = &rerun_state;
-    rc = uv_spawn(&loop, &subprocess, &options);
-    if (rc != 0) {
-        TEST_FAIL("uv_spawn failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
-    }
-
-    rc = uv_run(&loop, UV_RUN_DEFAULT);
-    if (rc != 0) {
-        TEST_FAIL("uv_run failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
-    }
-
-    uv_loop_close(&loop);
-
-    TEST_EQ_II(rerun_state.term_signal, 0);
-    TEST_EQ_II(rerun_state.exit_status, 0);
-}
-
 struct CompareJSONState {
     std::vector<std::variant<size_t, std::string>> path_parts;
 };
@@ -3606,23 +3537,45 @@ static void CompareJSON(const nlohmann::json &got, const nlohmann::json &wanted)
     CompareJSON2(got, wanted, &state);
 }
 
-// https://github.com/tom-seddon/b2/issues/627
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-static const std::string PRESERVE_CONFIG_JSON_TEST_NAME = "b2ui.preserve_config_json";
+// Test intended for running from another test as a subprocess. The naming for
+// this isn't awesome.
 
-// the helper test doesn't need to do anything apart from start b2, then have it quit, saving the updated config.
-class TestPreserveConfigJSONHelper : public DearImGuiTest {
+class RerunHelper : public DearImGuiTest {
   public:
+    explicit RerunHelper(bool should_clear_config_folder, std::string override_app_name, std::vector<std::string> args)
+        : m_should_clear_config_folder(should_clear_config_folder)
+        , m_override_app_name(std::move(override_app_name)) {
+        m_args = std::move(args);
+    }
+
+    static std::string GetFullName(bool should_clear_config_folder) {
+        return strprintf("helper.rerun.%s", BOOL_STR(should_clear_config_folder));
+    }
+
+    // just a helper...
     bool IsHidden() const override {
         return true;
     }
 
+    std::string GetFullName() const override {
+        return GetFullName(m_should_clear_config_folder);
+    }
+
+    bool ShouldClearConfigFolder() const override {
+        return m_should_clear_config_folder;
+    }
+
     bool GetConfigOverrideFolder(std::string *folder) const override {
-        return HandleGetConfigOverrideFolder(folder, PRESERVE_CONFIG_JSON_TEST_NAME);
+        TEST_FALSE(m_override_app_name.empty());
+        return HandleGetConfigOverrideFolder(folder, m_override_app_name);
     }
 
     bool GetCacheOverrideFolder(std::string *folder) const override {
-        return HandleGetCacheOverrideFolder(folder, PRESERVE_CONFIG_JSON_TEST_NAME);
+        TEST_FALSE(m_override_app_name.empty());
+        return HandleGetCacheOverrideFolder(folder, m_override_app_name);
     }
 
     void Run() override {
@@ -3631,32 +3584,137 @@ class TestPreserveConfigJSONHelper : public DearImGuiTest {
 
   protected:
   private:
+    bool m_should_clear_config_folder = false;
+    std::string m_override_app_name;
+    std::vector<std::string> m_argv;
 };
 
-class TestPreserveConfigJSONHelper1 : public TestPreserveConfigJSONHelper {
-  public:
-    std::string GetFullName() const override {
-        return "b2ui._preserve_config_json_1";
-    }
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-  protected:
-  private:
+//static void PRINTF_LIKE(3, 4) PrintLibUVError(Log *log, int rc, const char *fmt, ...) {
+//    va_list v;
+//
+//    va_start(v, fmt);
+//    log->v(fmt, v);
+//    va_end(v);
+//
+//    log->f(": %s (%s)\n", uv_strerror(rc), uv_err_name(rc));
+//}
+
+struct RerunState {
+    int64_t exit_status = -1;
+    int term_signal = -1;
 };
 
-class TestPreserveConfigJSONHelper2 : public TestPreserveConfigJSONHelper {
-  public:
-    std::string GetFullName() const override {
-        return "b2ui._preserve_config_json_2";
+static void HandleRerunExit(uv_process_t *process, int64_t exit_status, int term_signal) {
+    auto rerun_state = (RerunState *)process->data;
+
+    rerun_state->exit_status = exit_status;
+    rerun_state->term_signal = term_signal;
+}
+
+static void Rerun(bool should_clear_config_folder, const std::string &app_name, const std::vector<std::string> &b2_args) {
+    int rc;
+
+    std::vector<std::string> args;
+    args.push_back(PathGetEXEFileName());
+    args.push_back("-t");
+    args.push_back(RerunHelper::GetFullName(should_clear_config_folder));
+    args.push_back("--override-app-name=" + app_name);
+    for (const std::string &arg : b2_args) {
+        args.push_back("--b2-arg=" + arg);
     }
 
-    bool ShouldClearConfigFolder() const override {
-        // reuse the b2.json from the previous helper's run.
-        return false;
+    std::vector<char *> args2;
+    for (std::string &arg : args) {
+        args2.push_back(arg.data());
+    }
+    args2.push_back(nullptr);
+
+    LOGF(TESTING, "Rerun:\n   ");
+    for (const char *arg : args2) {
+        if (arg) {
+            LOGF(TESTING, " ");
+            if (strchr(arg, ' ')) {
+                LOGF(TESTING, "\"%s\"", arg);
+            } else {
+                LOGF(TESTING, "%s", arg);
+            }
+        }
+    }
+    LOGF(TESTING, "\n");
+
+    std::vector<uv_stdio_container_t> stdios;
+    for (int i = 0; i < 3; ++i) {
+        uv_stdio_container_t stdio;
+        stdio.flags = UV_INHERIT_FD;
+        stdio.data.fd = i;
+        stdios.push_back(stdio);
     }
 
-  protected:
-  private:
-};
+    RerunState rerun_state;
+
+    uv_loop_t loop{};
+    rc = uv_loop_init(&loop);
+    if (rc != 0) {
+        TEST_FAIL("uv_loop_init failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
+    }
+
+    uv_process_options_t options = {};
+    options.exit_cb = &HandleRerunExit;
+    options.file = args[0].c_str();
+    options.args = args2.data();
+    ASSERT(stdios.size() <= INT_MAX);
+    options.stdio_count = (int)stdios.size();
+    options.stdio = stdios.data();
+
+    uv_process_t subprocess = {};
+    subprocess.data = &rerun_state;
+    rc = uv_spawn(&loop, &subprocess, &options);
+    if (rc != 0) {
+        TEST_FAIL("uv_spawn failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
+    }
+
+    rc = uv_run(&loop, UV_RUN_DEFAULT);
+    if (rc != 0) {
+        TEST_FAIL("uv_run failed: %s (%d; %s)", uv_strerror(rc), rc, uv_err_name(rc));
+    }
+
+    uv_loop_close(&loop);
+
+    TEST_EQ_II(rerun_state.term_signal, 0);
+    TEST_EQ_II(rerun_state.exit_status, 0);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void BackupConfigFile(nlohmann::json *j_config_ptr, std::string *config_path_ptr, std::string *backup_config_path_ptr, const std::string &test_name) {
+    std::string config_folder;
+    TEST_TRUE(HandleGetConfigOverrideFolder(&config_folder, test_name));
+
+    std::string config_path = PathJoined(config_folder, "b2.json");
+    std::string backup_config_path = PathJoined(config_folder, "b2.old.json");
+
+    std::vector<uint8_t> b2_json_data;
+    TEST_TRUE(LoadFile(&b2_json_data, config_path, nullptr));
+    TEST_TRUE(SaveFile(b2_json_data, backup_config_path, nullptr));
+
+    if (config_path_ptr) {
+        *config_path_ptr = config_path;
+    }
+
+    if (backup_config_path_ptr) {
+        *backup_config_path_ptr = backup_config_path;
+    }
+
+    if (j_config_ptr) {
+        TEST_TRUE(LoadJSONFile(j_config_ptr, config_path, nullptr, 0));
+    }
+}
+
+// https://github.com/tom-seddon/b2/issues/627
 
 class TestPreserveConfigJSON : public Test {
   public:
@@ -3666,46 +3724,106 @@ class TestPreserveConfigJSON : public Test {
 
     void Run() override {
 
-        Rerun("b2ui._preserve_config_json_1");
+        Rerun(true, this->GetFullName(), {});
 
-        std::string config_folder;
-        TEST_TRUE(HandleGetConfigOverrideFolder(&config_folder, PRESERVE_CONFIG_JSON_TEST_NAME));
-        std::string b2_json_path = PathJoined(config_folder, "b2.json");
+        nlohmann::json j_config;
+        std::string config_path, backup_config_path;
+        BackupConfigFile(&j_config, &config_path, nullptr, this->GetFullName());
 
-        // Take a backup of the original config.
-        std::vector<uint8_t> b2_json_data;
-        TEST_TRUE(LoadFile(&b2_json_data, b2_json_path, nullptr));
-        TEST_TRUE(SaveFile(b2_json_data, PathJoined(config_folder, "b2.old.json"), nullptr));
+        //std::string config_folder;
+        //TEST_TRUE(HandleGetConfigOverrideFolder(&config_folder, this->GetFullName()));
+        //std::string b2_json_path = PathJoined(config_folder, "b2.json");
 
-        nlohmann::json config_j;
-        TEST_TRUE(LoadJSONFile2(&config_j, b2_json_path, nullptr, 0));
-        nlohmann::json old_config_j = config_j;
+        //// Take a backup of the original config.
+        //std::vector<uint8_t> b2_json_data;
+        //TEST_TRUE(LoadFile(&b2_json_data, b2_json_path, nullptr));
+        //TEST_TRUE(SaveFile(b2_json_data, PathJoined(config_folder, "b2.old.json"), nullptr));
+
+        nlohmann::json j_old_config = j_config;
 
         // Muck up one of the configs.
-        TEST_TRUE(config_j.is_object());
-        TEST_TRUE(config_j.contains("new_configs"));
-        TEST_TRUE(config_j["new_configs"].is_array());
-        TEST_FALSE(config_j["new_configs"].empty());
-        TEST_EQ_SS(config_j["new_configs"][0]["name"], "B/Acorn 1770");
-        TEST_EQ_SS(config_j["new_configs"][0]["type"], "B");
-        config_j["new_configs"][0]["type"] = "BadType";
+        TEST_TRUE(j_config.is_object());
+        TEST_TRUE(j_config.contains("new_configs"));
+        TEST_TRUE(j_config["new_configs"].is_array());
+        TEST_FALSE(j_config["new_configs"].empty());
+        TEST_EQ_SS(j_config["new_configs"][0]["name"], "B/Acorn 1770");
+        TEST_EQ_SS(j_config["new_configs"][0]["type"], "B");
+        j_config["new_configs"][0]["type"] = "BadType";
 
-        TEST_TRUE(SaveJSONFile(config_j, b2_json_path, nullptr));
+        TEST_TRUE(SaveJSONFile(j_config, config_path, nullptr));
 
         //CompareJSON(config_j,old_config_j);
 
-        nlohmann::json wanted_config_j = config_j;
+        nlohmann::json j_wanted_config = j_config;
 
-        Rerun("b2ui._preserve_config_json_2");
+        Rerun(false, this->GetFullName(), {});
 
-        nlohmann::json got_config_j;
-        TEST_TRUE(LoadJSONFile2(&got_config_j, b2_json_path, nullptr, 0));
+        nlohmann::json j_got_config;
+        TEST_TRUE(LoadJSONFile(&j_got_config, config_path, nullptr, 0));
 
-        CompareJSON(got_config_j, wanted_config_j);
+        CompareJSON(j_got_config, j_wanted_config);
     }
 
   protected:
   private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class TestPreserveConfigNoRapidJSON : public Test {
+  public:
+    TestPreserveConfigNoRapidJSON(std::string config_file_name, bool enable_load_rapidjson, bool enable_save_rapidjson)
+        : m_config_file_name(config_file_name)
+        , m_enable_load_rapidjson(enable_load_rapidjson)
+        , m_enable_save_rapidjson(enable_save_rapidjson) {
+    }
+
+    std::string GetFullName() const override {
+        // the "_" thing makes it a bit easier to use from CMakeLists.txt.
+        return strprintf("b2ui.preserve_config_no_rapidjson.%s.%s.%s",
+                         BOOL_STR(m_enable_load_rapidjson),
+                         BOOL_STR(m_enable_save_rapidjson),
+                         m_config_file_name.empty() ? "_" : m_config_file_name.c_str());
+    }
+
+    void Run() override {
+        if (m_config_file_name.empty()) {
+            // Run b2 to generate the first time config. Force rapidjson save/load in this case.
+            Rerun(true, this->GetFullName(), {"--enable-rapidjson-load", "--enable-rapidjson-save"});
+        } else {
+            // Copy the existing config file.
+            std::string config_folder;
+            TEST_TRUE(HandleGetConfigOverrideFolder(&config_folder, this->GetFullName()));
+
+            std::string config_file_path = PathJoined(b2_SOURCE_DIR, "etc/tests/config", m_config_file_name);
+
+            std::vector<uint8_t> data;
+            TEST_TRUE(LoadFile(&data, config_file_path, nullptr));
+            TEST_TRUE(SaveFile(data, PathJoined(config_folder, "b2.json"), nullptr, SaveFlag_CreateFolder));
+        }
+
+        nlohmann::json j_wanted_config;
+        std::string config_path, backup_config_path;
+        BackupConfigFile(&j_wanted_config, &config_path, nullptr, this->GetFullName());
+
+        Rerun(false, this->GetFullName(), {GetEnableArg(m_enable_load_rapidjson, "rapidjson-load"), GetEnableArg(m_enable_save_rapidjson, "rapidjson-save")});
+
+        nlohmann::json j_got_config;
+        TEST_TRUE(LoadJSONFile(&j_got_config, config_path, nullptr, 0));
+
+        CompareJSON(j_got_config, j_wanted_config);
+    }
+
+  protected:
+  private:
+    std::string m_config_file_name;
+    bool m_enable_load_rapidjson = true;
+    bool m_enable_save_rapidjson = true;
+
+    static const std::string GetEnableArg(bool enable, std::string flag) {
+        return std::string("--") + (enable ? "enable" : "disable") + "-" + flag;
+    }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -3728,6 +3846,9 @@ struct TestOptions {
 
     // Or should this actually be default true?
     bool doc_images_clean = false;
+
+    // The override app name, if any, for use by any tests that might need it.
+    std::string override_app_name;
 };
 
 static TestOptions GetOptions(int argc, char *argv[]) {
@@ -3747,7 +3868,7 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     p.AddOption('l', "list-for-check_ctest_log").SetIfPresent(&options.list_for_check_ctest_log).Help("list all test names, formatted for the benefit of check_ctest_log");
     p.AddOption("wip").SetIfPresent(&options.wip).Help("include WIP tests that aren't finished or passing yet");
     p.AddOption('b', "b2").SetIfPresent(&options.b2).Help("pretend to be ordinary b2, with Dear ImGui Test Engine enabled. Tests will be available - run at own risk");
-    p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv");
+    p.AddOption('B', "b2-arg").AddArgToList(&options.b2_argv).Help("add a string, verbatim, to the b2 argv (may apply to certain tests too)");
     p.AddOption("interactive").SetIfPresent(&options.interactive).Help("if running a single Dear ImGui Test Engine test, run UI in interactive mode");
 
     // This oddity exists because b2_test happens to have all the infrastructure
@@ -3766,6 +3887,8 @@ static TestOptions GetOptions(int argc, char *argv[]) {
     // Intended for use when adding new tests, in conjunction with -T, on the
     // basis that the last one added is the most likely to fail.
     p.AddOption(0, "reverse").SetIfPresent(&options.reverse).Help("work through the test list in reverse order");
+
+    p.AddOption("override-app-name").Arg(&options.override_app_name).Meta("NAME").Help("use NAME as app name for forming config/cache paths (applies to certain tests only)");
 
     if (!p.Parse(argc, argv)) {
         exit(1);
@@ -3914,9 +4037,18 @@ int main(int argc, char *argv[]) {
 
     all_tests.push_back(std::make_unique<TestHTTPPeek>());
 
+    all_tests.push_back(std::make_unique<RerunHelper>(false, options.override_app_name, options.b2_argv));
+    all_tests.push_back(std::make_unique<RerunHelper>(true, options.override_app_name, options.b2_argv));
+
     all_tests.push_back(std::make_unique<TestPreserveConfigJSON>());
-    all_tests.push_back(std::make_unique<TestPreserveConfigJSONHelper1>());
-    all_tests.push_back(std::make_unique<TestPreserveConfigJSONHelper2>());
+
+    for (bool enable_rapidjson_load : {false, true}) {
+        for (bool enable_rapidjson_save : {false, true}) {
+            for (const std::string &file_name : {"", "b2.20261123.json"}) {
+                all_tests.push_back(std::make_unique<TestPreserveConfigNoRapidJSON>(file_name, enable_rapidjson_load, enable_rapidjson_save));
+            }
+        }
+    }
 
     all_tests.push_back(std::make_unique<TestHTTPMissingArgs>());
     all_tests.push_back(std::make_unique<TestHTTPPresentArgs>());

@@ -280,6 +280,10 @@ struct BeebWindowInitArguments {
 
     // The AppHandler to use.
     AppHandler *app_handler = nullptr;
+
+#if ENABLE_RAPIDJSON
+    bool enable_rapidjson_save = DEFAULT_ENABLE_RAPIDJSON_SAVE;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

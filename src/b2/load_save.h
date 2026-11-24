@@ -78,8 +78,8 @@ bool GetDataFromHexString(std::vector<uint8_t> *data, const std::string &str);
 
 // std::string SaveGlobalConfig();
 
-bool LoadGlobalConfig(Messages *messages);
-bool SaveGlobalConfig(Messages *messages);
+bool LoadGlobalConfig(bool use_rapidjson, Messages *messages);
+bool SaveGlobalConfig(bool use_rapidjson, Messages *messages);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

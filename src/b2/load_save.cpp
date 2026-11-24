@@ -466,15 +466,15 @@ bool GetDataFromHexString(std::vector<uint8_t> *data, const std::string &str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadGlobalConfig(Messages *messages) {
-    bool good = LoadGlobalConfigRapidJSON(messages);
+bool LoadGlobalConfig(bool use_rapidjson, Messages *messages) {
+    bool good = LoadGlobalConfigRapidJSON(use_rapidjson, messages);
     return good;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SaveGlobalConfig(Messages *messages) {
-    bool good = SaveGlobalConfigRapidJSON(messages);
+bool SaveGlobalConfig(bool use_rapidjson, Messages *messages) {
+    bool good = SaveGlobalConfigRapidJSON(use_rapidjson, messages);
     return good;
 }

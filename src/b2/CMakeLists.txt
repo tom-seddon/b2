@@ -516,6 +516,15 @@ endforeach()
 
 add_b2_test_literal_category(b2.http.peek)
 add_b2_test_literal_category(b2ui.preserve_config_json)
+
+foreach(CONFIG _ b2.20261123.json)
+  foreach(ENABLE_RAPIDJSON_LOAD false true)
+    foreach(ENABLE_RAPIDJSON_SAVE false true)
+      add_b2_test_literal_category(b2ui.preserve_config_no_rapidjson.${ENABLE_RAPIDJSON_LOAD}.${ENABLE_RAPIDJSON_SAVE}.${CONFIG})
+    endforeach()
+  endforeach()
+endforeach()
+
 add_b2_test_literal_category(b2.http.missing_args)
 add_b2_test_literal_category(b2.http.present_args)
 

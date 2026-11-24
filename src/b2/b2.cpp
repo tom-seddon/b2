@@ -903,6 +903,11 @@ struct Options {
     bool fail_startup_late = false;
     bool fail_startup_early = false;
 #endif
+
+#if ENABLE_RAPIDJSON
+    bool enable_rapidjson_load = DEFAULT_ENABLE_RAPIDJSON_LOAD;
+    bool enable_rapidjson_save = DEFAULT_ENABLE_RAPIDJSON_SAVE;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1025,6 +1030,13 @@ static bool ParseCommandLineOptions(
 #if ENABLE_FAIL_STARTUP
     p.AddOption("fail-startup-early").SetIfPresent(&options->fail_startup_early).Help("fail the startup process at an early stage, even if it actually succeeded. Use this to test the failure UI");
     p.AddOption("fail-startup-late").SetIfPresent(&options->fail_startup_late).Help("fail the startup process at a late stage, even if it actually succeeded. Use this to test the failure UI");
+#endif
+
+#if ENABLE_RAPIDJSON
+    p.AddOption("enable-rapidjson-load").SetIfPresent(&options->enable_rapidjson_load).Help("use RapidJSON when loading config").ShowDefault();
+    p.AddOption("disable-rapidjson-load").ResetIfPresent(&options->enable_rapidjson_load).Help("don't use RapidJSON when loading config").ShowDefault();
+    p.AddOption("enable-rapidjson-save").SetIfPresent(&options->enable_rapidjson_save).Help("use RapidJSON when saving config").ShowDefault();
+    p.AddOption("disable-rapidjson-save").ResetIfPresent(&options->enable_rapidjson_save).Help("don't use RapidJSON when savingconfig").ShowDefault();
 #endif
 
     if (!p.Parse(argv)) {
@@ -1864,7 +1876,7 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
 
         SDL_PauseAudioDevice(audio_device, 0);
 
-        if (!LoadGlobalConfig(&init_messages)) {
+        if (!LoadGlobalConfig(options.enable_rapidjson_load, &init_messages)) {
             return EXIT_FAILURE;
         }
 
@@ -1973,6 +1985,10 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
 
             ia.limit_speed = options.limit_speed;
             ia.app_handler = app_handler;
+
+#if ENABLE_RAPIDJSON
+            ia.enable_rapidjson_save = options.enable_rapidjson_save;
+#endif
 
             //#ifdef IMGUI_ENABLE_TEST_ENGINE
             //            ia.imgui_enable_test_engine = options.imgui_enable_test_engine;
@@ -2229,7 +2245,7 @@ static int main2(AppHandler *app_handler, const std::shared_ptr<MessageList> &in
     done:;
         ; //<-- fix Visual Studio autoformat bug
 
-        SaveGlobalConfig(&init_messages);
+        SaveGlobalConfig(ia.enable_rapidjson_save, &init_messages);
 
         SDL_PauseAudioDevice(audio_device, 1);
 

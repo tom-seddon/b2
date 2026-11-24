@@ -4931,7 +4931,7 @@ BBCMicroHaltReason BeebWindow::DebugGetHaltReason() const {
 void BeebWindow::SaveConfig() {
     this->SaveSettings();
 
-    SaveGlobalConfig(&m_msg);
+    SaveGlobalConfig(m_init_arguments.enable_rapidjson_save, &m_msg);
 
     m_msg.i.f("Configuration saved.\n");
 }
