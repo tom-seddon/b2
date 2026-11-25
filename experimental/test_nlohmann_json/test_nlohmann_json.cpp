@@ -563,6 +563,7 @@ static void TestMayDeserializeNumbers() {
 
         try {
             MayDeserializeNumbersTest1 tmp2 = j_tmp.get<MayDeserializeNumbersTest1>();
+            (void)tmp2;
             TEST_FAIL("deserialized invalid data");
         } catch (const nlohmann::json::exception &exc) {
             TEST_EQ_II(exc.id, 302); //though, 302 could mean approximately anything...

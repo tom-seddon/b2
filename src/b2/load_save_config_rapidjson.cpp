@@ -1947,7 +1947,7 @@ static bool LoadJoysticks(const nlohmann::json &j_joysticks, Messages *msg) {
 
     std::string exc_what;
     if (!LoadJSON(&joysticks, j_joysticks, &exc_what)) {
-        msg->e.f("%s: %s\n", JOYSTICKS);
+        msg->e.f("%s: %s\n", exc_what.c_str(), JOYSTICKS);
         return false;
     }
 
@@ -2078,7 +2078,7 @@ static bool LoadBeebLink(const nlohmann::json &j_beeblink, Messages *msg) {
 
     std::string exc_what;
     if (!LoadJSON(&beeblink, j_beeblink, &exc_what)) {
-        msg->e.f("%s: %s\n", exc_what.c_str(), BEEBLINK, URLS);
+        msg->e.f("%s: %s\n", exc_what.c_str(), BEEBLINK);
         return false;
     }
 

@@ -4055,7 +4055,7 @@ int main(int argc, char *argv[]) {
 
     for (bool enable_rapidjson_load : {false, true}) {
         for (bool enable_rapidjson_save : {false, true}) {
-            for (const std::string &file_name : {"", "b2.20261123.json"}) {
+            for (std::string file_name : {"", "b2.20261123.json"}) {
                 all_tests.push_back(std::make_unique<TestPreserveConfigNoRapidJSON>(file_name, enable_rapidjson_load, enable_rapidjson_save));
             }
         }
