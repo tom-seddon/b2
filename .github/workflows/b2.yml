@@ -71,18 +71,6 @@ jobs:
       - run: make github_ci_windows UPLOAD=1
         env:
           GH_TOKEN: ${{ github.token }}
-
-  build-macos-x64:
-    runs-on: macos-15-intel
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - run: make github_ci_macos_homebrew
-      - run: make github_ci_macos_homebrew_ffmpeg
-      - run: make github_ci_macos_x64
-        env:
-          GH_TOKEN: ${{ github.token }}
           
   build-older-macos-x64:
     runs-on: macos-15-intel

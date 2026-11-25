@@ -9,11 +9,8 @@ https://github.com/tom-seddon/b2/releases/latest
 If using macOS 13 (Ventura) or later on Apple Silicon, download the
 `b2-macos-13.0-applesilicon-XXX.dmg` file.
 
-If using macOS 12 (Monterey) or later, download the
-`b2-macos-12.0-intel-XXX.dmg` file.
-
 If using OS X 10.9 (Mavericks) or later, download the
-`b2-macos-10.9-intel-XXX.pmg` file. The 10.9 version does not support
+`b2-macos-10.9-intel-XXX.pmg` file. This version does not support
 writing compressed videos, but is otherwise fully-featured.
 
 You don't need to download any of the other files; the dmg contains
