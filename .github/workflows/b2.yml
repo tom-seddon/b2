@@ -59,7 +59,6 @@ jobs:
         with:
           submodules: recursive
       - run: make github_ci_windows UPLOAD=1
-        shell: cmd
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -70,9 +69,7 @@ jobs:
         with:
           submodules: recursive
       - run: make -f "bin/install_windows_arm_prerequisites.mak"
-        shell: cmd
       - run: make github_ci_windows UPLOAD=1
-        shell: cmd
         env:
           GH_TOKEN: ${{ github.token }}
           

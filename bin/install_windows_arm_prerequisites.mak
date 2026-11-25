@@ -1,3 +1,5 @@
+SHELL:=$(windir)\system32\cmd.exe
+
 # Work around for this one, I think: https://github.com/actions/runner-images/issues/9873
 
 # See, e.g., https://github.com/mhammond/pywin32/blob/main/.github/workflows/install-vs-components.py
