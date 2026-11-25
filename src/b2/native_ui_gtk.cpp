@@ -33,7 +33,11 @@ bool LoadSelectorDialogPersistentDataGTK(const nlohmann::json &j, std::string *e
 }
 
 nlohmann::json SaveSelectorDialogPersistentDataGTK() {
-    return g_persistent_file_dialog_data_by_guid;
+    if (g_persistent_file_dialog_data_by_guid.empty()) {
+        return {};
+    } else {
+        return g_persistent_file_dialog_data_by_guid;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
