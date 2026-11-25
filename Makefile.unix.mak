@@ -35,23 +35,23 @@ tom_emacs:
 # Don't bother doing clang+no ffmpeg. Any serious issues will be
 # caught by the gcc version. Hopefully.
 .PHONY:github_ci-ubuntu-clang-no_ffmpeg
-github_ci-ubuntu-clang-ffmpeg: export CC=clang-18
-github_ci-ubuntu-clang-ffmpeg: export CXX=clang++-18
+github_ci-ubuntu-clang-ffmpeg: export CC=clang
+github_ci-ubuntu-clang-ffmpeg: export CXX=clang++
 github_ci-ubuntu-clang-ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
 	$(MAKE) _github_ci_ubuntu_install_ffmpeg
 	$(MAKE) _github_ci_ubuntu_release
 
 .PHONY:github_ci-ubuntu-gcc-no_ffmpeg
-github_ci-ubuntu-gcc-no_ffmpeg: export CC=gcc-14
-github_ci-ubuntu-gcc-no_ffmpeg: export CXX=g++-14
+github_ci-ubuntu-gcc-no_ffmpeg: export CC=gcc
+github_ci-ubuntu-gcc-no_ffmpeg: export CXX=g++
 github_ci-ubuntu-gcc-no_ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
 	$(MAKE) _github_ci_ubuntu_release
 
 .PHONY:github_ci-ubuntu-gcc-ffmpeg
-github_ci-ubuntu-gcc-ffmpeg: export CC=gcc-14
-github_ci-ubuntu-gcc-ffmpeg: export CXX=g++-14
+github_ci-ubuntu-gcc-ffmpeg: export CC=gcc
+github_ci-ubuntu-gcc-ffmpeg: export CXX=g++
 github_ci-ubuntu-gcc-ffmpeg:
 	$(MAKE) _github_ci_ubuntu_start
 	$(MAKE) _github_ci_ubuntu_install_ffmpeg
