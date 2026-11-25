@@ -530,6 +530,49 @@ static void TestStdOptional() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct MayDeserializeNumbersTest1 {
+    Enum<MayDeserializeNumbers1> value{};
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MayDeserializeNumbersTest1, value);
+
+struct MayDeserializeNumbersTest2 {
+    int value = 0;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MayDeserializeNumbersTest2, value);
+
+static void TestMayDeserializeNumbers() {
+    {
+        MayDeserializeNumbersTest2 tmp;
+        tmp.value = 1;
+
+        nlohmann::json j_tmp = tmp;
+
+        try {
+            MayDeserializeNumbersTest1 tmp2 = j_tmp.get<MayDeserializeNumbersTest1>();
+            TEST_EQ_II(tmp2.value, MayDeserializeNumbers1_Value1);
+        } catch (const nlohmann::json::exception &exc) {
+            TEST_FAIL("exception: %s", exc.what());
+        }
+    }
+
+    {
+        MayDeserializeNumbersTest2 tmp;
+        tmp.value = 2;
+
+        nlohmann::json j_tmp = tmp;
+
+        try {
+            MayDeserializeNumbersTest1 tmp2 = j_tmp.get<MayDeserializeNumbersTest1>();
+            TEST_FAIL("deserialized invalid data");
+        } catch (const nlohmann::json::exception &exc) {
+            TEST_EQ_II(exc.id, 302); //though, 302 could mean approximately anything...
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char *argv[]) {
     (void)argc, (void)argv;
 
@@ -633,6 +676,8 @@ int main(int argc, char *argv[]) {
     TestString();
 
     TestStdOptional();
+
+    TestMayDeserializeNumbers();
 
     return 0;
 }

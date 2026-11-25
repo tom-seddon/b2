@@ -3455,6 +3455,8 @@ class TestNVRAMUpdate : public DearImGuiTest {
 
 struct CompareJSONState {
     std::vector<std::variant<size_t, std::string>> path_parts;
+    const std::string *got_path = nullptr;
+    const std::string *wanted_path = nullptr;
 };
 
 static void CompareJSON2(const nlohmann::json &got,
@@ -3511,9 +3513,11 @@ static void CompareJSON2(const nlohmann::json &got,
     }
 }
 
-static void CompareJSON(const nlohmann::json &got, const nlohmann::json &wanted) {
+static void CompareJSON(const nlohmann::json &got, const std::string &got_path, const nlohmann::json &wanted, const std::string &wanted_path) {
     CompareJSONState state;
     state.path_parts.push_back("$");
+    state.got_path = &got_path;
+    state.wanted_path = &wanted_path;
 
     TestFailFnAdder adder([&state](const TestFailArgs *args) -> void {
         (void)args;
@@ -3531,6 +3535,13 @@ static void CompareJSON(const nlohmann::json &got, const nlohmann::json &wanted)
             }
         }
 
+        if (state.got_path) {
+            LOGF(TESTING, "   Got file: %s\n", PathGetPasteFriendly(*state.got_path).c_str());
+        }
+
+        if (state.wanted_path) {
+            LOGF(TESTING, "Wanted file: %s\n", PathGetPasteFriendly(*state.wanted_path).c_str());
+        }
         LOGF(TESTING, "Path: %s\n", path.c_str());
     });
 
@@ -3761,7 +3772,7 @@ class TestPreserveConfigJSON : public Test {
         nlohmann::json j_got_config;
         TEST_TRUE(LoadJSONFile(&j_got_config, config_path, nullptr, 0));
 
-        CompareJSON(j_got_config, j_wanted_config);
+        CompareJSON(j_got_config, config_path, j_wanted_config, backup_config_path);
     }
 
   protected:
@@ -3805,14 +3816,14 @@ class TestPreserveConfigNoRapidJSON : public Test {
 
         nlohmann::json j_wanted_config;
         std::string config_path, backup_config_path;
-        BackupConfigFile(&j_wanted_config, &config_path, nullptr, this->GetFullName());
+        BackupConfigFile(&j_wanted_config, &config_path, &backup_config_path, this->GetFullName());
 
         Rerun(false, this->GetFullName(), {GetEnableArg(m_enable_load_rapidjson, "rapidjson-load"), GetEnableArg(m_enable_save_rapidjson, "rapidjson-save")});
 
         nlohmann::json j_got_config;
         TEST_TRUE(LoadJSONFile(&j_got_config, config_path, nullptr, 0));
 
-        CompareJSON(j_got_config, j_wanted_config);
+        CompareJSON(j_got_config, config_path, j_wanted_config, backup_config_path);
     }
 
   protected:

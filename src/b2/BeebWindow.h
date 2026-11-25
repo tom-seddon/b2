@@ -165,7 +165,7 @@ struct BeebWindowSettings {
 
     nlohmann::json popup_persistent_data[BeebWindowPopupType_MaxValue]; //json:annoying one-off data type
 
-    DebuggerSyntax debugger_syntax{DebuggerSyntax_BBCBASIC};
+    Enum<DebuggerSyntax> debugger_syntax{DebuggerSyntax_BBCBASIC};
     bool debugger_show_mmio = false;
 
     nlohmann::json symbol_table_data;

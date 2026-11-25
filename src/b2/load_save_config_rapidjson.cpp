@@ -153,6 +153,18 @@ static bool FindBoolMember(bool *value, rapidjson::Value *object, const char *ke
 //////////////////////////////////////////////////////////////////////////
 
 template <class T>
+static nlohmann::json SaveEnum(Enum<T> value) {
+    static_assert(EnumTraits<T>::IS_SERIALIZABLE);
+    const char *name = (*EnumTraits<T>::GET_NAME_FN)(value);
+    if (name[0] != '?') {
+        return name;
+    } else {
+        // Have to save something...
+        return "?";
+    }
+}
+
+template <class T>
 static void SaveEnum(JSONWriter<StringStream> *writer, Enum<T> value) {
     static_assert(EnumTraits<T>::IS_SERIALIZABLE);
     const char *name = (*EnumTraits<T>::GET_NAME_FN)(value);
@@ -496,15 +508,23 @@ static bool LoadKeycodeFromObject(uint32_t *keycode, const nlohmann::json &j_key
         return false;
     }
 
-    const std::string *keycode_name;
-    if (!GetValuePtr(&keycode_name, j_keycode, KEYCODE)) {
+    const nlohmann::json *j_keycode_name = GetValue(j_keycode, KEYCODE);
+    if (!j_keycode_name) {
         *keycode = 0;
         return true;
     }
 
-    *keycode = (uint32_t)SDL_GetKeyFromName(keycode_name->c_str());
-    if (*keycode == 0) {
-        msg->w.f("unknown keycode: %s\n", keycode_name->c_str());
+    if (j_keycode_name->is_number()) {
+        *keycode = j_keycode_name->get<uint32_t>();
+    } else if (j_keycode_name->is_string()) {
+        const std::string *keycode_name = j_keycode_name->get_ptr<const std::string *>();
+        *keycode = (uint32_t)SDL_GetKeyFromName(keycode_name->c_str());
+        if (*keycode == 0) {
+            msg->w.f("unknown keycode: %s\n", keycode_name->c_str());
+            return false;
+        }
+    } else {
+        msg->w.f("keycode not number/string\n");
         return false;
     }
 
@@ -555,6 +575,28 @@ static bool LoadKeycodeFromObject(uint32_t *keycode, rapidjson::Value *keycode_j
     }
 
     return true;
+}
+
+static nlohmann::json SaveKeycodeObject(uint32_t keycode) {
+    nlohmann::json j_keycode = nlohmann::json::object();
+
+    if ((keycode & ~PCKeyModifier_All) != 0) {
+        for (uint32_t mask = PCKeyModifier_Begin; mask != PCKeyModifier_End; mask <<= 1) {
+            if (keycode & mask) {
+                j_keycode[GetPCKeyModifierEnumName(mask)] = true;
+            }
+        }
+
+        uint32_t sdl_keycode = keycode & ~PCKeyModifier_All;
+        const char *keycode_name = SDL_GetKeyName((SDL_Keycode)sdl_keycode);
+        if (strlen(keycode_name) == 0) {
+            j_keycode[KEYCODE] = (int64_t)sdl_keycode;
+        } else {
+            j_keycode[KEYCODE] = keycode_name;
+        }
+    }
+
+    return j_keycode;
 }
 
 static void SaveKeycodeObject(JSONWriter<StringStream> *writer, uint32_t keycode) {
@@ -632,6 +674,10 @@ static bool LoadGlobals(rapidjson::Value *globals,
     LoadJSON(&g_global_settings, j, nullptr);
 
     return true;
+}
+
+static nlohmann::json SaveGlobals() {
+    return g_global_settings;
 }
 
 static void SaveGlobals(JSONWriter<StringStream> *writer) {
@@ -741,6 +787,24 @@ static bool LoadRecentPaths(rapidjson::Value *recent_paths,
     return true;
 }
 
+static nlohmann::json SaveRecentPaths() {
+    nlohmann::json j_recent_paths = nlohmann::json::object();
+
+    const std::vector<RecentPaths *> *all_paths = GetAllRecentPaths();
+
+    for (const RecentPaths *paths : *all_paths) {
+        if (paths->GetNumPaths() > 0) {
+            RecentPathsJSON recent_paths;
+
+            recent_paths.paths = paths->GetPaths();
+
+            j_recent_paths[paths->name] = recent_paths;
+        }
+    }
+
+    return j_recent_paths;
+}
+
 static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
     auto recent_paths_json = ObjectWriter(writer, RECENT_PATHS);
 
@@ -786,29 +850,37 @@ static void SaveSelectorDialogPersistentData(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct KeymapJSON {
+    std::string name;
+    bool keysyms = false;
+    bool prefer_shortcuts = false;
+    bool show_bbc_keyboard_ui = true;
+    bool show_master_keyboard_ui = true;
+    bool show_compact_keyboard_ui = true;
+    bool show_electron_keyboard_ui = true;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(KeymapJSON, name, keysyms, prefer_shortcuts, show_bbc_keyboard_ui, show_master_keyboard_ui, show_compact_keyboard_ui, show_electron_keyboard_ui);
+
 static bool LoadKeymaps(const nlohmann::json &j_keymaps, const char *keymaps_name, Messages *msg) {
     if (!j_keymaps.is_array()) {
         msg->e.f("not an array: %s\n", keymaps_name);
         return false;
     }
 
+    std::string exc_what;
+
     for (size_t keymap_idx = 0; keymap_idx < j_keymaps.size(); ++keymap_idx) {
         const nlohmann::json &j_keymap = j_keymaps[keymap_idx];
 
-        if (!j_keymap.is_object()) {
-            msg->e.f("not an object: %s[%zu]\n", keymaps_name, keymap_idx);
-            continue;
-        }
-
-        const std::string *keymap_name;
-        if (!GetValuePtr(&keymap_name, j_keymap, NAME)) {
-            msg->e.f("not a string: %s[%zu].%s\n", keymap_name, keymap_idx, KEYS);
+        KeymapJSON keymap_partial;
+        if (!LoadJSON(&keymap_partial, j_keymap, &exc_what)) {
+            msg->e.f("%s: %s[%zu]\n", exc_what.c_str(), keymaps_name, keymap_idx);
             continue;
         }
 
         const nlohmann::json *j_keys = GetValue(j_keymap, KEYS);
         if (!j_keys) {
-            msg->e.f("not found: %s[%zu].%s\n", keymap_name, keymap_idx, KEYS);
+            msg->e.f("not found: %s[%zu].%s\n", keymap_partial.name.c_str(), keymap_idx, KEYS);
             continue;
         }
 
@@ -817,14 +889,8 @@ static bool LoadKeymaps(const nlohmann::json &j_keymaps, const char *keymaps_nam
             continue;
         }
 
-        bool keysyms;
-        if (!GetValue(&keysyms, j_keymap, KEYSYMS)) {
-            msg->e.f("not a bool: %s[%zu].%s\n", keymap_name, keymap_idx, KEYSYMS);
-            continue;
-        }
-
-        BeebKeymap keymap(*keymap_name, keysyms);
-        if (keysyms) {
+        BeebKeymap keymap(keymap_partial.name, keymap_partial.keysyms);
+        if (keymap_partial.keysyms) {
             for (nlohmann::json::const_iterator keys_it = j_keys->begin(); keys_it != j_keys->end(); ++keys_it) {
                 const std::string &beeb_sym_name = keys_it.key();
                 BeebKeySym beeb_sym = GetBeebKeySymByName(beeb_sym_name.c_str());
@@ -835,13 +901,13 @@ static bool LoadKeymaps(const nlohmann::json &j_keymaps, const char *keymaps_nam
 
                 const nlohmann::json &value = keys_it.value();
                 if (!value.is_array()) {
-                    msg->e.f("not an array: %s.%s.%s.%s\n", keymaps_name, keymap_name->c_str(), KEYS, beeb_sym_name.c_str());
+                    msg->e.f("not an array: %s.%s.%s.%s\n", keymaps_name, keymap_partial.name.c_str(), KEYS, beeb_sym_name.c_str());
                     continue;
                 }
 
                 for (size_t i = 0; i < value.size(); ++i) {
                     uint32_t keycode;
-                    if (!LoadKeycodeFromObject(&keycode, value[i], msg, "%s.%s.%s[%zu]", keymaps_name, keymap_name->c_str(), KEYS, beeb_sym_name.c_str(), i)) {
+                    if (!LoadKeycodeFromObject(&keycode, value[i], msg, "%s.%s.%s[%zu]", keymaps_name, keymap_partial.name.c_str(), KEYS, beeb_sym_name.c_str(), i)) {
                         continue;
                     }
 
@@ -861,7 +927,7 @@ static bool LoadKeymaps(const nlohmann::json &j_keymaps, const char *keymaps_nam
                 const nlohmann::json &value = keys_it.value();
 
                 if (!value.is_array()) {
-                    msg->e.f("not an array: %s.%s.keys.%s\n", KEYS, keymap_name->c_str(), beeb_key_name.c_str());
+                    msg->e.f("not an array: %s.%s.keys.%s\n", KEYS, keymap_partial.name.c_str(), beeb_key_name.c_str());
                     continue;
                 }
 
@@ -880,22 +946,18 @@ static bool LoadKeymaps(const nlohmann::json &j_keymaps, const char *keymaps_nam
                             keymap.SetMapping(scancode, (int8_t)beeb_key, true);
                         }
                     } else {
-                        msg->e.f("not number/string: %s.%s.keys.%s[%zu]\n", keymaps_name, keymap_name->c_str(), beeb_key_name.c_str(), i);
+                        msg->e.f("not number/string: %s.%s.keys.%s[%zu]\n", keymaps_name, keymap_partial.name.c_str(), beeb_key_name.c_str(), i);
                         continue;
                     }
                 }
             }
         }
 
-        bool prefer_shortcuts;
-        if (GetValue(&prefer_shortcuts, j_keymap, PREFER_SHORTCUTS)) {
-            keymap.SetPreferShortcuts(prefer_shortcuts);
-        }
-
-        GetValue(&keymap.show_bbc_keyboard_ui, j_keymap, SHOW_BBC_KEYBOARD_UI);
-        GetValue(&keymap.show_master_keyboard_ui, j_keymap, SHOW_MASTER_KEYBOARD_UI);
-        GetValue(&keymap.show_compact_keyboard_ui, j_keymap, SHOW_COMPACT_KEYBOARD_UI);
-        GetValue(&keymap.show_electron_keyboard_ui, j_keymap, SHOW_ELECTRON_KEYBOARD_UI);
+        keymap.SetPreferShortcuts(keymap_partial.prefer_shortcuts);
+        keymap.show_bbc_keyboard_ui = keymap_partial.show_bbc_keyboard_ui;
+        keymap.show_master_keyboard_ui = keymap_partial.show_master_keyboard_ui;
+        keymap.show_compact_keyboard_ui = keymap_partial.show_compact_keyboard_ui;
+        keymap.show_electron_keyboard_ui = keymap_partial.show_electron_keyboard_ui;
 
         BeebWindows::AddBeebKeymap(std::move(keymap));
     }
@@ -1010,6 +1072,72 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json, const char *keymaps_name
     }
 
     return true;
+}
+
+static nlohmann::json SaveKeymaps() {
+    nlohmann::json j_keymaps = nlohmann::json::array();
+
+    for (size_t i = 0; i < BeebWindows::GetNumBeebKeymaps(); ++i) {
+        const BeebKeymap *keymap = BeebWindows::GetBeebKeymapByIndex(i);
+
+        KeymapJSON keymap_partial;
+        keymap_partial.name = keymap->GetName();
+        keymap_partial.keysyms = keymap->IsKeySymMap();
+        keymap_partial.prefer_shortcuts = keymap->GetPreferShortcuts();
+        keymap_partial.show_bbc_keyboard_ui = keymap->show_bbc_keyboard_ui;
+        keymap_partial.show_master_keyboard_ui = keymap->show_master_keyboard_ui;
+        keymap_partial.show_compact_keyboard_ui = keymap->show_compact_keyboard_ui;
+        keymap_partial.show_electron_keyboard_ui = keymap->show_electron_keyboard_ui;
+
+        nlohmann::json j_keymap = keymap_partial;
+
+        nlohmann::json *j_keymap_keys = &(j_keymap[KEYS] = nlohmann::json::object());
+
+        if (keymap->IsKeySymMap()) {
+            for (int beeb_sym = 0; beeb_sym < 128; ++beeb_sym) {
+                const char *beeb_sym_name = GetBeebKeySymName((BeebKeySym)beeb_sym);
+                if (!beeb_sym_name) {
+                    continue;
+                }
+
+                const uint32_t *keycodes = keymap->GetPCKeysForValue((int8_t)beeb_sym);
+                if (!keycodes) {
+                    continue;
+                }
+
+                nlohmann::json *j_keycodes = &((*j_keymap_keys)[beeb_sym_name] = nlohmann::json::array());
+                for (const uint32_t *keycode = keycodes; *keycode != 0; ++keycode) {
+                    j_keycodes->push_back(SaveKeycodeObject(*keycode));
+                }
+            }
+        } else {
+            for (int beeb_key = 0; beeb_key < 128; ++beeb_key) {
+                const char *beeb_key_name = GetBeebKeyName((BeebKey)beeb_key);
+                if (!beeb_key_name) {
+                    continue;
+                }
+
+                const uint32_t *pc_keys = keymap->GetPCKeysForValue((int8_t)beeb_key);
+                if (!pc_keys) {
+                    continue;
+                }
+
+                nlohmann::json *j_keycodes = &((*j_keymap_keys)[beeb_key_name] = nlohmann::json::array());
+                for (const uint32_t *scancode = pc_keys; *scancode != 0; ++scancode) {
+                    const char *scancode_name = SDL_GetScancodeName((SDL_Scancode)*scancode);
+                    if (strlen(scancode_name) == 0) {
+                        j_keycodes->push_back((int64_t)*scancode);
+                    } else {
+                        j_keycodes->push_back(scancode_name);
+                    }
+                }
+            }
+        }
+
+        j_keymaps.push_back(std::move(j_keymap));
+    }
+
+    return j_keymaps;
 }
 
 static void SaveKeymaps(JSONWriter<StringStream> *writer) {
@@ -1195,6 +1323,29 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
     return true;
 }
 
+static nlohmann::json SaveShortcuts() {
+    nlohmann::json j_shortcuts;
+
+    ForEachCommandTable2([&j_shortcuts](CommandTable2 *table) -> void {
+        nlohmann::json *j_commands = &(j_shortcuts[table->GetDisplayText()] = nlohmann::json::object());
+
+        table->ForEachCommand([table, j_commands](Command2 *command) -> void {
+            bool are_defaults;
+            if (const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&are_defaults, command)) {
+                if (!are_defaults) {
+                    nlohmann::json *j_keys = &((*j_commands)[command->GetName()] = nlohmann::json::array());
+
+                    for (uint32_t pc_key : *pc_keys) {
+                        j_keys->push_back(SaveKeycodeObject(pc_key));
+                    }
+                }
+            }
+        });
+    });
+
+    return j_shortcuts;
+}
+
 static void SaveShortcuts(JSONWriter<StringStream> *writer) {
     auto shortcuts_json = ObjectWriter(writer, SHORTCUTS);
 
@@ -1329,6 +1480,32 @@ static bool LoadROM(rapidjson::Value *rom_json,
     }
 }
 
+static nlohmann::json SaveROM(const BeebConfig::ROM &rom, const bool *writeable_, const ROMType *type_) {
+    bool writeable = writeable_ && *writeable_;
+    ROMType type = type_ ? *type_ : ROMType_16KB;
+
+    if (!writeable && !rom.standard_rom && rom.file_name.empty()) {
+        return nullptr;
+    }
+
+    nlohmann::json j_rom = nlohmann::json::object();
+
+    if (writeable) {
+        j_rom[WRITEABLE] = true;
+    }
+
+    if (rom.standard_rom) {
+        j_rom[STANDARD_ROM] = SaveEnum(Enum<StandardROM>{rom.standard_rom->rom});
+    } else {
+        if (!rom.file_name.empty()) {
+            j_rom[FILE_NAME] = rom.file_name;
+            j_rom[TYPE] = SaveEnum(Enum<ROMType>{type});
+        }
+    }
+
+    return j_rom;
+}
+
 static void SaveROM(JSONWriter<StringStream> *writer,
                     const BeebConfig::ROM &rom,
                     const bool *writeable_,
@@ -1372,6 +1549,10 @@ static bool LoadROM(rapidjson::Value *rom_json,
     return LoadROM(rom_json, rom, &rom->writeable, &rom->type, json_path, msg);
 }
 
+static nlohmann::json SaveROM(const BeebConfig::SidewaysROM &rom) {
+    return SaveROM(rom, &rom.writeable, &rom.type);
+}
+
 static void SaveROM(JSONWriter<StringStream> *writer, const BeebConfig::SidewaysROM &rom) {
     SaveROM(writer, rom, &rom.writeable, &rom.type);
 }
@@ -1385,6 +1566,10 @@ static bool LoadROM(rapidjson::Value *rom_json,
                     const std::string &json_path,
                     Messages *msg) {
     return LoadROM(rom_json, rom, nullptr, nullptr, json_path, msg);
+}
+
+static nlohmann::json SaveROM(const BeebConfig::ROM &rom) {
+    return SaveROM(rom, nullptr, nullptr);
 }
 
 static void SaveROM(JSONWriter<StringStream> *writer, const BeebConfig::ROM &rom) {
@@ -1614,6 +1799,48 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
     return true;
 }
 
+static nlohmann::json SaveConfigs() {
+    nlohmann::json j_configs = nlohmann::json::array();
+
+    for (size_t config_idx = 0; config_idx < BeebWindows::GetNumConfigs(); ++config_idx) {
+        const BeebConfig *config = BeebWindows::GetConfigByIndex(config_idx);
+
+        if (const nlohmann::json *j_data = config->GetJSONData()) {
+            j_configs.push_back(*j_data);
+        } else {
+            nlohmann::json j_config = SaveConfigPartial(*config);
+
+            j_config[OS] = SaveROM(config->os);
+            j_config[TYPE] = SaveEnum(config->type_id);
+
+            if (config->disc_interface) {
+                j_config[DISC_INTERFACE] = config->disc_interface->config_name;
+            } else {
+                j_config[DISC_INTERFACE] = nullptr;
+            }
+
+            {
+                nlohmann::json *j_roms = &(j_config[ROMS] = nlohmann::json::array());
+
+                for (size_t rom_idx = 0; rom_idx < 16; ++rom_idx) {
+                    j_roms->push_back(SaveROM(config->roms[rom_idx]));
+                }
+            }
+
+            j_config[PARASITE_OS_MASTER_TURBO] = SaveROM(config->parasite_os_master_turbo);
+            j_config[PARASITE_OS_EXTERNAL_3MHZ_65C02] = SaveROM(config->parasite_os_external_3MHz_65c02);
+
+            if (!config->nvram.empty()) {
+                j_config[NVRAM] = GetHexStringFromData(config->nvram);
+            }
+
+            j_configs.push_back(std::move(j_config));
+        }
+    }
+
+    return j_configs;
+}
+
 static void SaveConfigs(JSONWriter<StringStream> *writer) {
     {
         auto configs_json = ArrayWriter(writer, NEW_CONFIGS);
@@ -1667,6 +1894,20 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void LoadNVRAM2(const nlohmann::json &j_nvram, std::vector<uint8_t> *nvram, Messages *msg, const char *key) {
+    (void)msg;
+
+    nvram->clear();
+
+    if (const nlohmann::json *j = GetValue(j_nvram, key)) {
+        if (j->is_string()) {
+            if (!GetDataFromHexString(nvram, j->get<std::string>())) {
+                nvram->clear();
+            }
+        }
+    }
+}
+
 static void LoadNVRAM2(rapidjson::Value *nvram_json, std::vector<uint8_t> *nvram, Messages *msg, const char *key) {
     nvram->clear();
 
@@ -1678,6 +1919,13 @@ static void LoadNVRAM2(rapidjson::Value *nvram_json, std::vector<uint8_t> *nvram
     }
 }
 
+static bool LoadNVRAM(const nlohmann::json &j_nvram, std::vector<uint8_t> *master_nvram, std::vector<uint8_t> *compact_nvram, Messages *msg) {
+    LoadNVRAM2(j_nvram, master_nvram, msg, "Master");
+    LoadNVRAM2(j_nvram, compact_nvram, msg, "MasterCompact");
+
+    return true;
+}
+
 static bool LoadNVRAM(rapidjson::Value *nvram_json, std::vector<uint8_t> *master_nvram, std::vector<uint8_t> *compact_nvram, Messages *msg) {
     LoadNVRAM2(nvram_json, master_nvram, msg, "Master");
     LoadNVRAM2(nvram_json, compact_nvram, msg, "MasterCompact");
@@ -1687,6 +1935,33 @@ static bool LoadNVRAM(rapidjson::Value *nvram_json, std::vector<uint8_t> *master
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+struct JoysticksJSON {
+    std::vector<std::string> device_names;
+    bool swap_joysticks_when_shared = false;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JoysticksJSON, device_names, swap_joysticks_when_shared);
+
+static bool LoadJoysticks(const nlohmann::json &j_joysticks, Messages *msg) {
+    JoysticksJSON joysticks;
+
+    std::string exc_what;
+    if (!LoadJSON(&joysticks, j_joysticks, &exc_what)) {
+        msg->e.f("%s: %s\n", JOYSTICKS);
+        return false;
+    }
+
+    JoysticksConfig config;
+    for (uint8_t i = 0; i < joysticks.device_names.size() && i < NUM_BEEB_JOYSTICKS; ++i) {
+        config.device_names[i] = joysticks.device_names[i];
+    }
+
+    config.swap_joysticks_when_shared = joysticks.swap_joysticks_when_shared;
+
+    SetJoysticksConfig(config);
+
+    return true;
+}
 
 static bool LoadJoysticks(rapidjson::Value *joysticks_json, Messages *msg) {
     JoysticksConfig config;
@@ -1709,6 +1984,19 @@ static bool LoadJoysticks(rapidjson::Value *joysticks_json, Messages *msg) {
     SetJoysticksConfig(config);
 
     return true;
+}
+
+static nlohmann::json SaveJoysticks() {
+    const JoysticksConfig config = GetJoysticksConfig();
+
+    JoysticksJSON joysticks;
+    for (uint8_t i = 0; i < NUM_BEEB_JOYSTICKS; ++i) {
+        joysticks.device_names.push_back(config.device_names[i].c_str());
+    }
+
+    joysticks.swap_joysticks_when_shared = config.swap_joysticks_when_shared;
+
+    return joysticks;
 }
 
 static void SaveJoysticks(JSONWriter<StringStream> *writer) {
@@ -1747,6 +2035,17 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool LoadTrace(const nlohmann::json &j_trace, Messages *msg) {
+    TraceUISettings settings;
+
+    if (!LoadTrace(&settings, j_trace, msg)) {
+        return false;
+    }
+
+    SetDefaultTraceUISettings(settings);
+    return true;
+}
+
 static bool LoadTrace(rapidjson::Value *trace_json, Messages *msg) {
     TraceUISettings settings;
 
@@ -1767,6 +2066,26 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct BeebLinkJSON {
+    std::vector<std::string> urls;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BeebLinkJSON, urls);
+
+static bool LoadBeebLink(const nlohmann::json &j_beeblink, Messages *msg) {
+    std::vector<std::string> urls;
+
+    BeebLinkJSON beeblink;
+
+    std::string exc_what;
+    if (!LoadJSON(&beeblink, j_beeblink, &exc_what)) {
+        msg->e.f("%s: %s\n", exc_what.c_str(), BEEBLINK, URLS);
+        return false;
+    }
+
+    BeebLinkHTTPHandler::SetServerURLs(beeblink.urls);
+    return true;
+}
+
 static bool LoadBeebLink(rapidjson::Value *beeblink_json, Messages *msg) {
     std::vector<std::string> urls;
 
@@ -1784,6 +2103,14 @@ static bool LoadBeebLink(rapidjson::Value *beeblink_json, Messages *msg) {
     BeebLinkHTTPHandler::SetServerURLs(urls);
 
     return true;
+}
+
+static nlohmann::json SaveBeebLink() {
+    BeebLinkJSON beeblink;
+
+    beeblink.urls = BeebLinkHTTPHandler::GetServerURLs();
+
+    return beeblink;
 }
 
 static void SaveBeebLink(JSONWriter<StringStream> *writer) {
@@ -1994,41 +2321,81 @@ bool LoadGlobalConfigRapidJSON(bool use_rapidjson, Messages *msg) {
             }
         }
 
-        rapidjson::Value trace;
-        if (FindObjectMember(&trace, doc.get(), TRACE, msg)) {
-            LOGF(LOADSAVE, "Loading trace.\n");
+        if (use_rapidjson) {
+            rapidjson::Value trace;
+            if (FindObjectMember(&trace, doc.get(), TRACE, msg)) {
+                LOGF(LOADSAVE, "Loading trace.\n");
 
-            if (!LoadTrace(&trace, msg)) {
-                return false;
+                if (!LoadTrace(&trace, msg)) {
+                    return false;
+                }
+            }
+        } else {
+            if (const nlohmann::json *j_trace = GetValue(j_doc, TRACE)) {
+                LOGF(LOADSAVE, "Loading trace.\n");
+
+                if (!LoadTrace(*j_trace, msg)) {
+                    return false;
+                }
             }
         }
 
-        rapidjson::Value beeblink;
-        if (FindObjectMember(&beeblink, doc.get(), BEEBLINK, msg)) {
-            LOGF(LOADSAVE, "Loading BeebLink.\n");
+        if (use_rapidjson) {
+            rapidjson::Value beeblink;
+            if (FindObjectMember(&beeblink, doc.get(), BEEBLINK, msg)) {
+                LOGF(LOADSAVE, "Loading BeebLink.\n");
 
-            if (!LoadBeebLink(&beeblink, msg)) {
-                return false;
+                if (!LoadBeebLink(&beeblink, msg)) {
+                    return false;
+                }
+            }
+        } else {
+            if (const nlohmann::json *j_beeblink = GetValue(j_doc, BEEBLINK)) {
+                LOGF(LOADSAVE, "Loading BeebLink.\n");
+
+                if (!LoadBeebLink(*j_beeblink, msg)) {
+                    return false;
+                }
             }
         }
 
-        // Only 2 types of NVRAM were ever supported by the old-style NVRAM
-        // setup.
-        rapidjson::Value nvram;
-        if (FindObjectMember(&nvram, doc.get(), NVRAM, msg)) {
-            LOGF(LOADSAVE, "Loading old NVRAM.\n");
+        if (use_rapidjson) {
+            // Only 2 types of NVRAM were ever supported by the old-style NVRAM
+            // setup.
+            rapidjson::Value nvram;
+            if (FindObjectMember(&nvram, doc.get(), NVRAM, msg)) {
+                LOGF(LOADSAVE, "Loading old NVRAM.\n");
 
-            if (!LoadNVRAM(&nvram, &master_nvram, &compact_nvram, msg)) {
-                return false;
+                if (!LoadNVRAM(&nvram, &master_nvram, &compact_nvram, msg)) {
+                    return false;
+                }
+            }
+        } else {
+            if (const nlohmann::json *j_nvram = GetValue(j_doc, NVRAM)) {
+                LOGF(LOADSAVE, "Loading old NVRAM.\n");
+
+                if (!LoadNVRAM(*j_nvram, &master_nvram, &compact_nvram, msg)) {
+                    return false;
+                }
             }
         }
 
-        rapidjson::Value joysticks;
-        if (FindObjectMember(&joysticks, doc.get(), JOYSTICKS, msg)) {
-            LOGF(LOADSAVE, "Loading joysticks.\n");
+        if (use_rapidjson) {
+            rapidjson::Value joysticks;
+            if (FindObjectMember(&joysticks, doc.get(), JOYSTICKS, msg)) {
+                LOGF(LOADSAVE, "Loading joysticks.\n");
 
-            if (!LoadJoysticks(&joysticks, msg)) {
-                return false;
+                if (!LoadJoysticks(&joysticks, msg)) {
+                    return false;
+                }
+            }
+        } else {
+            if (const nlohmann::json *j_joysticks = GetValue(j_doc, JOYSTICKS)) {
+                LOGF(LOADSAVE, "Loading joysticks.\n");
+
+                if (!LoadJoysticks(*j_joysticks, msg)) {
+                    return false;
+                }
             }
         }
     }
@@ -2089,36 +2456,55 @@ bool SaveGlobalConfigRapidJSON(bool use_rapidjson, Messages *messages) {
         return false;
     }
 
-    std::string json;
-    {
-        StringStream stream(&json);
-        JSONWriter<StringStream> writer(stream);
+    if (use_rapidjson) {
+        std::string json;
+        {
+            StringStream stream(&json);
+            JSONWriter<StringStream> writer(stream);
 
-        auto root = ObjectWriter(&writer);
+            auto root = ObjectWriter(&writer);
 
-        SaveGlobals(&writer);
+            SaveGlobals(&writer);
 
-        SaveRecentPaths(&writer);
+            SaveRecentPaths(&writer);
 
-        SaveSelectorDialogPersistentData(&writer);
+            SaveSelectorDialogPersistentData(&writer);
 
-        SaveKeymaps(&writer);
+            SaveKeymaps(&writer);
 
-        SaveShortcuts(&writer);
+            SaveShortcuts(&writer);
 
-        SaveWindows(&writer);
+            SaveWindows(&writer);
 
-        SaveTrace(&writer);
+            SaveTrace(&writer);
 
-        SaveBeebLink(&writer);
+            SaveBeebLink(&writer);
 
-        SaveConfigs(&writer);
+            SaveConfigs(&writer);
 
-        SaveJoysticks(&writer);
-    }
+            SaveJoysticks(&writer);
+        }
 
-    if (!SaveTextFile(json, fname, messages)) {
-        return false;
+        if (!SaveTextFile(json, fname, messages)) {
+            return false;
+        }
+    } else {
+        nlohmann::json j;
+
+        j[GLOBALS] = SaveGlobals();
+        j[RECENT_PATHS] = SaveRecentPaths();
+        j[SELECTOR_DIALOG_PERSISTENT_DATA] = SaveSelectorDialogPersistentData();
+        j[NEW_KEYMAPS] = SaveKeymaps();
+        j[SHORTCUTS] = SaveShortcuts();
+        j[WINDOWS] = SaveWindows();
+        j[TRACE] = SaveTrace();
+        j[BEEBLINK] = SaveBeebLink();
+        j[NEW_CONFIGS] = SaveConfigs();
+        j[JOYSTICKS] = SaveJoysticks();
+
+        if (!SaveJSONFile(j, fname, messages)) {
+            return false;
+        }
     }
 
     return true;

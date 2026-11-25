@@ -1860,7 +1860,7 @@
         "config": "B/Acorn 1770",
         "correct_aspect_ratio": true,
         "debugger_show_mmio": false,
-        "debugger_syntax": 0,
+        "debugger_syntax": "BBCBASIC",
         "disc_mute": false,
         "disc_volume": 0.0,
         "display_interlace": false,

@@ -131,7 +131,8 @@ EBEGIN()
 EPN(BBCBASIC)
 EPN(Assembler)
 EPN(C)
-EEND()
+EMETA_TRAITS_FIELD(may_deserialize_numbers, true)
+EEND_SERIALIZABLE("70b25a39954bc1ea19e379ad938c4c12f37bca9e")
 #undef ENAME
 
 //////////////////////////////////////////////////////////////////////////

@@ -69,6 +69,7 @@ class RecentPaths {
 
     void Clear();
 
+    const std::vector<std::string> &GetPaths() const;
     void SetPaths(std::vector<std::string> paths);
 
     void AddPath(std::string path);

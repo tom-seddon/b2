@@ -94,3 +94,14 @@ STRUCT_BEGIN()
 STRUCT_FIELD(name, std::string)
 STRUCT_END()
 #undef STRUCT_NAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME MayDeserializeNumbers1
+EBEGIN()
+EPNV(Value0, 0)
+EPNV(Value1, 1)
+EMETA_TRAITS_FIELD(may_deserialize_numbers, true)
+EEND_SERIALIZABLE("71d7e87613d7f2d7fd61ae2efd571e4febd463e5")
+#undef ENAME
