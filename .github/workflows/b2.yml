@@ -11,7 +11,7 @@ jobs:
   build-linux-x64-gcc-ffmpeg:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci-ubuntu-gcc-ffmpeg UPLOAD=1
@@ -21,7 +21,7 @@ jobs:
   build-linux-x64-clang-ffmpeg:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci-ubuntu-clang-ffmpeg
@@ -29,7 +29,7 @@ jobs:
   build-linux-arm-gcc-ffmpeg:
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci-ubuntu-gcc-ffmpeg
@@ -39,7 +39,7 @@ jobs:
   build-linux-arm-clang-ffmpeg:
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci-ubuntu-clang-ffmpeg
@@ -47,7 +47,7 @@ jobs:
   build-linux-x64-gcc-no_ffmpeg:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci-ubuntu-gcc-no_ffmpeg
@@ -55,7 +55,7 @@ jobs:
   build-windows-x64:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci_windows UPLOAD=1
@@ -65,7 +65,7 @@ jobs:
   build-windows-arm:
     runs-on: windows-11-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make -f "bin/install_windows_arm_prerequisites.mak"
@@ -76,7 +76,7 @@ jobs:
   build-older-macos-x64:
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci_macos_homebrew
@@ -87,7 +87,7 @@ jobs:
   build-macos-arm:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - run: make github_ci_macos_homebrew
