@@ -32,7 +32,11 @@ bool LoadSelectorDialogPersistentDataOSX(const nlohmann::json &j, std::string *e
 }
 
 nlohmann::json SaveSelectorDialogPersistentDataOSX() {
-    return g_persistent_file_dialog_data_by_guid;
+    if (g_persistent_file_dialog_data_by_guid.empty()) {
+        return nullptr;
+    } else {
+        return g_persistent_file_dialog_data_by_guid;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
