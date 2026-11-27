@@ -925,7 +925,8 @@ def set_submodule_upstreams_cmd(options):
             ('salieri','nemequ','salieri'),
             ('visual6502','trebonian','visual6502'),
             ('imgui_test_engine','ocornut','imgui_test_engine'),
-            ('6502Timing','dp111','6502Timing')]:
+            ('6502Timing','dp111','6502Timing'),
+            ('rcedit','electron','rcedit')]:
         set_submodule_upstream(submodule,
                                f'https://github.com/{owner}/{repo}')
 
