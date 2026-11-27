@@ -70,6 +70,20 @@ jobs:
           submodules: recursive
       - run: make -f "bin/install_windows_arm_prerequisites.mak"
         timeout-minutes: 10
+      - name: Gather VS installer logs
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force vs_logs | Out-Null
+          Copy-Item "$env:TEMP\dd_*.log" vs_logs -ErrorAction SilentlyContinue
+          Get-ChildItem vs_logs
+          # Show the interesting lines in the job log too
+          Select-String -Path vs_logs\*.log -Pattern 'error|fail|0x80|exit code' | Select-Object -Last 100
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vs-installer-logs
+          path: vs_logs
       - run: make github_ci_windows UPLOAD=1
         env:
           GH_TOKEN: ${{ github.token }}
