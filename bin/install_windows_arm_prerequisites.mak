@@ -8,7 +8,7 @@ INSTALLER_PATH:=C:/Program Files (x86)/Microsoft Visual Studio/Installer
 VSWHERE:=$(INSTALLER_PATH)/vswhere.exe
 VSINSTALLER:=$(INSTALLER_PATH)/vs_installer.exe
 
-VS_INSTALL_PATH:=$(shell "$(VSWHERE)" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath)
+VS_INSTALL_PATH:=$(shell "$(VSWHERE)" -version [17.0,18.0) -products * -requires Microsoft.Component.MSBuild -property installationPath)
 
 .PHONY:default
 default:
