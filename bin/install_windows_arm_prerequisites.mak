@@ -14,4 +14,4 @@ VS_INSTALL_PATH:=$(shell "$(VSWHERE)" -latest -products * -requires Microsoft.Co
 default:
 	"$(VSWHERE)" -latest -products * -requires Microsoft.Component.MSBuild -format json
 	$(if $(VS_INSTALL_PATH),,$(error Failed to find Visual Studio install path))
-	"$(VSINSTALLER)" modify --installPath "$(VS_INSTALL_PATH)" --add Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL.ARM64 --norestart --passive
+	"$(VSINSTALLER)" modify --installPath "$(VS_INSTALL_PATH)" --add Microsoft.VisualStudio.Component.VC.ATL.ARM64 --norestart --passive
