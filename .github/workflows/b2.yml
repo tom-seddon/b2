@@ -69,6 +69,7 @@ jobs:
         with:
           submodules: recursive
       - run: make -f "bin/install_windows_arm_prerequisites.mak"
+        timeout-minutes: 10
       - run: make github_ci_windows UPLOAD=1
         env:
           GH_TOKEN: ${{ github.token }}
