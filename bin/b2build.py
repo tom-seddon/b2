@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys,os,os.path,argparse,subprocess,shutil,shlex,collections,tempfile,glob,textwrap,datetime,time
+import sys,os,os.path,argparse,subprocess,shutil,shlex,collections,tempfile,glob,textwrap,datetime,time,json
 
 ##########################################################################
 ##########################################################################
@@ -343,6 +343,8 @@ class BuildMatrix:
         self.xcode=False
         self.vs2022=False
         self.vs2022_architecture=None
+        self.vs2026=False
+        self.vs2026_architecture=None
         self.unix_configurations=[]
         self.unix_sanitizers=[]
         self.unix_compilers=[]
@@ -360,27 +362,32 @@ def get_optional_option(option,value):
 ##########################################################################
 ##########################################################################
 
-VSStuff=collections.namedtuple('VSStuff','year install_path devenv_path cmake_path ctest_path')
+VSStuff=collections.namedtuple('VSStuff','year install_path devenv_path cmake_path ctest_path sln_ext')
 
 def get_vs_stuff(version):
-    if version==17: year=2022
+    if version==17:
+        year=2022
+        sln_ext='.sln'
+    elif version==18:
+        year=2026
+        sln_ext='.slnx'
     else:
         # TODO: add more cases as required.
         fatal('unrecognised Visual Studio version: %s'%version)
     
     argv=[r'''C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe''',
-          '-version',str(version),
+          '-utf8',
+          '-version',f'''[{version},{version+1})''',
           '-property','installationPath']
-    vswhere_subprocess=subprocess.Popen(argv,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.DEVNULL)
-    vswhere_subprocess.wait()
-    if vswhere_subprocess.returncode!=0:
-        fatal('failed with exit code %d: %s'%(ret.returncode,get_copyable_argv(argv)))
+    vswhere_output=subprocess.check_output(argv,encoding='utf-8').splitlines()
 
-    # TODO: do you need to specify an encoding here?
-    data=vswhere_subprocess.stdout.read()
-    install_path=data.strip().decode()
+    if len(vswhere_output)>1: fatal(f'''vswhere printed multiple lines''')
+
+    install_path=vswhere_output[0].strip()
+
+    # ## ...
+    # data=vswhere_subprocess.stdout.read()
+    # install_path=data.strip().decode()
 
     cmake_bin_path=os.path.join(install_path,
                                 'common7',
@@ -393,7 +400,7 @@ def get_vs_stuff(version):
 
     def get_required_file_path(*parts):
         path=os.path.join(*parts)
-        if not os.path.isfile(path): fatal('file not found: %s'%path)
+        if not os.path.isfile(path): fatal('required file not found: %s'%path)
         return path
 
     cmake_path=get_required_file_path(cmake_bin_path,'cmake.exe')
@@ -404,7 +411,8 @@ def get_vs_stuff(version):
                    install_path=install_path,
                    devenv_path=devenv_path,
                    cmake_path=cmake_path,
-                   ctest_path=ctest_path)
+                   ctest_path=ctest_path,
+                   sln_ext=sln_ext)
 
 ##########################################################################
 ##########################################################################
@@ -563,12 +571,11 @@ def create_build_makefile(matrix,
                       test_target=None,
                       output_path=output_path))
 
-    def add_visual_studio_targets(vsver):
-        vs_stuff=get_vs_stuff(17)
+    def add_visual_studio_targets(vsver,vsarch):
+        vs_stuff=get_vs_stuff(vsver)
 
         output_path_name=f'vs{vs_stuff.year}'
-        if matrix.vs2022_architecture is not None:
-            output_path_name+=f'_{matrix.vs2022_architecture}'
+        if vsarch is not None: output_path_name+=f'_{vsarch}'
         output_path=get_output_path(output_path_name)
         
         #init_target=makefile.add_named_target(f'init_vs{vs_stuff.year}')
@@ -584,17 +591,17 @@ def create_build_makefile(matrix,
                              'bin/msbuild_bug_wrapper.bat'),
                 caller_path)
 
-        init_target.add_line(f'''$(_V)"{get_msbuild_bat_path(build_folder)}" $(PYTHON) "{b2build_py_path}" {global_options} _init_vs {get_optional_option('--name',options.name)} {get_optional_option('--architecture',matrix.vs2022_architecture)} {vsver} "{output_path}"''')
+        init_target.add_line(f'''$(_V)"{get_msbuild_bat_path(build_folder)}" $(PYTHON) "{b2build_py_path}" {global_options} _init_vs {get_optional_option('--name',options.name)} {get_optional_option('--architecture',vsarch)} {vsver} "{output_path}"''')
 
         for configuration,cmake_build_type in CMAKE_CONFIGURATIONS.items():
             build_target=makefile.add_named_target(f'build_vs{vs_stuff.year}{configuration}')
             msbuild_bat=get_msbuild_bat_path(os.path.join(build_folder,
                                                           output_path))
             
-            build_target.add_line(f'''$(_V)cd "{output_path}" && "{msbuild_bat}" "{vs_stuff.devenv_path}" b2.sln /Build "{cmake_build_type}"''')
+            build_target.add_line(f'''$(_V)cd "{output_path}" && "{msbuild_bat}" "{vs_stuff.devenv_path}" b2{vs_stuff.sln_ext} /Build "{cmake_build_type}"''')
 
             clean_target=makefile.add_named_target(f'clean_vs{vs_stuff.year}{configuration}')
-            clean_target.add_line(f'''$(_V)cd "{output_path}" && "{msbuild_bat}" "{vs_stuff.devenv_path}" b2.sln /Clean "{cmake_build_type}"''')
+            clean_target.add_line(f'''$(_V)cd "{output_path}" && "{msbuild_bat}" "{vs_stuff.devenv_path}" b2{vs_stuff.sln_ext} /Clean "{cmake_build_type}"''')
 
             test_target=makefile.add_named_target(f'test_vs{vs_stuff.year}{configuration}')
             test_target.add_line(f'''$(_V)cd "{output_path}" && "{vs_stuff.ctest_path}" {j_option} -C "{cmake_build_type}" --progress''')
@@ -610,7 +617,10 @@ def create_build_makefile(matrix,
                           test_target=test_target,
                           output_path=output_path))
 
-    if matrix.vs2022: add_visual_studio_targets(17)
+    if matrix.vs2022: add_visual_studio_targets(17,matrix.vs2022_architecture)
+    if matrix.vs2026: add_visual_studio_targets(18,matrix.vs2026_architecture)
+
+    if len(build_types)==0: fatal('no build types specified')
 
     # init_all depends on all init targets.
     target=makefile.add_named_target('init_all')
@@ -661,6 +671,8 @@ def init_cmd(options):
 
     matrix.vs2022=options.vs2022
     matrix.vs2022_architecture=options.vs2022_architecture
+    matrix.vs2026=options.vs2026
+    matrix.vs2026_architecture=options.vs2026_architecture
     matrix.xcode=options.xcode
     matrix.osx_deployment_target=options.osx_deployment_target
 
@@ -816,7 +828,9 @@ def print_build_timestamp_cmd(options):
 def batch_cmd(options):
     matrix=BuildMatrix()
 
-    if is_windows(): matrix.vs2022=True
+    if is_windows():
+        matrix.vs2022=options.vs2022
+        matrix.vs2026=options.vs2026
 
     if is_unix():
         matrix.unix_configurations+=[t for t in CMAKE_CONFIGURATIONS.keys()]
@@ -1218,9 +1232,13 @@ def release_binary_windows_cmd(options):
     with ChangeDirectory(options.g_working_copy_path):
         head_revision=get_head_revision()
 
+    if options.vs2022 and options.vs2026:
+        fatal('''can only build with one compiler''')
+
     # TODO: more logic here.
     matrix=BuildMatrix()
-    matrix.vs2022=True
+    matrix.vs2022=options.vs2022
+    matrix.vs2026=options.vs2026
 
     # Build stuff in build/release_binary_windowvs2022 (or similar).
     prefix='release_binary_windows'
@@ -1593,6 +1611,8 @@ def main(argv):
         subparser.add_argument('--unix',action='store_true',help='''initialise Unix-style build''')
         subparser.add_argument('--vs2022',action='store_true',help='''initialise VS2022 build''')
         subparser.add_argument('--vs2022-architecture',metavar='ARCH',default=None,help='''initialise VS2022 build for architecture %(metavar)s, one of x64 or ARM. A default will be chosen if not specified''')
+        subparser.add_argument('--vs2026',action='store_true',help='''initialise VS2026 build''')
+        subparser.add_argument('--vs2026-architecture',metavar='ARCH',default=None,help='''initialise VS2026 build for architecture %(metavar)s, one of x64 or ARM. A default will be chosen if not specified''')
         subparser.add_argument('--xcode',action='store_true',help='''initialise Xcode build''')
         subparser.add_argument('--enable-sanitizers',action='store_true',help='''if building Unix-style, try to use any supported sanitizers''')
 
@@ -1631,8 +1651,11 @@ def main(argv):
     add_common_init_options(_init_vs_subparser)
 
     batch_subparser=add_subparser('batch',batch_cmd,help='''do batch builds/tests''')
-    batch_subparser.add_argument('--cc-cxx',metavar='CC CXX',nargs=2,action='append',dest='compilers',default=[],help='''use %(metavar)s as C and C++ compiler respectively for Unix builds. Can specifiy multiple times''')
+    batch_subparser.add_argument('--cc-cxx',metavar='CC',nargs=2,action='append',dest='compilers',default=[],help='''use %(metavar)s as C and C++ compiler respectively for Unix builds. Can specifiy multiple times''')
     add_common_init_options(batch_subparser)
+    if is_windows():
+        batch_subparser.add_argument('--vs2022',action='store_true',help='''build with Visual Studio 2022''')
+        batch_subparser.add_argument('--vs2026',action='store_true',help='''build with Visual Studio 2026''')
     # don't bother adding macOS-specific target options. Batch builds
     # only have to be good enough to run on the local system.
     batch_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
@@ -1662,6 +1685,8 @@ def main(argv):
     
     release_binary_windows_subparser=add_subparser('release-binary-windows',release_binary_windows_cmd,help='''make Windows binary release''')
     release_binary_windows_subparser.add_argument('name',help='''name for build''')
+    release_binary_windows_subparser.add_argument('--vs2022',action='store_true',help='''build with Visual Studio 2022''')
+    release_binary_windows_subparser.add_argument('--vs2026',action='store_true',help='''build with Visual Studio 2026''')
     release_binary_windows_subparser.add_argument('--no-init',dest='init',action='store_false',help='''don't init (unless obviously required)''')
     release_binary_windows_subparser.add_argument('--no-test',action='store_false',dest='test',help='''don't run tests''')
     add_common_release_options(release_binary_windows_subparser)

@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
-      - run: make github_ci_windows UPLOAD=1
+      - run: make github_ci_windows UPLOAD=1 VSYEAR=2022
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -84,7 +84,7 @@ jobs:
         with:
           name: vs-installer-logs
           path: vs_logs
-      - run: make github_ci_windows UPLOAD=1
+      - run: make github_ci_windows UPLOAD=1 VSYEAR=2026
         env:
           GH_TOKEN: ${{ github.token }}
           

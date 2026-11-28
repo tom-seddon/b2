@@ -2,7 +2,8 @@
 
 Prerequisites:
 
-- Visual Studio 2022. Ensure the following components are installed:
+- Visual Studio 2022 or Visual Studio 2026. Ensure the following
+  components are installed:
   - C++ CMake tools for Windows
   - C++ ATL for latest build tools
 - Python 3.x (the version that comes with Visual Studio 2022 is fine)
@@ -15,9 +16,11 @@ Initial setup, for use after cloning or updating the repo:
 
 1. Open command prompt in working copy folder 
 
-2. Run `make init_vs2022` to generate a solution for Visual Studio
-   2022
-   
+2. Generate a solution for Visual Studio:
+
+   - `make init_vs2022` if using VS2022
+   - `make init_vs2026` if using VS2026
+
    You should get a bunch of output - there may be the odd warning,
    but there should be no obvious errors, and it should finish with an
    exit code of 0
@@ -27,6 +30,7 @@ Build steps:
 1. Load solution into Visual Studio:
 
    - `build\vs2022\b2.sln` if using VS2022
+   - `build\vs2026\b2.slnx` if using VS2026
 
 2. Build configuration of interest:
 
@@ -36,7 +40,7 @@ Build steps:
 3. Run
 
 (These build steps may also work after updating the repo; cmake is
-supposed to sort itself out. But it does cache some information and
+supposed to sort itself out. But it does cache some information, and
 the initial build steps ensure everything is rebuilt.)
 
 # Notes
@@ -44,10 +48,13 @@ the initial build steps ensure everything is rebuilt.)
 - Because of the way cmake works, there are 50+ projects in the
   solution. Even though most are rarely used, they're still there
   cluttering the place up. You just have to put up with this
-  
+
 # Running the automated tests
 
-Run `make precommit_vs2022`.
+Run one of these commands:
+
+- `make precommit_vs2022` if using VS2022
+- `make precommit_vs2026` if using VS2026
 
 This will build all 3 configurations and run the automated tests for
 each. It may take a while. There should be no failures.
